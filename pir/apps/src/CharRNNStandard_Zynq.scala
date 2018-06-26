@@ -6,1034 +6,1047 @@ import prism.enums._
 object CharRNNStandard_Zynq extends PIRApp {
   def main(implicit design:PIRDesign) = {
     import design.pirmeta._
-    val x9863 = DRAM().name("x9863").ctrl(top) // x9863 = DRAMNew(ArrayBuffer(Const(65), Const(512)),Const(0))
-    val x9864 = DRAM().name("x9864").ctrl(top) // x9864 = DRAMNew(ArrayBuffer(Const(512)),Const(0))
-    val x9865 = DRAM().name("x9865").ctrl(top) // x9865 = DRAMNew(ArrayBuffer(Const(128), Const(512)),Const(0))
-    val x9866 = DRAM().name("x9866").ctrl(top) // x9866 = DRAMNew(ArrayBuffer(Const(512)),Const(0))
-    val x9867 = DRAM().name("x9867").ctrl(top) // x9867 = DRAMNew(ArrayBuffer(Const(128), Const(512)),Const(0))
-    val x9868 = DRAM().name("x9868").ctrl(top) // x9868 = DRAMNew(ArrayBuffer(Const(512)),Const(0))
-    val x9869 = DRAM().name("x9869").ctrl(top) // x9869 = DRAMNew(ArrayBuffer(Const(128), Const(512)),Const(0))
-    val x9870 = DRAM().name("x9870").ctrl(top) // x9870 = DRAMNew(ArrayBuffer(Const(512)),Const(0))
-    val x9871 = DRAM().name("x9871").ctrl(top) // x9871 = DRAMNew(ArrayBuffer(Const(128), Const(65)),Const(0))
-    val x9872 = DRAM().name("x9872").ctrl(top) // x9872 = DRAMNew(ArrayBuffer(Const(65)),Const(0))
-    val x9873 = DRAM().name("x9873").ctrl(top) // x9873 = DRAMNew(ArrayBuffer(Const(1), Const(128)),Const(0))
-    val x9874 = DRAM().name("x9874").ctrl(top) // x9874 = DRAMNew(ArrayBuffer(Const(1), Const(128)),Const(0))
-    val x9875 = DRAM().name("x9875").ctrl(top) // x9875 = DRAMNew(ArrayBuffer(Const(3), Const(1), Const(65)),Const(0))
-    val x9975 = DRAM().name("x9975").ctrl(top) // x9975 = DRAMNew(ArrayBuffer(Const(3), Const(65), Const(1)),Const(0))
-    val x10683 = UnitController(style=SeqPipe, level=OuterControl).name("x10683").ctrl(top) // Hwblock(Block(Const(())),false)
-    val x9976_d0_b0 = SRAM(size=33280, banking=Strided(banks=1, stride=512)).name("x9976_d0_b0").ctrl(x10683) // x9976 = SRAMNew(ArrayBuffer(Const(65), Const(512)))
-    isAccum(x9976_d0_b0) = false
-    bufferDepthOf(x9976_d0_b0) = 1
-    val x9977_d0_b0 = SRAM(size=512, banking=Strided(banks=1, stride=1)).name("x9977_d0_b0").ctrl(x10683) // x9977 = SRAMNew(ArrayBuffer(Const(512)))
-    isAccum(x9977_d0_b0) = false
-    bufferDepthOf(x9977_d0_b0) = 1
-    val x9978_d0_b0 = SRAM(size=65536, banking=Strided(banks=1, stride=512)).name("x9978_d0_b0").ctrl(x10683) // x9978 = SRAMNew(ArrayBuffer(Const(128), Const(512)))
-    isAccum(x9978_d0_b0) = false
-    bufferDepthOf(x9978_d0_b0) = 1
-    val x9979_d0_b0 = SRAM(size=512, banking=Strided(banks=1, stride=1)).name("x9979_d0_b0").ctrl(x10683) // x9979 = SRAMNew(ArrayBuffer(Const(512)))
-    isAccum(x9979_d0_b0) = false
-    bufferDepthOf(x9979_d0_b0) = 1
-    val x9980_d0_b0 = SRAM(size=65536, banking=Strided(banks=1, stride=512)).name("x9980_d0_b0").ctrl(x10683) // x9980 = SRAMNew(ArrayBuffer(Const(128), Const(512)))
-    isAccum(x9980_d0_b0) = false
-    bufferDepthOf(x9980_d0_b0) = 1
-    val x9981_d0_b0 = SRAM(size=512, banking=Strided(banks=1, stride=1)).name("x9981_d0_b0").ctrl(x10683) // x9981 = SRAMNew(ArrayBuffer(Const(512)))
-    isAccum(x9981_d0_b0) = false
-    bufferDepthOf(x9981_d0_b0) = 1
-    val x9982_d0_b0 = SRAM(size=65536, banking=Strided(banks=1, stride=512)).name("x9982_d0_b0").ctrl(x10683) // x9982 = SRAMNew(ArrayBuffer(Const(128), Const(512)))
-    isAccum(x9982_d0_b0) = false
-    bufferDepthOf(x9982_d0_b0) = 1
-    val x9983_d0_b0 = SRAM(size=512, banking=Strided(banks=1, stride=1)).name("x9983_d0_b0").ctrl(x10683) // x9983 = SRAMNew(ArrayBuffer(Const(512)))
-    isAccum(x9983_d0_b0) = false
-    bufferDepthOf(x9983_d0_b0) = 1
-    val x9984_d0_b0 = SRAM(size=8320, banking=Strided(banks=1, stride=65)).name("x9984_d0_b0").ctrl(x10683) // x9984 = SRAMNew(ArrayBuffer(Const(128), Const(65)))
-    isAccum(x9984_d0_b0) = false
-    bufferDepthOf(x9984_d0_b0) = 1
-    val x9985_d0_b0 = SRAM(size=65, banking=Strided(banks=1, stride=1)).name("x9985_d0_b0").ctrl(x10683) // x9985 = SRAMNew(ArrayBuffer(Const(65)))
-    isAccum(x9985_d0_b0) = false
-    bufferDepthOf(x9985_d0_b0) = 1
-    val x9986_d0_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9986_d0_b0").ctrl(x10683) // x9986 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
-    isAccum(x9986_d0_b0) = false
-    bufferDepthOf(x9986_d0_b0) = 1
-    val x9986_d1_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9986_d1_b0").ctrl(x10683) // x9986 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
-    isAccum(x9986_d1_b0) = true
-    bufferDepthOf(x9986_d1_b0) = 1
-    val x9986_d2_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9986_d2_b0").ctrl(x10683) // x9986 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
-    isAccum(x9986_d2_b0) = false
-    bufferDepthOf(x9986_d2_b0) = 1
-    val x9986_d3_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9986_d3_b0").ctrl(x10683) // x9986 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
-    isAccum(x9986_d3_b0) = true
-    bufferDepthOf(x9986_d3_b0) = 1
-    val x9987_d0_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9987_d0_b0").ctrl(x10683) // x9987 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
-    isAccum(x9987_d0_b0) = false
-    bufferDepthOf(x9987_d0_b0) = 1
-    val x9987_d1_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9987_d1_b0").ctrl(x10683) // x9987 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
-    isAccum(x9987_d1_b0) = false
-    bufferDepthOf(x9987_d1_b0) = 2
-    val x9987_d2_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9987_d2_b0").ctrl(x10683) // x9987 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
-    isAccum(x9987_d2_b0) = false
-    bufferDepthOf(x9987_d2_b0) = 1
-    val x9987_d3_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9987_d3_b0").ctrl(x10683) // x9987 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
-    isAccum(x9987_d3_b0) = false
-    bufferDepthOf(x9987_d3_b0) = 1
-    val x9988_d0_b0 = SRAM(size=65, banking=Strided(banks=1, stride=65)).name("x9988_d0_b0").ctrl(x10683) // x9988 = SRAMNew(ArrayBuffer(Const(1), Const(65)))
-    isAccum(x9988_d0_b0) = false
-    bufferDepthOf(x9988_d0_b0) = 1
-    val x9988_d1_b0 = SRAM(size=65, banking=Strided(banks=1, stride=65)).name("x9988_d1_b0").ctrl(x10683) // x9988 = SRAMNew(ArrayBuffer(Const(1), Const(65)))
-    isAccum(x9988_d1_b0) = false
-    bufferDepthOf(x9988_d1_b0) = 1
-    val x9989_d0_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9989_d0_b0").ctrl(x10683) // x9989 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
-    isAccum(x9989_d0_b0) = false
-    bufferDepthOf(x9989_d0_b0) = 1
-    val x9989_d1_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9989_d1_b0").ctrl(x10683) // x9989 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
-    isAccum(x9989_d1_b0) = false
-    bufferDepthOf(x9989_d1_b0) = 1
-    val x9990_d0_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9990_d0_b0").ctrl(x10683) // x9990 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
-    isAccum(x9990_d0_b0) = false
-    bufferDepthOf(x9990_d0_b0) = 1
-    val x9990_d1_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9990_d1_b0").ctrl(x10683) // x9990 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
-    isAccum(x9990_d1_b0) = false
-    bufferDepthOf(x9990_d1_b0) = 1
-    val x9991_d0_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9991_d0_b0").ctrl(x10683) // x9991 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
-    isAccum(x9991_d0_b0) = false
-    bufferDepthOf(x9991_d0_b0) = 1
-    val x9991_d1_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9991_d1_b0").ctrl(x10683) // x9991 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
-    isAccum(x9991_d1_b0) = false
-    bufferDepthOf(x9991_d1_b0) = 1
-    val x9992_d0_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9992_d0_b0").ctrl(x10683) // x9992 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
-    isAccum(x9992_d0_b0) = false
-    bufferDepthOf(x9992_d0_b0) = 1
-    val x9992_d1_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9992_d1_b0").ctrl(x10683) // x9992 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
-    isAccum(x9992_d1_b0) = false
-    bufferDepthOf(x9992_d1_b0) = 1
-    val x9993 = Counter(min=Const(0), max=Const(65), step=Const(1), par=1).name("x9993").ctrl(x10683) // CounterNew(Const(0),Const(65),Const(1),Const(1))
-    val x9994 = CounterChain(List(x9993)).name("x9994").ctrl(x10683) // CounterChainNew(List(x9993))
-    val x10017 = LoopController(style=StreamPipe, level=OuterControl, cchain=x9994).name("x10017").ctrl(x10683) // UnrolledForeach(List(Const(true)),x9994,Block(Const(())),List(List(b5784)),List(List(b5785)))
-    val b5784 = CounterIter(x9993, Some(0)).ctrl(x10017).name("b5784")
-    val b5785 = Const(true).ctrl(x10017).name("b5785")
-    val b10692 = StreamOut(field="offset").name("b10692").ctrl(x10017) // x9995 = StreamOutNew(BurstCmdBus)
-    val b10693 = StreamOut(field="size").name("b10693").ctrl(x10017) // x9995 = StreamOutNew(BurstCmdBus)
-    val x9996 = StreamIn(field="data").name("x9996").ctrl(x10017) // x9996 = StreamInNew(BurstDataBus())
-    val x10008 = UnitController(style=SeqPipe, level=InnerControl).name("x10008").ctrl(x10017) // UnitPipe(List(b5785),Block(x10007))
-    val x9997 = b5784 // FixConvert(b5784,TRUE,_32,_0)
-    val x9998 = OpDef(op=FixSla, inputs=List(x9997, Const(9))).name("x9998").ctrl(x10008) // FixLsh(x9997,Const(9))
-    val x9999 = Const(0) // FixConvert(Const(0),TRUE,_32,_0)
-    val x10000 = OpDef(op=FixAdd, inputs=List(x9998, x9999)).name("x10000").ctrl(x10008) // FixAdd(x9998,x9999)
-    val x10001 = OpDef(op=FixSla, inputs=List(x10000, Const(2))).name("x10001").ctrl(x10008) // FixLsh(x10000,Const(2))
-    val x10002 = x10001 // FixConvert(x10001,TRUE,_64,_0)
-    val x10003 = DramAddress(x9863).name("x10003").ctrl(x10008) // GetDRAMAddress(x9863)
-    val x10004 = OpDef(op=FixAdd, inputs=List(x10002, x10003)).name("x10004").ctrl(x10008) // FixAdd(x10002,x10003)
-    val x10006_x10005 = x10004 // FixConvert(x10004,TRUE,_64,_0)
-    // x10006 = SimpleStruct(ArrayBuffer((offset,x10005), (size,Const(2048)), (isLoad,Const(true))))
-    val b10694_b10692 = WriteMem(b10692, x10006_x10005).name("b10694_b10692").ctrl(x10008) // StreamWrite(x9995,x10006,b5785)
-    val b10695_b10693 = WriteMem(b10693, Const(2048)).name("b10695_b10693").ctrl(x10008) // StreamWrite(x9995,x10006,b5785)
-    val x10009 = FringeDenseLoad(dram=List(x9863), cmdStream=List(b10692, b10693), dataStream=List(x9996)).name("x10009").ctrl(x10017) // FringeDenseLoad(x9863,x9995,x9996)
-    val x10010 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x10010").ctrl(x10017) // CounterNew(Const(0),Const(512),Const(1),Const(1))
-    val x10011 = CounterChain(List(x10010)).name("x10011").ctrl(x10017) // CounterChainNew(List(x10010))
-    val x10016 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10011).name("x10016").ctrl(x10017) // UnrolledForeach(List(b5785),x10011,Block(Const(())),List(List(b5803)),List(List(b5804)))
-    val b5803 = CounterIter(x10010, None).ctrl(x10016).name("b5803")
-    val b5804 = Const(true).ctrl(x10016).name("b5804")
-    val x10012 = OpDef(op=BitAnd, inputs=List(b5804, b5785)).name("x10012").ctrl(x10016) // And(b5804,b5785)
-    val x10013_x10013 = ReadMem(x9996).name("x10013").ctrl(x10016) // ParStreamRead(x9996,List(x10012))
-    val x10014_x10014 = x10013_x10013 // x10014 = VectorApply(x10013,0)
-    val x10015 = StoreBanks(List(x9976_d0_b0), List(b5784, b5803), x10014_x10014).name("x10015").ctrl(x10016) // ParSRAMStore(x9976,List(List(b5784, b5803)),List(x10014),List(x10012))
-    val x10036 = UnitController(style=StreamPipe, level=OuterControl).name("x10036").ctrl(x10683) // UnitPipe(List(Const(true)),Block(Const(())))
-    val b10696 = StreamOut(field="offset").name("b10696").ctrl(x10036) // x10018 = StreamOutNew(BurstCmdBus)
-    val b10697 = StreamOut(field="size").name("b10697").ctrl(x10036) // x10018 = StreamOutNew(BurstCmdBus)
-    val x10019 = StreamIn(field="data").name("x10019").ctrl(x10036) // x10019 = StreamInNew(BurstDataBus())
-    val x10028 = UnitController(style=SeqPipe, level=InnerControl).name("x10028").ctrl(x10036) // UnitPipe(List(Const(true)),Block(x10027))
-    val x10020 = Const(0) // FixConvert(Const(0),TRUE,_32,_0)
-    val x10021 = OpDef(op=FixSla, inputs=List(x10020, Const(2))).name("x10021").ctrl(x10028) // FixLsh(x10020,Const(2))
-    val x10022 = x10021 // FixConvert(x10021,TRUE,_64,_0)
-    val x10023 = DramAddress(x9864).name("x10023").ctrl(x10028) // GetDRAMAddress(x9864)
-    val x10024 = OpDef(op=FixAdd, inputs=List(x10022, x10023)).name("x10024").ctrl(x10028) // FixAdd(x10022,x10023)
-    val x10026_x10025 = x10024 // FixConvert(x10024,TRUE,_64,_0)
-    // x10026 = SimpleStruct(ArrayBuffer((offset,x10025), (size,Const(2048)), (isLoad,Const(true))))
-    val b10698_b10696 = WriteMem(b10696, x10026_x10025).name("b10698_b10696").ctrl(x10028) // StreamWrite(x10018,x10026,Const(true))
-    val b10699_b10697 = WriteMem(b10697, Const(2048)).name("b10699_b10697").ctrl(x10028) // StreamWrite(x10018,x10026,Const(true))
-    val x10029 = FringeDenseLoad(dram=List(x9864), cmdStream=List(b10696, b10697), dataStream=List(x10019)).name("x10029").ctrl(x10036) // FringeDenseLoad(x9864,x10018,x10019)
-    val x10030 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x10030").ctrl(x10036) // CounterNew(Const(0),Const(512),Const(1),Const(1))
-    val x10031 = CounterChain(List(x10030)).name("x10031").ctrl(x10036) // CounterChainNew(List(x10030))
-    val x10035 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10031).name("x10035").ctrl(x10036) // UnrolledForeach(List(Const(true)),x10031,Block(Const(())),List(List(b5825)),List(List(b5826)))
-    val b5825 = CounterIter(x10030, None).ctrl(x10035).name("b5825")
-    val b5826 = Const(true).ctrl(x10035).name("b5826")
-    val x10032_x10032 = ReadMem(x10019).name("x10032").ctrl(x10035) // ParStreamRead(x10019,List(b5826))
-    val x10033_x10033 = x10032_x10032 // x10033 = VectorApply(x10032,0)
-    val x10034 = StoreBanks(List(x9977_d0_b0), List(b5825), x10033_x10033).name("x10034").ctrl(x10035) // ParSRAMStore(x9977,List(List(b5825)),List(x10033),List(b5826))
-    val x10037 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x10037").ctrl(x10683) // CounterNew(Const(0),Const(128),Const(1),Const(1))
-    val x10038 = CounterChain(List(x10037)).name("x10038").ctrl(x10683) // CounterChainNew(List(x10037))
-    val x10061 = LoopController(style=StreamPipe, level=OuterControl, cchain=x10038).name("x10061").ctrl(x10683) // UnrolledForeach(List(Const(true)),x10038,Block(Const(())),List(List(b5834)),List(List(b5835)))
-    val b5834 = CounterIter(x10037, Some(0)).ctrl(x10061).name("b5834")
-    val b5835 = Const(true).ctrl(x10061).name("b5835")
-    val b10700 = StreamOut(field="offset").name("b10700").ctrl(x10061) // x10039 = StreamOutNew(BurstCmdBus)
-    val b10701 = StreamOut(field="size").name("b10701").ctrl(x10061) // x10039 = StreamOutNew(BurstCmdBus)
-    val x10040 = StreamIn(field="data").name("x10040").ctrl(x10061) // x10040 = StreamInNew(BurstDataBus())
-    val x10052 = UnitController(style=SeqPipe, level=InnerControl).name("x10052").ctrl(x10061) // UnitPipe(List(b5835),Block(x10051))
-    val x10041 = b5834 // FixConvert(b5834,TRUE,_32,_0)
-    val x10042 = OpDef(op=FixSla, inputs=List(x10041, Const(9))).name("x10042").ctrl(x10052) // FixLsh(x10041,Const(9))
-    val x10043 = Const(0) // FixConvert(Const(0),TRUE,_32,_0)
-    val x10044 = OpDef(op=FixAdd, inputs=List(x10042, x10043)).name("x10044").ctrl(x10052) // FixAdd(x10042,x10043)
-    val x10045 = OpDef(op=FixSla, inputs=List(x10044, Const(2))).name("x10045").ctrl(x10052) // FixLsh(x10044,Const(2))
-    val x10046 = x10045 // FixConvert(x10045,TRUE,_64,_0)
-    val x10047 = DramAddress(x9867).name("x10047").ctrl(x10052) // GetDRAMAddress(x9867)
-    val x10048 = OpDef(op=FixAdd, inputs=List(x10046, x10047)).name("x10048").ctrl(x10052) // FixAdd(x10046,x10047)
-    val x10050_x10049 = x10048 // FixConvert(x10048,TRUE,_64,_0)
-    // x10050 = SimpleStruct(ArrayBuffer((offset,x10049), (size,Const(2048)), (isLoad,Const(true))))
-    val b10702_b10700 = WriteMem(b10700, x10050_x10049).name("b10702_b10700").ctrl(x10052) // StreamWrite(x10039,x10050,b5835)
-    val b10703_b10701 = WriteMem(b10701, Const(2048)).name("b10703_b10701").ctrl(x10052) // StreamWrite(x10039,x10050,b5835)
-    val x10053 = FringeDenseLoad(dram=List(x9867), cmdStream=List(b10700, b10701), dataStream=List(x10040)).name("x10053").ctrl(x10061) // FringeDenseLoad(x9867,x10039,x10040)
-    val x10054 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x10054").ctrl(x10061) // CounterNew(Const(0),Const(512),Const(1),Const(1))
-    val x10055 = CounterChain(List(x10054)).name("x10055").ctrl(x10061) // CounterChainNew(List(x10054))
-    val x10060 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10055).name("x10060").ctrl(x10061) // UnrolledForeach(List(b5835),x10055,Block(Const(())),List(List(b5853)),List(List(b5854)))
-    val b5853 = CounterIter(x10054, None).ctrl(x10060).name("b5853")
-    val b5854 = Const(true).ctrl(x10060).name("b5854")
-    val x10056 = OpDef(op=BitAnd, inputs=List(b5854, b5835)).name("x10056").ctrl(x10060) // And(b5854,b5835)
-    val x10057_x10057 = ReadMem(x10040).name("x10057").ctrl(x10060) // ParStreamRead(x10040,List(x10056))
-    val x10058_x10058 = x10057_x10057 // x10058 = VectorApply(x10057,0)
-    val x10059 = StoreBanks(List(x9978_d0_b0), List(b5834, b5853), x10058_x10058).name("x10059").ctrl(x10060) // ParSRAMStore(x9978,List(List(b5834, b5853)),List(x10058),List(x10056))
-    val x10080 = UnitController(style=StreamPipe, level=OuterControl).name("x10080").ctrl(x10683) // UnitPipe(List(Const(true)),Block(Const(())))
-    val b10704 = StreamOut(field="offset").name("b10704").ctrl(x10080) // x10062 = StreamOutNew(BurstCmdBus)
-    val b10705 = StreamOut(field="size").name("b10705").ctrl(x10080) // x10062 = StreamOutNew(BurstCmdBus)
-    val x10063 = StreamIn(field="data").name("x10063").ctrl(x10080) // x10063 = StreamInNew(BurstDataBus())
-    val x10072 = UnitController(style=SeqPipe, level=InnerControl).name("x10072").ctrl(x10080) // UnitPipe(List(Const(true)),Block(x10071))
-    val x10064 = Const(0) // FixConvert(Const(0),TRUE,_32,_0)
-    val x10065 = OpDef(op=FixSla, inputs=List(x10064, Const(2))).name("x10065").ctrl(x10072) // FixLsh(x10064,Const(2))
-    val x10066 = x10065 // FixConvert(x10065,TRUE,_64,_0)
-    val x10067 = DramAddress(x9868).name("x10067").ctrl(x10072) // GetDRAMAddress(x9868)
-    val x10068 = OpDef(op=FixAdd, inputs=List(x10066, x10067)).name("x10068").ctrl(x10072) // FixAdd(x10066,x10067)
-    val x10070_x10069 = x10068 // FixConvert(x10068,TRUE,_64,_0)
-    // x10070 = SimpleStruct(ArrayBuffer((offset,x10069), (size,Const(2048)), (isLoad,Const(true))))
-    val b10706_b10704 = WriteMem(b10704, x10070_x10069).name("b10706_b10704").ctrl(x10072) // StreamWrite(x10062,x10070,Const(true))
-    val b10707_b10705 = WriteMem(b10705, Const(2048)).name("b10707_b10705").ctrl(x10072) // StreamWrite(x10062,x10070,Const(true))
-    val x10073 = FringeDenseLoad(dram=List(x9868), cmdStream=List(b10704, b10705), dataStream=List(x10063)).name("x10073").ctrl(x10080) // FringeDenseLoad(x9868,x10062,x10063)
-    val x10074 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x10074").ctrl(x10080) // CounterNew(Const(0),Const(512),Const(1),Const(1))
-    val x10075 = CounterChain(List(x10074)).name("x10075").ctrl(x10080) // CounterChainNew(List(x10074))
-    val x10079 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10075).name("x10079").ctrl(x10080) // UnrolledForeach(List(Const(true)),x10075,Block(Const(())),List(List(b5875)),List(List(b5876)))
-    val b5875 = CounterIter(x10074, None).ctrl(x10079).name("b5875")
-    val b5876 = Const(true).ctrl(x10079).name("b5876")
-    val x10076_x10076 = ReadMem(x10063).name("x10076").ctrl(x10079) // ParStreamRead(x10063,List(b5876))
-    val x10077_x10077 = x10076_x10076 // x10077 = VectorApply(x10076,0)
-    val x10078 = StoreBanks(List(x9979_d0_b0), List(b5875), x10077_x10077).name("x10078").ctrl(x10079) // ParSRAMStore(x9979,List(List(b5875)),List(x10077),List(b5876))
-    val x10081 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x10081").ctrl(x10683) // CounterNew(Const(0),Const(128),Const(1),Const(1))
-    val x10082 = CounterChain(List(x10081)).name("x10082").ctrl(x10683) // CounterChainNew(List(x10081))
-    val x10105 = LoopController(style=StreamPipe, level=OuterControl, cchain=x10082).name("x10105").ctrl(x10683) // UnrolledForeach(List(Const(true)),x10082,Block(Const(())),List(List(b5884)),List(List(b5885)))
-    val b5884 = CounterIter(x10081, Some(0)).ctrl(x10105).name("b5884")
-    val b5885 = Const(true).ctrl(x10105).name("b5885")
-    val b10708 = StreamOut(field="offset").name("b10708").ctrl(x10105) // x10083 = StreamOutNew(BurstCmdBus)
-    val b10709 = StreamOut(field="size").name("b10709").ctrl(x10105) // x10083 = StreamOutNew(BurstCmdBus)
-    val x10084 = StreamIn(field="data").name("x10084").ctrl(x10105) // x10084 = StreamInNew(BurstDataBus())
-    val x10096 = UnitController(style=SeqPipe, level=InnerControl).name("x10096").ctrl(x10105) // UnitPipe(List(b5885),Block(x10095))
-    val x10085 = b5884 // FixConvert(b5884,TRUE,_32,_0)
-    val x10086 = OpDef(op=FixSla, inputs=List(x10085, Const(9))).name("x10086").ctrl(x10096) // FixLsh(x10085,Const(9))
-    val x10087 = Const(0) // FixConvert(Const(0),TRUE,_32,_0)
-    val x10088 = OpDef(op=FixAdd, inputs=List(x10086, x10087)).name("x10088").ctrl(x10096) // FixAdd(x10086,x10087)
-    val x10089 = OpDef(op=FixSla, inputs=List(x10088, Const(2))).name("x10089").ctrl(x10096) // FixLsh(x10088,Const(2))
-    val x10090 = x10089 // FixConvert(x10089,TRUE,_64,_0)
-    val x10091 = DramAddress(x9865).name("x10091").ctrl(x10096) // GetDRAMAddress(x9865)
-    val x10092 = OpDef(op=FixAdd, inputs=List(x10090, x10091)).name("x10092").ctrl(x10096) // FixAdd(x10090,x10091)
-    val x10094_x10093 = x10092 // FixConvert(x10092,TRUE,_64,_0)
-    // x10094 = SimpleStruct(ArrayBuffer((offset,x10093), (size,Const(2048)), (isLoad,Const(true))))
-    val b10710_b10708 = WriteMem(b10708, x10094_x10093).name("b10710_b10708").ctrl(x10096) // StreamWrite(x10083,x10094,b5885)
-    val b10711_b10709 = WriteMem(b10709, Const(2048)).name("b10711_b10709").ctrl(x10096) // StreamWrite(x10083,x10094,b5885)
-    val x10097 = FringeDenseLoad(dram=List(x9865), cmdStream=List(b10708, b10709), dataStream=List(x10084)).name("x10097").ctrl(x10105) // FringeDenseLoad(x9865,x10083,x10084)
-    val x10098 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x10098").ctrl(x10105) // CounterNew(Const(0),Const(512),Const(1),Const(1))
-    val x10099 = CounterChain(List(x10098)).name("x10099").ctrl(x10105) // CounterChainNew(List(x10098))
-    val x10104 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10099).name("x10104").ctrl(x10105) // UnrolledForeach(List(b5885),x10099,Block(Const(())),List(List(b5903)),List(List(b5904)))
-    val b5903 = CounterIter(x10098, None).ctrl(x10104).name("b5903")
-    val b5904 = Const(true).ctrl(x10104).name("b5904")
-    val x10100 = OpDef(op=BitAnd, inputs=List(b5904, b5885)).name("x10100").ctrl(x10104) // And(b5904,b5885)
-    val x10101_x10101 = ReadMem(x10084).name("x10101").ctrl(x10104) // ParStreamRead(x10084,List(x10100))
-    val x10102_x10102 = x10101_x10101 // x10102 = VectorApply(x10101,0)
-    val x10103 = StoreBanks(List(x9980_d0_b0), List(b5884, b5903), x10102_x10102).name("x10103").ctrl(x10104) // ParSRAMStore(x9980,List(List(b5884, b5903)),List(x10102),List(x10100))
-    val x10124 = UnitController(style=StreamPipe, level=OuterControl).name("x10124").ctrl(x10683) // UnitPipe(List(Const(true)),Block(Const(())))
-    val b10712 = StreamOut(field="offset").name("b10712").ctrl(x10124) // x10106 = StreamOutNew(BurstCmdBus)
-    val b10713 = StreamOut(field="size").name("b10713").ctrl(x10124) // x10106 = StreamOutNew(BurstCmdBus)
-    val x10107 = StreamIn(field="data").name("x10107").ctrl(x10124) // x10107 = StreamInNew(BurstDataBus())
-    val x10116 = UnitController(style=SeqPipe, level=InnerControl).name("x10116").ctrl(x10124) // UnitPipe(List(Const(true)),Block(x10115))
-    val x10108 = Const(0) // FixConvert(Const(0),TRUE,_32,_0)
-    val x10109 = OpDef(op=FixSla, inputs=List(x10108, Const(2))).name("x10109").ctrl(x10116) // FixLsh(x10108,Const(2))
-    val x10110 = x10109 // FixConvert(x10109,TRUE,_64,_0)
-    val x10111 = DramAddress(x9866).name("x10111").ctrl(x10116) // GetDRAMAddress(x9866)
-    val x10112 = OpDef(op=FixAdd, inputs=List(x10110, x10111)).name("x10112").ctrl(x10116) // FixAdd(x10110,x10111)
-    val x10114_x10113 = x10112 // FixConvert(x10112,TRUE,_64,_0)
-    // x10114 = SimpleStruct(ArrayBuffer((offset,x10113), (size,Const(2048)), (isLoad,Const(true))))
-    val b10714_b10712 = WriteMem(b10712, x10114_x10113).name("b10714_b10712").ctrl(x10116) // StreamWrite(x10106,x10114,Const(true))
-    val b10715_b10713 = WriteMem(b10713, Const(2048)).name("b10715_b10713").ctrl(x10116) // StreamWrite(x10106,x10114,Const(true))
-    val x10117 = FringeDenseLoad(dram=List(x9866), cmdStream=List(b10712, b10713), dataStream=List(x10107)).name("x10117").ctrl(x10124) // FringeDenseLoad(x9866,x10106,x10107)
-    val x10118 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x10118").ctrl(x10124) // CounterNew(Const(0),Const(512),Const(1),Const(1))
-    val x10119 = CounterChain(List(x10118)).name("x10119").ctrl(x10124) // CounterChainNew(List(x10118))
-    val x10123 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10119).name("x10123").ctrl(x10124) // UnrolledForeach(List(Const(true)),x10119,Block(Const(())),List(List(b5925)),List(List(b5926)))
-    val b5925 = CounterIter(x10118, None).ctrl(x10123).name("b5925")
-    val b5926 = Const(true).ctrl(x10123).name("b5926")
-    val x10120_x10120 = ReadMem(x10107).name("x10120").ctrl(x10123) // ParStreamRead(x10107,List(b5926))
-    val x10121_x10121 = x10120_x10120 // x10121 = VectorApply(x10120,0)
-    val x10122 = StoreBanks(List(x9981_d0_b0), List(b5925), x10121_x10121).name("x10122").ctrl(x10123) // ParSRAMStore(x9981,List(List(b5925)),List(x10121),List(b5926))
-    val x10125 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x10125").ctrl(x10683) // CounterNew(Const(0),Const(128),Const(1),Const(1))
-    val x10126 = CounterChain(List(x10125)).name("x10126").ctrl(x10683) // CounterChainNew(List(x10125))
-    val x10149 = LoopController(style=StreamPipe, level=OuterControl, cchain=x10126).name("x10149").ctrl(x10683) // UnrolledForeach(List(Const(true)),x10126,Block(Const(())),List(List(b5934)),List(List(b5935)))
-    val b5934 = CounterIter(x10125, Some(0)).ctrl(x10149).name("b5934")
-    val b5935 = Const(true).ctrl(x10149).name("b5935")
-    val b10716 = StreamOut(field="offset").name("b10716").ctrl(x10149) // x10127 = StreamOutNew(BurstCmdBus)
-    val b10717 = StreamOut(field="size").name("b10717").ctrl(x10149) // x10127 = StreamOutNew(BurstCmdBus)
-    val x10128 = StreamIn(field="data").name("x10128").ctrl(x10149) // x10128 = StreamInNew(BurstDataBus())
-    val x10140 = UnitController(style=SeqPipe, level=InnerControl).name("x10140").ctrl(x10149) // UnitPipe(List(b5935),Block(x10139))
-    val x10129 = b5934 // FixConvert(b5934,TRUE,_32,_0)
-    val x10130 = OpDef(op=FixSla, inputs=List(x10129, Const(9))).name("x10130").ctrl(x10140) // FixLsh(x10129,Const(9))
-    val x10131 = Const(0) // FixConvert(Const(0),TRUE,_32,_0)
-    val x10132 = OpDef(op=FixAdd, inputs=List(x10130, x10131)).name("x10132").ctrl(x10140) // FixAdd(x10130,x10131)
-    val x10133 = OpDef(op=FixSla, inputs=List(x10132, Const(2))).name("x10133").ctrl(x10140) // FixLsh(x10132,Const(2))
-    val x10134 = x10133 // FixConvert(x10133,TRUE,_64,_0)
-    val x10135 = DramAddress(x9869).name("x10135").ctrl(x10140) // GetDRAMAddress(x9869)
-    val x10136 = OpDef(op=FixAdd, inputs=List(x10134, x10135)).name("x10136").ctrl(x10140) // FixAdd(x10134,x10135)
-    val x10138_x10137 = x10136 // FixConvert(x10136,TRUE,_64,_0)
-    // x10138 = SimpleStruct(ArrayBuffer((offset,x10137), (size,Const(2048)), (isLoad,Const(true))))
-    val b10718_b10716 = WriteMem(b10716, x10138_x10137).name("b10718_b10716").ctrl(x10140) // StreamWrite(x10127,x10138,b5935)
-    val b10719_b10717 = WriteMem(b10717, Const(2048)).name("b10719_b10717").ctrl(x10140) // StreamWrite(x10127,x10138,b5935)
-    val x10141 = FringeDenseLoad(dram=List(x9869), cmdStream=List(b10716, b10717), dataStream=List(x10128)).name("x10141").ctrl(x10149) // FringeDenseLoad(x9869,x10127,x10128)
-    val x10142 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x10142").ctrl(x10149) // CounterNew(Const(0),Const(512),Const(1),Const(1))
-    val x10143 = CounterChain(List(x10142)).name("x10143").ctrl(x10149) // CounterChainNew(List(x10142))
-    val x10148 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10143).name("x10148").ctrl(x10149) // UnrolledForeach(List(b5935),x10143,Block(Const(())),List(List(b5953)),List(List(b5954)))
-    val b5953 = CounterIter(x10142, None).ctrl(x10148).name("b5953")
-    val b5954 = Const(true).ctrl(x10148).name("b5954")
-    val x10144 = OpDef(op=BitAnd, inputs=List(b5954, b5935)).name("x10144").ctrl(x10148) // And(b5954,b5935)
-    val x10145_x10145 = ReadMem(x10128).name("x10145").ctrl(x10148) // ParStreamRead(x10128,List(x10144))
-    val x10146_x10146 = x10145_x10145 // x10146 = VectorApply(x10145,0)
-    val x10147 = StoreBanks(List(x9982_d0_b0), List(b5934, b5953), x10146_x10146).name("x10147").ctrl(x10148) // ParSRAMStore(x9982,List(List(b5934, b5953)),List(x10146),List(x10144))
-    val x10168 = UnitController(style=StreamPipe, level=OuterControl).name("x10168").ctrl(x10683) // UnitPipe(List(Const(true)),Block(Const(())))
-    val b10720 = StreamOut(field="offset").name("b10720").ctrl(x10168) // x10150 = StreamOutNew(BurstCmdBus)
-    val b10721 = StreamOut(field="size").name("b10721").ctrl(x10168) // x10150 = StreamOutNew(BurstCmdBus)
-    val x10151 = StreamIn(field="data").name("x10151").ctrl(x10168) // x10151 = StreamInNew(BurstDataBus())
-    val x10160 = UnitController(style=SeqPipe, level=InnerControl).name("x10160").ctrl(x10168) // UnitPipe(List(Const(true)),Block(x10159))
-    val x10152 = Const(0) // FixConvert(Const(0),TRUE,_32,_0)
-    val x10153 = OpDef(op=FixSla, inputs=List(x10152, Const(2))).name("x10153").ctrl(x10160) // FixLsh(x10152,Const(2))
-    val x10154 = x10153 // FixConvert(x10153,TRUE,_64,_0)
-    val x10155 = DramAddress(x9870).name("x10155").ctrl(x10160) // GetDRAMAddress(x9870)
-    val x10156 = OpDef(op=FixAdd, inputs=List(x10154, x10155)).name("x10156").ctrl(x10160) // FixAdd(x10154,x10155)
-    val x10158_x10157 = x10156 // FixConvert(x10156,TRUE,_64,_0)
-    // x10158 = SimpleStruct(ArrayBuffer((offset,x10157), (size,Const(2048)), (isLoad,Const(true))))
-    val b10722_b10720 = WriteMem(b10720, x10158_x10157).name("b10722_b10720").ctrl(x10160) // StreamWrite(x10150,x10158,Const(true))
-    val b10723_b10721 = WriteMem(b10721, Const(2048)).name("b10723_b10721").ctrl(x10160) // StreamWrite(x10150,x10158,Const(true))
-    val x10161 = FringeDenseLoad(dram=List(x9870), cmdStream=List(b10720, b10721), dataStream=List(x10151)).name("x10161").ctrl(x10168) // FringeDenseLoad(x9870,x10150,x10151)
-    val x10162 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x10162").ctrl(x10168) // CounterNew(Const(0),Const(512),Const(1),Const(1))
-    val x10163 = CounterChain(List(x10162)).name("x10163").ctrl(x10168) // CounterChainNew(List(x10162))
-    val x10167 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10163).name("x10167").ctrl(x10168) // UnrolledForeach(List(Const(true)),x10163,Block(Const(())),List(List(b5975)),List(List(b5976)))
-    val b5975 = CounterIter(x10162, None).ctrl(x10167).name("b5975")
-    val b5976 = Const(true).ctrl(x10167).name("b5976")
-    val x10164_x10164 = ReadMem(x10151).name("x10164").ctrl(x10167) // ParStreamRead(x10151,List(b5976))
-    val x10165_x10165 = x10164_x10164 // x10165 = VectorApply(x10164,0)
-    val x10166 = StoreBanks(List(x9983_d0_b0), List(b5975), x10165_x10165).name("x10166").ctrl(x10167) // ParSRAMStore(x9983,List(List(b5975)),List(x10165),List(b5976))
-    val x10169 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x10169").ctrl(x10683) // CounterNew(Const(0),Const(128),Const(1),Const(1))
-    val x10170 = CounterChain(List(x10169)).name("x10170").ctrl(x10683) // CounterChainNew(List(x10169))
-    val x10193 = LoopController(style=StreamPipe, level=OuterControl, cchain=x10170).name("x10193").ctrl(x10683) // UnrolledForeach(List(Const(true)),x10170,Block(Const(())),List(List(b5984)),List(List(b5985)))
-    val b5984 = CounterIter(x10169, Some(0)).ctrl(x10193).name("b5984")
-    val b5985 = Const(true).ctrl(x10193).name("b5985")
-    val b10724 = StreamOut(field="offset").name("b10724").ctrl(x10193) // x10171 = StreamOutNew(BurstCmdBus)
-    val b10725 = StreamOut(field="size").name("b10725").ctrl(x10193) // x10171 = StreamOutNew(BurstCmdBus)
-    val x10172 = StreamIn(field="data").name("x10172").ctrl(x10193) // x10172 = StreamInNew(BurstDataBus())
-    val x10184 = UnitController(style=SeqPipe, level=InnerControl).name("x10184").ctrl(x10193) // UnitPipe(List(b5985),Block(x10183))
-    val x10173 = b5984 // FixConvert(b5984,TRUE,_32,_0)
-    val x10174 = OpDef(op=FixMul, inputs=List(x10173, Const(65))).name("x10174").ctrl(x10184) // FixMul(x10173,Const(65))
-    val x10175 = Const(0) // FixConvert(Const(0),TRUE,_32,_0)
-    val x10176 = OpDef(op=FixAdd, inputs=List(x10174, x10175)).name("x10176").ctrl(x10184) // FixAdd(x10174,x10175)
-    val x10177 = OpDef(op=FixSla, inputs=List(x10176, Const(2))).name("x10177").ctrl(x10184) // FixLsh(x10176,Const(2))
-    val x10178 = x10177 // FixConvert(x10177,TRUE,_64,_0)
-    val x10179 = DramAddress(x9871).name("x10179").ctrl(x10184) // GetDRAMAddress(x9871)
-    val x10180 = OpDef(op=FixAdd, inputs=List(x10178, x10179)).name("x10180").ctrl(x10184) // FixAdd(x10178,x10179)
-    val x10182_x10181 = x10180 // FixConvert(x10180,TRUE,_64,_0)
-    // x10182 = SimpleStruct(ArrayBuffer((offset,x10181), (size,Const(2048)), (isLoad,Const(true))))
-    val b10726_b10724 = WriteMem(b10724, x10182_x10181).name("b10726_b10724").ctrl(x10184) // StreamWrite(x10171,x10182,b5985)
-    val b10727_b10725 = WriteMem(b10725, Const(2048)).name("b10727_b10725").ctrl(x10184) // StreamWrite(x10171,x10182,b5985)
-    val x10185 = FringeDenseLoad(dram=List(x9871), cmdStream=List(b10724, b10725), dataStream=List(x10172)).name("x10185").ctrl(x10193) // FringeDenseLoad(x9871,x10171,x10172)
-    val x10186 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x10186").ctrl(x10193) // CounterNew(Const(0),Const(512),Const(1),Const(1))
-    val x10187 = CounterChain(List(x10186)).name("x10187").ctrl(x10193) // CounterChainNew(List(x10186))
-    val x10192 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10187).name("x10192").ctrl(x10193) // UnrolledForeach(List(b5985),x10187,Block(Const(())),List(List(b6003)),List(List(b6004)))
-    val b6003 = CounterIter(x10186, None).ctrl(x10192).name("b6003")
-    val b6004 = Const(true).ctrl(x10192).name("b6004")
-    val x10188 = OpDef(op=BitAnd, inputs=List(b6004, b5985)).name("x10188").ctrl(x10192) // And(b6004,b5985)
-    val x10189_x10189 = ReadMem(x10172).name("x10189").ctrl(x10192) // ParStreamRead(x10172,List(x10188))
-    val x10190_x10190 = x10189_x10189 // x10190 = VectorApply(x10189,0)
-    val x10191 = StoreBanks(List(x9984_d0_b0), List(b5984, b6003), x10190_x10190).name("x10191").ctrl(x10192) // ParSRAMStore(x9984,List(List(b5984, b6003)),List(x10190),List(x10188))
-    val x10212 = UnitController(style=StreamPipe, level=OuterControl).name("x10212").ctrl(x10683) // UnitPipe(List(Const(true)),Block(Const(())))
-    val b10728 = StreamOut(field="offset").name("b10728").ctrl(x10212) // x10194 = StreamOutNew(BurstCmdBus)
-    val b10729 = StreamOut(field="size").name("b10729").ctrl(x10212) // x10194 = StreamOutNew(BurstCmdBus)
-    val x10195 = StreamIn(field="data").name("x10195").ctrl(x10212) // x10195 = StreamInNew(BurstDataBus())
-    val x10204 = UnitController(style=SeqPipe, level=InnerControl).name("x10204").ctrl(x10212) // UnitPipe(List(Const(true)),Block(x10203))
-    val x10196 = Const(0) // FixConvert(Const(0),TRUE,_32,_0)
-    val x10197 = OpDef(op=FixSla, inputs=List(x10196, Const(2))).name("x10197").ctrl(x10204) // FixLsh(x10196,Const(2))
-    val x10198 = x10197 // FixConvert(x10197,TRUE,_64,_0)
-    val x10199 = DramAddress(x9872).name("x10199").ctrl(x10204) // GetDRAMAddress(x9872)
-    val x10200 = OpDef(op=FixAdd, inputs=List(x10198, x10199)).name("x10200").ctrl(x10204) // FixAdd(x10198,x10199)
-    val x10202_x10201 = x10200 // FixConvert(x10200,TRUE,_64,_0)
-    // x10202 = SimpleStruct(ArrayBuffer((offset,x10201), (size,Const(2048)), (isLoad,Const(true))))
-    val b10730_b10728 = WriteMem(b10728, x10202_x10201).name("b10730_b10728").ctrl(x10204) // StreamWrite(x10194,x10202,Const(true))
-    val b10731_b10729 = WriteMem(b10729, Const(2048)).name("b10731_b10729").ctrl(x10204) // StreamWrite(x10194,x10202,Const(true))
-    val x10205 = FringeDenseLoad(dram=List(x9872), cmdStream=List(b10728, b10729), dataStream=List(x10195)).name("x10205").ctrl(x10212) // FringeDenseLoad(x9872,x10194,x10195)
-    val x10206 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x10206").ctrl(x10212) // CounterNew(Const(0),Const(512),Const(1),Const(1))
-    val x10207 = CounterChain(List(x10206)).name("x10207").ctrl(x10212) // CounterChainNew(List(x10206))
-    val x10211 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10207).name("x10211").ctrl(x10212) // UnrolledForeach(List(Const(true)),x10207,Block(Const(())),List(List(b6025)),List(List(b6026)))
-    val b6025 = CounterIter(x10206, None).ctrl(x10211).name("b6025")
-    val b6026 = Const(true).ctrl(x10211).name("b6026")
-    val x10208_x10208 = ReadMem(x10195).name("x10208").ctrl(x10211) // ParStreamRead(x10195,List(b6026))
-    val x10209_x10209 = x10208_x10208 // x10209 = VectorApply(x10208,0)
-    val x10210 = StoreBanks(List(x9985_d0_b0), List(b6025), x10209_x10209).name("x10210").ctrl(x10211) // ParSRAMStore(x9985,List(List(b6025)),List(x10209),List(b6026))
-    val x10213 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x10213").ctrl(x10683) // CounterNew(Const(0),Const(1),Const(1),Const(1))
-    val x10214 = CounterChain(List(x10213)).name("x10214").ctrl(x10683) // CounterChainNew(List(x10213))
-    val x10237 = LoopController(style=StreamPipe, level=OuterControl, cchain=x10214).name("x10237").ctrl(x10683) // UnrolledForeach(List(Const(true)),x10214,Block(Const(())),List(List(b6034)),List(List(b6035)))
-    val b6034 = CounterIter(x10213, Some(0)).ctrl(x10237).name("b6034")
-    val b6035 = Const(true).ctrl(x10237).name("b6035")
-    val b10732 = StreamOut(field="offset").name("b10732").ctrl(x10237) // x10215 = StreamOutNew(BurstCmdBus)
-    val b10733 = StreamOut(field="size").name("b10733").ctrl(x10237) // x10215 = StreamOutNew(BurstCmdBus)
-    val x10216 = StreamIn(field="data").name("x10216").ctrl(x10237) // x10216 = StreamInNew(BurstDataBus())
-    val x10228 = UnitController(style=SeqPipe, level=InnerControl).name("x10228").ctrl(x10237) // UnitPipe(List(b6035),Block(x10227))
-    val x10217 = b6034 // FixConvert(b6034,TRUE,_32,_0)
-    val x10218 = OpDef(op=FixSla, inputs=List(x10217, Const(7))).name("x10218").ctrl(x10228) // FixLsh(x10217,Const(7))
-    val x10219 = Const(0) // FixConvert(Const(0),TRUE,_32,_0)
-    val x10220 = OpDef(op=FixAdd, inputs=List(x10218, x10219)).name("x10220").ctrl(x10228) // FixAdd(x10218,x10219)
-    val x10221 = OpDef(op=FixSla, inputs=List(x10220, Const(2))).name("x10221").ctrl(x10228) // FixLsh(x10220,Const(2))
-    val x10222 = x10221 // FixConvert(x10221,TRUE,_64,_0)
-    val x10223 = DramAddress(x9873).name("x10223").ctrl(x10228) // GetDRAMAddress(x9873)
-    val x10224 = OpDef(op=FixAdd, inputs=List(x10222, x10223)).name("x10224").ctrl(x10228) // FixAdd(x10222,x10223)
-    val x10226_x10225 = x10224 // FixConvert(x10224,TRUE,_64,_0)
-    // x10226 = SimpleStruct(ArrayBuffer((offset,x10225), (size,Const(512)), (isLoad,Const(true))))
-    val b10734_b10732 = WriteMem(b10732, x10226_x10225).name("b10734_b10732").ctrl(x10228) // StreamWrite(x10215,x10226,b6035)
-    val b10735_b10733 = WriteMem(b10733, Const(512)).name("b10735_b10733").ctrl(x10228) // StreamWrite(x10215,x10226,b6035)
-    val x10229 = FringeDenseLoad(dram=List(x9873), cmdStream=List(b10732, b10733), dataStream=List(x10216)).name("x10229").ctrl(x10237) // FringeDenseLoad(x9873,x10215,x10216)
-    val x10230 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x10230").ctrl(x10237) // CounterNew(Const(0),Const(128),Const(1),Const(1))
-    val x10231 = CounterChain(List(x10230)).name("x10231").ctrl(x10237) // CounterChainNew(List(x10230))
-    val x10236 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10231).name("x10236").ctrl(x10237) // UnrolledForeach(List(b6035),x10231,Block(Const(())),List(List(b6053)),List(List(b6054)))
-    val b6053 = CounterIter(x10230, None).ctrl(x10236).name("b6053")
-    val b6054 = Const(true).ctrl(x10236).name("b6054")
-    val x10232 = OpDef(op=BitAnd, inputs=List(b6054, b6035)).name("x10232").ctrl(x10236) // And(b6054,b6035)
-    val x10233_x10233 = ReadMem(x10216).name("x10233").ctrl(x10236) // ParStreamRead(x10216,List(x10232))
-    val x10234_x10234 = x10233_x10233 // x10234 = VectorApply(x10233,0)
-    val x10235 = StoreBanks(List(x9986_d0_b0, x9986_d1_b0, x9986_d2_b0, x9986_d3_b0), List(b6034, b6053), x10234_x10234).name("x10235").ctrl(x10236) // ParSRAMStore(x9986,List(List(b6034, b6053)),List(x10234),List(x10232))
-    val x10238 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x10238").ctrl(x10683) // CounterNew(Const(0),Const(1),Const(1),Const(1))
-    val x10239 = CounterChain(List(x10238)).name("x10239").ctrl(x10683) // CounterChainNew(List(x10238))
-    val x10262 = LoopController(style=StreamPipe, level=OuterControl, cchain=x10239).name("x10262").ctrl(x10683) // UnrolledForeach(List(Const(true)),x10239,Block(Const(())),List(List(b6063)),List(List(b6064)))
-    val b6063 = CounterIter(x10238, Some(0)).ctrl(x10262).name("b6063")
-    val b6064 = Const(true).ctrl(x10262).name("b6064")
-    val b10736 = StreamOut(field="offset").name("b10736").ctrl(x10262) // x10240 = StreamOutNew(BurstCmdBus)
-    val b10737 = StreamOut(field="size").name("b10737").ctrl(x10262) // x10240 = StreamOutNew(BurstCmdBus)
-    val x10241 = StreamIn(field="data").name("x10241").ctrl(x10262) // x10241 = StreamInNew(BurstDataBus())
-    val x10253 = UnitController(style=SeqPipe, level=InnerControl).name("x10253").ctrl(x10262) // UnitPipe(List(b6064),Block(x10252))
-    val x10242 = b6063 // FixConvert(b6063,TRUE,_32,_0)
-    val x10243 = OpDef(op=FixSla, inputs=List(x10242, Const(7))).name("x10243").ctrl(x10253) // FixLsh(x10242,Const(7))
-    val x10244 = Const(0) // FixConvert(Const(0),TRUE,_32,_0)
-    val x10245 = OpDef(op=FixAdd, inputs=List(x10243, x10244)).name("x10245").ctrl(x10253) // FixAdd(x10243,x10244)
-    val x10246 = OpDef(op=FixSla, inputs=List(x10245, Const(2))).name("x10246").ctrl(x10253) // FixLsh(x10245,Const(2))
-    val x10247 = x10246 // FixConvert(x10246,TRUE,_64,_0)
-    val x10248 = DramAddress(x9874).name("x10248").ctrl(x10253) // GetDRAMAddress(x9874)
-    val x10249 = OpDef(op=FixAdd, inputs=List(x10247, x10248)).name("x10249").ctrl(x10253) // FixAdd(x10247,x10248)
-    val x10251_x10250 = x10249 // FixConvert(x10249,TRUE,_64,_0)
-    // x10251 = SimpleStruct(ArrayBuffer((offset,x10250), (size,Const(512)), (isLoad,Const(true))))
-    val b10738_b10736 = WriteMem(b10736, x10251_x10250).name("b10738_b10736").ctrl(x10253) // StreamWrite(x10240,x10251,b6064)
-    val b10739_b10737 = WriteMem(b10737, Const(512)).name("b10739_b10737").ctrl(x10253) // StreamWrite(x10240,x10251,b6064)
-    val x10254 = FringeDenseLoad(dram=List(x9874), cmdStream=List(b10736, b10737), dataStream=List(x10241)).name("x10254").ctrl(x10262) // FringeDenseLoad(x9874,x10240,x10241)
-    val x10255 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x10255").ctrl(x10262) // CounterNew(Const(0),Const(128),Const(1),Const(1))
-    val x10256 = CounterChain(List(x10255)).name("x10256").ctrl(x10262) // CounterChainNew(List(x10255))
-    val x10261 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10256).name("x10261").ctrl(x10262) // UnrolledForeach(List(b6064),x10256,Block(Const(())),List(List(b6082)),List(List(b6083)))
-    val b6082 = CounterIter(x10255, None).ctrl(x10261).name("b6082")
-    val b6083 = Const(true).ctrl(x10261).name("b6083")
-    val x10257 = OpDef(op=BitAnd, inputs=List(b6083, b6064)).name("x10257").ctrl(x10261) // And(b6083,b6064)
-    val x10258_x10258 = ReadMem(x10241).name("x10258").ctrl(x10261) // ParStreamRead(x10241,List(x10257))
-    val x10259_x10259 = x10258_x10258 // x10259 = VectorApply(x10258,0)
-    val x10260 = StoreBanks(List(x9987_d0_b0, x9987_d1_b0, x9987_d2_b0, x9987_d3_b0), List(b6063, b6082), x10259_x10259).name("x10260").ctrl(x10261) // ParSRAMStore(x9987,List(List(b6063, b6082)),List(x10259),List(x10257))
-    val x10263 = Counter(min=Const(0), max=Const(3), step=Const(1), par=1).name("x10263").ctrl(x10683) // CounterNew(Const(0),Const(3),Const(1),Const(1))
-    val x10264 = CounterChain(List(x10263)).name("x10264").ctrl(x10683) // CounterChainNew(List(x10263))
-    val x10682 = LoopController(style=SeqPipe, level=OuterControl, cchain=x10264).name("x10682").ctrl(x10683) // UnrolledForeach(List(Const(true)),x10264,Block(Const(())),List(List(b6092)),List(List(b6093)))
-    val b6092 = CounterIter(x10263, Some(0)).ctrl(x10682).name("b6092")
-    val b6093 = Const(true).ctrl(x10682).name("b6093")
-    val x10266 = UnitController(style=SeqPipe, level=InnerControl).name("x10266").ctrl(x10682) // UnitPipe(List(b6093),Block(Const(())))
-    val x10265 = OpDef(op=FixAdd, inputs=List(b6092, Const(1))).name("x10265").ctrl(x10266) // FixAdd(b6092,Const(1))
-    val x10267 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x10267").ctrl(x10682) // CounterNew(Const(0),Const(1),Const(1),Const(1))
-    val x10268 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x10268").ctrl(x10682) // CounterNew(Const(0),Const(1),Const(1),Const(1))
-    val x10269 = CounterChain(List(x10267,x10268)).name("x10269").ctrl(x10682) // CounterChainNew(List(x10267, x10268))
-    val x10343 = LoopController(style=StreamPipe, level=OuterControl, cchain=x10269).name("x10343").ctrl(x10682) // UnrolledForeach(List(b6093),x10269,Block(Const(())),List(List(b6099), List(b6100)),List(List(b6101), List(b6102)))
-    val b6099 = CounterIter(x10267, Some(0)).ctrl(x10343).name("b6099")
-    val b6101 = Const(true).ctrl(x10343).name("b6101")
-    val b6100 = CounterIter(x10268, Some(0)).ctrl(x10343).name("b6100")
-    val b6102 = Const(true).ctrl(x10343).name("b6102")
-    val b10740 = StreamOut(field="offset").name("b10740").ctrl(x10343) // x10270 = StreamOutNew(BurstCmdBus)
-    val b10741 = StreamOut(field="size").name("b10741").ctrl(x10343) // x10270 = StreamOutNew(BurstCmdBus)
-    val b10742 = FIFO(size=16).name("b10742").ctrl(x10343) // x10271 = FIFONew(Const(16))
-    isAccum(b10742) = false
-    bufferDepthOf(b10742) = 2
-    val b10743 = FIFO(size=16).name("b10743").ctrl(x10343) // x10271 = FIFONew(Const(16))
-    isAccum(b10743) = false
-    bufferDepthOf(b10743) = 2
-    val b10744 = FIFO(size=16).name("b10744").ctrl(x10343) // x10271 = FIFONew(Const(16))
-    isAccum(b10744) = false
-    bufferDepthOf(b10744) = 2
-    val x10272 = StreamIn(field="data").name("x10272").ctrl(x10343) // x10272 = StreamInNew(BurstDataBus())
-    val x10310 = UnitController(style=SeqPipe, level=InnerControl).name("x10310").ctrl(x10343) // UnitPipe(List(b6101, b6102, b6093),Block(x10309))
-    val x10273 = OpDef(op=FixAdd, inputs=List(b6092, b6099)).name("x10273").ctrl(x10310) // FixAdd(b6092,b6099)
-    val x10274 = x10273 // FixConvert(x10273,TRUE,_32,_0)
-    val x10275 = OpDef(op=FixMul, inputs=List(x10274, Const(65))).name("x10275").ctrl(x10310) // FixMul(x10274,Const(65))
-    val x10276 = b6100 // FixConvert(b6100,TRUE,_32,_0)
-    val x10277 = OpDef(op=FixMul, inputs=List(x10276, Const(65))).name("x10277").ctrl(x10310) // FixMul(x10276,Const(65))
-    val x10278 = Const(0) // FixConvert(Const(0),TRUE,_32,_0)
-    val x10279 = OpDef(op=FixAdd, inputs=List(x10275, x10277)).name("x10279").ctrl(x10310) // FixAdd(x10275,x10277)
-    val x10280 = OpDef(op=FixAdd, inputs=List(x10279, x10278)).name("x10280").ctrl(x10310) // FixAdd(x10279,x10278)
-    val x10281 = OpDef(op=FixSla, inputs=List(x10280, Const(2))).name("x10281").ctrl(x10310) // FixLsh(x10280,Const(2))
-    val x10282 = x10281 // x10282 = DataAsBits(x10281)
-    val x10283 = OpDef(op=BitAnd, inputs=List(x10282, Const(31))).name("x10283").ctrl(x10310) // VectorSlice(x10282,5,0) strMask=00000000000000000000000000011111
-    val x10284 = x10283 // x10284 = BitsAsData(x10283,FixPt[TRUE,_32,_0])
-    val x10285 = OpDef(op=FixSub, inputs=List(x10281, x10284)).name("x10285").ctrl(x10310) // FixSub(x10281,x10284)
-    val x10286 = OpDef(op=FixAdd, inputs=List(x10281, Const(260))).name("x10286").ctrl(x10310) // FixAdd(x10281,Const(260))
-    val x10287 = x10286 // x10287 = DataAsBits(x10286)
-    val x10288 = OpDef(op=BitAnd, inputs=List(x10287, Const(31))).name("x10288").ctrl(x10310) // VectorSlice(x10287,5,0) strMask=00000000000000000000000000011111
-    val x10289 = x10288 // x10289 = BitsAsData(x10288,FixPt[TRUE,_32,_0])
-    val x10290 = OpDef(op=FixEql, inputs=List(x10289, Const(0))).name("x10290").ctrl(x10310) // FixEql(x10289,Const(0))
-    val x10291 = OpDef(op=FixSub, inputs=List(Const(64), x10289)).name("x10291").ctrl(x10310) // FixSub(Const(64),x10289)
-    val x10292 = OpDef(op=MuxOp, inputs=List(x10290, Const(0), x10291)).name("x10292").ctrl(x10310) // Mux(x10290,Const(0),x10291)
-    val x10308_x10293 = OpDef(op=FixSra, inputs=List(x10284, Const(2))).name("x10293").ctrl(x10310) // FixRsh(x10284,Const(2))
-    val x10294 = OpDef(op=FixSra, inputs=List(x10292, Const(2))).name("x10294").ctrl(x10310) // FixRsh(x10292,Const(2))
-    val x10308_x10295 = OpDef(op=FixAdd, inputs=List(x10308_x10293, Const(65))).name("x10295").ctrl(x10310) // FixAdd(x10293,Const(65))
-    val x10296 = OpDef(op=FixAdd, inputs=List(Const(65), x10308_x10293)).name("x10296").ctrl(x10310) // FixAdd(Const(65),x10293)
-    val x10308_x10297 = OpDef(op=FixAdd, inputs=List(x10296, x10294)).name("x10297").ctrl(x10310) // FixAdd(x10296,x10294)
-    val x10298 = OpDef(op=FixAdd, inputs=List(Const(260), x10284)).name("x10298").ctrl(x10310) // FixAdd(Const(260),x10284)
-    val x10304_x10299 = OpDef(op=FixAdd, inputs=List(x10298, x10292)).name("x10299").ctrl(x10310) // FixAdd(x10298,x10292)
-    val x10300 = x10285 // FixConvert(x10285,TRUE,_64,_0)
-    val x10301 = DramAddress(x9875).name("x10301").ctrl(x10310) // GetDRAMAddress(x9875)
-    val x10302 = OpDef(op=FixAdd, inputs=List(x10300, x10301)).name("x10302").ctrl(x10310) // FixAdd(x10300,x10301)
-    val x10304_x10303 = x10302 // FixConvert(x10302,TRUE,_64,_0)
-    // x10304 = SimpleStruct(ArrayBuffer((offset,x10303), (size,x10299), (isLoad,Const(true))))
-    val x10305 = OpDef(op=BitAnd, inputs=List(b6101, b6102)).name("x10305").ctrl(x10310) // And(b6101,b6102)
-    val x10306 = OpDef(op=BitAnd, inputs=List(x10305, b6093)).name("x10306").ctrl(x10310) // And(x10305,b6093)
-    val b10745_b10740 = WriteMem(b10740, x10304_x10303).name("b10745_b10740").ctrl(x10310) // StreamWrite(x10270,x10304,x10306)
-    val b10746_b10741 = WriteMem(b10741, x10304_x10299).name("b10746_b10741").ctrl(x10310) // StreamWrite(x10270,x10304,x10306)
-    // x10308 = SimpleStruct(ArrayBuffer((size,x10297), (start,x10293), (end,x10295)))
-    val b10747_b10742 = WriteMem(b10742, x10308_x10297).name("b10747_b10742").ctrl(x10310) // FIFOEnq(x10271,x10308,x10306)
-    val b10748_b10743 = WriteMem(b10743, x10308_x10293).name("b10748_b10743").ctrl(x10310) // FIFOEnq(x10271,x10308,x10306)
-    val b10749_b10744 = WriteMem(b10744, x10308_x10295).name("b10749_b10744").ctrl(x10310) // FIFOEnq(x10271,x10308,x10306)
-    val x10311 = FringeDenseLoad(dram=List(x9875), cmdStream=List(b10740, b10741), dataStream=List(x10272)).name("x10311").ctrl(x10343) // FringeDenseLoad(x9875,x10270,x10272)
-    val x10342 = UnitController(style=SeqPipe, level=OuterControl).name("x10342").ctrl(x10343) // UnitPipe(List(b6101, b6102, b6093),Block(Const(())))
-    val x10312 = Reg(init=Some(0)).name("x10312").ctrl(x10342) // x10312 = RegNew(Const(0))
-    isAccum(x10312) = false
-    bufferDepthOf(x10312) = 1
-    val x10313 = Reg(init=Some(0)).name("x10313").ctrl(x10342) // x10313 = RegNew(Const(0))
-    isAccum(x10313) = false
-    bufferDepthOf(x10313) = 1
-    val x10314 = Reg(init=Some(0)).name("x10314").ctrl(x10342) // x10314 = RegNew(Const(0))
-    isAccum(x10314) = false
-    bufferDepthOf(x10314) = 1
-    val x10324 = UnitController(style=SeqPipe, level=InnerControl).name("x10324").ctrl(x10342) // UnitPipe(List(b6101, b6102, b6093),Block(x10323))
-    val x10315 = OpDef(op=BitAnd, inputs=List(b6101, b6102)).name("x10315").ctrl(x10324) // And(b6101,b6102)
-    val x10316 = OpDef(op=BitAnd, inputs=List(x10315, b6093)).name("x10316").ctrl(x10324) // And(x10315,b6093)
-    val x10317_b10750 = ReadMem(b10742).name("b10750").ctrl(x10324) // FIFODeq(x10271,x10316)
-    val x10317_b10751 = ReadMem(b10743).name("b10751").ctrl(x10324) // FIFODeq(x10271,x10316)
-    val x10317_b10752 = ReadMem(b10744).name("b10752").ctrl(x10324) // FIFODeq(x10271,x10316)
-    val x10318 = x10317_b10751 // x10318 = FieldApply(x10317,start)
-    val x10319_x10312 = WriteMem(x10312, x10318).name("x10319_x10312").ctrl(x10324) // RegWrite(x10312,x10318,x10316)
-    val x10320 = x10317_b10752 // x10320 = FieldApply(x10317,end)
-    val x10321_x10313 = WriteMem(x10313, x10320).name("x10321_x10313").ctrl(x10324) // RegWrite(x10313,x10320,x10316)
-    val x10322 = x10317_b10750 // x10322 = FieldApply(x10317,size)
-    val x10323_x10314 = WriteMem(x10314, x10322).name("x10323_x10314").ctrl(x10324) // RegWrite(x10314,x10322,x10316)
-    val x10325 = ReadMem(x10314).name("x10325").ctrl(x10342) // RegRead(x10314)
-    val x10326 = Counter(min=Const(0), max=x10325, step=Const(1), par=1).name("x10326").ctrl(x10342) // CounterNew(Const(0),x10325,Const(1),Const(1))
-    val x10327 = CounterChain(List(x10326)).name("x10327").ctrl(x10342) // CounterChainNew(List(x10326))
-    val x10341 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10327).name("x10341").ctrl(x10342) // UnrolledForeach(List(b6101, b6102, b6093),x10327,Block(Const(())),List(List(b6157)),List(List(b6158)))
-    val b6157 = CounterIter(x10326, None).ctrl(x10341).name("b6157")
-    val b6158 = Const(true).ctrl(x10341).name("b6158")
-    val x10328 = ReadMem(x10312).name("x10328").ctrl(x10341) // RegRead(x10312)
-    val x10329 = OpDef(op=FixLeq, inputs=List(x10328, b6157)).name("x10329").ctrl(x10341) // FixLeq(x10328,b6157)
-    val x10330 = ReadMem(x10313).name("x10330").ctrl(x10341) // RegRead(x10313)
-    val x10331 = OpDef(op=FixLt, inputs=List(b6157, x10330)).name("x10331").ctrl(x10341) // FixLt(b6157,x10330)
-    val x10332 = OpDef(op=BitAnd, inputs=List(x10329, x10331)).name("x10332").ctrl(x10341) // And(x10329,x10331)
-    val x10333 = OpDef(op=FixSub, inputs=List(b6157, x10328)).name("x10333").ctrl(x10341) // FixSub(b6157,x10328)
-    val x10334 = OpDef(op=BitAnd, inputs=List(b6158, b6101)).name("x10334").ctrl(x10341) // And(b6158,b6101)
-    val x10335 = OpDef(op=BitAnd, inputs=List(b6102, b6093)).name("x10335").ctrl(x10341) // And(b6102,b6093)
-    val x10336 = OpDef(op=BitAnd, inputs=List(x10334, x10335)).name("x10336").ctrl(x10341) // And(x10334,x10335)
-    val x10337_x10337 = ReadMem(x10272).name("x10337").ctrl(x10341) // ParStreamRead(x10272,List(x10336))
-    val x10338_x10338 = x10337_x10337 // x10338 = VectorApply(x10337,0)
-    val x10339 = OpDef(op=BitAnd, inputs=List(x10332, x10336)).name("x10339").ctrl(x10341) // And(x10332,x10336)
-    val x10340 = StoreBanks(List(x9988_d0_b0, x9988_d1_b0), List(b6100, x10333), x10338_x10338).name("x10340").ctrl(x10341) // ParSRAMStore(x9988,List(List(b6100, x10333)),List(x10338),List(x10339))
-    val x10344 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x10344").ctrl(x10682) // CounterNew(Const(0),Const(512),Const(1),Const(1))
-    val x10345 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x10345").ctrl(x10682) // CounterNew(Const(0),Const(1),Const(1),Const(1))
-    val x10346 = CounterChain(List(x10345,x10344)).name("x10346").ctrl(x10682) // CounterChainNew(List(x10345, x10344))
-    val x10459 = LoopController(style=MetaPipe, level=OuterControl, cchain=x10346).name("x10459").ctrl(x10682) // UnrolledForeach(List(b6093),x10346,Block(Const(())),List(List(b6178), List(b6179)),List(List(b6180), List(b6181)))
-    val b6178 = CounterIter(x10345, Some(0)).ctrl(x10459).name("b6178")
-    val b6180 = Const(true).ctrl(x10459).name("b6180")
-    val b6179 = CounterIter(x10344, Some(0)).ctrl(x10459).name("b6179")
-    val b6181 = Const(true).ctrl(x10459).name("b6181")
-    val x10347_d0 = Reg(init=Some(0.0)).name("x10347_d0").ctrl(x10459) // x10347 = RegNew(Const(0))
-    isAccum(x10347_d0) = false
-    bufferDepthOf(x10347_d0) = 2
-    val x10347_d1 = Reg(init=Some(0.0)).name("x10347_d1").ctrl(x10459) // x10347 = RegNew(Const(0))
-    isAccum(x10347_d1) = true
-    bufferDepthOf(x10347_d1) = 1
-    val x10348 = Counter(min=Const(0), max=Const(65), step=Const(1), par=1).name("x10348").ctrl(x10459) // CounterNew(Const(0),Const(65),Const(1),Const(1))
-    val x10349 = CounterChain(List(x10348)).name("x10349").ctrl(x10459) // CounterChainNew(List(x10348))
-    val x10364 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10349).name("x10364").ctrl(x10459) // UnrolledReduce(List(b6180, b6181, b6093),x10349,x10347,Block((x10347) => Const(())),List(List(b6185)),List(List(b6186)))
-    val b6185 = CounterIter(x10348, None).ctrl(x10364).name("b6185")
-    val b6186 = Const(true).ctrl(x10364).name("b6186")
-    val x10350 = OpDef(op=BitAnd, inputs=List(b6186, b6180)).name("x10350").ctrl(x10364) // And(b6186,b6180)
-    val x10351 = OpDef(op=BitAnd, inputs=List(b6181, b6093)).name("x10351").ctrl(x10364) // And(b6181,b6093)
-    val x10352 = OpDef(op=BitAnd, inputs=List(x10350, x10351)).name("x10352").ctrl(x10364) // And(x10350,x10351)
-    val x10353 = LoadBanks(List(x9988_d1_b0), List(b6178, b6185)).name("x10353").ctrl(x10364) // ParSRAMLoad(x9988,List(List(b6178, b6185)),List(x10352))
-    val x10354 = x10353 // x10354 = VectorApply(x10353,0)
-    val x10355 = LoadBanks(List(x9976_d0_b0), List(b6185, b6179)).name("x10355").ctrl(x10364) // ParSRAMLoad(x9976,List(List(b6185, b6179)),List(x10352))
-    val x10356 = x10355 // x10356 = VectorApply(x10355,0)
-    val x10357 = OpDef(op=FixMul, inputs=List(x10354, x10356)).name("x10357").ctrl(x10364) // FixMul(x10354,x10356)
-    val x10358 = ReadMem(x10347_d1).name("x10358").ctrl(x10364) // RegRead(x10347)
-    val x10359 = OpDef(op=FixEql, inputs=List(b6185, Const(0))).name("x10359").ctrl(x10364) // FixEql(b6185,Const(0))
-    val x10360 = ReduceAccumOp(op=FixAdd, input=x10357, accum=x10358).name("x10360").ctrl(x10364) // FixAdd(x10357,x10358)
-    val x10361 = OpDef(op=BitAnd, inputs=List(b6180, b6181)).name("x10361").ctrl(x10364) // And(b6180,b6181)
-    val x10362 = OpDef(op=BitAnd, inputs=List(x10361, b6093)).name("x10362").ctrl(x10364) // And(x10361,b6093)
-    val x10363_x10347_d0 = WriteMem(x10347_d0, x10360).name("x10363_x10347_d0").ctrl(x10364) // RegWrite(x10347,x10360,x10362)
-    val x10363_x10347_d1 = WriteMem(x10347_d1, x10360).name("x10363_x10347_d1").ctrl(x10364) // RegWrite(x10347,x10360,x10362)
-    val x10365 = Reg(init=Some(0.0)).name("x10365").ctrl(x10459) // x10365 = RegNew(Const(0))
-    isAccum(x10365) = false
-    bufferDepthOf(x10365) = 3
-    val x10366_d0 = Reg(init=Some(0.0)).name("x10366_d0").ctrl(x10459) // x10366 = RegNew(Const(0))
-    isAccum(x10366_d0) = false
-    bufferDepthOf(x10366_d0) = 2
-    val x10366_d1 = Reg(init=Some(0.0)).name("x10366_d1").ctrl(x10459) // x10366 = RegNew(Const(0))
-    isAccum(x10366_d1) = true
-    bufferDepthOf(x10366_d1) = 1
-    val x10373 = UnitController(style=SeqPipe, level=InnerControl).name("x10373").ctrl(x10459) // UnitPipe(List(b6180, b6181, b6093),Block(Const(())))
-    val x10367 = OpDef(op=BitAnd, inputs=List(b6180, b6181)).name("x10367").ctrl(x10373) // And(b6180,b6181)
-    val x10368 = OpDef(op=BitAnd, inputs=List(x10367, b6093)).name("x10368").ctrl(x10373) // And(x10367,b6093)
-    val x10369 = LoadBanks(List(x9977_d0_b0), List(b6179)).name("x10369").ctrl(x10373) // SRAMLoad(x9977,ArrayBuffer(Const(512)),List(b6179),Const(0),x10368)
-    val x10370 = ReadMem(x10347_d0).name("x10370").ctrl(x10373) // RegRead(x10347)
-    val x10371 = OpDef(op=FixAdd, inputs=List(x10369, x10370)).name("x10371").ctrl(x10373) // FixAdd(x10369,x10370)
-    val x10372_x10365 = WriteMem(x10365, x10371).name("x10372_x10365").ctrl(x10373) // RegWrite(x10365,x10371,x10368)
-    val x10374 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x10374").ctrl(x10459) // CounterNew(Const(0),Const(128),Const(1),Const(1))
-    val x10375 = CounterChain(List(x10374)).name("x10375").ctrl(x10459) // CounterChainNew(List(x10374))
-    val x10390 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10375).name("x10390").ctrl(x10459) // UnrolledReduce(List(b6180, b6181, b6093),x10375,x10366,Block((x10366) => Const(())),List(List(b6213)),List(List(b6214)))
-    val b6213 = CounterIter(x10374, None).ctrl(x10390).name("b6213")
-    val b6214 = Const(true).ctrl(x10390).name("b6214")
-    val x10376 = OpDef(op=BitAnd, inputs=List(b6214, b6180)).name("x10376").ctrl(x10390) // And(b6214,b6180)
-    val x10377 = OpDef(op=BitAnd, inputs=List(b6181, b6093)).name("x10377").ctrl(x10390) // And(b6181,b6093)
-    val x10378 = OpDef(op=BitAnd, inputs=List(x10376, x10377)).name("x10378").ctrl(x10390) // And(x10376,x10377)
-    val x10379 = LoadBanks(List(x9987_d3_b0), List(b6178, b6213)).name("x10379").ctrl(x10390) // ParSRAMLoad(x9987,List(List(b6178, b6213)),List(x10378))
-    val x10380 = x10379 // x10380 = VectorApply(x10379,0)
-    val x10381 = LoadBanks(List(x9978_d0_b0), List(b6213, b6179)).name("x10381").ctrl(x10390) // ParSRAMLoad(x9978,List(List(b6213, b6179)),List(x10378))
-    val x10382 = x10381 // x10382 = VectorApply(x10381,0)
-    val x10383 = OpDef(op=FixMul, inputs=List(x10380, x10382)).name("x10383").ctrl(x10390) // FixMul(x10380,x10382)
-    val x10384 = ReadMem(x10366_d1).name("x10384").ctrl(x10390) // RegRead(x10366)
-    val x10385 = OpDef(op=FixEql, inputs=List(b6213, Const(0))).name("x10385").ctrl(x10390) // FixEql(b6213,Const(0))
-    val x10386 = ReduceAccumOp(op=FixAdd, input=x10383, accum=x10384).name("x10386").ctrl(x10390) // FixAdd(x10383,x10384)
-    val x10387 = OpDef(op=BitAnd, inputs=List(b6180, b6181)).name("x10387").ctrl(x10390) // And(b6180,b6181)
-    val x10388 = OpDef(op=BitAnd, inputs=List(x10387, b6093)).name("x10388").ctrl(x10390) // And(x10387,b6093)
-    val x10389_x10366_d0 = WriteMem(x10366_d0, x10386).name("x10389_x10366_d0").ctrl(x10390) // RegWrite(x10366,x10386,x10388)
-    val x10389_x10366_d1 = WriteMem(x10366_d1, x10386).name("x10389_x10366_d1").ctrl(x10390) // RegWrite(x10366,x10386,x10388)
-    val x10391_d0 = Reg(init=Some(0.0)).name("x10391_d0").ctrl(x10459) // x10391 = RegNew(Const(0))
-    isAccum(x10391_d0) = false
-    bufferDepthOf(x10391_d0) = 2
-    val x10391_d1 = Reg(init=Some(0.0)).name("x10391_d1").ctrl(x10459) // x10391 = RegNew(Const(0))
-    isAccum(x10391_d1) = false
-    bufferDepthOf(x10391_d1) = 2
-    val x10391_d2 = Reg(init=Some(0.0)).name("x10391_d2").ctrl(x10459) // x10391 = RegNew(Const(0))
-    isAccum(x10391_d2) = false
-    bufferDepthOf(x10391_d2) = 2
-    val x10391_d3 = Reg(init=Some(0.0)).name("x10391_d3").ctrl(x10459) // x10391 = RegNew(Const(0))
-    isAccum(x10391_d3) = false
-    bufferDepthOf(x10391_d3) = 2
-    val x10392_d0 = Reg(init=Some(false)).name("x10392_d0").ctrl(x10459) // x10392 = RegNew(Const(false))
-    isAccum(x10392_d0) = false
-    bufferDepthOf(x10392_d0) = 2
-    val x10392_d1 = Reg(init=Some(false)).name("x10392_d1").ctrl(x10459) // x10392 = RegNew(Const(false))
-    isAccum(x10392_d1) = false
-    bufferDepthOf(x10392_d1) = 2
-    val x10393_d0 = Reg(init=Some(false)).name("x10393_d0").ctrl(x10459) // x10393 = RegNew(Const(false))
-    isAccum(x10393_d0) = false
-    bufferDepthOf(x10393_d0) = 2
-    val x10393_d1 = Reg(init=Some(false)).name("x10393_d1").ctrl(x10459) // x10393 = RegNew(Const(false))
-    isAccum(x10393_d1) = false
-    bufferDepthOf(x10393_d1) = 2
-    val x10394_d0 = Reg(init=Some(false)).name("x10394_d0").ctrl(x10459) // x10394 = RegNew(Const(false))
-    isAccum(x10394_d0) = false
-    bufferDepthOf(x10394_d0) = 2
-    val x10394_d1 = Reg(init=Some(false)).name("x10394_d1").ctrl(x10459) // x10394 = RegNew(Const(false))
-    isAccum(x10394_d1) = false
-    bufferDepthOf(x10394_d1) = 2
-    val x10395_d0 = Reg(init=Some(false)).name("x10395_d0").ctrl(x10459) // x10395 = RegNew(Const(false))
-    isAccum(x10395_d0) = false
-    bufferDepthOf(x10395_d0) = 2
-    val x10395_d1 = Reg(init=Some(false)).name("x10395_d1").ctrl(x10459) // x10395 = RegNew(Const(false))
-    isAccum(x10395_d1) = false
-    bufferDepthOf(x10395_d1) = 2
-    val x10422 = UnitController(style=SeqPipe, level=InnerControl).name("x10422").ctrl(x10459) // UnitPipe(List(b6180, b6181, b6093),Block(Const(())))
-    val x10396 = OpDef(op=BitAnd, inputs=List(b6180, b6181)).name("x10396").ctrl(x10422) // And(b6180,b6181)
-    val x10397 = OpDef(op=BitAnd, inputs=List(x10396, b6093)).name("x10397").ctrl(x10422) // And(x10396,b6093)
-    val x10398 = LoadBanks(List(x9979_d0_b0), List(b6179)).name("x10398").ctrl(x10422) // SRAMLoad(x9979,ArrayBuffer(Const(512)),List(b6179),Const(0),x10397)
-    val x10399 = ReadMem(x10366_d0).name("x10399").ctrl(x10422) // RegRead(x10366)
-    val x10400 = OpDef(op=FixAdd, inputs=List(x10398, x10399)).name("x10400").ctrl(x10422) // FixAdd(x10398,x10399)
-    val x10401 = ReadMem(x10365).name("x10401").ctrl(x10422) // RegRead(x10365)
-    val x10402 = OpDef(op=FixAdd, inputs=List(x10400, x10401)).name("x10402").ctrl(x10422) // FixAdd(x10400,x10401)
-    val x10403 = OpDef(op=FixLt, inputs=List(b6179, Const(128))).name("x10403").ctrl(x10422) // FixLt(b6179,Const(128))
-    val x10404 = OpDef(op=BitNot, inputs=List(x10403)).name("x10404").ctrl(x10422) // Not(x10403)
-    val x10405 = OpDef(op=FixLeq, inputs=List(Const(128), b6179)).name("x10405").ctrl(x10422) // FixLeq(Const(128),b6179)
-    val x10406 = OpDef(op=FixLt, inputs=List(b6179, Const(256))).name("x10406").ctrl(x10422) // FixLt(b6179,Const(256))
-    val x10407 = OpDef(op=BitAnd, inputs=List(x10405, x10406)).name("x10407").ctrl(x10422) // And(x10405,x10406)
-    val x10408 = OpDef(op=BitAnd, inputs=List(x10407, x10404)).name("x10408").ctrl(x10422) // And(x10407,x10404)
-    val x10409 = OpDef(op=BitNot, inputs=List(x10407)).name("x10409").ctrl(x10422) // Not(x10407)
-    val x10410 = OpDef(op=BitAnd, inputs=List(x10409, x10404)).name("x10410").ctrl(x10422) // And(x10409,x10404)
-    val x10411 = OpDef(op=FixLeq, inputs=List(Const(256), b6179)).name("x10411").ctrl(x10422) // FixLeq(Const(256),b6179)
-    val x10412 = OpDef(op=FixLt, inputs=List(b6179, Const(384))).name("x10412").ctrl(x10422) // FixLt(b6179,Const(384))
-    val x10413 = OpDef(op=BitAnd, inputs=List(x10411, x10412)).name("x10413").ctrl(x10422) // And(x10411,x10412)
-    val x10414 = OpDef(op=BitAnd, inputs=List(x10413, x10410)).name("x10414").ctrl(x10422) // And(x10413,x10410)
-    val x10415 = OpDef(op=BitNot, inputs=List(x10413)).name("x10415").ctrl(x10422) // Not(x10413)
-    val x10416 = OpDef(op=BitAnd, inputs=List(x10415, x10410)).name("x10416").ctrl(x10422) // And(x10415,x10410)
-    val x10417_x10391_d0 = WriteMem(x10391_d0, x10402).name("x10417_x10391_d0").ctrl(x10422) // RegWrite(x10391,x10402,x10397)
-    val x10417_x10391_d1 = WriteMem(x10391_d1, x10402).name("x10417_x10391_d1").ctrl(x10422) // RegWrite(x10391,x10402,x10397)
-    val x10417_x10391_d2 = WriteMem(x10391_d2, x10402).name("x10417_x10391_d2").ctrl(x10422) // RegWrite(x10391,x10402,x10397)
-    val x10417_x10391_d3 = WriteMem(x10391_d3, x10402).name("x10417_x10391_d3").ctrl(x10422) // RegWrite(x10391,x10402,x10397)
-    val x10418_x10392_d0 = WriteMem(x10392_d0, x10403).name("x10418_x10392_d0").ctrl(x10422) // RegWrite(x10392,x10403,x10397)
-    val x10418_x10392_d1 = WriteMem(x10392_d1, x10403).name("x10418_x10392_d1").ctrl(x10422) // RegWrite(x10392,x10403,x10397)
-    val x10419_x10393_d0 = WriteMem(x10393_d0, x10408).name("x10419_x10393_d0").ctrl(x10422) // RegWrite(x10393,x10408,x10397)
-    val x10419_x10393_d1 = WriteMem(x10393_d1, x10408).name("x10419_x10393_d1").ctrl(x10422) // RegWrite(x10393,x10408,x10397)
-    val x10420_x10394_d0 = WriteMem(x10394_d0, x10414).name("x10420_x10394_d0").ctrl(x10422) // RegWrite(x10394,x10414,x10397)
-    val x10420_x10394_d1 = WriteMem(x10394_d1, x10414).name("x10420_x10394_d1").ctrl(x10422) // RegWrite(x10394,x10414,x10397)
-    val x10421_x10395_d0 = WriteMem(x10395_d0, x10416).name("x10421_x10395_d0").ctrl(x10422) // RegWrite(x10395,x10416,x10397)
-    val x10421_x10395_d1 = WriteMem(x10395_d1, x10416).name("x10421_x10395_d1").ctrl(x10422) // RegWrite(x10395,x10416,x10397)
-    val x10423 = ReadMem(x10395_d1).name("x10423").ctrl(x10459) // RegRead(x10395)
-    val x10424 = ReadMem(x10394_d1).name("x10424").ctrl(x10459) // RegRead(x10394)
-    val x10425 = ReadMem(x10393_d1).name("x10425").ctrl(x10459) // RegRead(x10393)
-    val x10426 = ReadMem(x10392_d1).name("x10426").ctrl(x10459) // RegRead(x10392)
-    val x10458 = UnitController(style=ForkSwitch, level=OuterControl).name("x10458").ctrl(x10459) // //TODO Switch(Block(x10457),List(x10426, x10425, x10424, x10423),List(x10433, x10441, x10449, x10457))
-    val x10433 = UnitController(style=MetaPipe, level=InnerControl).name("x10433").ctrl(x10458) // //TODO SwitchCase(Block(x10432))
-    val x10427 = ReadMem(x10392_d0).name("x10427").ctrl(x10433) // RegRead(x10392)
-    val x10428 = ReadMem(x10391_d3).name("x10428").ctrl(x10433) // RegRead(x10391)
-    val x10429 = OpDef(op=BitAnd, inputs=List(b6180, b6181)).name("x10429").ctrl(x10433) // And(b6180,b6181)
-    val x10430 = OpDef(op=BitAnd, inputs=List(x10429, b6093)).name("x10430").ctrl(x10433) // And(x10429,b6093)
-    val x10431 = OpDef(op=BitAnd, inputs=List(x10427, x10430)).name("x10431").ctrl(x10433) // And(x10427,x10430)
-    val x10432 = StoreBanks(List(x9989_d0_b0, x9989_d1_b0), List(b6178, b6179), x10428).name("x10432").ctrl(x10433) // SRAMStore(x9989,ArrayBuffer(Const(1), Const(128)),List(b6178, b6179),Const(0),x10428,x10431)
-    val x10441 = UnitController(style=MetaPipe, level=InnerControl).name("x10441").ctrl(x10458) // //TODO SwitchCase(Block(x10440))
-    val x10434 = OpDef(op=FixSub, inputs=List(b6179, Const(128))).name("x10434").ctrl(x10441) // FixSub(b6179,Const(128))
-    val x10435 = ReadMem(x10393_d0).name("x10435").ctrl(x10441) // RegRead(x10393)
-    val x10436 = ReadMem(x10391_d2).name("x10436").ctrl(x10441) // RegRead(x10391)
-    val x10437 = OpDef(op=BitAnd, inputs=List(b6180, b6181)).name("x10437").ctrl(x10441) // And(b6180,b6181)
-    val x10438 = OpDef(op=BitAnd, inputs=List(x10437, b6093)).name("x10438").ctrl(x10441) // And(x10437,b6093)
-    val x10439 = OpDef(op=BitAnd, inputs=List(x10435, x10438)).name("x10439").ctrl(x10441) // And(x10435,x10438)
-    val x10440 = StoreBanks(List(x9990_d0_b0, x9990_d1_b0), List(b6178, x10434), x10436).name("x10440").ctrl(x10441) // SRAMStore(x9990,ArrayBuffer(Const(1), Const(128)),List(b6178, x10434),Const(0),x10436,x10439)
-    val x10449 = UnitController(style=MetaPipe, level=InnerControl).name("x10449").ctrl(x10458) // //TODO SwitchCase(Block(x10448))
-    val x10442 = OpDef(op=FixSub, inputs=List(b6179, Const(256))).name("x10442").ctrl(x10449) // FixSub(b6179,Const(256))
-    val x10443 = ReadMem(x10394_d0).name("x10443").ctrl(x10449) // RegRead(x10394)
-    val x10444 = ReadMem(x10391_d1).name("x10444").ctrl(x10449) // RegRead(x10391)
-    val x10445 = OpDef(op=BitAnd, inputs=List(b6180, b6181)).name("x10445").ctrl(x10449) // And(b6180,b6181)
-    val x10446 = OpDef(op=BitAnd, inputs=List(x10445, b6093)).name("x10446").ctrl(x10449) // And(x10445,b6093)
-    val x10447 = OpDef(op=BitAnd, inputs=List(x10443, x10446)).name("x10447").ctrl(x10449) // And(x10443,x10446)
-    val x10448 = StoreBanks(List(x9991_d0_b0, x9991_d1_b0), List(b6178, x10442), x10444).name("x10448").ctrl(x10449) // SRAMStore(x9991,ArrayBuffer(Const(1), Const(128)),List(b6178, x10442),Const(0),x10444,x10447)
-    val x10457 = UnitController(style=MetaPipe, level=InnerControl).name("x10457").ctrl(x10458) // //TODO SwitchCase(Block(x10456))
-    val x10450 = OpDef(op=FixSub, inputs=List(b6179, Const(384))).name("x10450").ctrl(x10457) // FixSub(b6179,Const(384))
-    val x10451 = ReadMem(x10395_d0).name("x10451").ctrl(x10457) // RegRead(x10395)
-    val x10452 = ReadMem(x10391_d0).name("x10452").ctrl(x10457) // RegRead(x10391)
-    val x10453 = OpDef(op=BitAnd, inputs=List(b6180, b6181)).name("x10453").ctrl(x10457) // And(b6180,b6181)
-    val x10454 = OpDef(op=BitAnd, inputs=List(x10453, b6093)).name("x10454").ctrl(x10457) // And(x10453,b6093)
-    val x10455 = OpDef(op=BitAnd, inputs=List(x10451, x10454)).name("x10455").ctrl(x10457) // And(x10451,x10454)
-    val x10456 = StoreBanks(List(x9992_d0_b0, x9992_d1_b0), List(b6178, x10450), x10452).name("x10456").ctrl(x10457) // SRAMStore(x9992,ArrayBuffer(Const(1), Const(128)),List(b6178, x10450),Const(0),x10452,x10455)
-    val x10460 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x10460").ctrl(x10682) // CounterNew(Const(0),Const(128),Const(1),Const(1))
-    val x10461 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x10461").ctrl(x10682) // CounterNew(Const(0),Const(1),Const(1),Const(1))
-    val x10462 = CounterChain(List(x10461,x10460)).name("x10462").ctrl(x10682) // CounterChainNew(List(x10461, x10460))
-    val x10478 = LoopController(style=MetaPipe, level=OuterControl, cchain=x10462).name("x10478").ctrl(x10682) // UnrolledForeach(List(b6093),x10462,Block(Const(())),List(List(b6302), List(b6303)),List(List(b6304), List(b6305)))
-    val b6302 = CounterIter(x10461, Some(0)).ctrl(x10478).name("b6302")
-    val b6304 = Const(true).ctrl(x10478).name("b6304")
-    val b6303 = CounterIter(x10460, Some(0)).ctrl(x10478).name("b6303")
-    val b6305 = Const(true).ctrl(x10478).name("b6305")
-    val x10477 = UnitController(style=SeqPipe, level=InnerControl).name("x10477").ctrl(x10478) // UnitPipe(List(b6304, b6305, b6093),Block(x10476))
-    val x10463 = OpDef(op=BitAnd, inputs=List(b6304, b6305)).name("x10463").ctrl(x10477) // And(b6304,b6305)
-    val x10464 = OpDef(op=BitAnd, inputs=List(x10463, b6093)).name("x10464").ctrl(x10477) // And(x10463,b6093)
-    val x10465 = LoadBanks(List(x9986_d3_b0), List(b6302, b6303)).name("x10465").ctrl(x10477) // SRAMLoad(x9986,ArrayBuffer(Const(1), Const(128)),List(b6302, b6303),Const(0),x10464)
-    val x10466 = LoadBanks(List(x9990_d1_b0), List(b6302, b6303)).name("x10466").ctrl(x10477) // SRAMLoad(x9990,ArrayBuffer(Const(1), Const(128)),List(b6302, b6303),Const(0),x10464)
-    val x10467 = OpDef(op=FixMul, inputs=List(x10465, x10466)).name("x10467").ctrl(x10477) // FixMul(x10465,x10466)
-    val x10468 = LoadBanks(List(x9989_d1_b0), List(b6302, b6303)).name("x10468").ctrl(x10477) // SRAMLoad(x9989,ArrayBuffer(Const(1), Const(128)),List(b6302, b6303),Const(0),x10464)
-    val x10469 = LoadBanks(List(x9992_d1_b0), List(b6302, b6303)).name("x10469").ctrl(x10477) // SRAMLoad(x9992,ArrayBuffer(Const(1), Const(128)),List(b6302, b6303),Const(0),x10464)
-    val x10470 = OpDef(op=FixMul, inputs=List(x10468, x10469)).name("x10470").ctrl(x10477) // FixMul(x10468,x10469)
-    val x10471 = OpDef(op=FixAdd, inputs=List(x10467, x10470)).name("x10471").ctrl(x10477) // FixAdd(x10467,x10470)
-    val x10472 = StoreBanks(List(x9986_d0_b0, x9986_d1_b0, x9986_d2_b0, x9986_d3_b0), List(b6302, b6303), x10471).name("x10472").ctrl(x10477) // SRAMStore(x9986,ArrayBuffer(Const(1), Const(128)),List(b6302, b6303),Const(0),x10471,x10464)
-    val x10473 = LoadBanks(List(x9986_d2_b0), List(b6302, b6303)).name("x10473").ctrl(x10477) // SRAMLoad(x9986,ArrayBuffer(Const(1), Const(128)),List(b6302, b6303),Const(0),x10464)
-    val x10474 = LoadBanks(List(x9991_d1_b0), List(b6302, b6303)).name("x10474").ctrl(x10477) // SRAMLoad(x9991,ArrayBuffer(Const(1), Const(128)),List(b6302, b6303),Const(0),x10464)
-    val x10475 = OpDef(op=FixMul, inputs=List(x10473, x10474)).name("x10475").ctrl(x10477) // FixMul(x10473,x10474)
-    val x10476 = StoreBanks(List(x9987_d0_b0, x9987_d1_b0, x9987_d2_b0, x9987_d3_b0), List(b6302, b6303), x10475).name("x10476").ctrl(x10477) // SRAMStore(x9987,ArrayBuffer(Const(1), Const(128)),List(b6302, b6303),Const(0),x10475,x10464)
-    val x10479 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x10479").ctrl(x10682) // CounterNew(Const(0),Const(512),Const(1),Const(1))
-    val x10480 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x10480").ctrl(x10682) // CounterNew(Const(0),Const(1),Const(1),Const(1))
-    val x10481 = CounterChain(List(x10480,x10479)).name("x10481").ctrl(x10682) // CounterChainNew(List(x10480, x10479))
-    val x10594 = LoopController(style=MetaPipe, level=OuterControl, cchain=x10481).name("x10594").ctrl(x10682) // UnrolledForeach(List(b6093),x10481,Block(Const(())),List(List(b6325), List(b6326)),List(List(b6327), List(b6328)))
-    val b6325 = CounterIter(x10480, Some(0)).ctrl(x10594).name("b6325")
-    val b6327 = Const(true).ctrl(x10594).name("b6327")
-    val b6326 = CounterIter(x10479, Some(0)).ctrl(x10594).name("b6326")
-    val b6328 = Const(true).ctrl(x10594).name("b6328")
-    val x10482_d0 = Reg(init=Some(0.0)).name("x10482_d0").ctrl(x10594) // x10482 = RegNew(Const(0))
-    isAccum(x10482_d0) = false
-    bufferDepthOf(x10482_d0) = 2
-    val x10482_d1 = Reg(init=Some(0.0)).name("x10482_d1").ctrl(x10594) // x10482 = RegNew(Const(0))
-    isAccum(x10482_d1) = true
-    bufferDepthOf(x10482_d1) = 1
-    val x10483 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x10483").ctrl(x10594) // CounterNew(Const(0),Const(128),Const(1),Const(1))
-    val x10484 = CounterChain(List(x10483)).name("x10484").ctrl(x10594) // CounterChainNew(List(x10483))
-    val x10499 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10484).name("x10499").ctrl(x10594) // UnrolledReduce(List(b6327, b6328, b6093),x10484,x10482,Block((x10482) => Const(())),List(List(b6332)),List(List(b6333)))
-    val b6332 = CounterIter(x10483, None).ctrl(x10499).name("b6332")
-    val b6333 = Const(true).ctrl(x10499).name("b6333")
-    val x10485 = OpDef(op=BitAnd, inputs=List(b6333, b6327)).name("x10485").ctrl(x10499) // And(b6333,b6327)
-    val x10486 = OpDef(op=BitAnd, inputs=List(b6328, b6093)).name("x10486").ctrl(x10499) // And(b6328,b6093)
-    val x10487 = OpDef(op=BitAnd, inputs=List(x10485, x10486)).name("x10487").ctrl(x10499) // And(x10485,x10486)
-    val x10488 = LoadBanks(List(x9988_d0_b0), List(b6325, b6332)).name("x10488").ctrl(x10499) // ParSRAMLoad(x9988,List(List(b6325, b6332)),List(x10487))
-    val x10489 = x10488 // x10489 = VectorApply(x10488,0)
-    val x10490 = LoadBanks(List(x9980_d0_b0), List(b6332, b6326)).name("x10490").ctrl(x10499) // ParSRAMLoad(x9980,List(List(b6332, b6326)),List(x10487))
-    val x10491 = x10490 // x10491 = VectorApply(x10490,0)
-    val x10492 = OpDef(op=FixMul, inputs=List(x10489, x10491)).name("x10492").ctrl(x10499) // FixMul(x10489,x10491)
-    val x10493 = ReadMem(x10482_d1).name("x10493").ctrl(x10499) // RegRead(x10482)
-    val x10494 = OpDef(op=FixEql, inputs=List(b6332, Const(0))).name("x10494").ctrl(x10499) // FixEql(b6332,Const(0))
-    val x10495 = ReduceAccumOp(op=FixAdd, input=x10492, accum=x10493).name("x10495").ctrl(x10499) // FixAdd(x10492,x10493)
-    val x10496 = OpDef(op=BitAnd, inputs=List(b6327, b6328)).name("x10496").ctrl(x10499) // And(b6327,b6328)
-    val x10497 = OpDef(op=BitAnd, inputs=List(x10496, b6093)).name("x10497").ctrl(x10499) // And(x10496,b6093)
-    val x10498_x10482_d0 = WriteMem(x10482_d0, x10495).name("x10498_x10482_d0").ctrl(x10499) // RegWrite(x10482,x10495,x10497)
-    val x10498_x10482_d1 = WriteMem(x10482_d1, x10495).name("x10498_x10482_d1").ctrl(x10499) // RegWrite(x10482,x10495,x10497)
-    val x10500 = Reg(init=Some(0.0)).name("x10500").ctrl(x10594) // x10500 = RegNew(Const(0))
-    isAccum(x10500) = false
-    bufferDepthOf(x10500) = 3
-    val x10501_d0 = Reg(init=Some(0.0)).name("x10501_d0").ctrl(x10594) // x10501 = RegNew(Const(0))
-    isAccum(x10501_d0) = false
-    bufferDepthOf(x10501_d0) = 2
-    val x10501_d1 = Reg(init=Some(0.0)).name("x10501_d1").ctrl(x10594) // x10501 = RegNew(Const(0))
-    isAccum(x10501_d1) = true
-    bufferDepthOf(x10501_d1) = 1
-    val x10508 = UnitController(style=SeqPipe, level=InnerControl).name("x10508").ctrl(x10594) // UnitPipe(List(b6327, b6328, b6093),Block(Const(())))
-    val x10502 = OpDef(op=BitAnd, inputs=List(b6327, b6328)).name("x10502").ctrl(x10508) // And(b6327,b6328)
-    val x10503 = OpDef(op=BitAnd, inputs=List(x10502, b6093)).name("x10503").ctrl(x10508) // And(x10502,b6093)
-    val x10504 = LoadBanks(List(x9981_d0_b0), List(b6326)).name("x10504").ctrl(x10508) // SRAMLoad(x9981,ArrayBuffer(Const(512)),List(b6326),Const(0),x10503)
-    val x10505 = ReadMem(x10482_d0).name("x10505").ctrl(x10508) // RegRead(x10482)
-    val x10506 = OpDef(op=FixAdd, inputs=List(x10504, x10505)).name("x10506").ctrl(x10508) // FixAdd(x10504,x10505)
-    val x10507_x10500 = WriteMem(x10500, x10506).name("x10507_x10500").ctrl(x10508) // RegWrite(x10500,x10506,x10503)
-    val x10509 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x10509").ctrl(x10594) // CounterNew(Const(0),Const(128),Const(1),Const(1))
-    val x10510 = CounterChain(List(x10509)).name("x10510").ctrl(x10594) // CounterChainNew(List(x10509))
-    val x10525 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10510).name("x10525").ctrl(x10594) // UnrolledReduce(List(b6327, b6328, b6093),x10510,x10501,Block((x10501) => Const(())),List(List(b6360)),List(List(b6361)))
-    val b6360 = CounterIter(x10509, None).ctrl(x10525).name("b6360")
-    val b6361 = Const(true).ctrl(x10525).name("b6361")
-    val x10511 = OpDef(op=BitAnd, inputs=List(b6361, b6327)).name("x10511").ctrl(x10525) // And(b6361,b6327)
-    val x10512 = OpDef(op=BitAnd, inputs=List(b6328, b6093)).name("x10512").ctrl(x10525) // And(b6328,b6093)
-    val x10513 = OpDef(op=BitAnd, inputs=List(x10511, x10512)).name("x10513").ctrl(x10525) // And(x10511,x10512)
-    val x10514 = LoadBanks(List(x9987_d2_b0), List(b6325, b6360)).name("x10514").ctrl(x10525) // ParSRAMLoad(x9987,List(List(b6325, b6360)),List(x10513))
-    val x10515 = x10514 // x10515 = VectorApply(x10514,0)
-    val x10516 = LoadBanks(List(x9982_d0_b0), List(b6360, b6326)).name("x10516").ctrl(x10525) // ParSRAMLoad(x9982,List(List(b6360, b6326)),List(x10513))
-    val x10517 = x10516 // x10517 = VectorApply(x10516,0)
-    val x10518 = OpDef(op=FixMul, inputs=List(x10515, x10517)).name("x10518").ctrl(x10525) // FixMul(x10515,x10517)
-    val x10519 = ReadMem(x10501_d1).name("x10519").ctrl(x10525) // RegRead(x10501)
-    val x10520 = OpDef(op=FixEql, inputs=List(b6360, Const(0))).name("x10520").ctrl(x10525) // FixEql(b6360,Const(0))
-    val x10521 = ReduceAccumOp(op=FixAdd, input=x10518, accum=x10519).name("x10521").ctrl(x10525) // FixAdd(x10518,x10519)
-    val x10522 = OpDef(op=BitAnd, inputs=List(b6327, b6328)).name("x10522").ctrl(x10525) // And(b6327,b6328)
-    val x10523 = OpDef(op=BitAnd, inputs=List(x10522, b6093)).name("x10523").ctrl(x10525) // And(x10522,b6093)
-    val x10524_x10501_d0 = WriteMem(x10501_d0, x10521).name("x10524_x10501_d0").ctrl(x10525) // RegWrite(x10501,x10521,x10523)
-    val x10524_x10501_d1 = WriteMem(x10501_d1, x10521).name("x10524_x10501_d1").ctrl(x10525) // RegWrite(x10501,x10521,x10523)
-    val x10526_d0 = Reg(init=Some(0.0)).name("x10526_d0").ctrl(x10594) // x10526 = RegNew(Const(0))
-    isAccum(x10526_d0) = false
-    bufferDepthOf(x10526_d0) = 2
-    val x10526_d1 = Reg(init=Some(0.0)).name("x10526_d1").ctrl(x10594) // x10526 = RegNew(Const(0))
-    isAccum(x10526_d1) = false
-    bufferDepthOf(x10526_d1) = 2
-    val x10526_d2 = Reg(init=Some(0.0)).name("x10526_d2").ctrl(x10594) // x10526 = RegNew(Const(0))
-    isAccum(x10526_d2) = false
-    bufferDepthOf(x10526_d2) = 2
-    val x10526_d3 = Reg(init=Some(0.0)).name("x10526_d3").ctrl(x10594) // x10526 = RegNew(Const(0))
-    isAccum(x10526_d3) = false
-    bufferDepthOf(x10526_d3) = 2
-    val x10527_d0 = Reg(init=Some(false)).name("x10527_d0").ctrl(x10594) // x10527 = RegNew(Const(false))
-    isAccum(x10527_d0) = false
-    bufferDepthOf(x10527_d0) = 2
-    val x10527_d1 = Reg(init=Some(false)).name("x10527_d1").ctrl(x10594) // x10527 = RegNew(Const(false))
-    isAccum(x10527_d1) = false
-    bufferDepthOf(x10527_d1) = 2
-    val x10528_d0 = Reg(init=Some(false)).name("x10528_d0").ctrl(x10594) // x10528 = RegNew(Const(false))
-    isAccum(x10528_d0) = false
-    bufferDepthOf(x10528_d0) = 2
-    val x10528_d1 = Reg(init=Some(false)).name("x10528_d1").ctrl(x10594) // x10528 = RegNew(Const(false))
-    isAccum(x10528_d1) = false
-    bufferDepthOf(x10528_d1) = 2
-    val x10529_d0 = Reg(init=Some(false)).name("x10529_d0").ctrl(x10594) // x10529 = RegNew(Const(false))
-    isAccum(x10529_d0) = false
-    bufferDepthOf(x10529_d0) = 2
-    val x10529_d1 = Reg(init=Some(false)).name("x10529_d1").ctrl(x10594) // x10529 = RegNew(Const(false))
-    isAccum(x10529_d1) = false
-    bufferDepthOf(x10529_d1) = 2
-    val x10530_d0 = Reg(init=Some(false)).name("x10530_d0").ctrl(x10594) // x10530 = RegNew(Const(false))
-    isAccum(x10530_d0) = false
-    bufferDepthOf(x10530_d0) = 2
-    val x10530_d1 = Reg(init=Some(false)).name("x10530_d1").ctrl(x10594) // x10530 = RegNew(Const(false))
-    isAccum(x10530_d1) = false
-    bufferDepthOf(x10530_d1) = 2
-    val x10557 = UnitController(style=SeqPipe, level=InnerControl).name("x10557").ctrl(x10594) // UnitPipe(List(b6327, b6328, b6093),Block(Const(())))
-    val x10531 = OpDef(op=BitAnd, inputs=List(b6327, b6328)).name("x10531").ctrl(x10557) // And(b6327,b6328)
-    val x10532 = OpDef(op=BitAnd, inputs=List(x10531, b6093)).name("x10532").ctrl(x10557) // And(x10531,b6093)
-    val x10533 = LoadBanks(List(x9983_d0_b0), List(b6326)).name("x10533").ctrl(x10557) // SRAMLoad(x9983,ArrayBuffer(Const(512)),List(b6326),Const(0),x10532)
-    val x10534 = ReadMem(x10501_d0).name("x10534").ctrl(x10557) // RegRead(x10501)
-    val x10535 = OpDef(op=FixAdd, inputs=List(x10533, x10534)).name("x10535").ctrl(x10557) // FixAdd(x10533,x10534)
-    val x10536 = ReadMem(x10500).name("x10536").ctrl(x10557) // RegRead(x10500)
-    val x10537 = OpDef(op=FixAdd, inputs=List(x10535, x10536)).name("x10537").ctrl(x10557) // FixAdd(x10535,x10536)
-    val x10538 = OpDef(op=FixLt, inputs=List(b6326, Const(128))).name("x10538").ctrl(x10557) // FixLt(b6326,Const(128))
-    val x10539 = OpDef(op=BitNot, inputs=List(x10538)).name("x10539").ctrl(x10557) // Not(x10538)
-    val x10540 = OpDef(op=FixLeq, inputs=List(Const(128), b6326)).name("x10540").ctrl(x10557) // FixLeq(Const(128),b6326)
-    val x10541 = OpDef(op=FixLt, inputs=List(b6326, Const(256))).name("x10541").ctrl(x10557) // FixLt(b6326,Const(256))
-    val x10542 = OpDef(op=BitAnd, inputs=List(x10540, x10541)).name("x10542").ctrl(x10557) // And(x10540,x10541)
-    val x10543 = OpDef(op=BitAnd, inputs=List(x10542, x10539)).name("x10543").ctrl(x10557) // And(x10542,x10539)
-    val x10544 = OpDef(op=BitNot, inputs=List(x10542)).name("x10544").ctrl(x10557) // Not(x10542)
-    val x10545 = OpDef(op=BitAnd, inputs=List(x10544, x10539)).name("x10545").ctrl(x10557) // And(x10544,x10539)
-    val x10546 = OpDef(op=FixLeq, inputs=List(Const(256), b6326)).name("x10546").ctrl(x10557) // FixLeq(Const(256),b6326)
-    val x10547 = OpDef(op=FixLt, inputs=List(b6326, Const(384))).name("x10547").ctrl(x10557) // FixLt(b6326,Const(384))
-    val x10548 = OpDef(op=BitAnd, inputs=List(x10546, x10547)).name("x10548").ctrl(x10557) // And(x10546,x10547)
-    val x10549 = OpDef(op=BitAnd, inputs=List(x10548, x10545)).name("x10549").ctrl(x10557) // And(x10548,x10545)
-    val x10550 = OpDef(op=BitNot, inputs=List(x10548)).name("x10550").ctrl(x10557) // Not(x10548)
-    val x10551 = OpDef(op=BitAnd, inputs=List(x10550, x10545)).name("x10551").ctrl(x10557) // And(x10550,x10545)
-    val x10552_x10526_d0 = WriteMem(x10526_d0, x10537).name("x10552_x10526_d0").ctrl(x10557) // RegWrite(x10526,x10537,x10532)
-    val x10552_x10526_d1 = WriteMem(x10526_d1, x10537).name("x10552_x10526_d1").ctrl(x10557) // RegWrite(x10526,x10537,x10532)
-    val x10552_x10526_d2 = WriteMem(x10526_d2, x10537).name("x10552_x10526_d2").ctrl(x10557) // RegWrite(x10526,x10537,x10532)
-    val x10552_x10526_d3 = WriteMem(x10526_d3, x10537).name("x10552_x10526_d3").ctrl(x10557) // RegWrite(x10526,x10537,x10532)
-    val x10553_x10527_d0 = WriteMem(x10527_d0, x10538).name("x10553_x10527_d0").ctrl(x10557) // RegWrite(x10527,x10538,x10532)
-    val x10553_x10527_d1 = WriteMem(x10527_d1, x10538).name("x10553_x10527_d1").ctrl(x10557) // RegWrite(x10527,x10538,x10532)
-    val x10554_x10528_d0 = WriteMem(x10528_d0, x10543).name("x10554_x10528_d0").ctrl(x10557) // RegWrite(x10528,x10543,x10532)
-    val x10554_x10528_d1 = WriteMem(x10528_d1, x10543).name("x10554_x10528_d1").ctrl(x10557) // RegWrite(x10528,x10543,x10532)
-    val x10555_x10529_d0 = WriteMem(x10529_d0, x10549).name("x10555_x10529_d0").ctrl(x10557) // RegWrite(x10529,x10549,x10532)
-    val x10555_x10529_d1 = WriteMem(x10529_d1, x10549).name("x10555_x10529_d1").ctrl(x10557) // RegWrite(x10529,x10549,x10532)
-    val x10556_x10530_d0 = WriteMem(x10530_d0, x10551).name("x10556_x10530_d0").ctrl(x10557) // RegWrite(x10530,x10551,x10532)
-    val x10556_x10530_d1 = WriteMem(x10530_d1, x10551).name("x10556_x10530_d1").ctrl(x10557) // RegWrite(x10530,x10551,x10532)
-    val x10558 = ReadMem(x10530_d1).name("x10558").ctrl(x10594) // RegRead(x10530)
-    val x10559 = ReadMem(x10529_d1).name("x10559").ctrl(x10594) // RegRead(x10529)
-    val x10560 = ReadMem(x10528_d1).name("x10560").ctrl(x10594) // RegRead(x10528)
-    val x10561 = ReadMem(x10527_d1).name("x10561").ctrl(x10594) // RegRead(x10527)
-    val x10593 = UnitController(style=ForkSwitch, level=OuterControl).name("x10593").ctrl(x10594) // //TODO Switch(Block(x10592),List(x10561, x10560, x10559, x10558),List(x10568, x10576, x10584, x10592))
-    val x10568 = UnitController(style=MetaPipe, level=InnerControl).name("x10568").ctrl(x10593) // //TODO SwitchCase(Block(x10567))
-    val x10562 = ReadMem(x10527_d0).name("x10562").ctrl(x10568) // RegRead(x10527)
-    val x10563 = ReadMem(x10526_d3).name("x10563").ctrl(x10568) // RegRead(x10526)
-    val x10564 = OpDef(op=BitAnd, inputs=List(b6327, b6328)).name("x10564").ctrl(x10568) // And(b6327,b6328)
-    val x10565 = OpDef(op=BitAnd, inputs=List(x10564, b6093)).name("x10565").ctrl(x10568) // And(x10564,b6093)
-    val x10566 = OpDef(op=BitAnd, inputs=List(x10562, x10565)).name("x10566").ctrl(x10568) // And(x10562,x10565)
-    val x10567 = StoreBanks(List(x9989_d0_b0, x9989_d1_b0), List(b6325, b6326), x10563).name("x10567").ctrl(x10568) // SRAMStore(x9989,ArrayBuffer(Const(1), Const(128)),List(b6325, b6326),Const(0),x10563,x10566)
-    val x10576 = UnitController(style=MetaPipe, level=InnerControl).name("x10576").ctrl(x10593) // //TODO SwitchCase(Block(x10575))
-    val x10569 = OpDef(op=FixSub, inputs=List(b6326, Const(128))).name("x10569").ctrl(x10576) // FixSub(b6326,Const(128))
-    val x10570 = ReadMem(x10528_d0).name("x10570").ctrl(x10576) // RegRead(x10528)
-    val x10571 = ReadMem(x10526_d2).name("x10571").ctrl(x10576) // RegRead(x10526)
-    val x10572 = OpDef(op=BitAnd, inputs=List(b6327, b6328)).name("x10572").ctrl(x10576) // And(b6327,b6328)
-    val x10573 = OpDef(op=BitAnd, inputs=List(x10572, b6093)).name("x10573").ctrl(x10576) // And(x10572,b6093)
-    val x10574 = OpDef(op=BitAnd, inputs=List(x10570, x10573)).name("x10574").ctrl(x10576) // And(x10570,x10573)
-    val x10575 = StoreBanks(List(x9990_d0_b0, x9990_d1_b0), List(b6325, x10569), x10571).name("x10575").ctrl(x10576) // SRAMStore(x9990,ArrayBuffer(Const(1), Const(128)),List(b6325, x10569),Const(0),x10571,x10574)
-    val x10584 = UnitController(style=MetaPipe, level=InnerControl).name("x10584").ctrl(x10593) // //TODO SwitchCase(Block(x10583))
-    val x10577 = OpDef(op=FixSub, inputs=List(b6326, Const(256))).name("x10577").ctrl(x10584) // FixSub(b6326,Const(256))
-    val x10578 = ReadMem(x10529_d0).name("x10578").ctrl(x10584) // RegRead(x10529)
-    val x10579 = ReadMem(x10526_d1).name("x10579").ctrl(x10584) // RegRead(x10526)
-    val x10580 = OpDef(op=BitAnd, inputs=List(b6327, b6328)).name("x10580").ctrl(x10584) // And(b6327,b6328)
-    val x10581 = OpDef(op=BitAnd, inputs=List(x10580, b6093)).name("x10581").ctrl(x10584) // And(x10580,b6093)
-    val x10582 = OpDef(op=BitAnd, inputs=List(x10578, x10581)).name("x10582").ctrl(x10584) // And(x10578,x10581)
-    val x10583 = StoreBanks(List(x9991_d0_b0, x9991_d1_b0), List(b6325, x10577), x10579).name("x10583").ctrl(x10584) // SRAMStore(x9991,ArrayBuffer(Const(1), Const(128)),List(b6325, x10577),Const(0),x10579,x10582)
-    val x10592 = UnitController(style=MetaPipe, level=InnerControl).name("x10592").ctrl(x10593) // //TODO SwitchCase(Block(x10591))
-    val x10585 = OpDef(op=FixSub, inputs=List(b6326, Const(384))).name("x10585").ctrl(x10592) // FixSub(b6326,Const(384))
-    val x10586 = ReadMem(x10530_d0).name("x10586").ctrl(x10592) // RegRead(x10530)
-    val x10587 = ReadMem(x10526_d0).name("x10587").ctrl(x10592) // RegRead(x10526)
-    val x10588 = OpDef(op=BitAnd, inputs=List(b6327, b6328)).name("x10588").ctrl(x10592) // And(b6327,b6328)
-    val x10589 = OpDef(op=BitAnd, inputs=List(x10588, b6093)).name("x10589").ctrl(x10592) // And(x10588,b6093)
-    val x10590 = OpDef(op=BitAnd, inputs=List(x10586, x10589)).name("x10590").ctrl(x10592) // And(x10586,x10589)
-    val x10591 = StoreBanks(List(x9992_d0_b0, x9992_d1_b0), List(b6325, x10585), x10587).name("x10591").ctrl(x10592) // SRAMStore(x9992,ArrayBuffer(Const(1), Const(128)),List(b6325, x10585),Const(0),x10587,x10590)
-    val x10595 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x10595").ctrl(x10682) // CounterNew(Const(0),Const(128),Const(1),Const(1))
-    val x10596 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x10596").ctrl(x10682) // CounterNew(Const(0),Const(1),Const(1),Const(1))
-    val x10597 = CounterChain(List(x10596,x10595)).name("x10597").ctrl(x10682) // CounterChainNew(List(x10596, x10595))
-    val x10613 = LoopController(style=MetaPipe, level=OuterControl, cchain=x10597).name("x10613").ctrl(x10682) // UnrolledForeach(List(b6093),x10597,Block(Const(())),List(List(b6449), List(b6450)),List(List(b6451), List(b6452)))
-    val b6449 = CounterIter(x10596, Some(0)).ctrl(x10613).name("b6449")
-    val b6451 = Const(true).ctrl(x10613).name("b6451")
-    val b6450 = CounterIter(x10595, Some(0)).ctrl(x10613).name("b6450")
-    val b6452 = Const(true).ctrl(x10613).name("b6452")
-    val x10612 = UnitController(style=SeqPipe, level=InnerControl).name("x10612").ctrl(x10613) // UnitPipe(List(b6451, b6452, b6093),Block(x10611))
-    val x10598 = OpDef(op=BitAnd, inputs=List(b6451, b6452)).name("x10598").ctrl(x10612) // And(b6451,b6452)
-    val x10599 = OpDef(op=BitAnd, inputs=List(x10598, b6093)).name("x10599").ctrl(x10612) // And(x10598,b6093)
-    val x10600 = LoadBanks(List(x9986_d1_b0), List(b6449, b6450)).name("x10600").ctrl(x10612) // SRAMLoad(x9986,ArrayBuffer(Const(1), Const(128)),List(b6449, b6450),Const(0),x10599)
-    val x10601 = LoadBanks(List(x9990_d0_b0), List(b6449, b6450)).name("x10601").ctrl(x10612) // SRAMLoad(x9990,ArrayBuffer(Const(1), Const(128)),List(b6449, b6450),Const(0),x10599)
-    val x10602 = OpDef(op=FixMul, inputs=List(x10600, x10601)).name("x10602").ctrl(x10612) // FixMul(x10600,x10601)
-    val x10603 = LoadBanks(List(x9989_d0_b0), List(b6449, b6450)).name("x10603").ctrl(x10612) // SRAMLoad(x9989,ArrayBuffer(Const(1), Const(128)),List(b6449, b6450),Const(0),x10599)
-    val x10604 = LoadBanks(List(x9992_d0_b0), List(b6449, b6450)).name("x10604").ctrl(x10612) // SRAMLoad(x9992,ArrayBuffer(Const(1), Const(128)),List(b6449, b6450),Const(0),x10599)
-    val x10605 = OpDef(op=FixMul, inputs=List(x10603, x10604)).name("x10605").ctrl(x10612) // FixMul(x10603,x10604)
-    val x10606 = OpDef(op=FixAdd, inputs=List(x10602, x10605)).name("x10606").ctrl(x10612) // FixAdd(x10602,x10605)
-    val x10607 = StoreBanks(List(x9986_d0_b0, x9986_d1_b0, x9986_d2_b0, x9986_d3_b0), List(b6449, b6450), x10606).name("x10607").ctrl(x10612) // SRAMStore(x9986,ArrayBuffer(Const(1), Const(128)),List(b6449, b6450),Const(0),x10606,x10599)
-    val x10608 = LoadBanks(List(x9986_d0_b0), List(b6449, b6450)).name("x10608").ctrl(x10612) // SRAMLoad(x9986,ArrayBuffer(Const(1), Const(128)),List(b6449, b6450),Const(0),x10599)
-    val x10609 = LoadBanks(List(x9991_d0_b0), List(b6449, b6450)).name("x10609").ctrl(x10612) // SRAMLoad(x9991,ArrayBuffer(Const(1), Const(128)),List(b6449, b6450),Const(0),x10599)
-    val x10610 = OpDef(op=FixMul, inputs=List(x10608, x10609)).name("x10610").ctrl(x10612) // FixMul(x10608,x10609)
-    val x10611 = StoreBanks(List(x9987_d0_b0, x9987_d1_b0, x9987_d2_b0, x9987_d3_b0), List(b6449, b6450), x10610).name("x10611").ctrl(x10612) // SRAMStore(x9987,ArrayBuffer(Const(1), Const(128)),List(b6449, b6450),Const(0),x10610,x10599)
-    val x10614 = Counter(min=Const(0), max=Const(65), step=Const(1), par=1).name("x10614").ctrl(x10682) // CounterNew(Const(0),Const(65),Const(1),Const(1))
-    val x10615 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x10615").ctrl(x10682) // CounterNew(Const(0),Const(1),Const(1),Const(1))
-    val x10616 = CounterChain(List(x10615,x10614)).name("x10616").ctrl(x10682) // CounterChainNew(List(x10615, x10614))
-    val x10642 = LoopController(style=MetaPipe, level=OuterControl, cchain=x10616).name("x10642").ctrl(x10682) // UnrolledForeach(List(b6093),x10616,Block(Const(())),List(List(b6472), List(b6473)),List(List(b6474), List(b6475)))
-    val b6472 = CounterIter(x10615, Some(0)).ctrl(x10642).name("b6472")
-    val b6474 = Const(true).ctrl(x10642).name("b6474")
-    val b6473 = CounterIter(x10614, Some(0)).ctrl(x10642).name("b6473")
-    val b6475 = Const(true).ctrl(x10642).name("b6475")
-    val x10617_d0 = Reg(init=Some(0.0)).name("x10617_d0").ctrl(x10642) // x10617 = RegNew(Const(0))
-    isAccum(x10617_d0) = false
-    bufferDepthOf(x10617_d0) = 2
-    val x10617_d1 = Reg(init=Some(0.0)).name("x10617_d1").ctrl(x10642) // x10617 = RegNew(Const(0))
-    isAccum(x10617_d1) = true
-    bufferDepthOf(x10617_d1) = 1
-    val x10618 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x10618").ctrl(x10642) // CounterNew(Const(0),Const(128),Const(1),Const(1))
-    val x10619 = CounterChain(List(x10618)).name("x10619").ctrl(x10642) // CounterChainNew(List(x10618))
-    val x10634 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10619).name("x10634").ctrl(x10642) // UnrolledReduce(List(b6474, b6475, b6093),x10619,x10617,Block((x10617) => Const(())),List(List(b6479)),List(List(b6480)))
-    val b6479 = CounterIter(x10618, None).ctrl(x10634).name("b6479")
-    val b6480 = Const(true).ctrl(x10634).name("b6480")
-    val x10620 = OpDef(op=BitAnd, inputs=List(b6480, b6474)).name("x10620").ctrl(x10634) // And(b6480,b6474)
-    val x10621 = OpDef(op=BitAnd, inputs=List(b6475, b6093)).name("x10621").ctrl(x10634) // And(b6475,b6093)
-    val x10622 = OpDef(op=BitAnd, inputs=List(x10620, x10621)).name("x10622").ctrl(x10634) // And(x10620,x10621)
-    val x10623 = LoadBanks(List(x9987_d1_b0), List(b6472, b6479)).name("x10623").ctrl(x10634) // ParSRAMLoad(x9987,List(List(b6472, b6479)),List(x10622))
-    val x10624 = x10623 // x10624 = VectorApply(x10623,0)
-    val x10625 = LoadBanks(List(x9984_d0_b0), List(b6479, b6473)).name("x10625").ctrl(x10634) // ParSRAMLoad(x9984,List(List(b6479, b6473)),List(x10622))
-    val x10626 = x10625 // x10626 = VectorApply(x10625,0)
-    val x10627 = OpDef(op=FixMul, inputs=List(x10624, x10626)).name("x10627").ctrl(x10634) // FixMul(x10624,x10626)
-    val x10628 = ReadMem(x10617_d1).name("x10628").ctrl(x10634) // RegRead(x10617)
-    val x10629 = OpDef(op=FixEql, inputs=List(b6479, Const(0))).name("x10629").ctrl(x10634) // FixEql(b6479,Const(0))
-    val x10630 = ReduceAccumOp(op=FixAdd, input=x10627, accum=x10628).name("x10630").ctrl(x10634) // FixAdd(x10627,x10628)
-    val x10631 = OpDef(op=BitAnd, inputs=List(b6474, b6475)).name("x10631").ctrl(x10634) // And(b6474,b6475)
-    val x10632 = OpDef(op=BitAnd, inputs=List(x10631, b6093)).name("x10632").ctrl(x10634) // And(x10631,b6093)
-    val x10633_x10617_d0 = WriteMem(x10617_d0, x10630).name("x10633_x10617_d0").ctrl(x10634) // RegWrite(x10617,x10630,x10632)
-    val x10633_x10617_d1 = WriteMem(x10617_d1, x10630).name("x10633_x10617_d1").ctrl(x10634) // RegWrite(x10617,x10630,x10632)
-    val x10641 = UnitController(style=SeqPipe, level=InnerControl).name("x10641").ctrl(x10642) // UnitPipe(List(b6474, b6475, b6093),Block(Const(())))
-    val x10635 = OpDef(op=BitAnd, inputs=List(b6474, b6475)).name("x10635").ctrl(x10641) // And(b6474,b6475)
-    val x10636 = OpDef(op=BitAnd, inputs=List(x10635, b6093)).name("x10636").ctrl(x10641) // And(x10635,b6093)
-    val x10637 = LoadBanks(List(x9985_d0_b0), List(b6473)).name("x10637").ctrl(x10641) // SRAMLoad(x9985,ArrayBuffer(Const(65)),List(b6473),Const(0),x10636)
-    val x10638 = ReadMem(x10617_d0).name("x10638").ctrl(x10641) // RegRead(x10617)
-    val x10639 = OpDef(op=FixAdd, inputs=List(x10638, x10637)).name("x10639").ctrl(x10641) // FixAdd(x10638,x10637)
-    val x10640 = StoreBanks(List(x9987_d0_b0, x9987_d1_b0, x9987_d2_b0, x9987_d3_b0), List(b6472, b6473), x10639).name("x10640").ctrl(x10641) // SRAMStore(x9987,ArrayBuffer(Const(1), Const(128)),List(b6472, b6473),Const(0),x10639,x10636)
-    val x10643 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x10643").ctrl(x10682) // CounterNew(Const(0),Const(1),Const(1),Const(1))
-    val x10644 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x10644").ctrl(x10682) // CounterNew(Const(0),Const(1),Const(1),Const(1))
-    val x10645 = CounterChain(List(x10643,x10644)).name("x10645").ctrl(x10682) // CounterChainNew(List(x10643, x10644))
-    val x10681 = LoopController(style=StreamPipe, level=OuterControl, cchain=x10645).name("x10681").ctrl(x10682) // UnrolledForeach(List(b6093),x10645,Block(Const(())),List(List(b6507), List(b6508)),List(List(b6509), List(b6510)))
-    val b6507 = CounterIter(x10643, Some(0)).ctrl(x10681).name("b6507")
-    val b6509 = Const(true).ctrl(x10681).name("b6509")
-    val b6508 = CounterIter(x10644, Some(0)).ctrl(x10681).name("b6508")
-    val b6510 = Const(true).ctrl(x10681).name("b6510")
-    val b10753 = StreamOut(field="offset").name("b10753").ctrl(x10681) // x10646 = StreamOutNew(BurstCmdBus)
-    val b10754 = StreamOut(field="size").name("b10754").ctrl(x10681) // x10646 = StreamOutNew(BurstCmdBus)
-    val x10647 = StreamOut(field="data").name("x10647").ctrl(x10681) // x10647 = StreamOutNew(BurstFullDataBus())
-    val x10648 = StreamIn(field="ack").name("x10648").ctrl(x10681) // x10648 = StreamInNew(BurstAckBus)
-    val x10665 = UnitController(style=SeqPipe, level=InnerControl).name("x10665").ctrl(x10681) // UnitPipe(List(b6509, b6510, b6093),Block(x10664))
-    val x10649 = OpDef(op=FixAdd, inputs=List(b6092, b6507)).name("x10649").ctrl(x10665) // FixAdd(b6092,b6507)
-    val x10650 = x10649 // FixConvert(x10649,TRUE,_32,_0)
-    val x10651 = OpDef(op=FixMul, inputs=List(x10650, Const(65))).name("x10651").ctrl(x10665) // FixMul(x10650,Const(65))
-    val x10652 = b6508 // FixConvert(b6508,TRUE,_32,_0)
-    val x10653 = Const(0) // FixConvert(Const(0),TRUE,_32,_0)
-    val x10654 = OpDef(op=FixAdd, inputs=List(x10651, x10652)).name("x10654").ctrl(x10665) // FixAdd(x10651,x10652)
-    val x10655 = OpDef(op=FixAdd, inputs=List(x10654, x10653)).name("x10655").ctrl(x10665) // FixAdd(x10654,x10653)
-    val x10656 = OpDef(op=FixSla, inputs=List(x10655, Const(2))).name("x10656").ctrl(x10665) // FixLsh(x10655,Const(2))
-    val x10657 = x10656 // FixConvert(x10656,TRUE,_64,_0)
-    val x10658 = DramAddress(x9975).name("x10658").ctrl(x10665) // GetDRAMAddress(x9975)
-    val x10659 = OpDef(op=FixAdd, inputs=List(x10657, x10658)).name("x10659").ctrl(x10665) // FixAdd(x10657,x10658)
-    val x10661_x10660 = x10659 // FixConvert(x10659,TRUE,_64,_0)
-    // x10661 = SimpleStruct(ArrayBuffer((offset,x10660), (size,Const(512)), (isLoad,Const(false))))
-    val x10662 = OpDef(op=BitAnd, inputs=List(b6509, b6510)).name("x10662").ctrl(x10665) // And(b6509,b6510)
-    val x10663 = OpDef(op=BitAnd, inputs=List(x10662, b6093)).name("x10663").ctrl(x10665) // And(x10662,b6093)
-    val b10755_b10753 = WriteMem(b10753, x10661_x10660).name("b10755_b10753").ctrl(x10665) // StreamWrite(x10646,x10661,x10663)
-    val b10756_b10754 = WriteMem(b10754, Const(512)).name("b10756_b10754").ctrl(x10665) // StreamWrite(x10646,x10661,x10663)
-    val x10666 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x10666").ctrl(x10681) // CounterNew(Const(0),Const(128),Const(1),Const(1))
-    val x10667 = CounterChain(List(x10666)).name("x10667").ctrl(x10681) // CounterChainNew(List(x10666))
-    val x10675 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10667).name("x10675").ctrl(x10681) // UnrolledForeach(List(b6509, b6510, b6093),x10667,Block(Const(())),List(List(b6533)),List(List(b6534)))
-    val b6533 = CounterIter(x10666, None).ctrl(x10675).name("b6533")
-    val b6534 = Const(true).ctrl(x10675).name("b6534")
-    val x10668 = OpDef(op=BitAnd, inputs=List(b6534, b6509)).name("x10668").ctrl(x10675) // And(b6534,b6509)
-    val x10669 = OpDef(op=BitAnd, inputs=List(b6510, b6093)).name("x10669").ctrl(x10675) // And(b6510,b6093)
-    val x10670 = OpDef(op=BitAnd, inputs=List(x10668, x10669)).name("x10670").ctrl(x10675) // And(x10668,x10669)
-    val x10671 = LoadBanks(List(x9987_d0_b0), List(b6508, b6533)).name("x10671").ctrl(x10675) // ParSRAMLoad(x9987,List(List(b6508, b6533)),List(x10670))
-    val x10673_x10672 = x10671 // x10672 = VectorApply(x10671,0)
-    // x10673 = SimpleStruct(ArrayBuffer((_1,x10672), (_2,Const(true))))
-    val x10674_x10647 = WriteMem(x10647, x10673_x10672).name("x10674_x10647").ctrl(x10675) // ParStreamWrite(x10647,List(x10673),List(x10670))
-    val x10676 = FringeDenseStore(dram=List(x9975), cmdStream=List(b10753, b10754), dataStream=List(x10647), ackStream=List(x10648)).name("x10676").ctrl(x10681) // FringeDenseStore(x9975,x10646,x10647,x10648)
-    val x10680 = UnitController(style=SeqPipe, level=InnerControl).name("x10680").ctrl(x10681) // UnitPipe(List(b6509, b6510, b6093),Block(Const(())))
-    val x10677 = OpDef(op=BitAnd, inputs=List(b6509, b6510)).name("x10677").ctrl(x10680) // And(b6509,b6510)
-    val x10678 = OpDef(op=BitAnd, inputs=List(x10677, b6093)).name("x10678").ctrl(x10680) // And(x10677,b6093)
-    val x10679_x10679 = ReadMem(x10648).name("x10679").ctrl(x10680) // StreamRead(x10648,x10678)
-    // x10690 = WriteTokens(x10686,Const(","),x10687,Block((b419) => x10689),b419) TODO: Unmatched Node
+    val x9378 = DRAM().name("x9378").ctrl(top).srcCtx("CharRNN.scala:30:25:i2h_1w") // x9378 = DRAMNew(ArrayBuffer(Const(64), Const(512)),Const(0))
+    val x9379 = DRAM().name("x9379").ctrl(top).srcCtx("CharRNN.scala:31:25:i2h_1b") // x9379 = DRAMNew(ArrayBuffer(Const(512)),Const(0))
+    val x9380 = DRAM().name("x9380").ctrl(top).srcCtx("CharRNN.scala:32:25:i2h_2w") // x9380 = DRAMNew(ArrayBuffer(Const(128), Const(512)),Const(0))
+    val x9381 = DRAM().name("x9381").ctrl(top).srcCtx("CharRNN.scala:33:25:i2h_2b") // x9381 = DRAMNew(ArrayBuffer(Const(512)),Const(0))
+    val x9382 = DRAM().name("x9382").ctrl(top).srcCtx("CharRNN.scala:34:25:h2h_1w") // x9382 = DRAMNew(ArrayBuffer(Const(128), Const(512)),Const(0))
+    val x9383 = DRAM().name("x9383").ctrl(top).srcCtx("CharRNN.scala:35:25:h2h_1b") // x9383 = DRAMNew(ArrayBuffer(Const(512)),Const(0))
+    val x9384 = DRAM().name("x9384").ctrl(top).srcCtx("CharRNN.scala:36:25:h2h_2w") // x9384 = DRAMNew(ArrayBuffer(Const(128), Const(512)),Const(0))
+    val x9385 = DRAM().name("x9385").ctrl(top).srcCtx("CharRNN.scala:37:25:h2h_2b") // x9385 = DRAMNew(ArrayBuffer(Const(512)),Const(0))
+    val x9386 = DRAM().name("x9386").ctrl(top).srcCtx("CharRNN.scala:38:29:decoder_w_") // x9386 = DRAMNew(ArrayBuffer(Const(128), Const(64)),Const(0))
+    val x9387 = DRAM().name("x9387").ctrl(top).srcCtx("CharRNN.scala:39:29:decoder_b_") // x9387 = DRAMNew(ArrayBuffer(Const(64)),Const(0))
+    val x9388 = DRAM().name("x9388").ctrl(top).srcCtx("CharRNN.scala:40:21:c_") // x9388 = DRAMNew(ArrayBuffer(Const(1), Const(128)),Const(0))
+    val x9389 = DRAM().name("x9389").ctrl(top).srcCtx("CharRNN.scala:41:21:h_") // x9389 = DRAMNew(ArrayBuffer(Const(1), Const(128)),Const(0))
+    val x9390 = DRAM().name("x9390").ctrl(top).srcCtx("CharRNN.scala:42:25:inputs") // x9390 = DRAMNew(ArrayBuffer(Const(3), Const(1), Const(64)),Const(0))
+    val x9490 = DRAM().name("x9490").ctrl(top).srcCtx("CharRNN.scala:53:26:results") // x9490 = DRAMNew(ArrayBuffer(Const(3), Const(64), Const(1)),Const(0))
+    val x10147 = UnitController(style=SeqPipe, level=OuterControl).name("x10147").ctrl(top).srcCtx("CharRNN.scala:55:11") // Hwblock(Block(Const(())),false)
+    val x9491_d0_b0 = SRAM(size=32768, banking=Strided(banks=1, stride=512)).name("x9491_d0_b0").ctrl(x10147).srcCtx("CharRNN.scala:56:26:i2h1w") // x9491 = SRAMNew(ArrayBuffer(Const(64), Const(512)))
+    isAccum(x9491_d0_b0) = false
+    bufferDepthOf(x9491_d0_b0) = 1
+    val x9492_d0_b0 = SRAM(size=512, banking=Strided(banks=1, stride=1)).name("x9492_d0_b0").ctrl(x10147).srcCtx("CharRNN.scala:57:26:i2h1b") // x9492 = SRAMNew(ArrayBuffer(Const(512)))
+    isAccum(x9492_d0_b0) = false
+    bufferDepthOf(x9492_d0_b0) = 1
+    val x9493_d0_b0 = SRAM(size=65536, banking=Strided(banks=1, stride=512)).name("x9493_d0_b0").ctrl(x10147).srcCtx("CharRNN.scala:58:26:h2h1w") // x9493 = SRAMNew(ArrayBuffer(Const(128), Const(512)))
+    isAccum(x9493_d0_b0) = false
+    bufferDepthOf(x9493_d0_b0) = 1
+    val x9494_d0_b0 = SRAM(size=512, banking=Strided(banks=1, stride=1)).name("x9494_d0_b0").ctrl(x10147).srcCtx("CharRNN.scala:59:26:h2h1b") // x9494 = SRAMNew(ArrayBuffer(Const(512)))
+    isAccum(x9494_d0_b0) = false
+    bufferDepthOf(x9494_d0_b0) = 1
+    val x9495_d0_b0 = SRAM(size=65536, banking=Strided(banks=1, stride=512)).name("x9495_d0_b0").ctrl(x10147).srcCtx("CharRNN.scala:60:26:i2h2w") // x9495 = SRAMNew(ArrayBuffer(Const(128), Const(512)))
+    isAccum(x9495_d0_b0) = false
+    bufferDepthOf(x9495_d0_b0) = 1
+    val x9496_d0_b0 = SRAM(size=512, banking=Strided(banks=1, stride=1)).name("x9496_d0_b0").ctrl(x10147).srcCtx("CharRNN.scala:61:26:i2h2b") // x9496 = SRAMNew(ArrayBuffer(Const(512)))
+    isAccum(x9496_d0_b0) = false
+    bufferDepthOf(x9496_d0_b0) = 1
+    val x9497_d0_b0 = SRAM(size=65536, banking=Strided(banks=1, stride=512)).name("x9497_d0_b0").ctrl(x10147).srcCtx("CharRNN.scala:62:26:h2h2w") // x9497 = SRAMNew(ArrayBuffer(Const(128), Const(512)))
+    isAccum(x9497_d0_b0) = false
+    bufferDepthOf(x9497_d0_b0) = 1
+    val x9498_d0_b0 = SRAM(size=512, banking=Strided(banks=1, stride=1)).name("x9498_d0_b0").ctrl(x10147).srcCtx("CharRNN.scala:63:26:h2h2b") // x9498 = SRAMNew(ArrayBuffer(Const(512)))
+    isAccum(x9498_d0_b0) = false
+    bufferDepthOf(x9498_d0_b0) = 1
+    val x9499_d0_b0 = SRAM(size=8192, banking=Strided(banks=1, stride=64)).name("x9499_d0_b0").ctrl(x10147).srcCtx("CharRNN.scala:64:30:decoder_w") // x9499 = SRAMNew(ArrayBuffer(Const(128), Const(64)))
+    isAccum(x9499_d0_b0) = false
+    bufferDepthOf(x9499_d0_b0) = 1
+    val x9500_d0_b0 = SRAM(size=64, banking=Strided(banks=1, stride=1)).name("x9500_d0_b0").ctrl(x10147).srcCtx("CharRNN.scala:65:30:decoder_b") // x9500 = SRAMNew(ArrayBuffer(Const(64)))
+    isAccum(x9500_d0_b0) = false
+    bufferDepthOf(x9500_d0_b0) = 1
+    val x9501_d0_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9501_d0_b0").ctrl(x10147).srcCtx("CharRNN.scala:66:22:c") // x9501 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
+    isAccum(x9501_d0_b0) = true
+    bufferDepthOf(x9501_d0_b0) = 1
+    val x9501_d1_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9501_d1_b0").ctrl(x10147).srcCtx("CharRNN.scala:66:22:c") // x9501 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
+    isAccum(x9501_d1_b0) = true
+    bufferDepthOf(x9501_d1_b0) = 1
+    val x9502_d0_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9502_d0_b0").ctrl(x10147).srcCtx("CharRNN.scala:67:22:h") // x9502 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
+    isAccum(x9502_d0_b0) = false
+    bufferDepthOf(x9502_d0_b0) = 1
+    val x9502_d1_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9502_d1_b0").ctrl(x10147).srcCtx("CharRNN.scala:67:22:h") // x9502 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
+    isAccum(x9502_d1_b0) = false
+    bufferDepthOf(x9502_d1_b0) = 2
+    val x9502_d2_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9502_d2_b0").ctrl(x10147).srcCtx("CharRNN.scala:67:22:h") // x9502 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
+    isAccum(x9502_d2_b0) = false
+    bufferDepthOf(x9502_d2_b0) = 1
+    val x9502_d3_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9502_d3_b0").ctrl(x10147).srcCtx("CharRNN.scala:67:22:h") // x9502 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
+    isAccum(x9502_d3_b0) = false
+    bufferDepthOf(x9502_d3_b0) = 1
+    val x9503_d0_b0 = SRAM(size=64, banking=Strided(banks=1, stride=64)).name("x9503_d0_b0").ctrl(x10147).srcCtx("CharRNN.scala:68:22:x") // x9503 = SRAMNew(ArrayBuffer(Const(1), Const(64)))
+    isAccum(x9503_d0_b0) = false
+    bufferDepthOf(x9503_d0_b0) = 1
+    val x9503_d1_b0 = SRAM(size=64, banking=Strided(banks=1, stride=64)).name("x9503_d1_b0").ctrl(x10147).srcCtx("CharRNN.scala:68:22:x") // x9503 = SRAMNew(ArrayBuffer(Const(1), Const(64)))
+    isAccum(x9503_d1_b0) = false
+    bufferDepthOf(x9503_d1_b0) = 1
+    val x9504_d0_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9504_d0_b0").ctrl(x10147).srcCtx("CharRNN.scala:69:28:in_gate") // x9504 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
+    isAccum(x9504_d0_b0) = false
+    bufferDepthOf(x9504_d0_b0) = 1
+    val x9504_d1_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9504_d1_b0").ctrl(x10147).srcCtx("CharRNN.scala:69:28:in_gate") // x9504 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
+    isAccum(x9504_d1_b0) = false
+    bufferDepthOf(x9504_d1_b0) = 1
+    val x9505_d0_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9505_d0_b0").ctrl(x10147).srcCtx("CharRNN.scala:70:32:forget_gate") // x9505 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
+    isAccum(x9505_d0_b0) = false
+    bufferDepthOf(x9505_d0_b0) = 1
+    val x9505_d1_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9505_d1_b0").ctrl(x10147).srcCtx("CharRNN.scala:70:32:forget_gate") // x9505 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
+    isAccum(x9505_d1_b0) = false
+    bufferDepthOf(x9505_d1_b0) = 1
+    val x9506_d0_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9506_d0_b0").ctrl(x10147).srcCtx("CharRNN.scala:71:29:out_gate") // x9506 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
+    isAccum(x9506_d0_b0) = false
+    bufferDepthOf(x9506_d0_b0) = 1
+    val x9506_d1_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9506_d1_b0").ctrl(x10147).srcCtx("CharRNN.scala:71:29:out_gate") // x9506 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
+    isAccum(x9506_d1_b0) = false
+    bufferDepthOf(x9506_d1_b0) = 1
+    val x9507_d0_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9507_d0_b0").ctrl(x10147).srcCtx("CharRNN.scala:72:33:in_transform") // x9507 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
+    isAccum(x9507_d0_b0) = false
+    bufferDepthOf(x9507_d0_b0) = 1
+    val x9507_d1_b0 = SRAM(size=128, banking=Strided(banks=1, stride=128)).name("x9507_d1_b0").ctrl(x10147).srcCtx("CharRNN.scala:72:33:in_transform") // x9507 = SRAMNew(ArrayBuffer(Const(1), Const(128)))
+    isAccum(x9507_d1_b0) = false
+    bufferDepthOf(x9507_d1_b0) = 1
+    val x9508 = Counter(min=Const(0), max=Const(64), step=Const(1), par=1).name("x9508").ctrl(x10147).srcCtx("CharRNN.scala:74:13") // CounterNew(Const(0),Const(64),Const(1),Const(1))
+    val x9509 = CounterChain(List(x9508)).name("x9509").ctrl(x10147).srcCtx("CharRNN.scala:74:13") // CounterChainNew(List(x9508))
+    val x9531 = LoopController(style=StreamPipe, level=OuterControl, cchain=x9509).name("x9531").ctrl(x10147).srcCtx("CharRNN.scala:74:13") // UnrolledForeach(List(Const(true)),x9509,Block(Const(())),List(List(b5538)),List(List(b5539)))
+    val b5538 = CounterIter(x9508, Some(0)).name("b5538").ctrl(x9531) // b5538
+    val b5539 = Const(true).name("b5539").ctrl(x9531) // b5539
+    val b10156 = StreamOut(field="offset").name("b10156").ctrl(x9531).srcCtx("CharRNN.scala:74:13") // x9510 = StreamOutNew(BurstCmdBus)
+    isAccum(b10156) = false
+    bufferDepthOf(b10156) = 1
+    val b10157 = StreamOut(field="size").name("b10157").ctrl(x9531).srcCtx("CharRNN.scala:74:13") // x9510 = StreamOutNew(BurstCmdBus)
+    isAccum(b10157) = false
+    bufferDepthOf(b10157) = 1
+    val x9511 = StreamIn(field="data").name("x9511").ctrl(x9531).srcCtx("CharRNN.scala:74:13") // x9511 = StreamInNew(BurstDataBus())
+    isAccum(x9511) = false
+    bufferDepthOf(x9511) = 1
+    val x9522 = UnitController(style=SeqPipe, level=InnerControl).name("x9522").ctrl(x9531).srcCtx("CharRNN.scala:74:13") // UnitPipe(List(b5539),Block(x9521))
+    val x9512 = b5538 // FixConvert(b5538,TRUE,_32,_0) (Same Type. No op)
+    val x9513 = OpDef(op=FixSla, inputs=List(x9512, Const(9))).name("x9513").ctrl(x9522).srcCtx("CharRNN.scala:74:13") // FixLsh(x9512,Const(9))
+    val x9514 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x9515 = OpDef(op=FixAdd, inputs=List(x9513, x9514)).name("x9515").ctrl(x9522).srcCtx("CharRNN.scala:74:13") // FixAdd(x9513,x9514)
+    val x9516 = OpDef(op=FixSla, inputs=List(x9515, Const(2))).name("x9516").ctrl(x9522).srcCtx("CharRNN.scala:74:13") // FixLsh(x9515,Const(2))
+    val x9517 = x9516 // FixConvert(x9516,TRUE,_64,_0)
+    val x9518 = DramAddress(x9378).name("x9518").ctrl(x9522).srcCtx("CharRNN.scala:74:13") // GetDRAMAddress(x9378)
+    val x9520_x9519 = OpDef(op=FixAdd, inputs=List(x9517, x9518)).name("x9520_x9519").ctrl(x9522).srcCtx("CharRNN.scala:74:13") // FixAdd(x9517,x9518)
+    // x9520 = SimpleStruct(ArrayBuffer((offset,x9519), (size,Const(2048)), (isLoad,Const(true))))
+    val x9521_b10158_b10156 = WriteMem(b10156, x9520_x9519).name("x9521_b10158_b10156").ctrl(x9522).srcCtx("CharRNN.scala:74:13") // StreamWrite(x9510,x9520,b5539)
+    val x9521_b10159_b10157 = WriteMem(b10157, Const(2048)).name("x9521_b10159_b10157").ctrl(x9522).srcCtx("CharRNN.scala:74:13") // StreamWrite(x9510,x9520,b5539)
+    val x9523 = FringeDenseLoad(dram=List(x9378), cmdStream=List(b10156, b10157), dataStream=List(x9511)).name("x9523").ctrl(x9531).srcCtx("CharRNN.scala:74:13") // FringeDenseLoad(x9378,x9510,x9511)
+    val x9524 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x9524").ctrl(x9531).srcCtx("CharRNN.scala:74:13") // CounterNew(Const(0),Const(512),Const(1),Const(1))
+    val x9525 = CounterChain(List(x9524)).name("x9525").ctrl(x9531).srcCtx("CharRNN.scala:74:13") // CounterChainNew(List(x9524))
+    val x9530 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9525).name("x9530").ctrl(x9531).srcCtx("CharRNN.scala:74:13") // UnrolledForeach(List(b5539),x9525,Block(Const(())),List(List(b5556)),List(List(b5557)))
+    val b5556 = CounterIter(x9524, None).name("b5556").ctrl(x9530) // b5556
+    val b5557 = Const(true).name("b5557").ctrl(x9530) // b5557
+    val x9526 = OpDef(op=BitAnd, inputs=List(b5557, b5539)).name("x9526").ctrl(x9530).srcCtx("UnrollingBase.scala:28:66") // And(b5557,b5539)
+    val x9527_x9527 = ReadMem(x9511).name("x9527_x9527").ctrl(x9530).srcCtx("CharRNN.scala:74:13") // ParStreamRead(x9511,List(x9526))
+    val x9528_x9528 = x9527_x9527 // x9528 = VectorApply(x9527,0)
+    val x9529 = StoreBanks(List(x9491_d0_b0), List(b5538, b5556), x9528_x9528).name("x9529").ctrl(x9530).srcCtx("CharRNN.scala:74:13") // ParSRAMStore(x9491,List(List(b5538, b5556)),List(x9528),List(x9526))
+    val x9549 = UnitController(style=StreamPipe, level=OuterControl).name("x9549").ctrl(x10147).srcCtx("CharRNN.scala:75:13") // UnitPipe(List(Const(true)),Block(Const(())))
+    val b10160 = StreamOut(field="offset").name("b10160").ctrl(x9549).srcCtx("CharRNN.scala:75:13") // x9532 = StreamOutNew(BurstCmdBus)
+    isAccum(b10160) = false
+    bufferDepthOf(b10160) = 1
+    val b10161 = StreamOut(field="size").name("b10161").ctrl(x9549).srcCtx("CharRNN.scala:75:13") // x9532 = StreamOutNew(BurstCmdBus)
+    isAccum(b10161) = false
+    bufferDepthOf(b10161) = 1
+    val x9533 = StreamIn(field="data").name("x9533").ctrl(x9549).srcCtx("CharRNN.scala:75:13") // x9533 = StreamInNew(BurstDataBus())
+    isAccum(x9533) = false
+    bufferDepthOf(x9533) = 1
+    val x9541 = UnitController(style=SeqPipe, level=InnerControl).name("x9541").ctrl(x9549).srcCtx("CharRNN.scala:75:13") // UnitPipe(List(Const(true)),Block(x9540))
+    val x9534 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x9535 = OpDef(op=FixSla, inputs=List(x9534, Const(2))).name("x9535").ctrl(x9541).srcCtx("CharRNN.scala:75:13") // FixLsh(x9534,Const(2))
+    val x9536 = x9535 // FixConvert(x9535,TRUE,_64,_0)
+    val x9537 = DramAddress(x9379).name("x9537").ctrl(x9541).srcCtx("CharRNN.scala:75:13") // GetDRAMAddress(x9379)
+    val x9539_x9538 = OpDef(op=FixAdd, inputs=List(x9536, x9537)).name("x9539_x9538").ctrl(x9541).srcCtx("CharRNN.scala:75:13") // FixAdd(x9536,x9537)
+    // x9539 = SimpleStruct(ArrayBuffer((offset,x9538), (size,Const(2048)), (isLoad,Const(true))))
+    val x9540_b10162_b10160 = WriteMem(b10160, x9539_x9538).name("x9540_b10162_b10160").ctrl(x9541).srcCtx("CharRNN.scala:75:13") // StreamWrite(x9532,x9539,Const(true))
+    val x9540_b10163_b10161 = WriteMem(b10161, Const(2048)).name("x9540_b10163_b10161").ctrl(x9541).srcCtx("CharRNN.scala:75:13") // StreamWrite(x9532,x9539,Const(true))
+    val x9542 = FringeDenseLoad(dram=List(x9379), cmdStream=List(b10160, b10161), dataStream=List(x9533)).name("x9542").ctrl(x9549).srcCtx("CharRNN.scala:75:13") // FringeDenseLoad(x9379,x9532,x9533)
+    val x9543 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x9543").ctrl(x9549).srcCtx("CharRNN.scala:75:13") // CounterNew(Const(0),Const(512),Const(1),Const(1))
+    val x9544 = CounterChain(List(x9543)).name("x9544").ctrl(x9549).srcCtx("CharRNN.scala:75:13") // CounterChainNew(List(x9543))
+    val x9548 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9544).name("x9548").ctrl(x9549).srcCtx("CharRNN.scala:75:13") // UnrolledForeach(List(Const(true)),x9544,Block(Const(())),List(List(b5577)),List(List(b5578)))
+    val b5577 = CounterIter(x9543, None).name("b5577").ctrl(x9548) // b5577
+    val b5578 = Const(true).name("b5578").ctrl(x9548) // b5578
+    val x9545_x9545 = ReadMem(x9533).name("x9545_x9545").ctrl(x9548).srcCtx("CharRNN.scala:75:13") // ParStreamRead(x9533,List(b5578))
+    val x9546_x9546 = x9545_x9545 // x9546 = VectorApply(x9545,0)
+    val x9547 = StoreBanks(List(x9492_d0_b0), List(b5577), x9546_x9546).name("x9547").ctrl(x9548).srcCtx("CharRNN.scala:75:13") // ParSRAMStore(x9492,List(List(b5577)),List(x9546),List(b5578))
+    val x9550 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x9550").ctrl(x10147).srcCtx("CharRNN.scala:76:13") // CounterNew(Const(0),Const(128),Const(1),Const(1))
+    val x9551 = CounterChain(List(x9550)).name("x9551").ctrl(x10147).srcCtx("CharRNN.scala:76:13") // CounterChainNew(List(x9550))
+    val x9573 = LoopController(style=StreamPipe, level=OuterControl, cchain=x9551).name("x9573").ctrl(x10147).srcCtx("CharRNN.scala:76:13") // UnrolledForeach(List(Const(true)),x9551,Block(Const(())),List(List(b5586)),List(List(b5587)))
+    val b5586 = CounterIter(x9550, Some(0)).name("b5586").ctrl(x9573) // b5586
+    val b5587 = Const(true).name("b5587").ctrl(x9573) // b5587
+    val b10164 = StreamOut(field="offset").name("b10164").ctrl(x9573).srcCtx("CharRNN.scala:76:13") // x9552 = StreamOutNew(BurstCmdBus)
+    isAccum(b10164) = false
+    bufferDepthOf(b10164) = 1
+    val b10165 = StreamOut(field="size").name("b10165").ctrl(x9573).srcCtx("CharRNN.scala:76:13") // x9552 = StreamOutNew(BurstCmdBus)
+    isAccum(b10165) = false
+    bufferDepthOf(b10165) = 1
+    val x9553 = StreamIn(field="data").name("x9553").ctrl(x9573).srcCtx("CharRNN.scala:76:13") // x9553 = StreamInNew(BurstDataBus())
+    isAccum(x9553) = false
+    bufferDepthOf(x9553) = 1
+    val x9564 = UnitController(style=SeqPipe, level=InnerControl).name("x9564").ctrl(x9573).srcCtx("CharRNN.scala:76:13") // UnitPipe(List(b5587),Block(x9563))
+    val x9554 = b5586 // FixConvert(b5586,TRUE,_32,_0) (Same Type. No op)
+    val x9555 = OpDef(op=FixSla, inputs=List(x9554, Const(9))).name("x9555").ctrl(x9564).srcCtx("CharRNN.scala:76:13") // FixLsh(x9554,Const(9))
+    val x9556 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x9557 = OpDef(op=FixAdd, inputs=List(x9555, x9556)).name("x9557").ctrl(x9564).srcCtx("CharRNN.scala:76:13") // FixAdd(x9555,x9556)
+    val x9558 = OpDef(op=FixSla, inputs=List(x9557, Const(2))).name("x9558").ctrl(x9564).srcCtx("CharRNN.scala:76:13") // FixLsh(x9557,Const(2))
+    val x9559 = x9558 // FixConvert(x9558,TRUE,_64,_0)
+    val x9560 = DramAddress(x9382).name("x9560").ctrl(x9564).srcCtx("CharRNN.scala:76:13") // GetDRAMAddress(x9382)
+    val x9562_x9561 = OpDef(op=FixAdd, inputs=List(x9559, x9560)).name("x9562_x9561").ctrl(x9564).srcCtx("CharRNN.scala:76:13") // FixAdd(x9559,x9560)
+    // x9562 = SimpleStruct(ArrayBuffer((offset,x9561), (size,Const(2048)), (isLoad,Const(true))))
+    val x9563_b10166_b10164 = WriteMem(b10164, x9562_x9561).name("x9563_b10166_b10164").ctrl(x9564).srcCtx("CharRNN.scala:76:13") // StreamWrite(x9552,x9562,b5587)
+    val x9563_b10167_b10165 = WriteMem(b10165, Const(2048)).name("x9563_b10167_b10165").ctrl(x9564).srcCtx("CharRNN.scala:76:13") // StreamWrite(x9552,x9562,b5587)
+    val x9565 = FringeDenseLoad(dram=List(x9382), cmdStream=List(b10164, b10165), dataStream=List(x9553)).name("x9565").ctrl(x9573).srcCtx("CharRNN.scala:76:13") // FringeDenseLoad(x9382,x9552,x9553)
+    val x9566 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x9566").ctrl(x9573).srcCtx("CharRNN.scala:76:13") // CounterNew(Const(0),Const(512),Const(1),Const(1))
+    val x9567 = CounterChain(List(x9566)).name("x9567").ctrl(x9573).srcCtx("CharRNN.scala:76:13") // CounterChainNew(List(x9566))
+    val x9572 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9567).name("x9572").ctrl(x9573).srcCtx("CharRNN.scala:76:13") // UnrolledForeach(List(b5587),x9567,Block(Const(())),List(List(b5604)),List(List(b5605)))
+    val b5604 = CounterIter(x9566, None).name("b5604").ctrl(x9572) // b5604
+    val b5605 = Const(true).name("b5605").ctrl(x9572) // b5605
+    val x9568 = OpDef(op=BitAnd, inputs=List(b5605, b5587)).name("x9568").ctrl(x9572).srcCtx("UnrollingBase.scala:28:66") // And(b5605,b5587)
+    val x9569_x9569 = ReadMem(x9553).name("x9569_x9569").ctrl(x9572).srcCtx("CharRNN.scala:76:13") // ParStreamRead(x9553,List(x9568))
+    val x9570_x9570 = x9569_x9569 // x9570 = VectorApply(x9569,0)
+    val x9571 = StoreBanks(List(x9493_d0_b0), List(b5586, b5604), x9570_x9570).name("x9571").ctrl(x9572).srcCtx("CharRNN.scala:76:13") // ParSRAMStore(x9493,List(List(b5586, b5604)),List(x9570),List(x9568))
+    val x9591 = UnitController(style=StreamPipe, level=OuterControl).name("x9591").ctrl(x10147).srcCtx("CharRNN.scala:77:13") // UnitPipe(List(Const(true)),Block(Const(())))
+    val b10168 = StreamOut(field="offset").name("b10168").ctrl(x9591).srcCtx("CharRNN.scala:77:13") // x9574 = StreamOutNew(BurstCmdBus)
+    isAccum(b10168) = false
+    bufferDepthOf(b10168) = 1
+    val b10169 = StreamOut(field="size").name("b10169").ctrl(x9591).srcCtx("CharRNN.scala:77:13") // x9574 = StreamOutNew(BurstCmdBus)
+    isAccum(b10169) = false
+    bufferDepthOf(b10169) = 1
+    val x9575 = StreamIn(field="data").name("x9575").ctrl(x9591).srcCtx("CharRNN.scala:77:13") // x9575 = StreamInNew(BurstDataBus())
+    isAccum(x9575) = false
+    bufferDepthOf(x9575) = 1
+    val x9583 = UnitController(style=SeqPipe, level=InnerControl).name("x9583").ctrl(x9591).srcCtx("CharRNN.scala:77:13") // UnitPipe(List(Const(true)),Block(x9582))
+    val x9576 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x9577 = OpDef(op=FixSla, inputs=List(x9576, Const(2))).name("x9577").ctrl(x9583).srcCtx("CharRNN.scala:77:13") // FixLsh(x9576,Const(2))
+    val x9578 = x9577 // FixConvert(x9577,TRUE,_64,_0)
+    val x9579 = DramAddress(x9383).name("x9579").ctrl(x9583).srcCtx("CharRNN.scala:77:13") // GetDRAMAddress(x9383)
+    val x9581_x9580 = OpDef(op=FixAdd, inputs=List(x9578, x9579)).name("x9581_x9580").ctrl(x9583).srcCtx("CharRNN.scala:77:13") // FixAdd(x9578,x9579)
+    // x9581 = SimpleStruct(ArrayBuffer((offset,x9580), (size,Const(2048)), (isLoad,Const(true))))
+    val x9582_b10170_b10168 = WriteMem(b10168, x9581_x9580).name("x9582_b10170_b10168").ctrl(x9583).srcCtx("CharRNN.scala:77:13") // StreamWrite(x9574,x9581,Const(true))
+    val x9582_b10171_b10169 = WriteMem(b10169, Const(2048)).name("x9582_b10171_b10169").ctrl(x9583).srcCtx("CharRNN.scala:77:13") // StreamWrite(x9574,x9581,Const(true))
+    val x9584 = FringeDenseLoad(dram=List(x9383), cmdStream=List(b10168, b10169), dataStream=List(x9575)).name("x9584").ctrl(x9591).srcCtx("CharRNN.scala:77:13") // FringeDenseLoad(x9383,x9574,x9575)
+    val x9585 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x9585").ctrl(x9591).srcCtx("CharRNN.scala:77:13") // CounterNew(Const(0),Const(512),Const(1),Const(1))
+    val x9586 = CounterChain(List(x9585)).name("x9586").ctrl(x9591).srcCtx("CharRNN.scala:77:13") // CounterChainNew(List(x9585))
+    val x9590 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9586).name("x9590").ctrl(x9591).srcCtx("CharRNN.scala:77:13") // UnrolledForeach(List(Const(true)),x9586,Block(Const(())),List(List(b5625)),List(List(b5626)))
+    val b5625 = CounterIter(x9585, None).name("b5625").ctrl(x9590) // b5625
+    val b5626 = Const(true).name("b5626").ctrl(x9590) // b5626
+    val x9587_x9587 = ReadMem(x9575).name("x9587_x9587").ctrl(x9590).srcCtx("CharRNN.scala:77:13") // ParStreamRead(x9575,List(b5626))
+    val x9588_x9588 = x9587_x9587 // x9588 = VectorApply(x9587,0)
+    val x9589 = StoreBanks(List(x9494_d0_b0), List(b5625), x9588_x9588).name("x9589").ctrl(x9590).srcCtx("CharRNN.scala:77:13") // ParSRAMStore(x9494,List(List(b5625)),List(x9588),List(b5626))
+    val x9592 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x9592").ctrl(x10147).srcCtx("CharRNN.scala:78:13") // CounterNew(Const(0),Const(128),Const(1),Const(1))
+    val x9593 = CounterChain(List(x9592)).name("x9593").ctrl(x10147).srcCtx("CharRNN.scala:78:13") // CounterChainNew(List(x9592))
+    val x9615 = LoopController(style=StreamPipe, level=OuterControl, cchain=x9593).name("x9615").ctrl(x10147).srcCtx("CharRNN.scala:78:13") // UnrolledForeach(List(Const(true)),x9593,Block(Const(())),List(List(b5634)),List(List(b5635)))
+    val b5634 = CounterIter(x9592, Some(0)).name("b5634").ctrl(x9615) // b5634
+    val b5635 = Const(true).name("b5635").ctrl(x9615) // b5635
+    val b10172 = StreamOut(field="offset").name("b10172").ctrl(x9615).srcCtx("CharRNN.scala:78:13") // x9594 = StreamOutNew(BurstCmdBus)
+    isAccum(b10172) = false
+    bufferDepthOf(b10172) = 1
+    val b10173 = StreamOut(field="size").name("b10173").ctrl(x9615).srcCtx("CharRNN.scala:78:13") // x9594 = StreamOutNew(BurstCmdBus)
+    isAccum(b10173) = false
+    bufferDepthOf(b10173) = 1
+    val x9595 = StreamIn(field="data").name("x9595").ctrl(x9615).srcCtx("CharRNN.scala:78:13") // x9595 = StreamInNew(BurstDataBus())
+    isAccum(x9595) = false
+    bufferDepthOf(x9595) = 1
+    val x9606 = UnitController(style=SeqPipe, level=InnerControl).name("x9606").ctrl(x9615).srcCtx("CharRNN.scala:78:13") // UnitPipe(List(b5635),Block(x9605))
+    val x9596 = b5634 // FixConvert(b5634,TRUE,_32,_0) (Same Type. No op)
+    val x9597 = OpDef(op=FixSla, inputs=List(x9596, Const(9))).name("x9597").ctrl(x9606).srcCtx("CharRNN.scala:78:13") // FixLsh(x9596,Const(9))
+    val x9598 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x9599 = OpDef(op=FixAdd, inputs=List(x9597, x9598)).name("x9599").ctrl(x9606).srcCtx("CharRNN.scala:78:13") // FixAdd(x9597,x9598)
+    val x9600 = OpDef(op=FixSla, inputs=List(x9599, Const(2))).name("x9600").ctrl(x9606).srcCtx("CharRNN.scala:78:13") // FixLsh(x9599,Const(2))
+    val x9601 = x9600 // FixConvert(x9600,TRUE,_64,_0)
+    val x9602 = DramAddress(x9380).name("x9602").ctrl(x9606).srcCtx("CharRNN.scala:78:13") // GetDRAMAddress(x9380)
+    val x9604_x9603 = OpDef(op=FixAdd, inputs=List(x9601, x9602)).name("x9604_x9603").ctrl(x9606).srcCtx("CharRNN.scala:78:13") // FixAdd(x9601,x9602)
+    // x9604 = SimpleStruct(ArrayBuffer((offset,x9603), (size,Const(2048)), (isLoad,Const(true))))
+    val x9605_b10174_b10172 = WriteMem(b10172, x9604_x9603).name("x9605_b10174_b10172").ctrl(x9606).srcCtx("CharRNN.scala:78:13") // StreamWrite(x9594,x9604,b5635)
+    val x9605_b10175_b10173 = WriteMem(b10173, Const(2048)).name("x9605_b10175_b10173").ctrl(x9606).srcCtx("CharRNN.scala:78:13") // StreamWrite(x9594,x9604,b5635)
+    val x9607 = FringeDenseLoad(dram=List(x9380), cmdStream=List(b10172, b10173), dataStream=List(x9595)).name("x9607").ctrl(x9615).srcCtx("CharRNN.scala:78:13") // FringeDenseLoad(x9380,x9594,x9595)
+    val x9608 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x9608").ctrl(x9615).srcCtx("CharRNN.scala:78:13") // CounterNew(Const(0),Const(512),Const(1),Const(1))
+    val x9609 = CounterChain(List(x9608)).name("x9609").ctrl(x9615).srcCtx("CharRNN.scala:78:13") // CounterChainNew(List(x9608))
+    val x9614 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9609).name("x9614").ctrl(x9615).srcCtx("CharRNN.scala:78:13") // UnrolledForeach(List(b5635),x9609,Block(Const(())),List(List(b5652)),List(List(b5653)))
+    val b5652 = CounterIter(x9608, None).name("b5652").ctrl(x9614) // b5652
+    val b5653 = Const(true).name("b5653").ctrl(x9614) // b5653
+    val x9610 = OpDef(op=BitAnd, inputs=List(b5653, b5635)).name("x9610").ctrl(x9614).srcCtx("UnrollingBase.scala:28:66") // And(b5653,b5635)
+    val x9611_x9611 = ReadMem(x9595).name("x9611_x9611").ctrl(x9614).srcCtx("CharRNN.scala:78:13") // ParStreamRead(x9595,List(x9610))
+    val x9612_x9612 = x9611_x9611 // x9612 = VectorApply(x9611,0)
+    val x9613 = StoreBanks(List(x9495_d0_b0), List(b5634, b5652), x9612_x9612).name("x9613").ctrl(x9614).srcCtx("CharRNN.scala:78:13") // ParSRAMStore(x9495,List(List(b5634, b5652)),List(x9612),List(x9610))
+    val x9633 = UnitController(style=StreamPipe, level=OuterControl).name("x9633").ctrl(x10147).srcCtx("CharRNN.scala:79:13") // UnitPipe(List(Const(true)),Block(Const(())))
+    val b10176 = StreamOut(field="offset").name("b10176").ctrl(x9633).srcCtx("CharRNN.scala:79:13") // x9616 = StreamOutNew(BurstCmdBus)
+    isAccum(b10176) = false
+    bufferDepthOf(b10176) = 1
+    val b10177 = StreamOut(field="size").name("b10177").ctrl(x9633).srcCtx("CharRNN.scala:79:13") // x9616 = StreamOutNew(BurstCmdBus)
+    isAccum(b10177) = false
+    bufferDepthOf(b10177) = 1
+    val x9617 = StreamIn(field="data").name("x9617").ctrl(x9633).srcCtx("CharRNN.scala:79:13") // x9617 = StreamInNew(BurstDataBus())
+    isAccum(x9617) = false
+    bufferDepthOf(x9617) = 1
+    val x9625 = UnitController(style=SeqPipe, level=InnerControl).name("x9625").ctrl(x9633).srcCtx("CharRNN.scala:79:13") // UnitPipe(List(Const(true)),Block(x9624))
+    val x9618 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x9619 = OpDef(op=FixSla, inputs=List(x9618, Const(2))).name("x9619").ctrl(x9625).srcCtx("CharRNN.scala:79:13") // FixLsh(x9618,Const(2))
+    val x9620 = x9619 // FixConvert(x9619,TRUE,_64,_0)
+    val x9621 = DramAddress(x9381).name("x9621").ctrl(x9625).srcCtx("CharRNN.scala:79:13") // GetDRAMAddress(x9381)
+    val x9623_x9622 = OpDef(op=FixAdd, inputs=List(x9620, x9621)).name("x9623_x9622").ctrl(x9625).srcCtx("CharRNN.scala:79:13") // FixAdd(x9620,x9621)
+    // x9623 = SimpleStruct(ArrayBuffer((offset,x9622), (size,Const(2048)), (isLoad,Const(true))))
+    val x9624_b10178_b10176 = WriteMem(b10176, x9623_x9622).name("x9624_b10178_b10176").ctrl(x9625).srcCtx("CharRNN.scala:79:13") // StreamWrite(x9616,x9623,Const(true))
+    val x9624_b10179_b10177 = WriteMem(b10177, Const(2048)).name("x9624_b10179_b10177").ctrl(x9625).srcCtx("CharRNN.scala:79:13") // StreamWrite(x9616,x9623,Const(true))
+    val x9626 = FringeDenseLoad(dram=List(x9381), cmdStream=List(b10176, b10177), dataStream=List(x9617)).name("x9626").ctrl(x9633).srcCtx("CharRNN.scala:79:13") // FringeDenseLoad(x9381,x9616,x9617)
+    val x9627 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x9627").ctrl(x9633).srcCtx("CharRNN.scala:79:13") // CounterNew(Const(0),Const(512),Const(1),Const(1))
+    val x9628 = CounterChain(List(x9627)).name("x9628").ctrl(x9633).srcCtx("CharRNN.scala:79:13") // CounterChainNew(List(x9627))
+    val x9632 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9628).name("x9632").ctrl(x9633).srcCtx("CharRNN.scala:79:13") // UnrolledForeach(List(Const(true)),x9628,Block(Const(())),List(List(b5673)),List(List(b5674)))
+    val b5673 = CounterIter(x9627, None).name("b5673").ctrl(x9632) // b5673
+    val b5674 = Const(true).name("b5674").ctrl(x9632) // b5674
+    val x9629_x9629 = ReadMem(x9617).name("x9629_x9629").ctrl(x9632).srcCtx("CharRNN.scala:79:13") // ParStreamRead(x9617,List(b5674))
+    val x9630_x9630 = x9629_x9629 // x9630 = VectorApply(x9629,0)
+    val x9631 = StoreBanks(List(x9496_d0_b0), List(b5673), x9630_x9630).name("x9631").ctrl(x9632).srcCtx("CharRNN.scala:79:13") // ParSRAMStore(x9496,List(List(b5673)),List(x9630),List(b5674))
+    val x9634 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x9634").ctrl(x10147).srcCtx("CharRNN.scala:80:13") // CounterNew(Const(0),Const(128),Const(1),Const(1))
+    val x9635 = CounterChain(List(x9634)).name("x9635").ctrl(x10147).srcCtx("CharRNN.scala:80:13") // CounterChainNew(List(x9634))
+    val x9657 = LoopController(style=StreamPipe, level=OuterControl, cchain=x9635).name("x9657").ctrl(x10147).srcCtx("CharRNN.scala:80:13") // UnrolledForeach(List(Const(true)),x9635,Block(Const(())),List(List(b5682)),List(List(b5683)))
+    val b5682 = CounterIter(x9634, Some(0)).name("b5682").ctrl(x9657) // b5682
+    val b5683 = Const(true).name("b5683").ctrl(x9657) // b5683
+    val b10180 = StreamOut(field="offset").name("b10180").ctrl(x9657).srcCtx("CharRNN.scala:80:13") // x9636 = StreamOutNew(BurstCmdBus)
+    isAccum(b10180) = false
+    bufferDepthOf(b10180) = 1
+    val b10181 = StreamOut(field="size").name("b10181").ctrl(x9657).srcCtx("CharRNN.scala:80:13") // x9636 = StreamOutNew(BurstCmdBus)
+    isAccum(b10181) = false
+    bufferDepthOf(b10181) = 1
+    val x9637 = StreamIn(field="data").name("x9637").ctrl(x9657).srcCtx("CharRNN.scala:80:13") // x9637 = StreamInNew(BurstDataBus())
+    isAccum(x9637) = false
+    bufferDepthOf(x9637) = 1
+    val x9648 = UnitController(style=SeqPipe, level=InnerControl).name("x9648").ctrl(x9657).srcCtx("CharRNN.scala:80:13") // UnitPipe(List(b5683),Block(x9647))
+    val x9638 = b5682 // FixConvert(b5682,TRUE,_32,_0) (Same Type. No op)
+    val x9639 = OpDef(op=FixSla, inputs=List(x9638, Const(9))).name("x9639").ctrl(x9648).srcCtx("CharRNN.scala:80:13") // FixLsh(x9638,Const(9))
+    val x9640 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x9641 = OpDef(op=FixAdd, inputs=List(x9639, x9640)).name("x9641").ctrl(x9648).srcCtx("CharRNN.scala:80:13") // FixAdd(x9639,x9640)
+    val x9642 = OpDef(op=FixSla, inputs=List(x9641, Const(2))).name("x9642").ctrl(x9648).srcCtx("CharRNN.scala:80:13") // FixLsh(x9641,Const(2))
+    val x9643 = x9642 // FixConvert(x9642,TRUE,_64,_0)
+    val x9644 = DramAddress(x9384).name("x9644").ctrl(x9648).srcCtx("CharRNN.scala:80:13") // GetDRAMAddress(x9384)
+    val x9646_x9645 = OpDef(op=FixAdd, inputs=List(x9643, x9644)).name("x9646_x9645").ctrl(x9648).srcCtx("CharRNN.scala:80:13") // FixAdd(x9643,x9644)
+    // x9646 = SimpleStruct(ArrayBuffer((offset,x9645), (size,Const(2048)), (isLoad,Const(true))))
+    val x9647_b10182_b10180 = WriteMem(b10180, x9646_x9645).name("x9647_b10182_b10180").ctrl(x9648).srcCtx("CharRNN.scala:80:13") // StreamWrite(x9636,x9646,b5683)
+    val x9647_b10183_b10181 = WriteMem(b10181, Const(2048)).name("x9647_b10183_b10181").ctrl(x9648).srcCtx("CharRNN.scala:80:13") // StreamWrite(x9636,x9646,b5683)
+    val x9649 = FringeDenseLoad(dram=List(x9384), cmdStream=List(b10180, b10181), dataStream=List(x9637)).name("x9649").ctrl(x9657).srcCtx("CharRNN.scala:80:13") // FringeDenseLoad(x9384,x9636,x9637)
+    val x9650 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x9650").ctrl(x9657).srcCtx("CharRNN.scala:80:13") // CounterNew(Const(0),Const(512),Const(1),Const(1))
+    val x9651 = CounterChain(List(x9650)).name("x9651").ctrl(x9657).srcCtx("CharRNN.scala:80:13") // CounterChainNew(List(x9650))
+    val x9656 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9651).name("x9656").ctrl(x9657).srcCtx("CharRNN.scala:80:13") // UnrolledForeach(List(b5683),x9651,Block(Const(())),List(List(b5700)),List(List(b5701)))
+    val b5700 = CounterIter(x9650, None).name("b5700").ctrl(x9656) // b5700
+    val b5701 = Const(true).name("b5701").ctrl(x9656) // b5701
+    val x9652 = OpDef(op=BitAnd, inputs=List(b5701, b5683)).name("x9652").ctrl(x9656).srcCtx("UnrollingBase.scala:28:66") // And(b5701,b5683)
+    val x9653_x9653 = ReadMem(x9637).name("x9653_x9653").ctrl(x9656).srcCtx("CharRNN.scala:80:13") // ParStreamRead(x9637,List(x9652))
+    val x9654_x9654 = x9653_x9653 // x9654 = VectorApply(x9653,0)
+    val x9655 = StoreBanks(List(x9497_d0_b0), List(b5682, b5700), x9654_x9654).name("x9655").ctrl(x9656).srcCtx("CharRNN.scala:80:13") // ParSRAMStore(x9497,List(List(b5682, b5700)),List(x9654),List(x9652))
+    val x9675 = UnitController(style=StreamPipe, level=OuterControl).name("x9675").ctrl(x10147).srcCtx("CharRNN.scala:81:13") // UnitPipe(List(Const(true)),Block(Const(())))
+    val b10184 = StreamOut(field="offset").name("b10184").ctrl(x9675).srcCtx("CharRNN.scala:81:13") // x9658 = StreamOutNew(BurstCmdBus)
+    isAccum(b10184) = false
+    bufferDepthOf(b10184) = 1
+    val b10185 = StreamOut(field="size").name("b10185").ctrl(x9675).srcCtx("CharRNN.scala:81:13") // x9658 = StreamOutNew(BurstCmdBus)
+    isAccum(b10185) = false
+    bufferDepthOf(b10185) = 1
+    val x9659 = StreamIn(field="data").name("x9659").ctrl(x9675).srcCtx("CharRNN.scala:81:13") // x9659 = StreamInNew(BurstDataBus())
+    isAccum(x9659) = false
+    bufferDepthOf(x9659) = 1
+    val x9667 = UnitController(style=SeqPipe, level=InnerControl).name("x9667").ctrl(x9675).srcCtx("CharRNN.scala:81:13") // UnitPipe(List(Const(true)),Block(x9666))
+    val x9660 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x9661 = OpDef(op=FixSla, inputs=List(x9660, Const(2))).name("x9661").ctrl(x9667).srcCtx("CharRNN.scala:81:13") // FixLsh(x9660,Const(2))
+    val x9662 = x9661 // FixConvert(x9661,TRUE,_64,_0)
+    val x9663 = DramAddress(x9385).name("x9663").ctrl(x9667).srcCtx("CharRNN.scala:81:13") // GetDRAMAddress(x9385)
+    val x9665_x9664 = OpDef(op=FixAdd, inputs=List(x9662, x9663)).name("x9665_x9664").ctrl(x9667).srcCtx("CharRNN.scala:81:13") // FixAdd(x9662,x9663)
+    // x9665 = SimpleStruct(ArrayBuffer((offset,x9664), (size,Const(2048)), (isLoad,Const(true))))
+    val x9666_b10186_b10184 = WriteMem(b10184, x9665_x9664).name("x9666_b10186_b10184").ctrl(x9667).srcCtx("CharRNN.scala:81:13") // StreamWrite(x9658,x9665,Const(true))
+    val x9666_b10187_b10185 = WriteMem(b10185, Const(2048)).name("x9666_b10187_b10185").ctrl(x9667).srcCtx("CharRNN.scala:81:13") // StreamWrite(x9658,x9665,Const(true))
+    val x9668 = FringeDenseLoad(dram=List(x9385), cmdStream=List(b10184, b10185), dataStream=List(x9659)).name("x9668").ctrl(x9675).srcCtx("CharRNN.scala:81:13") // FringeDenseLoad(x9385,x9658,x9659)
+    val x9669 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x9669").ctrl(x9675).srcCtx("CharRNN.scala:81:13") // CounterNew(Const(0),Const(512),Const(1),Const(1))
+    val x9670 = CounterChain(List(x9669)).name("x9670").ctrl(x9675).srcCtx("CharRNN.scala:81:13") // CounterChainNew(List(x9669))
+    val x9674 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9670).name("x9674").ctrl(x9675).srcCtx("CharRNN.scala:81:13") // UnrolledForeach(List(Const(true)),x9670,Block(Const(())),List(List(b5721)),List(List(b5722)))
+    val b5721 = CounterIter(x9669, None).name("b5721").ctrl(x9674) // b5721
+    val b5722 = Const(true).name("b5722").ctrl(x9674) // b5722
+    val x9671_x9671 = ReadMem(x9659).name("x9671_x9671").ctrl(x9674).srcCtx("CharRNN.scala:81:13") // ParStreamRead(x9659,List(b5722))
+    val x9672_x9672 = x9671_x9671 // x9672 = VectorApply(x9671,0)
+    val x9673 = StoreBanks(List(x9498_d0_b0), List(b5721), x9672_x9672).name("x9673").ctrl(x9674).srcCtx("CharRNN.scala:81:13") // ParSRAMStore(x9498,List(List(b5721)),List(x9672),List(b5722))
+    val x9676 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x9676").ctrl(x10147).srcCtx("CharRNN.scala:82:17") // CounterNew(Const(0),Const(128),Const(1),Const(1))
+    val x9677 = CounterChain(List(x9676)).name("x9677").ctrl(x10147).srcCtx("CharRNN.scala:82:17") // CounterChainNew(List(x9676))
+    val x9699 = LoopController(style=StreamPipe, level=OuterControl, cchain=x9677).name("x9699").ctrl(x10147).srcCtx("CharRNN.scala:82:17") // UnrolledForeach(List(Const(true)),x9677,Block(Const(())),List(List(b5730)),List(List(b5731)))
+    val b5730 = CounterIter(x9676, Some(0)).name("b5730").ctrl(x9699) // b5730
+    val b5731 = Const(true).name("b5731").ctrl(x9699) // b5731
+    val b10188 = StreamOut(field="offset").name("b10188").ctrl(x9699).srcCtx("CharRNN.scala:82:17") // x9678 = StreamOutNew(BurstCmdBus)
+    isAccum(b10188) = false
+    bufferDepthOf(b10188) = 1
+    val b10189 = StreamOut(field="size").name("b10189").ctrl(x9699).srcCtx("CharRNN.scala:82:17") // x9678 = StreamOutNew(BurstCmdBus)
+    isAccum(b10189) = false
+    bufferDepthOf(b10189) = 1
+    val x9679 = StreamIn(field="data").name("x9679").ctrl(x9699).srcCtx("CharRNN.scala:82:17") // x9679 = StreamInNew(BurstDataBus())
+    isAccum(x9679) = false
+    bufferDepthOf(x9679) = 1
+    val x9690 = UnitController(style=SeqPipe, level=InnerControl).name("x9690").ctrl(x9699).srcCtx("CharRNN.scala:82:17") // UnitPipe(List(b5731),Block(x9689))
+    val x9680 = b5730 // FixConvert(b5730,TRUE,_32,_0) (Same Type. No op)
+    val x9681 = OpDef(op=FixSla, inputs=List(x9680, Const(6))).name("x9681").ctrl(x9690).srcCtx("CharRNN.scala:82:17") // FixLsh(x9680,Const(6))
+    val x9682 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x9683 = OpDef(op=FixAdd, inputs=List(x9681, x9682)).name("x9683").ctrl(x9690).srcCtx("CharRNN.scala:82:17") // FixAdd(x9681,x9682)
+    val x9684 = OpDef(op=FixSla, inputs=List(x9683, Const(2))).name("x9684").ctrl(x9690).srcCtx("CharRNN.scala:82:17") // FixLsh(x9683,Const(2))
+    val x9685 = x9684 // FixConvert(x9684,TRUE,_64,_0)
+    val x9686 = DramAddress(x9386).name("x9686").ctrl(x9690).srcCtx("CharRNN.scala:82:17") // GetDRAMAddress(x9386)
+    val x9688_x9687 = OpDef(op=FixAdd, inputs=List(x9685, x9686)).name("x9688_x9687").ctrl(x9690).srcCtx("CharRNN.scala:82:17") // FixAdd(x9685,x9686)
+    // x9688 = SimpleStruct(ArrayBuffer((offset,x9687), (size,Const(2048)), (isLoad,Const(true))))
+    val x9689_b10190_b10188 = WriteMem(b10188, x9688_x9687).name("x9689_b10190_b10188").ctrl(x9690).srcCtx("CharRNN.scala:82:17") // StreamWrite(x9678,x9688,b5731)
+    val x9689_b10191_b10189 = WriteMem(b10189, Const(2048)).name("x9689_b10191_b10189").ctrl(x9690).srcCtx("CharRNN.scala:82:17") // StreamWrite(x9678,x9688,b5731)
+    val x9691 = FringeDenseLoad(dram=List(x9386), cmdStream=List(b10188, b10189), dataStream=List(x9679)).name("x9691").ctrl(x9699).srcCtx("CharRNN.scala:82:17") // FringeDenseLoad(x9386,x9678,x9679)
+    val x9692 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x9692").ctrl(x9699).srcCtx("CharRNN.scala:82:17") // CounterNew(Const(0),Const(512),Const(1),Const(1))
+    val x9693 = CounterChain(List(x9692)).name("x9693").ctrl(x9699).srcCtx("CharRNN.scala:82:17") // CounterChainNew(List(x9692))
+    val x9698 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9693).name("x9698").ctrl(x9699).srcCtx("CharRNN.scala:82:17") // UnrolledForeach(List(b5731),x9693,Block(Const(())),List(List(b5748)),List(List(b5749)))
+    val b5748 = CounterIter(x9692, None).name("b5748").ctrl(x9698) // b5748
+    val b5749 = Const(true).name("b5749").ctrl(x9698) // b5749
+    val x9694 = OpDef(op=BitAnd, inputs=List(b5749, b5731)).name("x9694").ctrl(x9698).srcCtx("UnrollingBase.scala:28:66") // And(b5749,b5731)
+    val x9695_x9695 = ReadMem(x9679).name("x9695_x9695").ctrl(x9698).srcCtx("CharRNN.scala:82:17") // ParStreamRead(x9679,List(x9694))
+    val x9696_x9696 = x9695_x9695 // x9696 = VectorApply(x9695,0)
+    val x9697 = StoreBanks(List(x9499_d0_b0), List(b5730, b5748), x9696_x9696).name("x9697").ctrl(x9698).srcCtx("CharRNN.scala:82:17") // ParSRAMStore(x9499,List(List(b5730, b5748)),List(x9696),List(x9694))
+    val x9717 = UnitController(style=StreamPipe, level=OuterControl).name("x9717").ctrl(x10147).srcCtx("CharRNN.scala:83:17") // UnitPipe(List(Const(true)),Block(Const(())))
+    val b10192 = StreamOut(field="offset").name("b10192").ctrl(x9717).srcCtx("CharRNN.scala:83:17") // x9700 = StreamOutNew(BurstCmdBus)
+    isAccum(b10192) = false
+    bufferDepthOf(b10192) = 1
+    val b10193 = StreamOut(field="size").name("b10193").ctrl(x9717).srcCtx("CharRNN.scala:83:17") // x9700 = StreamOutNew(BurstCmdBus)
+    isAccum(b10193) = false
+    bufferDepthOf(b10193) = 1
+    val x9701 = StreamIn(field="data").name("x9701").ctrl(x9717).srcCtx("CharRNN.scala:83:17") // x9701 = StreamInNew(BurstDataBus())
+    isAccum(x9701) = false
+    bufferDepthOf(x9701) = 1
+    val x9709 = UnitController(style=SeqPipe, level=InnerControl).name("x9709").ctrl(x9717).srcCtx("CharRNN.scala:83:17") // UnitPipe(List(Const(true)),Block(x9708))
+    val x9702 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x9703 = OpDef(op=FixSla, inputs=List(x9702, Const(2))).name("x9703").ctrl(x9709).srcCtx("CharRNN.scala:83:17") // FixLsh(x9702,Const(2))
+    val x9704 = x9703 // FixConvert(x9703,TRUE,_64,_0)
+    val x9705 = DramAddress(x9387).name("x9705").ctrl(x9709).srcCtx("CharRNN.scala:83:17") // GetDRAMAddress(x9387)
+    val x9707_x9706 = OpDef(op=FixAdd, inputs=List(x9704, x9705)).name("x9707_x9706").ctrl(x9709).srcCtx("CharRNN.scala:83:17") // FixAdd(x9704,x9705)
+    // x9707 = SimpleStruct(ArrayBuffer((offset,x9706), (size,Const(2048)), (isLoad,Const(true))))
+    val x9708_b10194_b10192 = WriteMem(b10192, x9707_x9706).name("x9708_b10194_b10192").ctrl(x9709).srcCtx("CharRNN.scala:83:17") // StreamWrite(x9700,x9707,Const(true))
+    val x9708_b10195_b10193 = WriteMem(b10193, Const(2048)).name("x9708_b10195_b10193").ctrl(x9709).srcCtx("CharRNN.scala:83:17") // StreamWrite(x9700,x9707,Const(true))
+    val x9710 = FringeDenseLoad(dram=List(x9387), cmdStream=List(b10192, b10193), dataStream=List(x9701)).name("x9710").ctrl(x9717).srcCtx("CharRNN.scala:83:17") // FringeDenseLoad(x9387,x9700,x9701)
+    val x9711 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x9711").ctrl(x9717).srcCtx("CharRNN.scala:83:17") // CounterNew(Const(0),Const(512),Const(1),Const(1))
+    val x9712 = CounterChain(List(x9711)).name("x9712").ctrl(x9717).srcCtx("CharRNN.scala:83:17") // CounterChainNew(List(x9711))
+    val x9716 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9712).name("x9716").ctrl(x9717).srcCtx("CharRNN.scala:83:17") // UnrolledForeach(List(Const(true)),x9712,Block(Const(())),List(List(b5769)),List(List(b5770)))
+    val b5769 = CounterIter(x9711, None).name("b5769").ctrl(x9716) // b5769
+    val b5770 = Const(true).name("b5770").ctrl(x9716) // b5770
+    val x9713_x9713 = ReadMem(x9701).name("x9713_x9713").ctrl(x9716).srcCtx("CharRNN.scala:83:17") // ParStreamRead(x9701,List(b5770))
+    val x9714_x9714 = x9713_x9713 // x9714 = VectorApply(x9713,0)
+    val x9715 = StoreBanks(List(x9500_d0_b0), List(b5769), x9714_x9714).name("x9715").ctrl(x9716).srcCtx("CharRNN.scala:83:17") // ParSRAMStore(x9500,List(List(b5769)),List(x9714),List(b5770))
+    val x9718 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x9718").ctrl(x10147).srcCtx("CharRNN.scala:84:9") // CounterNew(Const(0),Const(1),Const(1),Const(1))
+    val x9719 = CounterChain(List(x9718)).name("x9719").ctrl(x10147).srcCtx("CharRNN.scala:84:9") // CounterChainNew(List(x9718))
+    val x9741 = LoopController(style=StreamPipe, level=OuterControl, cchain=x9719).name("x9741").ctrl(x10147).srcCtx("CharRNN.scala:84:9") // UnrolledForeach(List(Const(true)),x9719,Block(Const(())),List(List(b5778)),List(List(b5779)))
+    val b5778 = CounterIter(x9718, Some(0)).name("b5778").ctrl(x9741) // b5778
+    val b5779 = Const(true).name("b5779").ctrl(x9741) // b5779
+    val b10196 = StreamOut(field="offset").name("b10196").ctrl(x9741).srcCtx("CharRNN.scala:84:9") // x9720 = StreamOutNew(BurstCmdBus)
+    isAccum(b10196) = false
+    bufferDepthOf(b10196) = 1
+    val b10197 = StreamOut(field="size").name("b10197").ctrl(x9741).srcCtx("CharRNN.scala:84:9") // x9720 = StreamOutNew(BurstCmdBus)
+    isAccum(b10197) = false
+    bufferDepthOf(b10197) = 1
+    val x9721 = StreamIn(field="data").name("x9721").ctrl(x9741).srcCtx("CharRNN.scala:84:9") // x9721 = StreamInNew(BurstDataBus())
+    isAccum(x9721) = false
+    bufferDepthOf(x9721) = 1
+    val x9732 = UnitController(style=SeqPipe, level=InnerControl).name("x9732").ctrl(x9741).srcCtx("CharRNN.scala:84:9") // UnitPipe(List(b5779),Block(x9731))
+    val x9722 = b5778 // FixConvert(b5778,TRUE,_32,_0) (Same Type. No op)
+    val x9723 = OpDef(op=FixSla, inputs=List(x9722, Const(7))).name("x9723").ctrl(x9732).srcCtx("CharRNN.scala:84:9") // FixLsh(x9722,Const(7))
+    val x9724 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x9725 = OpDef(op=FixAdd, inputs=List(x9723, x9724)).name("x9725").ctrl(x9732).srcCtx("CharRNN.scala:84:9") // FixAdd(x9723,x9724)
+    val x9726 = OpDef(op=FixSla, inputs=List(x9725, Const(2))).name("x9726").ctrl(x9732).srcCtx("CharRNN.scala:84:9") // FixLsh(x9725,Const(2))
+    val x9727 = x9726 // FixConvert(x9726,TRUE,_64,_0)
+    val x9728 = DramAddress(x9388).name("x9728").ctrl(x9732).srcCtx("CharRNN.scala:84:9") // GetDRAMAddress(x9388)
+    val x9730_x9729 = OpDef(op=FixAdd, inputs=List(x9727, x9728)).name("x9730_x9729").ctrl(x9732).srcCtx("CharRNN.scala:84:9") // FixAdd(x9727,x9728)
+    // x9730 = SimpleStruct(ArrayBuffer((offset,x9729), (size,Const(512)), (isLoad,Const(true))))
+    val x9731_b10198_b10196 = WriteMem(b10196, x9730_x9729).name("x9731_b10198_b10196").ctrl(x9732).srcCtx("CharRNN.scala:84:9") // StreamWrite(x9720,x9730,b5779)
+    val x9731_b10199_b10197 = WriteMem(b10197, Const(512)).name("x9731_b10199_b10197").ctrl(x9732).srcCtx("CharRNN.scala:84:9") // StreamWrite(x9720,x9730,b5779)
+    val x9733 = FringeDenseLoad(dram=List(x9388), cmdStream=List(b10196, b10197), dataStream=List(x9721)).name("x9733").ctrl(x9741).srcCtx("CharRNN.scala:84:9") // FringeDenseLoad(x9388,x9720,x9721)
+    val x9734 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x9734").ctrl(x9741).srcCtx("CharRNN.scala:84:9") // CounterNew(Const(0),Const(128),Const(1),Const(1))
+    val x9735 = CounterChain(List(x9734)).name("x9735").ctrl(x9741).srcCtx("CharRNN.scala:84:9") // CounterChainNew(List(x9734))
+    val x9740 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9735).name("x9740").ctrl(x9741).srcCtx("CharRNN.scala:84:9") // UnrolledForeach(List(b5779),x9735,Block(Const(())),List(List(b5796)),List(List(b5797)))
+    val b5796 = CounterIter(x9734, None).name("b5796").ctrl(x9740) // b5796
+    val b5797 = Const(true).name("b5797").ctrl(x9740) // b5797
+    val x9736 = OpDef(op=BitAnd, inputs=List(b5797, b5779)).name("x9736").ctrl(x9740).srcCtx("UnrollingBase.scala:28:66") // And(b5797,b5779)
+    val x9737_x9737 = ReadMem(x9721).name("x9737_x9737").ctrl(x9740).srcCtx("CharRNN.scala:84:9") // ParStreamRead(x9721,List(x9736))
+    val x9738_x9738 = x9737_x9737 // x9738 = VectorApply(x9737,0)
+    val x9739 = StoreBanks(List(x9501_d0_b0, x9501_d1_b0), List(b5778, b5796), x9738_x9738).name("x9739").ctrl(x9740).srcCtx("CharRNN.scala:84:9") // ParSRAMStore(x9501,List(List(b5778, b5796)),List(x9738),List(x9736))
+    val x9742 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x9742").ctrl(x10147).srcCtx("CharRNN.scala:85:9") // CounterNew(Const(0),Const(1),Const(1),Const(1))
+    val x9743 = CounterChain(List(x9742)).name("x9743").ctrl(x10147).srcCtx("CharRNN.scala:85:9") // CounterChainNew(List(x9742))
+    val x9765 = LoopController(style=StreamPipe, level=OuterControl, cchain=x9743).name("x9765").ctrl(x10147).srcCtx("CharRNN.scala:85:9") // UnrolledForeach(List(Const(true)),x9743,Block(Const(())),List(List(b5806)),List(List(b5807)))
+    val b5806 = CounterIter(x9742, Some(0)).name("b5806").ctrl(x9765) // b5806
+    val b5807 = Const(true).name("b5807").ctrl(x9765) // b5807
+    val b10200 = StreamOut(field="offset").name("b10200").ctrl(x9765).srcCtx("CharRNN.scala:85:9") // x9744 = StreamOutNew(BurstCmdBus)
+    isAccum(b10200) = false
+    bufferDepthOf(b10200) = 1
+    val b10201 = StreamOut(field="size").name("b10201").ctrl(x9765).srcCtx("CharRNN.scala:85:9") // x9744 = StreamOutNew(BurstCmdBus)
+    isAccum(b10201) = false
+    bufferDepthOf(b10201) = 1
+    val x9745 = StreamIn(field="data").name("x9745").ctrl(x9765).srcCtx("CharRNN.scala:85:9") // x9745 = StreamInNew(BurstDataBus())
+    isAccum(x9745) = false
+    bufferDepthOf(x9745) = 1
+    val x9756 = UnitController(style=SeqPipe, level=InnerControl).name("x9756").ctrl(x9765).srcCtx("CharRNN.scala:85:9") // UnitPipe(List(b5807),Block(x9755))
+    val x9746 = b5806 // FixConvert(b5806,TRUE,_32,_0) (Same Type. No op)
+    val x9747 = OpDef(op=FixSla, inputs=List(x9746, Const(7))).name("x9747").ctrl(x9756).srcCtx("CharRNN.scala:85:9") // FixLsh(x9746,Const(7))
+    val x9748 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x9749 = OpDef(op=FixAdd, inputs=List(x9747, x9748)).name("x9749").ctrl(x9756).srcCtx("CharRNN.scala:85:9") // FixAdd(x9747,x9748)
+    val x9750 = OpDef(op=FixSla, inputs=List(x9749, Const(2))).name("x9750").ctrl(x9756).srcCtx("CharRNN.scala:85:9") // FixLsh(x9749,Const(2))
+    val x9751 = x9750 // FixConvert(x9750,TRUE,_64,_0)
+    val x9752 = DramAddress(x9389).name("x9752").ctrl(x9756).srcCtx("CharRNN.scala:85:9") // GetDRAMAddress(x9389)
+    val x9754_x9753 = OpDef(op=FixAdd, inputs=List(x9751, x9752)).name("x9754_x9753").ctrl(x9756).srcCtx("CharRNN.scala:85:9") // FixAdd(x9751,x9752)
+    // x9754 = SimpleStruct(ArrayBuffer((offset,x9753), (size,Const(512)), (isLoad,Const(true))))
+    val x9755_b10202_b10200 = WriteMem(b10200, x9754_x9753).name("x9755_b10202_b10200").ctrl(x9756).srcCtx("CharRNN.scala:85:9") // StreamWrite(x9744,x9754,b5807)
+    val x9755_b10203_b10201 = WriteMem(b10201, Const(512)).name("x9755_b10203_b10201").ctrl(x9756).srcCtx("CharRNN.scala:85:9") // StreamWrite(x9744,x9754,b5807)
+    val x9757 = FringeDenseLoad(dram=List(x9389), cmdStream=List(b10200, b10201), dataStream=List(x9745)).name("x9757").ctrl(x9765).srcCtx("CharRNN.scala:85:9") // FringeDenseLoad(x9389,x9744,x9745)
+    val x9758 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x9758").ctrl(x9765).srcCtx("CharRNN.scala:85:9") // CounterNew(Const(0),Const(128),Const(1),Const(1))
+    val x9759 = CounterChain(List(x9758)).name("x9759").ctrl(x9765).srcCtx("CharRNN.scala:85:9") // CounterChainNew(List(x9758))
+    val x9764 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9759).name("x9764").ctrl(x9765).srcCtx("CharRNN.scala:85:9") // UnrolledForeach(List(b5807),x9759,Block(Const(())),List(List(b5824)),List(List(b5825)))
+    val b5824 = CounterIter(x9758, None).name("b5824").ctrl(x9764) // b5824
+    val b5825 = Const(true).name("b5825").ctrl(x9764) // b5825
+    val x9760 = OpDef(op=BitAnd, inputs=List(b5825, b5807)).name("x9760").ctrl(x9764).srcCtx("UnrollingBase.scala:28:66") // And(b5825,b5807)
+    val x9761_x9761 = ReadMem(x9745).name("x9761_x9761").ctrl(x9764).srcCtx("CharRNN.scala:85:9") // ParStreamRead(x9745,List(x9760))
+    val x9762_x9762 = x9761_x9761 // x9762 = VectorApply(x9761,0)
+    val x9763 = StoreBanks(List(x9502_d0_b0, x9502_d1_b0, x9502_d2_b0, x9502_d3_b0), List(b5806, b5824), x9762_x9762).name("x9763").ctrl(x9764).srcCtx("CharRNN.scala:85:9") // ParSRAMStore(x9502,List(List(b5806, b5824)),List(x9762),List(x9760))
+    val x9766 = Counter(min=Const(0), max=Const(3), step=Const(1), par=1).name("x9766").ctrl(x10147).srcCtx("CharRNN.scala:87:37") // CounterNew(Const(0),Const(3),Const(1),Const(1))
+    val x9767 = CounterChain(List(x9766)).name("x9767").ctrl(x10147).srcCtx("CharRNN.scala:87:43") // CounterChainNew(List(x9766))
+    val x10146 = LoopController(style=SeqPipe, level=OuterControl, cchain=x9767).name("x10146").ctrl(x10147).srcCtx("CharRNN.scala:87:43") // UnrolledForeach(List(Const(true)),x9767,Block(Const(())),List(List(b5834)),List(List(b5835)))
+    val b5834 = CounterIter(x9766, Some(0)).name("b5834").ctrl(x10146) // b5834
+    val b5835 = Const(true).name("b5835").ctrl(x10146) // b5835
+    val x9769 = UnitController(style=SeqPipe, level=InnerControl).name("x9769").ctrl(x10146).srcCtx("CharRNN.scala:87:43") // UnitPipe(List(b5835),Block(Const(())))
+    val x9768 = OpDef(op=FixAdd, inputs=List(b5834, Const(1))).name("x9768").ctrl(x9769).srcCtx("CharRNN.scala:88:22") // FixAdd(b5834,Const(1))
+    val x9770 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x9770").ctrl(x10146).srcCtx("CharRNN.scala:88:11") // CounterNew(Const(0),Const(1),Const(1),Const(1))
+    val x9771 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x9771").ctrl(x10146).srcCtx("CharRNN.scala:88:11") // CounterNew(Const(0),Const(1),Const(1),Const(1))
+    val x9772 = CounterChain(List(x9770,x9771)).name("x9772").ctrl(x10146).srcCtx("CharRNN.scala:88:11") // CounterChainNew(List(x9770, x9771))
+    val x9802 = LoopController(style=StreamPipe, level=OuterControl, cchain=x9772).name("x9802").ctrl(x10146).srcCtx("CharRNN.scala:88:11") // UnrolledForeach(List(b5835),x9772,Block(Const(())),List(List(b5841), List(b5842)),List(List(b5843), List(b5844)))
+    val b5841 = CounterIter(x9770, Some(0)).name("b5841").ctrl(x9802) // b5841
+    val b5843 = Const(true).name("b5843").ctrl(x9802) // b5843
+    val b5842 = CounterIter(x9771, Some(0)).name("b5842").ctrl(x9802) // b5842
+    val b5844 = Const(true).name("b5844").ctrl(x9802) // b5844
+    val b10204 = StreamOut(field="offset").name("b10204").ctrl(x9802).srcCtx("CharRNN.scala:88:11") // x9773 = StreamOutNew(BurstCmdBus)
+    isAccum(b10204) = false
+    bufferDepthOf(b10204) = 1
+    val b10205 = StreamOut(field="size").name("b10205").ctrl(x9802).srcCtx("CharRNN.scala:88:11") // x9773 = StreamOutNew(BurstCmdBus)
+    isAccum(b10205) = false
+    bufferDepthOf(b10205) = 1
+    val x9774 = StreamIn(field="data").name("x9774").ctrl(x9802).srcCtx("CharRNN.scala:88:11") // x9774 = StreamInNew(BurstDataBus())
+    isAccum(x9774) = false
+    bufferDepthOf(x9774) = 1
+    val x9791 = UnitController(style=SeqPipe, level=InnerControl).name("x9791").ctrl(x9802).srcCtx("CharRNN.scala:88:11") // UnitPipe(List(b5843, b5844, b5835),Block(x9790))
+    val x9775 = OpDef(op=FixAdd, inputs=List(b5834, b5841)).name("x9775").ctrl(x9791).srcCtx("CharRNN.scala:88:11") // FixAdd(b5834,b5841)
+    val x9776 = x9775 // FixConvert(x9775,TRUE,_32,_0) (Same Type. No op)
+    val x9777 = OpDef(op=FixSla, inputs=List(x9776, Const(6))).name("x9777").ctrl(x9791).srcCtx("CharRNN.scala:88:11") // FixLsh(x9776,Const(6))
+    val x9778 = b5842 // FixConvert(b5842,TRUE,_32,_0) (Same Type. No op)
+    val x9779 = OpDef(op=FixSla, inputs=List(x9778, Const(6))).name("x9779").ctrl(x9791).srcCtx("CharRNN.scala:88:11") // FixLsh(x9778,Const(6))
+    val x9780 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x9781 = OpDef(op=FixAdd, inputs=List(x9777, x9779)).name("x9781").ctrl(x9791).srcCtx("CharRNN.scala:88:11") // FixAdd(x9777,x9779)
+    val x9782 = OpDef(op=FixAdd, inputs=List(x9781, x9780)).name("x9782").ctrl(x9791).srcCtx("CharRNN.scala:88:11") // FixAdd(x9781,x9780)
+    val x9783 = OpDef(op=FixSla, inputs=List(x9782, Const(2))).name("x9783").ctrl(x9791).srcCtx("CharRNN.scala:88:11") // FixLsh(x9782,Const(2))
+    val x9784 = x9783 // FixConvert(x9783,TRUE,_64,_0)
+    val x9785 = DramAddress(x9390).name("x9785").ctrl(x9791).srcCtx("CharRNN.scala:88:11") // GetDRAMAddress(x9390)
+    val x9787_x9786 = OpDef(op=FixAdd, inputs=List(x9784, x9785)).name("x9787_x9786").ctrl(x9791).srcCtx("CharRNN.scala:88:11") // FixAdd(x9784,x9785)
+    // x9787 = SimpleStruct(ArrayBuffer((offset,x9786), (size,Const(256)), (isLoad,Const(true))))
+    val x9788 = OpDef(op=BitAnd, inputs=List(b5843, b5844)).name("x9788").ctrl(x9791).srcCtx("UnrollingBase.scala:28:66") // And(b5843,b5844)
+    val x9789 = OpDef(op=BitAnd, inputs=List(x9788, b5835)).name("x9789").ctrl(x9791).srcCtx("UnrollingBase.scala:28:66") // And(x9788,b5835)
+    val x9790_b10206_b10204 = WriteMem(b10204, x9787_x9786).name("x9790_b10206_b10204").ctrl(x9791).srcCtx("CharRNN.scala:88:11") // StreamWrite(x9773,x9787,x9789)
+    val x9790_b10207_b10205 = WriteMem(b10205, Const(256)).name("x9790_b10207_b10205").ctrl(x9791).srcCtx("CharRNN.scala:88:11") // StreamWrite(x9773,x9787,x9789)
+    val x9792 = FringeDenseLoad(dram=List(x9390), cmdStream=List(b10204, b10205), dataStream=List(x9774)).name("x9792").ctrl(x9802).srcCtx("CharRNN.scala:88:11") // FringeDenseLoad(x9390,x9773,x9774)
+    val x9793 = Counter(min=Const(0), max=Const(64), step=Const(1), par=1).name("x9793").ctrl(x9802).srcCtx("CharRNN.scala:88:11") // CounterNew(Const(0),Const(64),Const(1),Const(1))
+    val x9794 = CounterChain(List(x9793)).name("x9794").ctrl(x9802).srcCtx("CharRNN.scala:88:11") // CounterChainNew(List(x9793))
+    val x9801 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9794).name("x9801").ctrl(x9802).srcCtx("CharRNN.scala:88:11") // UnrolledForeach(List(b5843, b5844, b5835),x9794,Block(Const(())),List(List(b5867)),List(List(b5868)))
+    val b5867 = CounterIter(x9793, None).name("b5867").ctrl(x9801) // b5867
+    val b5868 = Const(true).name("b5868").ctrl(x9801) // b5868
+    val x9795 = OpDef(op=BitAnd, inputs=List(b5868, b5843)).name("x9795").ctrl(x9801).srcCtx("UnrollingBase.scala:28:66") // And(b5868,b5843)
+    val x9796 = OpDef(op=BitAnd, inputs=List(b5844, b5835)).name("x9796").ctrl(x9801).srcCtx("UnrollingBase.scala:28:66") // And(b5844,b5835)
+    val x9797 = OpDef(op=BitAnd, inputs=List(x9795, x9796)).name("x9797").ctrl(x9801).srcCtx("UnrollingBase.scala:28:66") // And(x9795,x9796)
+    val x9798_x9798 = ReadMem(x9774).name("x9798_x9798").ctrl(x9801).srcCtx("CharRNN.scala:88:11") // ParStreamRead(x9774,List(x9797))
+    val x9799_x9799 = x9798_x9798 // x9799 = VectorApply(x9798,0)
+    val x9800 = StoreBanks(List(x9503_d0_b0, x9503_d1_b0), List(b5842, b5867), x9799_x9799).name("x9800").ctrl(x9801).srcCtx("CharRNN.scala:88:11") // ParSRAMStore(x9503,List(List(b5842, b5867)),List(x9799),List(x9797))
+    val x9803 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x9803").ctrl(x10146).srcCtx("CharRNN.scala:91:40") // CounterNew(Const(0),Const(512),Const(1),Const(1))
+    val x9804 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x9804").ctrl(x10146).srcCtx("CharRNN.scala:91:29") // CounterNew(Const(0),Const(1),Const(1),Const(1))
+    val x9805 = CounterChain(List(x9804,x9803)).name("x9805").ctrl(x10146).srcCtx("CharRNN.scala:91:46") // CounterChainNew(List(x9804, x9803))
+    val x9918 = LoopController(style=MetaPipe, level=OuterControl, cchain=x9805).name("x9918").ctrl(x10146).srcCtx("CharRNN.scala:91:46") // UnrolledForeach(List(b5835),x9805,Block(Const(())),List(List(b5880), List(b5881)),List(List(b5882), List(b5883)))
+    val b5880 = CounterIter(x9804, Some(0)).name("b5880").ctrl(x9918) // b5880
+    val b5882 = Const(true).name("b5882").ctrl(x9918) // b5882
+    val b5881 = CounterIter(x9803, Some(0)).name("b5881").ctrl(x9918) // b5881
+    val b5883 = Const(true).name("b5883").ctrl(x9918) // b5883
+    val x9806_d0 = Reg(init=Some(0.0)).name("x9806_d0").ctrl(x9918).srcCtx("CharRNN.scala:92:36:i2h_prod") // x9806 = RegNew(Const(0))
+    isAccum(x9806_d0) = false
+    bufferDepthOf(x9806_d0) = 2
+    val x9806_d1 = Reg(init=Some(0.0)).name("x9806_d1").ctrl(x9918).srcCtx("CharRNN.scala:92:36:i2h_prod") // x9806 = RegNew(Const(0))
+    isAccum(x9806_d1) = true
+    bufferDepthOf(x9806_d1) = 1
+    val x9807 = Counter(min=Const(0), max=Const(64), step=Const(1), par=1).name("x9807").ctrl(x9918).srcCtx("CharRNN.scala:92:52") // CounterNew(Const(0),Const(64),Const(1),Const(1))
+    val x9808 = CounterChain(List(x9807)).name("x9808").ctrl(x9918).srcCtx("CharRNN.scala:92:89") // CounterChainNew(List(x9807))
+    val x9823 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9808).name("x9823").ctrl(x9918).srcCtx("CharRNN.scala:92:89") // UnrolledReduce(List(b5882, b5883, b5835),x9808,x9806,Block((x9806) => Const(())),List(List(b5887)),List(List(b5888)))
+    val b5887 = CounterIter(x9807, None).name("b5887").ctrl(x9823) // b5887
+    val b5888 = Const(true).name("b5888").ctrl(x9823) // b5888
+    val x9809 = OpDef(op=BitAnd, inputs=List(b5888, b5882)).name("x9809").ctrl(x9823).srcCtx("UnrollingBase.scala:28:66") // And(b5888,b5882)
+    val x9810 = OpDef(op=BitAnd, inputs=List(b5883, b5835)).name("x9810").ctrl(x9823).srcCtx("UnrollingBase.scala:28:66") // And(b5883,b5835)
+    val x9811 = OpDef(op=BitAnd, inputs=List(x9809, x9810)).name("x9811").ctrl(x9823).srcCtx("UnrollingBase.scala:28:66") // And(x9809,x9810)
+    val x9812 = LoadBanks(List(x9503_d1_b0), List(b5880, b5887)).name("x9812").ctrl(x9823).srcCtx("CharRNN.scala:92:66") // ParSRAMLoad(x9503,List(List(b5880, b5887)),List(x9811))
+    val x9813 = x9812 // x9813 = VectorApply(x9812,0)
+    val x9814 = LoadBanks(List(x9491_d0_b0), List(b5887, b5881)).name("x9814").ctrl(x9823).srcCtx("CharRNN.scala:92:80") // ParSRAMLoad(x9491,List(List(b5887, b5881)),List(x9811))
+    val x9815 = x9814 // x9815 = VectorApply(x9814,0)
+    val x9816 = OpDef(op=FixMul, inputs=List(x9813, x9815)).name("x9816").ctrl(x9823).srcCtx("CharRNN.scala:92:73") // FixMul(x9813,x9815)
+    val x9817 = ReadMem(x9806_d1).name("x9817").ctrl(x9823).srcCtx("CharRNN.scala:92:89") // RegRead(x9806)
+    val x9818 = OpDef(op=FixEql, inputs=List(b5887, Const(0))).name("x9818").ctrl(x9823).srcCtx("CharRNN.scala:92:89") // FixEql(b5887,Const(0))
+    val x9819 = ReduceAccumOp(op=FixAdd, input=x9816, accum=x9817).name("x9819").ctrl(x9823).srcCtx("CharRNN.scala:92:91") // FixAdd(x9816,x9817)
+    val x9820 = OpDef(op=BitAnd, inputs=List(b5882, b5883)).name("x9820").ctrl(x9823).srcCtx("UnrollingBase.scala:28:66") // And(b5882,b5883)
+    val x9821 = OpDef(op=BitAnd, inputs=List(x9820, b5835)).name("x9821").ctrl(x9823).srcCtx("UnrollingBase.scala:28:66") // And(x9820,b5835)
+    val x9822_x9806_d0 = WriteMem(x9806_d0, x9819).name("x9822_x9806_d0").ctrl(x9823).srcCtx("CharRNN.scala:92:89") // RegWrite(x9806,x9819,x9821)
+    val x9822_x9806_d1 = WriteMem(x9806_d1, x9819).name("x9822_x9806_d1").ctrl(x9823).srcCtx("CharRNN.scala:92:89") // RegWrite(x9806,x9819,x9821)
+    val x9824 = Reg(init=Some(0.0)).name("x9824").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // x9824 = RegNew(Const(0))
+    isAccum(x9824) = false
+    bufferDepthOf(x9824) = 3
+    val x9825_d0 = Reg(init=Some(0.0)).name("x9825_d0").ctrl(x9918).srcCtx("CharRNN.scala:94:36:h2h_prod") // x9825 = RegNew(Const(0))
+    isAccum(x9825_d0) = false
+    bufferDepthOf(x9825_d0) = 2
+    val x9825_d1 = Reg(init=Some(0.0)).name("x9825_d1").ctrl(x9918).srcCtx("CharRNN.scala:94:36:h2h_prod") // x9825 = RegNew(Const(0))
+    isAccum(x9825_d1) = true
+    bufferDepthOf(x9825_d1) = 1
+    val x9832 = UnitController(style=SeqPipe, level=InnerControl).name("x9832").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // UnitPipe(List(b5882, b5883, b5835),Block(Const(())))
+    val x9826 = OpDef(op=BitAnd, inputs=List(b5882, b5883)).name("x9826").ctrl(x9832).srcCtx("UnrollingBase.scala:28:66") // And(b5882,b5883)
+    val x9827 = OpDef(op=BitAnd, inputs=List(x9826, b5835)).name("x9827").ctrl(x9832).srcCtx("UnrollingBase.scala:28:66") // And(x9826,b5835)
+    val x9828 = LoadBanks(List(x9492_d0_b0), List(b5881)).name("x9828").ctrl(x9832).srcCtx("CharRNN.scala:93:30") // SRAMLoad(x9492,ArrayBuffer(Const(512)),List(b5881),Const(0),x9827)
+    val x9829 = ReadMem(x9806_d0).name("x9829").ctrl(x9832).srcCtx("CharRNN.scala:93:45") // RegRead(x9806)
+    val x9830 = OpDef(op=FixAdd, inputs=List(x9828, x9829)).name("x9830").ctrl(x9832).srcCtx("CharRNN.scala:93:34:i2h_ele") // FixAdd(x9828,x9829)
+    val x9831_x9824 = WriteMem(x9824, x9830).name("x9831_x9824").ctrl(x9832).srcCtx("CharRNN.scala:91:46") // RegWrite(x9824,x9830,x9827)
+    val x9833 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x9833").ctrl(x9918).srcCtx("CharRNN.scala:94:50") // CounterNew(Const(0),Const(128),Const(1),Const(1))
+    val x9834 = CounterChain(List(x9833)).name("x9834").ctrl(x9918).srcCtx("CharRNN.scala:94:87") // CounterChainNew(List(x9833))
+    val x9849 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9834).name("x9849").ctrl(x9918).srcCtx("CharRNN.scala:94:87") // UnrolledReduce(List(b5882, b5883, b5835),x9834,x9825,Block((x9825) => Const(())),List(List(b5915)),List(List(b5916)))
+    val b5915 = CounterIter(x9833, None).name("b5915").ctrl(x9849) // b5915
+    val b5916 = Const(true).name("b5916").ctrl(x9849) // b5916
+    val x9835 = OpDef(op=BitAnd, inputs=List(b5916, b5882)).name("x9835").ctrl(x9849).srcCtx("UnrollingBase.scala:28:66") // And(b5916,b5882)
+    val x9836 = OpDef(op=BitAnd, inputs=List(b5883, b5835)).name("x9836").ctrl(x9849).srcCtx("UnrollingBase.scala:28:66") // And(b5883,b5835)
+    val x9837 = OpDef(op=BitAnd, inputs=List(x9835, x9836)).name("x9837").ctrl(x9849).srcCtx("UnrollingBase.scala:28:66") // And(x9835,x9836)
+    val x9838 = LoadBanks(List(x9502_d3_b0), List(b5880, b5915)).name("x9838").ctrl(x9849).srcCtx("CharRNN.scala:94:64") // ParSRAMLoad(x9502,List(List(b5880, b5915)),List(x9837))
+    val x9839 = x9838 // x9839 = VectorApply(x9838,0)
+    val x9840 = LoadBanks(List(x9493_d0_b0), List(b5915, b5881)).name("x9840").ctrl(x9849).srcCtx("CharRNN.scala:94:78") // ParSRAMLoad(x9493,List(List(b5915, b5881)),List(x9837))
+    val x9841 = x9840 // x9841 = VectorApply(x9840,0)
+    val x9842 = OpDef(op=FixMul, inputs=List(x9839, x9841)).name("x9842").ctrl(x9849).srcCtx("CharRNN.scala:94:71") // FixMul(x9839,x9841)
+    val x9843 = ReadMem(x9825_d1).name("x9843").ctrl(x9849).srcCtx("CharRNN.scala:94:87") // RegRead(x9825)
+    val x9844 = OpDef(op=FixEql, inputs=List(b5915, Const(0))).name("x9844").ctrl(x9849).srcCtx("CharRNN.scala:94:87") // FixEql(b5915,Const(0))
+    val x9845 = ReduceAccumOp(op=FixAdd, input=x9842, accum=x9843).name("x9845").ctrl(x9849).srcCtx("CharRNN.scala:94:89") // FixAdd(x9842,x9843)
+    val x9846 = OpDef(op=BitAnd, inputs=List(b5882, b5883)).name("x9846").ctrl(x9849).srcCtx("UnrollingBase.scala:28:66") // And(b5882,b5883)
+    val x9847 = OpDef(op=BitAnd, inputs=List(x9846, b5835)).name("x9847").ctrl(x9849).srcCtx("UnrollingBase.scala:28:66") // And(x9846,b5835)
+    val x9848_x9825_d0 = WriteMem(x9825_d0, x9845).name("x9848_x9825_d0").ctrl(x9849).srcCtx("CharRNN.scala:94:87") // RegWrite(x9825,x9845,x9847)
+    val x9848_x9825_d1 = WriteMem(x9825_d1, x9845).name("x9848_x9825_d1").ctrl(x9849).srcCtx("CharRNN.scala:94:87") // RegWrite(x9825,x9845,x9847)
+    val x9850_d0 = Reg(init=Some(0.0)).name("x9850_d0").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // x9850 = RegNew(Const(0))
+    isAccum(x9850_d0) = false
+    bufferDepthOf(x9850_d0) = 2
+    val x9850_d1 = Reg(init=Some(0.0)).name("x9850_d1").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // x9850 = RegNew(Const(0))
+    isAccum(x9850_d1) = false
+    bufferDepthOf(x9850_d1) = 2
+    val x9850_d2 = Reg(init=Some(0.0)).name("x9850_d2").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // x9850 = RegNew(Const(0))
+    isAccum(x9850_d2) = false
+    bufferDepthOf(x9850_d2) = 2
+    val x9850_d3 = Reg(init=Some(0.0)).name("x9850_d3").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // x9850 = RegNew(Const(0))
+    isAccum(x9850_d3) = false
+    bufferDepthOf(x9850_d3) = 2
+    val x9851_d0 = Reg(init=Some(false)).name("x9851_d0").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // x9851 = RegNew(Const(false))
+    isAccum(x9851_d0) = false
+    bufferDepthOf(x9851_d0) = 2
+    val x9851_d1 = Reg(init=Some(false)).name("x9851_d1").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // x9851 = RegNew(Const(false))
+    isAccum(x9851_d1) = false
+    bufferDepthOf(x9851_d1) = 2
+    val x9852_d0 = Reg(init=Some(false)).name("x9852_d0").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // x9852 = RegNew(Const(false))
+    isAccum(x9852_d0) = false
+    bufferDepthOf(x9852_d0) = 2
+    val x9852_d1 = Reg(init=Some(false)).name("x9852_d1").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // x9852 = RegNew(Const(false))
+    isAccum(x9852_d1) = false
+    bufferDepthOf(x9852_d1) = 2
+    val x9853_d0 = Reg(init=Some(false)).name("x9853_d0").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // x9853 = RegNew(Const(false))
+    isAccum(x9853_d0) = false
+    bufferDepthOf(x9853_d0) = 2
+    val x9853_d1 = Reg(init=Some(false)).name("x9853_d1").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // x9853 = RegNew(Const(false))
+    isAccum(x9853_d1) = false
+    bufferDepthOf(x9853_d1) = 2
+    val x9854_d0 = Reg(init=Some(false)).name("x9854_d0").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // x9854 = RegNew(Const(false))
+    isAccum(x9854_d0) = false
+    bufferDepthOf(x9854_d0) = 2
+    val x9854_d1 = Reg(init=Some(false)).name("x9854_d1").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // x9854 = RegNew(Const(false))
+    isAccum(x9854_d1) = false
+    bufferDepthOf(x9854_d1) = 2
+    val x9881 = UnitController(style=SeqPipe, level=InnerControl).name("x9881").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // UnitPipe(List(b5882, b5883, b5835),Block(Const(())))
+    val x9855 = OpDef(op=BitAnd, inputs=List(b5882, b5883)).name("x9855").ctrl(x9881).srcCtx("UnrollingBase.scala:28:66") // And(b5882,b5883)
+    val x9856 = OpDef(op=BitAnd, inputs=List(x9855, b5835)).name("x9856").ctrl(x9881).srcCtx("UnrollingBase.scala:28:66") // And(x9855,b5835)
+    val x9857 = LoadBanks(List(x9494_d0_b0), List(b5881)).name("x9857").ctrl(x9881).srcCtx("CharRNN.scala:95:26") // SRAMLoad(x9494,ArrayBuffer(Const(512)),List(b5881),Const(0),x9856)
+    val x9858 = ReadMem(x9825_d0).name("x9858").ctrl(x9881).srcCtx("CharRNN.scala:95:41") // RegRead(x9825)
+    val x9859 = OpDef(op=FixAdd, inputs=List(x9857, x9858)).name("x9859").ctrl(x9881).srcCtx("CharRNN.scala:95:30") // FixAdd(x9857,x9858)
+    val x9860 = ReadMem(x9824).name("x9860").ctrl(x9881).srcCtx("CharRNN.scala:91:46") // RegRead(x9824)
+    val x9861 = OpDef(op=FixAdd, inputs=List(x9859, x9860)).name("x9861").ctrl(x9881).srcCtx("CharRNN.scala:95:47:ele") // FixAdd(x9859,x9860)
+    val x9862 = OpDef(op=FixLt, inputs=List(b5881, Const(128))).name("x9862").ctrl(x9881).srcCtx("CharRNN.scala:96:17") // FixLt(b5881,Const(128))
+    val x9863 = OpDef(op=BitNot, inputs=List(x9862)).name("x9863").ctrl(x9881).srcCtx("CharRNN.scala:96:11") // Not(x9862)
+    val x9864 = OpDef(op=FixLeq, inputs=List(Const(128), b5881)).name("x9864").ctrl(x9881).srcCtx("CharRNN.scala:98:29") // FixLeq(Const(128),b5881)
+    val x9865 = OpDef(op=FixLt, inputs=List(b5881, Const(256))).name("x9865").ctrl(x9881).srcCtx("CharRNN.scala:98:39") // FixLt(b5881,Const(256))
+    val x9866 = OpDef(op=BitAnd, inputs=List(x9864, x9865)).name("x9866").ctrl(x9881).srcCtx("CharRNN.scala:98:34") // And(x9864,x9865)
+    val x9867 = OpDef(op=BitAnd, inputs=List(x9866, x9863)).name("x9867").ctrl(x9881).srcCtx("CharRNN.scala:96:11") // And(x9866,x9863)
+    val x9868 = OpDef(op=BitNot, inputs=List(x9866)).name("x9868").ctrl(x9881).srcCtx("CharRNN.scala:96:11") // Not(x9866)
+    val x9869 = OpDef(op=BitAnd, inputs=List(x9868, x9863)).name("x9869").ctrl(x9881).srcCtx("CharRNN.scala:96:11") // And(x9868,x9863)
+    val x9870 = OpDef(op=FixLeq, inputs=List(Const(256), b5881)).name("x9870").ctrl(x9881).srcCtx("CharRNN.scala:100:33") // FixLeq(Const(256),b5881)
+    val x9871 = OpDef(op=FixLt, inputs=List(b5881, Const(384))).name("x9871").ctrl(x9881).srcCtx("CharRNN.scala:100:43") // FixLt(b5881,Const(384))
+    val x9872 = OpDef(op=BitAnd, inputs=List(x9870, x9871)).name("x9872").ctrl(x9881).srcCtx("CharRNN.scala:100:38") // And(x9870,x9871)
+    val x9873 = OpDef(op=BitAnd, inputs=List(x9872, x9869)).name("x9873").ctrl(x9881).srcCtx("CharRNN.scala:96:11") // And(x9872,x9869)
+    val x9874 = OpDef(op=BitNot, inputs=List(x9872)).name("x9874").ctrl(x9881).srcCtx("CharRNN.scala:96:11") // Not(x9872)
+    val x9875 = OpDef(op=BitAnd, inputs=List(x9874, x9869)).name("x9875").ctrl(x9881).srcCtx("CharRNN.scala:96:11") // And(x9874,x9869)
+    val x9876_x9850_d0 = WriteMem(x9850_d0, x9861).name("x9876_x9850_d0").ctrl(x9881).srcCtx("CharRNN.scala:91:46") // RegWrite(x9850,x9861,x9856)
+    val x9876_x9850_d1 = WriteMem(x9850_d1, x9861).name("x9876_x9850_d1").ctrl(x9881).srcCtx("CharRNN.scala:91:46") // RegWrite(x9850,x9861,x9856)
+    val x9876_x9850_d2 = WriteMem(x9850_d2, x9861).name("x9876_x9850_d2").ctrl(x9881).srcCtx("CharRNN.scala:91:46") // RegWrite(x9850,x9861,x9856)
+    val x9876_x9850_d3 = WriteMem(x9850_d3, x9861).name("x9876_x9850_d3").ctrl(x9881).srcCtx("CharRNN.scala:91:46") // RegWrite(x9850,x9861,x9856)
+    val x9877_x9851_d0 = WriteMem(x9851_d0, x9862).name("x9877_x9851_d0").ctrl(x9881).srcCtx("CharRNN.scala:91:46") // RegWrite(x9851,x9862,x9856)
+    val x9877_x9851_d1 = WriteMem(x9851_d1, x9862).name("x9877_x9851_d1").ctrl(x9881).srcCtx("CharRNN.scala:91:46") // RegWrite(x9851,x9862,x9856)
+    val x9878_x9852_d0 = WriteMem(x9852_d0, x9867).name("x9878_x9852_d0").ctrl(x9881).srcCtx("CharRNN.scala:91:46") // RegWrite(x9852,x9867,x9856)
+    val x9878_x9852_d1 = WriteMem(x9852_d1, x9867).name("x9878_x9852_d1").ctrl(x9881).srcCtx("CharRNN.scala:91:46") // RegWrite(x9852,x9867,x9856)
+    val x9879_x9853_d0 = WriteMem(x9853_d0, x9873).name("x9879_x9853_d0").ctrl(x9881).srcCtx("CharRNN.scala:91:46") // RegWrite(x9853,x9873,x9856)
+    val x9879_x9853_d1 = WriteMem(x9853_d1, x9873).name("x9879_x9853_d1").ctrl(x9881).srcCtx("CharRNN.scala:91:46") // RegWrite(x9853,x9873,x9856)
+    val x9880_x9854_d0 = WriteMem(x9854_d0, x9875).name("x9880_x9854_d0").ctrl(x9881).srcCtx("CharRNN.scala:91:46") // RegWrite(x9854,x9875,x9856)
+    val x9880_x9854_d1 = WriteMem(x9854_d1, x9875).name("x9880_x9854_d1").ctrl(x9881).srcCtx("CharRNN.scala:91:46") // RegWrite(x9854,x9875,x9856)
+    val x9882 = ReadMem(x9854_d1).name("x9882").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // RegRead(x9854)
+    val x9883 = ReadMem(x9853_d1).name("x9883").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // RegRead(x9853)
+    val x9884 = ReadMem(x9852_d1).name("x9884").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // RegRead(x9852)
+    val x9885 = ReadMem(x9851_d1).name("x9885").ctrl(x9918).srcCtx("CharRNN.scala:91:46") // RegRead(x9851)
+    val x9917 = UnitController(style=ForkSwitch, level=OuterControl).name("x9917").ctrl(x9918).srcCtx("CharRNN.scala:96:11") // //TODO Switch(Block(x9916),List(x9885, x9884, x9883, x9882),List(x9892, x9900, x9908, x9916))
+    val x9892 = UnitController(style=MetaPipe, level=InnerControl).name("x9892").ctrl(x9917).srcCtx("CharRNN.scala:96:11") // //TODO SwitchCase(Block(x9891))
+    val x9886 = ReadMem(x9851_d0).name("x9886").ctrl(x9892).srcCtx("CharRNN.scala:91:46") // RegRead(x9851)
+    val x9887 = ReadMem(x9850_d3).name("x9887").ctrl(x9892).srcCtx("CharRNN.scala:91:46") // RegRead(x9850)
+    val x9888 = OpDef(op=BitAnd, inputs=List(b5882, b5883)).name("x9888").ctrl(x9892).srcCtx("UnrollingBase.scala:28:66") // And(b5882,b5883)
+    val x9889 = OpDef(op=BitAnd, inputs=List(x9888, b5835)).name("x9889").ctrl(x9892).srcCtx("UnrollingBase.scala:28:66") // And(x9888,b5835)
+    val x9890 = OpDef(op=BitAnd, inputs=List(x9886, x9889)).name("x9890").ctrl(x9892) // And(x9886,x9889)
+    val x9891 = StoreBanks(List(x9504_d0_b0, x9504_d1_b0), List(b5880, b5881), x9887).name("x9891").ctrl(x9892).srcCtx("CharRNN.scala:97:27") // SRAMStore(x9504,ArrayBuffer(Const(1), Const(128)),List(b5880, b5881),Const(0),x9887,x9890)
+    val x9900 = UnitController(style=MetaPipe, level=InnerControl).name("x9900").ctrl(x9917).srcCtx("CharRNN.scala:96:11") // //TODO SwitchCase(Block(x9899))
+    val x9893 = OpDef(op=FixSub, inputs=List(b5881, Const(128))).name("x9893").ctrl(x9900).srcCtx("CharRNN.scala:99:30") // FixSub(b5881,Const(128))
+    val x9894 = ReadMem(x9852_d0).name("x9894").ctrl(x9900).srcCtx("CharRNN.scala:91:46") // RegRead(x9852)
+    val x9895 = ReadMem(x9850_d2).name("x9895").ctrl(x9900).srcCtx("CharRNN.scala:91:46") // RegRead(x9850)
+    val x9896 = OpDef(op=BitAnd, inputs=List(b5882, b5883)).name("x9896").ctrl(x9900).srcCtx("UnrollingBase.scala:28:66") // And(b5882,b5883)
+    val x9897 = OpDef(op=BitAnd, inputs=List(x9896, b5835)).name("x9897").ctrl(x9900).srcCtx("UnrollingBase.scala:28:66") // And(x9896,b5835)
+    val x9898 = OpDef(op=BitAnd, inputs=List(x9894, x9897)).name("x9898").ctrl(x9900) // And(x9894,x9897)
+    val x9899 = StoreBanks(List(x9505_d0_b0, x9505_d1_b0), List(b5880, x9893), x9895).name("x9899").ctrl(x9900).srcCtx("CharRNN.scala:99:42") // SRAMStore(x9505,ArrayBuffer(Const(1), Const(128)),List(b5880, x9893),Const(0),x9895,x9898)
+    val x9908 = UnitController(style=MetaPipe, level=InnerControl).name("x9908").ctrl(x9917).srcCtx("CharRNN.scala:96:11") // //TODO SwitchCase(Block(x9907))
+    val x9901 = OpDef(op=FixSub, inputs=List(b5881, Const(256))).name("x9901").ctrl(x9908).srcCtx("CharRNN.scala:101:27") // FixSub(b5881,Const(256))
+    val x9902 = ReadMem(x9853_d0).name("x9902").ctrl(x9908).srcCtx("CharRNN.scala:91:46") // RegRead(x9853)
+    val x9903 = ReadMem(x9850_d1).name("x9903").ctrl(x9908).srcCtx("CharRNN.scala:91:46") // RegRead(x9850)
+    val x9904 = OpDef(op=BitAnd, inputs=List(b5882, b5883)).name("x9904").ctrl(x9908).srcCtx("UnrollingBase.scala:28:66") // And(b5882,b5883)
+    val x9905 = OpDef(op=BitAnd, inputs=List(x9904, b5835)).name("x9905").ctrl(x9908).srcCtx("UnrollingBase.scala:28:66") // And(x9904,b5835)
+    val x9906 = OpDef(op=BitAnd, inputs=List(x9902, x9905)).name("x9906").ctrl(x9908) // And(x9902,x9905)
+    val x9907 = StoreBanks(List(x9506_d0_b0, x9506_d1_b0), List(b5880, x9901), x9903).name("x9907").ctrl(x9908).srcCtx("CharRNN.scala:101:43") // SRAMStore(x9506,ArrayBuffer(Const(1), Const(128)),List(b5880, x9901),Const(0),x9903,x9906)
+    val x9916 = UnitController(style=MetaPipe, level=InnerControl).name("x9916").ctrl(x9917).srcCtx("CharRNN.scala:96:11") // //TODO SwitchCase(Block(x9915))
+    val x9909 = OpDef(op=FixSub, inputs=List(b5881, Const(384))).name("x9909").ctrl(x9916).srcCtx("CharRNN.scala:103:31") // FixSub(b5881,Const(384))
+    val x9910 = ReadMem(x9854_d0).name("x9910").ctrl(x9916).srcCtx("CharRNN.scala:91:46") // RegRead(x9854)
+    val x9911 = ReadMem(x9850_d0).name("x9911").ctrl(x9916).srcCtx("CharRNN.scala:91:46") // RegRead(x9850)
+    val x9912 = OpDef(op=BitAnd, inputs=List(b5882, b5883)).name("x9912").ctrl(x9916).srcCtx("UnrollingBase.scala:28:66") // And(b5882,b5883)
+    val x9913 = OpDef(op=BitAnd, inputs=List(x9912, b5835)).name("x9913").ctrl(x9916).srcCtx("UnrollingBase.scala:28:66") // And(x9912,b5835)
+    val x9914 = OpDef(op=BitAnd, inputs=List(x9910, x9913)).name("x9914").ctrl(x9916) // And(x9910,x9913)
+    val x9915 = StoreBanks(List(x9507_d0_b0, x9507_d1_b0), List(b5880, x9909), x9911).name("x9915").ctrl(x9916).srcCtx("CharRNN.scala:103:47") // SRAMStore(x9507,ArrayBuffer(Const(1), Const(128)),List(b5880, x9909),Const(0),x9911,x9914)
+    val x9919 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x9919").ctrl(x10146).srcCtx("CharRNN.scala:107:44") // CounterNew(Const(0),Const(128),Const(1),Const(1))
+    val x9920 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x9920").ctrl(x10146).srcCtx("CharRNN.scala:107:29") // CounterNew(Const(0),Const(1),Const(1),Const(1))
+    val x9921 = CounterChain(List(x9920,x9919)).name("x9921").ctrl(x10146).srcCtx("CharRNN.scala:107:50") // CounterChainNew(List(x9920, x9919))
+    val x9940 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9921).name("x9940").ctrl(x10146).srcCtx("CharRNN.scala:107:50") // UnrolledForeach(List(b5835),x9921,Block(Const(())),List(List(b6004), List(b6005)),List(List(b6006), List(b6007)))
+    val b6004 = CounterIter(x9920, Some(0)).name("b6004").ctrl(x9940) // b6004
+    val b6006 = Const(true).name("b6006").ctrl(x9940) // b6006
+    val b6005 = CounterIter(x9919, None).name("b6005").ctrl(x9940) // b6005
+    val b6007 = Const(true).name("b6007").ctrl(x9940) // b6007
+    val x9922 = OpDef(op=BitAnd, inputs=List(b6006, b6007)).name("x9922").ctrl(x9940).srcCtx("UnrollingBase.scala:28:66") // And(b6006,b6007)
+    val x9923 = OpDef(op=BitAnd, inputs=List(x9922, b5835)).name("x9923").ctrl(x9940).srcCtx("UnrollingBase.scala:28:66") // And(x9922,b5835)
+    val x9924 = LoadBanks(List(x9501_d1_b0), List(b6004, b6005)).name("x9924").ctrl(x9940).srcCtx("CharRNN.scala:108:21") // ParSRAMLoad(x9501,List(List(b6004, b6005)),List(x9923))
+    val x9925 = x9924 // x9925 = VectorApply(x9924,0)
+    val x9926 = LoadBanks(List(x9505_d1_b0), List(b6004, b6005)).name("x9926").ctrl(x9940).srcCtx("CharRNN.scala:108:41") // ParSRAMLoad(x9505,List(List(b6004, b6005)),List(x9923))
+    val x9927 = x9926 // x9927 = VectorApply(x9926,0)
+    val x9928 = OpDef(op=FixMul, inputs=List(x9925, x9927)).name("x9928").ctrl(x9940).srcCtx("CharRNN.scala:108:28") // FixMul(x9925,x9927)
+    val x9929 = LoadBanks(List(x9504_d1_b0), List(b6004, b6005)).name("x9929").ctrl(x9940).srcCtx("CharRNN.scala:108:57") // ParSRAMLoad(x9504,List(List(b6004, b6005)),List(x9923))
+    val x9930 = x9929 // x9930 = VectorApply(x9929,0)
+    val x9931 = LoadBanks(List(x9507_d1_b0), List(b6004, b6005)).name("x9931").ctrl(x9940).srcCtx("CharRNN.scala:108:78") // ParSRAMLoad(x9507,List(List(b6004, b6005)),List(x9923))
+    val x9932 = x9931 // x9932 = VectorApply(x9931,0)
+    val x9933 = OpDef(op=FixMul, inputs=List(x9930, x9932)).name("x9933").ctrl(x9940).srcCtx("CharRNN.scala:108:64") // FixMul(x9930,x9932)
+    val x9934 = OpDef(op=FixAdd, inputs=List(x9928, x9933)).name("x9934").ctrl(x9940).srcCtx("CharRNN.scala:108:48:cc") // FixAdd(x9928,x9933)
+    val x9935 = StoreBanks(List(x9501_d0_b0, x9501_d1_b0), List(b6004, b6005), x9934).name("x9935").ctrl(x9940).srcCtx("CharRNN.scala:109:19") // ParSRAMStore(x9501,List(List(b6004, b6005)),List(x9934),List(x9923))
+    val x9936 = LoadBanks(List(x9506_d1_b0), List(b6004, b6005)).name("x9936").ctrl(x9940).srcCtx("CharRNN.scala:110:41") // ParSRAMLoad(x9506,List(List(b6004, b6005)),List(x9923))
+    val x9937 = x9936 // x9937 = VectorApply(x9936,0)
+    val x9938 = OpDef(op=FixMul, inputs=List(x9934, x9937)).name("x9938").ctrl(x9940).srcCtx("CharRNN.scala:110:31") // FixMul(x9934,x9937)
+    val x9939 = StoreBanks(List(x9502_d0_b0, x9502_d1_b0, x9502_d2_b0, x9502_d3_b0), List(b6004, b6005), x9938).name("x9939").ctrl(x9940).srcCtx("CharRNN.scala:110:19") // ParSRAMStore(x9502,List(List(b6004, b6005)),List(x9938),List(x9923))
+    val x9941 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x9941").ctrl(x10146).srcCtx("CharRNN.scala:114:40") // CounterNew(Const(0),Const(512),Const(1),Const(1))
+    val x9942 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x9942").ctrl(x10146).srcCtx("CharRNN.scala:114:29") // CounterNew(Const(0),Const(1),Const(1),Const(1))
+    val x9943 = CounterChain(List(x9942,x9941)).name("x9943").ctrl(x10146).srcCtx("CharRNN.scala:114:46") // CounterChainNew(List(x9942, x9941))
+    val x10056 = LoopController(style=MetaPipe, level=OuterControl, cchain=x9943).name("x10056").ctrl(x10146).srcCtx("CharRNN.scala:114:46") // UnrolledForeach(List(b5835),x9943,Block(Const(())),List(List(b6030), List(b6031)),List(List(b6032), List(b6033)))
+    val b6030 = CounterIter(x9942, Some(0)).name("b6030").ctrl(x10056) // b6030
+    val b6032 = Const(true).name("b6032").ctrl(x10056) // b6032
+    val b6031 = CounterIter(x9941, Some(0)).name("b6031").ctrl(x10056) // b6031
+    val b6033 = Const(true).name("b6033").ctrl(x10056) // b6033
+    val x9944_d0 = Reg(init=Some(0.0)).name("x9944_d0").ctrl(x10056).srcCtx("CharRNN.scala:115:36:i2h_prod") // x9944 = RegNew(Const(0))
+    isAccum(x9944_d0) = false
+    bufferDepthOf(x9944_d0) = 2
+    val x9944_d1 = Reg(init=Some(0.0)).name("x9944_d1").ctrl(x10056).srcCtx("CharRNN.scala:115:36:i2h_prod") // x9944 = RegNew(Const(0))
+    isAccum(x9944_d1) = true
+    bufferDepthOf(x9944_d1) = 1
+    val x9945 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x9945").ctrl(x10056).srcCtx("CharRNN.scala:115:50") // CounterNew(Const(0),Const(128),Const(1),Const(1))
+    val x9946 = CounterChain(List(x9945)).name("x9946").ctrl(x10056).srcCtx("CharRNN.scala:115:87") // CounterChainNew(List(x9945))
+    val x9961 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9946).name("x9961").ctrl(x10056).srcCtx("CharRNN.scala:115:87") // UnrolledReduce(List(b6032, b6033, b5835),x9946,x9944,Block((x9944) => Const(())),List(List(b6037)),List(List(b6038)))
+    val b6037 = CounterIter(x9945, None).name("b6037").ctrl(x9961) // b6037
+    val b6038 = Const(true).name("b6038").ctrl(x9961) // b6038
+    val x9947 = OpDef(op=BitAnd, inputs=List(b6038, b6032)).name("x9947").ctrl(x9961).srcCtx("UnrollingBase.scala:28:66") // And(b6038,b6032)
+    val x9948 = OpDef(op=BitAnd, inputs=List(b6033, b5835)).name("x9948").ctrl(x9961).srcCtx("UnrollingBase.scala:28:66") // And(b6033,b5835)
+    val x9949 = OpDef(op=BitAnd, inputs=List(x9947, x9948)).name("x9949").ctrl(x9961).srcCtx("UnrollingBase.scala:28:66") // And(x9947,x9948)
+    val x9950 = LoadBanks(List(x9503_d0_b0), List(b6030, b6037)).name("x9950").ctrl(x9961).srcCtx("CharRNN.scala:115:64") // ParSRAMLoad(x9503,List(List(b6030, b6037)),List(x9949))
+    val x9951 = x9950 // x9951 = VectorApply(x9950,0)
+    val x9952 = LoadBanks(List(x9495_d0_b0), List(b6037, b6031)).name("x9952").ctrl(x9961).srcCtx("CharRNN.scala:115:78") // ParSRAMLoad(x9495,List(List(b6037, b6031)),List(x9949))
+    val x9953 = x9952 // x9953 = VectorApply(x9952,0)
+    val x9954 = OpDef(op=FixMul, inputs=List(x9951, x9953)).name("x9954").ctrl(x9961).srcCtx("CharRNN.scala:115:71") // FixMul(x9951,x9953)
+    val x9955 = ReadMem(x9944_d1).name("x9955").ctrl(x9961).srcCtx("CharRNN.scala:115:87") // RegRead(x9944)
+    val x9956 = OpDef(op=FixEql, inputs=List(b6037, Const(0))).name("x9956").ctrl(x9961).srcCtx("CharRNN.scala:115:87") // FixEql(b6037,Const(0))
+    val x9957 = ReduceAccumOp(op=FixAdd, input=x9954, accum=x9955).name("x9957").ctrl(x9961).srcCtx("CharRNN.scala:115:89") // FixAdd(x9954,x9955)
+    val x9958 = OpDef(op=BitAnd, inputs=List(b6032, b6033)).name("x9958").ctrl(x9961).srcCtx("UnrollingBase.scala:28:66") // And(b6032,b6033)
+    val x9959 = OpDef(op=BitAnd, inputs=List(x9958, b5835)).name("x9959").ctrl(x9961).srcCtx("UnrollingBase.scala:28:66") // And(x9958,b5835)
+    val x9960_x9944_d0 = WriteMem(x9944_d0, x9957).name("x9960_x9944_d0").ctrl(x9961).srcCtx("CharRNN.scala:115:87") // RegWrite(x9944,x9957,x9959)
+    val x9960_x9944_d1 = WriteMem(x9944_d1, x9957).name("x9960_x9944_d1").ctrl(x9961).srcCtx("CharRNN.scala:115:87") // RegWrite(x9944,x9957,x9959)
+    val x9962 = Reg(init=Some(0.0)).name("x9962").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // x9962 = RegNew(Const(0))
+    isAccum(x9962) = false
+    bufferDepthOf(x9962) = 3
+    val x9963_d0 = Reg(init=Some(0.0)).name("x9963_d0").ctrl(x10056).srcCtx("CharRNN.scala:117:36:h2h_prod") // x9963 = RegNew(Const(0))
+    isAccum(x9963_d0) = false
+    bufferDepthOf(x9963_d0) = 2
+    val x9963_d1 = Reg(init=Some(0.0)).name("x9963_d1").ctrl(x10056).srcCtx("CharRNN.scala:117:36:h2h_prod") // x9963 = RegNew(Const(0))
+    isAccum(x9963_d1) = true
+    bufferDepthOf(x9963_d1) = 1
+    val x9970 = UnitController(style=SeqPipe, level=InnerControl).name("x9970").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // UnitPipe(List(b6032, b6033, b5835),Block(Const(())))
+    val x9964 = OpDef(op=BitAnd, inputs=List(b6032, b6033)).name("x9964").ctrl(x9970).srcCtx("UnrollingBase.scala:28:66") // And(b6032,b6033)
+    val x9965 = OpDef(op=BitAnd, inputs=List(x9964, b5835)).name("x9965").ctrl(x9970).srcCtx("UnrollingBase.scala:28:66") // And(x9964,b5835)
+    val x9966 = LoadBanks(List(x9496_d0_b0), List(b6031)).name("x9966").ctrl(x9970).srcCtx("CharRNN.scala:116:30") // SRAMLoad(x9496,ArrayBuffer(Const(512)),List(b6031),Const(0),x9965)
+    val x9967 = ReadMem(x9944_d0).name("x9967").ctrl(x9970).srcCtx("CharRNN.scala:116:45") // RegRead(x9944)
+    val x9968 = OpDef(op=FixAdd, inputs=List(x9966, x9967)).name("x9968").ctrl(x9970).srcCtx("CharRNN.scala:116:34:i2h_ele") // FixAdd(x9966,x9967)
+    val x9969_x9962 = WriteMem(x9962, x9968).name("x9969_x9962").ctrl(x9970).srcCtx("CharRNN.scala:114:46") // RegWrite(x9962,x9968,x9965)
+    val x9971 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x9971").ctrl(x10056).srcCtx("CharRNN.scala:117:50") // CounterNew(Const(0),Const(128),Const(1),Const(1))
+    val x9972 = CounterChain(List(x9971)).name("x9972").ctrl(x10056).srcCtx("CharRNN.scala:117:87") // CounterChainNew(List(x9971))
+    val x9987 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9972).name("x9987").ctrl(x10056).srcCtx("CharRNN.scala:117:87") // UnrolledReduce(List(b6032, b6033, b5835),x9972,x9963,Block((x9963) => Const(())),List(List(b6065)),List(List(b6066)))
+    val b6065 = CounterIter(x9971, None).name("b6065").ctrl(x9987) // b6065
+    val b6066 = Const(true).name("b6066").ctrl(x9987) // b6066
+    val x9973 = OpDef(op=BitAnd, inputs=List(b6066, b6032)).name("x9973").ctrl(x9987).srcCtx("UnrollingBase.scala:28:66") // And(b6066,b6032)
+    val x9974 = OpDef(op=BitAnd, inputs=List(b6033, b5835)).name("x9974").ctrl(x9987).srcCtx("UnrollingBase.scala:28:66") // And(b6033,b5835)
+    val x9975 = OpDef(op=BitAnd, inputs=List(x9973, x9974)).name("x9975").ctrl(x9987).srcCtx("UnrollingBase.scala:28:66") // And(x9973,x9974)
+    val x9976 = LoadBanks(List(x9502_d2_b0), List(b6030, b6065)).name("x9976").ctrl(x9987).srcCtx("CharRNN.scala:117:64") // ParSRAMLoad(x9502,List(List(b6030, b6065)),List(x9975))
+    val x9977 = x9976 // x9977 = VectorApply(x9976,0)
+    def split1 = {
+    val x9978 = LoadBanks(List(x9497_d0_b0), List(b6065, b6031)).name("x9978").ctrl(x9987).srcCtx("CharRNN.scala:117:78") // ParSRAMLoad(x9497,List(List(b6065, b6031)),List(x9975))
+    val x9979 = x9978 // x9979 = VectorApply(x9978,0)
+    val x9980 = OpDef(op=FixMul, inputs=List(x9977, x9979)).name("x9980").ctrl(x9987).srcCtx("CharRNN.scala:117:71") // FixMul(x9977,x9979)
+    val x9981 = ReadMem(x9963_d1).name("x9981").ctrl(x9987).srcCtx("CharRNN.scala:117:87") // RegRead(x9963)
+    val x9982 = OpDef(op=FixEql, inputs=List(b6065, Const(0))).name("x9982").ctrl(x9987).srcCtx("CharRNN.scala:117:87") // FixEql(b6065,Const(0))
+    val x9983 = ReduceAccumOp(op=FixAdd, input=x9980, accum=x9981).name("x9983").ctrl(x9987).srcCtx("CharRNN.scala:117:89") // FixAdd(x9980,x9981)
+    val x9984 = OpDef(op=BitAnd, inputs=List(b6032, b6033)).name("x9984").ctrl(x9987).srcCtx("UnrollingBase.scala:28:66") // And(b6032,b6033)
+    val x9985 = OpDef(op=BitAnd, inputs=List(x9984, b5835)).name("x9985").ctrl(x9987).srcCtx("UnrollingBase.scala:28:66") // And(x9984,b5835)
+    val x9986_x9963_d0 = WriteMem(x9963_d0, x9983).name("x9986_x9963_d0").ctrl(x9987).srcCtx("CharRNN.scala:117:87") // RegWrite(x9963,x9983,x9985)
+    val x9986_x9963_d1 = WriteMem(x9963_d1, x9983).name("x9986_x9963_d1").ctrl(x9987).srcCtx("CharRNN.scala:117:87") // RegWrite(x9963,x9983,x9985)
+    val x9988_d0 = Reg(init=Some(0.0)).name("x9988_d0").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // x9988 = RegNew(Const(0))
+    isAccum(x9988_d0) = false
+    bufferDepthOf(x9988_d0) = 2
+    val x9988_d1 = Reg(init=Some(0.0)).name("x9988_d1").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // x9988 = RegNew(Const(0))
+    isAccum(x9988_d1) = false
+    bufferDepthOf(x9988_d1) = 2
+    val x9988_d2 = Reg(init=Some(0.0)).name("x9988_d2").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // x9988 = RegNew(Const(0))
+    isAccum(x9988_d2) = false
+    bufferDepthOf(x9988_d2) = 2
+    val x9988_d3 = Reg(init=Some(0.0)).name("x9988_d3").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // x9988 = RegNew(Const(0))
+    isAccum(x9988_d3) = false
+    bufferDepthOf(x9988_d3) = 2
+    val x9989_d0 = Reg(init=Some(false)).name("x9989_d0").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // x9989 = RegNew(Const(false))
+    isAccum(x9989_d0) = false
+    bufferDepthOf(x9989_d0) = 2
+    val x9989_d1 = Reg(init=Some(false)).name("x9989_d1").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // x9989 = RegNew(Const(false))
+    isAccum(x9989_d1) = false
+    bufferDepthOf(x9989_d1) = 2
+    val x9990_d0 = Reg(init=Some(false)).name("x9990_d0").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // x9990 = RegNew(Const(false))
+    isAccum(x9990_d0) = false
+    bufferDepthOf(x9990_d0) = 2
+    val x9990_d1 = Reg(init=Some(false)).name("x9990_d1").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // x9990 = RegNew(Const(false))
+    isAccum(x9990_d1) = false
+    bufferDepthOf(x9990_d1) = 2
+    val x9991_d0 = Reg(init=Some(false)).name("x9991_d0").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // x9991 = RegNew(Const(false))
+    isAccum(x9991_d0) = false
+    bufferDepthOf(x9991_d0) = 2
+    val x9991_d1 = Reg(init=Some(false)).name("x9991_d1").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // x9991 = RegNew(Const(false))
+    isAccum(x9991_d1) = false
+    bufferDepthOf(x9991_d1) = 2
+    val x9992_d0 = Reg(init=Some(false)).name("x9992_d0").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // x9992 = RegNew(Const(false))
+    isAccum(x9992_d0) = false
+    bufferDepthOf(x9992_d0) = 2
+    val x9992_d1 = Reg(init=Some(false)).name("x9992_d1").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // x9992 = RegNew(Const(false))
+    isAccum(x9992_d1) = false
+    bufferDepthOf(x9992_d1) = 2
+    val x10019 = UnitController(style=SeqPipe, level=InnerControl).name("x10019").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // UnitPipe(List(b6032, b6033, b5835),Block(Const(())))
+    val x9993 = OpDef(op=BitAnd, inputs=List(b6032, b6033)).name("x9993").ctrl(x10019).srcCtx("UnrollingBase.scala:28:66") // And(b6032,b6033)
+    val x9994 = OpDef(op=BitAnd, inputs=List(x9993, b5835)).name("x9994").ctrl(x10019).srcCtx("UnrollingBase.scala:28:66") // And(x9993,b5835)
+    val x9995 = LoadBanks(List(x9498_d0_b0), List(b6031)).name("x9995").ctrl(x10019).srcCtx("CharRNN.scala:118:26") // SRAMLoad(x9498,ArrayBuffer(Const(512)),List(b6031),Const(0),x9994)
+    val x9996 = ReadMem(x9963_d0).name("x9996").ctrl(x10019).srcCtx("CharRNN.scala:118:41") // RegRead(x9963)
+    val x9997 = OpDef(op=FixAdd, inputs=List(x9995, x9996)).name("x9997").ctrl(x10019).srcCtx("CharRNN.scala:118:30") // FixAdd(x9995,x9996)
+    val x9998 = ReadMem(x9962).name("x9998").ctrl(x10019).srcCtx("CharRNN.scala:114:46") // RegRead(x9962)
+    val x9999 = OpDef(op=FixAdd, inputs=List(x9997, x9998)).name("x9999").ctrl(x10019).srcCtx("CharRNN.scala:118:47:ele") // FixAdd(x9997,x9998)
+    val x10000 = OpDef(op=FixLt, inputs=List(b6031, Const(128))).name("x10000").ctrl(x10019).srcCtx("CharRNN.scala:119:17") // FixLt(b6031,Const(128))
+    val x10001 = OpDef(op=BitNot, inputs=List(x10000)).name("x10001").ctrl(x10019).srcCtx("CharRNN.scala:119:11") // Not(x10000)
+    val x10002 = OpDef(op=FixLeq, inputs=List(Const(128), b6031)).name("x10002").ctrl(x10019).srcCtx("CharRNN.scala:121:29") // FixLeq(Const(128),b6031)
+    val x10003 = OpDef(op=FixLt, inputs=List(b6031, Const(256))).name("x10003").ctrl(x10019).srcCtx("CharRNN.scala:121:39") // FixLt(b6031,Const(256))
+    val x10004 = OpDef(op=BitAnd, inputs=List(x10002, x10003)).name("x10004").ctrl(x10019).srcCtx("CharRNN.scala:121:34") // And(x10002,x10003)
+    val x10005 = OpDef(op=BitAnd, inputs=List(x10004, x10001)).name("x10005").ctrl(x10019).srcCtx("CharRNN.scala:119:11") // And(x10004,x10001)
+    val x10006 = OpDef(op=BitNot, inputs=List(x10004)).name("x10006").ctrl(x10019).srcCtx("CharRNN.scala:119:11") // Not(x10004)
+    val x10007 = OpDef(op=BitAnd, inputs=List(x10006, x10001)).name("x10007").ctrl(x10019).srcCtx("CharRNN.scala:119:11") // And(x10006,x10001)
+    val x10008 = OpDef(op=FixLeq, inputs=List(Const(256), b6031)).name("x10008").ctrl(x10019).srcCtx("CharRNN.scala:123:33") // FixLeq(Const(256),b6031)
+    val x10009 = OpDef(op=FixLt, inputs=List(b6031, Const(384))).name("x10009").ctrl(x10019).srcCtx("CharRNN.scala:123:43") // FixLt(b6031,Const(384))
+    val x10010 = OpDef(op=BitAnd, inputs=List(x10008, x10009)).name("x10010").ctrl(x10019).srcCtx("CharRNN.scala:123:38") // And(x10008,x10009)
+    val x10011 = OpDef(op=BitAnd, inputs=List(x10010, x10007)).name("x10011").ctrl(x10019).srcCtx("CharRNN.scala:119:11") // And(x10010,x10007)
+    val x10012 = OpDef(op=BitNot, inputs=List(x10010)).name("x10012").ctrl(x10019).srcCtx("CharRNN.scala:119:11") // Not(x10010)
+    val x10013 = OpDef(op=BitAnd, inputs=List(x10012, x10007)).name("x10013").ctrl(x10019).srcCtx("CharRNN.scala:119:11") // And(x10012,x10007)
+    val x10014_x9988_d0 = WriteMem(x9988_d0, x9999).name("x10014_x9988_d0").ctrl(x10019).srcCtx("CharRNN.scala:114:46") // RegWrite(x9988,x9999,x9994)
+    val x10014_x9988_d1 = WriteMem(x9988_d1, x9999).name("x10014_x9988_d1").ctrl(x10019).srcCtx("CharRNN.scala:114:46") // RegWrite(x9988,x9999,x9994)
+    val x10014_x9988_d2 = WriteMem(x9988_d2, x9999).name("x10014_x9988_d2").ctrl(x10019).srcCtx("CharRNN.scala:114:46") // RegWrite(x9988,x9999,x9994)
+    val x10014_x9988_d3 = WriteMem(x9988_d3, x9999).name("x10014_x9988_d3").ctrl(x10019).srcCtx("CharRNN.scala:114:46") // RegWrite(x9988,x9999,x9994)
+    val x10015_x9989_d0 = WriteMem(x9989_d0, x10000).name("x10015_x9989_d0").ctrl(x10019).srcCtx("CharRNN.scala:114:46") // RegWrite(x9989,x10000,x9994)
+    val x10015_x9989_d1 = WriteMem(x9989_d1, x10000).name("x10015_x9989_d1").ctrl(x10019).srcCtx("CharRNN.scala:114:46") // RegWrite(x9989,x10000,x9994)
+    val x10016_x9990_d0 = WriteMem(x9990_d0, x10005).name("x10016_x9990_d0").ctrl(x10019).srcCtx("CharRNN.scala:114:46") // RegWrite(x9990,x10005,x9994)
+    val x10016_x9990_d1 = WriteMem(x9990_d1, x10005).name("x10016_x9990_d1").ctrl(x10019).srcCtx("CharRNN.scala:114:46") // RegWrite(x9990,x10005,x9994)
+    val x10017_x9991_d0 = WriteMem(x9991_d0, x10011).name("x10017_x9991_d0").ctrl(x10019).srcCtx("CharRNN.scala:114:46") // RegWrite(x9991,x10011,x9994)
+    val x10017_x9991_d1 = WriteMem(x9991_d1, x10011).name("x10017_x9991_d1").ctrl(x10019).srcCtx("CharRNN.scala:114:46") // RegWrite(x9991,x10011,x9994)
+    val x10018_x9992_d0 = WriteMem(x9992_d0, x10013).name("x10018_x9992_d0").ctrl(x10019).srcCtx("CharRNN.scala:114:46") // RegWrite(x9992,x10013,x9994)
+    val x10018_x9992_d1 = WriteMem(x9992_d1, x10013).name("x10018_x9992_d1").ctrl(x10019).srcCtx("CharRNN.scala:114:46") // RegWrite(x9992,x10013,x9994)
+    val x10020 = ReadMem(x9992_d1).name("x10020").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // RegRead(x9992)
+    val x10021 = ReadMem(x9991_d1).name("x10021").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // RegRead(x9991)
+    val x10022 = ReadMem(x9990_d1).name("x10022").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // RegRead(x9990)
+    val x10023 = ReadMem(x9989_d1).name("x10023").ctrl(x10056).srcCtx("CharRNN.scala:114:46") // RegRead(x9989)
+    val x10055 = UnitController(style=ForkSwitch, level=OuterControl).name("x10055").ctrl(x10056).srcCtx("CharRNN.scala:119:11") // //TODO Switch(Block(x10054),List(x10023, x10022, x10021, x10020),List(x10030, x10038, x10046, x10054))
+    val x10030 = UnitController(style=MetaPipe, level=InnerControl).name("x10030").ctrl(x10055).srcCtx("CharRNN.scala:119:11") // //TODO SwitchCase(Block(x10029))
+    val x10024 = ReadMem(x9989_d0).name("x10024").ctrl(x10030).srcCtx("CharRNN.scala:114:46") // RegRead(x9989)
+    val x10025 = ReadMem(x9988_d3).name("x10025").ctrl(x10030).srcCtx("CharRNN.scala:114:46") // RegRead(x9988)
+    val x10026 = OpDef(op=BitAnd, inputs=List(b6032, b6033)).name("x10026").ctrl(x10030).srcCtx("UnrollingBase.scala:28:66") // And(b6032,b6033)
+    val x10027 = OpDef(op=BitAnd, inputs=List(x10026, b5835)).name("x10027").ctrl(x10030).srcCtx("UnrollingBase.scala:28:66") // And(x10026,b5835)
+    val x10028 = OpDef(op=BitAnd, inputs=List(x10024, x10027)).name("x10028").ctrl(x10030) // And(x10024,x10027)
+    val x10029 = StoreBanks(List(x9504_d0_b0, x9504_d1_b0), List(b6030, b6031), x10025).name("x10029").ctrl(x10030).srcCtx("CharRNN.scala:120:27") // SRAMStore(x9504,ArrayBuffer(Const(1), Const(128)),List(b6030, b6031),Const(0),x10025,x10028)
+    val x10038 = UnitController(style=MetaPipe, level=InnerControl).name("x10038").ctrl(x10055).srcCtx("CharRNN.scala:119:11") // //TODO SwitchCase(Block(x10037))
+    val x10031 = OpDef(op=FixSub, inputs=List(b6031, Const(128))).name("x10031").ctrl(x10038).srcCtx("CharRNN.scala:122:30") // FixSub(b6031,Const(128))
+    val x10032 = ReadMem(x9990_d0).name("x10032").ctrl(x10038).srcCtx("CharRNN.scala:114:46") // RegRead(x9990)
+    val x10033 = ReadMem(x9988_d2).name("x10033").ctrl(x10038).srcCtx("CharRNN.scala:114:46") // RegRead(x9988)
+    val x10034 = OpDef(op=BitAnd, inputs=List(b6032, b6033)).name("x10034").ctrl(x10038).srcCtx("UnrollingBase.scala:28:66") // And(b6032,b6033)
+    val x10035 = OpDef(op=BitAnd, inputs=List(x10034, b5835)).name("x10035").ctrl(x10038).srcCtx("UnrollingBase.scala:28:66") // And(x10034,b5835)
+    val x10036 = OpDef(op=BitAnd, inputs=List(x10032, x10035)).name("x10036").ctrl(x10038) // And(x10032,x10035)
+    val x10037 = StoreBanks(List(x9505_d0_b0, x9505_d1_b0), List(b6030, x10031), x10033).name("x10037").ctrl(x10038).srcCtx("CharRNN.scala:122:42") // SRAMStore(x9505,ArrayBuffer(Const(1), Const(128)),List(b6030, x10031),Const(0),x10033,x10036)
+    val x10046 = UnitController(style=MetaPipe, level=InnerControl).name("x10046").ctrl(x10055).srcCtx("CharRNN.scala:119:11") // //TODO SwitchCase(Block(x10045))
+    val x10039 = OpDef(op=FixSub, inputs=List(b6031, Const(256))).name("x10039").ctrl(x10046).srcCtx("CharRNN.scala:124:27") // FixSub(b6031,Const(256))
+    val x10040 = ReadMem(x9991_d0).name("x10040").ctrl(x10046).srcCtx("CharRNN.scala:114:46") // RegRead(x9991)
+    val x10041 = ReadMem(x9988_d1).name("x10041").ctrl(x10046).srcCtx("CharRNN.scala:114:46") // RegRead(x9988)
+    val x10042 = OpDef(op=BitAnd, inputs=List(b6032, b6033)).name("x10042").ctrl(x10046).srcCtx("UnrollingBase.scala:28:66") // And(b6032,b6033)
+    val x10043 = OpDef(op=BitAnd, inputs=List(x10042, b5835)).name("x10043").ctrl(x10046).srcCtx("UnrollingBase.scala:28:66") // And(x10042,b5835)
+    val x10044 = OpDef(op=BitAnd, inputs=List(x10040, x10043)).name("x10044").ctrl(x10046) // And(x10040,x10043)
+    val x10045 = StoreBanks(List(x9506_d0_b0, x9506_d1_b0), List(b6030, x10039), x10041).name("x10045").ctrl(x10046).srcCtx("CharRNN.scala:124:43") // SRAMStore(x9506,ArrayBuffer(Const(1), Const(128)),List(b6030, x10039),Const(0),x10041,x10044)
+    val x10054 = UnitController(style=MetaPipe, level=InnerControl).name("x10054").ctrl(x10055).srcCtx("CharRNN.scala:119:11") // //TODO SwitchCase(Block(x10053))
+    val x10047 = OpDef(op=FixSub, inputs=List(b6031, Const(384))).name("x10047").ctrl(x10054).srcCtx("CharRNN.scala:126:31") // FixSub(b6031,Const(384))
+    val x10048 = ReadMem(x9992_d0).name("x10048").ctrl(x10054).srcCtx("CharRNN.scala:114:46") // RegRead(x9992)
+    val x10049 = ReadMem(x9988_d0).name("x10049").ctrl(x10054).srcCtx("CharRNN.scala:114:46") // RegRead(x9988)
+    val x10050 = OpDef(op=BitAnd, inputs=List(b6032, b6033)).name("x10050").ctrl(x10054).srcCtx("UnrollingBase.scala:28:66") // And(b6032,b6033)
+    val x10051 = OpDef(op=BitAnd, inputs=List(x10050, b5835)).name("x10051").ctrl(x10054).srcCtx("UnrollingBase.scala:28:66") // And(x10050,b5835)
+    val x10052 = OpDef(op=BitAnd, inputs=List(x10048, x10051)).name("x10052").ctrl(x10054) // And(x10048,x10051)
+    val x10053 = StoreBanks(List(x9507_d0_b0, x9507_d1_b0), List(b6030, x10047), x10049).name("x10053").ctrl(x10054).srcCtx("CharRNN.scala:126:47") // SRAMStore(x9507,ArrayBuffer(Const(1), Const(128)),List(b6030, x10047),Const(0),x10049,x10052)
+    val x10057 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x10057").ctrl(x10146).srcCtx("CharRNN.scala:129:44") // CounterNew(Const(0),Const(128),Const(1),Const(1))
+    val x10058 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x10058").ctrl(x10146).srcCtx("CharRNN.scala:129:29") // CounterNew(Const(0),Const(1),Const(1),Const(1))
+    val x10059 = CounterChain(List(x10058,x10057)).name("x10059").ctrl(x10146).srcCtx("CharRNN.scala:129:50") // CounterChainNew(List(x10058, x10057))
+    val x10078 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10059).name("x10078").ctrl(x10146).srcCtx("CharRNN.scala:129:50") // UnrolledForeach(List(b5835),x10059,Block(Const(())),List(List(b6154), List(b6155)),List(List(b6156), List(b6157)))
+    val b6154 = CounterIter(x10058, Some(0)).name("b6154").ctrl(x10078) // b6154
+    val b6156 = Const(true).name("b6156").ctrl(x10078) // b6156
+    val b6155 = CounterIter(x10057, None).name("b6155").ctrl(x10078) // b6155
+    val b6157 = Const(true).name("b6157").ctrl(x10078) // b6157
+    val x10060 = OpDef(op=BitAnd, inputs=List(b6156, b6157)).name("x10060").ctrl(x10078).srcCtx("UnrollingBase.scala:28:66") // And(b6156,b6157)
+    val x10061 = OpDef(op=BitAnd, inputs=List(x10060, b5835)).name("x10061").ctrl(x10078).srcCtx("UnrollingBase.scala:28:66") // And(x10060,b5835)
+    val x10062 = LoadBanks(List(x9501_d0_b0), List(b6154, b6155)).name("x10062").ctrl(x10078).srcCtx("CharRNN.scala:130:21") // ParSRAMLoad(x9501,List(List(b6154, b6155)),List(x10061))
+    val x10063 = x10062 // x10063 = VectorApply(x10062,0)
+    val x10064 = LoadBanks(List(x9505_d0_b0), List(b6154, b6155)).name("x10064").ctrl(x10078).srcCtx("CharRNN.scala:130:41") // ParSRAMLoad(x9505,List(List(b6154, b6155)),List(x10061))
+    val x10065 = x10064 // x10065 = VectorApply(x10064,0)
+    val x10066 = OpDef(op=FixMul, inputs=List(x10063, x10065)).name("x10066").ctrl(x10078).srcCtx("CharRNN.scala:130:28") // FixMul(x10063,x10065)
+    val x10067 = LoadBanks(List(x9504_d0_b0), List(b6154, b6155)).name("x10067").ctrl(x10078).srcCtx("CharRNN.scala:130:57") // ParSRAMLoad(x9504,List(List(b6154, b6155)),List(x10061))
+    val x10068 = x10067 // x10068 = VectorApply(x10067,0)
+    val x10069 = LoadBanks(List(x9507_d0_b0), List(b6154, b6155)).name("x10069").ctrl(x10078).srcCtx("CharRNN.scala:130:78") // ParSRAMLoad(x9507,List(List(b6154, b6155)),List(x10061))
+    val x10070 = x10069 // x10070 = VectorApply(x10069,0)
+    val x10071 = OpDef(op=FixMul, inputs=List(x10068, x10070)).name("x10071").ctrl(x10078).srcCtx("CharRNN.scala:130:64") // FixMul(x10068,x10070)
+    val x10072 = OpDef(op=FixAdd, inputs=List(x10066, x10071)).name("x10072").ctrl(x10078).srcCtx("CharRNN.scala:130:48:cc") // FixAdd(x10066,x10071)
+    val x10073 = StoreBanks(List(x9501_d0_b0, x9501_d1_b0), List(b6154, b6155), x10072).name("x10073").ctrl(x10078).srcCtx("CharRNN.scala:131:19") // ParSRAMStore(x9501,List(List(b6154, b6155)),List(x10072),List(x10061))
+    val x10074 = LoadBanks(List(x9506_d0_b0), List(b6154, b6155)).name("x10074").ctrl(x10078).srcCtx("CharRNN.scala:132:41") // ParSRAMLoad(x9506,List(List(b6154, b6155)),List(x10061))
+    val x10075 = x10074 // x10075 = VectorApply(x10074,0)
+    val x10076 = OpDef(op=FixMul, inputs=List(x10072, x10075)).name("x10076").ctrl(x10078).srcCtx("CharRNN.scala:132:31") // FixMul(x10072,x10075)
+    val x10077 = StoreBanks(List(x9502_d0_b0, x9502_d1_b0, x9502_d2_b0, x9502_d3_b0), List(b6154, b6155), x10076).name("x10077").ctrl(x10078).srcCtx("CharRNN.scala:132:19") // ParSRAMStore(x9502,List(List(b6154, b6155)),List(x10076),List(x10061))
+    val x10079 = Counter(min=Const(0), max=Const(64), step=Const(1), par=1).name("x10079").ctrl(x10146).srcCtx("CharRNN.scala:136:45") // CounterNew(Const(0),Const(64),Const(1),Const(1))
+    val x10080 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x10080").ctrl(x10146).srcCtx("CharRNN.scala:136:28") // CounterNew(Const(0),Const(1),Const(1),Const(1))
+    val x10081 = CounterChain(List(x10080,x10079)).name("x10081").ctrl(x10146).srcCtx("CharRNN.scala:136:51") // CounterChainNew(List(x10080, x10079))
+    val x10107 = LoopController(style=MetaPipe, level=OuterControl, cchain=x10081).name("x10107").ctrl(x10146).srcCtx("CharRNN.scala:136:51") // UnrolledForeach(List(b5835),x10081,Block(Const(())),List(List(b6180), List(b6181)),List(List(b6182), List(b6183)))
+    val b6180 = CounterIter(x10080, Some(0)).name("b6180").ctrl(x10107) // b6180
+    val b6182 = Const(true).name("b6182").ctrl(x10107) // b6182
+    val b6181 = CounterIter(x10079, Some(0)).name("b6181").ctrl(x10107) // b6181
+    val b6183 = Const(true).name("b6183").ctrl(x10107) // b6183
+    val x10082_d0 = Reg(init=Some(0.0)).name("x10082_d0").ctrl(x10107).srcCtx("CharRNN.scala:137:32:proj") // x10082 = RegNew(Const(0))
+    isAccum(x10082_d0) = false
+    bufferDepthOf(x10082_d0) = 2
+    val x10082_d1 = Reg(init=Some(0.0)).name("x10082_d1").ctrl(x10107).srcCtx("CharRNN.scala:137:32:proj") // x10082 = RegNew(Const(0))
+    isAccum(x10082_d1) = true
+    bufferDepthOf(x10082_d1) = 1
+    val x10083 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x10083").ctrl(x10107).srcCtx("CharRNN.scala:137:46") // CounterNew(Const(0),Const(128),Const(1),Const(1))
+    val x10084 = CounterChain(List(x10083)).name("x10084").ctrl(x10107).srcCtx("CharRNN.scala:137:87") // CounterChainNew(List(x10083))
+    val x10099 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10084).name("x10099").ctrl(x10107).srcCtx("CharRNN.scala:137:87") // UnrolledReduce(List(b6182, b6183, b5835),x10084,x10082,Block((x10082) => Const(())),List(List(b6187)),List(List(b6188)))
+    val b6187 = CounterIter(x10083, None).name("b6187").ctrl(x10099) // b6187
+    val b6188 = Const(true).name("b6188").ctrl(x10099) // b6188
+    val x10085 = OpDef(op=BitAnd, inputs=List(b6188, b6182)).name("x10085").ctrl(x10099).srcCtx("UnrollingBase.scala:28:66") // And(b6188,b6182)
+    val x10086 = OpDef(op=BitAnd, inputs=List(b6183, b5835)).name("x10086").ctrl(x10099).srcCtx("UnrollingBase.scala:28:66") // And(b6183,b5835)
+    val x10087 = OpDef(op=BitAnd, inputs=List(x10085, x10086)).name("x10087").ctrl(x10099).srcCtx("UnrollingBase.scala:28:66") // And(x10085,x10086)
+    val x10088 = LoadBanks(List(x9502_d1_b0), List(b6180, b6187)).name("x10088").ctrl(x10099).srcCtx("CharRNN.scala:137:60") // ParSRAMLoad(x9502,List(List(b6180, b6187)),List(x10087))
+    val x10089 = x10088 // x10089 = VectorApply(x10088,0)
+    val x10090 = LoadBanks(List(x9499_d0_b0), List(b6187, b6181)).name("x10090").ctrl(x10099).srcCtx("CharRNN.scala:137:78") // ParSRAMLoad(x9499,List(List(b6187, b6181)),List(x10087))
+    val x10091 = x10090 // x10091 = VectorApply(x10090,0)
+    val x10092 = OpDef(op=FixMul, inputs=List(x10089, x10091)).name("x10092").ctrl(x10099).srcCtx("CharRNN.scala:137:67") // FixMul(x10089,x10091)
+    val x10093 = ReadMem(x10082_d1).name("x10093").ctrl(x10099).srcCtx("CharRNN.scala:137:87") // RegRead(x10082)
+    val x10094 = OpDef(op=FixEql, inputs=List(b6187, Const(0))).name("x10094").ctrl(x10099).srcCtx("CharRNN.scala:137:87") // FixEql(b6187,Const(0))
+    val x10095 = ReduceAccumOp(op=FixAdd, input=x10092, accum=x10093).name("x10095").ctrl(x10099).srcCtx("CharRNN.scala:137:89") // FixAdd(x10092,x10093)
+    val x10096 = OpDef(op=BitAnd, inputs=List(b6182, b6183)).name("x10096").ctrl(x10099).srcCtx("UnrollingBase.scala:28:66") // And(b6182,b6183)
+    val x10097 = OpDef(op=BitAnd, inputs=List(x10096, b5835)).name("x10097").ctrl(x10099).srcCtx("UnrollingBase.scala:28:66") // And(x10096,b5835)
+    val x10098_x10082_d0 = WriteMem(x10082_d0, x10095).name("x10098_x10082_d0").ctrl(x10099).srcCtx("CharRNN.scala:137:87") // RegWrite(x10082,x10095,x10097)
+    val x10098_x10082_d1 = WriteMem(x10082_d1, x10095).name("x10098_x10082_d1").ctrl(x10099).srcCtx("CharRNN.scala:137:87") // RegWrite(x10082,x10095,x10097)
+    val x10106 = UnitController(style=SeqPipe, level=InnerControl).name("x10106").ctrl(x10107).srcCtx("CharRNN.scala:136:51") // UnitPipe(List(b6182, b6183, b5835),Block(Const(())))
+    val x10100 = OpDef(op=BitAnd, inputs=List(b6182, b6183)).name("x10100").ctrl(x10106).srcCtx("UnrollingBase.scala:28:66") // And(b6182,b6183)
+    val x10101 = OpDef(op=BitAnd, inputs=List(x10100, b5835)).name("x10101").ctrl(x10106).srcCtx("UnrollingBase.scala:28:66") // And(x10100,b5835)
+    val x10102 = LoadBanks(List(x9500_d0_b0), List(b6181)).name("x10102").ctrl(x10106).srcCtx("CharRNN.scala:138:37") // SRAMLoad(x9500,ArrayBuffer(Const(64)),List(b6181),Const(0),x10101)
+    val x10103 = ReadMem(x10082_d0).name("x10103").ctrl(x10106).srcCtx("CharRNN.scala:138:21") // RegRead(x10082)
+    val x10104 = OpDef(op=FixAdd, inputs=List(x10103, x10102)).name("x10104").ctrl(x10106).srcCtx("CharRNN.scala:138:26") // FixAdd(x10103,x10102)
+    val x10105 = StoreBanks(List(x9502_d0_b0, x9502_d1_b0, x9502_d2_b0, x9502_d3_b0), List(b6180, b6181), x10104).name("x10105").ctrl(x10106).srcCtx("CharRNN.scala:138:19") // SRAMStore(x9502,ArrayBuffer(Const(1), Const(128)),List(b6180, b6181),Const(0),x10104,x10101)
+    val x10108 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x10108").ctrl(x10146).srcCtx("CharRNN.scala:141:50") // CounterNew(Const(0),Const(1),Const(1),Const(1))
+    val x10109 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x10109").ctrl(x10146).srcCtx("CharRNN.scala:141:50") // CounterNew(Const(0),Const(1),Const(1),Const(1))
+    val x10110 = CounterChain(List(x10108,x10109)).name("x10110").ctrl(x10146).srcCtx("CharRNN.scala:141:50") // CounterChainNew(List(x10108, x10109))
+    val x10145 = LoopController(style=StreamPipe, level=OuterControl, cchain=x10110).name("x10145").ctrl(x10146).srcCtx("CharRNN.scala:141:50") // UnrolledForeach(List(b5835),x10110,Block(Const(())),List(List(b6215), List(b6216)),List(List(b6217), List(b6218)))
+    val b6215 = CounterIter(x10108, Some(0)).name("b6215").ctrl(x10145) // b6215
+    val b6217 = Const(true).name("b6217").ctrl(x10145) // b6217
+    val b6216 = CounterIter(x10109, Some(0)).name("b6216").ctrl(x10145) // b6216
+    val b6218 = Const(true).name("b6218").ctrl(x10145) // b6218
+    val b10208 = StreamOut(field="offset").name("b10208").ctrl(x10145).srcCtx("CharRNN.scala:141:50") // x10111 = StreamOutNew(BurstCmdBus)
+    isAccum(b10208) = false
+    bufferDepthOf(b10208) = 1
+    val b10209 = StreamOut(field="size").name("b10209").ctrl(x10145).srcCtx("CharRNN.scala:141:50") // x10111 = StreamOutNew(BurstCmdBus)
+    isAccum(b10209) = false
+    bufferDepthOf(b10209) = 1
+    val x10112 = StreamOut(field="data").name("x10112").ctrl(x10145).srcCtx("CharRNN.scala:141:50") // x10112 = StreamOutNew(BurstFullDataBus())
+    isAccum(x10112) = false
+    bufferDepthOf(x10112) = 1
+    val x10113 = StreamIn(field="ack").name("x10113").ctrl(x10145).srcCtx("CharRNN.scala:141:50") // x10113 = StreamInNew(BurstAckBus)
+    isAccum(x10113) = false
+    bufferDepthOf(x10113) = 1
+    val x10129 = UnitController(style=SeqPipe, level=InnerControl).name("x10129").ctrl(x10145).srcCtx("CharRNN.scala:141:50") // UnitPipe(List(b6217, b6218, b5835),Block(x10128))
+    val x10114 = OpDef(op=FixAdd, inputs=List(b5834, b6215)).name("x10114").ctrl(x10129).srcCtx("CharRNN.scala:141:50") // FixAdd(b5834,b6215)
+    val x10115 = x10114 // FixConvert(x10114,TRUE,_32,_0) (Same Type. No op)
+    val x10116 = OpDef(op=FixSla, inputs=List(x10115, Const(6))).name("x10116").ctrl(x10129).srcCtx("CharRNN.scala:141:50") // FixLsh(x10115,Const(6))
+    val x10117 = b6216 // FixConvert(b6216,TRUE,_32,_0) (Same Type. No op)
+    val x10118 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x10119 = OpDef(op=FixAdd, inputs=List(x10116, x10117)).name("x10119").ctrl(x10129).srcCtx("CharRNN.scala:141:50") // FixAdd(x10116,x10117)
+    val x10120 = OpDef(op=FixAdd, inputs=List(x10119, x10118)).name("x10120").ctrl(x10129).srcCtx("CharRNN.scala:141:50") // FixAdd(x10119,x10118)
+    val x10121 = OpDef(op=FixSla, inputs=List(x10120, Const(2))).name("x10121").ctrl(x10129).srcCtx("CharRNN.scala:141:50") // FixLsh(x10120,Const(2))
+    val x10122 = x10121 // FixConvert(x10121,TRUE,_64,_0)
+    val x10123 = DramAddress(x9490).name("x10123").ctrl(x10129).srcCtx("CharRNN.scala:141:50") // GetDRAMAddress(x9490)
+    val x10125_x10124 = OpDef(op=FixAdd, inputs=List(x10122, x10123)).name("x10125_x10124").ctrl(x10129).srcCtx("CharRNN.scala:141:50") // FixAdd(x10122,x10123)
+    // x10125 = SimpleStruct(ArrayBuffer((offset,x10124), (size,Const(512)), (isLoad,Const(false))))
+    val x10126 = OpDef(op=BitAnd, inputs=List(b6217, b6218)).name("x10126").ctrl(x10129).srcCtx("UnrollingBase.scala:28:66") // And(b6217,b6218)
+    val x10127 = OpDef(op=BitAnd, inputs=List(x10126, b5835)).name("x10127").ctrl(x10129).srcCtx("UnrollingBase.scala:28:66") // And(x10126,b5835)
+    val x10128_b10210_b10208 = WriteMem(b10208, x10125_x10124).name("x10128_b10210_b10208").ctrl(x10129).srcCtx("CharRNN.scala:141:50") // StreamWrite(x10111,x10125,x10127)
+    val x10128_b10211_b10209 = WriteMem(b10209, Const(512)).name("x10128_b10211_b10209").ctrl(x10129).srcCtx("CharRNN.scala:141:50") // StreamWrite(x10111,x10125,x10127)
+    val x10130 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x10130").ctrl(x10145).srcCtx("CharRNN.scala:141:50") // CounterNew(Const(0),Const(128),Const(1),Const(1))
+    val x10131 = CounterChain(List(x10130)).name("x10131").ctrl(x10145).srcCtx("CharRNN.scala:141:50") // CounterChainNew(List(x10130))
+    val x10139 = LoopController(style=InnerPipe, level=InnerControl, cchain=x10131).name("x10139").ctrl(x10145).srcCtx("CharRNN.scala:141:50") // UnrolledForeach(List(b6217, b6218, b5835),x10131,Block(Const(())),List(List(b6240)),List(List(b6241)))
+    val b6240 = CounterIter(x10130, None).name("b6240").ctrl(x10139) // b6240
+    val b6241 = Const(true).name("b6241").ctrl(x10139) // b6241
+    val x10132 = OpDef(op=BitAnd, inputs=List(b6241, b6217)).name("x10132").ctrl(x10139).srcCtx("UnrollingBase.scala:28:66") // And(b6241,b6217)
+    val x10133 = OpDef(op=BitAnd, inputs=List(b6218, b5835)).name("x10133").ctrl(x10139).srcCtx("UnrollingBase.scala:28:66") // And(b6218,b5835)
+    val x10134 = OpDef(op=BitAnd, inputs=List(x10132, x10133)).name("x10134").ctrl(x10139).srcCtx("UnrollingBase.scala:28:66") // And(x10132,x10133)
+    val x10135 = LoadBanks(List(x9502_d0_b0), List(b6216, b6240)).name("x10135").ctrl(x10139).srcCtx("CharRNN.scala:141:50") // ParSRAMLoad(x9502,List(List(b6216, b6240)),List(x10134))
+    val x10137_x10136 = x10135 // x10136 = VectorApply(x10135,0)
+    // x10137 = SimpleStruct(ArrayBuffer((_1,x10136), (_2,Const(true))))
+    val x10138_x10138_x10112 = WriteMem(x10112, x10137_x10136).name("x10138_x10138_x10112").ctrl(x10139).srcCtx("CharRNN.scala:141:50") // ParStreamWrite(x10112,List(x10137),List(x10134))
+    val x10140 = FringeDenseStore(dram=List(x9490), cmdStream=List(b10208, b10209), dataStream=List(x10112), ackStream=List(x10113)).name("x10140").ctrl(x10145).srcCtx("CharRNN.scala:141:50") // FringeDenseStore(x9490,x10111,x10112,x10113)
+    val x10144 = UnitController(style=SeqPipe, level=InnerControl).name("x10144").ctrl(x10145).srcCtx("CharRNN.scala:141:50") // UnitPipe(List(b6217, b6218, b5835),Block(Const(())))
+    val x10141 = OpDef(op=BitAnd, inputs=List(b6217, b6218)).name("x10141").ctrl(x10144).srcCtx("UnrollingBase.scala:28:66") // And(b6217,b6218)
+    val x10142 = OpDef(op=BitAnd, inputs=List(x10141, b5835)).name("x10142").ctrl(x10144).srcCtx("UnrollingBase.scala:28:66") // And(x10141,b5835)
+    val x10143_x10143 = ReadMem(x10113).name("x10143_x10143").ctrl(x10144).srcCtx("CharRNN.scala:141:50") // StreamRead(x10113,x10142)
+    // x10154 = WriteTokens(x10150,Const(","),x10151,Block((b415) => x10153),b415) TODO: Unmatched Node
+    }; split1
     
   }
 }

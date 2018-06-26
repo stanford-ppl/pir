@@ -84,7 +84,7 @@ trait GlobalPartioner extends PIRTransformer with CUPruner {
 
   def pruneAndSplit(cumap:CUMap, splitMap:SplitMap, key:CUMap.K):EOption[(CUMap, SplitMap)] = {
     prune(cumap, key) match {
-      case Left(f@CostConstrainFailure(fg, key:CUMap.K, isSplittable)) if isSplittable =>
+      case Left(f@CostConstrainFailure(fg, key:CUMap.K, kcost, isSplittable)) if isSplittable =>
         dbgblk(s"split(${quote(key)})") {
           dbg(s"$f")
           val vs = cumap(key)

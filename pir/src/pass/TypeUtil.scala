@@ -74,8 +74,8 @@ trait TypeUtil extends ConstantPropogator with RuntimeUtil { self:Logging =>
     val targets = n.depeds
     targets.nonEmpty && targets.forall { in => 
       globalOf(in).get.isInstanceOf[DramFringe] && {
-        val streamOuts = in.collect[StreamOut](visitFunc=n.visitLocalOut)
-        streamOuts.forall { so => so.field == "size" || so.field == "offset" }
+        val streamOuts = in.collectOutTillMem[StreamOut]()
+        streamOuts.nonEmpty && streamOuts.forall { so => so.field == "size" || so.field == "offset" }
       }
     }
   }

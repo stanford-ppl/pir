@@ -31,6 +31,11 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
 
   override def label(attr:DotAttr, n:Any) = {
     var label = quote(n)
+    n match {
+      case n:StreamIn => label += s"\n(${n.field})"
+      case n:StreamOut => label +=s"\n(${n.field})"
+      case n =>
+    }
     val metas = List(parOf, itersOf, countsOf, boundOf, ctrlOf, srcCtxOf)
     metas.foreach { meta =>
       meta.asK(n).flatMap { k => meta.get(k) }.foreach { v =>

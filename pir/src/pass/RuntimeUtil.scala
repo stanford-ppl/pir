@@ -121,7 +121,7 @@ trait RuntimeUtil extends ConstantPropogator { self:Logging =>
       x match {
         case x:ControlNode => 1
         case x:Counter => x.par
-        case x:CounterChain => getParOf(x.counters.last)
+        case x:CounterChain => x.counters.map(getParOf).product
         case Def(n, ReduceOp(op, input)) => getParOf(input) / 2 
         case n:AccumOp => 1
         case n:ReduceAccumOp => 1

@@ -23,10 +23,11 @@ trait CostConstrain[C<:Cost[C]] extends Constrain {
     if (fits.isEmpty) { // not fit
       val (splitables, nonSplitables) = nonFits.partition { _._3 }
       val nonSplitableValues = nonSplitables.map { _._1 }
-      dbg(s"${quote(key)} not fit. Cost:${keyCost(key)}")
+      val kcost = keyCost(key)
+      dbg(s"${quote(key)} not fit. Cost:${kcost}")
       fg.filterNotAt(key) { v => nonSplitableValues.contains(v) } match {
-        case Left(InvalidFactorGraph(fg:FG, key)) => Left(CostConstrainFailure(fg , key, false))
-        case Right(fg) => Left(CostConstrainFailure(fg , key, splitables.nonEmpty))
+        case Left(InvalidFactorGraph(fg:FG, key)) => Left(CostConstrainFailure(fg , key, kcost, false))
+        case Right(fg) => Left(CostConstrainFailure(fg , key, kcost, splitables.nonEmpty))
       }
     } else {
       val nonFitValues = nonFits.map { _._1 }
@@ -37,4 +38,4 @@ trait CostConstrain[C<:Cost[C]] extends Constrain {
     flatFold(fg.freeKeys, fg) { case (fg, key) => prune(fg, key) }
   }
 }
-case class CostConstrainFailure[FG<:FactorGraphLike[_,_,FG]](@transient fg:FG, key:Any, isSplittable:Boolean) extends MappingFailure
+case class CostConstrainFailure[FG<:FactorGraphLike[_,_,FG]](@transient fg:FG, key:Any, keyCost:Cost[_], isSplittable:Boolean) extends MappingFailure

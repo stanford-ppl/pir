@@ -22,7 +22,10 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with CUPruner {
 
   override def finPass = {
     super.finPass
-    pirMap.left.map { case f:MappingFailure => fail(f) }
+    pirMap.left.map { 
+      case f:CostConstrainFailure[_] => fail(f)
+      case f:MappingFailure => fail(f)
+    }
   }
 
 }
