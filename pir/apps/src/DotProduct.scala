@@ -11,9 +11,9 @@ object DotProduct extends PIRApp {
     bufferDepthOf(x1370) = 1
     boundOf(x1370) = 1024
     val x1373 = ReadMem(x1370).name("x1373").ctrl(top).srcCtx("DotProduct.scala:23:21") // RegRead(x1370)
-    val x1374 = DRAM().name("x1374").ctrl(top).srcCtx("DotProduct.scala:23:20:a") // x1374 = DRAMNew(ArrayBuffer(x1373),Const(0))
+    val x1374 = DRAM(dims=List(x1373)).name("x1374").ctrl(top).srcCtx("DotProduct.scala:23:20:a") // x1374 = DRAMNew(ArrayBuffer(x1373),Const(0))
     val x1375 = ReadMem(x1370).name("x1375").ctrl(top).srcCtx("DotProduct.scala:24:21") // RegRead(x1370)
-    val x1376 = DRAM().name("x1376").ctrl(top).srcCtx("DotProduct.scala:24:20:b") // x1376 = DRAMNew(ArrayBuffer(x1375),Const(0))
+    val x1376 = DRAM(dims=List(x1375)).name("x1376").ctrl(top).srcCtx("DotProduct.scala:24:20:b") // x1376 = DRAMNew(ArrayBuffer(x1375),Const(0))
     val x1377 = ArgOut(init=0).name("x1377").ctrl(top).srcCtx("DotProduct.scala:25:21:out") // ArgOutNew(Const(0))
     isAccum(x1377) = false
     bufferDepthOf(x1377) = 1

@@ -4,7 +4,7 @@ package codegen
 import prism.node._
 
 trait ScalaCodegen extends Codegen {
-  def emitComment(s:Any) = {
+  override def emitComment(s:String) = {
     emitln(s"// $s")
   }
 

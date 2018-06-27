@@ -11,9 +11,9 @@ trait PlastisimCodegen extends PIRCodegen with FileManager with PlastisimUtil {
 
   lazy val PLASTISIM_HOME = sys.env.get("PLASTISIM_HOME")
 
-  override def finPass = {
-    super.finPass
-    val relativePath = s"configs/gen/${compiler}/${fileName}" 
+  lazy val relativePath = s"configs/gen/${compiler}/${fileName}" 
+
+  def copyGeneratedFile = {
     PLASTISIM_HOME.fold {
       warn(s"Specify PLASTISIM_HOME environmental variable to generate to PLASTISIM_HOME/${relativePath}")
     } { PLASTISIM_HOME =>
@@ -21,6 +21,11 @@ trait PlastisimCodegen extends PIRCodegen with FileManager with PlastisimUtil {
       mkdir(dirName(genPath))
       copyFile(outputPath, genPath)
     }
+  }
+
+  override def finPass = {
+    super.finPass
+    copyGeneratedFile
   }
 
 }
