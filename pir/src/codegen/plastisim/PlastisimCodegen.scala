@@ -8,16 +8,23 @@ import prism.util._
 trait PlastisimCodegen extends PIRCodegen with FileManager with PlastisimUtil {
   import pirmeta._
   import spademeta._
+  import PIRConfig._
 
   lazy val PLASTISIM_HOME = sys.env.get("PLASTISIM_HOME")
 
   lazy val relativePath = s"configs/gen/${compiler}/${fileName}" 
 
+  lazy val psimOut = getOption[String]("psim_out").orElse {
+    sys.env.get("PLASTISIM_HOME").map { home =>
+      s"$home/configs/gen/${compiler}"
+    }
+  }
+
   def copyGeneratedFile = {
-    PLASTISIM_HOME.fold {
+    psimOut.fold {
       warn(s"Specify PLASTISIM_HOME environmental variable to generate to PLASTISIM_HOME/${relativePath}")
-    } { PLASTISIM_HOME =>
-      val genPath = s"$PLASTISIM_HOME/${relativePath}"
+    } { psimOut =>
+      val genPath = s"$psimOut/$fileName"
       mkdir(dirName(genPath))
       copyFile(outputPath, genPath)
     }

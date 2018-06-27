@@ -32,7 +32,7 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
       label += s"\nctrl=${ctrlOf(n)}"
       countsOf(n).foreach { counts => label += s"\ncounts=$counts" }
       cuP match {
-        case cuP:DramFringe if PIRConfig.loadTrace =>
+        case cuP:DramFringe if PIRConfig.enableTrace =>
         case cuP:ArgFringe =>
         case cuP =>
           latencyOf(n).foreach { lat => label += s"\nlat = $lat" }

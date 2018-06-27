@@ -10,6 +10,7 @@ object PIRConfig extends prism.GlobalConfig {
   register("mapping", default=true, info="Enable mapping")
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
   register("psim", default=true, info="Enable generation to plastisim")
+  register[String]("psim_out", info="Directory to copy psim files over")
   register("trace", default=false, info="Enable trace generation")
 
   def arch = option[String]("arch")
@@ -19,7 +20,7 @@ object PIRConfig extends prism.GlobalConfig {
   def enableCodegen = Config.option[Boolean]("codegen")
   def aggressive_dce = option[Boolean]("ag-dce")
   def genPlastisim = option[Boolean]("psim") && genCtrl && enableMapping && enableCodegen
-  def loadTrace = option[Boolean]("trace")
+  def enableTrace = option[Boolean]("trace")
   def printStat = option[Boolean]("stat")
 
   /* ------------------- Routing --------------------  */

@@ -38,11 +38,11 @@ trait ScalaCodegen extends Codegen {
 
   def emitBlock[T](s:String, ss:Option[String]=None, es:Option[String]=None, b:Braces=CurlyBraces)(block: =>T):T = { 
     emitBS(s, b)
-    ss.foreach { ss => emit(s"$ss =>") }
+    ss.foreach { ss => write(s" $ss =>") }
     emitln
     val res = block
     emitBE(b)
-    es.foreach { es => emit(es) }
+    es.foreach { es => write(es) }
     emitln
     res
   }

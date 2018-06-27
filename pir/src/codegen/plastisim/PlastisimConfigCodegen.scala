@@ -9,7 +9,7 @@ import sys.process._
 class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   import pirmeta._
 
-  val fileName = s"$compiler.psim"
+  val fileName = s"config.psim"
   lazy val SPATIAL_HOME = Config.SPATIAL_HOME.getOrElse(s"Please set SPATIAL_HOME for using trace!")
   lazy val appPath = s"${SPATIAL_HOME}${separator}gen${separator}${compiler.name}"
   lazy val tracePath = s"${appPath}${separator}traces"
@@ -38,15 +38,15 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   def emitNodeSpecs(n:ContextEnable) = {
     val cuP = globalOf(n).get
     cuP match {
-      case cuP:DramFringe if PIRConfig.loadTrace =>
-        val path = s"${tracePath}${separator}${nameOf(cuP)}.trace"
-        if (exists(path)) {
-          val size = cuP.collectDown[StreamOut]().filter { _.field == "size" }.head
-          emitln(s"offset_trace = ${path}")
-          emitln(s"size = ${boundOf(size)}")
-        } else {
-          err(s"trace file for ${cuP} at ${path} does not exist!")
-        }
+      case cuP:DramFringe if PIRConfig.enableTrace => //TODO
+        //val path = s"${tracePath}${separator}${nameOf(cuP)}.trace"
+        //if (exists(path)) {
+          //val size = cuP.collectDown[StreamOut]().filter { _.field == "size" }.head
+          //emitln(s"offset_trace = ${path}")
+          //emitln(s"size = ${boundOf(size)}")
+        //} else {
+          //err(s"trace file for ${cuP} at ${path} does not exist!")
+        //}
       case FringeStreamIn(streamIn, streamInDef) =>
         val counts:Long = countsOf.get(streamIn).flatten.getOrElse(-1)
         emitln(s"start_at_tokens = ${counts} # number of stream inputs")
