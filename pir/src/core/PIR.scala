@@ -98,24 +98,24 @@ trait PIR extends Compiler with PIRWorld {
     addPass(enableSplitting && enableDot, new PIRIRDotCodegen(s"top8.dot"))
     addPass(enableSplitting && enableDot, new SimpleIRDotCodegen(s"simple2.dot"))
 
-    addPass(routeThroughEliminator).dependsOn(accessLowering)
-    addPass(deadCodeEliminator)
+    addPass(routeThroughEliminator).dependsOn(accessLowering).dependsOn(igraphPartioner)
+    addPass(deadCodeEliminator).dependsOn(routeThroughEliminator)
     addPass(memoryAnalyzer).dependsOn(routeThroughEliminator, deadCodeEliminator)
     addPass(enableDot, new ControllerDotCodegen(s"controller.dot")).dependsOn(controlPropogator, memoryAnalyzer)
     addPass(enableDot, new PIRIRDotCodegen(s"top9.dot"))
     addPass(enableDot, new SimpleIRDotCodegen(s"simple3.dot")).dependsOn(routeThroughEliminator)
     addPass(debug, new PIRPrinter(s"IR2.txt"))
-    addPass(irCheck)
+    addPass(irCheck).dependsOn(routeThroughEliminator)
 
-    addPass(genCtrl, contextInsertion)
-    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top10.dot"))
-    addPass(genCtrl, contextMerging)
-    addPass(genCtrl, deadCodeEliminator)
+    addPass(genCtrl, contextInsertion).dependsOn(igraphPartioner)
+    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top10.dot")).dependsOn(contextInsertion)
+    addPass(genCtrl, contextMerging).dependsOn(contextInsertion)
+    addPass(genCtrl, deadCodeEliminator).dependsOn(deadCodeEliminator)
     addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top11.dot"))
 
     // Control transformation and analysis
-    addPass(genCtrl, controlAllocator) // set accessDoneOf, duplicateCounterChain for accessDoneOf
-    addPass(genCtrl, controlRegInsertion) // insert reg for no forward depended contextEn
+    addPass(genCtrl, controlAllocator).dependsOn(contextMerging) // set accessDoneOf, duplicateCounterChain for accessDoneOf
+    addPass(genCtrl, controlRegInsertion).dependsOn(controlAllocator) // insert reg for no forward depended contextEn
     addPass(genCtrl, memoryAnalyzer).dependsOn(controlRegInsertion)
     addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top12.dot"))
     addPass(genCtrl, controlAllocator).dependsOn(memoryAnalyzer) // set accessDoneOf, duplicateCounterChain for accessDoneOf
