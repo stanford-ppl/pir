@@ -59,8 +59,9 @@ trait RuntimeUtil extends ConstantPropogator { self:Logging =>
       n match {
         case ctrl:ArgInController => Some(1l)
         case ctrl:ForeverController => 
-          assertUnify(n.children.filter(c => foreverLoadsOf(c).nonEmpty), s"counts for $n") { c => 
-            zipMap(getCountsOf(c), itersOf(c)) { case (c, i) => c / i }
+          val leaves = n.descendents.filter { _.children.isEmpty }
+          assertUnify(leaves.filter(c => foreverLoadsOf(c).nonEmpty), s"counts for $n") { c => 
+            getCountsOf(c)
           }
         case n:Controller if n.ancestors.exists(isForever) =>
           val reads = foreverLoadsOf(n).toList
