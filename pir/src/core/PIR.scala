@@ -28,8 +28,8 @@ trait PIR extends Compiler with PIRWorld {
   lazy val memoryAnalyzer = new MemoryAnalyzer()
   lazy val controlPropogator = new ControlPropogation()
   lazy val controllerRuntimeAnalyzer = new ControllerRuntimeAnalyzer()
-  lazy val plastisimLinkAnalyzer = new PlastisimLinkAnalyzer()
-  lazy val plastisimVCAllocator = new PlastisimVCAllocation()
+  lazy val psimLinkAnalyzer = new PlastisimLinkAnalyzer()
+  lazy val psimVCAllocator = new PlastisimVCAllocation()
   lazy val irCheck = new IRCheck()
 
   /* Transformation */
@@ -130,15 +130,15 @@ trait PIR extends Compiler with PIRWorld {
     addPass(cuStats)
 
     // Simulation analyzer
-    addPass(genPlastisim, plastisimLinkAnalyzer).dependsOn(controlLowering)
+    addPass(genPlastisim, psimLinkAnalyzer).dependsOn(controlLowering)
     addPass(enableDot, new ControllerDotCodegen(s"controller.dot"))
     addPass(enableDot, new PIRIRDotCodegen(s"top.dot"))
     addPass(enableDot, new SimpleIRDotCodegen(s"simple.dot"))
     addPass(debug, new PIRPrinter(s"IR.txt"))
 
     // Mapping
-    //addPass(genPlastisim, plastisimVCAllocator).dependsOn(plastisimLinkAnalyzer)
-    addPass(genPlastisim, psimDotCodegen).dependsOn(plastisimLinkAnalyzer)
+    //addPass(genPlastisim, psimVCAllocator).dependsOn(psimLinkAnalyzer)
+    addPass(genPlastisim, psimDotCodegen).dependsOn(psimLinkAnalyzer)
     addPass(cuPruning)
     addPass(enableMapping, cuPlacer).dependsOn(cuPruning)
 
@@ -149,10 +149,10 @@ trait PIR extends Compiler with PIRWorld {
 
     // Codegen
     addPass(genPlastisim, terminalCSVCodegen)
-    addPass(genPlastisim, linkCSVCodegen).dependsOn(plastisimLinkAnalyzer)
-    addPass(genPlastisim & enableTrace, psimTraceCodegen).dependsOn(plastisimLinkAnalyzer)
-    addPass(genPlastisim, psimDotCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer)
-    addPass(genPlastisim, psimConfigCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer)
+    addPass(genPlastisim, linkCSVCodegen).dependsOn(psimLinkAnalyzer)
+    addPass(genPlastisim & enableTrace, psimTraceCodegen).dependsOn(psimLinkAnalyzer)
+    addPass(genPlastisim, psimDotCodegen).dependsOn(cuPlacer, psimLinkAnalyzer)
+    addPass(genPlastisim, psimConfigCodegen).dependsOn(cuPlacer, psimLinkAnalyzer).dependsOn(psimTraceCodegen)
 
      // Simulation
 
