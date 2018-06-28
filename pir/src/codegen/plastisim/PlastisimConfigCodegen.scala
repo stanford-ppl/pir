@@ -23,6 +23,9 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
 
   override def finPass = {
     super.finPass
+    zipOption(PLASTISIM_HOME, psimOut).foreach { case (psimHome, psimOut) =>
+      shell(s"ln -f $psimHome/configs/mesh_generic.cfg $psimOut/")
+    }
     runPsim
   }
 
