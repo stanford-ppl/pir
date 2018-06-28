@@ -11,8 +11,10 @@ object Def {
   def unapply[T:ClassTag](x:T):Option[(T, T)] = {
     x match {
       case x:T => 
-        val n = x.asInstanceOf[PIRNode]
-        Some((x, n.newInstance(n.values, staging=false)))
+        x match {
+          case n:PIRNode => Some((x, n.newInstance(n.values, staging=false)))
+          case _ => None
+        }
       case _ => None
     }
   }

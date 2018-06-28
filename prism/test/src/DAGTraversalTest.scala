@@ -65,7 +65,7 @@ class DAGTraversalTest extends UnitTest with Logging {
   }
 
   "DAGTestChildFirst" should "success" in {
-    val traversal = new ChildFirstTraversal with ScopeSchedular {
+    val traversal = new ChildFirstTraversal with GraphSchedular {
       type N = TestNode
       val top = DAG1.top
       override def visitNode(n:N, prev:T):T = {
@@ -80,7 +80,7 @@ class DAGTraversalTest extends UnitTest with Logging {
   }
 
   "DAGTestSiblingFirst" should "success" in {
-    val traversal = new SiblingFirstTraversal with ScopeSchedular {
+    val traversal = new SiblingFirstTraversal with GraphSchedular {
       type N = TestNode
       val top = DAG1.top
       override def visitNode(n:N, prev:T):T = {
@@ -98,7 +98,7 @@ class DAGTraversalTest extends UnitTest with Logging {
   }
 
   "DAGTestDFSTDTopo" should "success" in {
-    val traversal = new DFSTopDownTopologicalTraversal with ScopeSchedular {
+    val traversal = new DFSTopDownTopologicalTraversal with GraphSchedular {
       type N = TestNode
       val top = DAG1.top
       implicit val nct:ClassTag[N] = classTag[N]
@@ -118,7 +118,7 @@ class DAGTraversalTest extends UnitTest with Logging {
   }
 
   "DAGTestBUTopo" should "success" in {
-    val traversal = new BottomUpTopologicalTraversal with ScopeSchedular with DFSTraversal {
+    val traversal = new BottomUpTopologicalTraversal with GraphSchedular with DFSTraversal {
       type N = TestNode
       val top = DAG1.top
       implicit val nct:ClassTag[N] = classTag[N]

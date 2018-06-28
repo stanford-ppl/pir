@@ -69,6 +69,11 @@ class PIRMetadata extends Metadata {
   boundOf.setName("boundOf")
 
   /*
+   * Static dimension of dram
+   * */
+  val staticDimsOf = new OneToOneMap[DRAM, List[Int]] with MetadataMap
+
+  /*
    * bufferDepth of on chip mem
    * */
   val bufferDepthOf = new OneToOneMap[Memory, Int] with MetadataMap

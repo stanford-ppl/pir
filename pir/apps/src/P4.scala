@@ -18,6 +18,8 @@ object P4 extends PIRApp {
     val x1274 = StreamOut(field="data").name("x1274").ctrl(top).srcCtx("SimpleP4.scala:105:44:stream_out1") // x1274 = StreamOutNew(GPOutput2)
     isAccum(x1274) = false
     bufferDepthOf(x1274) = 1
+    countsOf(x1271) = Some(1024l)
+    countsOf(x1272) = Some(1024l)
     // x1275 = Forever() TODO: Unmatched Node
     val x1359 = ForeverController().name("x1359").ctrl(top).srcCtx("SimpleP4.scala:107:12") // Hwblock(Block(Const(())),true)
     val x1276_d0_b0 = SRAM(size=4, banking=Strided(banks=1, stride=2)).name("x1276_d0_b0").ctrl(x1359).srcCtx("SimpleP4.scala:109:35:Parser_SRAM") // x1276 = SRAMNew(ArrayBuffer(Const(2), Const(2)))

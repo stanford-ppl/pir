@@ -1,8 +1,6 @@
 package prism
 package exceptions
 
-import prism.collection._
-
 trait PIRException extends Exception {
   def msg:String
   override def toString = s"[pir] $msg"

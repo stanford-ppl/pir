@@ -152,7 +152,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genPlastisim, linkCSVCodegen).dependsOn(plastisimLinkAnalyzer)
     addPass(genPlastisim, psimDotCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer)
     addPass(genPlastisim, psimConfigCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer)
-    addPass(genPlastisim & enableTrace, psimTraceCodegen).dependsOn(cuPlacer, plastisimLinkAnalyzer)
+    addPass(genPlastisim & enableTrace, psimTraceCodegen).dependsOn(plastisimLinkAnalyzer)
 
      // Simulation
 

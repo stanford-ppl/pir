@@ -27,11 +27,16 @@ trait GraphTraversal {
 
   def isVisited(n:N) = visited.contains(n)
 
+  var _scope:Option[List[N]] = None
+  def withinScope(n:N) = _scope.map { _.contains(n) }.getOrElse(true)
+
   def resetTraversal = {
     visited.clear
+    _scope = None
   }
 
   def visitFunc(n:N):List[N]
+  def visitFuncInScope(n:N) = visitFunc(n).filter(withinScope)
 
   def markVisitNode(n:N, prev:T):T = {
     if (isVisited(n)) return prev
@@ -43,6 +48,13 @@ trait GraphTraversal {
 
   final def traverseNode(n:N, zero:T):T = traverseNodes(List(n), zero)
   def traverseNodes(ns: => List[N], zero:T):T
+
+  def traverseNodesInScope(scope:List[N], ns: => List[N], zero:T) = {
+    _scope = Some(scope)
+    val res = traverseNodes(ns, zero)
+    _scope = None
+    res
+  }
 
   def dbgs(s:String) = {
     this match {
@@ -67,7 +79,7 @@ trait DFSTraversal extends GraphTraversal {
   }
 
   override def visitNode(n:N, prev:T):T = {
-    traverseNodes(visitFunc(n), super.visitNode(n, prev))
+    traverseNodes(visitFuncInScope(n), super.visitNode(n, prev))
   }
 
 }
@@ -99,7 +111,7 @@ trait BFSTraversal extends GraphTraversal {
 
   // no recursive call to traverse(n, zero) to avoid StackOverFlow
   override def visitNode(n:N, prev:T):T = {
-    queue ++= visitFunc(n).filterNot(isScheduled)
+    queue ++= visitFuncInScope(n).filterNot(isScheduled)
     prev
   }
 
@@ -111,8 +123,8 @@ trait TopologicalTraversal extends GraphTraversal with GraphUtil {
   val forward:Boolean
   def visitIn(n:N):List[N] = visitGlobalIn(n)
   def visitOut(n:N):List[N] = visitGlobalOut(n)
-  def depedFunc(n:N):List[N] = if (forward) visitOut(n) else visitIn(n)
-  def depFunc(n:N):List[N] = if (forward) visitIn(n) else visitOut(n)
+  def depedFunc(n:N):List[N] = (if (forward) visitOut(n) else visitIn(n)).filter(withinScope)
+  def depFunc(n:N):List[N] = (if (forward) visitIn(n) else visitOut(n)).filter(withinScope)
   def isDepFree(n:N) = depFunc(n).forall(isVisited)
 
   val frontier = mutable.Set[N]()
@@ -171,6 +183,10 @@ trait TopologicalTraversal extends GraphTraversal with GraphUtil {
     } else depFree
   }
 
+  def traverseScope(scope:List[N], zero:T) = {
+    traverseNodesInScope(scope, scheduleDepFree(scope), zero)
+  }
+
 }
 
 trait DFSTopologicalTraversal extends DFSTraversal with TopologicalTraversal
@@ -181,20 +197,7 @@ trait HierarchicalTraversal extends GraphTraversal {
   def traverseScope(n:N, zero:T):T
 }
 
-trait HierarchicalTopologicalTraversal extends TopologicalTraversal with HierarchicalTraversal {
-
-  var _scope:Option[List[N]] = None
-  def withinScope(n:N) = _scope.map { _.contains(n) }.getOrElse(true)
-
-  override def resetTraversal = {
-    super.resetTraversal
-    _scope = None
-  }
-
-  override def depedFunc(n:N):List[N] = super.depedFunc(n).filter(withinScope)
-  override def depFunc(n:N):List[N] = super.depFunc(n).filter(withinScope)
-
-}
+trait HierarchicalTopologicalTraversal extends TopologicalTraversal with HierarchicalTraversal
 
 trait TopDownTraversal extends HierarchicalTraversal {
   override type N <:Node[N]
@@ -255,11 +258,9 @@ trait BottomUpTopologicalTraversal extends HierarchicalTopologicalTraversal {
 
   def traverseScope(n:N, zero:T) = {
     val scope = visitScope(n)
-    _scope = Some(scope)
-    val res = traverseNodes(scheduleDepFree(scope), zero)
-    _scope = None
-    res
+    traverseScope(scope, zero)
   }
+
 }
 
 trait DFSBottomUpTopologicalTraversal extends DFSTopologicalTraversal with BottomUpTopologicalTraversal

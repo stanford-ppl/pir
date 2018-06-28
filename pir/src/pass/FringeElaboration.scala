@@ -17,18 +17,34 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
       case n:ArgOut => transformOutMem(n)
       case n:TokenOut => transformOutMem(n)
       case n@FringeDenseLoad(dram,cmdStream,dataStream) =>
+        dram.foreach { dram => transformDram(dram) }
         transformDense(n, cmdStream, dataStream)
       case n@FringeSparseLoad(dram,addrStream,dataStream) =>
+        dram.foreach { dram => transformDram(dram) }
         transformSparse(n, addrStream, dataStream)
       case n@FringeDenseStore(dram,cmdStream,dataStream,ackStream) =>
+        dram.foreach { dram => transformDram(dram) }
         transformDense(n, cmdStream ++ dataStream, ackStream)
         insertCountAck(n, dataStream.head, ackStream.head)
       case n@FringeSparseStore(dram,cmdStream,ackStream) =>
+        dram.foreach { dram => transformDram(dram) }
         transformSparse(n, cmdStream, ackStream)
         insertCountAck(n, cmdStream.head, ackStream.head)
       case n:StreamIn => transformStreamIn(n)
       case n:StreamOut => transformStreamOut(n)
       case _ => super.visitNode(n)
+    }
+  }
+
+  def transformDram(dram:DRAM) = {
+    val dimsBounds = dram.dims.map { 
+      case Const(c) => Some(c)
+      case Def(n, LocalLoad(mem::Nil, None)) if boundOf.contains(mem) =>
+        Some(boundOf(mem))
+      case d => None
+    }
+    if (dimsBounds.forall(_.nonEmpty)) {
+      staticDimsOf(dram) = dimsBounds.map(_.get.asInstanceOf[Int])
     }
   }
 
@@ -39,9 +55,11 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
       case n:ArgIn =>
         val argInDef = ArgInDef().setParent(argFringe).ctrl(argInCtrl)
         WriteMem(n, argInDef).setParent(argFringe).ctrl(argInCtrl)
+        boundOf.get(n).foreach { b => boundOf(argInDef) = b }
       case n:DramAddress => 
         val argInDef = ArgInDef().setParent(argFringe).ctrl(argInCtrl)
         WriteMem(n, argInDef).setParent(argFringe).ctrl(argInCtrl)
+        boundOf.get(n).foreach { b => boundOf(argInDef) = b }
       case n:LUT =>
         ResetMem(n, argFringe.tokenInDef).setParent(argFringe).ctrl(argInCtrl)
     }
@@ -56,7 +74,7 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
   }
 
   def transformDense(fringe:DramFringe, streamOuts:List[StreamOut], streamIns:List[StreamIn]) = {
-    val outerCtrl = ctrlOf(fringe)
+    val outerCtrl = ctrlOf.map(fringe)
     val size = fringe.collectDown[StreamOut]().filter { _.field == "size" }.head
     val csize = getBoundOf(size, logger=Some(this)).asInstanceOf[Option[Int]]
     val par = fringe match {
