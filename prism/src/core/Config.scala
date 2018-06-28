@@ -8,7 +8,7 @@ trait GlobalConfig extends ArgParser
 object Config extends GlobalConfig {
   register("codegen", true, "Enable codegen")
   register("debug", true, "Enable debug")
-  register("out", "out", "Relative output directory")
+  register("out", "out", "Relative output directory for pir compiler. Relative to $PIR_HOME")
   register("verbose", false, "Enter verbose mode")
 
   def relativeOutDir:String = option("out")

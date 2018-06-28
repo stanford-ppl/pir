@@ -3,11 +3,11 @@ package pir
 object PIRConfig extends prism.GlobalConfig {
 
   /* ------------------- Compiler --------------------  */
-  register("arch", default="SMeshCB4x4", info="Default architecture for mapping")
   register("ctrl", default=true, info="Enable control logic generation")
   register("splitting", default=true, info="Enable splitting")
-  register("splitting-algo", default="alias_weighted_igraph", info="splitting algorithm. options: [weighted_igraph, alias_igraph, alias_weighted_igraph]") 
+  register("splitting-algo", default="alias_weighted_igraph", info="splitting algorithm. [weighted_igraph, alias_igraph, alias_weighted_igraph]") 
   register("mapping", default=true, info="Enable mapping")
+  register("arch", default="MyDesign", info="Default architecture for mapping")
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
 
   def arch = option[String]("arch")
@@ -19,10 +19,10 @@ object PIRConfig extends prism.GlobalConfig {
   def printStat = option[Boolean]("stat")
 
   /* ------------------- Plastisim --------------------  */
-  register("psim", default=true, info="Enable generation to plastisim")
+  register("psim", default=true, info="Enable code generations for plastisim")
   register("run-psim", default=false, info="Launch Plastisim simulation")
   register[String]("psim_out", info="Directory to copy psim files over")
-  register("trace", default=false, info="Enable trace generation")
+  register("trace", default=false, info="Enable trace generation for simulation")
 
   def genPlastisim = option[Boolean]("psim") && genCtrl && enableMapping && enableCodegen
   def runPlastisim = option[Boolean]("run-psim") && genPlastisim
@@ -30,8 +30,8 @@ object PIRConfig extends prism.GlobalConfig {
   def enablePlastiroute = (SpadeConfig.option[String]("net") == "dynamic" && routingAlgo == "proute")
 
   /* ------------------- Routing --------------------  */
-  register("routing-algo", default="dor", info="If arch is dynamic, algo can be [dor, planed, proute]") 
-  register("routing-cost", default="H-hop", info="Routing cost [hop, balanced, H-hop, H-balanced]") 
+  register("routing-algo", default="dor", info="If net=[dynamic] - [dor, planed, proute]. Option ignored for other network. dor - dimention order routing. planed - arbitrary source routing, proute - use plastiroute for place and route. If proute is chosen plastiroute will be launched from pir if $PLASTIROUTE_HOME is set") 
+  register("routing-cost", default="H-hop", info="Routing cost [hop, balanced, H-hop, H-balanced]. hop - use hop count only for cost in search, balanced - use traffic load + hop count as cost, H-hop: use Manhattan distance as heurisc cost and use hop count for cost. H-balanced: use Manhattan distance as heurisc cost and use hop count and traffic load for cost.") 
 
   def enableHopCountCost = option[String]("routing-cost") match {
     case "hop" => true

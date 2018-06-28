@@ -43,7 +43,7 @@ trait ArgParser {
 
   def printUsage = {
     optionMap.foreach { case (key, ArgOption(_, default, msg)) =>
-      info(s"--$key $msg [default=$default]")
+      info(s"--$key: $msg ${default.map { default => s"[default=$default]" }.getOrElse("")}")
     }
   }
 
