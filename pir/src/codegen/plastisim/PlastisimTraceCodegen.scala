@@ -91,7 +91,8 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
     psimOut.foreach { psimOut =>
       s"mkdir $psimOut/traces" !
 
-      s"scala ${dirName}/gen_trace.scala $psimOut/traces/" !
+      val log = s"$dirName/trace.log"
+      shell(s"trace", s"scala ${dirName}/gen_trace.scala $psimOut/traces/", log)
     }
   }
 

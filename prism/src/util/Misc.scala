@@ -1,6 +1,8 @@
 package prism
 package util
 
+import sys.process._
+
 trait Misc {
   def tic = {
     times.push(System.nanoTime())
@@ -69,4 +71,28 @@ trait Misc {
   def dbg(logger:Option[Logging], msg:Any) = {
     logger.foreach { _.dbg(msg) }
   }
+
+  def shell(command:String):Int = shell(None, command, None, None)
+  def shell(header:String, command:String, logFile:String):Int = shell(Some(header), command, Some(logFile), None)
+  def shellProcess(header:String, command:String, logFile:String)(processLambda:String => Unit):Int = shell(Some(header), command, Some(logFile), Some(processLambda))
+
+  def shell(header:Option[String], command:String, logFile:Option[String], processLambda:Option[String => Unit]):Int = {
+    info(Console.YELLOW, header.getOrElse("command"), command)
+    val exitCode = logFile.fold {
+      processLambda.fold {
+        command !
+      } { lambda =>
+        command ! ProcessLogger(lambda)
+      }
+    } { logFile =>
+      info(Console.YELLOW, header.getOrElse("command"), s"log in $logFile")
+      processLambda.fold {
+        command #> new java.io.File(logFile) !
+      } { lambda =>
+        command #| s"tee $logFile" ! ProcessLogger (lambda)
+      }
+    }
+    if (exitCode != 0) err(s"failed $command", false)
+    exitCode
+  } 
 }

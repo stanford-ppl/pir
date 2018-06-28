@@ -9,9 +9,6 @@ object PIRConfig extends prism.GlobalConfig {
   register("splitting-algo", default="alias_weighted_igraph", info="splitting algorithm. options: [weighted_igraph, alias_igraph, alias_weighted_igraph]") 
   register("mapping", default=true, info="Enable mapping")
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
-  register("psim", default=true, info="Enable generation to plastisim")
-  register[String]("psim_out", info="Directory to copy psim files over")
-  register("trace", default=false, info="Enable trace generation")
 
   def arch = option[String]("arch")
   def genCtrl = option[Boolean]("ctrl")
@@ -19,12 +16,21 @@ object PIRConfig extends prism.GlobalConfig {
   def enableMapping = option[Boolean]("mapping")
   def enableCodegen = Config.option[Boolean]("codegen")
   def aggressive_dce = option[Boolean]("ag-dce")
-  def genPlastisim = option[Boolean]("psim") && genCtrl && enableMapping && enableCodegen
-  def enableTrace = option[Boolean]("trace")
   def printStat = option[Boolean]("stat")
 
+  /* ------------------- Plastisim --------------------  */
+  register("psim", default=true, info="Enable generation to plastisim")
+  register("run-psim", default=false, info="Launch Plastisim simulation")
+  register[String]("psim_out", info="Directory to copy psim files over")
+  register("trace", default=false, info="Enable trace generation")
+
+  def genPlastisim = option[Boolean]("psim") && genCtrl && enableMapping && enableCodegen
+  def runPlastisim = option[Boolean]("run-psim") && genPlastisim
+  def enableTrace = option[Boolean]("trace")
+  def enablePlastiroute = (SpadeConfig.option[String]("net") == "dynamic" && routingAlgo == "proute")
+
   /* ------------------- Routing --------------------  */
-  register("routing-algo", default="dor", info="If arch is dynamic, algo can be [dor, planed]") 
+  register("routing-algo", default="dor", info="If arch is dynamic, algo can be [dor, planed, proute]") 
   register("routing-cost", default="H-hop", info="Routing cost [hop, balanced, H-hop, H-balanced]") 
 
   def enableHopCountCost = option[String]("routing-cost") match {

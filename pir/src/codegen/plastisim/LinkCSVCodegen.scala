@@ -7,6 +7,7 @@ import prism.codegen._
 
 class LinkCSVCodegen(implicit compiler: PIR) extends PlastisimCodegen with CSVCodegen {
   import pirmeta._
+  import PIRConfig._
 
   val fileName = s"link.csv"
 
@@ -22,6 +23,21 @@ class LinkCSVCodegen(implicit compiler: PIR) extends PlastisimCodegen with CSVCo
         row(s"dst[$idx]") = globalOf(gin).get.id
       }
     case n => super.visitNode(n)
+  }
+
+  override def finPass = {
+    super.finPass
+    if (enablePlastiroute) {
+      zipOption(PLASTIROUTE_HOME, psimOut). fold {
+        warn(s"set PLASTIROUTE_HOME and PLASTISIM_HOME to launch plastiroute automatically!")
+      } { case (prouteHome:String, psimOut:String) =>
+        val log = s"$dirName/proute.log"
+        val exitCode = shell("proute", s"$prouteHome/plastiroute -n $psimOut/node.csv -l $psimOut/link.csv -o $psimOut/proute.place -r $numRows -c $numCols", log)
+        if (exitCode != 0) {
+          fail(s"Plastiroute failed. details in $log")
+        }
+      }
+    }
   }
 
 }

@@ -42,6 +42,10 @@ trait ScalaUtil {
     list.headOption
   }
 
+  def zipOption[A,B,T](a:Option[A], b:Option[B]):Option[(A,B)] = {
+    (a,b).zipped.headOption
+  }
+
   def zipMap[A,B,T](a:Option[A], b:Option[B])(lambda:(A,B) => T):Option[T] = {
     (a,b).zipped.map { case (a,b) => lambda(a,b) }.headOption
   }

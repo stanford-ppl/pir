@@ -14,7 +14,7 @@ trait DimensionOrderRouting extends DynamicRouting {
   )(
     tail:Edge,
     backPointers:BackPointer
-  ):List[Edge] = if (isDynamicLink(tail) && (routingAlgo=="dor" || routingAlgo=="DOR")) {
+  ):List[Edge] = if (isDynamicLink(tail) && (routingAlgo=="dor" || routingAlgo=="DOR" || routingAlgo == "proute")) {
     val marker = markerOf(start)
     dbgblk(s"tailToHead(tail=${quote(tail)},marker=${quote(marker)})",buffer=false) {
       var heads = tail.connected.map { _.asInstanceOf[Edge] }

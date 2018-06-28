@@ -11,6 +11,7 @@ trait PlastisimCodegen extends PIRCodegen with FileManager with PlastisimUtil {
   import PIRConfig._
 
   lazy val PLASTISIM_HOME = sys.env.get("PLASTISIM_HOME")
+  lazy val PLASTIROUTE_HOME = sys.env.get("PLASTIROUTE_HOME")
 
   lazy val relativePath = s"configs/gen/${compiler}/${fileName}" 
 

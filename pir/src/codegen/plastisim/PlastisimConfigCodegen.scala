@@ -4,10 +4,10 @@ package codegen
 import pir.node._
 import spade.param._
 import prism.collection.mutable._
-import sys.process._
 
 class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   import pirmeta._
+  import PIRConfig._
 
   val fileName = s"config.psim"
   lazy val SPATIAL_HOME = Config.SPATIAL_HOME.getOrElse(s"Please set SPATIAL_HOME for using trace!")
@@ -19,6 +19,36 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     super.runPass
     linkGroupOf.values.toSet.foreach { link => emitLink(link) }
     emitNetwork
+  }
+
+  override def finPass = {
+    super.finPass
+    runPsim
+  }
+
+  def runPsim = {
+    if (runPlastisim) {
+      zipOption(PLASTISIM_HOME, psimOut).fold {
+        warn(s"set PLASTISIM_HOME to launch plastiroute automatically!")
+      } { case (psimHome, psimOut) =>
+        val log = s"$dirName/psim.log"
+        var succeed = false
+        def processOutput(line:String) = {
+          if (line.contains("Simulation complete at cycle")) {
+            info(Console.GREEN, s"psim", line)
+            succeed = true
+          }
+        }
+        if (enablePlastiroute) {
+          shellProcess(s"psim", s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/proute.place", log)(processOutput)
+        } else {
+          shellProcess(s"psim", s"$psimHome/plastisim -f $psimOut/config.psim", log)(processOutput)
+        }
+        if (!succeed) {
+          fail(s"Plastisim failed. details in $log")
+        }
+      }
+    }
   }
 
   override def emitNode(n:N) = n match {

@@ -2,7 +2,6 @@ package prism
 package codegen
 
 import scala.collection.mutable.Map
-import sys.process._
 
 trait DotCodegen extends Printer { self:Codegen =>
 
@@ -124,7 +123,7 @@ trait DotCodegen extends Printer { self:Codegen =>
   implicit def field_to_string(f:DotField):String = f.field
 
   def open = {
-    s"bin/dot ${outputPath} &".replace(".dot", "") !
+    shell(s"bin/dot ${outputPath} &".replace(".dot", ""))
   }
 }
 
