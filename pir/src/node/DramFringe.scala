@@ -31,7 +31,12 @@ case class FringeSparseStore(
 )(implicit design:PIRDesign) extends DramFringe
 
 case class CountAck(ack:Def)(implicit design:PIRDesign) extends ControlNode
-case class ProcessDramCommand(loads:List[LocalLoad])(implicit design:PIRDesign) extends Def
+
+trait ProcessDramCommand extends Def
+case class ProcessDramDenseLoad(offset:LocalLoad, size:LocalLoad)(implicit design:PIRDesign) extends ProcessDramCommand
+case class ProcessDramDenseStore(offset:LocalLoad, size:LocalLoad, data:LocalLoad)(implicit design:PIRDesign) extends ProcessDramCommand
+case class ProcessDramSparseLoad(addr:LocalLoad)(implicit design:PIRDesign) extends ProcessDramCommand
+case class ProcessDramSparseStore(addr:LocalLoad, data:LocalLoad)(implicit design:PIRDesign) extends ProcessDramCommand
 
 // HACK
 case class DRAM(dims:List[PNode])(implicit design:PIRDesign) extends IR {

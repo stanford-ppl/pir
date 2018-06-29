@@ -84,26 +84,45 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
         getParOf(ctrlOf(writersOf(dataStream.head).head))
     }
     val innerCtrl = DramController(csize, par).setParent(outerCtrl)
-    val loads = streamOuts.map { mem =>
-      mem.field match {
-        case "size" | "offset" => ReadMem(mem).setParent(fringe).ctrl(outerCtrl)
-        case "data" => ReadMem(mem).setParent(fringe).ctrl(innerCtrl)
-      }
-    }
-    val pdc = ProcessDramCommand(loads).setParent(fringe).ctrl(innerCtrl)
-    streamIns.foreach { mem =>
-      WriteMem(mem, pdc).setParent(fringe).ctrl(innerCtrl)
+    fringe match {
+      case FringeDenseLoad(dram,cmdStream,dataStream) =>
+        val offset = streamOuts.filter { _.field=="offset"}.head
+        val size = streamOuts.filter { _.field=="size"}.head
+        val data = streamIns.filter { _.field=="data"}.head
+        val offsetRead = ReadMem(offset).setParent(fringe).ctrl(outerCtrl)
+        val sizeRead = ReadMem(size).setParent(fringe).ctrl(outerCtrl)
+        val pdc = ProcessDramDenseLoad(offsetRead, sizeRead).setParent(fringe).ctrl(innerCtrl)
+        WriteMem(data, pdc).setParent(fringe).ctrl(innerCtrl)
+      case FringeDenseStore(dram,cmdStream,dataStream,ackStream) =>
+        val offset = streamOuts.filter { _.field=="offset"}.head
+        val size = streamOuts.filter { _.field=="size"}.head
+        val data = streamOuts.filter { _.field=="data"}.head
+        val ack = streamIns.filter { _.field=="ack"}.head
+        val offsetRead = ReadMem(offset).setParent(fringe).ctrl(outerCtrl)
+        val sizeRead = ReadMem(size).setParent(fringe).ctrl(outerCtrl)
+        val dataRead = ReadMem(data).setParent(fringe).ctrl(innerCtrl)
+        val pdc = ProcessDramDenseStore(offsetRead, sizeRead, dataRead).setParent(fringe).ctrl(innerCtrl)
+        WriteMem(ack, pdc).setParent(fringe).ctrl(innerCtrl)
     }
   }
 
   def transformSparse(fringe:DramFringe, streamOuts:List[StreamOut], streamIns:List[StreamIn]) = {
     val outerCtrl = ctrlOf(fringe)
-    val loads = streamOuts.map { mem =>
-      ReadMem(mem).setParent(fringe).ctrl(outerCtrl)
-    }
-    val pdc = ProcessDramCommand(loads).setParent(fringe).ctrl(outerCtrl)
-    streamIns.foreach { mem =>
-      WriteMem(mem, pdc).setParent(fringe).ctrl(outerCtrl)
+    fringe match {
+      case FringeSparseLoad(dram, addrStream, dataStream) =>
+        val addr = streamOuts.filter { _.field=="addr"}.head
+        val data = streamIns.filter { _.field=="data"}.head
+        val addrRead = ReadMem(addr).setParent(fringe).ctrl(outerCtrl)
+        val pdc = ProcessDramSparseLoad(addrRead).setParent(fringe).ctrl(outerCtrl)
+        WriteMem(data, pdc).setParent(fringe).ctrl(outerCtrl)
+      case FringeSparseStore(dram, cmdStream, ackStream) =>
+        val ack = streamIns.filter { _.field=="ack"}.head
+        val addr = cmdStream(0)
+        val data = cmdStream(1)
+        val addrRead = ReadMem(addr).setParent(fringe).ctrl(outerCtrl)
+        val dataRead = ReadMem(data).setParent(fringe).ctrl(outerCtrl)
+        val pdc = ProcessDramSparseStore(addrRead, dataRead).setParent(fringe).ctrl(outerCtrl)
+        WriteMem(ack, pdc).setParent(fringe).ctrl(outerCtrl)
     }
   }
 

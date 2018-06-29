@@ -16,15 +16,17 @@ trait TypeUtil extends ConstantPropogator with RuntimeUtil { self:Logging =>
       case n:Memory => 
         val maxAccess = accessesOf(n).maxBy(access => getParOf(access))
         pinTypeOf(maxAccess)
-      case Def(n,LocalLoad(mems,_)) if isControlMem(mems.head) => classTag[Bit]
-      case Def(n,LocalLoad(mems,_)) if isReg(mems.head) => classTag[Word]
-      case Def(n,LocalLoad(mems,_)) if getParOf(n) == 1 => classTag[Word]
-      case Def(n,LocalLoad(mems,_)) if getParOf(n) > 1 => classTag[Vector]
+      case n:LocalAccess if isControlMem(memsOf(n).head) => classTag[Bit]
+      case n:LocalAccess if isReg(memsOf(n).head) => classTag[Word]
+      case n:LocalAccess if getParOf(n) == 1 => classTag[Word]
+      case n:LocalAccess if getParOf(n) > 1 => classTag[Vector]
 
       case n:GlobalInput => pinTypeOf(goutOf(n).get, logger)
       case Def(n, GlobalOutput(data, valid)) => pinTypeOf(data, logger)
 
       case n:ControlNode => classTag[Bit]
+      case n:ProcessDramDenseStore => classTag[Bit]
+      case n:ProcessDramSparseStore => classTag[Bit]
       case n:Primitive if getParOf(n) == 1 => classTag[Word]
       case n:Primitive if getParOf(n) > 1 => classTag[Vector]
 

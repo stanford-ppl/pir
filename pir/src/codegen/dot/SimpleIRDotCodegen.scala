@@ -26,18 +26,14 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
 
   override def emitEdge(from:prism.node.Output[N], to:prism.node.Input[N], attr:DotAttr):Unit = {
     dbg(s"edge:${from.src}.$from -> ${to.src}.$to")
-    (from.src, to.src) match {
-      case (from:GlobalOutput, to:GlobalInput) =>
-        val fromPinType = pinTypeOf(from, logger=Some(this))
-        val toPinType = pinTypeOf(to, logger=Some(this))
-        dbg(s"from:$fromPinType, to:$toPinType")
-        assert(fromPinType == toPinType)
-        fromPinType match {
-          case tp if isBit(tp) => attr.set("style", "dashed").set("color","red")
-          case tp if isWord(tp) => attr.set("style", "solid")
-          case tp if isVector(tp) => attr.set("style", "bold").set("color","sienna")
-        }
-      case _ => 
+    val fromPinType = pinTypeOf(from.src, logger=Some(this))
+    val toPinType = pinTypeOf(to.src, logger=Some(this))
+    dbg(s"from:${from.src}[$fromPinType], to:${to.src}[$toPinType]")
+    assert(fromPinType == toPinType)
+    fromPinType match {
+      case tp if isBit(tp) => attr.set("style", "dashed").set("color","red")
+      case tp if isWord(tp) => attr.set("style", "solid")
+      case tp if isVector(tp) => attr.set("style", "bold").set("color","sienna")
     }
     super.emitEdge(from, to, attr)
   }

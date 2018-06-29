@@ -130,7 +130,10 @@ trait RuntimeUtil extends ConstantPropogator { self:Logging =>
         case x:LocalLoad => getParOf(ctrlOf(x))
         case x:CounterIter if ctrlOf(x).isInnerControl => getParOf(ctrlOf(x))
         case x:CounterIter => 1
-        case x:ProcessDramCommand => getParOf(ctrlOf(x))
+        case x:ProcessDramDenseLoad => getParOf(ctrlOf(x))
+        case x:ProcessDramDenseStore => 1 // output ack
+        case x:ProcessDramSparseLoad => getParOf(ctrlOf(x))
+        case x:ProcessDramSparseStore => 1 // output ack
         case x:Primitive => 
           if (x.deps.isEmpty) {
             getParOf(ctrlOf(x))
