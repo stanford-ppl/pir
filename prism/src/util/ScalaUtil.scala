@@ -42,6 +42,11 @@ trait ScalaUtil {
     list.headOption
   }
 
+  def assertOne[A](list:Iterable[A], info:String):A = {
+    assert(list.size==1, s"Not exactly one element in $list for $info")
+    list.head
+  }
+
   def zipOption[A,B,T](a:Option[A], b:Option[B]):Option[(A,B)] = {
     (a,b).zipped.headOption
   }

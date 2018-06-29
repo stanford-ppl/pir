@@ -44,23 +44,14 @@ trait DimensionOrderRouting extends DynamicRouting {
         case (List(p2:Terminal, p1:Router), _) => true // First step, any direction
         case (prevs, n:Terminal) => true // Reaching terminal, any direction
         case (rest:+(p2:Router):+(p1:Router), n:Router) =>
-          val List(p2x, p2y) = indexOf(p2)
-          val List(p1x, p1y) = indexOf(p1)
-          val List(tx, ty) = indexOf(next)
           dbg(s"${quote(p2)} -> ${quote(p1)} -> ${quote(next)}")
-          val dir1 = getDirection(p2x, p2y, p1x, p1y)
-          val dir2 = getDirection(p1x, p1y, tx, ty)
-          dbg(s"directions: $dir1 $dir2")
-          (start, dir1, dir2) match {
-            case (start, dir1, dir2) if dir1 == dir2 => true
-            case (start:GlobalOutput, Up, Right) => true
-            case (start:GlobalOutput, Right, Down) => true
-            case (start:GlobalOutput, Down, Left) => true
-            case (start:GlobalOutput, Left, Up) => true
-            case (start:GlobalInput, Up, Left) => true
-            case (start:GlobalInput, Right, Up) => true
-            case (start:GlobalInput, Down, Right) => true
-            case (start:GlobalInput, Left, Down) => true
+          val dim1 = getDimension(p2, p1)
+          val dim2 = getDimension(p1, next)
+          dbg(s"dimension: $dim1 $dim2")
+          (start, dim1, dim2) match {
+            case (start, dim1, dim2) if dim1 == dim2 => true // same direction
+            case (start:GlobalOutput, 0, 1) => true // out -> input: dimension 0 followed by dimension 1
+            case (start:GlobalInput, 1, 0) => true //  input -> output: dimension 1 followed by dimension 0
             case _ => false
           }
       }
@@ -73,7 +64,9 @@ trait DimensionOrderRouting extends DynamicRouting {
   case object Left extends Direction
   case object Right extends Direction
 
-  def getDirection(fx:Int, fy:Int, tx:Int, ty:Int) = {
+  def getDirection(from:Routable, to:Routable) = {
+    val List(fx, fy) = indexOf(from)
+    val List(tx, ty) = indexOf(to)
     if ((fx == tx) && (fy < ty)) Up
     else if ((fx == tx) && (fy > ty)) Down
     else if ((fx < tx) && (fy == ty)) Right
@@ -81,4 +74,9 @@ trait DimensionOrderRouting extends DynamicRouting {
     else throw PIRException(s"Unexpected direction $fx $fy $tx $ty")
   }
 
+  def getDimension(from:Routable, to:Routable):Int = {
+    assertOne(indexOf(from).zip(indexOf(to)).zipWithIndex.flatMap{ case ((f, t), dim) => 
+      if (f != t) Some(dim) else None
+    }, s"changing dimension from ${quote(from)} to ${quote(to)}")
+  }
 }
