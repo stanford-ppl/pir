@@ -29,7 +29,11 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
     val fromPinType = pinTypeOf(from.src, logger=Some(this))
     val toPinType = pinTypeOf(to.src, logger=Some(this))
     dbg(s"from:${from.src}[$fromPinType], to:${to.src}[$toPinType]")
-    assert(fromPinType == toPinType)
+    (from.src, to.src.asInstanceOf[N]) match {
+      case (fromsrc, Def(tosrc, LocalAccess(_, addrs))) if (addrs.contains(fromsrc)) =>
+      case (fromsrc, tosrc) =>
+        assert(fromPinType == toPinType, s"from:${fromsrc}[$fromPinType], to:${tosrc}[$toPinType]")
+    }
     fromPinType match {
       case tp if isBit(tp) => attr.set("style", "dashed").set("color","red")
       case tp if isWord(tp) => attr.set("style", "solid")
