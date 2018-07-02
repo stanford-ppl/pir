@@ -73,9 +73,16 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   def emitNodeSpecs(n:ContextEnable) = {
     val cuP = globalOf(n).get
     cuP match {
-      case cuP:DramFringe if PIRConfig.enableTrace =>
+      case cuP:FringeDenseLoad if PIRConfig.enableTrace =>
         val size = cuP.collectDown[StreamOut]().filter { _.field == "size" }.head
         val offset = cuP.collectDown[StreamOut]().filter { _.field == "offset" }.head
+        emitln(s"dram_cmd_tp=dense_load")
+        emitln(s"offset_trace = traces/${dataOf(writersOf(offset).head)}.trace")
+        emitln(s"size_trace = traces/${dataOf(writersOf(size).head)}.trace")
+      case cuP:FringeDenseStore if PIRConfig.enableTrace =>
+        val size = cuP.collectDown[StreamOut]().filter { _.field == "size" }.head
+        val offset = cuP.collectDown[StreamOut]().filter { _.field == "offset" }.head
+        emitln(s"dram_cmd_tp=dense_store")
         emitln(s"offset_trace = traces/${dataOf(writersOf(offset).head)}.trace")
         emitln(s"size_trace = traces/${dataOf(writersOf(size).head)}.trace")
       case FringeStreamIn(streamIn, streamInDef) =>
