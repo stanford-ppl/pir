@@ -8,9 +8,10 @@ else
 fi
 
 if [[ $OPT == "-"*"t"*  ]]; then
+  mkdir -p $(dirname $FILE)
 	scp yaqiz@tucson.stanford.edu:~/pir/$FILE.dot $(dirname $FILE)
 elif [[ $OPT == "-"*"l"*  ]]; then
-  mkdir out/$(dirname $FILE)
+  mkdir -p $(dirname $FILE)
 	scp yaqiz@london.stanford.edu:~/pir/$FILE.dot $(dirname $FILE)
 fi
 
