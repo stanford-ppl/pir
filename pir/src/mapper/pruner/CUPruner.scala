@@ -46,7 +46,7 @@ trait CUPruner extends PIRPass {
   override def quote(n:Any) = n match {
     case n:GlobalContainer => s"${super.quote(n)}(${cuType(n).get})"
     case n:Set[_] if n.forall { _.isInstanceOf[Routable] } =>
-      quote(n.map { case n:Routable => n.param })
+      super.quote(n.map { case n:Routable => n.param })
     case n => super.quote(n)
   }
 
