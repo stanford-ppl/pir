@@ -16,7 +16,6 @@ object PIRConfig extends prism.GlobalConfig {
   def enableMapping = option[Boolean]("mapping")
   def enableCodegen = Config.option[Boolean]("codegen")
   def aggressive_dce = option[Boolean]("ag-dce")
-  def printStat = option[Boolean]("stat")
 
   /* ------------------- Plastisim --------------------  */
   register("psim", default=true, info="Enable code generations for plastisim")
@@ -27,7 +26,11 @@ object PIRConfig extends prism.GlobalConfig {
   def genPlastisim = option[Boolean]("psim") && genCtrl && enableMapping && enableCodegen
   def runPlastisim = option[Boolean]("run-psim") && genPlastisim
   def enableTrace = option[Boolean]("trace")
-  def enablePlastiroute = (SpadeConfig.option[String]("net") == "dynamic" && routingAlgo == "proute")
+  def enablePlastiroute = genPlastisim && SpadeConfig.option[String]("net") == "dynamic" && routingAlgo == "proute"
+  def genPlacement = genPlastisim && (SpadeConfig.option[String]("net") match {
+    case "static" => true
+    case "dynamic" => routingAlgo != "proute"
+  })
 
   /* ------------------- Routing --------------------  */
   register("routing-algo", default="dor", info="If net=[dynamic] - [dor, planed, proute]. Option ignored for other network. dor - dimention order routing. planed - arbitrary source routing, proute - use plastiroute for place and route. If proute is chosen plastiroute will be launched from pir if $PLASTIROUTE_HOME is set") 
@@ -74,4 +77,5 @@ object PIRConfig extends prism.GlobalConfig {
   def enableSnapshot = debug && option[Boolean]("snapshot")
   def enableDot:Boolean = enableCodegen && option[Boolean]("dot")
   def openDot:Boolean = enableDot && option[Boolean]("open")
+  def printStat = option[Boolean]("stat")
 }

@@ -64,18 +64,39 @@ trait PlastisimUtil extends PIRPass {
     }.toSeq
   }
 
+  /*
+   * (r,0) .... (r, c)
+   *   .          .       
+   *   .          .       
+   *   .          .       
+   * (0,0) .... (c, 0)
+   *
+   * To
+   *
+   * 0       ....   c-1 
+   * c       ....   2r-1 
+   * .         .
+   * .         .
+   * (r-1)*c ....   (r-1)*c-1
+   * */
   // Convert coordinate to linear index
-  def addrOf(sn:SNode):Option[Int] = {
-    indexOf.get(sn).map { case List(x,y) =>
-      val idx = y * numCols + x
-      dbg(s"$sn: coord = ($x, $y) idx = $idx")
-      idx
-    }
+  def addrOf(sn:SNode):Option[Int] = topS match {
+    case topS:StaticGridTop => Some(0)
+    case topS:DynamicGridTop =>
+      indexOf.get(sn).map { case List(x,y) =>
+        val idx = (numRows-1-y) * numCols + x
+        dbg(s"$sn: coord = ($x, $y) idx = $idx")
+        idx
+      }
+  }
+
+  def addrOf(cuP:GlobalContainer):Option[Int] = {
+    cumap.usedMap.get(cuP).flatMap { cuS => addrOf(cuS) }
   }
 
   def addrOf(node:NetworkNode):Option[Int] = {
     val cuP = globalOf(node).get
-    cumap.usedMap.get(cuP).flatMap { cuS => addrOf(cuS) }
+    addrOf(cuP)
   }
 
   def isStaticLink(mem:Memory):Boolean = {
@@ -98,6 +119,16 @@ trait PlastisimUtil extends PIRPass {
         assertUnify(n, "isStaticLink") { mem => isStaticLink(mem) }
     }
   }
+
+  def isLocalLink(mem:Memory):Boolean = {
+    assertUnify((writersOf(mem) ++ resetersOf(mem)), "isStaticLink"){
+      case Def(n, LocalStore(_, _, data:GlobalInput)) => false
+      case Def(n, LocalStore(_, _, data)) => true // Local edge
+      case Def(n, LocalReset(_, reset:GlobalInput)) => false
+    }
+  }
+
+  def isLocalLink(n:Link):Boolean = assertUnify(n, s"isLocalLink"){ mem => isLocalLink(mem) }
 
   def bufferSizeOf(memP:Memory, cuP:GlobalContainer, cuS:Routable) = {
     cuS match {

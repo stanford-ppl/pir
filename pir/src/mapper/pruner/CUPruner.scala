@@ -37,5 +37,10 @@ trait CUPruner extends PIRPass {
     flatFold(costConstrains, cumap) { case (cumap, constrain) => constrain.prune(cumap, key) }
   }
 
+  override def initPass = {
+    super.initPass
+    constrains.foreach { _.resetAllCaches }
+  }
+
 }
 

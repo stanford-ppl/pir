@@ -45,9 +45,6 @@ case class AFGCost(prefix:Boolean)(implicit pass:CUPruner) extends PrefixCost[AF
 case class MCCost(prefix:Boolean)(implicit pass:CUPruner) extends PrefixCost[MCCost]
 case class SramSizeCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[SramSizeCost] { def isSplittable(key:K) = false }
 case class SramCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[SramCost] { def isSplittable(key:K) = false }
-case class ControlFifoCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[ControlFifoCost] { def isSplittable(key:K) = true }
-case class ScalarFifoCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[ScalarFifoCost] { def isSplittable(key:K) = true }
-case class VectorFifoCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[VectorFifoCost] { def isSplittable(key:K) = true }
 case class ControlInputCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[ControlInputCost] { def isSplittable(key:K) = !pass.isAFG(key) }
 case class ScalarInputCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[ScalarInputCost] { def isSplittable(key:K) = !pass.isAFG(key) }
 case class VectorInputCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[VectorInputCost] { def isSplittable(key:K) = !pass.isAFG(key) }

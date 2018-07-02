@@ -3,9 +3,9 @@ package mapper
 
 import pir.node._
 import pir.pass._
-import spade.node._
+import spade.param._
 
-trait CUConstrain extends Constrain with PIRNodeUtil with SpadeNodeUtil with TypeUtil {
+trait CUConstrain extends Constrain with PIRNodeUtil with spade.node.SpadeNodeUtil with TypeUtil {
   type K = CUMap.K
   type V = CUMap.V
   type FG = CUMap
@@ -28,39 +28,26 @@ trait CUConstrain extends Constrain with PIRNodeUtil with SpadeNodeUtil with Typ
 }
 
 class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConstrain[CUCost] {
-  def inputsP(cuP:K) = {
-    cuP.ins.groupBy { in =>
-      in.from.src
-    }.map { case (src, ins) => ins.head.src }
-  }
-  def outputsP(cuP:K) = {
-    cuP.outs.map { out => out.src }
-  }
-  lazy val isPartitioner = pass.isInstanceOf[GlobalPartioner]
-
-  def fifosP(cuP:K) = {
-    val fifos = cuP.collectDown[pir.node.FIFO]()
-    val rfifos = if (isPartitioner) {
-      cuP.collectDown[pir.node.RetimingFIFO]() ++ 
-      inputsP(cuP).filterNot { _.isInstanceOf[LocalStore] }
-    } else {
-      cuP.collectDown[pir.node.RetimingFIFO]()
-    }
-    fifos ++ rfifos
-  }
-  def fit(key:K, value:V):(Boolean, Boolean) = {
+  val keyCost = memorize(compKeyCost)
+  val valueCost = memorize(compValueCost)
+  def getKeyCost(cuP:K):CUCost = keyCost(cuP)
+  def getValueCost(cuS:V):CUCost = valueCost(cuS.param)
+  def fit(key:K, value:V):(Boolean, Boolean) = fitCache((key, value.param))
+  val fitCache = memorize[(K,Parameter),(Boolean, Boolean)] { case (key, value) =>
     val kc = keyCost(key)
     val vc = valueCost(value)
     val fits = kc.fit(key, vc)
     (key, value) match {
-      case (key, value:DramAG) if isDAG(key) & !fits._1 => 
+      case (key, value:DramAGParam) if isDAG(key) & !fits._1 => 
         warn(s"${quote(key)}(dag) not fit ${quote(value)} overCosts=${kc.overCosts(vc).mkString(",")}")
       case _ =>
     }
     fits
   }
-  def getKeyCost(cuP:K):CUCost = dbgblk(s"getKeyCost(${quote(cuP)})"){
-    val fifos = fifosP(cuP)
+
+  def inputsP(cuP:K) = cuP.ins.groupBy { _.from.src }.map { case (src, ins) => ins.head.src }
+  def outputsP(cuP:K) = cuP.outs.map { _.src }
+  def compKeyCost(cuP:K):CUCost = dbgblk(s"compKeyCost(${quote(cuP)})"){
     val ins = inputsP(cuP)
     val outs = outputsP(cuP)
     val stages = cuP.collectDown[StageDef]()
@@ -70,9 +57,6 @@ class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConst
       MCCost(isDFG(cuP) || isSFG(cuP)),
       SramSizeCost(maxOption(cuP.collectDown[pir.node.SRAM]().map { _.size}).getOrElse(0)),
       SramCost(cuP.collectDown[pir.node.SRAM]().size),
-      ControlFifoCost(fifos.filter(n => isBit(n)).size),
-      ScalarFifoCost(fifos.filter(n => isWord(n)).size),
-      VectorFifoCost(fifos.filter(n => isVector(n)).size),
       ControlInputCost(ins.filter(n => isBit(n)).size),
       ScalarInputCost(ins.filter(n => isWord(n)).size),
       VectorInputCost(ins.filter(n => isVector(n)).size),
@@ -83,23 +67,45 @@ class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConst
       LaneCost(numLanes)
     )
   }
-  def getValueCost(cuS:V):CUCost = dbgblk(s"getValueCost(${quote(cuS)})"){
+  val topS = pass.designS.top
+  
+  def controlInput(param:Parameter) = param match {
+    case param:CUParam => Math.min(topS.minInputs[Bit](param), param.numControlFifos)
+    case param => topS.minInputs[Bit](param)
+  }
+  // HACK: leave some buffer on scalar input to allow copying of counter chain
+  def scalarInput(param:Parameter) = param match {
+    case param:CUParam if pass.isInstanceOf[GlobalPartioner] => Math.min(topS.minInputs[Word](param), param.numScalarFifos) - 1
+    case param:CUParam => Math.min(topS.minInputs[Word](param), param.numScalarFifos)
+    case param => topS.minInputs[Word](param)
+  }
+  def vectorInput(param:Parameter) = param match {
+    case param:CUParam => Math.min(topS.minInputs[Vector](param), param.numVectorFifos)
+    case param => topS.minInputs[Vector](param)
+  }
+  def controlOutput(param:Parameter) = topS.minOutputs[Bit](param)
+  def scalarOutput(param:Parameter) = param match {
+    case param:CUParam if param.simdParam.nonEmpty => Math.min(topS.minOutputs[Word](param), param.simdParam.get.numScalarOuts)
+    case param => topS.minOutputs[Word](param)
+  }
+  def vectorOutput(param:Parameter) = param match {
+    case param:CUParam if param.simdParam.nonEmpty => Math.min(topS.minOutputs[Vector](param), param.simdParam.get.numVectorOuts)
+    case param => topS.minOutputs[Vector](param)
+  }
+  def compValueCost(param:Parameter):CUCost = dbgblk(s"compValueCost(${quote(param)})"){
     CUCost(
-      AFGCost(cuS.isInstanceOf[spade.node.ArgFringe]),
-      MCCost(cuS.isInstanceOf[MC]),
-      SramSizeCost(cuS match { case cuS:CU => cuS.param.sramParam.size; case _ => 0 }),
-      SramCost(cuS match { case cuS:CU => cuS.param.numSrams; case _ => 0 }),
-      ControlFifoCost(cuS match { case cuS:CU => cuS.param.numControlFifos; case _ => 0 }),
-      ScalarFifoCost(cuS match { case cuS:CU => cuS.param.numScalarFifos; case _ => 0 }),
-      VectorFifoCost(cuS match { case cuS:CU => cuS.param.numVectorFifos; case _ => 0 }),
-      ControlInputCost(cuS.bundle[Bit].fold(0) { _.inputs.size }),
-      ScalarInputCost(cuS.bundle[Word].fold(0) { _.inputs.size }),
-      VectorInputCost(cuS.bundle[Vector].fold(0) { _.inputs.size }),
-      ControlOutputCost(cuS.bundle[Bit].fold(0) { _.outputs.size }),
-      ScalarOutputCost(cuS.bundle[Word].fold(0) { _.outputs.size }),
-      VectorOutputCost(cuS.bundle[Vector].fold(0) { _.outputs.size }),
-      StageCost(cuS match { case cuS:CU => cuS.param.simdParam.fold(0) { _.stageParams.size }; case _ => 0 }),
-      LaneCost(cuS match { case cuS:CU => cuS.param.simdParam.fold(1) { _.numLanes }; case _ => 1 })
+      AFGCost(param.isInstanceOf[ArgFringeParam]),
+      MCCost(param.isInstanceOf[MCParam]),
+      SramSizeCost(param match { case param:CUParam => param.sramParam.size; case _ => 0 }),
+      SramCost(param match { case param:CUParam => param.numSrams; case _ => 0 }),
+      ControlInputCost(controlInput(param)),
+      ScalarInputCost(scalarInput(param)),
+      VectorInputCost(vectorInput(param)),
+      ControlOutputCost(controlOutput(param)),
+      ScalarOutputCost(scalarOutput(param)),
+      VectorOutputCost(vectorOutput(param)),
+      StageCost(param match { case param:CUParam => param.simdParam.fold(0) { _.stageParams.size }; case _ => 0 }),
+      LaneCost(param match { case param:CUParam => param.simdParam.fold(1) { _.numLanes }; case _ => 1 })
     )
   }
 }

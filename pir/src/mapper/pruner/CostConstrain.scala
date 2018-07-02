@@ -13,8 +13,7 @@ trait Cost[C] extends Ordered[C] {
 trait CostConstrain[C<:Cost[C]] extends Constrain {
   def getKeyCost(cuP:K):C
   def getValueCost(cuS:V):C
-  val keyCost = memorize(getKeyCost)
-  val valueCost = memorize(getValueCost)
+
   def fit(key:K, value:V):(Boolean, Boolean) // (fit, splitable)
   def prune(fg:FG, key:K):EOption[FG] = {
     val values:Set[(V, Boolean, Boolean)] = fg.freeValues(key).map { value =>
@@ -25,7 +24,7 @@ trait CostConstrain[C<:Cost[C]] extends Constrain {
     if (fits.isEmpty) { // not fit
       val (splitables, nonSplitables) = nonFits.partition { _._3 }
       val nonSplitableValues = nonSplitables.map { _._1 }
-      val kcost = keyCost(key)
+      val kcost = getKeyCost(key)
       dbg(s"${quote(key)} not fit. Cost:${kcost}")
       fg.filterNotAt(key) { v => nonSplitableValues.contains(v) } match {
         case Left(InvalidFactorGraph(fg:FG, key)) => Left(CostConstrainFailure(fg , key, kcost, false))

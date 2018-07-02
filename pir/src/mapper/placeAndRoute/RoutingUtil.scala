@@ -6,6 +6,9 @@ import spade.node._
 
 trait RoutingUtil extends SpadeNodeUtil { self:Logging =>
 
+  val spademeta:SpadeMetadata
+  import spademeta._
+
   private type PT = Port[_<:PinType]
   private type A = (PT, PT)
   private type Route = List[A]
@@ -97,6 +100,44 @@ trait RoutingUtil extends SpadeNodeUtil { self:Logging =>
       fm = setFanIn(fm, tailS.external, headS.external)
       fm
     }
+  }
+
+  sealed trait RelativeDirection
+  case object U extends RelativeDirection
+  case object D extends RelativeDirection
+  case object L extends RelativeDirection
+  case object R extends RelativeDirection
+
+  def getRelativeDirection(from:Routable, to:Routable) = {
+    val List(fx, fy) = indexOf(from)
+    val List(tx, ty) = indexOf(to)
+    if ((fx == tx) && (fy < ty)) U
+    else if ((fx == tx) && (fy > ty)) D
+    else if ((fx < tx) && (fy == ty)) R
+    else if ((fx > tx) && (fy == ty)) L
+    else throw PIRException(s"Unexpected direction $fx $fy $tx $ty")
+  }
+
+  sealed trait Direction
+  case object N extends Direction
+  case object S extends Direction
+  case object W extends Direction
+  case object E extends Direction
+
+  def getDirection(from:Routable, to:Routable) = {
+    val List(fx, fy) = indexOf(from)
+    val List(tx, ty) = indexOf(to)
+    if ((fx == tx) && (fy < ty)) N
+    else if ((fx == tx) && (fy > ty)) S
+    else if ((fx < tx) && (fy == ty)) E
+    else if ((fx > tx) && (fy == ty)) W
+    else throw PIRException(s"Unexpected direction $fx $fy $tx $ty")
+  }
+
+  def getDimension(from:Routable, to:Routable):Int = {
+    assertOne(indexOf(from).zip(indexOf(to)).zipWithIndex.flatMap{ case ((f, t), dim) => 
+      if (f != t) Some(dim) else None
+    }, s"changing dimension from ${quote(from)} to ${quote(to)}")
   }
 
 }

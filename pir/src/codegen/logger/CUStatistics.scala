@@ -8,7 +8,7 @@ import spade.param._
 
 import prism.codegen.JsonCodegen
 
-class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen {
+class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen with TypeUtil {
 
   val fileName = "stat.json"
 
@@ -25,7 +25,7 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen {
   def stat[T](list:Iterable[T])(lambda:T => Int ) = {
     val clist = list.map { e => lambda(e) }
     val avg = clist.sum.toFloat / list.size
-    (clist.min, avg, clist.max)
+    (fstr(clist.min), fstr(avg), fstr(clist.max))
   }
 
   def pct(nom:Int, den:Int) =  if (den == 0) 0 else nom * 100.0f / den
@@ -46,6 +46,9 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen {
     printUsage(cuMap)
   }
 
+  def inputsP(cuP:GlobalContainer) = cuP.ins.groupBy { _.from.src }.map { case (src, ins) => ins.head.src }
+  def outputsP(cuP:GlobalContainer) = cuP.outs.map { _.src }
+
   def printStat(cuMap:Map[Option[String], List[GlobalContainer]]) = {
     val cus = cuMap.values.flatten
     dbg(s"")
@@ -53,9 +56,16 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen {
     cuMap.foreach { case (cuType, cus) =>
       val key = cuType.getOrElse("cu")
       dbg(s"number of $key = ${cus.size}")
-      dbg(s"- fanIn = ${stat(cus) { _.ins.size }}")
-      dbg(s"- fanOut = ${stat(cus) { _.outs.size }}")
-      dbg(s"- stages = ${stat(cus) { _.collectDown[StageDef]().size }}")
+      val cin = stat(cus) { cu => inputsP(cu).filter { io => isBit(io) }.size }
+      val cout = stat(cus) { cu => outputsP(cu).filter { io => isBit(io) }.size }
+      val sin = stat(cus) { cu => inputsP(cu).filter { io => isWord(io) }.size }
+      val sout = stat(cus) { cu => outputsP(cu).filter { io => isWord(io) }.size }
+      val vin = stat(cus) { cu => inputsP(cu).filter { io => isVector(io) }.size }
+      val vout = stat(cus) { cu => outputsP(cu).filter { io => isVector(io) }.size }
+      val stages = stat(cus) { _.collectDown[StageDef]().size }
+      dbg(s"- cin $cin sin $sin vin $vin")
+      dbg(s"- cout $cout sout $sout vout $vout")
+      dbg(s"- stages $stages")
     }
   }
 

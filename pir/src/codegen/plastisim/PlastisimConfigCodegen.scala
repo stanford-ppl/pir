@@ -10,9 +10,6 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   import PIRConfig._
 
   val fileName = s"config.psim"
-  lazy val SPATIAL_HOME = Config.SPATIAL_HOME.getOrElse(s"Please set SPATIAL_HOME for using trace!")
-  lazy val appPath = s"${SPATIAL_HOME}${separator}gen${separator}${compiler.name}"
-  lazy val tracePath = s"${appPath}${separator}traces"
 
   // Execution of codegen
   override def runPass = {
@@ -45,7 +42,12 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         if (enablePlastiroute) {
           shellProcess(s"psim", s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/proute.place", log)(processOutput)
         } else {
-          shellProcess(s"psim", s"$psimHome/plastisim -f $psimOut/config.psim", log)(processOutput)
+          //TODO: static place file breaks the simulator
+          if (isDynamic(topS)) {
+            shellProcess(s"psim", s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/pir.place", log)(processOutput)
+          } else {
+            shellProcess(s"psim", s"$psimHome/plastisim -f $psimOut/config.psim", log)(processOutput)
+          }
         }
         if (!succeed) {
           fail(s"Plastisim failed. details in $log")
@@ -137,7 +139,12 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   def emitLink(n:Link) = dbgblk(s"emitLink(${quote(n)})") {
     val srcs = srcsOf(n)
     val dsts = dstsOf(n)
-    val isStatic = isStaticLink(n)
+
+    val isStatic = topS match {
+      case topS if isDynamic(topS) => isLocalLink(n)
+      case topS => isStaticLink(n) // TODO: static place file break the simulator
+    }
+
     val linkstr = if (isStatic) "" else "net"
 
     emitNodeBlock(s"${linkstr}link ${quote(n)}") {
@@ -158,7 +165,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
             val lat = staticLatencyOf(src, mem).get
             memDsts.foreach { dst =>
               val dstIdx = dsts.indexOf(dst)
-              emitln(s"lat[$srcIdx, $dstIdx] = $lat")
+              emitln(s"lat[$srcIdx, $dstIdx] = $lat") // Local latency is always 1
             }
           }
         }
@@ -166,7 +173,6 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         //emitln(s"net = ${quote(tp)}net")
         //HACK: everything onto vecnet
         emitln(s"net = vecnet")
-        //val vc = assertUnify(n, "vc") { mem => vcmap.mappedValue(mem) }
         // HACK: get global output of link
         val data = assertUnify(n.flatMap { mem =>
           writersOf(mem).map { store =>
@@ -175,7 +181,6 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
             }
           }
         }, s"write data of $n") { d => d }
-        //println(gout)
         val vc_id = data.id
         emitln(s"vc_id = $vc_id")
         val sids = srcs.map(src => globalOf(src).get.id)
@@ -186,14 +191,6 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         dids.zipWithIndex.foreach { case (did, idx) =>
           emitln(s"dst_id[$idx] = $did")
         }
-        /*val saddrs = srcs.map(src => addrOf(src).get)
-        val daddrs = dsts.map(dst => addrOf(dst).get)
-        saddrs.zipWithIndex.foreach { case (saddr, idx) =>
-          emitln(s"saddr[$idx] = $saddr")
-        }
-        daddrs.zipWithIndex.foreach { case (daddr, idx) =>
-          emitln(s"daddr[$idx] = $daddr")
-        }*/
       }
     }
   }

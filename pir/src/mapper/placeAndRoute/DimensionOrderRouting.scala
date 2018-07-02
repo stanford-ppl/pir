@@ -58,25 +58,4 @@ trait DimensionOrderRouting extends DynamicRouting {
     }
   }
 
-  sealed trait Direction
-  case object Up extends Direction
-  case object Down extends Direction
-  case object Left extends Direction
-  case object Right extends Direction
-
-  def getDirection(from:Routable, to:Routable) = {
-    val List(fx, fy) = indexOf(from)
-    val List(tx, ty) = indexOf(to)
-    if ((fx == tx) && (fy < ty)) Up
-    else if ((fx == tx) && (fy > ty)) Down
-    else if ((fx < tx) && (fy == ty)) Right
-    else if ((fx > tx) && (fy == ty)) Left
-    else throw PIRException(s"Unexpected direction $fx $fy $tx $ty")
-  }
-
-  def getDimension(from:Routable, to:Routable):Int = {
-    assertOne(indexOf(from).zip(indexOf(to)).zipWithIndex.flatMap{ case ((f, t), dim) => 
-      if (f != t) Some(dim) else None
-    }, s"changing dimension from ${quote(from)} to ${quote(to)}")
-  }
 }
