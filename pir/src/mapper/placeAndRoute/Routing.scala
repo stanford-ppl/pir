@@ -9,6 +9,7 @@ import prism.collection.immutable._
 trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme with Debugger {
 
   import pirmeta._
+  import PIRConfig._
 
   def portsS(
     gio:GlobalIO, 
@@ -25,7 +26,7 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme
   )(
     tail:Edge,
     backPointers:BackPointer
-  ):List[Edge] = throw PIRException(s"UnsupportedTarget")
+  ):List[Edge] = throw PIRException(s"UnsupportedTarget isDynamic=${isDynamicLink(tail)} routingAlgo=${routingAlgo}")
 
   def set(
     pmap:PIRMap, 
