@@ -51,6 +51,7 @@ class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConst
     val ins = inputsP(cuP)
     val outs = outputsP(cuP)
     val stages = cuP.collectDown[StageDef]()
+    val ops = stages.flatMap { _.productIterator.toList.collect { case op:Op => op } }.toSet
     val numLanes:Int = stages.map(s => pass.getParOf(s)).reduceOption{ _ max _}.getOrElse(1)
     CUCost(
       AFGCost(isAFG(cuP)),
@@ -64,7 +65,8 @@ class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConst
       ScalarOutputCost(outs.filter(n => isWord(n)).size),
       VectorOutputCost(outs.filter(n => isVector(n)).size),
       StageCost(stages.size),
-      LaneCost(numLanes)
+      LaneCost(numLanes),
+      OpCost(ops)
     )
   }
   val topS = pass.designS.top
@@ -105,7 +107,8 @@ class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConst
       ScalarOutputCost(scalarOutput(param)),
       VectorOutputCost(vectorOutput(param)),
       StageCost(param match { case param:CUParam => param.simdParam.fold(0) { _.stageParams.size }; case _ => 0 }),
-      LaneCost(param match { case param:CUParam => param.simdParam.fold(1) { _.numLanes }; case _ => 1 })
+      LaneCost(param match { case param:CUParam => param.simdParam.fold(1) { _.numLanes }; case _ => 1 }),
+      OpCost(param match { case param:CUParam => param.simdParam.map { _.ops.toSet }.getOrElse(Set.empty); case _ => Set.empty })
     )
   }
 }

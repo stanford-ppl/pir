@@ -41,6 +41,17 @@ trait QuantityCost[C<:QuantityCost[C]] extends Cost[C] {
   def fit(key:K, that:Any) = (this <= that.asInstanceOf[C], isSplittable(key))
   def compare(that:C) = quantity.compare(that.quantity)
 }
+trait SetCost[T,C<:SetCost[T,C]] extends Cost[C] {
+  type K = CUMap.K
+  val set:Set[T]
+  def isSplittable(key:K):Boolean
+  def fit(key:K, that:Any) = (this <= that.asInstanceOf[C], isSplittable(key))
+  def compare(that:C) = (set, that.set) match {
+    case (set, tset) if set == tset => 0
+    case (set, tset) if set.subsetOf(tset) => -1
+    case (set, tset) => 1
+  }
+}
 case class AFGCost(prefix:Boolean)(implicit pass:CUPruner) extends PrefixCost[AFGCost]
 case class MCCost(prefix:Boolean)(implicit pass:CUPruner) extends PrefixCost[MCCost]
 case class SramSizeCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[SramSizeCost] { def isSplittable(key:K) = false }
@@ -53,3 +64,4 @@ case class ScalarOutputCost(quantity:Int)(implicit pass:CUPruner) extends Quanti
 case class VectorOutputCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[VectorOutputCost] { def isSplittable(key:K) = !pass.isAFG(key) }
 case class StageCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[StageCost] { def isSplittable(key:K) = true }
 case class LaneCost(quantity:Int)(implicit pass:CUPruner) extends QuantityCost[LaneCost] { def isSplittable(key:K) = false }
+case class OpCost[T](set:Set[T])(implicit pass:CUPruner) extends SetCost[T,OpCost[T]] { def isSplittable(key:K) = false }

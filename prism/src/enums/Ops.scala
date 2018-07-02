@@ -67,8 +67,8 @@ trait Ops {
   val bitOps = List(BitAnd, BitOr, BitNot, BitXnor, BitXor)
   val otherOps = List(MuxOp, Bypass)
 
-  def ops = (fixOps ++ fltOps ++ bitOps ++ otherOps).toList
-  def compOps = ops.collect {case op:CompOp => op}
+  def allOps = (fixOps ++ fltOps ++ bitOps ++ otherOps).toList
+  def compOps = allOps.collect {case op:CompOp => op}
   def fixCompOps = fixOps.collect {case op:CompOp => op}
   def fltCompOps = fltOps.collect {case op:CompOp => op}
 
