@@ -13,6 +13,8 @@ trait MappingUtil extends RoutingUtil { self:Logging =>
 
   def mappedTo[T](n:Any, mapping:Any=pirMap):Option[T] = /*dbgblk(s"mappedTo(${quote(n)}, $mapping)")*/{ // significant slow down with debug print
     ((n, mapping) match {
+      case (n, Some(mapping)) => mappedTo[T](n, mapping)
+      case (n, None) => None
       case (n, Left(mapping)) => mappedTo[T](n, mapping) 
       case (n, Right(mapping)) => mappedTo[T](n, mapping) 
       case (n, bt@BindingTrace(pnode, mapping)) => mappedTo[T](n, mapping)

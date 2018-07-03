@@ -69,8 +69,8 @@ class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConst
       OpCost(ops)
     )
   }
+
   val topS = pass.designS.top
-  
   def controlInput(param:Parameter) = param match {
     case param:CUParam => Math.min(topS.minInputs[Bit](param), param.numControlFifos)
     case param => topS.minInputs[Bit](param)

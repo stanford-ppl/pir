@@ -18,7 +18,33 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme
   ) (implicit 
     portTp:PT => ClassTag[_<:PinType], 
     gioTp:GlobalIO => ClassTag[_<:PinType]
-  ):List[PT] = throw PIRException(s"UnsupportedTarget")
+  ):List[PT] = {
+    val marker = markerOf(gio)
+    var ports = cuS.collectDown[PT]()
+    ports = ports.filter { port => isInput(port) == isGlobalInput(gio) }
+
+    val origPorts = ports
+    gioTp(marker) match {
+      case tp if tp == classTag[Bit] =>
+        ports = origPorts.filter { port => portTp(port) == classTag[Bit] }
+        if (ports.isEmpty) ports = origPorts.filter { port => portTp(port) == classTag[Bit] }
+        if (ports.isEmpty) ports = origPorts.filter { port => portTp(port) == classTag[Word] }
+        if (ports.isEmpty) ports = origPorts.filter { port => portTp(port) == classTag[Vector] }
+      case tp if tp == classTag[Word] =>
+        ports = origPorts.filter { port => portTp(port) == classTag[Word] }
+        if (ports.isEmpty) ports = origPorts.filter { port => portTp(port) == classTag[Vector] }
+      case tp if tp == classTag[Vector] =>
+        ports = ports.filter { port => portTp(port) == classTag[Vector] }
+    }
+
+    val (marked, unmarked) = ports.partition { port => getStaticMarkerOf(pmap, port).nonEmpty }
+    val markedAndMatched = marked.filter { port => staticMarkerOf(pmap, port) == marker }
+    gio match {
+      case gio:GlobalOutput => markedAndMatched ++ unmarked // one to many
+      case gio:GlobalInput if markedAndMatched.nonEmpty => markedAndMatched // one to one
+      case gio:GlobalInput => unmarked // one to one
+    }
+  }
 
   def tailToHead(
     pmap:PIRMap, 

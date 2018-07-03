@@ -6,27 +6,6 @@ import spade.node._
 
 trait StaticRouting extends Routing {
 
-  override def portsS(
-    gio:GlobalIO, 
-    cuS:Routable, 
-    pmap:PIRMap
-  ) (implicit 
-    portTp:PT => ClassTag[_<:PinType], 
-    gioTp:GlobalIO => ClassTag[_<:PinType]
-  ):List[PT] = {
-    val marker = markerOf(gio)
-    val markerTp = (gioTp(marker), isGlobalInput(gio))
-    val ports = cuS.collectDown[PT]().filter { port => (portTp(port), isInput(port)) == markerTp }
-
-    val (marked, unmarked) = ports.partition { port => getStaticMarkerOf(pmap, port).nonEmpty }
-    val markedAndMatched = marked.filter { port => staticMarkerOf(pmap, port) == marker }
-    gio match {
-      case gio:GlobalOutput => markedAndMatched ++ unmarked // one to many
-      case gio:GlobalInput if markedAndMatched.nonEmpty => markedAndMatched // one to one
-      case gio:GlobalInput => unmarked // one to one
-    }
-  }
-
   override def tailToHead(
     pmap:PIRMap, 
     start:GlobalIO

@@ -22,8 +22,7 @@ trait PlastisimUtil extends PIRPass {
     case param:DynamicCMeshTopParam => (param.numTotalRows, param.numTotalCols)
   }
 
-  def cumap = pirMap.right.get.cumap
-  def vcmap = pirMap.right.get.vcmap
+  def pmap = pirMap.toOption
 
   def srcsOf(mem:Memory):List[NetworkNode] = dbgblk(s"srcsOf(${quote(mem)})") {
     def visitFunc(n:PIRNode) = visitGlobalIn(n).filterNot {
@@ -91,7 +90,7 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def addrOf(cuP:GlobalContainer):Option[Int] = {
-    cumap.usedMap.get(cuP).flatMap { cuS => addrOf(cuS) }
+    mappedTo[Routable](cuP, pmap).flatMap { cuS => addrOf(cuS) }
   }
 
   def addrOf(node:NetworkNode):Option[Int] = {
@@ -173,10 +172,10 @@ trait PlastisimUtil extends PIRPass {
     val cuP = globalOf(memP).get
     topS match {
       case topS if isAsic(topS) => Some(10) // as large as possible
-      case topS if cumap.isMapped(cuP) =>
-        val cuS = cumap(cuP).head
-        Some(bufferSizeOf(memP, cuP, cuS))
-      case topS => None
+      case topS =>
+        mappedTo[Routable](cuP, pmap).map { cuS =>
+          bufferSizeOf(memP, cuP, cuS)
+        }
     }
   }
 
@@ -214,10 +213,10 @@ trait PlastisimUtil extends PIRPass {
     val cuP = globalOf(n).get
     topS match {
       case topS if isAsic(topS) => Some(Math.max(1, cuP.collectDown[StageDef]().size))
-      case topS if cumap.isMapped(cuP) =>
-        cumap.mappedValue(cuP) match {
-          case cuS:MC => Some(100)
-          case cuS:CU => Some(cuS.param.simdParam.map { _.stageParams.size }.getOrElse(1))
+      case topS if pirMap.isLeft => None
+        mappedTo[Routable](cuP, pmap).map {
+          case cuS:MC => 100
+          case cuS:CU => cuS.param.simdParam.map { _.stageParams.size }.getOrElse(1)
         }
       case topS => None
     }
@@ -255,7 +254,7 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def staticLatencyOf(gin:GlobalInput):Option[Int] = {
-    mappedTo[MKMap.K](gin).flatMap { port =>
+    mappedTo[MKMap.K](gin, pmap).flatMap { port =>
       if (isStaticLink(port)) {
         val gout = goutOf(gin).get
         val routes = mappedTo[List[(MKMap.K,MKMap.K)]]((gin, gout)).get
