@@ -37,19 +37,19 @@ class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner with Debugg
     partitions.toSet
   }
 
+  val schedular = new PIRTraversal with prism.traversal.BFSTopologicalTraversal with prism.traversal.GraphSchedular {
+    override lazy val logger = IgraphPartioner.this.logger
+    val forward = false
+    override def visitIn(n:N):List[N] = visitLocalIn(n)
+    override def visitOut(n:N):List[N] = visitLocalOut(n)
+    override def isDepFree(n:N) = depFunc(n).exists(isVisited)
+  }
 
   // TODO: this might run into infinite loop if nodes get moved to cu1 and then moved to cu2.
   // Example P4 on DMeshCB4x4
   // Fixing cycle by continuously moving nodes needed by the large cu in to the large cu
   def fixCycle(partitions:List[GlobalContainer]):List[GlobalContainer] = {
     assert(partitions.size==2) // For now assume always 2 partitions
-    val schedular = new PIRTraversal with prism.traversal.BFSTopologicalTraversal with prism.traversal.GraphSchedular {
-      override lazy val logger = IgraphPartioner.this.logger
-      val forward = false
-      override def visitIn(n:N):List[N] = visitLocalIn(n)
-      override def visitOut(n:N):List[N] = visitLocalOut(n)
-      override def isDepFree(n:N) = depFunc(n).exists(isVisited)
-    }
     val cu1::cu2::Nil = partitions
     val deps1 = cu1.deps.filter { _.isDescendentOf(cu2) }
     val deps2 = cu2.deps.filter { _.isDescendentOf(cu1) }

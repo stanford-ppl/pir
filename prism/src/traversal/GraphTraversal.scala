@@ -49,7 +49,7 @@ trait GraphTraversal {
   final def traverseNode(n:N, zero:T):T = traverseNodes(List(n), zero)
   def traverseNodes(ns: => List[N], zero:T):T
 
-  def traverseNodesInScope(scope:List[N], ns: => List[N], zero:T) = {
+  final def traverseNodesInScope(scope:List[N], ns: => List[N], zero:T) = {
     _scope = Some(scope)
     val res = traverseNodes(ns, zero)
     _scope = None

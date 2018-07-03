@@ -43,7 +43,6 @@ trait PIR extends Compiler with PIRWorld {
   lazy val igraphPartioner = new IgraphPartioner()
   lazy val routeThroughEliminator = new RouteThroughElimination()
   lazy val contextInsertion = new ContextInsertion()
-  lazy val contextMerging = new ContextMerging()
   lazy val controlRegInsertion = new ControlRegInsertion()
   lazy val controlAllocator = new ControlAllocation()
   lazy val controlLowering = new ControlLowering()
@@ -111,18 +110,15 @@ trait PIR extends Compiler with PIRWorld {
 
     addPass(genCtrl, contextInsertion).dependsOn(igraphPartioner)
     addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top10.dot")).dependsOn(contextInsertion)
-    addPass(genCtrl, contextMerging).dependsOn(contextInsertion)
-    addPass(genCtrl, deadCodeEliminator).dependsOn(contextMerging)
-    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top11.dot"))
 
     // Control transformation and analysis
-    addPass(genCtrl, controlAllocator).dependsOn(contextMerging) // set accessDoneOf, duplicateCounterChain for accessDoneOf
+    addPass(genCtrl, controlAllocator).dependsOn(contextInsertion) // set accessDoneOf, duplicateCounterChain for accessDoneOf
     addPass(genCtrl, controlRegInsertion).dependsOn(controlAllocator) // insert reg for no forward depended contextEn
     addPass(genCtrl, memoryAnalyzer).dependsOn(controlRegInsertion)
-    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top12.dot"))
+    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top11.dot"))
     addPass(genCtrl, controlAllocator).dependsOn(memoryAnalyzer) // set accessDoneOf, duplicateCounterChain for accessDoneOf
     addPass(genCtrl, deadCodeEliminator) // Remove redundant counterChains
-    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top13.dot"))
+    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top12.dot"))
     addPass(genCtrl, controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable. Duplicate parent counter chain if no dependency
     addPass(genCtrl, irCheck)
 

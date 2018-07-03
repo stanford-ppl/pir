@@ -213,12 +213,11 @@ trait PlastisimUtil extends PIRPass {
     val cuP = globalOf(n).get
     topS match {
       case topS if isAsic(topS) => Some(Math.max(1, cuP.collectDown[StageDef]().size))
-      case topS if pirMap.isLeft => None
+      case topS => None
         mappedTo[Routable](cuP, pmap).map {
           case cuS:MC => 100
           case cuS:CU => cuS.param.simdParam.map { _.stageParams.size }.getOrElse(1)
         }
-      case topS => None
     }
   }
 

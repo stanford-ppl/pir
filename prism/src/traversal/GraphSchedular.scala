@@ -21,6 +21,11 @@ trait GraphSchedular extends GraphTraversal { self =>
     traverseNodes(ns.toList, zero)
   }
 
+  def scheduleNodesInScope(scope:List[N], ns: Iterable[N]) = {
+    resetTraversal
+    traverseNodesInScope(scope, ns.toList, zero)
+  }
+
   def scheduleScope(n:N):List[N] = {
     resetTraversal
     this match {

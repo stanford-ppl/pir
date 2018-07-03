@@ -145,6 +145,9 @@ trait AccessUtil {
     mem.collect[LocalLoad](visitFunc=mem.visitGlobalOut, depth=2)
   }
 
+  def inAccessesOf(mem:Memory):List[LocalAccess] = resetersOf(mem) ++ writersOf(mem)
+  def outAccessesOf(mem:Memory):List[LocalAccess] = readersOf(mem)
+
   def accessesOf(mem:Memory):List[LocalAccess] = writersOf(mem) ++ readersOf(mem) ++ resetersOf(mem)
 
 }
