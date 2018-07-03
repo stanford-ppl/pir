@@ -99,7 +99,7 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def isStaticLink(mem:Memory):Boolean = {
-    assertUnify((writersOf(mem) ++ resetersOf(mem)), "isStaticLink"){
+    assertUnify(inAccessesOf(mem), "isStaticLink"){
       case Def(n, LocalStore(_, _, data:GlobalInput)) => 
         val port = mappedTo[MKMap.K](data).get
         isStaticLink(port)
@@ -120,7 +120,7 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def isLocalLink(mem:Memory):Boolean = {
-    assertUnify((writersOf(mem) ++ resetersOf(mem)), "isStaticLink"){
+    assertUnify(inAccessesOf(mem), "isStaticLink"){
       case Def(n, LocalStore(_, _, data:GlobalInput)) => false
       case Def(n, LocalStore(_, _, data)) => true // Local edge
       case Def(n, LocalReset(_, reset:GlobalInput)) => false
@@ -222,8 +222,7 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def ginFrom(src:NetworkNode, mem:Memory):Option[GlobalInput] = {
-    val writers = (writersOf(mem) ++ resetersOf(mem))
-    val (globalWriters, localWriters) = writers.partition {
+    val (globalWriters, localWriters) = inAccessesOf(mem).partition {
       case Def(_,LocalStore(_, _, data:GlobalInput)) => true
       case Def(_,LocalReset(_, reset:GlobalInput)) => true
       case _ => false

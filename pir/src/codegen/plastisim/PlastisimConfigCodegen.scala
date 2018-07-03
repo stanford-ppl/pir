@@ -182,10 +182,9 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         emitln(s"net = vecnet")
         // HACK: get global output of link
         val data = assertUnify(n.flatMap { mem =>
-          writersOf(mem).map { store =>
-            dataOf(store) match {
-              case gin:GlobalInput => goutOf(gin).get
-            }
+          inAccessesOf(mem).map {
+            case Def(n, LocalStore(mems, addr, data:GlobalInput)) => goutOf(data).get
+            case Def(n, LocalReset(mems, reset:GlobalInput)) => goutOf(reset).get
           }
         }, s"write data of $n") { d => d }
         val vc_id = data.id

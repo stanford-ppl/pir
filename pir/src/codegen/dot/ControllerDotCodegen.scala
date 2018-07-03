@@ -48,7 +48,7 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
         label += s"\nlevel=${n.level}"
         label += s"\nstyle=${n.style}"
       case n:Memory =>
-        (writersOf(n) ++ resetersOf(n) ++ readersOf(n)).foreach { access =>
+        (accessesOf(n)).foreach { access =>
           label += s"\n$access"
           topCtrlOf.get(access).foreach { m => label += s"\n(topCtrl=$m)" }
           itersOf.get(access).foreach { m => label += s"\n(iters=$m)" }
@@ -67,8 +67,8 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
   }
 
   def memWithSameWriteAndReadCtrl(mem:Memory) = {
-    val readCtrl = readersOf(mem).map { read => ctrlOf(read) }.toSet
-    val writeCtrl = (writersOf(mem)++resetersOf(mem)).map { write => ctrlOf(write) }.toSet
+    val readCtrl = outAccessesOf(mem).map { read => ctrlOf(read) }.toSet
+    val writeCtrl = inAccessesOf(mem).map { write => ctrlOf(write) }.toSet
     readCtrl.size==1 && readCtrl == writeCtrl
   }
 
@@ -77,8 +77,8 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
     mems.foreach { 
       case mem if memWithSameWriteAndReadCtrl(mem) =>
       case mem =>
-        readersOf(mem).foreach { access => emitEdge(mem, ctrlOf(access)) }
-        (writersOf(mem) ++ resetersOf(mem)).foreach { access => emitEdge(ctrlOf(access), mem) }
+        outAccessesOf(mem).foreach { access => emitEdge(mem, ctrlOf(access)) }
+        inAccessesOf(mem).foreach { access => emitEdge(ctrlOf(access), mem) }
     }
   }
 

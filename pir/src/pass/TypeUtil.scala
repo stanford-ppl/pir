@@ -11,6 +11,9 @@ trait TypeUtil extends ConstantPropogator with RuntimeUtil { self:Logging =>
   def pinTypeOf(n:PIRNode, logger:Option[Logging]=None):ClassTag[_<:PinType] = pir.dbgblk(logger, s"pinTypeOf($n)") {
     implicit val design = n.design.asInstanceOf[PIRDesign]
     n match {
+      case n:ControlNode => classTag[Bit]
+      case n:ResetMem => classTag[Bit]
+
       case n:Memory if isControlMem(n) => classTag[Bit]
       case n:Memory if isReg(n) => classTag[Word]
       case n:Memory => 
@@ -24,7 +27,6 @@ trait TypeUtil extends ConstantPropogator with RuntimeUtil { self:Logging =>
       case n:GlobalInput => pinTypeOf(goutOf(n).get, logger)
       case Def(n, GlobalOutput(data, valid)) => pinTypeOf(data, logger)
 
-      case n:ControlNode => classTag[Bit]
       case n:ProcessDramDenseStore => classTag[Bit]
       case n:ProcessDramSparseStore => classTag[Bit]
       case n:Primitive if getParOf(n) == 1 => classTag[Word]

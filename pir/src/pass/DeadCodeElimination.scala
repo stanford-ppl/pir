@@ -103,12 +103,12 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
       val mems = cu.collectDown[Memory]()
       mems.foreach { mem =>
         mem match {
-          case mem if (writersOf(mem) ++ resetersOf(mem)).isEmpty =>
-            warn(s"${qtype(mem)} in $cu does not have writer")
+          case mem if inAccessesOf(mem).isEmpty =>
+            warn(s"${qtype(mem)} in $cu does not have writer or reseter")
           case _ =>
         }
         mem match {
-          case mem if readersOf(mem).isEmpty =>
+          case mem if outAccessesOf(mem).isEmpty =>
             warn(s"${qtype(mem)} in $cu does not have reader")
           case _ =>
         }
