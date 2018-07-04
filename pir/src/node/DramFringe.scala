@@ -57,4 +57,10 @@ trait DramFringeUtil {
     case n:FringeSparseStore => true
     case n => false
   }
+
+  def isDenseFringe(n:GlobalContainer) = n match {
+    case n:FringeDenseLoad => true
+    case n:FringeDenseStore => true
+    case n => false
+  }
 }

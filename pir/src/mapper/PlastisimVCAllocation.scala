@@ -10,7 +10,7 @@ import prism.collection.immutable
 class PlastisimVCAllocation(implicit compiler: PIR) extends PIRPass with PlastisimUtil with MappingLogger with BackTrackingMatch {
   import pirmeta._
   
-  lazy val topParam = compiler.arch.designParam.topParam.asInstanceOf[DynamicGridTopParam]
+  override lazy val topParam = compiler.arch.designParam.topParam.asInstanceOf[DynamicGridTopParam]
 
   override def runPass:Unit =  {
     if (!isDynamic(compiler.arch.top)) return

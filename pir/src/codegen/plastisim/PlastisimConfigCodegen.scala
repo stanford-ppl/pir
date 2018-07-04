@@ -63,28 +63,33 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
 
   def emitNetworkNode(n:NetworkNode) = {
     val cuP = globalOf(n).get
-    emitNodeBlock(s"node ${quote(n)} # ${quote(cuP)}") {
+    val nodeType = cuP match {
+      case n:DramFringe => s"dramnode"
+      case n => s"node"
+    }
+    emitNodeBlock(s"$nodeType ${quote(n)} # ${quote(cuP)}") {
       emitNodeSpecs(n)
       emitInLinks(n)
       emitOutLinks(n)
     }
   }
 
+  lazy val bytePerWord = topParam.wordWidth / 8
+
   def emitNodeSpecs(n:ContextEnable) = {
     val cuP = globalOf(n).get
     cuP match {
-      case cuP:FringeDenseLoad if PIRConfig.enableTrace =>
+      case cuP:DramFringe if isDenseFringe(cuP) & PIRConfig.enableTrace =>
         val size = cuP.collectDown[StreamOut]().filter { _.field == "size" }.head
         val offset = cuP.collectDown[StreamOut]().filter { _.field == "offset" }.head
-        emitln(s"dram_cmd_tp=dense_load")
+        cuP match {
+          case cuP:FringeDenseLoad => emitln(s"dram_cmd_tp=dense_load")
+          case cuP:FringeDenseStore => emitln(s"dram_cmd_tp=dense_store")
+        }
         emitln(s"offset_trace = traces/${dataOf(writersOf(offset).head)}.trace")
         emitln(s"size_trace = traces/${dataOf(writersOf(size).head)}.trace")
-      case cuP:FringeDenseStore if PIRConfig.enableTrace =>
-        val size = cuP.collectDown[StreamOut]().filter { _.field == "size" }.head
-        val offset = cuP.collectDown[StreamOut]().filter { _.field == "offset" }.head
-        emitln(s"dram_cmd_tp=dense_store")
-        emitln(s"offset_trace = traces/${dataOf(writersOf(offset).head)}.trace")
-        emitln(s"size_trace = traces/${dataOf(writersOf(size).head)}.trace")
+        val par = ctrlOf(ctxEnOf(cuP).get).asInstanceOf[DramController].par
+        emitln(s"out_token_size = ${par * bytePerWord}")
       case FringeStreamIn(streamIn, streamInDef) =>
         val counts:Long = countsOf.get(streamIn).flatten.getOrElse(-1)
         emitln(s"start_at_tokens = ${counts} # number of stream inputs")
@@ -118,7 +123,6 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
 
   def emitNetwork = {
     if (isDynamic(topS)) {
-      val topParam = compiler.arch.designParam.topParam
       val networkParams = topParam match {
         case topParam:DynamicGridTopParam => topParam.networkParams
         case topParam:DynamicCMeshTopParam => topParam.networkParams
@@ -211,7 +215,12 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   def emitInLinks(n:NetworkNode) = dbgblk(s"emitInLinks($n)") {
     inlinksOf(n).zipWithIndex.foreach { case ((link, reads), idx) =>
       emitln(s"link_in[$idx] = ${quote(link)}")
-      emitln(s"scale_in[$idx] = ${constItersOf(reads)}")
+      globalOf(n).get match {
+        case cuP:DramFringe if PIRConfig.enableTrace =>
+          emitln(s"scale_in[$idx] = 1")
+        case cuP =>
+          emitln(s"scale_in[$idx] = ${constItersOf(reads)}")
+      }
       emitln(s"buffer[$idx]=${bufferSizeOf(reads).get}")
     }
   }
@@ -219,7 +228,12 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   def emitOutLinks(n:NetworkNode) = dbgblk(s"emitOutLinks($n)") {
     outlinksOf(n).zipWithIndex.foreach { case ((link, writes), idx) =>
       emitln(s"link_out[$idx] = ${quote(link)}")
-      emitln(s"scale_out[$idx] = ${constItersOf(writes)}")
+      globalOf(n).get match {
+        case cuP:DramFringe if PIRConfig.enableTrace =>
+          emitln(s"scale_out[$idx] = 1")
+        case cuP =>
+          emitln(s"scale_out[$idx] = ${constItersOf(writes)}")
+      }
     }
   }
 

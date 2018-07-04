@@ -14,8 +14,9 @@ trait PlastisimUtil extends PIRPass {
   type Link = linkGroupOf.V
 
   lazy val topS = compiler.arch.design.top
+  lazy val topParam = topS.param
 
-  lazy val (numRows, numCols) = compiler.arch.designParam.topParam match {
+  lazy val (numRows, numCols) = topParam match {
     case param:StaticGridTopParam => (param.numRows, param.numCols)
     case param:DynamicGridTopParam => (param.numTotalRows, param.numTotalCols)
     case param:StaticCMeshTopParam => (param.numRows, param.numCols)
@@ -173,9 +174,7 @@ trait PlastisimUtil extends PIRPass {
     topS match {
       case topS if isAsic(topS) => Some(10) // as large as possible
       case topS =>
-        mappedTo[Routable](cuP, pmap).map { cuS =>
-          bufferSizeOf(memP, cuP, cuS)
-        }
+        mappedTo[Routable](cuP, pmap).map { cuS => bufferSizeOf(memP, cuP, cuS) }
     }
   }
 
