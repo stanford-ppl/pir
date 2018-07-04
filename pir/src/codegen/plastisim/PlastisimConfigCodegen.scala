@@ -64,7 +64,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   def emitNetworkNode(n:NetworkNode) = {
     val cuP = globalOf(n).get
     val nodeType = cuP match {
-      case n:DramFringe => s"dramnode"
+      case n:DramFringe if PIRConfig.enableTrace => s"dramnode"
       case n => s"node"
     }
     emitNodeBlock(s"$nodeType ${quote(n)} # ${quote(cuP)}") {
