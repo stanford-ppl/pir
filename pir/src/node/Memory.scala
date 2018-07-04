@@ -66,6 +66,8 @@ trait MemoryUtil {
     case _ => false
   }
 
+  def isLocalMem(n:PIRNode) = !isRemoteMem(n)
+
   def isControlMem(n:Memory) = n match {
     case n:TokenIn => true
     case n:TokenOut => true

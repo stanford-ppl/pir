@@ -38,12 +38,6 @@ class PIRMetadata extends Metadata {
   }
   isAccum.setName("isAccum")
 
-  /*
-   * Whether a memory is a accumulator and all of its accesses shares the same controller. Set by memory analyzer
-   * */
-  val isInnerAccum = new OneToOneMap[Memory, Boolean] with MetadataMap
-  isInnerAccum.setName("isInnerAccum")
-
   /* 
    * For ComputeNode: Controller associated with a node. 
    * For memory, it's the lca controller of controller of all its
@@ -101,6 +95,16 @@ class PIRMetadata extends Metadata {
     override def mirror(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {}
   }
   countsOf.setName("countsOf")
+
+
+  /* 
+   * If a node is mirrored, originOf points to the original copy
+   * */
+  val originOf = new OneToOneMap[PIRNode, PIRNode] with MetadataMap { // Many to one
+    override def mirror(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {}
+    def bmap(v:V) = map.flatMap { case (k, `v`) => Some(k); case _ => None }.toSet
+  }
+  originOf.setName("originOf")
 
   /* ------------- Plastsim metadata (start) ---------- */
   val linkGroupOf = new OneToOneMap[Memory, Set[Memory]] with MetadataMap

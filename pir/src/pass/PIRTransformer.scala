@@ -7,17 +7,6 @@ import scala.collection.mutable
 abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWorld with prism.traversal.GraphTransformer {
   import pirmeta._
 
-  override def reset = {
-    super.reset
-    mirrorMapping.clear
-  }
-
-  override def removeNode(node:N) = {
-    super.removeNode(node)
-    pirmeta.removeAll(node)
-    dbg(s"removeNode($node)")
-  }
-
   override def mirrorX[T](x:T, mapping:mutable.Map[N,N]=mutable.Map.empty)(implicit design:Design):T = {
     x match {
       case x:PIRNode =>
@@ -52,8 +41,8 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
               super.mirrorX(x, mapping)
             case n => super.mirrorX(x, mapping)
           }
-          dbg(s"mirror ${qdef(x)}")
-          dbg(s"to ${qdef(m)}")
+          originOf(m) = x
+          dbg(s"mirror ${qdef(x)} to ${qdef(m)}")
           m
         }}).asInstanceOf[T]
       case x => super.mirrorX(x, mapping)
@@ -82,28 +71,30 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     }
   }
 
-  val mirrorMapping = mutable.Map[Container, mutable.Map[N,N]]()
-
   def mirrored[T<:N](
     node:T, 
     container:Option[Container]=None, 
-    init:mutable.Map[N,N]=mutable.Map.empty,
+    init:Map[N,N]=Map.empty,
+    mapping:mutable.Map[N,N]=mutable.Map.empty,
     mirrorRule:MirrorRule = NoneMatchRule
   ):(T, Set[N]) = {
-    val mapping = container.fold {
-      mutable.Map[N,N]()
-    } { container =>
-      mirrorMapping.getOrElseUpdate(container, mutable.Map[N,N]())
-    }
     mapping ++= init
+    container.foreach {
+      _.descendents.foreach { 
+        case m if originOf.contains(m) => mapping += originOf(m) -> m
+        case n =>
+      }
+    }
     val origValues = mapping.values.toSet
     val m = mirrorX(node, mapping)
     // Moving newly created nodes into container
-    val newNodes = (mapping.values.toSet diff mapping.keys.toSet diff origValues).collect { case n:N => n}.filter(_.parent.fold(true)(_.isInstanceOf[Top]))
+    val newNodes = mapping.values.toSet diff mapping.keys.toSet diff origValues
     container.foreach { container =>
       newNodes.foreach { m => 
-        m.setParent(container)
-        dbg(s"${qtype(container)} add ${qtype(m)}")
+        if (m.parent.isEmpty || m.parent.get.isInstanceOf[Top]) {
+          m.setParent(container)
+          dbg(s"${qtype(container)} add ${qtype(m)}")
+        }
       }
     }
     // Mirror metadata
@@ -112,17 +103,17 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
       case (n, m) if mirrorRule.isDefinedAt(n) => mirrorRule.mirror(n, m)
       case (n, m) => pirmeta.mirror(n, m)
     }
-    init ++= mapping
     (m, newNodes)
   }
 
   def mirror[T<:N](
     node:T, 
     container:Option[Container]=None, 
-    init:mutable.Map[N,N]=mutable.Map.empty,
+    init:Map[N,N]=Map.empty,
+    mapping:mutable.Map[N,N]=mutable.Map.empty,
     mirrorRule:MirrorRule = NoneMatchRule
   ):T = {
-    mirrored(node, container, init, mirrorRule)._1
+    mirrored(node, container, init, mapping, mirrorRule)._1
   }
 
   def retimerOf(x:Def, cu:GlobalContainer) = {
@@ -209,5 +200,12 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     dbg(s"swapOutputs($node, $from, $to)")
     super.swapOutputs(node, from, to)
   }
+
+  override def removeNode(node:N) = {
+    super.removeNode(node)
+    pirmeta.removeAll(node)
+    dbg(s"removeNode($node)")
+  }
+
 }
 

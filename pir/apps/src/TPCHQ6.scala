@@ -380,7 +380,7 @@ object TPCHQ6 extends PIRApp {
     val x2957 = OpDef(op=BitOr, inputs=List(b1271, b1272)).name("x2957").ctrl(x2962).srcCtx("TPCHQ6.scala:63:8") // Or(b1271,b1272)
     val x2958 = ReadMem(x2725_d1).name("x2958").ctrl(x2962).srcCtx("TPCHQ6.scala:63:8") // RegRead(x2725)
     val x2959 = OpDef(op=FixEql, inputs=List(b1269, Const(0))).name("x2959").ctrl(x2962).srcCtx("TPCHQ6.scala:63:8") // FixEql(b1269,Const(0))
-    val x2960 = ReduceAccumOp(op=FixAdd, input=x2956, accum=x2958).name("x2960").ctrl(x2962).srcCtx("TPCHQ6.scala:63:10") // FixAdd(x2956,x2958)
+    val x2960 = OpDef(op=FixAdd, inputs=List(x2956, x2958)).name("x2960").ctrl(x2962).srcCtx("TPCHQ6.scala:63:10") // FixAdd(x2956,x2958)
     val x2961_x2725_d0 = WriteMem(x2725_d0, x2960).name("x2961_x2725_d0").ctrl(x2962).srcCtx("TPCHQ6.scala:63:8") // RegWrite(x2725,x2960,Const(true))
     val x2961_x2725_d1 = WriteMem(x2725_d1, x2960).name("x2961_x2725_d1").ctrl(x2962).srcCtx("TPCHQ6.scala:63:8") // RegWrite(x2725,x2960,Const(true))
     val x2966 = UnitController(style=SeqPipe, level=InnerControl).name("x2966").ctrl(x2967).srcCtx("TPCHQ6.scala:39:11") // UnitPipe(List(Const(true)),Block(Const(())))

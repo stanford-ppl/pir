@@ -100,6 +100,13 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         }
       case cuP =>
         emitln(s"lat = ${latencyOf(n).get}")
+        val accums = inMemsOf(n).filter { mem => isAccum(mem) }
+        assertOneOrLess(accums, s"accum").foreach { accum =>
+          //HACK: set token to 1 to allow accumulator start the first run
+          if (inAccessesOf(accum).size <= 1) {
+            emitln(s"start_at_tokens = 1 # accum=$accum")
+          }
+        }
     }
   }
 

@@ -41,7 +41,8 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
         addrOf(n).foreach { addr => label += s"\naddr=${addr}" }
       }
       inlinksOf(n).foreach { case (link, reads) =>
-        label += s"\n${quote(link)}"
+        val accums = link.filter { mem => isAccum(mem) }
+        label += s"\n${quote(link)} ${if (accums.nonEmpty) "(isAccum)" else "" }"
         getItersOf(reads).foreach { sin => label += s"\n[sin=$sin]" }
         bufferSizeOf(reads).foreach { bs => label += s"\n[bs=$bs]" }
       }

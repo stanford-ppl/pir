@@ -97,7 +97,7 @@ abstract class IgraphCodegen(global:GlobalContainer)(implicit compiler:PIR) exte
   }
 
   def getResult = {
-    (vertices, getLines(resultPath)).zipped.map { case (vertex, line) =>
+    (vertices, getLines(resultPath).toList).zipped.map { case (vertex, line) =>
       val k::v::_ = line.trim.split("=").toList
       assert(k == s"$vertex", s"key=$k, vertex=$vertex")
       val mb = v.toInt

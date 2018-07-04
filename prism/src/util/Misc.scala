@@ -89,10 +89,14 @@ trait Misc {
       processLambda.fold {
         command #> new java.io.File(logFile) !
       } { lambda =>
-        command #| s"tee $logFile" ! ProcessLogger (lambda)
+        val exitCode:Int = command #> new java.io.File(logFile) !
+
+        getLines(logFile).foreach(lambda)
+        exitCode
       }
     }
     if (exitCode != 0) err(s"failed $command", false)
     exitCode
   } 
+
 }

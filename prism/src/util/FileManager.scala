@@ -102,6 +102,6 @@ trait FileManager {
     new File(path).exists
   }
 
-  def getLines(path:String) = Source.fromFile(path).getLines.toArray
+  def getLines(path:String) = Source.fromFile(path).getLines
 
 }

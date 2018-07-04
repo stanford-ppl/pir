@@ -27,7 +27,7 @@ case class OpDef(op:Op, inputs:List[Def])(implicit design:PIRDesign) extends Sta
 case class ReduceAccumOp(op:Op, input:Def, accum:Def)(implicit design:PIRDesign) extends StageDef
 // Lowered
 case class ReduceOp(op:Op, input:Def)(implicit design:PIRDesign) extends StageDef
-case class AccumOp(op:Op, input:Def/*, accum:Def*/)(implicit design:PIRDesign) extends StageDef
+case class AccumOp(op:Op, input:Def, init:Option[AnyVal])(implicit design:PIRDesign) extends StageDef
 
 // IR's doesn't matter in spatial. such as valid for counters. Should be dead code eliminated
 case class DummyOp()(implicit design:PIRDesign) extends Def

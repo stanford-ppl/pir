@@ -12,9 +12,10 @@ class UnrollingTransformer(implicit compiler:PIR) extends PIRTransformer with Si
     super.visitNode(node)
   }
 
+
   def transform(n:N):N = {
     n match {
-      case Def(n:ReduceAccumOp, ReduceAccumOp(op, input, accum)) =>
+      case Def(n:ReduceAccumOp, ReduceAccumOp(op, input, LocalLoad((accum:Reg)::Nil, None))) =>
         val numReduceStages = (Math.log(getParOf(ctrlOf(n))) / Math.log(2)).toInt
         dbg(s"numReduceStages=$numReduceStages")
         var reduceInput = input
@@ -23,9 +24,47 @@ class UnrollingTransformer(implicit compiler:PIR) extends PIRTransformer with Si
           ctrlOf(reduceInput) = ctrlOf(n)
         }
         lowerNode(n) {
-          val accum = AccumOp(op=op, input=reduceInput)
-          ctrlOf(accum) = ctrlOf(n)
-          accum
+          val accumOp = AccumOp(op=op, input=reduceInput, accum.init)
+          ctrlOf(accumOp) = ctrlOf(n)
+          accumOp
+        }
+      case Def(n:ReduceAccumOp, ReduceAccumOp(op, input, accum)) =>
+        err(s"ReduceAccumOp $n on non register type!")
+        n
+      case Def(n:OpDef, OpDef(op:Op, inputs:List[Def])) =>
+        def visitIn(n:N):List[N] = n match {
+          case n:Counter => Nil
+          case n:CounterIter => Nil
+          case n:Memory => Nil
+          case n => visitGlobalIn(n)
+        }
+        def visitOut(n:N):List[N] = n match {
+          case n:Counter => Nil
+          case n:CounterIter => Nil
+          case n:Memory => Nil
+          case n => visitGlobalOut(n)
+        }
+        val inMems = n.collect[Memory](visitFunc=visitIn).filter { mem => isAccum(mem) }.toSet
+        val outMems = n.collect[Memory](visitFunc=visitOut).filter { mem => isAccum(mem) }.toSet
+        val accums = inMems.intersect(outMems)
+        assertOneOrLess(accums, s"accums").fold[Def]{
+          n
+        } { accum =>
+          dbgblk(s"Lower accumOp ${qdef(n)} acum=$accum") {
+            accum match {
+              case accum:Reg => 
+                lowerNode[Def](n) {
+                  val input = assertOne(inputs.filterNot { input =>
+                    input.collectInTillMem[Memory]().contains(accum)
+                  }, s"accumInput")
+                  val accumOp = AccumOp(op=op, input=input, accum.init)
+                  ctrlOf(accumOp) = ctrlOf(n)
+                  accumOp
+                }
+              case accum if isRemoteMem(accum) => n
+              case accum => err(s"unexpected accumulator type $accum"); n
+            }
+          }
         }
       case n => n
     }

@@ -4,6 +4,9 @@ package codegen
 import pir.node._
 
 class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) extends PIRIRDotCodegen(fileName) {
+
+  import pirmeta._
+
   override val horizontal:Boolean = false
 
   override def color(attr:DotAttr, n:Any) = n match {
@@ -52,7 +55,12 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
   override def label(attr:DotAttr, n:Any) = {
     var label = super.label(attr, n).label.get
     n match {
-      case n:GlobalContainer => label += s"\ncuType=${cuType(n).get}"
+      case n:GlobalContainer => 
+        label += s"\ncuType=${cuType(n).get}"
+        val accums = n.children.collect { case mem:Memory if isRemoteMem(mem) && isAccum(mem) => mem }
+        if (accums.nonEmpty) {
+          label += s"\nisAccum=true"
+        }
       case n =>
     }
     attr.label(label)

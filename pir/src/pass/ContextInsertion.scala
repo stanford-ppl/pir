@@ -29,27 +29,44 @@ class ContextInsertion(implicit compiler:PIR) extends PIRTransformer with Siblin
   }
 
   def insertContext(n:GlobalContainer):Unit = dbgblk(s"insertContext($n)"){
-    val outs = n.children.filter { exp => schedular.depFunc(exp).isEmpty }
+
+    // Prevent mirror the writers
+    val inAccesses = n.children.collect { case mem:Memory => inAccessesOf(mem) }.flatten.toSeq
+    val init = inAccesses.map { a => (a.asInstanceOf[N],a.asInstanceOf[N]) }.toMap
+
+    def insertContext(n:GlobalContainer, outs:List[N]):Unit = {
+      val exps = schedular.scheduleNodesInScope(n.children, outs)
+      dbg(s"outs=$outs exps=$exps")
+      val context = ComputeContext().setParent(n)
+      val (mems, others) = exps.partition { _.isInstanceOf[Memory] }
+      var toCtx = others
+      val mapping = mutable.Map[N,N]() ++ init
+      others.foreach { exp =>
+        exp.deps.filter { dep => within[ComputeContext](dep) && dep.isDescendentOf(n) }.foreach { dep =>
+          val (mdep, ms) = mirrored(dep, mapping=mapping, container=Some(n)) 
+          swapConnection(exp.asInstanceOf[Def], dep.out, mdep.out)
+          toCtx ++= ms.filter { 
+            case m:Memory => false
+            case m if m.parent == Some(n) => true
+            case m => false
+          }
+        }
+      }
+      toCtx.foreach { exp => swapParent(exp, context) }
+      mems.flatMap { mem => inAccessesOf(mem.asInstanceOf[Memory]) }.foreach { out =>
+        insertContext(n, List(out))
+      }
+    }
+
+    val outs = n.children.filter { exp => 
+      val isOutput = exp.depeds.exists { !_.isDescendentOf(n) }
+      val noDependency = exp.depeds.isEmpty
+      isOutput || noDependency
+    }
     outs.groupBy { out => ctrlOf(out) }.foreach { case (ctrl, outs) =>
       insertContext(n, outs)
     }
   }
 
-  def insertContext(n:GlobalContainer, outs:List[N]):Unit = {
-    val exps = schedular.scheduleNodesInScope(n.children, outs)
-    dbg(s"outs=$outs exps=$exps")
-    val context = ComputeContext().setParent(n)
-    val (mems, others) = exps.partition { _.isInstanceOf[Memory] }
-    others.foreach { exp =>
-      exp.deps.filter { dep => within[ComputeContext](dep) && dep.isDescendentOf(n) }.foreach { dep =>
-        val (mdep, ms) = mirrored(dep, Some(context)) 
-        swapConnection(exp.asInstanceOf[Def], dep.out, mdep.out)
-      }
-      swapParent(exp, context)
-    }
-    mems.flatMap { mem => inAccessesOf(mem.asInstanceOf[Memory]) }.foreach { out =>
-      insertContext(n, List(out))
-    }
-  }
 
 }
