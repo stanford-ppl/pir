@@ -23,7 +23,7 @@ class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner with Debugg
     codegen.run
     val vertexMap = codegen.getResult // Node -> Partition
     val partitionMap = revertMap(vertexMap) // Partition -> Node
-    var partitions = List.fill(partitionMap.keys.size) { mirror(cu, Some(compiler.top)) }
+    var partitions = List.fill(partitionMap.keys.size) { mirror(cu, None).setParent(compiler.top) }
     dbgblk(s"partitionResult") {
       partitionMap.foreach { case (p, vertices) =>
         val cu = partitions(p)
@@ -49,7 +49,7 @@ class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner with Debugg
   // Example P4 on DMeshCB4x4
   // Fixing cycle by continuously moving nodes needed by the large cu in to the large cu
   def fixCycle(partitions:List[GlobalContainer]):List[GlobalContainer] = {
-    assert(partitions.size==2) // For now assume always 2 partitions
+    assert(partitions.size==2, s"partition size != 2 $partitions") // For now assume always 2 partitions
     val cu1::cu2::Nil = partitions
     val deps1 = cu1.deps.filter { _.isDescendentOf(cu2) }
     val deps2 = cu2.deps.filter { _.isDescendentOf(cu1) }
