@@ -31,9 +31,8 @@ class MemoryAnalyzer(implicit compiler:PIR) extends SiblingFirstTraversal with U
     val topCtrls = leastMatchedPeers(accessCtrls, Some(lcaCtrl)).get
     accesses.foreach { access =>
       val topCtrl = topCtrls(ctrlOf(access))
-      val newAccess = access
-      topCtrlOf(newAccess) = topCtrl
-      topCtrlOf.info(newAccess).foreach(dbg)
+      topCtrlOf(access) = topCtrl
+      topCtrlOf.info(access).foreach(dbg)
     }
   }
 

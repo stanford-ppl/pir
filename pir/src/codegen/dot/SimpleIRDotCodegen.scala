@@ -34,6 +34,8 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
     dbg(s"from:${from.src}[$fromPinType], to:${to.src}[$toPinType]")
     (from.src, to.src.asInstanceOf[N]) match {
       case (fromsrc, Def(tosrc, LocalAccess(_, Some(addrs)))) if (addrs.contains(fromsrc)) =>
+      case (fromsrc:Memory, tosrc:LocalAccess) =>
+      case (fromsrc:LocalAccess, tosrc:Memory) =>
       case (fromsrc, tosrc) =>
         assert(fromPinType == toPinType, s"from:${fromsrc}[$fromPinType], to:${tosrc}[$toPinType]")
     }
