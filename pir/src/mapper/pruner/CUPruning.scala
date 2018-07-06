@@ -8,6 +8,7 @@ import scala.collection.mutable
 
 class CUPruning(implicit compiler:PIR) extends PIRPass with CUPruner {
   import pirmeta._
+  import PIRConfig._
 
   if (isStatic(designS) || isDynamic(designS)) {
     //constrains += new CUArcConsistencyConstrain
@@ -26,6 +27,11 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with CUPruner {
       case f:CostConstrainFailure[_] => fail(s"CostConstrainFailure: ${f.key}\n${f.keyCost}")
       case f:MappingFailure => fail(f)
     }
+  }
+
+  override def fail(f:Any):Unit = {
+    if (enableMapping) super.fail(f)
+    else warn(s"$f")
   }
 
 }

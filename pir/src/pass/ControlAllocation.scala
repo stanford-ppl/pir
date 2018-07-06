@@ -11,7 +11,6 @@ class ControlAllocation(implicit compiler:PIR) extends ControlAnalysis with Sibl
 
   override def visitNode(n:N):Unit = {
     n match {
-      case n:EnabledAccess => super.visitNode(n)
       case n:LocalAccess => super.visitNode(transformAccess(n))
       case n => super.visitNode(n)
     }
@@ -131,6 +130,7 @@ class ControlAllocation(implicit compiler:PIR) extends ControlAnalysis with Sibl
 
   def transformAccess(n:LocalAccess) = lowerNode(n) { dbgblk(s"lower Node ${qdef(n)}") {
     n match {
+      case n:EnabledAccess => n
       case Def(n:LocalLoad, LocalLoad(mem::Nil, addr)) =>
         EnabledLoadMem(mem, addr, getAccessNext(n, mem, contextOf(n).get))
       case Def(n:LocalStore, LocalStore(mem::Nil, addr, data)) =>
