@@ -59,7 +59,7 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
 
   override def emitSingleNode(n:N):Unit = {
     ctrlOf.foreach { 
-      case (mem:Memory, `n`) if memWithSameWriteAndReadCtrl(mem) =>
+      case (mem:RetimingFIFO, `n`) if memWithSameWriteAndReadCtrl(mem) =>
       case (mem:Memory, `n`) => emitSingleNode(mem)
       case _ => 
     }
@@ -75,7 +75,7 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
   override def emitEdges = {
     val mems = compiler.top.collectDown[Memory]()
     mems.foreach { 
-      case mem if memWithSameWriteAndReadCtrl(mem) =>
+      case mem:RetimingFIFO if memWithSameWriteAndReadCtrl(mem) =>
       case mem =>
         outAccessesOf(mem).foreach { access => emitEdge(mem, ctrlOf(access)) }
         inAccessesOf(mem).foreach { access => emitEdge(ctrlOf(access), mem) }

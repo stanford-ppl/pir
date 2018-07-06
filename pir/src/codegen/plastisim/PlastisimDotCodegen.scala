@@ -16,7 +16,7 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
   }
 
   override def emitNode(n:N) = n match {
-    case n:NetworkNode if within[ArgFringe](n) => super.visitNode(n)
+    //case n:NetworkNode if within[ArgFringe](n) => super.visitNode(n)
     case n:NetworkNode => emitSingleNode(n)
     case n:ArgFringe => super.visitNode(n)
     case n:GlobalContainer => emitSubGraph(n) { super.visitNode(n) }
