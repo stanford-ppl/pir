@@ -363,7 +363,7 @@ def eval(op:Op, ins:List[Any]):Any = {
     case (MuxOp    , ToBool(true)::a::b::_)     => a
     case (MuxOp    , ToBool(false)::a::b::_)    => b
 
-    case (op, ins) => throw new Exception(s"Don't know how to evaluate " + op + " ins=" + ins)
+    case (op, ins) => throw new Exception("Don't know how to evaluate " + op + " ins=" + ins)
   }
 }
 """)
