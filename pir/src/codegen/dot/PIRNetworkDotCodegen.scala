@@ -23,7 +23,6 @@ class PIRNetworkDotCodegen[B<:PinType:ClassTag](fileName:String, mapping: => Any
   }
 
   override val dirName = compiler.outDir
-  override val relativeOutDir = compiler.relativeOutDir
 
   override def color(attr:DotAttr, n:Any) = n match {
     case n:Routable if isMapped(n, mapping) => super.color(attr, n)

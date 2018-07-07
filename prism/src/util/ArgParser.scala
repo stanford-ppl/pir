@@ -23,7 +23,6 @@ trait ArgParser {
     optionMap += key -> ArgOption(key, default, info)
   }
   def register[T:ClassTag](key:String, default:T, info:String):Unit = register(key, Some(default), info)
-  def register[T:ClassTag](key:String, default:T):Unit = register(key, Some(default), "")
   def register[T:ClassTag](key:String, info:String):Unit = register(key, None, info)
   def register[T:ClassTag](key:String):Unit = register(key, None, "")
 

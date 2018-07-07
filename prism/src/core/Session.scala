@@ -55,13 +55,14 @@ class Session extends Serializable {
   }
 
   var currRun:Runner[_] = _
-  def run(implicit compiler:Compiler) = {
+  def run(implicit compiler:Compiler):Boolean = {
     passes.foreach { case (pass, _) => pass.reset }
     runners.foreach { runner =>
       if (compiler.save && runner.id==savingCheckPoint) compiler.saveDesign
       currRun = runner
       runner.run
     }
+    val succeed = runners.forall { !_.failed }
     if (compiler.save) {
       if (savingCheckPoint == -1) {
         compiler.saveDesign
@@ -69,6 +70,7 @@ class Session extends Serializable {
       }
       saveSession(compiler.sessionPath)
     }
+    succeed
   }
 
   def hasRun(pass:Pass):Boolean = passes(pass).exists(_.hasRun)

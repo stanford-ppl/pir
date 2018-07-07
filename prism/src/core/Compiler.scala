@@ -11,8 +11,13 @@ trait Compiler extends FileManager with ArgLoader {
 
   def name = getClass().getSimpleName().replace("$", "")
   override def toString = name
-  def relativeOutDir = buildPath(Config.relativeOutDir,name)
-  def outDir = buildPath(Config.outDir, name)
+
+  lazy val outDir = Config.outDir.getOrElse {
+    val pir_home = Config.PIR_HOME.getOrElse(throw PIRException(s"Please define PIR_HOME or provide output directory with --out"))
+    s"$pir_home${separator}out$separator$name"
+  }
+  lazy val sessionPath = s"${outDir}${separator}${name}.sess"
+  val designPath:String
 
   var session:Session = _
 
@@ -24,8 +29,6 @@ trait Compiler extends FileManager with ArgLoader {
   } 
 
   def handle(e:Exception):Unit
-
-  val sessionPath = s"${outDir}${separator}${name}.sess"
 
   val configs:List[GlobalConfig]
 
@@ -45,7 +48,6 @@ trait Compiler extends FileManager with ArgLoader {
   def load:Boolean
   def save:Boolean
 
-  val designPath:String
   def loadDesign = design = loadFromFile[D](designPath)
   def newDesign:Unit
   def saveDesign:Unit = saveToFile(design, designPath)
@@ -77,20 +79,21 @@ trait Compiler extends FileManager with ArgLoader {
     }
   }
 
-  def runSession = session.run
+  final def runSession:Boolean = session.run
 
   def main(args: Array[String]): Unit = {
-    tic
+    var succeed = false
     try {
-      reset
       setArgs(args)
+      reset
+      info(s"Output directory set to ${cstr(Console.CYAN,outDir)}")
       startSession
-      runSession
+      succeed = runSession
     } catch { 
       case e:Exception =>
         err(e, exception=false)
         handle(e)
     }
-    toc(s"compilation", "s")
+    if (!succeed) System.exit(1)
   }
 }

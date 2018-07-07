@@ -8,7 +8,10 @@ abstract class TestDesign extends Design {
   val top:TestSubGraph
   val compiler = new Compiler {
     type D = TestDesign
-    override def outDir = Config.outDir + File.separator + TestDesign.this.getClass.getSimpleName
+    override lazy val outDir = Config.outDir.getOrElse {
+      val pir_home = Config.PIR_HOME.getOrElse(throw PIRException(s"Please define PIR_HOME or provide output directory with --out"))
+      s"$pir_home${separator}out${separator}${TestDesign.this.getClass.getSimpleName}"
+    }
     val configs = Nil
     def handle(e:Exception) = {}
     def load = false

@@ -40,7 +40,8 @@ trait FileManager {
     file.delete
   }
 
-  def copyFile(src: String, dst: String) = {
+  def copyFile(src: String, dst: String):Unit = {
+    if (src == dst) return
     val srcFile = new File(src)
     val dstFile = new File(dst)
     new FileOutputStream(dstFile)

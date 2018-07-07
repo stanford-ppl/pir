@@ -1,0 +1,20 @@
+#!/bin/bash
+
+logDir=out/regression/
+mkdir -p $logDir
+rm $logDir/*
+
+APPS=(DotProduct OuterProduct GDA LogReg BlackScholes GEMM_Blocked, P4)
+
+for APP in ${APPS[@]}
+do
+  bin/pir $APP $@ 2>&1 > $logDir/$APP.log &
+  pids[${i}]=$!
+done
+
+# wait for all pids
+for pid in ${pids[*]}; do
+    wait $pid
+done
+
+grep "\[fail\]\|\[error\]" $logDir/*

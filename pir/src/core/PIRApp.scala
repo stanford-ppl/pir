@@ -32,7 +32,7 @@ trait PIRApp extends PIR {
   def load = PIRConfig.loadDesign
   def save = PIRConfig.saveDesign
 
-  val designPath = s"${outDir}${separator}${name}.pir"
+  lazy val designPath = s"${outDir}${separator}${name}.pir"
 
   override def initSession   = {
     arch.setSession(this.session)

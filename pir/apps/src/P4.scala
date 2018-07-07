@@ -12,6 +12,8 @@ object P4 extends PIRApp {
     val x1272 = StreamIn(field="data").name("x1272").ctrl(top).srcCtx("SimpleP4.scala:102:43:stream_in1") // x1272 = StreamInNew(GPInput2)
     isAccum(x1272) = false
     bufferDepthOf(x1272) = 1
+    countsOf(x1271) = Some(1024l)
+    countsOf(x1272) = Some(1024l)
     val x1273 = StreamOut(field="data").name("x1273").ctrl(top).srcCtx("SimpleP4.scala:104:44:stream_out0") // x1273 = StreamOutNew(GPOutput1)
     isAccum(x1273) = false
     bufferDepthOf(x1273) = 1

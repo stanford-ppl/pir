@@ -6,11 +6,9 @@ import prism.traversal._
 trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with UnitTraversal {
 
   val dirName = compiler.outDir
-  val relativeOutDir = compiler.relativeOutDir
   val fileName:String
   val append = false
 
-  lazy val relativeOutputPath = buildPath(compiler.relativeOutDir, fileName)
   lazy val outputPath = buildPath(dirName, fileName)
 
   override def initPass = {
@@ -23,7 +21,7 @@ trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with U
   }
 
   override def epilogue(name:String, time:String) = {
-    info(s"Finished ${name} to ${cstr(Console.CYAN,buildPath(relativeOutDir, fileName))} in ${time}")
+    info(s"Finished ${name} to ${cstr(Console.CYAN,fileName)} in ${time}")
   }
 
   override def quote(n:Any):String = n match {

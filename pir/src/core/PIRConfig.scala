@@ -20,7 +20,7 @@ object PIRConfig extends prism.GlobalConfig {
   /* ------------------- Plastisim --------------------  */
   register("psim", default=true, info="Enable code generations for plastisim")
   register("run-psim", default=false, info="Launch Plastisim simulation")
-  register[String]("psim_out", info="Directory to copy psim files over")
+  register[String]("psim-out", info="Directory to copy psim files over")
   register("trace", default=false, info="Enable trace generation for simulation")
 
   def genPlastisim = option[Boolean]("psim") && genCtrl && enableMapping && enableCodegen
