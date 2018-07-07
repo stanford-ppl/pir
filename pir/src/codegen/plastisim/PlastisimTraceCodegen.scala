@@ -89,10 +89,11 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
   override def finPass = {
     super.finPass
     psimOut.foreach { psimOut =>
-      s"mkdir $psimOut/traces" !
-
+      shell(s"mkdir -p $psimOut/traces")
+      shell(s"mkdir -p $psimOut/trace_classes")
       val log = s"$dirName/trace.log"
-      shell(s"trace", s"scala ${dirName}/gen_trace.scala $psimOut/traces/", log)
+      shell(s"trace", s"scalac ${dirName}/gen_trace.scala -d $psimOut/trace_classes", log)
+      shell(s"trace", s"scala -classpath $psimOut/trace_classes tracer $psimOut/traces", log)
     }
   }
 
