@@ -3,7 +3,11 @@ package mapper
 
 import pir.node._
 
-class CUPlacer(implicit compiler:PIR) extends PIRPass with Placer with StaticDynamicPlacer with AsicPlacer {
+class CUPlacer(implicit compiler:PIR) extends PIRPass with Placer 
+  with StaticDynamicPlacer 
+  with AsicPlacer 
+  with PointToPointPlacer 
+{
   import pirmeta._
 
   override def runPass =  {

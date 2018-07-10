@@ -10,8 +10,10 @@ object DotProduct extends PIRApp {
     isAccum(x1370) = false
     bufferDepthOf(x1370) = 1
     boundOf(x1370) = 1024
+    // x1373.deps=List(x1372, x1370)
     val x1373 = ReadMem(x1370).name("x1373").ctrl(top).srcCtx("DotProduct.scala:26:21") // RegRead(x1370)
     val x1374 = DRAM(dims=List(x1373)).name("x1374").ctrl(top).srcCtx("DotProduct.scala:26:20:a") // x1374 = DRAMNew(ArrayBuffer(x1373),Const(0))
+    // x1375.deps=List(x1372, x1370)
     val x1375 = ReadMem(x1370).name("x1375").ctrl(top).srcCtx("DotProduct.scala:27:21") // RegRead(x1370)
     val x1376 = DRAM(dims=List(x1375)).name("x1376").ctrl(top).srcCtx("DotProduct.scala:27:20:b") // x1376 = DRAMNew(ArrayBuffer(x1375),Const(0))
     val x1377 = ArgOut(init=0).name("x1377").ctrl(top).srcCtx("DotProduct.scala:28:21:out") // ArgOutNew(Const(0))
@@ -117,6 +119,7 @@ object DotProduct extends PIRApp {
     val x1436 = ReadMem(x1427_d1).name("x1436").ctrl(x1440).srcCtx("DotProduct.scala:40:71") // RegRead(x1427)
     val x1437 = OpDef(op=FixEql, inputs=List(b908, Const(0))).name("x1437").ctrl(x1440).srcCtx("DotProduct.scala:40:71") // FixEql(b908,Const(0))
     val x1438 = ReduceAccumOp(op=FixAdd, input=x1435, accum=x1436).name("x1438").ctrl(x1440).srcCtx("DotProduct.scala:40:73") // FixAdd(x1435,x1436)
+    // x1439.deps=List(x1436)
     val x1439_x1427_d0 = WriteMem(x1427_d0, x1438).name("x1439_x1427_d0").ctrl(x1440).srcCtx("DotProduct.scala:40:71") // RegWrite(x1427,x1438,b857)
     val x1439_x1427_d1 = WriteMem(x1427_d1, x1438).name("x1439_x1427_d1").ctrl(x1440).srcCtx("DotProduct.scala:40:71") // RegWrite(x1427,x1438,b857)
     val x1446 = UnitController(style=SeqPipe, level=InnerControl).name("x1446").ctrl(x1447).srcCtx("DotProduct.scala:41:8") // UnitPipe(List(Const(true)),Block(x1445))
@@ -124,6 +127,7 @@ object DotProduct extends PIRApp {
     val x1442 = OpDef(op=FixEql, inputs=List(b856, Const(0))).name("x1442").ctrl(x1446).srcCtx("DotProduct.scala:41:8") // FixEql(b856,Const(0))
     val x1443 = ReadMem(x1427_d0).name("x1443").ctrl(x1446).srcCtx("DotProduct.scala:40:71") // RegRead(x1427)
     val x1444 = OpDef(op=FixAdd, inputs=List(x1443, x1441)).name("x1444").ctrl(x1446).srcCtx("DotProduct.scala:41:10") // FixAdd(x1443,x1441)
+    // x1445.deps=List(x1441)
     val x1445_x1380_d0 = WriteMem(x1380_d0, x1444).name("x1445_x1380_d0").ctrl(x1446).srcCtx("DotProduct.scala:41:8") // RegWrite(x1380,x1444,Const(true))
     val x1445_x1380_d1 = WriteMem(x1380_d1, x1444).name("x1445_x1380_d1").ctrl(x1446).srcCtx("DotProduct.scala:41:8") // RegWrite(x1380,x1444,Const(true))
     val x1450 = UnitController(style=SeqPipe, level=InnerControl).name("x1450").ctrl(x1451).srcCtx("DotProduct.scala:32:11") // UnitPipe(List(Const(true)),Block(Const(())))

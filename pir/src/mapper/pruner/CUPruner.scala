@@ -11,7 +11,7 @@ trait CUPruner extends PIRPass {
   import pirmeta._
 
   val constrains = ListBuffer[CUConstrain]()
-  if (isStatic(designS) || isDynamic(designS)) {
+  if (isStatic(designS) || isDynamic(designS) || isPointToPoint(designS)) {
     constrains += new CUCostConstrain
   }
 

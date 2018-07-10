@@ -114,6 +114,7 @@ trait PlastisimUtil extends PIRPass {
   def isStaticLink(n:Link):Boolean = {
     topS match {
       case topS if isAsic(topS) => true
+      case topS if isPointToPoint(topS) => true
       case topS if isStatic(topS) => true
       case topS if isDynamic(topS) =>
         assertUnify(n, "isStaticLink") { mem => isStaticLink(mem) }
@@ -251,12 +252,16 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def staticLatencyOf(gin:GlobalInput):Option[Int] = {
-    mappedTo[MKMap.K](gin, pmap).flatMap { port =>
-      if (isStaticLink(port)) {
-        val gout = goutOf(gin).get
-        val routes = mappedTo[List[(MKMap.K,MKMap.K)]]((gin, gout)).get
-        Some(routes.size)
-      } else None
+    topS match {
+      case topS if isPointToPoint(topS) | isAsic(topS) => Some(1)
+      case topS =>
+        mappedTo[MKMap.K](gin, pmap).flatMap { port =>
+          if (isStaticLink(port)) {
+            val gout = goutOf(gin).get
+            val routes = mappedTo[List[(MKMap.K,MKMap.K)]]((gin, gout)).get
+            Some(routes.size)
+          } else None
+        }
     }
   }
 

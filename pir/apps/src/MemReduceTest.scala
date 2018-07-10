@@ -127,6 +127,7 @@ object MemReduceTest extends PIRApp {
     val x1212 = OpDef(op=FixEql, inputs=List(b607, Const(0))).name("x1212").ctrl(x1216).srcCtx("MemReduceTest.scala:35:11") // FixEql(b607,Const(0))
     val x1213 = OpDef(op=FixAdd, inputs=List(x1207, x1209)).name("x1213").ctrl(x1216).srcCtx("MemReduceTest.scala:35:15") // FixAdd(x1207,x1209)
     val x1214 = OpDef(op=MuxOp, inputs=List(x1212, x1207, x1213)).name("x1214").ctrl(x1216).srcCtx("MemReduceTest.scala:35:11") // Mux(x1212,x1207,x1213)
+    // x1215.deps=List(x1208)
     val x1215 = StoreBanks(List(x1144_d0_b0, x1144_d1_b0), List(b671), x1214).name("x1215").ctrl(x1216).srcCtx("MemReduceTest.scala:35:11") // ParSRAMStore(x1144,List(ArrayBuffer(b671)),List(x1214),List(x1205))
     val x1240 = UnitController(style=StreamPipe, level=OuterControl).name("x1240").ctrl(x1241).srcCtx("MemReduceTest.scala:36:22") // UnitPipe(List(b599),Block(Const(())))
     val b1251 = StreamOut(field="offset").name("b1251").ctrl(x1240).srcCtx("MemReduceTest.scala:36:22") // x1218 = StreamOutNew(BurstCmdBus)

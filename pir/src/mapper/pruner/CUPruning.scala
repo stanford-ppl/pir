@@ -10,7 +10,7 @@ class CUPruning(implicit compiler:PIR) extends PIRPass with CUPruner {
   import pirmeta._
   import PIRConfig._
 
-  if (isStatic(designS) || isDynamic(designS)) {
+  if (isStatic(designS) || isDynamic(designS) || isPointToPoint(designS)) {
     //constrains += new CUArcConsistencyConstrain
     constrains += new CUMatchingConstrain
   }
