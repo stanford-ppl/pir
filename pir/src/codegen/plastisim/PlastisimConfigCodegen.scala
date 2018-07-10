@@ -16,6 +16,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     super.runPass
     linkGroupOf.values.toSet.foreach { link => emitLink(link) }
     emitNetwork
+    emitMemoryController
   }
 
   override def finPass = {
@@ -74,7 +75,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   def emitNetworkNode(n:NetworkNode) = {
     val cuP = globalOf(n).get
     val nodeType = cuP match {
-      case n:DramFringe if PIRConfig.enableTrace => s"dramnode"
+      case n:DramFringe if enableTrace => s"dramnode"
       case n => s"node"
     }
     emitNodeBlock(s"$nodeType ${quote(n)} # ${quote(cuP)}") {
@@ -89,7 +90,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   def emitNodeSpecs(n:ContextEnable) = {
     val cuP = globalOf(n).get
     cuP match {
-      case cuP:DramFringe if isDenseFringe(cuP) & PIRConfig.enableTrace =>
+      case cuP:DramFringe if isDenseFringe(cuP) & enableTrace =>
         val size = cuP.collectDown[StreamOut]().filter { _.field == "size" }.head
         val offset = cuP.collectDown[StreamOut]().filter { _.field == "offset" }.head
         cuP match {
@@ -100,6 +101,10 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         emitln(s"size_trace = traces/${dataOf(writersOf(size).head)}.trace")
         val par = ctrlOf(ctxEnOf(cuP).get).asInstanceOf[DramController].par
         emitln(s"out_token_size = ${par * bytePerWord}")
+        val psimHome = PLASTISIM_HOME.getOrElse(throw PIRException(s"PLASTISIM_HOME need to set to find ini files"))
+        emitln(s"mc DRAM")
+        emitln(s"memfile = $psimHome/configs/DDR3_micron_64M_8B_x4_sg15.ini")
+        emitln(s"system = $psimHome/configs/system.ini")
       case FringeStreamIn(streamIn, streamInDef) =>
         val counts:Long = countsOf.get(streamIn).flatten.getOrElse(-1)
         emitln(s"start_at_tokens = ${counts} # number of stream inputs")
@@ -169,6 +174,12 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     }
   }
 
+  def emitMemoryController = {
+    if (enableTrace) {
+      emitln(s"controller=DRAM")
+    }
+  }
+
   def emitLink(n:Link) = dbgblk(s"emitLink(${quote(n)})") {
     val srcs = srcsOf(n)
     val dsts = dstsOf(n)
@@ -231,7 +242,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     inlinksOf(n).zipWithIndex.foreach { case ((link, reads), idx) =>
       emitln(s"link_in[$idx] = ${quote(link)}")
       globalOf(n).get match {
-        case cuP:DramFringe if PIRConfig.enableTrace =>
+        case cuP:DramFringe if enableTrace =>
           emitln(s"scale_in[$idx] = 1")
         case cuP =>
           emitln(s"scale_in[$idx] = ${constItersOf(reads)}")
@@ -244,7 +255,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     outlinksOf(n).zipWithIndex.foreach { case ((link, writes), idx) =>
       emitln(s"link_out[$idx] = ${quote(link)}")
       globalOf(n).get match {
-        case cuP:DramFringe if PIRConfig.enableTrace =>
+        case cuP:DramFringe if enableTrace =>
           emitln(s"scale_out[$idx] = 1")
         case cuP =>
           emitln(s"scale_out[$idx] = ${constItersOf(writes)}")
