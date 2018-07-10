@@ -4,7 +4,7 @@ package pass
 import pir.node._
 import scala.collection.mutable
 
-abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer { self:PIRTraversal =>
+abstract class ControlTransformer(implicit compiler:PIR) extends PIRTransformer { self:PIRTraversal =>
   import pirmeta._
 
   override def allocate[T<:PIRNode:ClassTag:TypeTag](
@@ -45,6 +45,5 @@ abstract class ControlAnalysis(implicit compiler:PIR) extends PIRTransformer { s
       }
     }
   }
-
 
 }

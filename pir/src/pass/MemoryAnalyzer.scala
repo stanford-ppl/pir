@@ -25,7 +25,7 @@ class MemoryAnalyzer(implicit compiler:PIR) extends SiblingFirstTraversal with U
     val lcaCtrl = leastCommonAncesstor(accessCtrls).getOrElse {
       throw PIRException(s"${accessCtrls} do not share common ancestor")
     }
-    ctrlOf(mem) = lcaCtrl
+    ctrlOf(mem) = getCtrlOf(mem)
     ctrlOf.info(mem).foreach(dbg)
 
     val topCtrls = leastMatchedPeers(accessCtrls, Some(lcaCtrl)).get

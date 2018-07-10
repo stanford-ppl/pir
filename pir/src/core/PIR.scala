@@ -120,7 +120,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genCtrl, controlAllocator).dependsOn(memoryAnalyzer) // set accessDoneOf, duplicateCounterChain for accessDoneOf
     addPass(genCtrl, deadCodeEliminator) // Remove redundant counterChains
     addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top12.dot"))
-    addPass(genCtrl, controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable. Duplicate parent counter chain if no dependency
+    addPass(genCtrl, controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable
     addPass(genCtrl, irCheck)
 
     session.rerun {

@@ -3,7 +3,7 @@ package pass
 
 import pir.node._
 
-class ControlLowering(implicit compiler:PIR) extends ControlAnalysis with SiblingFirstTraversal with UnitTraversal {
+class ControlLowering(implicit compiler:PIR) extends ControlTransformer with SiblingFirstTraversal with UnitTraversal {
   import pirmeta._
 
   val forward = true

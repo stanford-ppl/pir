@@ -56,7 +56,9 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
   def gatherTracedNodes = {
     val fringes = compiler.top.collectDown[DramFringe]()
     fringes.foreach { fringe =>
-      fringe.collectDown[StreamOut]().filter { so => so.field == "offset" || so.field == "size" }.foreach { so =>
+      fringe.collectDown[StreamOut]().filter { so => 
+          so.field == "offset" || so.field == "size" || so.field == "addr"
+      }.foreach { so =>
         val writer = writersOf(so).head
         val data = dataOf(writer)
         traced += data
@@ -113,13 +115,15 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
           emitln(s"// loop $n")
           val cchain = ctrlbmap(n).collect { case cc:CounterChain => cc }.head
           val counters = cchain.counters
+          genNodes(n)
           def emitLoop(idx:Int):Unit = {
             if (idx >= counters.size) {
               super.visitNode(n, prev) 
             } else {
               val counter = counters(idx)
-              genNodes(n)
               emitLambda(s"$counter.foreach", s"${n}_iter$idx") {
+                val iters = ctrlbmap(n).collect { case n:CounterIter => n }
+                iters.foreach(genNode)
                 emitLoop(idx+1)
               }
             }
@@ -138,57 +142,60 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
   def genNodes(n:Controller) = {
     ctrlbmap.get(n).foreach { ns =>
       val nodes = ns.filter { n => tracked.contains(n) }.toList
-      forwardSchedular.scheduleScope(nodes).foreach { n =>
+      var scheduled = forwardSchedular.scheduleScope(nodes)
+      val (mems, others) = scheduled.partition { case mem:Memory => true; case _ => false }
+      scheduled = mems ++ others
+      scheduled.foreach { n =>
         genNode(n)
       }
     }
   }
 
-  override def quote(n:Any) = n match {
-    case Def(n:CounterIter, CounterIter(counter, offset)) =>
-      val cchain = cchainOf(counter)
-      val idx = cchain.counters.indexOf(counter)
-      val ctr = ctrlbmap(ctrlOf(n)).collect { case cc:CounterChain => cc }.head.counters(idx)
-      s"${ctrlOf(n)}_iter${idx} + ${offset.getOrElse(0)} * ${quote(ctr.step)}"
-    case n => super.quote(n)
-  }
-
   def genNode(n:N) = {
     n match {
       case Def(n, Counter(min, max, step, par)) =>
-        emitln(s"val $n = Range(${quote(min)}, ${quote(max)}, ${quote(step)} * ${quote(par)})")
-      case GlobalInput(gout:GlobalOutput) =>
-        emitln(s"val $n = ${quote(gout)}")
-      case GlobalOutput(data, valid) =>
-        emitln(s"val $n = ${quote(data)}")
+        emitln(s"val $n = Range(${min}, ${max}, ${step} * ${par})")
+      case Def(n,GlobalInput(gout:GlobalOutput)) =>
+        emitln(s"val $n = ${gout}")
+      case Def(n, GlobalOutput(data, valid)) =>
+        emitln(s"val $n = ${data}")
       case DramAddress(dram) if offsetMap.contains(dram) => 
         emitln(s"val $n = Some(${offsetMap(dram)})") 
-      case n:Memory if boundOf.contains(n) => 
+      case n if isReg(n) & boundOf.contains(n) => 
         emitln(s"val $n = Some(${boundOf(n)})")
+      case n if isFIFO(n) & boundOf.contains(n) => 
+        emitln(s"val $n = mutable.Queue(${boundOf(n)})")
       case n if isReg(n) =>
         emitln(s"var $n:Option[Any] = None")
       case n if isFIFO(n) =>
         emitln(s"val $n = mutable.Queue[Any]()")
+      case SRAM(size, banking) => 
+        emitln(s"val $n = Array.ofDims[Any](${staticDimsOf(n).mkString(",")})")
       case Def(n, LocalStore(mems, None, data)) =>
         mems.foreach { 
           case mem if isReg(mem) =>
             emitComment(qdef(n))
-            emitln(s"$mem = Some(${quote(data)})")
+            emitln(s"$mem = Some(${data})")
           case mem if isFIFO(mem) =>
-            emitln(s"$mem.enqueue(${quote(data)})")
+            emitln(s"$mem.enqueue(${data})")
           case mem =>
             emitln(s"//TODO ${qdef(n)}")
         }
       case n:LocalLoad if memsOf(n).size==1 && isReg(memsOf(n).head) =>
         val mem = memsOf(n).head
-        emitln(s"val $n = ${quote(mem)}.get")
+        emitln(s"val $n = ${mem}.get")
       case n:LocalLoad if memsOf(n).size==1 && isFIFO(memsOf(n).head) =>
         val mem = memsOf(n).head
-        emitln(s"val $n = ${quote(mem)}.dequeue")
+        emitln(s"val $n = ${mem}.dequeue")
       case Const(c) =>
         emitln(s"val $n = $c")
       case Def(n, OpDef(op, inputs)) =>
-        emitln(s"val $n = eval($op, ${inputs.map(quote)})")
+        emitln(s"val $n = eval($op, ${inputs})")
+      case Def(n, CounterIter(counter, Some(offset))) =>
+        val cchain = cchainOf(counter)
+        val idx = cchain.counters.indexOf(counter)
+        val ctr = ctrlbmap(ctrlOf(n)).collect { case cc:CounterChain => cc }.head.counters(idx)
+        emitln(s"val $n = ${ctrlOf(n)}_iter${idx} + $offset * ${ctr.step}")
       case n:Container =>
       case n => 
         emitln(s"// TODO: unmatched node ${qdef(n)}")
