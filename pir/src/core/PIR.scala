@@ -82,6 +82,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(enableDot, new PIRIRDotCodegen(s"top2.dot"))
     addPass(unrollingTransformer).dependsOn(controlPropogator)
     addPass(enableDot, new PIRIRDotCodegen(s"top3.dot"))
+    addPass(memoryAnalyzer)
     addPass(cuInsertion)
     addPass(accessPuller).dependsOn(cuInsertion)
     addPass(enableDot, new PIRIRDotCodegen(s"top4.dot"))
@@ -91,7 +92,6 @@ trait PIR extends Compiler with PIRWorld {
     addPass(accessLowering).dependsOn(controlPropogator, accessPuller, deadCodeEliminator)
     addPass(enableDot, new PIRIRDotCodegen(s"top6.dot"))
     addPass(deadCodeEliminator)
-    addPass(memoryAnalyzer)
     addPass(enableDot, new PIRIRDotCodegen(s"top7.dot"))
     addPass(controllerRuntimeAnalyzer).dependsOn(controlPropogator)
     addPass(cuStats)
@@ -113,6 +113,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top10.dot")).dependsOn(contextInsertion)
 
     // Control transformation and analysis
+    addPass(genCtrl, memoryAnalyzer).dependsOn(contextInsertion)
     addPass(genCtrl, controlAllocator).dependsOn(contextInsertion) // set accessDoneOf, duplicateCounterChain for accessDoneOf
     addPass(genCtrl, controlRegInsertion).dependsOn(controlAllocator) // insert reg for no forward depended contextEn
     addPass(genCtrl, memoryAnalyzer).dependsOn(controlRegInsertion)
@@ -127,6 +128,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(cuStats)
 
     // Simulation analyzer
+    addPass(enableTrace, psimTraceCodegen)
     addPass(genPlastisim, psimLinkAnalyzer).dependsOn(controlLowering)
     addPass(enableDot, new ControllerDotCodegen(s"controller.dot"))
     addPass(enableDot, new PIRIRDotCodegen(s"top.dot"))
@@ -148,7 +150,6 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genPlastisim, terminalCSVCodegen)
     addPass(genPlastisim, linkCSVCodegen).dependsOn(terminalCSVCodegen, psimLinkAnalyzer)
     addPass(genPlacement, psimPlacementCodegen).dependsOn(cuPlacer)
-    addPass(genPlastisim & enableTrace, psimTraceCodegen).dependsOn(psimLinkAnalyzer)
     addPass(genPlastisim, psimDotCodegen).dependsOn(psimLinkAnalyzer)
     addPass(genPlastisim, psimConfigCodegen).dependsOn(cuPlacer, psimLinkAnalyzer, psimTraceCodegen)
 

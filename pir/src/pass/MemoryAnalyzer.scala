@@ -10,7 +10,7 @@ class MemoryAnalyzer(implicit compiler:PIR) extends SiblingFirstTraversal with U
 
   override def visitNode(n:N) = { 
     n match {
-      case n:Memory if !ctrlOf.contains(n) => setTopCtrl(n)
+      case n:Memory => setTopCtrl(n)
       case n => super.visitNode(n)
     }
   }
@@ -28,11 +28,13 @@ class MemoryAnalyzer(implicit compiler:PIR) extends SiblingFirstTraversal with U
     ctrlOf(mem) = getCtrlOf(mem)
     ctrlOf.info(mem).foreach(dbg)
 
-    val topCtrls = leastMatchedPeers(accessCtrls, Some(lcaCtrl)).get
-    accesses.foreach { access =>
-      val topCtrl = topCtrls(ctrlOf(access))
-      topCtrlOf(access) = topCtrl
-      topCtrlOf.info(access).foreach(dbg)
+    if (compiler.session.hasRun[ContextInsertion]) { //HACk
+      val topCtrls = leastMatchedPeers(accessCtrls, Some(lcaCtrl)).get
+      accesses.foreach { access =>
+        val topCtrl = topCtrls(ctrlOf(access))
+        topCtrlOf(access) = topCtrl
+        topCtrlOf.info(access).foreach(dbg)
+      }
     }
   }
 
