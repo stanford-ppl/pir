@@ -32,7 +32,7 @@ class LinkCSVCodegen(implicit compiler: PIR) extends PlastisimCodegen with CSVCo
         warn(s"set PLASTIROUTE_HOME and PLASTISIM_HOME to launch plastiroute automatically!")
       } { case (prouteHome:String, psimOut:String) =>
         val log = s"$dirName/proute.log"
-        val exitCode = shell("proute", s"$prouteHome/plastiroute -n $psimOut/node.csv -l $psimOut/link.csv -o $psimOut/proute.place -r $numRows -c $numCols", log)
+        val exitCode = shell("proute", s"$prouteHome/plastiroute -n $psimOut/node.csv -l $psimOut/link.csv -o $psimOut/proute.place -r $numRows -c $numCols -s1", log)
         if (exitCode != 0) {
           fail(s"Plastiroute failed. details in $log")
         }
