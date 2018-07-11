@@ -149,9 +149,6 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
       }
       networkParams.foreach { networkParam =>
         val tp = networkParam.bct
-        //val nr = numTotalRows
-        //val nc = numTotalCols
-        //val sq = math.max(nr, nc)+1
         val numVC = networkParam match {
           case networkParam:DynamicGridNetworkParam[_] => networkParam.numVirtualClasses
           case networkParam:DynamicCMeshNetworkParam[_] => networkParam.numVirtualClasses
@@ -166,9 +163,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
           emitln(s"cfg = ${topo}_generic.cfg")
           emitln(s"dim[0] = $sq")
           emitln(s"dim[1] = $sq")
-          //emitln(s"num_classes = ${networkParam.numVirtualClasses}")
-          emitln(s"num_classes = 64")
-          //emitln(s"num_classes = ${numVC}")
+          emitln(s"num_classes = ${numVC}")
         }
       }
     }
