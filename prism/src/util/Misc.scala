@@ -85,8 +85,8 @@ trait Misc {
     val printer = new Printer {}
     val logFile = logPath.map { path => printer.openFile(path, false) }
     val exitCode = command ! ProcessLogger (
-      { line => logFile.foreach { _.println(line) }; processLambda.foreach { _(line) } },
-      { line => logFile.foreach { _.println(line) } }
+      { line => logFile.foreach { l => l.println(line); l.flush }; processLambda.foreach { _(line) } },
+      { line => logFile.foreach { l => l.println(line); l.flush } }
     )
     logFile.foreach { _.close }
 
