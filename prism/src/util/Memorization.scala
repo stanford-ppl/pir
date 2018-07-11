@@ -9,16 +9,15 @@ trait Memorization {
 
   var memorizing = false
 
-  private val caches = mutable.ListBuffer[Cache[_,_]]()
-  def addCache(cache:Cache[_,_]) = caches += cache
-  def resetCache(input:Any) = caches.foreach(_.resetCache(input)) 
-  def resetAllCaches = caches.foreach(_.resetAll)
-
-  def memorize[I,O](lambda:I => O):Cache[I,O] = {
-    val cache = Cache[I,O](this, lambda)
-    caches += cache
-    cache
+  private val caches = mutable.Map[String,Cache[_,_]]()
+  def resetCache(input:Any) = caches.values.foreach(_.resetCache(input)) 
+  def resetAllCaches = caches.values.foreach(_.resetAll)
+  def memorize[I,O](key:String, input:I)(lambda:I => O):O = {
+    caches.getOrElseUpdate(key, 
+      Cache[I,O](this, lambda)
+    ).asInstanceOf[Cache[I,O]].apply(input)
   }
+
 }
 case class Cache[I,O](memorization:Memorization, lambda:I => O) {
   val memory = mutable.Map[Any,O]()

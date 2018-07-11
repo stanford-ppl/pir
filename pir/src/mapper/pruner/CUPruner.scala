@@ -40,7 +40,7 @@ trait CUPruner extends PIRPass {
 
   override def initPass = {
     super.initPass
-    constrains.foreach { _.resetAllCaches }
+    constrains.collect { case c:prism.util.Memorization => c }.foreach { _.resetAllCaches }
   }
 
   override def quote(n:Any) = n match {

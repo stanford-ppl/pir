@@ -27,13 +27,12 @@ trait CUConstrain extends Constrain with PIRNodeUtil with spade.node.SpadeNodeUt
 
 }
 
-class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConstrain[CUCost] {
-  val keyCost = memorize(compKeyCost)
-  val valueCost = memorize(compValueCost)
+class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConstrain[CUCost] with prism.util.Memorization {
+  memorizing = true
+
   def getKeyCost(cuP:K):CUCost = keyCost(cuP)
   def getValueCost(cuS:V):CUCost = valueCost(cuS.param)
-  def fit(key:K, value:V):(Boolean, Boolean) = fitCache((key, value.param))
-  val fitCache = memorize[(K,Parameter),(Boolean, Boolean)] { case (key, value) =>
+  def fit(key:K, value:V):(Boolean, Boolean) =  memorize("fit", (key,value.param)) { case (key, value) =>
     val kc = keyCost(key)
     val vc = valueCost(value)
     val fits = kc.fit(key, vc)
@@ -47,27 +46,29 @@ class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConst
 
   def inputsP(cuP:K) = cuP.ins.groupBy { _.from.src }.map { case (src, ins) => ins.head.src }
   def outputsP(cuP:K) = cuP.outs.map { _.src }
-  def compKeyCost(cuP:K):CUCost = dbgblk(s"compKeyCost(${quote(cuP)})"){
-    val ins = inputsP(cuP)
-    val outs = outputsP(cuP)
-    val stages = cuP.collectDown[StageDef]()
-    val ops = stages.flatMap { _.productIterator.toList.collect { case op:Op => op } }.toSet
-    val numLanes:Int = stages.map(s => pass.getParOf(s)).reduceOption{ _ max _}.getOrElse(1)
-    CUCost(
-      AFGCost(isAFG(cuP)),
-      MCCost(isDFG(cuP) || isSFG(cuP)),
-      SramSizeCost(maxOption(cuP.collectDown[pir.node.SRAM]().map { _.size}).getOrElse(0)),
-      SramCost(cuP.collectDown[pir.node.SRAM]().size),
-      ControlInputCost(ins.filter(n => isBit(n)).size),
-      ScalarInputCost(ins.filter(n => isWord(n)).size),
-      VectorInputCost(ins.filter(n => isVector(n)).size),
-      ControlOutputCost(outs.filter(n => isBit(n)).size),
-      ScalarOutputCost(outs.filter(n => isWord(n)).size),
-      VectorOutputCost(outs.filter(n => isVector(n)).size),
-      StageCost(stages.size),
-      LaneCost(numLanes),
-      OpCost(ops)
-    )
+  def keyCost(cuP:K) = memorize("keyCost", cuP) { cuP => 
+    dbgblk(s"keyCost(${quote(cuP)})") {
+      val ins = inputsP(cuP)
+      val outs = outputsP(cuP)
+      val stages = cuP.collectDown[StageDef]()
+      val ops = stages.flatMap { _.productIterator.toList.collect { case op:Op => op } }.toSet
+      val numLanes:Int = stages.map(s => pass.getParOf(s)).reduceOption{ _ max _}.getOrElse(1)
+      CUCost(
+        AFGCost(isAFG(cuP)),
+        MCCost(isDFG(cuP) || isSFG(cuP)),
+        SramSizeCost(maxOption(cuP.collectDown[pir.node.SRAM]().map { _.size}).getOrElse(0)),
+        SramCost(cuP.collectDown[pir.node.SRAM]().size),
+        ControlInputCost(ins.filter(n => isBit(n)).size),
+        ScalarInputCost(ins.filter(n => isWord(n)).size),
+        VectorInputCost(ins.filter(n => isVector(n)).size),
+        ControlOutputCost(outs.filter(n => isBit(n)).size),
+        ScalarOutputCost(outs.filter(n => isWord(n)).size),
+        VectorOutputCost(outs.filter(n => isVector(n)).size),
+        StageCost(stages.size),
+        LaneCost(numLanes),
+        OpCost(ops)
+      )
+    }
   }
 
   val topS = pass.designS.top
@@ -94,22 +95,24 @@ class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConst
     case param:CUParam if param.simdParam.nonEmpty => Math.min(topS.minOutputs[Vector](param), param.simdParam.get.numVectorOuts)
     case param => topS.minOutputs[Vector](param)
   }
-  def compValueCost(param:Parameter):CUCost = dbgblk(s"compValueCost(${quote(param)})"){
-    CUCost(
-      AFGCost(param.isInstanceOf[ArgFringeParam]),
-      MCCost(param.isInstanceOf[MCParam]),
-      SramSizeCost(param match { case param:CUParam => param.sramParam.size; case _ => 0 }),
-      SramCost(param match { case param:CUParam => param.numSrams; case _ => 0 }),
-      ControlInputCost(controlInput(param)),
-      ScalarInputCost(scalarInput(param)),
-      VectorInputCost(vectorInput(param)),
-      ControlOutputCost(controlOutput(param)),
-      ScalarOutputCost(scalarOutput(param)),
-      VectorOutputCost(vectorOutput(param)),
-      StageCost(param match { case param:CUParam => param.simdParam.fold(0) { _.stageParams.size }; case _ => 0 }),
-      LaneCost(param match { case param:CUParam => param.simdParam.fold(1) { _.numLanes }; case _ => 1 }),
-      OpCost(param match { case param:CUParam => param.simdParam.map { _.ops.toSet }.getOrElse(Set.empty); case _ => Set.empty })
-    )
+  def valueCost(param:Parameter):CUCost = memorize("valueCost", param) { param =>
+    dbgblk(s"valueCost(${quote(param)})"){
+      CUCost(
+        AFGCost(param.isInstanceOf[ArgFringeParam]),
+        MCCost(param.isInstanceOf[MCParam]),
+        SramSizeCost(param match { case param:CUParam => param.sramParam.size; case _ => 0 }),
+        SramCost(param match { case param:CUParam => param.numSrams; case _ => 0 }),
+        ControlInputCost(controlInput(param)),
+        ScalarInputCost(scalarInput(param)),
+        VectorInputCost(vectorInput(param)),
+        ControlOutputCost(controlOutput(param)),
+        ScalarOutputCost(scalarOutput(param)),
+        VectorOutputCost(vectorOutput(param)),
+        StageCost(param match { case param:CUParam => param.simdParam.fold(0) { _.stageParams.size }; case _ => 0 }),
+        LaneCost(param match { case param:CUParam => param.simdParam.fold(1) { _.numLanes }; case _ => 1 }),
+        OpCost(param match { case param:CUParam => param.simdParam.map { _.ops.toSet }.getOrElse(Set.empty); case _ => Set.empty })
+      )
+    }
   }
 }
 
