@@ -35,24 +35,28 @@ class ContextInsertion(implicit compiler:PIR) extends PIRTransformer with Siblin
     val init = inAccesses.map { a => (a.asInstanceOf[N],a.asInstanceOf[N]) }.toMap
 
     def insertContext(n:GlobalContainer, outs:List[N]):Unit = {
-      val exps = schedular.scheduleNodesInScope(n.children, outs)
+      val newOuts = outs.filterNot { x => within[ComputeContext](x) }
+      val exps = schedular.scheduleNodesInScope(n.children, newOuts)
+      val (mems, others) = exps.partition { _.isInstanceOf[Memory] }
       dbg(s"outs=$outs exps=$exps")
       val context = ComputeContext().setParent(n)
-      val (mems, others) = exps.partition { _.isInstanceOf[Memory] }
-      var toCtx = others
-      val mapping = mutable.Map[N,N]() ++ init
-      others.foreach { exp =>
-        exp.deps.filter { dep => within[ComputeContext](dep) && dep.isDescendentOf(n) }.foreach { dep =>
-          val (mdep, ms) = mirrored(dep, mapping=mapping, container=Some(n)) 
-          swapConnection(exp.asInstanceOf[Def], dep.out, mdep.out)
-          toCtx ++= ms.filter { 
-            case m:Memory => false
-            case m if m.parent == Some(n) => true
-            case m => false
+      dbgblk(s"insertContext $context") {
+        var toCtx = others
+        val mapping = mutable.Map[N,N]() ++ init
+        others.foreach { exp =>
+          exp.deps.filter { dep => within[ComputeContext](dep) && dep.isDescendentOf(n) }.foreach { dep =>
+            dbg(s"dep=$dep in ${contextOf(dep).get}")
+            val (mdep, ms) = mirrored(dep, mapping=mapping, container=Some(n)) 
+            swapConnection(exp.asInstanceOf[Def], dep.out, mdep.out)
+            toCtx ++= ms.filter { 
+              case m:Memory => false
+              case m if m.parent == Some(n) => true
+              case m => false
+            }
           }
         }
+        toCtx.foreach { exp => swapParent(exp, context) }
       }
-      toCtx.foreach { exp => swapParent(exp, context) }
       mems.flatMap { mem => inAccessesOf(mem.asInstanceOf[Memory]) }.foreach { out =>
         insertContext(n, List(out))
       }
