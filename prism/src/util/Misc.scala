@@ -76,25 +76,20 @@ trait Misc {
   def shell(header:String, command:String, logFile:String):Int = shell(Some(header), command, Some(logFile), None)
   def shellProcess(header:String, command:String, logFile:String)(processLambda:String => Unit):Int = shell(Some(header), command, Some(logFile), Some(processLambda))
 
-  def shell(header:Option[String], command:String, logFile:Option[String], processLambda:Option[String => Unit]):Int = {
+  def shell(header:Option[String], command:String, logPath:Option[String], processLambda:Option[String => Unit]):Int = {
     info(Console.YELLOW, header.getOrElse("command"), command)
-    val exitCode = logFile.fold {
-      processLambda.fold {
-        command !
-      } { lambda =>
-        command ! ProcessLogger(lambda)
-      }
-    } { logFile =>
-      info(Console.YELLOW, header.getOrElse("command"), s"log in $logFile")
-      processLambda.fold {
-        command #> new java.io.File(logFile) !
-      } { lambda =>
-        val exitCode:Int = command #> new java.io.File(logFile) !
 
-        getLines(logFile).foreach(lambda)
-        exitCode
-      }
+    logPath.foreach { path => 
+      info(Console.YELLOW, header.getOrElse("command"), s"log in $path")
     }
+    val printer = new Printer {}
+    val logFile = logPath.map { path => printer.openFile(path, false) }
+    val exitCode = command ! ProcessLogger (
+      { line => logFile.foreach { _.println(line) }; processLambda.foreach { _(line) } },
+      { line => logFile.foreach { _.println(line) } }
+    )
+    logFile.foreach { _.close }
+
     if (exitCode != 0) err(s"failed $command", false)
     exitCode
   } 

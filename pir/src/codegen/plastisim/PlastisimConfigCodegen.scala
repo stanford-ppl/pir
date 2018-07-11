@@ -30,41 +30,33 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   def runPsim = {
     zipOption(PLASTISIM_HOME, psimOut).fold {
       warn(s"set PLASTISIM_HOME to launch plastiroute automatically!")
-      } { case (psimHome, psimOut) =>
-        val log = s"$dirName/psim.log"
+    } { case (psimHome, psimOut) =>
+      val log = s"$dirName/psim.log"
+      val command = if (enablePlastiroute) {
+        s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/proute.place"
+      } else {
+        //TODO: static place file breaks the simulator
+        if (isDynamic(topS)) {
+          s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/pir.place"
+        } else {
+          s"$psimHome/plastisim -f $psimOut/config.psim"
+        }
+      }
+
+      if (runPlastisim) {
         var succeed = false
-        def processOutput(line:String) = {
+        shellProcess(s"psim", command, log) { line =>
           if (line.contains("Simulation complete at cycle")) {
             info(Console.GREEN, s"psim", line)
             succeed = true
           }
         }
-        if (runPlastisim) {
-          if (enablePlastiroute) {
-            shellProcess(s"psim", s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/proute.place", log)(processOutput)
-          } else {
-            //TODO: static place file breaks the simulator
-            if (isDynamic(topS)) {
-              shellProcess(s"psim", s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/pir.place", log)(processOutput)
-            } else {
-              shellProcess(s"psim", s"$psimHome/plastisim -f $psimOut/config.psim", log)(processOutput)
-            }
-          }
-          if (!succeed) fail(s"Plastisim failed. details in $log")
-        } else {
-          info(s"To run simulation manually, use following command, or use --run-psim to launch simulation automatically")
-          if (enablePlastiroute) {
-            info(cstr(Console.YELLOW, s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/proute.place"))
-          } else {
-            //TODO: static place file breaks the simulator
-            if (isDynamic(topS)) {
-              info(cstr(Console.YELLOW,s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/pir.place"))
-            } else {
-              info(cstr(Console.YELLOW,s"$psimHome/plastisim -f $psimOut/config.psim"))
-            }
-          }
-        }
+        if (!succeed) fail(s"Plastisim failed.")
+      } else {
+        info(s"To run simulation manually, use following command, or use --run-psim to launch simulation automatically")
+        info(cstr(Console.YELLOW, command))
       }
+    }
   }
 
   override def emitNode(n:N) = n match {

@@ -27,18 +27,17 @@ trait Printer {
     override lazy val outputStream:ByteArrayOutputStream = new ByteArrayOutputStream()
     def getPath = "byteStream"
   }
-  case class FileWriter(dirName:String, fileName:String, append:Boolean) extends StreamWriter {
-    val path = buildPath(dirName, fileName) 
+  case class FileWriter(filePath:String, append:Boolean) extends StreamWriter {
     override lazy val outputStream:FileOutputStream = {
-      mkdir(dirName)
-      new FileOutputStream(new File(path), append)
+      mkdir(dirName(filePath))
+      new FileOutputStream(new File(filePath), append)
     }
     var written = false
     override def print(s:String) = { written = true; super.print(s) }
     override def println(s:String) = { written = true; super.println(s) }
     override def flush = if (written) super.flush
     override def close = if (written) super.close 
-    def getPath = path
+    def getPath = filePath
   }
 
   val streamStack = Stack[StreamWriter]()
@@ -49,12 +48,12 @@ trait Printer {
 
   def openStdout = open(StdoutWriter())
 
-  def openFile(dirName:String, fileName:String, append:Boolean):StreamWriter = {
-    open(FileWriter(dirName, fileName, append))
+  def openFile(filePath:String, append:Boolean):StreamWriter = {
+    open(FileWriter(filePath, append))
   }
 
-  def openFile(fileName:String, append:Boolean=false)(implicit compiler:Compiler):StreamWriter = {
-    openFile(compiler.outDir, fileName, append)
+  def openFile(dirName:String, fileName:String, append:Boolean):StreamWriter = {
+    openFile(buildPath(dirName, fileName), append)
   }
 
   def withOpen[T](dirName:String, fileName:String, append:Boolean)(lambda: => T):T = {
