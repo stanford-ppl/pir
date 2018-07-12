@@ -137,7 +137,6 @@ trait PIR extends Compiler with PIRWorld {
 
     // Mapping
     //addPass(genPlastisim, psimVCAllocator).dependsOn(psimLinkAnalyzer)
-    addPass(genPlastisim, psimDotCodegen).dependsOn(psimLinkAnalyzer)
     addPass(cuPruning)
     addPass(enableMapping, cuPlacer).dependsOn(cuPruning)
 
