@@ -49,7 +49,7 @@ abstract class Node[N<:Node[N]:ClassTag] extends IR with GraphCollector[N] { sel
     chain.slice(0, idx+1)
   }
   def descendents:List[N] = children.flatMap { child => child :: child.descendents }
-  def isDescendentOf(p:P) = p.descendents.contains(this)
+  def isDescendentOf(p:P) = p.isAncestorOf(this)
 
   def ins:List[Input[N]]
   def outs:List[Output[N]]

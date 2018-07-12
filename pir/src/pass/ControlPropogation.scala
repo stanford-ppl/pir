@@ -52,17 +52,19 @@ class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSBot
     case n:CounterChain =>
       dbg(s"setting ${qtype(n)}.ctrl=$ctrl")
       ctrlOf.removeKey(n)
-      n.ctrl(ctrl)
+      ctrlOf(n) = ctrl
       n.children.foreach(c => resetController(c, ctrl))
     case n:ComputeNode => 
       dbg(s"setting ${qtype(n)}.ctrl=$ctrl")
       ctrlOf.removeKey(n)
-      n.ctrl(ctrl)
+      ctrlOf(n) = ctrl
       n.deps.foreach(d => resetController(d, ctrl))
     case n =>
   }
 
   val controllerTraversal = new ControllerSiblingFirstTraversal with prism.traversal.UnitTraversal {
+    override lazy val logger = ControlPropogation.this.logger
+    implicit val designP = ControlPropogation.this.designP
     override def visitNode(n:N, prev:T):T = {
       n match {
         case n:LoopController => resetController(n.cchain, n)
