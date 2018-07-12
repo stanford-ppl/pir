@@ -150,4 +150,17 @@ trait AccessUtil {
 
   def accessesOf(mem:Memory):List[LocalAccess] = writersOf(mem) ++ readersOf(mem) ++ resetersOf(mem)
 
+  def isInAccess(n:PIRNode) = n match {
+    case n:LocalLoad => false
+    case n:LocalStore => true
+    case n:LocalReset => true
+    case n => false
+  }
+
+  def isOutAccess(n:PIRNode) = n match {
+    case n:LocalLoad => true
+    case n:LocalStore => false
+    case n:LocalReset => false
+    case n => false
+  }
 }

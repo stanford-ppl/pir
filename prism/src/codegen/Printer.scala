@@ -48,12 +48,12 @@ trait Printer {
 
   def openStdout = open(StdoutWriter())
 
-  def openFile(filePath:String, append:Boolean):StreamWriter = {
-    open(FileWriter(filePath, append))
-  }
-
   def openFile(dirName:String, fileName:String, append:Boolean):StreamWriter = {
     openFile(buildPath(dirName, fileName), append)
+  }
+
+  def openFile(filePath:String, append:Boolean=false):StreamWriter = {
+    open(FileWriter(filePath, append))
   }
 
   def withOpen[T](dirName:String, fileName:String, append:Boolean)(lambda: => T):T = {

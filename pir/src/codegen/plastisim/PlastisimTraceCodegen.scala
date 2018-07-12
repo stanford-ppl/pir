@@ -16,7 +16,7 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
 
   val offsetMap = mutable.Map[DRAM, Int]()
 
-  lazy val ctrlbmap = revertMap(ctrlOf.map.toMap)
+  lazy val ctrlbmap = reverseMap(ctrlOf.map.toMap)
 
   val tracked = mutable.ListBuffer[PNode]()
   val traced = mutable.ListBuffer[PNode]()
@@ -108,6 +108,7 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
 
 
   val controllerTraversal = new ControllerChildFirstTraversal with UnitTraversal {
+    implicit val designP = PlastisimTraceCodegen.this.designP
     override lazy val logger = PlastisimTraceCodegen.this.logger
     override def visitNode(n:N, prev:T):T = {
       n match {

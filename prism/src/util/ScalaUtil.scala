@@ -47,6 +47,10 @@ trait ScalaUtil {
     list.head
   }
 
+  def assertUnique[A](list:Iterable[A],info:String):Unit = {
+    assert(list.toSet.size == list.size, s"$info is not unique=$list")
+  }
+
   def zipOption[A,B,T](a:Option[A], b:Option[B]):Option[(A,B)] = {
     (a,b).zipped.headOption
   }
@@ -63,7 +67,7 @@ trait ScalaUtil {
     if (list.isEmpty) None else Some(list.max)
   }
 
-  def revertMap[K,V](map:Map[K,V]):Map[V,Set[K]] = {
+  def reverseMap[K,V](map:scala.collection.Map[K,V]):Map[V,Set[K]] = {
     map.groupBy(_._2).mapValues(_.keys.toSet)
   }
 

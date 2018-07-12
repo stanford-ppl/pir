@@ -3,7 +3,7 @@ package pass
 
 import pir.node._
 
-trait TypeUtil extends ConstantPropogator with RuntimeUtil { self:Logging =>
+trait TypeUtil extends ConstantPropogator with RuntimeUtil with PIRNodeUtil { self:Logging =>
 
   val pirmeta:PIRMetadata
   import pirmeta._
