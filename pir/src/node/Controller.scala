@@ -59,4 +59,39 @@ trait ControllerUtil {
     case n => false
   }
 
+  def accessesOf(n:Controller)(implicit design:PIRDesign) = {
+    import design.pirmeta._
+    ctrlOf.bmap(n).collect { case n:LocalAccess => n }
+  }
+
+  def inAccessesOf(n:Controller)(implicit design:PIRDesign) = {
+    import design.pirmeta._
+    accessesOf(n).filter { n => isInAccess(n) }
+  }
+
+  def outAccessesOf(n:Controller)(implicit design:PIRDesign) = {
+    import design.pirmeta._
+    accessesOf(n).filter { n => isOutAccess(n) }
+  }
+
+  def total[T](n:Controller)(lambda:Controller => Iterable[T]) = {
+    (n::n.descendents).flatMap { n => lambda(n) }.toSet
+  }
+
+  def inMemsOf(n:Controller)(implicit design:PIRDesign) = {
+    import design.pirmeta._
+    total(n)(outAccessesOf).flatMap { a => memsOf(a) }.filterNot { m => 
+      val mc = ctrlOf(m)
+      mc.isDescendentOf(n) || mc == n
+    }
+  }
+
+  def outMemsOf(n:Controller)(implicit design:PIRDesign) = {
+    import design.pirmeta._
+    total(n)(inAccessesOf).flatMap { a => memsOf(a) }.filterNot { m => 
+      val mc = ctrlOf(m)
+      mc.isDescendentOf(n) || mc == n
+    }
+  }
+
 }
