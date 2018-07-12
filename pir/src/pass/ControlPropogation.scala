@@ -80,7 +80,7 @@ class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSBot
         if (!ctrlOf.isDefinedAt(n)) {
           val deps = depFunc(n).filter { dep => ctrlOf.isDefinedAt(dep) }
           if (deps.nonEmpty) {
-            ctrlOf(n) = assertUnify(deps, "ctrl") { dep => ctrlOf(dep) }
+            ctrlOf(n) = assertUnify(deps , "ctrl") { dep => ctrlOf(dep) }.get
             dbg(ctrlOf.info(n).get)
           }
         }

@@ -30,6 +30,7 @@ trait PIR extends Compiler with PIRWorld {
   lazy val controlPropogator = new ControlPropogation()
   lazy val controllerRuntimeAnalyzer = new ControllerRuntimeAnalyzer()
   lazy val psimLinkAnalyzer = new PlastisimLinkAnalyzer()
+  lazy val psimCountCheck = new PlastisimCountCheck()
   lazy val psimVCAllocator = new PlastisimVCAllocation()
   lazy val irCheck = new IRCheck()
 
@@ -131,7 +132,9 @@ trait PIR extends Compiler with PIRWorld {
 
     // Simulation analyzer
     addPass(enableTrace, psimTraceCodegen)
-    addPass(genPlastisim, psimLinkAnalyzer).dependsOn(controlLowering)
+    addPass(psimLinkAnalyzer).dependsOn(controlLowering)
+    addPass(psimDotCodegen).dependsOn(psimLinkAnalyzer)
+    addPass(psimCountCheck).dependsOn(psimLinkAnalyzer)
     addPass(enableDot, new ControllerDotCodegen(s"controller.dot"))
     addPass(enableDot, new PIRIRDotCodegen(s"top.dot"))
     addPass(enableDot, new SimpleIRDotCodegen(s"simple.dot"))

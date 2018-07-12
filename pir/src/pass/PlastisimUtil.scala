@@ -108,7 +108,7 @@ trait PlastisimUtil extends PIRPass {
       case Def(n, LocalReset(_, reset:GlobalInput)) =>
         val port = mappedTo[MKMap.K](reset).get
         isStaticLink(port)
-    }
+    }.get
   }
 
   def isStaticLink(n:Link):Boolean = {
@@ -117,7 +117,7 @@ trait PlastisimUtil extends PIRPass {
       case topS if isPointToPoint(topS) => true
       case topS if isStatic(topS) => true
       case topS if isDynamic(topS) =>
-        assertUnify(n, "isStaticLink") { mem => isStaticLink(mem) }
+        assertUnify(n, "isStaticLink") { mem => isStaticLink(mem) }.get
     }
   }
 
@@ -126,10 +126,10 @@ trait PlastisimUtil extends PIRPass {
       case Def(n, LocalStore(_, _, data:GlobalInput)) => false
       case Def(n, LocalStore(_, _, data)) => true // Local edge
       case Def(n, LocalReset(_, reset:GlobalInput)) => false
-    }
+    }.get
   }
 
-  def isLocalLink(n:Link):Boolean = assertUnify(n, s"isLocalLink"){ mem => isLocalLink(mem) }
+  def isLocalLink(n:Link):Boolean = assertUnify(n, s"isLocalLink"){ mem => isLocalLink(mem) }.get
 
   def bufferSizeOf(memP:Memory, cuP:GlobalContainer, cuS:Routable) = {
     cuS match {
@@ -180,7 +180,7 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def bufferSizeOf(reads:List[LocalLoad]):Option[Int] = {
-    assertUnify(reads, "bufferSize") { read => val mem::Nil = memsOf(read); bufferSizeOf(mem) }
+    assertUnify(reads, "bufferSize") { read => val mem::Nil = memsOf(read); bufferSizeOf(mem) }.get
   }
 
   def constItersOf(x:PIRNode):Long = {
@@ -192,22 +192,22 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def constItersOf(accesses:List[LocalAccess]):Long = {
-    assertUnify(accesses, "iters") { access => constItersOf(access) }
+    assertUnify(accesses, "iters") { access => constItersOf(access) }.get
   }
 
   def constCountsOf(accesses:List[LocalAccess]):Long = {
-    assertUnify(accesses, "counts") { access => constCountsOf(access) }
+    assertUnify(accesses, "counts") { access => constCountsOf(access) }.get
   }
 
   def getItersOf(accesses:List[LocalAccess]):Option[Long] = {
-    assertUnify(accesses, "iter") { access => getItersOf(access) }
+    assertIdentical(accesses.flatMap { a => getItersOf(a)}, "iter")
   }
 
   def getCountsOf(accesses:List[LocalAccess]):Option[Long] = {
-    assertUnify(accesses, "counts") { access => getCountsOf(access) }
+    assertIdentical(accesses.flatMap { a => getCountsOf(a)}, "counts")
   }
 
-  def pinTypeOf(link:Link):ClassTag[_<:PinType] = assertUnify(link, "tp")(mem => pinTypeOf(mem))
+  def pinTypeOf(link:Link):ClassTag[_<:PinType] = assertUnify(link, "tp")(mem => pinTypeOf(mem)).get
 
   def latencyOf(n:NetworkNode):Option[Int] = {
     val cuP = globalOf(n).get
@@ -234,7 +234,7 @@ trait PlastisimUtil extends PIRPass {
         case Def(_,LocalStore(_, _, data:GlobalInput)) => data
         case Def(_,LocalReset(_, reset:GlobalInput)) => reset
       }.filter { gin => goutOf(gin).get.collectPeer[NetworkNode]().contains(src) }
-      Some(assertUnify(gins, s"$mem's GlobalInput from $src") { gin => gin })
+      Some(assertIdentical(gins, s"$mem's GlobalInput from $src").get )
     } else {
       throw PIRException(s"mem=$mem globalWriters=$globalWriters, localWriters=$localWriters")
     }

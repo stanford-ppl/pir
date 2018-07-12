@@ -11,6 +11,10 @@ class AccessAnalyzer(implicit compiler:PIR) extends SiblingFirstTraversal with U
   memorizing = true
   override def initPass = { super.initPass; resetAllCaches }
 
+  override def runPass = {
+    //super.runPass
+  }
+
   override def visitNode(n:N) = { 
     n match {
       case n:Memory => analyze(n)

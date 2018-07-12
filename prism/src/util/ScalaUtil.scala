@@ -31,10 +31,16 @@ trait ScalaUtil {
     }
   }
 
-  def assertUnify[A,B](list:Iterable[A],info:String)(lambda:A => B):B = {
+  def assertUnify[A,B](list:Iterable[A],info:String)(lambda:A => B):Option[B] = {
     val res = list.map(lambda)
-    assert(res.toSet.size==1, s"$list doesnt have the same $info = $res")
-    res.head
+    assert(res.toSet.size<=1, s"$list doesnt have the same $info = $res")
+    res.headOption
+  }
+
+  def assertIdentical[A](list:Iterable[A],info:String):Option[A] = {
+    val res = list
+    assert(res.toSet.size<=1, s"$list doesnt have the same $info = $res")
+    res.headOption
   }
 
   def assertOneOrLess[A](list:Iterable[A], info:String):Option[A] = {
