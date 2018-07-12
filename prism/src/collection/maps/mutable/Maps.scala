@@ -85,7 +85,7 @@ class OneToManyMap[K:ClassTag,V:ClassTag] extends prism.collection.OneToManyMap[
     if (!map.contains(k)) vv.foreach { v => update(k,v) }
     map(k)
   }
-  def update(k:K, vv:VV):Unit = vv.foreach(v => update(k,v))
+  def update(k:K, vv:Iterable[V]):Unit = vv.foreach(v => update(k,v))
 }
 
 trait BiMap[K,V] extends prism.collection.BiMap[K,V] with MapLike[K,V] {

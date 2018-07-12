@@ -38,6 +38,12 @@ class PIRMetadata extends Metadata {
   }
   isAccum.setName("isAccum")
 
+  /*
+   * Antidependencies between accesses
+   * */
+  val antiDepsOf = new OneToManyMap[PIRNode, PIRNode] with MetadataMap
+  antiDepsOf.setName("antiDepsOf")
+
   /* 
    * For ComputeNode: Controller associated with a node. 
    * For memory, it's the lca controller of controller of all its

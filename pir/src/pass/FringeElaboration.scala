@@ -83,14 +83,15 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
       case FringeDenseStore(dram,cmdStream,dataStream,ackStream) =>
         getParOf(ctrlOf(writersOf(dataStream.head).head))
     }
-    val innerCtrl = DramController(csize, par).setParent(outerCtrl)
+    val midCtrl = UnitController(SeqPipe, OuterControl).setParent(outerCtrl)
+    val innerCtrl = DramController(csize, par).setParent(midCtrl)
     fringe match {
       case FringeDenseLoad(dram,cmdStream,dataStream) =>
         val offset = streamOuts.filter { _.field=="offset"}.head
         val size = streamOuts.filter { _.field=="size"}.head
         val data = streamIns.filter { _.field=="data"}.head
-        val offsetRead = ReadMem(offset).setParent(fringe).ctrl(outerCtrl)
-        val sizeRead = ReadMem(size).setParent(fringe).ctrl(outerCtrl)
+        val offsetRead = ReadMem(offset).setParent(fringe).ctrl(midCtrl)
+        val sizeRead = ReadMem(size).setParent(fringe).ctrl(midCtrl)
         val pdc = ProcessDramDenseLoad(offsetRead, sizeRead).setParent(fringe).ctrl(innerCtrl)
         WriteMem(data, pdc).setParent(fringe).ctrl(innerCtrl)
       case FringeDenseStore(dram,cmdStream,dataStream,ackStream) =>
@@ -98,8 +99,8 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
         val size = streamOuts.filter { _.field=="size"}.head
         val data = streamOuts.filter { _.field=="data"}.head
         val ack = streamIns.filter { _.field=="ack"}.head
-        val offsetRead = ReadMem(offset).setParent(fringe).ctrl(outerCtrl)
-        val sizeRead = ReadMem(size).setParent(fringe).ctrl(outerCtrl)
+        val offsetRead = ReadMem(offset).setParent(fringe).ctrl(midCtrl)
+        val sizeRead = ReadMem(size).setParent(fringe).ctrl(midCtrl)
         val dataRead = ReadMem(data).setParent(fringe).ctrl(innerCtrl)
         val pdc = ProcessDramDenseStore(offsetRead, sizeRead, dataRead).setParent(fringe).ctrl(innerCtrl)
         WriteMem(ack, pdc).setParent(fringe).ctrl(innerCtrl)

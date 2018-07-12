@@ -23,12 +23,15 @@ object LogReg extends PIRApp {
     val x3597_d0_b0 = SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x3597_d0_b0").ctrl(x3789).srcCtx("LogReg.scala:39:27:btheta") // x3597 = SRAMNew(ArrayBuffer(Const(128)))
     isAccum(x3597_d0_b0) = false
     bufferDepthOf(x3597_d0_b0) = 1
+    staticDimsOf(x3597_d0_b0) = List(128)
     val x3597_d1_b0 = SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x3597_d1_b0").ctrl(x3789).srcCtx("LogReg.scala:39:27:btheta") // x3597 = SRAMNew(ArrayBuffer(Const(128)))
     isAccum(x3597_d1_b0) = true
     bufferDepthOf(x3597_d1_b0) = 1
+    staticDimsOf(x3597_d1_b0) = List(128)
     val x3597_d2_b0 = SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x3597_d2_b0").ctrl(x3789).srcCtx("LogReg.scala:39:27:btheta") // x3597 = SRAMNew(ArrayBuffer(Const(128)))
     isAccum(x3597_d2_b0) = false
     bufferDepthOf(x3597_d2_b0) = 1
+    staticDimsOf(x3597_d2_b0) = List(128)
     val x3615 = UnitController(style=StreamPipe, level=OuterControl).name("x3615").ctrl(x3789).srcCtx("LogReg.scala:41:14") // UnitPipe(List(Const(true)),Block(Const(())))
     val b3859 = StreamOut(field="offset").name("b3859").ctrl(x3615).srcCtx("LogReg.scala:41:14") // x3598 = StreamOutNew(BurstCmdBus)
     isAccum(b3859) = false
@@ -66,9 +69,11 @@ object LogReg extends PIRApp {
     val x3619_d0_b0 = SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x3619_d0_b0").ctrl(x3766).srcCtx("LogReg.scala:45:37:grad") // x3619 = SRAMNew(ArrayBuffer(Const(128)))
     isAccum(x3619_d0_b0) = false
     bufferDepthOf(x3619_d0_b0) = 1
+    staticDimsOf(x3619_d0_b0) = List(128)
     val x3619_d1_b0 = SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x3619_d1_b0").ctrl(x3766).srcCtx("LogReg.scala:45:37:grad") // x3619 = SRAMNew(ArrayBuffer(Const(128)))
     isAccum(x3619_d1_b0) = true
     bufferDepthOf(x3619_d1_b0) = 1
+    staticDimsOf(x3619_d1_b0) = List(128)
     val x3620 = ReadMem(x3584).name("x3620").ctrl(x3766).srcCtx("LogReg.scala:45:49") // RegRead(x3584)
     val x3621 = Counter(min=Const(0), max=x3620, step=Const(64), par=1).name("x3621").ctrl(x3766).srcCtx("LogReg.scala:45:57") // CounterNew(Const(0),x3620,Const(64),Const(1))
     val x3622 = CounterChain(List(x3621)).name("x3622").ctrl(x3766).srcCtx("LogReg.scala:64:11") // CounterChainNew(List(x3621))
@@ -78,12 +83,15 @@ object LogReg extends PIRApp {
     val x3623_d0_b0 = SRAM(size=8192, banking=Strided(banks=16, stride=1)).name("x3623_d0_b0").ctrl(x3754).srcCtx("LogReg.scala:46:30:xTile") // x3623 = SRAMNew(ArrayBuffer(Const(64), Const(128)))
     isAccum(x3623_d0_b0) = false
     bufferDepthOf(x3623_d0_b0) = 2
+    staticDimsOf(x3623_d0_b0) = List(64, 128)
     val x3623_d1_b0 = SRAM(size=8192, banking=Strided(banks=16, stride=1)).name("x3623_d1_b0").ctrl(x3754).srcCtx("LogReg.scala:46:30:xTile") // x3623 = SRAMNew(ArrayBuffer(Const(64), Const(128)))
     isAccum(x3623_d1_b0) = false
     bufferDepthOf(x3623_d1_b0) = 2
+    staticDimsOf(x3623_d1_b0) = List(64, 128)
     val x3624_d0_b0 = SRAM(size=64, banking=Strided(banks=16, stride=1)).name("x3624_d0_b0").ctrl(x3754).srcCtx("LogReg.scala:47:30:yTile") // x3624 = SRAMNew(ArrayBuffer(Const(64)))
     isAccum(x3624_d0_b0) = false
     bufferDepthOf(x3624_d0_b0) = 2
+    staticDimsOf(x3624_d0_b0) = List(64)
     val x3677 = UnitController(style=ForkJoin, level=OuterControl).name("x3677").ctrl(x3754).srcCtx("LogReg.scala:48:20") // ParallelPipe(List(b2199, b2191),Block(Const(())))
     val x3626 = UnitController(style=SeqPipe, level=InnerControl).name("x3626").ctrl(x3677).srcCtx("LogReg.scala:48:20") // UnitPipe(List(b2199, b2191),Block(Const(())))
     val x3625 = OpDef(op=FixAdd, inputs=List(b2198, Const(64))).name("x3625").ctrl(x3626).srcCtx("LogReg.scala:49:30") // FixAdd(b2198,Const(64))
@@ -162,9 +170,11 @@ object LogReg extends PIRApp {
     val x3678_d0_b0 = SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x3678_d0_b0").ctrl(x3754).srcCtx("LogReg.scala:52:28") // x3678 = SRAMNew(ArrayBuffer(Const(128)))
     isAccum(x3678_d0_b0) = false
     bufferDepthOf(x3678_d0_b0) = 2
+    staticDimsOf(x3678_d0_b0) = List(128)
     val x3678_d1_b0 = SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x3678_d1_b0").ctrl(x3754).srcCtx("LogReg.scala:52:28") // x3678 = SRAMNew(ArrayBuffer(Const(128)))
     isAccum(x3678_d1_b0) = true
     bufferDepthOf(x3678_d1_b0) = 1
+    staticDimsOf(x3678_d1_b0) = List(128)
     val x3679 = Counter(min=Const(0), max=Const(64), step=Const(1), par=1).name("x3679").ctrl(x3754).srcCtx("LogReg.scala:52:48") // CounterNew(Const(0),Const(64),Const(1),Const(1))
     val x3680 = CounterChain(List(x3679)).name("x3680").ctrl(x3754).srcCtx("LogReg.scala:63:13") // CounterChainNew(List(x3679))
     val x3739 = LoopController(style=MetaPipe, level=OuterControl, cchain=x3680).name("x3739").ctrl(x3754).srcCtx("LogReg.scala:63:13") // UnrolledReduce(List(b2199, b2191),x3680,x3678,Block((x3678) => Const(())),List(List(b2266)),List(List(b2267)))
@@ -195,7 +205,9 @@ object LogReg extends PIRApp {
     val x3695 = OpDef(op=BitAnd, inputs=List(b2267, b2199)).name("x3695").ctrl(x3698).srcCtx("UnrollingBase.scala:28:66") // And(b2267,b2199)
     val x3696 = OpDef(op=BitAnd, inputs=List(x3695, b2191)).name("x3696").ctrl(x3698).srcCtx("UnrollingBase.scala:28:66") // And(x3695,b2191)
     val x3697_x3681_d0 = WriteMem(x3681_d0, x3694).name("x3697_x3681_d0").ctrl(x3698).srcCtx("LogReg.scala:55:15") // RegWrite(x3681,x3694,x3696)
+    antiDepsOf(x3697_x3681_d0)=List(x3692)
     val x3697_x3681_d1 = WriteMem(x3681_d1, x3694).name("x3697_x3681_d1").ctrl(x3698).srcCtx("LogReg.scala:55:15") // RegWrite(x3681,x3694,x3696)
+    antiDepsOf(x3697_x3681_d1)=List(x3692)
     val x3699 = Reg(init=Some(0.0)).name("x3699").ctrl(x3739).srcCtx("LogReg.scala:56:26:sub") // x3699 = RegNew(Const(0.0))
     isAccum(x3699) = false
     bufferDepthOf(x3699) = 2
@@ -213,6 +225,7 @@ object LogReg extends PIRApp {
     val x3711_d0_b0 = SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x3711_d0_b0").ctrl(x3739).srcCtx("LogReg.scala:60:34:gradRow") // x3711 = SRAMNew(ArrayBuffer(Const(128)))
     isAccum(x3711_d0_b0) = false
     bufferDepthOf(x3711_d0_b0) = 2
+    staticDimsOf(x3711_d0_b0) = List(128)
     val x3712 = Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x3712").ctrl(x3739).srcCtx("LogReg.scala:61:28") // CounterNew(Const(0),Const(128),Const(1),Const(16))
     val x3713 = CounterChain(List(x3712)).name("x3713").ctrl(x3739).srcCtx("LogReg.scala:61:36") // CounterChainNew(List(x3712))
     val x3722 = LoopController(style=InnerPipe, level=InnerControl, cchain=x3713).name("x3722").ctrl(x3739).srcCtx("LogReg.scala:61:36") // UnrolledForeach(List(b2267, b2199, b2191),x3713,Block(Const(())),List(List(b2303)),List(List(b2304)))
@@ -244,6 +257,7 @@ object LogReg extends PIRApp {
     val x3735 = OpDef(op=FltAdd, inputs=List(x3728, x3730)).name("x3735").ctrl(x3738).srcCtx("LogReg.scala:63:17") // FltAdd(x3728,x3730)
     val x3736 = OpDef(op=MuxOp, inputs=List(x3734, x3728, x3735)).name("x3736").ctrl(x3738).srcCtx("LogReg.scala:63:13") // Mux(x3734,x3728,x3735)
     val x3737 = StoreBanks(List(x3678_d0_b0, x3678_d1_b0), List(b2314), x3736).name("x3737").ctrl(x3738).srcCtx("LogReg.scala:63:13") // ParSRAMStore(x3678,List(ArrayBuffer(b2314)),List(x3736),List(x3726))
+    antiDepsOf(x3737)=List(x3729)
     val x3740 = Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x3740").ctrl(x3754).srcCtx("LogReg.scala:64:11") // CounterNew(Const(0),Const(128),Const(1),Const(16))
     val x3741 = CounterChain(List(x3740)).name("x3741").ctrl(x3754).srcCtx("LogReg.scala:64:11") // CounterChainNew(ArrayBuffer(x3740))
     val x3753 = LoopController(style=InnerPipe, level=InnerControl, cchain=x3741).name("x3753").ctrl(x3754).srcCtx("LogReg.scala:64:11") // UnrolledForeach(List(),x3741,Block(Const(())),ArrayBuffer(List(b2331)),ArrayBuffer(List(b2332)))
@@ -260,6 +274,7 @@ object LogReg extends PIRApp {
     val x3750 = OpDef(op=FltAdd, inputs=List(x3744, x3746)).name("x3750").ctrl(x3753).srcCtx("LogReg.scala:64:15") // FltAdd(x3744,x3746)
     val x3751 = OpDef(op=MuxOp, inputs=List(x3749, x3744, x3750)).name("x3751").ctrl(x3753).srcCtx("LogReg.scala:64:11") // Mux(x3749,x3744,x3750)
     val x3752 = StoreBanks(List(x3619_d0_b0, x3619_d1_b0), List(b2331), x3751).name("x3752").ctrl(x3753).srcCtx("LogReg.scala:64:11") // ParSRAMStore(x3619,List(ArrayBuffer(b2331)),List(x3751),List(x3742))
+    antiDepsOf(x3752)=List(x3745)
     val x3755 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x3755").ctrl(x3766).srcCtx("LogReg.scala:66:19") // CounterNew(Const(0),Const(128),Const(1),Const(1))
     val x3756 = CounterChain(List(x3755)).name("x3756").ctrl(x3766).srcCtx("LogReg.scala:66:25") // CounterChainNew(List(x3755))
     val x3765 = LoopController(style=InnerPipe, level=InnerControl, cchain=x3756).name("x3765").ctrl(x3766).srcCtx("LogReg.scala:66:25") // UnrolledForeach(List(b2191),x3756,Block(Const(())),List(List(b2348)),List(List(b2349)))
@@ -273,6 +288,7 @@ object LogReg extends PIRApp {
     val x3762 = OpDef(op=FltMul, inputs=List(x3761, Const(1.0E-7))).name("x3762").ctrl(x3765).srcCtx("LogReg.scala:66:64") // FltMul(x3761,Const(0.0000001000000011686097423080354928970337))
     val x3763 = OpDef(op=FltAdd, inputs=List(x3759, x3762)).name("x3763").ctrl(x3765).srcCtx("LogReg.scala:66:54") // FltAdd(x3759,x3762)
     val x3764 = StoreBanks(List(x3597_d0_b0, x3597_d1_b0, x3597_d2_b0), List(b2348), x3763).name("x3764").ctrl(x3765).srcCtx("LogReg.scala:66:42") // ParSRAMStore(x3597,List(List(b2348)),List(x3763),List(x3757))
+    antiDepsOf(x3764)=List(x3758)
     val x3788 = UnitController(style=StreamPipe, level=OuterControl).name("x3788").ctrl(x3789).srcCtx("LogReg.scala:70:26") // UnitPipe(List(Const(true)),Block(Const(())))
     val b3871 = StreamOut(field="offset").name("b3871").ctrl(x3788).srcCtx("LogReg.scala:70:26") // x3767 = StreamOutNew(BurstCmdBus)
     isAccum(b3871) = false
