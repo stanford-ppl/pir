@@ -29,6 +29,7 @@ trait GraphTraversal {
 
   var _scope:Option[List[N]] = None
   def withinScope(n:N) = _scope.map { _.contains(n) }.getOrElse(true)
+  def scope = _scope.get
 
   def resetTraversal = {
     visited.clear
@@ -195,6 +196,7 @@ trait BFSTopologicalTraversal extends BFSTraversal with TopologicalTraversal
 trait HierarchicalTraversal extends GraphTraversal {
   def top:N
   def traverseScope(n:N, zero:T):T
+  def traverseTop = traverseScope(top, zero)
 }
 
 trait HierarchicalTopologicalTraversal extends TopologicalTraversal with HierarchicalTraversal

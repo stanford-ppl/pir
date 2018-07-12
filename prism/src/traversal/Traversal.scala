@@ -12,15 +12,11 @@ trait Traversal extends Pass with GraphTraversal {
     resetTraversal
   }
 
-  def traverseTop:T = {
+  override def runPass = {
     this match {
-      case self:HierarchicalTraversal => self.traverseScope(self.top, self.zero).asInstanceOf[T]
+      case self:HierarchicalTraversal => self.traverseTop
       case self => throw PIRException(s"traverseTop is not defined for $this")
     }
-  }
-
-  override def runPass = {
-    traverseTop
   }
 }
 
