@@ -25,7 +25,9 @@ trait RuntimeUtil extends ConstantPropogator { self:Logging =>
         case n:ForeverController => 1
         case x:UnitController => 1
         case x:TopController => 1
-        case x:LoopController => getParOf(x.cchain)
+        case x:LoopController => 
+          val cc = ctrlOf.bmap(x).collect { case cc:CounterChain => cc }.head
+          getParOf(cc)
         case x:ArgInController => 1
         case x:ArgOutController => 1
         case DramController(size, par) => par
@@ -42,7 +44,9 @@ trait RuntimeUtil extends ConstantPropogator { self:Logging =>
         case x:ForeverController => getCountsOf(x)
         case x:UnitController => Some(1)
         case x:TopController => Some(1)
-        case x:LoopController => getItersOf(x.cchain)
+        case x:LoopController => 
+          val cc = ctrlOf.bmap(x).collect { case cc:CounterChain => cc }.head
+          getItersOf(cc)
         case x:ArgInController => Some(1)
         case x:ArgOutController => Some(1)
         case DramController(size, par) => 

@@ -5,7 +5,7 @@ import pir.pass._
 import pir.node._
 import prism.traversal._
 
-class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends PIRPass with Traversal with ControllerChildFirstTraversal with IRDotCodegen {
+class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends PIRPass with ControllerChildFirstTraversal with IRDotCodegen {
 
   import pirmeta._
 

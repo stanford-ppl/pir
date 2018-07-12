@@ -93,7 +93,6 @@ trait PIR extends Compiler with PIRWorld {
     addPass(enableDot, new PIRIRDotCodegen(s"top6.dot"))
     addPass(deadCodeEliminator)
     addPass(enableDot, new PIRIRDotCodegen(s"top7.dot"))
-    addPass(controllerRuntimeAnalyzer).dependsOn(controlPropogator)
     addPass(cuStats)
 
     addPass(enableSplitting, igraphPartioner)
