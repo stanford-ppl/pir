@@ -32,11 +32,15 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
       warn(s"set PLASTISIM_HOME to launch plastiroute automatically!")
       } { case (psimHome, psimOut) =>
         val log = s"$dirName/psim.log"
-        var succeed = false
+        var succeed:Option[Boolean] = None
         def processOutput(line:String) = {
-          if (line.contains("Simulation complete at cycle")) {
+          if (succeed.isEmpty && line.contains("Simulation complete at cycle")) {
             info(Console.GREEN, s"psim", line)
-            succeed = true
+            succeed = Some(true)
+          }
+          if (line.contains("DEADLOCK")) {
+            info(Console.RED, s"psim", line)
+            succeed = Some(false)
           }
         }
         if (runPlastisim) {
@@ -50,7 +54,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
               shellProcess(s"psim", s"$psimHome/plastisim -f $psimOut/config.psim", log)(processOutput)
             }
           }
-          if (!succeed) fail(s"Plastisim failed. details in $log")
+          if (!succeed.getOrElse(false)) fail(s"Plastisim failed. details in $log")
         } else {
           info(s"To run simulation manually, use following command, or use --run-psim to launch simulation automatically")
           if (enablePlastiroute) {
