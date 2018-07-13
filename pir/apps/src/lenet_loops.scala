@@ -219,6 +219,7 @@ object lenet_loops extends PIRApp {
     val x9500_d0_b0 = RegFile(size=32, inits=None).name("x9500_d0_b0").ctrl(x9610).srcCtx("lenet_loops.scala:99:33:c0_RF") // x9500 = RegFileNew(ArrayBuffer(Const(32)),None) banking:Strided(banks=1, stride=1)
     isAccum(x9500_d0_b0) = false
     bufferDepthOf(x9500_d0_b0) = 2
+    staticDimsOf(x9500_d0_b0) = List(32)
     val x9502 = UnitController(style=SeqPipe, level=InnerControl).name("x9502").ctrl(x9610).srcCtx("lenet_loops.scala:91:40") // UnitPipe(List(b5724, b5677),Block(Const(())))
     val x9501 = OpDef(op=FixAdd, inputs=List(b5723, Const(1))).name("x9501").ctrl(x9502).srcCtx("lenet_loops.scala:100:29") // FixAdd(b5723,Const(1))
     val x9503 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x9503").ctrl(x9610).srcCtx("lenet_loops.scala:100:17") // CounterNew(Const(0),Const(1),Const(1),Const(1))
@@ -506,8 +507,8 @@ object lenet_loops extends PIRApp {
     val x9688 = StoreBanks(List(x9649_d0_b0), List(b5912, b5913), x9683).name("x9688").ctrl(x9689).srcCtx("lenet_loops.scala:137:28") // SRAMStore(x9649,ArrayBuffer(Const(8), Const(8)),List(b5912, b5913),Const(0),x9683,x9687)
     val x9691 = Counter(min=Const(0), max=Const(8), step=Const(1), par=1).name("x9691").ctrl(x9709).srcCtx("lenet_loops.scala:140:12") // CounterNew(Const(0),Const(8),Const(1),Const(1))
     val x9692 = Counter(min=Const(0), max=Const(8), step=Const(1), par=1).name("x9692").ctrl(x9709).srcCtx("lenet_loops.scala:140:12") // CounterNew(Const(0),Const(8),Const(1),Const(1))
-    val x9693 = CounterChain(List(x9692,x9691)).name("x9693").ctrl(x9709).srcCtx("lenet_loops.scala:140:12") // CounterChainNew(ArrayBuffer(x9692, x9691))
     def split1 = {
+    val x9693 = CounterChain(List(x9692,x9691)).name("x9693").ctrl(x9709).srcCtx("lenet_loops.scala:140:12") // CounterChainNew(ArrayBuffer(x9692, x9691))
     val x9708 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9693).name("x9708").ctrl(x9709).srcCtx("lenet_loops.scala:140:12") // UnrolledForeach(List(),x9693,Block(Const(())),ArrayBuffer(List(b5958), List(b5959)),ArrayBuffer(List(b5960), List(b5961)))
     val b5958 = CounterIter(x9692, Some(0)).name("b5958").ctrl(x9708) // b5958
     val b5960 = Const(true).name("b5960").ctrl(x9708) // b5960

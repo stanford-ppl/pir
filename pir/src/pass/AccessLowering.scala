@@ -36,12 +36,9 @@ class AccessLowering(implicit compiler:PIR) extends PIRTransformer {
             pirmeta.mirror(n, access)
             retime(access, accessCU).asInstanceOf[LocalLoad]
           }
-          val access = if (bankAccesses.size > 1) {
-            val sb = BankMerge(bankAccesses).setParent(accessCU)
-            dbg(s"add ${qtype(sb)} in ${qtype(accessCU)}")
-            sb
-          } else bankAccesses.head
-          swapNode(n,access)
+          lowerNode(n) {
+            if (bankAccesses.size > 1) { BankMerge(bankAccesses) } else bankAccesses.head
+          }
         }
       case Def(n:LocalStore, LocalStore(banks, Some(addrs), data)) =>
         dbgblk(s"Lowering ${qdef(n)}") {
@@ -62,21 +59,19 @@ class AccessLowering(implicit compiler:PIR) extends PIRTransformer {
             val bankCU = globalOf(bank).get 
             val dataLoad = retime(mdata, bankCU)
             val addrLoad = retime(maddr, bankCU)
-            dbg(s"disconnect ${qtype(n)} from ${qtype(bank)}")
             val access = StoreMem(bank, addrLoad, dataLoad).setParent(bankCU)
             dbg(s"add ${qtype(access)} in ${qtype(bankCU)}")
             swapNode(n,access, at=Some(List(bank)))
             access
           }
+          removeNode(n)
         }
       case Def(n:LocalLoad, LocalLoad(mem::Nil, None)) =>
         dbgblk(s"Lowering ${qdef(n)}") {
           val memCU = globalOf(mem).get
           val accessCU = globalOf(n).get 
           swapParent(n, memCU)
-          val depeds = n.depeds.toList
-          val raccess = retime(n, accessCU)
-          swapNode(n,raccess,at=Some(depeds))
+          lowerNode(n)(retime(n, accessCU))
         }
       case Def(n:LocalStore, LocalStore(mem::Nil, None, data)) =>
         dbgblk(s"Lowering ${qdef(n)}") {

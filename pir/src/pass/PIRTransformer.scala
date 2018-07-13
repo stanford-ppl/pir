@@ -162,9 +162,9 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     to
   }
 
-  def lowerNode[T<:Primitive](from:Primitive)(to:T):T = {
+  def lowerNode[T<:Primitive](from:Primitive, at:Option[List[Primitive]]=None)(to:T):T = {
     if (from == to) return to
-    swapNode(from, to)
+    swapNode(from, to, at=at)
     from.parent.foreach { parent =>
       to.setParent(parent)
       dbg(s"add ${quote(to)} in ${quote(parent)}")
