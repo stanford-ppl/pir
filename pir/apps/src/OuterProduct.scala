@@ -14,6 +14,10 @@ object OuterProduct extends PIRApp {
     isAccum(x1667_d0) = false
     bufferDepthOf(x1667_d0) = 1
     boundOf(x1667_d0) = 1024
+    val x1667_d1 = ArgIn(init=0).name("x1667_d1").ctrl(top).srcCtx("OuterProduct.scala:22:22:sizeB") // ArgInNew(Const(0))
+    isAccum(x1667_d1) = false
+    bufferDepthOf(x1667_d1) = 1
+    boundOf(x1667_d1) = 1024
     val x1670 = ReadMem(x1666).name("x1670").ctrl(top).srcCtx("OuterProduct.scala:26:24") // RegRead(x1666)
     val x1671 = DRAM(dims=List(x1670)).name("x1671").ctrl(top).srcCtx("OuterProduct.scala:26:23:vec1") // x1671 = DRAMNew(ArrayBuffer(x1670),Const(0))
     val x1672 = ReadMem(x1667_d0).name("x1672").ctrl(top).srcCtx("OuterProduct.scala:27:24") // RegRead(x1667)
@@ -31,6 +35,7 @@ object OuterProduct extends PIRApp {
     val x1682_d0_b0 = SRAM(size=32, banking=Strided(banks=16, stride=1)).name("x1682_d0_b0").ctrl(x1783).srcCtx("OuterProduct.scala:35:25:b1") // x1682 = SRAMNew(ArrayBuffer(Const(32)))
     isAccum(x1682_d0_b0) = false
     bufferDepthOf(x1682_d0_b0) = 2
+    staticDimsOf(x1682_d0_b0) = List(32)
     val x1684 = UnitController(style=SeqPipe, level=InnerControl).name("x1684").ctrl(x1783).srcCtx("OuterProduct.scala:34:36") // UnitPipe(List(b967),Block(Const(())))
     val x1683 = OpDef(op=FixAdd, inputs=List(b966, Const(32))).name("x1683").ctrl(x1684).srcCtx("OuterProduct.scala:36:26") // FixAdd(b966,Const(32))
     val x1703 = UnitController(style=StreamPipe, level=OuterControl).name("x1703").ctrl(x1783).srcCtx("OuterProduct.scala:36:12") // UnitPipe(List(b967),Block(Const(())))
@@ -71,6 +76,7 @@ object OuterProduct extends PIRApp {
     val x1707_d0_b0 = SRAM(size=32, banking=Strided(banks=16, stride=1)).name("x1707_d0_b0").ctrl(x1782).srcCtx("OuterProduct.scala:38:27:b2") // x1707 = SRAMNew(ArrayBuffer(Const(32)))
     isAccum(x1707_d0_b0) = false
     bufferDepthOf(x1707_d0_b0) = 2
+    staticDimsOf(x1707_d0_b0) = List(32)
     val x1709 = UnitController(style=SeqPipe, level=InnerControl).name("x1709").ctrl(x1782).srcCtx("OuterProduct.scala:37:39") // UnitPipe(List(b996, b967),Block(Const(())))
     val x1708 = OpDef(op=FixAdd, inputs=List(b995, Const(32))).name("x1708").ctrl(x1709).srcCtx("OuterProduct.scala:39:28") // FixAdd(b995,Const(32))
     val x1730 = UnitController(style=StreamPipe, level=OuterControl).name("x1730").ctrl(x1782).srcCtx("OuterProduct.scala:39:14") // UnitPipe(List(b996, b967),Block(Const(())))
@@ -107,6 +113,7 @@ object OuterProduct extends PIRApp {
     val x1731_d0_b0 = SRAM(size=1024, banking=Strided(banks=16, stride=1)).name("x1731_d0_b0").ctrl(x1782).srcCtx("OuterProduct.scala:40:32:outTile") // x1731 = SRAMNew(ArrayBuffer(Const(32), Const(32)))
     isAccum(x1731_d0_b0) = false
     bufferDepthOf(x1731_d0_b0) = 3
+    staticDimsOf(x1731_d0_b0) = List(32, 32)
     val x1732 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x1732").ctrl(x1782).srcCtx("OuterProduct.scala:41:36") // CounterNew(Const(0),Const(32),Const(1),Const(16))
     val x1733 = Counter(min=Const(0), max=Const(32), step=Const(1), par=1).name("x1733").ctrl(x1782).srcCtx("OuterProduct.scala:41:23") // CounterNew(Const(0),Const(32),Const(1),Const(1))
     val x1734 = CounterChain(List(x1733,x1732)).name("x1734").ctrl(x1782).srcCtx("OuterProduct.scala:41:44") // CounterChainNew(List(x1733, x1732))

@@ -15,8 +15,8 @@ object LocalLoad {
   def unapply(n:Any):Option[(List[Memory], Option[List[Def]])] = n match {
     case ReadMem(mem) => Some((List(mem), None))
     case LoadBanks(banks, addrs) => Some((banks, Some(addrs)))
-    case LoadMem(mem, addrs) => Some(List(mem), Some(addrs))
-    case EnabledLoadMem(mem, addrs, deqEn) => Some((List(mem), addrs))
+    case LoadMem(mem, faddr) => Some(List(mem), Some(List(faddr)))
+    case EnabledLoadMem(mem, faddr, deqEn) => Some((List(mem), faddr.map { a => List(a)}))
     case _ => None
   }
 }
@@ -31,8 +31,8 @@ object LocalStore {
   def unapply(n:Any):Option[(List[Memory], Option[List[Def]], Def)] = n match {
     case WriteMem(mem, data) => Some((List(mem), None, data))
     case StoreBanks(banks, addrs, data) => Some((banks, Some(addrs), data))
-    case StoreMem(mem, addrs, data) => Some((List(mem), Some(addrs), data))
-    case EnabledStoreMem(mem, addrs, data, enqEn) => Some((List(mem), addrs, data))
+    case StoreMem(mem, faddr, data) => Some((List(mem), Some(List(faddr)), data))
+    case EnabledStoreMem(mem, faddr, data, enqEn) => Some((List(mem), faddr.map { a => List(a)}, data))
     case _ => None
   }
 }
@@ -54,8 +54,8 @@ object LocalReset {
 trait EnabledAccess extends LocalAccess
 object EnabledAccess {
   def unapply(n:Any):Option[(List[Memory], Def)] = n match {
-    case EnabledLoadMem(mem, addrs, readNext) => Some((List(mem), readNext))
-    case EnabledStoreMem(mem, addrs, data, writeNext) => Some((List(mem), writeNext))
+    case EnabledLoadMem(mem, faddr, readNext) => Some((List(mem), readNext))
+    case EnabledStoreMem(mem, faddr, data, writeNext) => Some((List(mem), writeNext))
     case EnabledResetMem(mem, reset, writeNext) => Some((List(mem), writeNext))
     case _ => None
   }
@@ -94,13 +94,15 @@ case class ResetMem(mem:Memory, reset:Def)(implicit design:PIRDesign) extends Lo
 case class LoadBanks(banks:List[Memory], addrs:List[Def])(implicit design:PIRDesign) extends LocalLoad
 case class StoreBanks(banks:List[Memory], addrs:List[Def], data:Def)(implicit design:PIRDesign) extends LocalStore
 // Lowered
-case class LoadMem(mem:Memory, addrs:List[Def])(implicit design:PIRDesign) extends LocalLoad
-case class StoreMem(mem:Memory, addrs:List[Def], data:Def)(implicit design:PIRDesign) extends LocalStore
-case class SelectBanks(bankLoads:List[LocalLoad])(implicit design:PIRDesign) extends Def
+case class LoadMem(mem:Memory, addr:Def)(implicit design:PIRDesign) extends LocalLoad
+case class StoreMem(mem:Memory, addr:Def, data:Def)(implicit design:PIRDesign) extends LocalStore
+case class BankMerge(bankLoads:List[LocalLoad])(implicit design:PIRDesign) extends Def
+case class BankSelect(addrs:List[Def])(implicit design:PIRDesign) extends Def
+case class BankMask(mask:Def, exp:Def)(implicit design:PIRDesign) extends Def
 
 // Lowered with control
-case class EnabledLoadMem(mem:Memory, addrs:Option[List[Def]], readNext:Def)(implicit design:PIRDesign) extends LocalLoad with EnabledAccess
-case class EnabledStoreMem(mem:Memory, addrs:Option[List[Def]], data:Def, writeNext:Def)(implicit design:PIRDesign) extends LocalStore with EnabledAccess
+case class EnabledLoadMem(mem:Memory, faddr:Option[Def], readNext:Def)(implicit design:PIRDesign) extends LocalLoad with EnabledAccess
+case class EnabledStoreMem(mem:Memory, faddr:Option[Def], data:Def, writeNext:Def)(implicit design:PIRDesign) extends LocalStore with EnabledAccess
 case class EnabledResetMem(mem:Memory, reset:Def, writeNext:Def)(implicit design:PIRDesign) extends LocalReset with EnabledAccess
 
 case class FIFOEmpty(mem:Memory)(implicit design:PIRDesign) extends Def
@@ -127,8 +129,8 @@ trait AccessUtil {
 
   def accessNextOf(n:PIRNode) = {
     n match {
-      case Def(n,EnabledLoadMem(mem, addrs, readNext)) => readNext
-      case Def(n,EnabledStoreMem(mem, addrs, data, writeNext)) => writeNext
+      case Def(n,EnabledLoadMem(mem, faddr, readNext)) => readNext
+      case Def(n,EnabledStoreMem(mem, faddr, data, writeNext)) => writeNext
       case Def(n,EnabledResetMem(mem, reset, writeNext)) => writeNext
     }
   }

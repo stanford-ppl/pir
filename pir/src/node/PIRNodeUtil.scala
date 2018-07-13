@@ -13,5 +13,18 @@ trait PIRNodeUtil extends ContainerUtil with MemoryUtil with DramFringeUtil with
     n.collectUp[GlobalContainer]().headOption
   }
 
+  def enableOf(n:PIRNode):Option[Primitive] = {
+    n match {
+      case n:LocalAccess => Some(accessNextOf(n))
+      case n:Counter => n.getEnable
+      case Def(n, DataValid(gin)) => enableOf(gin)
+      case n:ControlNode => 
+        assert(n.deps.size==1, s"$n has more than 1 dep")
+        Some(n.deps.head)
+      case n:GlobalInput => goutOf(n).flatMap(enableOf) 
+      case n:GlobalOutput => Some(validOf(n))
+    }
+  }
+
 }
 

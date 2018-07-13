@@ -132,7 +132,7 @@ class ControlAllocation(implicit compiler:PIR) extends ControlTransformer with S
     n match {
       case n:EnabledAccess => n
       case Def(n:LocalLoad, LocalLoad(mem::Nil, addr)) =>
-        EnabledLoadMem(mem, addr, getAccessNext(n, mem, contextOf(n).get))
+        EnabledLoadMem(mem, addr.map(assertOne(_,s"$n.addr")), getAccessNext(n, mem, contextOf(n).get))
       case Def(n:LocalStore, LocalStore(mem::Nil, addr, data)) =>
         val context = contextOf(n).get
         val gdata = insertGlobalIO(data, context) {
@@ -152,7 +152,7 @@ class ControlAllocation(implicit compiler:PIR) extends ControlTransformer with S
             // compute locally
             getAccessNext(n, mem, context)
         }
-        EnabledStoreMem(mem, addr, gdata, writeNext)
+        EnabledStoreMem(mem, addr.map(assertOne(_,s"$n.addr")), gdata, writeNext)
       case Def(n:LocalReset, LocalReset(mem::Nil, reset)) =>
         val context = contextOf(n).get
         val greset = insertGlobalIO(reset, context) {

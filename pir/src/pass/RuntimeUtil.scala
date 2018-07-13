@@ -19,7 +19,7 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
   }
 
   def getParOf(x:Controller):Int = parOf.getOrElseUpdate(x) {
-    dbgblk(s"$x.par") {
+    dbgblk(s"getParOf $x") {
       x match {
         case n:ForeverController => 1
         case x:UnitController => 1
@@ -38,7 +38,7 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
    * For controller, itersOf is the number of iteration the current controller runs before saturate
    * */
   def getItersOf(n:Controller):Option[Long] = itersOf.getOrElseUpdate(n) {
-    dbgblk(s"$n.iters") {
+    dbgblk(s"getItersOf $n") {
       n match {
         case x:ForeverController => throw PIRException(s"ForeverController doesn't have iter")
         case x:UnitController => Some(1)
@@ -58,7 +58,7 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
   }
 
   def getCountsOf(n:Controller):Option[Long] = countsOf.getOrElseUpdate(n) {
-    dbgblk(s"$n.counts") { 
+    dbgblk(s"getCountsOf $n") { 
       n match {
         case ctrl:ArgInController => Some(1l)
         case ctrl:ForeverController => 
@@ -91,7 +91,7 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
 
 
   def getParOf(x:PIRNode):Int = parOf.getOrElseUpdate(x) {
-    dbgblk(s"$x.par") {
+    dbgblk(s"getParOf $x") {
       x match {
         case x:ControlNode => 1
         case x:Counter => x.par
@@ -122,7 +122,7 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
    * local contextEnable
    * */
   def getItersOf(n:PIRNode):Option[Long] = itersOf.getOrElseUpdate(n) {
-    dbgblk(s"$n.iters") {
+    dbgblk(s"getItersOf $n") {
       n match {
         case Def(n, CounterChain(counters)) => flatReduce(counters.map(getItersOf)) { _ * _ }
         case Def(ctr:Counter, Counter(min, max, step, par)) =>
@@ -144,7 +144,7 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
 
 
   def getScaleOf(n:PIRNode):Option[Long] = scaleOf.getOrElseUpdate(n) {
-    dbgblk(s"$n.scale") {
+    dbgblk(s"getScaleOf $n") {
       n match {
         case n:ContextEnable => Some(1l)
         case n:ForeverControllerDone => getCountsOf(ctrlOf(n))
@@ -156,21 +156,8 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
     }
   }
 
-  def enableOf(n:PIRNode):Option[Primitive] = {
-    n match {
-      case n:LocalAccess => Some(accessNextOf(n))
-      case n:Counter => n.getEnable
-      case Def(n, DataValid(gin)) => enableOf(gin)
-      case n:ControlNode => 
-        assert(n.deps.size==1, s"$n has more than 1 dep")
-        Some(n.deps.head)
-      case n:GlobalInput => goutOf(n).flatMap(enableOf) 
-      case n:GlobalOutput => Some(validOf(n))
-    }
-  }
-
   def getCountsOf(n:PIRNode):Option[Long] = countsOf.getOrElseUpdate(n) {
-    dbgblk(s"$n.counts") { 
+    dbgblk(s"getCountsOf $n") { 
       n match {
         case n:ContextEnable => getCountsOf(ctrlOf(n))
         case n:Memory => assertUnify(inAccessesOf(n), s"${inAccessesOf(n)}.counts") { a => getCountsOf(a) }.get

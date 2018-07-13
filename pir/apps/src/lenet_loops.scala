@@ -20,6 +20,7 @@ object lenet_loops extends PIRApp {
     val x9382_d0_b0 = SRAM(size=32, banking=Strided(banks=1, stride=1)).name("x9382_d0_b0").ctrl(x9924).srcCtx("lenet_loops.scala:71:28:c1_SRAM") // x9382 = SRAMNew(ArrayBuffer(Const(32)))
     isAccum(x9382_d0_b0) = false
     bufferDepthOf(x9382_d0_b0) = 1
+    staticDimsOf(x9382_d0_b0) = List(32)
     val x9400 = UnitController(style=StreamPipe, level=OuterControl).name("x9400").ctrl(x9924).srcCtx("lenet_loops.scala:72:15") // UnitPipe(List(Const(true)),Block(Const(())))
     val b9962 = StreamOut(field="offset").name("b9962").ctrl(x9400).srcCtx("lenet_loops.scala:72:15") // x9383 = StreamOutNew(BurstCmdBus)
     isAccum(b9962) = false
@@ -32,13 +33,13 @@ object lenet_loops extends PIRApp {
     bufferDepthOf(x9384) = 1
     val x9392 = UnitController(style=SeqPipe, level=InnerControl).name("x9392").ctrl(x9400).srcCtx("lenet_loops.scala:72:15") // UnitPipe(List(Const(true)),Block(x9391))
     val x9385 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
-    val x9386 = OpDef(op=FixSla, inputs=List(x9385, Const(1))).name("x9386").ctrl(x9392).srcCtx("lenet_loops.scala:72:15") // FixLsh(x9385,Const(1))
+    val x9386 = OpDef(op=FixSla, inputs=List(x9385, Const(2))).name("x9386").ctrl(x9392).srcCtx("lenet_loops.scala:72:15") // FixLsh(x9385,Const(2))
     val x9387 = x9386 // FixConvert(x9386,TRUE,_64,_0)
     val x9388 = DramAddress(x9255).name("x9388").ctrl(x9392).srcCtx("lenet_loops.scala:72:15") // GetDRAMAddress(x9255)
     val x9390_x9389 = OpDef(op=FixAdd, inputs=List(x9387, x9388)).name("x9390_x9389").ctrl(x9392).srcCtx("lenet_loops.scala:72:15") // FixAdd(x9387,x9388)
-    // x9390 = SimpleStruct(ArrayBuffer((offset,x9389), (size,Const(64)), (isLoad,Const(true))))
+    // x9390 = SimpleStruct(ArrayBuffer((offset,x9389), (size,Const(128)), (isLoad,Const(true))))
     val x9391_b9964_b9962 = WriteMem(b9962, x9390_x9389).name("x9391_b9964_b9962").ctrl(x9392).srcCtx("lenet_loops.scala:72:15") // StreamWrite(x9383,x9390,Const(true))
-    val x9391_b9965_b9963 = WriteMem(b9963, Const(64)).name("x9391_b9965_b9963").ctrl(x9392).srcCtx("lenet_loops.scala:72:15") // StreamWrite(x9383,x9390,Const(true))
+    val x9391_b9965_b9963 = WriteMem(b9963, Const(128)).name("x9391_b9965_b9963").ctrl(x9392).srcCtx("lenet_loops.scala:72:15") // StreamWrite(x9383,x9390,Const(true))
     val x9393 = FringeDenseLoad(dram=List(x9255), cmdStream=List(b9962, b9963), dataStream=List(x9384)).name("x9393").ctrl(x9400).srcCtx("lenet_loops.scala:72:15") // FringeDenseLoad(x9255,x9383,x9384)
     val x9394 = Counter(min=Const(0), max=Const(32), step=Const(1), par=1).name("x9394").ctrl(x9400).srcCtx("lenet_loops.scala:72:15") // CounterNew(Const(0),Const(32),Const(1),Const(1))
     val x9395 = CounterChain(List(x9394)).name("x9395").ctrl(x9400).srcCtx("lenet_loops.scala:72:15") // CounterChainNew(List(x9394))
@@ -51,6 +52,7 @@ object lenet_loops extends PIRApp {
     val x9401_d0_b0 = SRAM(size=64, banking=Strided(banks=1, stride=1)).name("x9401_d0_b0").ctrl(x9924).srcCtx("lenet_loops.scala:74:28:c3_SRAM") // x9401 = SRAMNew(ArrayBuffer(Const(64)))
     isAccum(x9401_d0_b0) = false
     bufferDepthOf(x9401_d0_b0) = 1
+    staticDimsOf(x9401_d0_b0) = List(64)
     val x9419 = UnitController(style=StreamPipe, level=OuterControl).name("x9419").ctrl(x9924).srcCtx("lenet_loops.scala:75:15") // UnitPipe(List(Const(true)),Block(Const(())))
     val b9966 = StreamOut(field="offset").name("b9966").ctrl(x9419).srcCtx("lenet_loops.scala:75:15") // x9402 = StreamOutNew(BurstCmdBus)
     isAccum(b9966) = false
@@ -63,13 +65,13 @@ object lenet_loops extends PIRApp {
     bufferDepthOf(x9403) = 1
     val x9411 = UnitController(style=SeqPipe, level=InnerControl).name("x9411").ctrl(x9419).srcCtx("lenet_loops.scala:75:15") // UnitPipe(List(Const(true)),Block(x9410))
     val x9404 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
-    val x9405 = OpDef(op=FixSla, inputs=List(x9404, Const(1))).name("x9405").ctrl(x9411).srcCtx("lenet_loops.scala:75:15") // FixLsh(x9404,Const(1))
+    val x9405 = OpDef(op=FixSla, inputs=List(x9404, Const(2))).name("x9405").ctrl(x9411).srcCtx("lenet_loops.scala:75:15") // FixLsh(x9404,Const(2))
     val x9406 = x9405 // FixConvert(x9405,TRUE,_64,_0)
     val x9407 = DramAddress(x9257).name("x9407").ctrl(x9411).srcCtx("lenet_loops.scala:75:15") // GetDRAMAddress(x9257)
     val x9409_x9408 = OpDef(op=FixAdd, inputs=List(x9406, x9407)).name("x9409_x9408").ctrl(x9411).srcCtx("lenet_loops.scala:75:15") // FixAdd(x9406,x9407)
-    // x9409 = SimpleStruct(ArrayBuffer((offset,x9408), (size,Const(128)), (isLoad,Const(true))))
+    // x9409 = SimpleStruct(ArrayBuffer((offset,x9408), (size,Const(256)), (isLoad,Const(true))))
     val x9410_b9968_b9966 = WriteMem(b9966, x9409_x9408).name("x9410_b9968_b9966").ctrl(x9411).srcCtx("lenet_loops.scala:75:15") // StreamWrite(x9402,x9409,Const(true))
-    val x9410_b9969_b9967 = WriteMem(b9967, Const(128)).name("x9410_b9969_b9967").ctrl(x9411).srcCtx("lenet_loops.scala:75:15") // StreamWrite(x9402,x9409,Const(true))
+    val x9410_b9969_b9967 = WriteMem(b9967, Const(256)).name("x9410_b9969_b9967").ctrl(x9411).srcCtx("lenet_loops.scala:75:15") // StreamWrite(x9402,x9409,Const(true))
     val x9412 = FringeDenseLoad(dram=List(x9257), cmdStream=List(b9966, b9967), dataStream=List(x9403)).name("x9412").ctrl(x9419).srcCtx("lenet_loops.scala:75:15") // FringeDenseLoad(x9257,x9402,x9403)
     val x9413 = Counter(min=Const(0), max=Const(64), step=Const(1), par=1).name("x9413").ctrl(x9419).srcCtx("lenet_loops.scala:75:15") // CounterNew(Const(0),Const(64),Const(1),Const(1))
     val x9414 = CounterChain(List(x9413)).name("x9414").ctrl(x9419).srcCtx("lenet_loops.scala:75:15") // CounterChainNew(List(x9413))
@@ -82,6 +84,7 @@ object lenet_loops extends PIRApp {
     val x9420_d0_b0 = SRAM(size=512, banking=Strided(banks=1, stride=1)).name("x9420_d0_b0").ctrl(x9924).srcCtx("lenet_loops.scala:77:28:c5_SRAM") // x9420 = SRAMNew(ArrayBuffer(Const(512)))
     isAccum(x9420_d0_b0) = false
     bufferDepthOf(x9420_d0_b0) = 1
+    staticDimsOf(x9420_d0_b0) = List(512)
     val x9438 = UnitController(style=StreamPipe, level=OuterControl).name("x9438").ctrl(x9924).srcCtx("lenet_loops.scala:78:15") // UnitPipe(List(Const(true)),Block(Const(())))
     val b9970 = StreamOut(field="offset").name("b9970").ctrl(x9438).srcCtx("lenet_loops.scala:78:15") // x9421 = StreamOutNew(BurstCmdBus)
     isAccum(b9970) = false
@@ -94,13 +97,13 @@ object lenet_loops extends PIRApp {
     bufferDepthOf(x9422) = 1
     val x9430 = UnitController(style=SeqPipe, level=InnerControl).name("x9430").ctrl(x9438).srcCtx("lenet_loops.scala:78:15") // UnitPipe(List(Const(true)),Block(x9429))
     val x9423 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
-    val x9424 = OpDef(op=FixSla, inputs=List(x9423, Const(1))).name("x9424").ctrl(x9430).srcCtx("lenet_loops.scala:78:15") // FixLsh(x9423,Const(1))
+    val x9424 = OpDef(op=FixSla, inputs=List(x9423, Const(2))).name("x9424").ctrl(x9430).srcCtx("lenet_loops.scala:78:15") // FixLsh(x9423,Const(2))
     val x9425 = x9424 // FixConvert(x9424,TRUE,_64,_0)
     val x9426 = DramAddress(x9259).name("x9426").ctrl(x9430).srcCtx("lenet_loops.scala:78:15") // GetDRAMAddress(x9259)
     val x9428_x9427 = OpDef(op=FixAdd, inputs=List(x9425, x9426)).name("x9428_x9427").ctrl(x9430).srcCtx("lenet_loops.scala:78:15") // FixAdd(x9425,x9426)
-    // x9428 = SimpleStruct(ArrayBuffer((offset,x9427), (size,Const(1024)), (isLoad,Const(true))))
+    // x9428 = SimpleStruct(ArrayBuffer((offset,x9427), (size,Const(2048)), (isLoad,Const(true))))
     val x9429_b9972_b9970 = WriteMem(b9970, x9428_x9427).name("x9429_b9972_b9970").ctrl(x9430).srcCtx("lenet_loops.scala:78:15") // StreamWrite(x9421,x9428,Const(true))
-    val x9429_b9973_b9971 = WriteMem(b9971, Const(1024)).name("x9429_b9973_b9971").ctrl(x9430).srcCtx("lenet_loops.scala:78:15") // StreamWrite(x9421,x9428,Const(true))
+    val x9429_b9973_b9971 = WriteMem(b9971, Const(2048)).name("x9429_b9973_b9971").ctrl(x9430).srcCtx("lenet_loops.scala:78:15") // StreamWrite(x9421,x9428,Const(true))
     val x9431 = FringeDenseLoad(dram=List(x9259), cmdStream=List(b9970, b9971), dataStream=List(x9422)).name("x9431").ctrl(x9438).srcCtx("lenet_loops.scala:78:15") // FringeDenseLoad(x9259,x9421,x9422)
     val x9432 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x9432").ctrl(x9438).srcCtx("lenet_loops.scala:78:15") // CounterNew(Const(0),Const(512),Const(1),Const(1))
     val x9433 = CounterChain(List(x9432)).name("x9433").ctrl(x9438).srcCtx("lenet_loops.scala:78:15") // CounterChainNew(List(x9432))
@@ -113,6 +116,7 @@ object lenet_loops extends PIRApp {
     val x9439_d0_b0 = SRAM(size=32, banking=Strided(banks=1, stride=1)).name("x9439_d0_b0").ctrl(x9924).srcCtx("lenet_loops.scala:80:28:c7_SRAM") // x9439 = SRAMNew(ArrayBuffer(Const(32)))
     isAccum(x9439_d0_b0) = false
     bufferDepthOf(x9439_d0_b0) = 1
+    staticDimsOf(x9439_d0_b0) = List(32)
     val x9457 = UnitController(style=StreamPipe, level=OuterControl).name("x9457").ctrl(x9924).srcCtx("lenet_loops.scala:81:15") // UnitPipe(List(Const(true)),Block(Const(())))
     val b9974 = StreamOut(field="offset").name("b9974").ctrl(x9457).srcCtx("lenet_loops.scala:81:15") // x9440 = StreamOutNew(BurstCmdBus)
     isAccum(b9974) = false
@@ -125,13 +129,13 @@ object lenet_loops extends PIRApp {
     bufferDepthOf(x9441) = 1
     val x9449 = UnitController(style=SeqPipe, level=InnerControl).name("x9449").ctrl(x9457).srcCtx("lenet_loops.scala:81:15") // UnitPipe(List(Const(true)),Block(x9448))
     val x9442 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
-    val x9443 = OpDef(op=FixSla, inputs=List(x9442, Const(1))).name("x9443").ctrl(x9449).srcCtx("lenet_loops.scala:81:15") // FixLsh(x9442,Const(1))
+    val x9443 = OpDef(op=FixSla, inputs=List(x9442, Const(2))).name("x9443").ctrl(x9449).srcCtx("lenet_loops.scala:81:15") // FixLsh(x9442,Const(2))
     val x9444 = x9443 // FixConvert(x9443,TRUE,_64,_0)
     val x9445 = DramAddress(x9261).name("x9445").ctrl(x9449).srcCtx("lenet_loops.scala:81:15") // GetDRAMAddress(x9261)
     val x9447_x9446 = OpDef(op=FixAdd, inputs=List(x9444, x9445)).name("x9447_x9446").ctrl(x9449).srcCtx("lenet_loops.scala:81:15") // FixAdd(x9444,x9445)
-    // x9447 = SimpleStruct(ArrayBuffer((offset,x9446), (size,Const(64)), (isLoad,Const(true))))
+    // x9447 = SimpleStruct(ArrayBuffer((offset,x9446), (size,Const(128)), (isLoad,Const(true))))
     val x9448_b9976_b9974 = WriteMem(b9974, x9447_x9446).name("x9448_b9976_b9974").ctrl(x9449).srcCtx("lenet_loops.scala:81:15") // StreamWrite(x9440,x9447,Const(true))
-    val x9448_b9977_b9975 = WriteMem(b9975, Const(64)).name("x9448_b9977_b9975").ctrl(x9449).srcCtx("lenet_loops.scala:81:15") // StreamWrite(x9440,x9447,Const(true))
+    val x9448_b9977_b9975 = WriteMem(b9975, Const(128)).name("x9448_b9977_b9975").ctrl(x9449).srcCtx("lenet_loops.scala:81:15") // StreamWrite(x9440,x9447,Const(true))
     val x9450 = FringeDenseLoad(dram=List(x9261), cmdStream=List(b9974, b9975), dataStream=List(x9441)).name("x9450").ctrl(x9457).srcCtx("lenet_loops.scala:81:15") // FringeDenseLoad(x9261,x9440,x9441)
     val x9451 = Counter(min=Const(0), max=Const(32), step=Const(1), par=1).name("x9451").ctrl(x9457).srcCtx("lenet_loops.scala:81:15") // CounterNew(Const(0),Const(32),Const(1),Const(1))
     val x9452 = CounterChain(List(x9451)).name("x9452").ctrl(x9457).srcCtx("lenet_loops.scala:81:15") // CounterChainNew(List(x9451))
@@ -149,6 +153,7 @@ object lenet_loops extends PIRApp {
     val x9460_d0_b0 = SRAM(size=896, banking=Strided(banks=1, stride=32)).name("x9460_d0_b0").ctrl(x9923).srcCtx("lenet_loops.scala:86:30:i0_SRAM") // x9460 = SRAMNew(ArrayBuffer(Const(28), Const(32)))
     isAccum(x9460_d0_b0) = false
     bufferDepthOf(x9460_d0_b0) = 2
+    staticDimsOf(x9460_d0_b0) = List(28, 32)
     val x9462 = UnitController(style=SeqPipe, level=InnerControl).name("x9462").ctrl(x9923).srcCtx("lenet_loops.scala:83:46") // UnitPipe(List(b5677),Block(Const(())))
     val x9461 = OpDef(op=FixAdd, inputs=List(b5676, Const(1))).name("x9461").ctrl(x9462).srcCtx("lenet_loops.scala:87:29") // FixAdd(b5676,Const(1))
     val x9463 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x9463").ctrl(x9923).srcCtx("lenet_loops.scala:87:17") // CounterNew(Const(0),Const(1),Const(1),Const(1))
@@ -177,15 +182,15 @@ object lenet_loops extends PIRApp {
     val x9473 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
     val x9474 = OpDef(op=FixAdd, inputs=List(x9470, x9472)).name("x9474").ctrl(x9484).srcCtx("lenet_loops.scala:87:17") // FixAdd(x9470,x9472)
     val x9475 = OpDef(op=FixAdd, inputs=List(x9474, x9473)).name("x9475").ctrl(x9484).srcCtx("lenet_loops.scala:87:17") // FixAdd(x9474,x9473)
-    val x9476 = OpDef(op=FixSla, inputs=List(x9475, Const(1))).name("x9476").ctrl(x9484).srcCtx("lenet_loops.scala:87:17") // FixLsh(x9475,Const(1))
+    val x9476 = OpDef(op=FixSla, inputs=List(x9475, Const(2))).name("x9476").ctrl(x9484).srcCtx("lenet_loops.scala:87:17") // FixLsh(x9475,Const(2))
     val x9477 = x9476 // FixConvert(x9476,TRUE,_64,_0)
     val x9478 = DramAddress(x9254).name("x9478").ctrl(x9484).srcCtx("lenet_loops.scala:87:17") // GetDRAMAddress(x9254)
     val x9480_x9479 = OpDef(op=FixAdd, inputs=List(x9477, x9478)).name("x9480_x9479").ctrl(x9484).srcCtx("lenet_loops.scala:87:17") // FixAdd(x9477,x9478)
-    // x9480 = SimpleStruct(ArrayBuffer((offset,x9479), (size,Const(64)), (isLoad,Const(true))))
+    // x9480 = SimpleStruct(ArrayBuffer((offset,x9479), (size,Const(128)), (isLoad,Const(true))))
     val x9481 = OpDef(op=BitAnd, inputs=List(b5686, b5687)).name("x9481").ctrl(x9484).srcCtx("UnrollingBase.scala:28:66") // And(b5686,b5687)
     val x9482 = OpDef(op=BitAnd, inputs=List(x9481, b5677)).name("x9482").ctrl(x9484).srcCtx("UnrollingBase.scala:28:66") // And(x9481,b5677)
     val x9483_b9980_b9978 = WriteMem(b9978, x9480_x9479).name("x9483_b9980_b9978").ctrl(x9484).srcCtx("lenet_loops.scala:87:17") // StreamWrite(x9466,x9480,x9482)
-    val x9483_b9981_b9979 = WriteMem(b9979, Const(64)).name("x9483_b9981_b9979").ctrl(x9484).srcCtx("lenet_loops.scala:87:17") // StreamWrite(x9466,x9480,x9482)
+    val x9483_b9981_b9979 = WriteMem(b9979, Const(128)).name("x9483_b9981_b9979").ctrl(x9484).srcCtx("lenet_loops.scala:87:17") // StreamWrite(x9466,x9480,x9482)
     val x9485 = FringeDenseLoad(dram=List(x9254), cmdStream=List(b9978, b9979), dataStream=List(x9467)).name("x9485").ctrl(x9495).srcCtx("lenet_loops.scala:87:17") // FringeDenseLoad(x9254,x9466,x9467)
     val x9486 = Counter(min=Const(0), max=Const(32), step=Const(1), par=1).name("x9486").ctrl(x9495).srcCtx("lenet_loops.scala:87:17") // CounterNew(Const(0),Const(32),Const(1),Const(1))
     val x9487 = CounterChain(List(x9486)).name("x9487").ctrl(x9495).srcCtx("lenet_loops.scala:87:17") // CounterChainNew(List(x9486))
@@ -201,6 +206,7 @@ object lenet_loops extends PIRApp {
     val x9496_d0_b0 = SRAM(size=2880, banking=Strided(banks=1, stride=144)).name("x9496_d0_b0").ctrl(x9923).srcCtx("lenet_loops.scala:90:32:tmp1_SRAM") // x9496 = SRAMNew(ArrayBuffer(Const(20), Const(12), Const(12)))
     isAccum(x9496_d0_b0) = false
     bufferDepthOf(x9496_d0_b0) = 2
+    staticDimsOf(x9496_d0_b0) = List(20, 12, 12)
     val x9497 = Counter(min=Const(0), max=Const(20), step=Const(1), par=1).name("x9497").ctrl(x9923).srcCtx("lenet_loops.scala:91:25") // CounterNew(Const(0),Const(20),Const(1),Const(1))
     val x9498 = CounterChain(List(x9497)).name("x9498").ctrl(x9923).srcCtx("lenet_loops.scala:91:40") // CounterChainNew(List(x9497))
     val x9610 = LoopController(style=MetaPipe, level=OuterControl, cchain=x9498).name("x9610").ctrl(x9923).srcCtx("lenet_loops.scala:91:40") // UnrolledForeach(List(b5677),x9498,Block(Const(())),List(List(b5723)),List(List(b5724)))
@@ -209,6 +215,7 @@ object lenet_loops extends PIRApp {
     val x9499_d0_b0 = SRAM(size=576, banking=Strided(banks=1, stride=24)).name("x9499_d0_b0").ctrl(x9610).srcCtx("lenet_loops.scala:98:39:tmp1_SRAM_conv") // x9499 = SRAMNew(ArrayBuffer(Const(24), Const(24)))
     isAccum(x9499_d0_b0) = false
     bufferDepthOf(x9499_d0_b0) = 2
+    staticDimsOf(x9499_d0_b0) = List(24, 24)
     val x9500_d0_b0 = RegFile(size=32, inits=None).name("x9500_d0_b0").ctrl(x9610).srcCtx("lenet_loops.scala:99:33:c0_RF") // x9500 = RegFileNew(ArrayBuffer(Const(32)),None) banking:Strided(banks=1, stride=1)
     isAccum(x9500_d0_b0) = false
     bufferDepthOf(x9500_d0_b0) = 2
@@ -240,16 +247,16 @@ object lenet_loops extends PIRApp {
     val x9513 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
     val x9514 = OpDef(op=FixAdd, inputs=List(x9510, x9512)).name("x9514").ctrl(x9525).srcCtx("lenet_loops.scala:100:17") // FixAdd(x9510,x9512)
     val x9515 = OpDef(op=FixAdd, inputs=List(x9514, x9513)).name("x9515").ctrl(x9525).srcCtx("lenet_loops.scala:100:17") // FixAdd(x9514,x9513)
-    val x9516 = OpDef(op=FixSla, inputs=List(x9515, Const(1))).name("x9516").ctrl(x9525).srcCtx("lenet_loops.scala:100:17") // FixLsh(x9515,Const(1))
+    val x9516 = OpDef(op=FixSla, inputs=List(x9515, Const(2))).name("x9516").ctrl(x9525).srcCtx("lenet_loops.scala:100:17") // FixLsh(x9515,Const(2))
     val x9517 = x9516 // FixConvert(x9516,TRUE,_64,_0)
     val x9518 = DramAddress(x9253).name("x9518").ctrl(x9525).srcCtx("lenet_loops.scala:100:17") // GetDRAMAddress(x9253)
     val x9520_x9519 = OpDef(op=FixAdd, inputs=List(x9517, x9518)).name("x9520_x9519").ctrl(x9525).srcCtx("lenet_loops.scala:100:17") // FixAdd(x9517,x9518)
-    // x9520 = SimpleStruct(ArrayBuffer((offset,x9519), (size,Const(64)), (isLoad,Const(true))))
+    // x9520 = SimpleStruct(ArrayBuffer((offset,x9519), (size,Const(128)), (isLoad,Const(true))))
     val x9521 = OpDef(op=BitAnd, inputs=List(b5734, b5735)).name("x9521").ctrl(x9525).srcCtx("UnrollingBase.scala:28:66") // And(b5734,b5735)
     val x9522 = OpDef(op=BitAnd, inputs=List(b5724, b5677)).name("x9522").ctrl(x9525).srcCtx("UnrollingBase.scala:28:66") // And(b5724,b5677)
     val x9523 = OpDef(op=BitAnd, inputs=List(x9521, x9522)).name("x9523").ctrl(x9525).srcCtx("UnrollingBase.scala:28:66") // And(x9521,x9522)
     val x9524_b9984_b9982 = WriteMem(b9982, x9520_x9519).name("x9524_b9984_b9982").ctrl(x9525).srcCtx("lenet_loops.scala:100:17") // StreamWrite(x9506,x9520,x9523)
-    val x9524_b9985_b9983 = WriteMem(b9983, Const(64)).name("x9524_b9985_b9983").ctrl(x9525).srcCtx("lenet_loops.scala:100:17") // StreamWrite(x9506,x9520,x9523)
+    val x9524_b9985_b9983 = WriteMem(b9983, Const(128)).name("x9524_b9985_b9983").ctrl(x9525).srcCtx("lenet_loops.scala:100:17") // StreamWrite(x9506,x9520,x9523)
     val x9526 = FringeDenseLoad(dram=List(x9253), cmdStream=List(b9982, b9983), dataStream=List(x9507)).name("x9526").ctrl(x9537).srcCtx("lenet_loops.scala:100:17") // FringeDenseLoad(x9253,x9506,x9507)
     val x9527 = Counter(min=Const(0), max=Const(32), step=Const(1), par=1).name("x9527").ctrl(x9537).srcCtx("lenet_loops.scala:100:17") // CounterNew(Const(0),Const(32),Const(1),Const(1))
     val x9528 = CounterChain(List(x9527)).name("x9528").ctrl(x9537).srcCtx("lenet_loops.scala:100:17") // CounterChainNew(List(x9527))
@@ -306,7 +313,9 @@ object lenet_loops extends PIRApp {
     val x9563 = ReduceAccumOp(op=FixAdd, input=x9558, accum=x9559).name("x9563").ctrl(x9566).srcCtx("lenet_loops.scala:104:16") // FixAdd(x9558,x9559)
     val x9564 = OpDef(op=BitAnd, inputs=List(x9548, x9549)).name("x9564").ctrl(x9566).srcCtx("UnrollingBase.scala:28:66") // And(x9548,x9549)
     val x9565_x9541_d0 = WriteMem(x9541_d0, x9563).name("x9565_x9541_d0").ctrl(x9566).srcCtx("lenet_loops.scala:104:14") // RegWrite(x9541,x9563,x9564)
+    antiDepsOf(x9565_x9541_d0)=List(x9559)
     val x9565_x9541_d1 = WriteMem(x9541_d1, x9563).name("x9565_x9541_d1").ctrl(x9566).srcCtx("lenet_loops.scala:104:14") // RegWrite(x9541,x9563,x9564)
+    antiDepsOf(x9565_x9541_d1)=List(x9559)
     val x9572 = UnitController(style=SeqPipe, level=InnerControl).name("x9572").ctrl(x9573).srcCtx("lenet_loops.scala:101:49") // UnitPipe(List(b5775, b5776, b5724, b5677),Block(Const(())))
     val x9567 = ReadMem(x9541_d0).name("x9567").ctrl(x9572).srcCtx("lenet_loops.scala:105:43") // RegRead(x9541)
     val x9568 = OpDef(op=BitAnd, inputs=List(b5775, b5776)).name("x9568").ctrl(x9572).srcCtx("UnrollingBase.scala:28:66") // And(b5775,b5776)
@@ -356,7 +365,9 @@ object lenet_loops extends PIRApp {
     val x9599 = ReduceAccumOp(op=FixMax, input=x9594, accum=x9595).name("x9599").ctrl(x9602).srcCtx("lenet_loops.scala:110:29") // Max(x9594,x9595)
     val x9600 = OpDef(op=BitAnd, inputs=List(x9586, x9587)).name("x9600").ctrl(x9602).srcCtx("UnrollingBase.scala:28:66") // And(x9586,x9587)
     val x9601_x9577_d0 = WriteMem(x9577_d0, x9599).name("x9601_x9577_d0").ctrl(x9602).srcCtx("lenet_loops.scala:110:15") // RegWrite(x9577,x9599,x9600)
+    antiDepsOf(x9601_x9577_d0)=List(x9595)
     val x9601_x9577_d1 = WriteMem(x9577_d1, x9599).name("x9601_x9577_d1").ctrl(x9602).srcCtx("lenet_loops.scala:110:15") // RegWrite(x9577,x9599,x9600)
+    antiDepsOf(x9601_x9577_d1)=List(x9595)
     val x9608 = UnitController(style=SeqPipe, level=InnerControl).name("x9608").ctrl(x9609).srcCtx("lenet_loops.scala:107:37") // UnitPipe(List(b5819, b5820, b5724, b5677),Block(Const(())))
     val x9603 = ReadMem(x9577_d0).name("x9603").ctrl(x9608).srcCtx("lenet_loops.scala:111:43") // RegRead(x9577)
     val x9604 = OpDef(op=BitAnd, inputs=List(b5819, b5820)).name("x9604").ctrl(x9608).srcCtx("UnrollingBase.scala:28:66") // And(b5819,b5820)
@@ -366,6 +377,7 @@ object lenet_loops extends PIRApp {
     val x9611_d0_b0 = SRAM(size=800, banking=Strided(banks=1, stride=16)).name("x9611_d0_b0").ctrl(x9923).srcCtx("lenet_loops.scala:119:32:tmp2_SRAM") // x9611 = SRAMNew(ArrayBuffer(Const(50), Const(4), Const(4)))
     isAccum(x9611_d0_b0) = false
     bufferDepthOf(x9611_d0_b0) = 2
+    staticDimsOf(x9611_d0_b0) = List(50, 4, 4)
     val x9612 = Counter(min=Const(0), max=Const(50), step=Const(1), par=1).name("x9612").ctrl(x9923).srcCtx("lenet_loops.scala:120:25") // CounterNew(Const(0),Const(50),Const(1),Const(1))
     val x9613 = CounterChain(List(x9612)).name("x9613").ctrl(x9923).srcCtx("lenet_loops.scala:120:40") // CounterChainNew(List(x9612))
     val x9746 = LoopController(style=MetaPipe, level=OuterControl, cchain=x9613).name("x9746").ctrl(x9923).srcCtx("lenet_loops.scala:120:40") // UnrolledForeach(List(b5677),x9613,Block(Const(())),List(List(b5862)),List(List(b5863)))
@@ -374,12 +386,15 @@ object lenet_loops extends PIRApp {
     val x9614_d0_b0 = SRAM(size=64, banking=Strided(banks=1, stride=8)).name("x9614_d0_b0").ctrl(x9746).srcCtx("lenet_loops.scala:128:39:tmp2_SRAM_conv") // x9614 = SRAMNew(ArrayBuffer(Const(8), Const(8)))
     isAccum(x9614_d0_b0) = false
     bufferDepthOf(x9614_d0_b0) = 2
+    staticDimsOf(x9614_d0_b0) = List(8, 8)
     val x9614_d1_b0 = SRAM(size=64, banking=Strided(banks=1, stride=8)).name("x9614_d1_b0").ctrl(x9746).srcCtx("lenet_loops.scala:128:39:tmp2_SRAM_conv") // x9614 = SRAMNew(ArrayBuffer(Const(8), Const(8)))
     isAccum(x9614_d1_b0) = true
     bufferDepthOf(x9614_d1_b0) = 1
+    staticDimsOf(x9614_d1_b0) = List(8, 8)
     val x9615_d0_b0 = SRAM(size=512, banking=Strided(banks=1, stride=1)).name("x9615_d0_b0").ctrl(x9746).srcCtx("lenet_loops.scala:129:30:c2_RF") // x9615 = SRAMNew(ArrayBuffer(Const(512)))
     isAccum(x9615_d0_b0) = false
     bufferDepthOf(x9615_d0_b0) = 2
+    staticDimsOf(x9615_d0_b0) = List(512)
     val x9617 = UnitController(style=SeqPipe, level=InnerControl).name("x9617").ctrl(x9746).srcCtx("lenet_loops.scala:120:40") // UnitPipe(List(b5863, b5677),Block(Const(())))
     val x9616 = OpDef(op=FixAdd, inputs=List(b5862, Const(1))).name("x9616").ctrl(x9617).srcCtx("lenet_loops.scala:130:29") // FixAdd(b5862,Const(1))
     val x9618 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x9618").ctrl(x9746).srcCtx("lenet_loops.scala:130:17") // CounterNew(Const(0),Const(1),Const(1),Const(1))
@@ -402,15 +417,15 @@ object lenet_loops extends PIRApp {
     val x9624 = OpDef(op=FixSla, inputs=List(x9623, Const(9))).name("x9624").ctrl(x9635).srcCtx("lenet_loops.scala:130:17") // FixLsh(x9623,Const(9))
     val x9625 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
     val x9626 = OpDef(op=FixAdd, inputs=List(x9624, x9625)).name("x9626").ctrl(x9635).srcCtx("lenet_loops.scala:130:17") // FixAdd(x9624,x9625)
-    val x9627 = OpDef(op=FixSla, inputs=List(x9626, Const(1))).name("x9627").ctrl(x9635).srcCtx("lenet_loops.scala:130:17") // FixLsh(x9626,Const(1))
+    val x9627 = OpDef(op=FixSla, inputs=List(x9626, Const(2))).name("x9627").ctrl(x9635).srcCtx("lenet_loops.scala:130:17") // FixLsh(x9626,Const(2))
     val x9628 = x9627 // FixConvert(x9627,TRUE,_64,_0)
     val x9629 = DramAddress(x9256).name("x9629").ctrl(x9635).srcCtx("lenet_loops.scala:130:17") // GetDRAMAddress(x9256)
     val x9631_x9630 = OpDef(op=FixAdd, inputs=List(x9628, x9629)).name("x9631_x9630").ctrl(x9635).srcCtx("lenet_loops.scala:130:17") // FixAdd(x9628,x9629)
-    // x9631 = SimpleStruct(ArrayBuffer((offset,x9630), (size,Const(1024)), (isLoad,Const(true))))
+    // x9631 = SimpleStruct(ArrayBuffer((offset,x9630), (size,Const(2048)), (isLoad,Const(true))))
     val x9632 = OpDef(op=BitAnd, inputs=List(b5871, b5863)).name("x9632").ctrl(x9635).srcCtx("UnrollingBase.scala:28:66") // And(b5871,b5863)
     val x9633 = OpDef(op=BitAnd, inputs=List(x9632, b5677)).name("x9633").ctrl(x9635).srcCtx("UnrollingBase.scala:28:66") // And(x9632,b5677)
     val x9634_b9988_b9986 = WriteMem(b9986, x9631_x9630).name("x9634_b9988_b9986").ctrl(x9635).srcCtx("lenet_loops.scala:130:17") // StreamWrite(x9620,x9631,x9633)
-    val x9634_b9989_b9987 = WriteMem(b9987, Const(1024)).name("x9634_b9989_b9987").ctrl(x9635).srcCtx("lenet_loops.scala:130:17") // StreamWrite(x9620,x9631,x9633)
+    val x9634_b9989_b9987 = WriteMem(b9987, Const(2048)).name("x9634_b9989_b9987").ctrl(x9635).srcCtx("lenet_loops.scala:130:17") // StreamWrite(x9620,x9631,x9633)
     val x9636 = FringeDenseLoad(dram=List(x9256), cmdStream=List(b9986, b9987), dataStream=List(x9621)).name("x9636").ctrl(x9646).srcCtx("lenet_loops.scala:130:17") // FringeDenseLoad(x9256,x9620,x9621)
     val x9637 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x9637").ctrl(x9646).srcCtx("lenet_loops.scala:130:17") // CounterNew(Const(0),Const(512),Const(1),Const(1))
     val x9638 = CounterChain(List(x9637)).name("x9638").ctrl(x9646).srcCtx("lenet_loops.scala:130:17") // CounterChainNew(List(x9637))
@@ -431,6 +446,7 @@ object lenet_loops extends PIRApp {
     val x9649_d0_b0 = SRAM(size=64, banking=Strided(banks=1, stride=8)).name("x9649_d0_b0").ctrl(x9709).srcCtx("lenet_loops.scala:132:33:result") // x9649 = SRAMNew(ArrayBuffer(Const(8), Const(8)))
     isAccum(x9649_d0_b0) = false
     bufferDepthOf(x9649_d0_b0) = 2
+    staticDimsOf(x9649_d0_b0) = List(8, 8)
     val x9650 = Counter(min=Const(0), max=Const(8), step=Const(1), par=1).name("x9650").ctrl(x9709).srcCtx("lenet_loops.scala:133:44") // CounterNew(Const(0),Const(8),Const(1),Const(1))
     val x9651 = Counter(min=Const(0), max=Const(8), step=Const(1), par=1).name("x9651").ctrl(x9709).srcCtx("lenet_loops.scala:133:23") // CounterNew(Const(0),Const(8),Const(1),Const(1))
     val x9652 = CounterChain(List(x9651,x9650)).name("x9652").ctrl(x9709).srcCtx("lenet_loops.scala:133:51") // CounterChainNew(List(x9651, x9650))
@@ -478,7 +494,9 @@ object lenet_loops extends PIRApp {
     val x9679 = OpDef(op=BitAnd, inputs=List(x9660, x9661)).name("x9679").ctrl(x9682).srcCtx("UnrollingBase.scala:28:66") // And(x9660,x9661)
     val x9680 = OpDef(op=BitAnd, inputs=List(x9679, b5677)).name("x9680").ctrl(x9682).srcCtx("UnrollingBase.scala:28:66") // And(x9679,b5677)
     val x9681_x9653_d0 = WriteMem(x9653_d0, x9678).name("x9681_x9653_d0").ctrl(x9682).srcCtx("lenet_loops.scala:136:16") // RegWrite(x9653,x9678,x9680)
+    antiDepsOf(x9681_x9653_d0)=List(x9674)
     val x9681_x9653_d1 = WriteMem(x9653_d1, x9678).name("x9681_x9653_d1").ctrl(x9682).srcCtx("lenet_loops.scala:136:16") // RegWrite(x9653,x9678,x9680)
+    antiDepsOf(x9681_x9653_d1)=List(x9674)
     val x9689 = UnitController(style=SeqPipe, level=InnerControl).name("x9689").ctrl(x9690).srcCtx("lenet_loops.scala:133:51") // UnitPipe(List(b5914, b5915, b5907, b5863, b5677),Block(Const(())))
     val x9683 = ReadMem(x9653_d0).name("x9683").ctrl(x9689).srcCtx("lenet_loops.scala:137:37") // RegRead(x9653)
     val x9684 = OpDef(op=BitAnd, inputs=List(b5914, b5915)).name("x9684").ctrl(x9689).srcCtx("UnrollingBase.scala:28:66") // And(b5914,b5915)
@@ -489,6 +507,7 @@ object lenet_loops extends PIRApp {
     val x9691 = Counter(min=Const(0), max=Const(8), step=Const(1), par=1).name("x9691").ctrl(x9709).srcCtx("lenet_loops.scala:140:12") // CounterNew(Const(0),Const(8),Const(1),Const(1))
     val x9692 = Counter(min=Const(0), max=Const(8), step=Const(1), par=1).name("x9692").ctrl(x9709).srcCtx("lenet_loops.scala:140:12") // CounterNew(Const(0),Const(8),Const(1),Const(1))
     val x9693 = CounterChain(List(x9692,x9691)).name("x9693").ctrl(x9709).srcCtx("lenet_loops.scala:140:12") // CounterChainNew(ArrayBuffer(x9692, x9691))
+    def split1 = {
     val x9708 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9693).name("x9708").ctrl(x9709).srcCtx("lenet_loops.scala:140:12") // UnrolledForeach(List(),x9693,Block(Const(())),ArrayBuffer(List(b5958), List(b5959)),ArrayBuffer(List(b5960), List(b5961)))
     val b5958 = CounterIter(x9692, Some(0)).name("b5958").ctrl(x9708) // b5958
     val b5960 = Const(true).name("b5960").ctrl(x9708) // b5960
@@ -507,8 +526,8 @@ object lenet_loops extends PIRApp {
     val x9704 = OpDef(op=FixEql, inputs=List(b5906, Const(0))).name("x9704").ctrl(x9708).srcCtx("lenet_loops.scala:140:12") // FixEql(b5906,Const(0))
     val x9705 = OpDef(op=FixAdd, inputs=List(x9698, x9700)).name("x9705").ctrl(x9708).srcCtx("lenet_loops.scala:140:14") // FixAdd(x9698,x9700)
     val x9706 = OpDef(op=MuxOp, inputs=List(x9704, x9698, x9705)).name("x9706").ctrl(x9708).srcCtx("lenet_loops.scala:140:12") // Mux(x9704,x9698,x9705)
-    def split1 = {
     val x9707 = StoreBanks(List(x9614_d0_b0, x9614_d1_b0), List(b5958, b5959), x9706).name("x9707").ctrl(x9708).srcCtx("lenet_loops.scala:140:12") // ParSRAMStore(x9614,List(ArrayBuffer(b5958, b5959)),List(x9706),List(x9696))
+    antiDepsOf(x9707)=List(x9699)
     val x9710 = Counter(min=Const(0), max=Const(4), step=Const(1), par=1).name("x9710").ctrl(x9746).srcCtx("lenet_loops.scala:142:29") // CounterNew(Const(0),Const(4),Const(1),Const(1))
     val x9711 = Counter(min=Const(0), max=Const(4), step=Const(1), par=1).name("x9711").ctrl(x9746).srcCtx("lenet_loops.scala:142:21") // CounterNew(Const(0),Const(4),Const(1),Const(1))
     val x9712 = CounterChain(List(x9711,x9710)).name("x9712").ctrl(x9746).srcCtx("lenet_loops.scala:142:35") // CounterChainNew(List(x9711, x9710))
@@ -552,7 +571,9 @@ object lenet_loops extends PIRApp {
     val x9735 = ReduceAccumOp(op=FixMax, input=x9730, accum=x9731).name("x9735").ctrl(x9738).srcCtx("lenet_loops.scala:145:29") // Max(x9730,x9731)
     val x9736 = OpDef(op=BitAnd, inputs=List(x9722, x9723)).name("x9736").ctrl(x9738).srcCtx("UnrollingBase.scala:28:66") // And(x9722,x9723)
     val x9737_x9713_d0 = WriteMem(x9713_d0, x9735).name("x9737_x9713_d0").ctrl(x9738).srcCtx("lenet_loops.scala:145:15") // RegWrite(x9713,x9735,x9736)
+    antiDepsOf(x9737_x9713_d0)=List(x9731)
     val x9737_x9713_d1 = WriteMem(x9713_d1, x9735).name("x9737_x9713_d1").ctrl(x9738).srcCtx("lenet_loops.scala:145:15") // RegWrite(x9713,x9735,x9736)
+    antiDepsOf(x9737_x9713_d1)=List(x9731)
     val x9744 = UnitController(style=SeqPipe, level=InnerControl).name("x9744").ctrl(x9745).srcCtx("lenet_loops.scala:142:35") // UnitPipe(List(b5983, b5984, b5863, b5677),Block(Const(())))
     val x9739 = ReadMem(x9713_d0).name("x9739").ctrl(x9744).srcCtx("lenet_loops.scala:146:43") // RegRead(x9713)
     val x9740 = OpDef(op=BitAnd, inputs=List(b5983, b5984)).name("x9740").ctrl(x9744).srcCtx("UnrollingBase.scala:28:66") // And(b5983,b5984)
@@ -562,6 +583,7 @@ object lenet_loops extends PIRApp {
     val x9747_d0_b0 = SRAM(size=800, banking=Strided(banks=1, stride=1)).name("x9747_d0_b0").ctrl(x9923).srcCtx("lenet_loops.scala:154:32:tmp3_SRAM") // x9747 = SRAMNew(ArrayBuffer(Const(800)))
     isAccum(x9747_d0_b0) = false
     bufferDepthOf(x9747_d0_b0) = 2
+    staticDimsOf(x9747_d0_b0) = List(800)
     val x9748 = Counter(min=Const(0), max=Const(4), step=Const(1), par=1).name("x9748").ctrl(x9923).srcCtx("lenet_loops.scala:155:36") // CounterNew(Const(0),Const(4),Const(1),Const(1))
     val x9749 = Counter(min=Const(0), max=Const(4), step=Const(1), par=1).name("x9749").ctrl(x9923).srcCtx("lenet_loops.scala:155:28") // CounterNew(Const(0),Const(4),Const(1),Const(1))
     val x9750 = Counter(min=Const(0), max=Const(50), step=Const(1), par=1).name("x9750").ctrl(x9923).srcCtx("lenet_loops.scala:155:20") // CounterNew(Const(0),Const(50),Const(1),Const(1))
@@ -587,6 +609,7 @@ object lenet_loops extends PIRApp {
     val x9764_d0_b0 = SRAM(size=500, banking=Strided(banks=1, stride=1)).name("x9764_d0_b0").ctrl(x9923).srcCtx("lenet_loops.scala:160:32:tmp4_SRAM") // x9764 = SRAMNew(ArrayBuffer(Const(500)))
     isAccum(x9764_d0_b0) = false
     bufferDepthOf(x9764_d0_b0) = 2
+    staticDimsOf(x9764_d0_b0) = List(500)
     val x9765 = Counter(min=Const(0), max=Const(100), step=Const(1), par=1).name("x9765").ctrl(x9923).srcCtx("lenet_loops.scala:161:26") // CounterNew(Const(0),Const(100),Const(1),Const(1))
     val x9766 = CounterChain(List(x9765)).name("x9766").ctrl(x9923).srcCtx("lenet_loops.scala:161:39") // CounterChainNew(List(x9765))
     val x9832 = LoopController(style=MetaPipe, level=OuterControl, cchain=x9766).name("x9832").ctrl(x9923).srcCtx("lenet_loops.scala:161:39") // UnrolledForeach(List(b5677),x9766,Block(Const(())),List(List(b6049)),List(List(b6050)))
@@ -595,6 +618,7 @@ object lenet_loops extends PIRApp {
     val x9767_d0_b0 = SRAM(size=4000, banking=Strided(banks=16, stride=1)).name("x9767_d0_b0").ctrl(x9832).srcCtx("lenet_loops.scala:162:36:c4_row_SRAM") // x9767 = SRAMNew(ArrayBuffer(Const(4000)))
     isAccum(x9767_d0_b0) = false
     bufferDepthOf(x9767_d0_b0) = 2
+    staticDimsOf(x9767_d0_b0) = List(4000)
     val x9769 = UnitController(style=SeqPipe, level=InnerControl).name("x9769").ctrl(x9832).srcCtx("lenet_loops.scala:161:39") // UnitPipe(List(b6050, b5677),Block(Const(())))
     val x9768 = OpDef(op=FixAdd, inputs=List(b6049, Const(1))).name("x9768").ctrl(x9769).srcCtx("lenet_loops.scala:163:35") // FixAdd(b6049,Const(1))
     val x9770 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x9770").ctrl(x9832).srcCtx("lenet_loops.scala:163:23") // CounterNew(Const(0),Const(1),Const(1),Const(1))
@@ -617,15 +641,15 @@ object lenet_loops extends PIRApp {
     val x9776 = OpDef(op=FixMul, inputs=List(x9775, Const(4000))).name("x9776").ctrl(x9787).srcCtx("lenet_loops.scala:163:23") // FixMul(x9775,Const(4000))
     val x9777 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
     val x9778 = OpDef(op=FixAdd, inputs=List(x9776, x9777)).name("x9778").ctrl(x9787).srcCtx("lenet_loops.scala:163:23") // FixAdd(x9776,x9777)
-    val x9779 = OpDef(op=FixSla, inputs=List(x9778, Const(1))).name("x9779").ctrl(x9787).srcCtx("lenet_loops.scala:163:23") // FixLsh(x9778,Const(1))
+    val x9779 = OpDef(op=FixSla, inputs=List(x9778, Const(2))).name("x9779").ctrl(x9787).srcCtx("lenet_loops.scala:163:23") // FixLsh(x9778,Const(2))
     val x9780 = x9779 // FixConvert(x9779,TRUE,_64,_0)
     val x9781 = DramAddress(x9258).name("x9781").ctrl(x9787).srcCtx("lenet_loops.scala:163:23") // GetDRAMAddress(x9258)
     val x9783_x9782 = OpDef(op=FixAdd, inputs=List(x9780, x9781)).name("x9783_x9782").ctrl(x9787).srcCtx("lenet_loops.scala:163:23") // FixAdd(x9780,x9781)
-    // x9783 = SimpleStruct(ArrayBuffer((offset,x9782), (size,Const(8000)), (isLoad,Const(true))))
+    // x9783 = SimpleStruct(ArrayBuffer((offset,x9782), (size,Const(16000)), (isLoad,Const(true))))
     val x9784 = OpDef(op=BitAnd, inputs=List(b6057, b6050)).name("x9784").ctrl(x9787).srcCtx("UnrollingBase.scala:28:66") // And(b6057,b6050)
     val x9785 = OpDef(op=BitAnd, inputs=List(x9784, b5677)).name("x9785").ctrl(x9787).srcCtx("UnrollingBase.scala:28:66") // And(x9784,b5677)
     val x9786_b9992_b9990 = WriteMem(b9990, x9783_x9782).name("x9786_b9992_b9990").ctrl(x9787).srcCtx("lenet_loops.scala:163:23") // StreamWrite(x9772,x9783,x9785)
-    val x9786_b9993_b9991 = WriteMem(b9991, Const(8000)).name("x9786_b9993_b9991").ctrl(x9787).srcCtx("lenet_loops.scala:163:23") // StreamWrite(x9772,x9783,x9785)
+    val x9786_b9993_b9991 = WriteMem(b9991, Const(16000)).name("x9786_b9993_b9991").ctrl(x9787).srcCtx("lenet_loops.scala:163:23") // StreamWrite(x9772,x9783,x9785)
     val x9788 = FringeDenseLoad(dram=List(x9258), cmdStream=List(b9990, b9991), dataStream=List(x9773)).name("x9788").ctrl(x9798).srcCtx("lenet_loops.scala:163:23") // FringeDenseLoad(x9258,x9772,x9773)
     val x9789 = Counter(min=Const(0), max=Const(4000), step=Const(1), par=16).name("x9789").ctrl(x9798).srcCtx("lenet_loops.scala:163:23") // CounterNew(Const(0),Const(4000),Const(1),Const(16))
     val x9790 = CounterChain(List(x9789)).name("x9790").ctrl(x9798).srcCtx("lenet_loops.scala:163:23") // CounterChainNew(List(x9789))
@@ -670,7 +694,9 @@ object lenet_loops extends PIRApp {
     val x9817 = OpDef(op=BitAnd, inputs=List(b6090, b6050)).name("x9817").ctrl(x9820).srcCtx("UnrollingBase.scala:28:66") // And(b6090,b6050)
     val x9818 = OpDef(op=BitAnd, inputs=List(x9817, b5677)).name("x9818").ctrl(x9820).srcCtx("UnrollingBase.scala:28:66") // And(x9817,b5677)
     val x9819_x9801_d0 = WriteMem(x9801_d0, x9816).name("x9819_x9801_d0").ctrl(x9820).srcCtx("lenet_loops.scala:167:14") // RegWrite(x9801,x9816,x9818)
+    antiDepsOf(x9819_x9801_d0)=List(x9814)
     val x9819_x9801_d1 = WriteMem(x9801_d1, x9816).name("x9819_x9801_d1").ctrl(x9820).srcCtx("lenet_loops.scala:167:14") // RegWrite(x9801,x9816,x9818)
+    antiDepsOf(x9819_x9801_d1)=List(x9814)
     val x9830 = UnitController(style=SeqPipe, level=InnerControl).name("x9830").ctrl(x9831).srcCtx("lenet_loops.scala:164:26") // UnitPipe(List(b6090, b6050, b5677),Block(Const(())))
     val x9821 = OpDef(op=FixMul, inputs=List(b6049, Const(5))).name("x9821").ctrl(x9830).srcCtx("lenet_loops.scala:168:28") // FixMul(b6049,Const(5))
     val x9822 = OpDef(op=FixAdd, inputs=List(x9821, b6089)).name("x9822").ctrl(x9830).srcCtx("lenet_loops.scala:168:31") // FixAdd(x9821,b6089)
@@ -684,6 +710,7 @@ object lenet_loops extends PIRApp {
     val x9833_d0_b0 = SRAM(size=32, banking=Strided(banks=1, stride=1)).name("x9833_d0_b0").ctrl(x9923).srcCtx("lenet_loops.scala:175:32:tmp5_SRAM") // x9833 = SRAMNew(ArrayBuffer(Const(32)))
     isAccum(x9833_d0_b0) = false
     bufferDepthOf(x9833_d0_b0) = 2
+    staticDimsOf(x9833_d0_b0) = List(32)
     val x9834 = Counter(min=Const(0), max=Const(10), step=Const(1), par=1).name("x9834").ctrl(x9923).srcCtx("lenet_loops.scala:176:25") // CounterNew(Const(0),Const(10),Const(1),Const(1))
     val x9835 = CounterChain(List(x9834)).name("x9835").ctrl(x9923).srcCtx("lenet_loops.scala:176:38") // CounterChainNew(List(x9834))
     val x9890 = LoopController(style=MetaPipe, level=OuterControl, cchain=x9835).name("x9890").ctrl(x9923).srcCtx("lenet_loops.scala:176:38") // UnrolledForeach(List(b5677),x9835,Block(Const(())),List(List(b6128)),List(List(b6129)))
@@ -692,6 +719,7 @@ object lenet_loops extends PIRApp {
     val x9836_d0_b0 = SRAM(size=512, banking=Strided(banks=1, stride=1)).name("x9836_d0_b0").ctrl(x9890).srcCtx("lenet_loops.scala:177:36:c6_row_SRAM") // x9836 = SRAMNew(ArrayBuffer(Const(512)))
     isAccum(x9836_d0_b0) = false
     bufferDepthOf(x9836_d0_b0) = 2
+    staticDimsOf(x9836_d0_b0) = List(512)
     val x9838 = UnitController(style=SeqPipe, level=InnerControl).name("x9838").ctrl(x9890).srcCtx("lenet_loops.scala:176:38") // UnitPipe(List(b6129, b5677),Block(Const(())))
     val x9837 = OpDef(op=FixAdd, inputs=List(b6128, Const(1))).name("x9837").ctrl(x9838).srcCtx("lenet_loops.scala:178:35") // FixAdd(b6128,Const(1))
     val x9839 = Counter(min=Const(0), max=Const(1), step=Const(1), par=1).name("x9839").ctrl(x9890).srcCtx("lenet_loops.scala:178:23") // CounterNew(Const(0),Const(1),Const(1),Const(1))
@@ -714,15 +742,15 @@ object lenet_loops extends PIRApp {
     val x9845 = OpDef(op=FixSla, inputs=List(x9844, Const(9))).name("x9845").ctrl(x9856).srcCtx("lenet_loops.scala:178:23") // FixLsh(x9844,Const(9))
     val x9846 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
     val x9847 = OpDef(op=FixAdd, inputs=List(x9845, x9846)).name("x9847").ctrl(x9856).srcCtx("lenet_loops.scala:178:23") // FixAdd(x9845,x9846)
-    val x9848 = OpDef(op=FixSla, inputs=List(x9847, Const(1))).name("x9848").ctrl(x9856).srcCtx("lenet_loops.scala:178:23") // FixLsh(x9847,Const(1))
+    val x9848 = OpDef(op=FixSla, inputs=List(x9847, Const(2))).name("x9848").ctrl(x9856).srcCtx("lenet_loops.scala:178:23") // FixLsh(x9847,Const(2))
     val x9849 = x9848 // FixConvert(x9848,TRUE,_64,_0)
     val x9850 = DramAddress(x9260).name("x9850").ctrl(x9856).srcCtx("lenet_loops.scala:178:23") // GetDRAMAddress(x9260)
     val x9852_x9851 = OpDef(op=FixAdd, inputs=List(x9849, x9850)).name("x9852_x9851").ctrl(x9856).srcCtx("lenet_loops.scala:178:23") // FixAdd(x9849,x9850)
-    // x9852 = SimpleStruct(ArrayBuffer((offset,x9851), (size,Const(1024)), (isLoad,Const(true))))
+    // x9852 = SimpleStruct(ArrayBuffer((offset,x9851), (size,Const(2048)), (isLoad,Const(true))))
     val x9853 = OpDef(op=BitAnd, inputs=List(b6136, b6129)).name("x9853").ctrl(x9856).srcCtx("UnrollingBase.scala:28:66") // And(b6136,b6129)
     val x9854 = OpDef(op=BitAnd, inputs=List(x9853, b5677)).name("x9854").ctrl(x9856).srcCtx("UnrollingBase.scala:28:66") // And(x9853,b5677)
     val x9855_b9996_b9994 = WriteMem(b9994, x9852_x9851).name("x9855_b9996_b9994").ctrl(x9856).srcCtx("lenet_loops.scala:178:23") // StreamWrite(x9841,x9852,x9854)
-    val x9855_b9997_b9995 = WriteMem(b9995, Const(1024)).name("x9855_b9997_b9995").ctrl(x9856).srcCtx("lenet_loops.scala:178:23") // StreamWrite(x9841,x9852,x9854)
+    val x9855_b9997_b9995 = WriteMem(b9995, Const(2048)).name("x9855_b9997_b9995").ctrl(x9856).srcCtx("lenet_loops.scala:178:23") // StreamWrite(x9841,x9852,x9854)
     val x9857 = FringeDenseLoad(dram=List(x9260), cmdStream=List(b9994, b9995), dataStream=List(x9842)).name("x9857").ctrl(x9867).srcCtx("lenet_loops.scala:178:23") // FringeDenseLoad(x9260,x9841,x9842)
     val x9858 = Counter(min=Const(0), max=Const(512), step=Const(1), par=1).name("x9858").ctrl(x9867).srcCtx("lenet_loops.scala:178:23") // CounterNew(Const(0),Const(512),Const(1),Const(1))
     val x9859 = CounterChain(List(x9858)).name("x9859").ctrl(x9867).srcCtx("lenet_loops.scala:178:23") // CounterChainNew(List(x9858))
@@ -758,7 +786,9 @@ object lenet_loops extends PIRApp {
     val x9880 = ReduceAccumOp(op=FixAdd, input=x9877, accum=x9878).name("x9880").ctrl(x9883).srcCtx("lenet_loops.scala:179:110") // FixAdd(x9877,x9878)
     val x9881 = OpDef(op=BitAnd, inputs=List(b6129, b5677)).name("x9881").ctrl(x9883).srcCtx("UnrollingBase.scala:28:66") // And(b6129,b5677)
     val x9882_x9868_d0 = WriteMem(x9868_d0, x9880).name("x9882_x9868_d0").ctrl(x9883).srcCtx("lenet_loops.scala:179:108") // RegWrite(x9868,x9880,x9881)
+    antiDepsOf(x9882_x9868_d0)=List(x9878)
     val x9882_x9868_d1 = WriteMem(x9868_d1, x9880).name("x9882_x9868_d1").ctrl(x9883).srcCtx("lenet_loops.scala:179:108") // RegWrite(x9868,x9880,x9881)
+    antiDepsOf(x9882_x9868_d1)=List(x9878)
     val x9889 = UnitController(style=SeqPipe, level=InnerControl).name("x9889").ctrl(x9890).srcCtx("lenet_loops.scala:176:38") // UnitPipe(List(b6129, b5677),Block(Const(())))
     val x9884 = OpDef(op=BitAnd, inputs=List(b6129, b5677)).name("x9884").ctrl(x9889).srcCtx("UnrollingBase.scala:28:66") // And(b6129,b5677)
     val x9885 = LoadBanks(List(x9439_d0_b0), List(b6128)).name("x9885").ctrl(x9889).srcCtx("lenet_loops.scala:180:50") // SRAMLoad(x9439,ArrayBuffer(Const(32)),List(b6128),Const(0),x9884)
@@ -788,14 +818,14 @@ object lenet_loops extends PIRApp {
     val x9898 = OpDef(op=FixSla, inputs=List(x9897, Const(5))).name("x9898").ctrl(x9908).srcCtx("lenet_loops.scala:185:37") // FixLsh(x9897,Const(5))
     val x9899 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
     val x9900 = OpDef(op=FixAdd, inputs=List(x9898, x9899)).name("x9900").ctrl(x9908).srcCtx("lenet_loops.scala:185:37") // FixAdd(x9898,x9899)
-    val x9901 = OpDef(op=FixSla, inputs=List(x9900, Const(1))).name("x9901").ctrl(x9908).srcCtx("lenet_loops.scala:185:37") // FixLsh(x9900,Const(1))
+    val x9901 = OpDef(op=FixSla, inputs=List(x9900, Const(2))).name("x9901").ctrl(x9908).srcCtx("lenet_loops.scala:185:37") // FixLsh(x9900,Const(2))
     val x9902 = x9901 // FixConvert(x9901,TRUE,_64,_0)
     val x9903 = DramAddress(x9262).name("x9903").ctrl(x9908).srcCtx("lenet_loops.scala:185:37") // GetDRAMAddress(x9262)
     val x9905_x9904 = OpDef(op=FixAdd, inputs=List(x9902, x9903)).name("x9905_x9904").ctrl(x9908).srcCtx("lenet_loops.scala:185:37") // FixAdd(x9902,x9903)
-    // x9905 = SimpleStruct(ArrayBuffer((offset,x9904), (size,Const(64)), (isLoad,Const(false))))
+    // x9905 = SimpleStruct(ArrayBuffer((offset,x9904), (size,Const(128)), (isLoad,Const(false))))
     val x9906 = OpDef(op=BitAnd, inputs=List(b6194, b5677)).name("x9906").ctrl(x9908).srcCtx("UnrollingBase.scala:28:66") // And(b6194,b5677)
     val x9907_b10000_b9998 = WriteMem(b9998, x9905_x9904).name("x9907_b10000_b9998").ctrl(x9908).srcCtx("lenet_loops.scala:185:37") // StreamWrite(x9893,x9905,x9906)
-    val x9907_b10001_b9999 = WriteMem(b9999, Const(64)).name("x9907_b10001_b9999").ctrl(x9908).srcCtx("lenet_loops.scala:185:37") // StreamWrite(x9893,x9905,x9906)
+    val x9907_b10001_b9999 = WriteMem(b9999, Const(128)).name("x9907_b10001_b9999").ctrl(x9908).srcCtx("lenet_loops.scala:185:37") // StreamWrite(x9893,x9905,x9906)
     val x9909 = Counter(min=Const(0), max=Const(32), step=Const(1), par=1).name("x9909").ctrl(x9922).srcCtx("lenet_loops.scala:185:37") // CounterNew(Const(0),Const(32),Const(1),Const(1))
     val x9910 = CounterChain(List(x9909)).name("x9910").ctrl(x9922).srcCtx("lenet_loops.scala:185:37") // CounterChainNew(List(x9909))
     val x9917 = LoopController(style=InnerPipe, level=InnerControl, cchain=x9910).name("x9917").ctrl(x9922).srcCtx("lenet_loops.scala:185:37") // UnrolledForeach(List(b6194, b5677),x9910,Block(Const(())),List(List(b6213)),List(List(b6214)))

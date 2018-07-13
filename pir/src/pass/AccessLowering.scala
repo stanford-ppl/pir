@@ -29,13 +29,15 @@ class AccessLowering(implicit compiler:PIR) extends PIRTransformer {
               mirror(addr, Some(addrCUs(bank)))
             }
             val bankCU = bankCUs(bank)
-            val access = LoadMem(bank, maddrs).setParent(bankCU)
+            val dims = staticDimsOf(banks.head)
+            val faddr = flattenNDAddr(bankCU, ctrlOf(n))(maddrs, dims)
+            val access = LoadMem(bank, faddr).setParent(bankCU)
             dbg(s"add ${qtype(access)} in ${qtype(bankCU)}")
             pirmeta.mirror(n, access)
             retime(access, accessCU).asInstanceOf[LocalLoad]
           }
           val access = if (bankAccesses.size > 1) {
-            val sb = SelectBanks(bankAccesses).setParent(accessCU)
+            val sb = BankMerge(bankAccesses).setParent(accessCU)
             dbg(s"add ${qtype(sb)} in ${qtype(accessCU)}")
             sb
           } else bankAccesses.head
@@ -43,11 +45,23 @@ class AccessLowering(implicit compiler:PIR) extends PIRTransformer {
         }
       case Def(n:LocalStore, LocalStore(banks, Some(addrs), data)) =>
         dbgblk(s"Lowering ${qdef(n)}") {
+          val storeCU = globalOf(n).get
+          val dims = staticDimsOf(banks.head)
+          val faddr = flattenNDAddr(storeCU, ctrlOf(n))(addrs, dims)
+          dbg(s"faddr=$faddr")
+          val (maddr,mdata) = if (banks.size > 1) {
+            val bs = BankSelect(addrs).setParent(storeCU).ctrl(ctrlOf(n))
+            val maddr = BankMask(bs, faddr).setParent(storeCU).ctrl(ctrlOf(n))
+            val mdata = BankMask(bs, data).setParent(storeCU).ctrl(ctrlOf(n))
+            (maddr, mdata)
+          } else {
+            (faddr, data)
+          }
           banks.foreach { bank =>
             // Local write address calculation
             val bankCU = globalOf(bank).get 
-            val dataLoad = retime(data, bankCU)
-            val addrLoad = addrs.map { addr => retime(addr, bankCU) }
+            val dataLoad = retime(mdata, bankCU)
+            val addrLoad = retime(maddr, bankCU)
             dbg(s"disconnect ${qtype(n)} from ${qtype(bank)}")
             val access = StoreMem(bank, addrLoad, dataLoad).setParent(bankCU)
             dbg(s"add ${qtype(access)} in ${qtype(bankCU)}")
@@ -75,6 +89,21 @@ class AccessLowering(implicit compiler:PIR) extends PIRTransformer {
           swapParent(n, memCU)
         }
       case n =>
+    }
+  }
+  
+  def flattenNDAddr(cu:GlobalContainer, ctrl:Controller)(inds:List[Def], dims:List[Int]):Def = { 
+    import prism.enums._
+    val i::irest = inds
+    val d::drest = dims
+    if (inds.size==1 && dims.size==1) {
+      i
+    } else { 
+      //i * drest.product + flattenND(irest, drest)
+      val flatten = flattenNDAddr(cu, ctrl)(irest, drest)
+      val dim = Const(drest.product).setParent(cu).ctrl(ctrl)
+      val prod = OpDef(FixMul, inputs=List(i, dim)).setParent(cu).ctrl(ctrl)
+      OpDef(FixAdd, inputs=List(prod, flatten)).setParent(cu).ctrl(ctrl)
     }
   }
 

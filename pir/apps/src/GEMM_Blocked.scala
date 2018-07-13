@@ -55,9 +55,11 @@ object GEMM_Blocked extends PIRApp {
     val x3187_d0_b0 = SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x3187_d0_b0").ctrl(x3389).srcCtx("GEMM_Blocked.scala:226:30") // x3187 = SRAMNew(ArrayBuffer(Const(16), Const(16)))
     isAccum(x3187_d0_b0) = false
     bufferDepthOf(x3187_d0_b0) = 3
+    staticDimsOf(x3187_d0_b0) = List(16, 16)
     val x3187_d1_b0 = SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x3187_d1_b0").ctrl(x3389).srcCtx("GEMM_Blocked.scala:226:30") // x3187 = SRAMNew(ArrayBuffer(Const(16), Const(16)))
     isAccum(x3187_d1_b0) = true
     bufferDepthOf(x3187_d1_b0) = 1
+    staticDimsOf(x3187_d1_b0) = List(16, 16)
     val x3188 = ReadMem(x3167_d0).name("x3188").ctrl(x3389).srcCtx("GEMM_Blocked.scala:227:43") // RegRead(x3167)
     val x3189 = Counter(min=Const(0), max=x3188, step=Const(16), par=1).name("x3189").ctrl(x3389).srcCtx("GEMM_Blocked.scala:227:53") // CounterNew(Const(0),x3188,Const(16),Const(1))
     val x3190 = CounterChain(List(x3189)).name("x3190").ctrl(x3389).srcCtx("GEMM_Blocked.scala:246:12") // CounterChainNew(List(x3189))
@@ -67,9 +69,11 @@ object GEMM_Blocked extends PIRApp {
     val x3191_d0_b0 = SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x3191_d0_b0").ctrl(x3349).srcCtx("GEMM_Blocked.scala:228:40") // x3191 = SRAMNew(ArrayBuffer(Const(16), Const(16)))
     isAccum(x3191_d0_b0) = false
     bufferDepthOf(x3191_d0_b0) = 2
+    staticDimsOf(x3191_d0_b0) = List(16, 16)
     val x3192_d0_b0 = SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x3192_d0_b0").ctrl(x3349).srcCtx("GEMM_Blocked.scala:229:33") // x3192 = SRAMNew(ArrayBuffer(Const(16), Const(16)))
     isAccum(x3192_d0_b0) = false
     bufferDepthOf(x3192_d0_b0) = 2
+    staticDimsOf(x3192_d0_b0) = List(16, 16)
     val x3195 = UnitController(style=SeqPipe, level=InnerControl).name("x3195").ctrl(x3349).srcCtx("GEMM_Blocked.scala:246:12") // UnitPipe(List(b1818, b1809, b1804),Block(Const(())))
     val x3193 = OpDef(op=FixAdd, inputs=List(b1817, Const(16))).name("x3193").ctrl(x3195).srcCtx("GEMM_Blocked.scala:230:38") // FixAdd(b1817,Const(16))
     val x3194 = OpDef(op=FixAdd, inputs=List(b1808, Const(16))).name("x3194").ctrl(x3195).srcCtx("GEMM_Blocked.scala:230:49") // FixAdd(b1808,Const(16))
@@ -125,6 +129,7 @@ object GEMM_Blocked extends PIRApp {
     val x3230_d0_b0 = SRAM(size=16, banking=Strided(banks=1, stride=1)).name("x3230_d0_b0").ctrl(x3330).srcCtx("GEMM_Blocked.scala:232:35") // x3230 = SRAMNew(ArrayBuffer(Const(16)))
     isAccum(x3230_d0_b0) = false
     bufferDepthOf(x3230_d0_b0) = 2
+    staticDimsOf(x3230_d0_b0) = List(16)
     val x3231 = Reg(init=Some(0)).name("x3231").ctrl(x3330).srcCtx("GEMM_Blocked.scala:231:42") // x3231 = RegNew(Const(0))
     isAccum(x3231) = false
     bufferDepthOf(x3231) = 2
@@ -186,9 +191,11 @@ object GEMM_Blocked extends PIRApp {
     val x3275_d0_b0 = SRAM(size=16, banking=Strided(banks=16, stride=1)).name("x3275_d0_b0").ctrl(x3330).srcCtx("GEMM_Blocked.scala:234:34") // x3275 = SRAMNew(ArrayBuffer(Const(16)))
     isAccum(x3275_d0_b0) = false
     bufferDepthOf(x3275_d0_b0) = 2
+    staticDimsOf(x3275_d0_b0) = List(16)
     val x3275_d1_b0 = SRAM(size=16, banking=Strided(banks=16, stride=1)).name("x3275_d1_b0").ctrl(x3330).srcCtx("GEMM_Blocked.scala:234:34") // x3275 = SRAMNew(ArrayBuffer(Const(16)))
     isAccum(x3275_d1_b0) = true
     bufferDepthOf(x3275_d1_b0) = 1
+    staticDimsOf(x3275_d1_b0) = List(16)
     val x3276 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x3276").ctrl(x3330).srcCtx("GEMM_Blocked.scala:235:55") // CounterNew(Const(0),Const(16),Const(1),Const(1))
     val x3277 = CounterChain(List(x3276)).name("x3277").ctrl(x3330).srcCtx("GEMM_Blocked.scala:242:16") // CounterChainNew(List(x3276))
     val x3319 = LoopController(style=MetaPipe, level=OuterControl, cchain=x3277).name("x3319").ctrl(x3330).srcCtx("GEMM_Blocked.scala:242:16") // UnrolledReduce(List(b1863, b1818, b1809, b1804),x3277,x3275,Block((x3275) => Const(())),List(List(b1918)),List(List(b1919)))
@@ -197,6 +204,7 @@ object GEMM_Blocked extends PIRApp {
     val x3278_d0_b0 = SRAM(size=16, banking=Strided(banks=16, stride=1)).name("x3278_d0_b0").ctrl(x3319).srcCtx("GEMM_Blocked.scala:236:44") // x3278 = SRAMNew(ArrayBuffer(Const(16)))
     isAccum(x3278_d0_b0) = false
     bufferDepthOf(x3278_d0_b0) = 2
+    staticDimsOf(x3278_d0_b0) = List(16)
     val x3279 = Reg(init=Some(0.0)).name("x3279").ctrl(x3319).srcCtx("GEMM_Blocked.scala:242:16") // x3279 = RegNew(Const(0))
     isAccum(x3279) = false
     bufferDepthOf(x3279) = 2
@@ -243,6 +251,7 @@ object GEMM_Blocked extends PIRApp {
     val x3315 = OpDef(op=FixAdd, inputs=List(x3307, x3309)).name("x3315").ctrl(x3318).srcCtx("GEMM_Blocked.scala:242:18") // FixAdd(x3307,x3309)
     val x3316 = OpDef(op=MuxOp, inputs=List(x3314, x3307, x3315)).name("x3316").ctrl(x3318).srcCtx("GEMM_Blocked.scala:242:16") // Mux(x3314,x3307,x3315)
     val x3317 = StoreBanks(List(x3275_d0_b0, x3275_d1_b0), List(b1944), x3316).name("x3317").ctrl(x3318).srcCtx("GEMM_Blocked.scala:242:16") // ParSRAMStore(x3275,List(ArrayBuffer(b1944)),List(x3316),List(x3305))
+    antiDepsOf(x3317)=List(x3308)
     val x3320 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x3320").ctrl(x3330).srcCtx("GEMM_Blocked.scala:243:26") // CounterNew(Const(0),Const(16),Const(1),Const(1))
     val x3321 = CounterChain(List(x3320)).name("x3321").ctrl(x3330).srcCtx("GEMM_Blocked.scala:243:31") // CounterChainNew(List(x3320))
     val x3329 = LoopController(style=InnerPipe, level=InnerControl, cchain=x3321).name("x3329").ctrl(x3330).srcCtx("GEMM_Blocked.scala:243:31") // UnrolledForeach(List(b1863, b1818, b1809, b1804),x3321,Block(Const(())),List(List(b1966)),List(List(b1967)))
@@ -277,6 +286,7 @@ object GEMM_Blocked extends PIRApp {
     val x3345 = OpDef(op=FixAdd, inputs=List(x3338, x3340)).name("x3345").ctrl(x3348).srcCtx("GEMM_Blocked.scala:246:14") // FixAdd(x3338,x3340)
     val x3346 = OpDef(op=MuxOp, inputs=List(x3344, x3338, x3345)).name("x3346").ctrl(x3348).srcCtx("GEMM_Blocked.scala:246:12") // Mux(x3344,x3338,x3345)
     val x3347 = StoreBanks(List(x3187_d0_b0, x3187_d1_b0), List(b1977, b1978), x3346).name("x3347").ctrl(x3348).srcCtx("GEMM_Blocked.scala:246:12") // ParSRAMStore(x3187,List(ArrayBuffer(b1977, b1978)),List(x3346),List(x3336))
+    antiDepsOf(x3347)=List(x3339)
     val x3352 = UnitController(style=SeqPipe, level=InnerControl).name("x3352").ctrl(x3389).srcCtx("GEMM_Blocked.scala:225:40") // UnitPipe(List(b1809, b1804),Block(Const(())))
     val x3350 = OpDef(op=FixAdd, inputs=List(b1803, Const(16))).name("x3350").ctrl(x3352).srcCtx("GEMM_Blocked.scala:247:24") // FixAdd(b1803,Const(16))
     val x3351 = OpDef(op=FixAdd, inputs=List(b1808, Const(16))).name("x3351").ctrl(x3352).srcCtx("GEMM_Blocked.scala:247:36") // FixAdd(b1808,Const(16))

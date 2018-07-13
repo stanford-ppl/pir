@@ -21,9 +21,11 @@ object GDA extends PIRApp {
     val x3172_d0_b0 = SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x3172_d0_b0").ctrl(x3359).srcCtx("GDA.scala:37:28:mu0Tile") // x3172 = SRAMNew(ArrayBuffer(Const(128)))
     isAccum(x3172_d0_b0) = false
     bufferDepthOf(x3172_d0_b0) = 1
+    staticDimsOf(x3172_d0_b0) = List(128)
     val x3173_d0_b0 = SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x3173_d0_b0").ctrl(x3359).srcCtx("GDA.scala:38:28:mu1Tile") // x3173 = SRAMNew(ArrayBuffer(Const(128)))
     isAccum(x3173_d0_b0) = false
     bufferDepthOf(x3173_d0_b0) = 1
+    staticDimsOf(x3173_d0_b0) = List(128)
     val x3210 = UnitController(style=ForkJoin, level=OuterControl).name("x3210").ctrl(x3359).srcCtx("GDA.scala:39:16") // ParallelPipe(List(Const(true)),Block(Const(())))
     val x3191 = UnitController(style=StreamPipe, level=OuterControl).name("x3191").ctrl(x3210).srcCtx("GDA.scala:40:17") // UnitPipe(List(Const(true)),Block(Const(())))
     val b3411 = StreamOut(field="offset").name("b3411").ctrl(x3191).srcCtx("GDA.scala:40:17") // x3174 = StreamOutNew(BurstCmdBus)
@@ -84,9 +86,11 @@ object GDA extends PIRApp {
     val x3211_d0_b0 = SRAM(size=16384, banking=Strided(banks=16, stride=1)).name("x3211_d0_b0").ctrl(x3359).srcCtx("GDA.scala:44:29:sigmaOut") // x3211 = SRAMNew(ArrayBuffer(Const(128), Const(128)))
     isAccum(x3211_d0_b0) = false
     bufferDepthOf(x3211_d0_b0) = 1
+    staticDimsOf(x3211_d0_b0) = List(128, 128)
     val x3211_d1_b0 = SRAM(size=16384, banking=Strided(banks=1, stride=128)).name("x3211_d1_b0").ctrl(x3359).srcCtx("GDA.scala:44:29:sigmaOut") // x3211 = SRAMNew(ArrayBuffer(Const(128), Const(128)))
     isAccum(x3211_d1_b0) = true
     bufferDepthOf(x3211_d1_b0) = 1
+    staticDimsOf(x3211_d1_b0) = List(128, 128)
     val x3212 = ReadMem(x3159).name("x3212").ctrl(x3359).srcCtx("GDA.scala:46:27") // RegRead(x3159)
     val x3213 = Counter(min=Const(0), max=x3212, step=Const(32), par=1).name("x3213").ctrl(x3359).srcCtx("GDA.scala:46:35") // CounterNew(Const(0),x3212,Const(32),Const(1))
     val x3214 = CounterChain(List(x3213)).name("x3214").ctrl(x3359).srcCtx("GDA.scala:68:8") // CounterChainNew(List(x3213))
@@ -96,9 +100,11 @@ object GDA extends PIRApp {
     val x3215_d0_b0 = SRAM(size=32, banking=Strided(banks=16, stride=1)).name("x3215_d0_b0").ctrl(x3330).srcCtx("GDA.scala:47:33:gdaYtile") // x3215 = SRAMNew(ArrayBuffer(Const(32)))
     isAccum(x3215_d0_b0) = false
     bufferDepthOf(x3215_d0_b0) = 2
+    staticDimsOf(x3215_d0_b0) = List(32)
     val x3216_d0_b0 = SRAM(size=4096, banking=Strided(banks=16, stride=1)).name("x3216_d0_b0").ctrl(x3330).srcCtx("GDA.scala:48:31:gdaXtile") // x3216 = SRAMNew(ArrayBuffer(Const(32), Const(128)))
     isAccum(x3216_d0_b0) = false
     bufferDepthOf(x3216_d0_b0) = 2
+    staticDimsOf(x3216_d0_b0) = List(32, 128)
     val x3265 = UnitController(style=ForkJoin, level=OuterControl).name("x3265").ctrl(x3330).srcCtx("GDA.scala:50:18") // ParallelPipe(List(b1908),Block(Const(())))
     val x3218 = UnitController(style=SeqPipe, level=InnerControl).name("x3218").ctrl(x3265).srcCtx("GDA.scala:50:18") // UnitPipe(List(b1908),Block(Const(())))
     val x3217 = OpDef(op=FixAdd, inputs=List(b1907, Const(32))).name("x3217").ctrl(x3218).srcCtx("GDA.scala:51:34") // FixAdd(b1907,Const(32))
@@ -173,9 +179,11 @@ object GDA extends PIRApp {
     val x3266_d0_b0 = SRAM(size=16384, banking=Strided(banks=1, stride=128)).name("x3266_d0_b0").ctrl(x3330).srcCtx("GDA.scala:55:31:sigmaBlk") // x3266 = SRAMNew(ArrayBuffer(Const(128), Const(128)))
     isAccum(x3266_d0_b0) = false
     bufferDepthOf(x3266_d0_b0) = 2
+    staticDimsOf(x3266_d0_b0) = List(128, 128)
     val x3266_d1_b0 = SRAM(size=16384, banking=Strided(banks=1, stride=128)).name("x3266_d1_b0").ctrl(x3330).srcCtx("GDA.scala:55:31:sigmaBlk") // x3266 = SRAMNew(ArrayBuffer(Const(128), Const(128)))
     isAccum(x3266_d1_b0) = true
     bufferDepthOf(x3266_d1_b0) = 1
+    staticDimsOf(x3266_d1_b0) = List(128, 128)
     val x3267 = Counter(min=Const(0), max=Const(32), step=Const(1), par=1).name("x3267").ctrl(x3330).srcCtx("GDA.scala:57:32") // CounterNew(Const(0),Const(32),Const(1),Const(1))
     val x3268 = CounterChain(List(x3267)).name("x3268").ctrl(x3330).srcCtx("GDA.scala:67:10") // CounterChainNew(List(x3267))
     val x3315 = LoopController(style=MetaPipe, level=OuterControl, cchain=x3268).name("x3315").ctrl(x3330).srcCtx("GDA.scala:67:10") // UnrolledReduce(List(b1908),x3268,x3266,Block((x3266) => Const(())),List(List(b1972)),List(List(b1973)))
@@ -184,12 +192,15 @@ object GDA extends PIRApp {
     val x3269_d0_b0 = SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x3269_d0_b0").ctrl(x3315).srcCtx("GDA.scala:58:32:subTile") // x3269 = SRAMNew(ArrayBuffer(Const(128)))
     isAccum(x3269_d0_b0) = false
     bufferDepthOf(x3269_d0_b0) = 2
+    staticDimsOf(x3269_d0_b0) = List(128)
     val x3269_d1_b0 = SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x3269_d1_b0").ctrl(x3315).srcCtx("GDA.scala:58:32:subTile") // x3269 = SRAMNew(ArrayBuffer(Const(128)))
     isAccum(x3269_d1_b0) = false
     bufferDepthOf(x3269_d1_b0) = 2
+    staticDimsOf(x3269_d1_b0) = List(128)
     val x3270_d0_b0 = SRAM(size=16384, banking=Strided(banks=16, stride=1)).name("x3270_d0_b0").ctrl(x3315).srcCtx("GDA.scala:59:34:sigmaTile") // x3270 = SRAMNew(ArrayBuffer(Const(128), Const(128)))
     isAccum(x3270_d0_b0) = false
     bufferDepthOf(x3270_d0_b0) = 2
+    staticDimsOf(x3270_d0_b0) = List(128, 128)
     val x3271 = Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x3271").ctrl(x3315).srcCtx("GDA.scala:60:21") // CounterNew(Const(0),Const(128),Const(1),Const(16))
     val x3272 = CounterChain(List(x3271)).name("x3272").ctrl(x3315).srcCtx("GDA.scala:60:29") // CounterChainNew(List(x3271))
     val x3286 = LoopController(style=InnerPipe, level=InnerControl, cchain=x3272).name("x3286").ctrl(x3315).srcCtx("GDA.scala:60:29") // UnrolledForeach(List(b1973, b1908),x3272,Block(Const(())),List(List(b1978)),List(List(b1979)))
@@ -244,6 +255,7 @@ object GDA extends PIRApp {
     val x3311 = OpDef(op=FixAdd, inputs=List(x3305, x3307)).name("x3311").ctrl(x3314).srcCtx("GDA.scala:67:12") // FixAdd(x3305,x3307)
     val x3312 = OpDef(op=MuxOp, inputs=List(x3310, x3305, x3311)).name("x3312").ctrl(x3314).srcCtx("GDA.scala:67:10") // Mux(x3310,x3305,x3311)
     val x3313 = StoreBanks(List(x3266_d0_b0, x3266_d1_b0), List(b2010, b2011), x3312).name("x3313").ctrl(x3314).srcCtx("GDA.scala:67:10") // ParSRAMStore(x3266,List(ArrayBuffer(b2010, b2011)),List(x3312),List(x3303))
+    antiDepsOf(x3313)=List(x3306)
     val x3316 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x3316").ctrl(x3330).srcCtx("GDA.scala:68:8") // CounterNew(Const(0),Const(128),Const(1),Const(1))
     val x3317 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x3317").ctrl(x3330).srcCtx("GDA.scala:68:8") // CounterNew(Const(0),Const(128),Const(1),Const(1))
     val x3318 = CounterChain(List(x3317,x3316)).name("x3318").ctrl(x3330).srcCtx("GDA.scala:68:8") // CounterChainNew(ArrayBuffer(x3317, x3316))
@@ -262,6 +274,7 @@ object GDA extends PIRApp {
     val x3326 = OpDef(op=FixAdd, inputs=List(x3321, x3323)).name("x3326").ctrl(x3329).srcCtx("GDA.scala:68:10") // FixAdd(x3321,x3323)
     val x3327 = OpDef(op=MuxOp, inputs=List(x3325, x3321, x3326)).name("x3327").ctrl(x3329).srcCtx("GDA.scala:68:8") // Mux(x3325,x3321,x3326)
     val x3328 = StoreBanks(List(x3211_d0_b0, x3211_d1_b0), List(b2028, b2029), x3327).name("x3328").ctrl(x3329).srcCtx("GDA.scala:68:8") // ParSRAMStore(x3211,List(ArrayBuffer(b2028, b2029)),List(x3327),List(x3319))
+    antiDepsOf(x3328)=List(x3322)
     val x3331 = Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x3331").ctrl(x3359).srcCtx("GDA.scala:70:36") // CounterNew(Const(0),Const(128),Const(1),Const(1))
     val x3332 = CounterChain(List(x3331)).name("x3332").ctrl(x3359).srcCtx("GDA.scala:70:36") // CounterChainNew(List(x3331))
     val x3358 = LoopController(style=StreamPipe, level=OuterControl, cchain=x3332).name("x3358").ctrl(x3359).srcCtx("GDA.scala:70:36") // UnrolledForeach(List(Const(true)),x3332,Block(Const(())),List(List(b2046)),List(List(b2047)))
