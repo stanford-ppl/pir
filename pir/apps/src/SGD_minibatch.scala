@@ -27,27 +27,33 @@ object SGD_minibatch extends PIRApp {
     val x2604_d0_b0 = SRAM(size=16, banking=Strided(banks=16, stride=1)).name("x2604_d0_b0").ctrl(x2755).srcCtx("SGD_minibatch.scala:73:28:y_tile") // x2604 = SRAMNew(ArrayBuffer(Const(16)))
     isAccum(x2604_d0_b0) = false
     bufferDepthOf(x2604_d0_b0) = 1
+    staticDimsOf(x2604_d0_b0) = List(16)
     val x2605_d0_b0 = SRAM(size=16, banking=Strided(banks=16, stride=1)).name("x2605_d0_b0").ctrl(x2755).srcCtx("SGD_minibatch.scala:74:30:sgdmodel") // x2605 = SRAMNew(ArrayBuffer(Const(16)))
     isAccum(x2605_d0_b0) = false
     bufferDepthOf(x2605_d0_b0) = 1
+    staticDimsOf(x2605_d0_b0) = List(16)
     val x2605_d1_b0 = SRAM(size=16, banking=Strided(banks=1, stride=1)).name("x2605_d1_b0").ctrl(x2755).srcCtx("SGD_minibatch.scala:74:30:sgdmodel") // x2605 = SRAMNew(ArrayBuffer(Const(16)))
     isAccum(x2605_d1_b0) = true
     bufferDepthOf(x2605_d1_b0) = 1
+    staticDimsOf(x2605_d1_b0) = List(16)
     val x2605_d2_b0 = SRAM(size=16, banking=Strided(banks=16, stride=1)).name("x2605_d2_b0").ctrl(x2755).srcCtx("SGD_minibatch.scala:74:30:sgdmodel") // x2605 = SRAMNew(ArrayBuffer(Const(16)))
     isAccum(x2605_d2_b0) = false
     bufferDepthOf(x2605_d2_b0) = 1
+    staticDimsOf(x2605_d2_b0) = List(16)
     val x2606_d0_b0 = SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x2606_d0_b0").ctrl(x2755).srcCtx("SGD_minibatch.scala:75:28:x_tile") // x2606 = SRAMNew(ArrayBuffer(Const(16), Const(16)))
     isAccum(x2606_d0_b0) = false
     bufferDepthOf(x2606_d0_b0) = 1
+    staticDimsOf(x2606_d0_b0) = List(16, 16)
     val x2606_d1_b0 = SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x2606_d1_b0").ctrl(x2755).srcCtx("SGD_minibatch.scala:75:28:x_tile") // x2606 = SRAMNew(ArrayBuffer(Const(16), Const(16)))
     isAccum(x2606_d1_b0) = false
     bufferDepthOf(x2606_d1_b0) = 1
+    staticDimsOf(x2606_d1_b0) = List(16, 16)
     val x2607 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x2607").ctrl(x2755).srcCtx("SGD_minibatch.scala:76:14") // CounterNew(Const(0),Const(16),Const(1),Const(1))
     val x2608 = CounterChain(List(x2607)).name("x2608").ctrl(x2755).srcCtx("SGD_minibatch.scala:76:20") // CounterChainNew(List(x2607))
     val x2610 = LoopController(style=InnerPipe, level=InnerControl, cchain=x2608).name("x2610").ctrl(x2755).srcCtx("SGD_minibatch.scala:76:20") // UnrolledForeach(List(Const(true)),x2608,Block(Const(())),List(List(b1570)),List(List(b1571)))
     val b1570 = CounterIter(x2607, None).name("b1570").ctrl(x2610) // b1570
     val b1571 = Const(true).name("b1571").ctrl(x2610) // b1571
-    val x2609 = StoreBanks(List(x2605_d0_b0, x2605_d1_b0, x2605_d2_b0), List(b1570), Const(0.0)).name("x2609").ctrl(x2610).srcCtx("SGD_minibatch.scala:76:39") // ParSRAMStore(x2605,List(List(b1570)),List(Const(0)),List(b1571))
+    val x2609 = StoreBanks(List(List(x2605_d0_b0), List(x2605_d1_b0), List(x2605_d2_b0)), List(b1570), Const(0.0)).name("x2609").ctrl(x2610).srcCtx("SGD_minibatch.scala:76:39") // ParSRAMStore(x2605,List(List(b1570)),List(Const(0)),List(b1571))
     val x2611 = ReadMem(x2582).name("x2611").ctrl(x2755).srcCtx("SGD_minibatch.scala:77:26") // RegRead(x2582)
     val x2612 = Counter(min=Const(0), max=x2611, step=Const(1), par=1).name("x2612").ctrl(x2755).srcCtx("SGD_minibatch.scala:77:28") // CounterNew(Const(0),x2611,Const(1),Const(1))
     val x2613 = CounterChain(List(x2612)).name("x2613").ctrl(x2755).srcCtx("SGD_minibatch.scala:77:34") // CounterChainNew(List(x2612))
@@ -92,7 +98,7 @@ object SGD_minibatch extends PIRApp {
     val x2634 = OpDef(op=BitAnd, inputs=List(x2633, b1578)).name("x2634").ctrl(x2638).srcCtx("UnrollingBase.scala:28:66") // And(x2633,b1578)
     val x2635_x2635 = ReadMem(x2620).name("x2635_x2635").ctrl(x2638).srcCtx("SGD_minibatch.scala:79:18") // ParStreamRead(x2620,List(x2634))
     val x2636_x2636 = x2635_x2635 // x2636 = VectorApply(x2635,0)
-    val x2637 = StoreBanks(List(x2604_d0_b0), List(b1600), x2636_x2636).name("x2637").ctrl(x2638).srcCtx("SGD_minibatch.scala:79:18") // ParSRAMStore(x2604,List(List(b1600)),List(x2636),List(x2634))
+    val x2637 = StoreBanks(List(List(x2604_d0_b0)), List(b1600), x2636_x2636).name("x2637").ctrl(x2638).srcCtx("SGD_minibatch.scala:79:18") // ParSRAMStore(x2604,List(List(b1600)),List(x2636),List(x2634))
     val x2640 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x2640").ctrl(x2731).srcCtx("SGD_minibatch.scala:80:18") // CounterNew(Const(0),Const(16),Const(1),Const(1))
     val x2641 = CounterChain(List(x2640)).name("x2641").ctrl(x2731).srcCtx("SGD_minibatch.scala:80:18") // CounterChainNew(List(x2640))
     val x2668 = LoopController(style=StreamPipe, level=OuterControl, cchain=x2641).name("x2668").ctrl(x2731).srcCtx("SGD_minibatch.scala:80:18") // UnrolledForeach(List(b1583, b1578),x2641,Block(Const(())),List(List(b1611)),List(List(b1612)))
@@ -133,10 +139,11 @@ object SGD_minibatch extends PIRApp {
     val x2663 = OpDef(op=BitAnd, inputs=List(x2661, x2662)).name("x2663").ctrl(x2667).srcCtx("UnrollingBase.scala:28:66") // And(x2661,x2662)
     val x2664_x2664 = ReadMem(x2643).name("x2664_x2664").ctrl(x2667).srcCtx("SGD_minibatch.scala:80:18") // ParStreamRead(x2643,List(x2663))
     val x2665_x2665 = x2664_x2664 // x2665 = VectorApply(x2664,0)
-    val x2666 = StoreBanks(List(x2606_d0_b0, x2606_d1_b0), List(b1611, b1632), x2665_x2665).name("x2666").ctrl(x2667).srcCtx("SGD_minibatch.scala:80:18") // ParSRAMStore(x2606,List(List(b1611, b1632)),List(x2665),List(x2663))
+    val x2666 = StoreBanks(List(List(x2606_d0_b0), List(x2606_d1_b0)), List(b1611, b1632), x2665_x2665).name("x2666").ctrl(x2667).srcCtx("SGD_minibatch.scala:80:18") // ParSRAMStore(x2606,List(List(b1611, b1632)),List(x2665),List(x2663))
     val x2669_d0_b0 = SRAM(size=16, banking=Strided(banks=1, stride=1)).name("x2669_d0_b0").ctrl(x2731).srcCtx("SGD_minibatch.scala:81:31:y_err") // x2669 = SRAMNew(ArrayBuffer(Const(16)))
     isAccum(x2669_d0_b0) = false
     bufferDepthOf(x2669_d0_b0) = 1
+    staticDimsOf(x2669_d0_b0) = List(16)
     val x2670 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x2670").ctrl(x2731).srcCtx("SGD_minibatch.scala:82:27") // CounterNew(Const(0),Const(16),Const(1),Const(1))
     val x2671 = CounterChain(List(x2670)).name("x2671").ctrl(x2731).srcCtx("SGD_minibatch.scala:82:36") // CounterChainNew(List(x2670))
     val x2698 = LoopController(style=MetaPipe, level=OuterControl, cchain=x2671).name("x2698").ctrl(x2731).srcCtx("SGD_minibatch.scala:82:36") // UnrolledForeach(List(b1583, b1578),x2671,Block(Const(())),List(List(b1645)),List(List(b1646)))
@@ -168,14 +175,16 @@ object SGD_minibatch extends PIRApp {
     val x2687 = OpDef(op=BitAnd, inputs=List(b1646, b1583)).name("x2687").ctrl(x2690).srcCtx("UnrollingBase.scala:28:66") // And(b1646,b1583)
     val x2688 = OpDef(op=BitAnd, inputs=List(x2687, b1578)).name("x2688").ctrl(x2690).srcCtx("UnrollingBase.scala:28:66") // And(x2687,b1578)
     val x2689_x2672_d0 = WriteMem(x2672_d0, x2686).name("x2689_x2672_d0").ctrl(x2690).srcCtx("SGD_minibatch.scala:83:96") // RegWrite(x2672,x2686,x2688)
+    antiDepsOf(x2689_x2672_d0)=List(x2684)
     val x2689_x2672_d1 = WriteMem(x2672_d1, x2686).name("x2689_x2672_d1").ctrl(x2690).srcCtx("SGD_minibatch.scala:83:96") // RegWrite(x2672,x2686,x2688)
+    antiDepsOf(x2689_x2672_d1)=List(x2684)
     val x2697 = UnitController(style=SeqPipe, level=InnerControl).name("x2697").ctrl(x2698).srcCtx("SGD_minibatch.scala:82:36") // UnitPipe(List(b1646, b1583, b1578),Block(Const(())))
     val x2691 = OpDef(op=BitAnd, inputs=List(b1646, b1583)).name("x2691").ctrl(x2697).srcCtx("UnrollingBase.scala:28:66") // And(b1646,b1583)
     val x2692 = OpDef(op=BitAnd, inputs=List(x2691, b1578)).name("x2692").ctrl(x2697).srcCtx("UnrollingBase.scala:28:66") // And(x2691,b1578)
     val x2693 = LoadBanks(List(x2604_d0_b0), List(b1645)).name("x2693").ctrl(x2697).srcCtx("SGD_minibatch.scala:84:30") // SRAMLoad(x2604,ArrayBuffer(Const(16)),List(b1645),Const(0),x2692)
     val x2694 = ReadMem(x2672_d0).name("x2694").ctrl(x2697).srcCtx("SGD_minibatch.scala:84:42") // RegRead(x2672)
     val x2695 = OpDef(op=FixSub, inputs=List(x2693, x2694)).name("x2695").ctrl(x2697).srcCtx("SGD_minibatch.scala:84:34") // FixSub(x2693,x2694)
-    val x2696 = StoreBanks(List(x2669_d0_b0), List(b1645), x2695).name("x2696").ctrl(x2697).srcCtx("SGD_minibatch.scala:84:22") // SRAMStore(x2669,ArrayBuffer(Const(16)),List(b1645),Const(0),x2695,x2692)
+    val x2696 = StoreBanks(List(List(x2669_d0_b0)), List(b1645), x2695).name("x2696").ctrl(x2697).srcCtx("SGD_minibatch.scala:84:22") // SRAMStore(x2669,ArrayBuffer(Const(16)),List(b1645),Const(0),x2695,x2692)
     val x2699 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x2699").ctrl(x2731).srcCtx("SGD_minibatch.scala:86:37") // CounterNew(Const(0),Const(16),Const(1),Const(1))
     val x2700 = CounterChain(List(x2699)).name("x2700").ctrl(x2731).srcCtx("SGD_minibatch.scala:90:13") // CounterChainNew(List(x2699))
     val x2730 = LoopController(style=MetaPipe, level=OuterControl, cchain=x2700).name("x2730").ctrl(x2731).srcCtx("SGD_minibatch.scala:90:13") // UnrolledReduce(List(b1583, b1578),x2700,x2605,Block((x2605) => Const(())),List(List(b1680)),List(List(b1681)))
@@ -184,6 +193,7 @@ object SGD_minibatch extends PIRApp {
     val x2701_d0_b0 = SRAM(size=16, banking=Strided(banks=16, stride=1)).name("x2701_d0_b0").ctrl(x2730).srcCtx("SGD_minibatch.scala:87:31:row") // x2701 = SRAMNew(ArrayBuffer(Const(16)))
     isAccum(x2701_d0_b0) = false
     bufferDepthOf(x2701_d0_b0) = 2
+    staticDimsOf(x2701_d0_b0) = List(16)
     val x2702 = Counter(min=Const(0), max=Const(16), step=Const(1), par=16).name("x2702").ctrl(x2730).srcCtx("SGD_minibatch.scala:88:28") // CounterNew(Const(0),Const(16),Const(1),Const(16))
     val x2703 = CounterChain(List(x2702)).name("x2703").ctrl(x2730).srcCtx("SGD_minibatch.scala:88:36") // CounterChainNew(List(x2702))
     val x2714 = LoopController(style=InnerPipe, level=InnerControl, cchain=x2703).name("x2714").ctrl(x2730).srcCtx("SGD_minibatch.scala:88:36") // UnrolledForeach(List(b1681, b1583, b1578),x2703,Block(Const(())),List(List(b1685)),List(List(b1686)))
@@ -198,7 +208,7 @@ object SGD_minibatch extends PIRApp {
     val x2710 = OpDef(op=FixMul, inputs=List(x2708, x2709)).name("x2710").ctrl(x2714).srcCtx("SGD_minibatch.scala:88:64") // FixMul(x2708,x2709)
     val x2711 = ReadMem(x2584).name("x2711").ctrl(x2714).srcCtx("SGD_minibatch.scala:88:77") // RegRead(x2584)
     val x2712 = OpDef(op=FixMul, inputs=List(x2710, x2711)).name("x2712").ctrl(x2714).srcCtx("SGD_minibatch.scala:88:75") // FixMul(x2710,x2711)
-    val x2713 = StoreBanks(List(x2701_d0_b0), List(b1685), x2712).name("x2713").ctrl(x2714).srcCtx("SGD_minibatch.scala:88:50") // ParSRAMStore(x2701,List(List(b1685)),List(x2712),List(x2706))
+    val x2713 = StoreBanks(List(List(x2701_d0_b0)), List(b1685), x2712).name("x2713").ctrl(x2714).srcCtx("SGD_minibatch.scala:88:50") // ParSRAMStore(x2701,List(List(b1685)),List(x2712),List(x2706))
     val x2715 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x2715").ctrl(x2730).srcCtx("SGD_minibatch.scala:90:13") // CounterNew(Const(0),Const(16),Const(1),Const(1))
     val x2716 = CounterChain(List(x2715)).name("x2716").ctrl(x2730).srcCtx("SGD_minibatch.scala:90:13") // CounterChainNew(ArrayBuffer(x2715))
     val x2729 = LoopController(style=InnerPipe, level=InnerControl, cchain=x2716).name("x2729").ctrl(x2730).srcCtx("SGD_minibatch.scala:90:13") // UnrolledForeach(List(),x2716,Block(Const(())),ArrayBuffer(List(b1698)),ArrayBuffer(List(b1699)))
@@ -214,8 +224,9 @@ object SGD_minibatch extends PIRApp {
     val x2724 = OpDef(op=BitAnd, inputs=List(x2723, b1578)).name("x2724").ctrl(x2729).srcCtx("SGD_minibatch.scala:90:13") // And(x2723,b1578)
     val x2725 = OpDef(op=BitAnd, inputs=List(x2724, x2718)).name("x2725").ctrl(x2729).srcCtx("SGD_minibatch.scala:90:13") // And(x2724,x2718)
     val x2726 = OpDef(op=FixEql, inputs=List(b1680, Const(0))).name("x2726").ctrl(x2729).srcCtx("SGD_minibatch.scala:90:13") // FixEql(b1680,Const(0))
-    val x2727 = ReduceAccumOp(op=FixAdd, input=x2720, accum=x2722).name("x2727").ctrl(x2729).srcCtx("SGD_minibatch.scala:90:17") // FixAdd(x2720,x2722)
-    val x2728 = StoreBanks(List(x2605_d0_b0, x2605_d1_b0, x2605_d2_b0), List(b1698), x2727).name("x2728").ctrl(x2729).srcCtx("SGD_minibatch.scala:90:13") // ParSRAMStore(x2605,List(ArrayBuffer(b1698)),List(x2727),List(x2718))
+    val x2727 = OpDef(op=FixAdd, inputs=List(x2720, x2722)).name("x2727").ctrl(x2729).srcCtx("SGD_minibatch.scala:90:17") // FixAdd(x2720,x2722)
+    val x2728 = StoreBanks(List(List(x2605_d0_b0), List(x2605_d1_b0), List(x2605_d2_b0)), List(b1698), x2727).name("x2728").ctrl(x2729).srcCtx("SGD_minibatch.scala:90:13") // ParSRAMStore(x2605,List(ArrayBuffer(b1698)),List(x2727),List(x2718))
+    antiDepsOf(x2728)=List(x2721)
     val x2754 = UnitController(style=StreamPipe, level=OuterControl).name("x2754").ctrl(x2755).srcCtx("SGD_minibatch.scala:93:27") // UnitPipe(List(Const(true)),Block(Const(())))
     val b2789 = StreamOut(field="offset").name("b2789").ctrl(x2754).srcCtx("SGD_minibatch.scala:93:27") // x2733 = StreamOutNew(BurstCmdBus)
     isAccum(b2789) = false

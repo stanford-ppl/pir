@@ -30,7 +30,7 @@ trait LocalStore extends LocalAccess {
 object LocalStore {
   def unapply(n:Any):Option[(List[Memory], Option[List[Def]], Def)] = n match {
     case WriteMem(mem, data) => Some((List(mem), None, data))
-    case StoreBanks(banks, addrs, data) => Some((banks, Some(addrs), data))
+    case StoreBanks(mems, addrs, data) => Some((mems.flatten, Some(addrs), data))
     case StoreMem(mem, faddr, data) => Some((List(mem), Some(List(faddr)), data))
     case EnabledStoreMem(mem, faddr, data, enqEn) => Some((List(mem), faddr.map { a => List(a)}, data))
     case _ => None
@@ -92,7 +92,7 @@ case class WriteMem(mem:Memory, data:Def)(implicit design:PIRDesign) extends Loc
 case class ResetMem(mem:Memory, reset:Def)(implicit design:PIRDesign) extends LocalReset
 
 case class LoadBanks(banks:List[Memory], addrs:List[Def])(implicit design:PIRDesign) extends LocalLoad
-case class StoreBanks(banks:List[Memory], addrs:List[Def], data:Def)(implicit design:PIRDesign) extends LocalStore
+case class StoreBanks(mems:List[List[Memory]], addrs:List[Def], data:Def)(implicit design:PIRDesign) extends LocalStore
 // Lowered
 case class LoadMem(mem:Memory, addr:Def)(implicit design:PIRDesign) extends LocalLoad
 case class StoreMem(mem:Memory, addr:Def, data:Def)(implicit design:PIRDesign) extends LocalStore

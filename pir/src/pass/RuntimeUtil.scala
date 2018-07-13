@@ -25,7 +25,7 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
         case x:UnitController => 1
         case x:TopController => 1
         case x:LoopController => 
-          val cc = ctrlOf.bmap(x).collect { case cc:CounterChain => cc }.head
+          val cc = ctrlOf.lookupV(x).collect { case cc:CounterChain => cc }.head
           getParOf(cc)
         case x:ArgInController => 1
         case x:ArgOutController => 1
@@ -44,7 +44,7 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
         case x:UnitController => Some(1)
         case x:TopController => Some(1)
         case x:LoopController => 
-          val cc = ctrlOf.bmap(x).collect { case cc:CounterChain => cc }.head
+          val cc = ctrlOf.lookupV(x).collect { case cc:CounterChain => cc }.head
           getItersOf(cc)
         case x:ArgInController => Some(1)
         case x:ArgOutController => Some(1)

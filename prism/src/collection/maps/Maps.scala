@@ -27,6 +27,7 @@ trait MapLike[K,V] extends MapType[K,V] with prism.util.ScalaUtilFunc {
   def keys:Iterable[K]
   def values:Iterable[VV]
 
+  def rmap:Map[V,KK]
   def lookupV(v:V):KK
   def getV(v:V):Option[KK]
   def containsV(v:V):Boolean
@@ -52,11 +53,16 @@ trait UniMap[K,V] extends MapLike[K,V] {
   def keys = map.keys
   def values = map.values.map(_VVtoVV)
 
+  def rmap:Map[V,KK] = reverseMap(map).flatMap { case (_vv, ks) => toVs(_VVtoVV(_vv)).map { v => (v, toKK(ks)) } }
   def lookupV(v:V):KK = getV(v).get
   def getV(v:V):Option[KK] = {
     // v -> Set(k)
-    val set = map.flatMap { case (k, `v`) => Some(k); case _ => None }.toSet
-    if (set.isEmpty) None else Some(toKK(set))
+    val ks = map.flatMap { case (k, _vv) => 
+      if (_vv == v) Some(k) else {
+        if (toVs(_VVtoVV(_vv)).contains(v)) Some(k) else None
+      }
+    }
+    if (ks.isEmpty) None else Some(toKK(ks.toSet))
   }
   def containsV(v:V):Boolean = values.exists { _ == v }
 
@@ -70,6 +76,7 @@ trait OneToOneMap[K,V] extends UniMap[K,V] {
   def toVs(vv:VV):Set[V] = Set(vv)
   def toVV(vs:Set[V]):VV = assertOne(vs, "OneToOneMap.toVV")
   def _VVtoVV(_vv:_VV):VV = _vv
+  override def rmap:Map[V,KK] = reverseMap(map).map { case (v, ks) => (v, toKK(ks)) } // Performance optimization
   def isMapped(x:Any) = x match {
     case x:K => map.contains(x)
     case x:V => map.values.toList.contains(x)
@@ -110,6 +117,7 @@ abstract class BiMap[K:ClassTag,V:ClassTag] extends UniMap[K,V] {
   def toVs(vv:VV):Set[V] = fmap.toVs(vv) 
   def toVV(vs:Set[V]):VV = fmap.toVV(vs) 
 
+  override def rmap:Map[V,KK] = bmap.map.map { case (v, _kk) => (v, bmap._VVtoVV(_kk)) }
   override def lookupV(v:V):KK = bmap(v)
   override def getV(v:V):Option[KK] = bmap.get(v)
   override def containsV(v:V):Boolean = bmap.contains(v)

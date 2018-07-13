@@ -14,9 +14,14 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
 
   val fileName = s"gen_trace.scala"
 
+  override def initPass = {
+    offsetMap.clear
+    super.initPass
+  }
+
   val offsetMap = mutable.Map[DRAM, Int]()
 
-  lazy val ctrlbmap = reverseMap(ctrlOf.map.toMap)
+  lazy val ctrlbmap = ctrlOf.rmap
 
   val tracked = mutable.ListBuffer[PNode]()
   val traced = mutable.ListBuffer[PNode]()

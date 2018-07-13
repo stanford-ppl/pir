@@ -41,7 +41,16 @@ class PIRMetadata extends Metadata {
   /*
    * Antidependencies between accesses
    * */
-  val antiDepsOf = new OneToManyMap[PIRNode, PIRNode] with MetadataMap
+  val antiDepsOf = new OneToManyMap[PIRNode, PIRNode] with MetadataMap {
+    override def migrateKey(from:K, to:K, v:V, logger:Option[Logging]) = {
+      dbg(logger, s"$name.migrateKey $from -> $v => $to -> $v")
+      update(to, v)
+    }
+    override def migrateValue(from:V, to:V, k:K, logger:Option[Logging]) = {
+      dbg(logger, s"$name.migrateValue $k -> $from => $k -> $to")
+      update(k, to)
+    }
+  }
   antiDepsOf.setName("antiDepsOf")
 
   /* 
@@ -50,9 +59,7 @@ class PIRMetadata extends Metadata {
    * accesses 
    * */
   //val ctrlOf = new BiManyToOneMap[PIRNode, Controller] with MetadataMap
-  val ctrlOf = new OneToOneMap[PIRNode, Controller] with MetadataMap {
-    def bmap(v:V) = map.flatMap { case (k, `v`) => Some(k); case _ => None }.toSet
-  }
+  val ctrlOf = new OneToOneMap[PIRNode, Controller] with MetadataMap
   ctrlOf.setName("ctrlOf")
 
   /*
@@ -89,9 +96,7 @@ class PIRMetadata extends Metadata {
   /*
    * Number of iterations the node is running
    * */
-  val itersOf =  new OneToOneMap[Any, Option[Long]] with MetadataMap {
-    override def mirror(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {}
-  }
+  val itersOf =  new OneToOneMap[Any, Option[Long]] with MetadataMap
   itersOf.setName("itersOf")
 
   /*
@@ -117,7 +122,10 @@ class PIRMetadata extends Metadata {
    * */
   val originOf = new OneToOneMap[PIRNode, PIRNode] with MetadataMap { // Many to one
     override def mirror(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {}
-    def bmap(v:V) = map.flatMap { case (k, `v`) => Some(k); case _ => None }.toSet
+    override def migrateValue(from:V, to:V, k:K, logger:Option[Logging]) = {
+      remove(k, from)
+      super.migrateValue(from, to, k, logger)
+    }
   }
   originOf.setName("originOf")
 

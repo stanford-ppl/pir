@@ -6,368 +6,541 @@ import prism.enums._
 object Kmeans extends PIRApp {
   def main(implicit design:PIRDesign) = {
     import design.pirmeta._
-    val x4690 = ArgIn(init=0).name("x4690").ctrl(top).srcCtx("Kmeans.scala:27:22:iters") // ArgInNew(Const(0))
-    isAccum(x4690) = false
-    bufferDepthOf(x4690) = 1
-    boundOf(x4690) = 2
-    val x4691 = ArgIn(init=0).name("x4691").ctrl(top).srcCtx("Kmeans.scala:28:22:N") // ArgInNew(Const(0))
-    isAccum(x4691) = false
-    bufferDepthOf(x4691) = 1
-    boundOf(x4691) = 64
-    val x4694 = ReadMem(x4691).name("x4694").ctrl(top).srcCtx("Kmeans.scala:33:26") // RegRead(x4691)
-    val x4695 = DRAM(dims=List(x4694, Const(32))).name("x4695").ctrl(top).srcCtx("Kmeans.scala:33:25:points") // x4695 = DRAMNew(ArrayBuffer(x4694, Const(32)),Const(0))
-    val x4696 = DRAM(dims=List(Const(16), Const(32))).name("x4696").ctrl(top).srcCtx("Kmeans.scala:34:28:centroids") // x4696 = DRAMNew(ArrayBuffer(Const(16), Const(32)),Const(0))
-    val x4932 = UnitController(style=SeqPipe, level=OuterControl).name("x4932").ctrl(top).srcCtx("Kmeans.scala:38:11") // Hwblock(Block(Const(())),false)
-    val x4700_d0_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x4700_d0_b0").ctrl(x4932).srcCtx("Kmeans.scala:39:24:cts") // x4700 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
-    isAccum(x4700_d0_b0) = false
-    bufferDepthOf(x4700_d0_b0) = 1
-    val x4700_d1_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x4700_d1_b0").ctrl(x4932).srcCtx("Kmeans.scala:39:24:cts") // x4700 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
-    isAccum(x4700_d1_b0) = false
-    bufferDepthOf(x4700_d1_b0) = 1
-    val x4701 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x4701").ctrl(x4932).srcCtx("Kmeans.scala:42:11") // CounterNew(Const(0),Const(16),Const(1),Const(1))
-    val x4702 = CounterChain(List(x4701)).name("x4702").ctrl(x4932).srcCtx("Kmeans.scala:42:11") // CounterChainNew(List(x4701))
-    val x4724 = LoopController(style=StreamPipe, level=OuterControl, cchain=x4702).name("x4724").ctrl(x4932).srcCtx("Kmeans.scala:42:11") // UnrolledForeach(List(Const(true)),x4702,Block(Const(())),List(List(b2881)),List(List(b2882)))
-    val b2881 = CounterIter(x4701, Some(0)).name("b2881").ctrl(x4724) // b2881
-    val b2882 = Const(true).name("b2882").ctrl(x4724) // b2882
-    val b5036 = StreamOut(field="offset").name("b5036").ctrl(x4724).srcCtx("Kmeans.scala:42:11") // x4703 = StreamOutNew(BurstCmdBus)
-    isAccum(b5036) = false
-    bufferDepthOf(b5036) = 1
-    val b5037 = StreamOut(field="size").name("b5037").ctrl(x4724).srcCtx("Kmeans.scala:42:11") // x4703 = StreamOutNew(BurstCmdBus)
-    isAccum(b5037) = false
-    bufferDepthOf(b5037) = 1
-    val x4704 = StreamIn(field="data").name("x4704").ctrl(x4724).srcCtx("Kmeans.scala:42:11") // x4704 = StreamInNew(BurstDataBus())
-    isAccum(x4704) = false
-    bufferDepthOf(x4704) = 1
-    val x4715 = UnitController(style=SeqPipe, level=InnerControl).name("x4715").ctrl(x4724).srcCtx("Kmeans.scala:42:11") // UnitPipe(List(b2882),Block(x4714))
-    val x4705 = b2881 // FixConvert(b2881,TRUE,_32,_0) (Same Type. No op)
-    val x4706 = OpDef(op=FixSla, inputs=List(x4705, Const(5))).name("x4706").ctrl(x4715).srcCtx("Kmeans.scala:42:11") // FixLsh(x4705,Const(5))
-    val x4707 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
-    val x4708 = OpDef(op=FixAdd, inputs=List(x4706, x4707)).name("x4708").ctrl(x4715).srcCtx("Kmeans.scala:42:11") // FixAdd(x4706,x4707)
-    val x4709 = OpDef(op=FixSla, inputs=List(x4708, Const(2))).name("x4709").ctrl(x4715).srcCtx("Kmeans.scala:42:11") // FixLsh(x4708,Const(2))
-    val x4710 = x4709 // FixConvert(x4709,TRUE,_64,_0)
-    val x4711 = DramAddress(x4695).name("x4711").ctrl(x4715).srcCtx("Kmeans.scala:42:11") // GetDRAMAddress(x4695)
-    val x4713_x4712 = OpDef(op=FixAdd, inputs=List(x4710, x4711)).name("x4713_x4712").ctrl(x4715).srcCtx("Kmeans.scala:42:11") // FixAdd(x4710,x4711)
-    // x4713 = SimpleStruct(ArrayBuffer((offset,x4712), (size,Const(128)), (isLoad,Const(true))))
-    val x4714_b5038_b5036 = WriteMem(b5036, x4713_x4712).name("x4714_b5038_b5036").ctrl(x4715).srcCtx("Kmeans.scala:42:11") // StreamWrite(x4703,x4713,b2882)
-    val x4714_b5039_b5037 = WriteMem(b5037, Const(128)).name("x4714_b5039_b5037").ctrl(x4715).srcCtx("Kmeans.scala:42:11") // StreamWrite(x4703,x4713,b2882)
-    val x4716 = FringeDenseLoad(dram=List(x4695), cmdStream=List(b5036, b5037), dataStream=List(x4704)).name("x4716").ctrl(x4724).srcCtx("Kmeans.scala:42:11") // FringeDenseLoad(x4695,x4703,x4704)
-    val x4717 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x4717").ctrl(x4724).srcCtx("Kmeans.scala:42:11") // CounterNew(Const(0),Const(32),Const(1),Const(16))
-    val x4718 = CounterChain(List(x4717)).name("x4718").ctrl(x4724).srcCtx("Kmeans.scala:42:11") // CounterChainNew(List(x4717))
-    val x4723 = LoopController(style=InnerPipe, level=InnerControl, cchain=x4718).name("x4723").ctrl(x4724).srcCtx("Kmeans.scala:42:11") // UnrolledForeach(List(b2882),x4718,Block(Const(())),List(List(b2899)),List(List(b2900)))
-    val b2899 = CounterIter(x4717, None).name("b2899").ctrl(x4723) // b2899
-    val b2900 = Const(true).name("b2900").ctrl(x4723) // b2900
-    val x4719 = OpDef(op=BitAnd, inputs=List(b2900, b2882)).name("x4719").ctrl(x4723).srcCtx("UnrollingBase.scala:28:66") // And(b2900,b2882)
-    val x4720_x4720 = ReadMem(x4704).name("x4720_x4720").ctrl(x4723).srcCtx("Kmeans.scala:42:11") // ParStreamRead(x4704,List(x4719))
-    val x4721_x4721 = x4720_x4720 // x4721 = VectorApply(x4720,0)
-    val x4722 = StoreBanks(List(x4700_d0_b0, x4700_d1_b0), List(b2881, b2899), x4721_x4721).name("x4722").ctrl(x4723).srcCtx("Kmeans.scala:42:11") // ParSRAMStore(x4700,List(List(b2881, b2899)),List(x4721),List(x4719))
-    val x4725 = ReadMem(x4690).name("x4725").ctrl(x4932).srcCtx("Kmeans.scala:44:26") // RegRead(x4690)
-    val x4726 = Counter(min=Const(0), max=x4725, step=Const(1), par=1).name("x4726").ctrl(x4932).srcCtx("Kmeans.scala:44:32") // CounterNew(Const(0),x4725,Const(1),Const(1))
-    val x4727 = CounterChain(List(x4726)).name("x4727").ctrl(x4932).srcCtx("Kmeans.scala:44:37") // CounterChainNew(List(x4726))
-    val x4903 = LoopController(style=SeqPipe, level=OuterControl, cchain=x4727).name("x4903").ctrl(x4932).srcCtx("Kmeans.scala:44:37") // UnrolledForeach(List(Const(true)),x4727,Block(Const(())),List(List(b2910)),List(List(b2911)))
-    val b2910 = CounterIter(x4726, Some(0)).name("b2910").ctrl(x4903) // b2910
-    val b2911 = Const(true).name("b2911").ctrl(x4903) // b2911
-    val x4728_d0_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x4728_d0_b0").ctrl(x4903).srcCtx("Kmeans.scala:46:41:newCents") // x4728 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
-    isAccum(x4728_d0_b0) = false
-    bufferDepthOf(x4728_d0_b0) = 1
-    val x4728_d1_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x4728_d1_b0").ctrl(x4903).srcCtx("Kmeans.scala:46:41:newCents") // x4728 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
-    isAccum(x4728_d1_b0) = false
-    bufferDepthOf(x4728_d1_b0) = 1
-    val x4728_d2_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x4728_d2_b0").ctrl(x4903).srcCtx("Kmeans.scala:46:41:newCents") // x4728 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
-    isAccum(x4728_d2_b0) = true
-    bufferDepthOf(x4728_d2_b0) = 1
-    val x4729 = ReadMem(x4691).name("x4729").ctrl(x4903).srcCtx("Kmeans.scala:46:55") // RegRead(x4691)
-    val x4730 = Counter(min=Const(0), max=x4729, step=Const(16), par=1).name("x4730").ctrl(x4903).srcCtx("Kmeans.scala:46:63") // CounterNew(Const(0),x4729,Const(16),Const(1))
-    val x4731 = CounterChain(List(x4730)).name("x4731").ctrl(x4903).srcCtx("Kmeans.scala:70:10") // CounterChainNew(List(x4730))
-    val x4881 = LoopController(style=MetaPipe, level=OuterControl, cchain=x4731).name("x4881").ctrl(x4903).srcCtx("Kmeans.scala:70:10") // UnrolledReduce(List(b2911),x4731,x4728,Block((x4728) => Const(())),List(List(b2919)),List(List(b2920)))
-    val b2919 = CounterIter(x4730, Some(0)).name("b2919").ctrl(x4881) // b2919
-    val b2920 = Const(true).name("b2920").ctrl(x4881) // b2920
-    val x4732_d0_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x4732_d0_b0").ctrl(x4881).srcCtx("Kmeans.scala:47:28:pts") // x4732 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
-    isAccum(x4732_d0_b0) = false
-    bufferDepthOf(x4732_d0_b0) = 2
-    val x4732_d1_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x4732_d1_b0").ctrl(x4881).srcCtx("Kmeans.scala:47:28:pts") // x4732 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
-    isAccum(x4732_d1_b0) = false
-    bufferDepthOf(x4732_d1_b0) = 2
-    val x4734 = UnitController(style=SeqPipe, level=InnerControl).name("x4734").ctrl(x4881).srcCtx("Kmeans.scala:70:10") // UnitPipe(List(b2920, b2911),Block(Const(())))
-    val x4733 = OpDef(op=FixAdd, inputs=List(b2919, Const(16))).name("x4733").ctrl(x4734).srcCtx("Kmeans.scala:48:31") // FixAdd(b2919,Const(16))
-    val x4735 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x4735").ctrl(x4881).srcCtx("Kmeans.scala:48:15") // CounterNew(Const(0),Const(16),Const(1),Const(1))
-    val x4736 = CounterChain(List(x4735)).name("x4736").ctrl(x4881).srcCtx("Kmeans.scala:48:15") // CounterChainNew(List(x4735))
-    val x4763 = LoopController(style=StreamPipe, level=OuterControl, cchain=x4736).name("x4763").ctrl(x4881).srcCtx("Kmeans.scala:48:15") // UnrolledForeach(List(b2920, b2911),x4736,Block(Const(())),List(List(b2926)),List(List(b2927)))
-    val b2926 = CounterIter(x4735, Some(0)).name("b2926").ctrl(x4763) // b2926
-    val b2927 = Const(true).name("b2927").ctrl(x4763) // b2927
-    val b5040 = StreamOut(field="offset").name("b5040").ctrl(x4763).srcCtx("Kmeans.scala:48:15") // x4737 = StreamOutNew(BurstCmdBus)
-    isAccum(b5040) = false
-    bufferDepthOf(b5040) = 1
-    val b5041 = StreamOut(field="size").name("b5041").ctrl(x4763).srcCtx("Kmeans.scala:48:15") // x4737 = StreamOutNew(BurstCmdBus)
-    isAccum(b5041) = false
-    bufferDepthOf(b5041) = 1
-    val x4738 = StreamIn(field="data").name("x4738").ctrl(x4763).srcCtx("Kmeans.scala:48:15") // x4738 = StreamInNew(BurstDataBus())
-    isAccum(x4738) = false
-    bufferDepthOf(x4738) = 1
-    val x4752 = UnitController(style=SeqPipe, level=InnerControl).name("x4752").ctrl(x4763).srcCtx("Kmeans.scala:48:15") // UnitPipe(List(b2927, b2920, b2911),Block(x4751))
-    val x4739 = OpDef(op=FixAdd, inputs=List(b2919, b2926)).name("x4739").ctrl(x4752).srcCtx("Kmeans.scala:48:15") // FixAdd(b2919,b2926)
-    val x4740 = x4739 // FixConvert(x4739,TRUE,_32,_0) (Same Type. No op)
-    val x4741 = OpDef(op=FixSla, inputs=List(x4740, Const(5))).name("x4741").ctrl(x4752).srcCtx("Kmeans.scala:48:15") // FixLsh(x4740,Const(5))
-    val x4742 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
-    val x4743 = OpDef(op=FixAdd, inputs=List(x4741, x4742)).name("x4743").ctrl(x4752).srcCtx("Kmeans.scala:48:15") // FixAdd(x4741,x4742)
-    val x4744 = OpDef(op=FixSla, inputs=List(x4743, Const(2))).name("x4744").ctrl(x4752).srcCtx("Kmeans.scala:48:15") // FixLsh(x4743,Const(2))
-    val x4745 = x4744 // FixConvert(x4744,TRUE,_64,_0)
-    val x4746 = DramAddress(x4695).name("x4746").ctrl(x4752).srcCtx("Kmeans.scala:48:15") // GetDRAMAddress(x4695)
-    val x4748_x4747 = OpDef(op=FixAdd, inputs=List(x4745, x4746)).name("x4748_x4747").ctrl(x4752).srcCtx("Kmeans.scala:48:15") // FixAdd(x4745,x4746)
-    // x4748 = SimpleStruct(ArrayBuffer((offset,x4747), (size,Const(128)), (isLoad,Const(true))))
-    val x4749 = OpDef(op=BitAnd, inputs=List(b2927, b2920)).name("x4749").ctrl(x4752).srcCtx("UnrollingBase.scala:28:66") // And(b2927,b2920)
-    val x4750 = OpDef(op=BitAnd, inputs=List(x4749, b2911)).name("x4750").ctrl(x4752).srcCtx("UnrollingBase.scala:28:66") // And(x4749,b2911)
-    val x4751_b5042_b5040 = WriteMem(b5040, x4748_x4747).name("x4751_b5042_b5040").ctrl(x4752).srcCtx("Kmeans.scala:48:15") // StreamWrite(x4737,x4748,x4750)
-    val x4751_b5043_b5041 = WriteMem(b5041, Const(128)).name("x4751_b5043_b5041").ctrl(x4752).srcCtx("Kmeans.scala:48:15") // StreamWrite(x4737,x4748,x4750)
-    val x4753 = FringeDenseLoad(dram=List(x4695), cmdStream=List(b5040, b5041), dataStream=List(x4738)).name("x4753").ctrl(x4763).srcCtx("Kmeans.scala:48:15") // FringeDenseLoad(x4695,x4737,x4738)
-    val x4754 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x4754").ctrl(x4763).srcCtx("Kmeans.scala:48:15") // CounterNew(Const(0),Const(32),Const(1),Const(16))
-    val x4755 = CounterChain(List(x4754)).name("x4755").ctrl(x4763).srcCtx("Kmeans.scala:48:15") // CounterChainNew(List(x4754))
-    val x4762 = LoopController(style=InnerPipe, level=InnerControl, cchain=x4755).name("x4762").ctrl(x4763).srcCtx("Kmeans.scala:48:15") // UnrolledForeach(List(b2927, b2920, b2911),x4755,Block(Const(())),List(List(b2947)),List(List(b2948)))
-    val b2947 = CounterIter(x4754, None).name("b2947").ctrl(x4762) // b2947
-    val b2948 = Const(true).name("b2948").ctrl(x4762) // b2948
-    val x4756 = OpDef(op=BitAnd, inputs=List(b2948, b2927)).name("x4756").ctrl(x4762).srcCtx("UnrollingBase.scala:28:66") // And(b2948,b2927)
-    val x4757 = OpDef(op=BitAnd, inputs=List(b2920, b2911)).name("x4757").ctrl(x4762).srcCtx("UnrollingBase.scala:28:66") // And(b2920,b2911)
-    val x4758 = OpDef(op=BitAnd, inputs=List(x4756, x4757)).name("x4758").ctrl(x4762).srcCtx("UnrollingBase.scala:28:66") // And(x4756,x4757)
-    val x4759_x4759 = ReadMem(x4738).name("x4759_x4759").ctrl(x4762).srcCtx("Kmeans.scala:48:15") // ParStreamRead(x4738,List(x4758))
-    val x4760_x4760 = x4759_x4759 // x4760 = VectorApply(x4759,0)
-    val x4761 = StoreBanks(List(x4732_d0_b0, x4732_d1_b0), List(b2926, b2947), x4760_x4760).name("x4761").ctrl(x4762).srcCtx("Kmeans.scala:48:15") // ParSRAMStore(x4732,List(List(b2926, b2947)),List(x4760),List(x4758))
-    val x4764_d0_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x4764_d0_b0").ctrl(x4881).srcCtx("Kmeans.scala:51:28") // x4764 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
-    isAccum(x4764_d0_b0) = false
-    bufferDepthOf(x4764_d0_b0) = 2
-    val x4764_d1_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x4764_d1_b0").ctrl(x4881).srcCtx("Kmeans.scala:51:28") // x4764 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
-    isAccum(x4764_d1_b0) = true
-    bufferDepthOf(x4764_d1_b0) = 1
-    val x4765 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x4765").ctrl(x4881).srcCtx("Kmeans.scala:51:45") // CounterNew(Const(0),Const(16),Const(1),Const(1))
-    val x4766 = CounterChain(List(x4765)).name("x4766").ctrl(x4881).srcCtx("Kmeans.scala:69:12") // CounterChainNew(List(x4765))
-    val x4864 = LoopController(style=MetaPipe, level=OuterControl, cchain=x4766).name("x4864").ctrl(x4881).srcCtx("Kmeans.scala:69:12") // UnrolledReduce(List(b2920, b2911),x4766,x4764,Block((x4764) => Const(())),List(List(b2963)),List(List(b2964)))
-    val b2963 = CounterIter(x4765, Some(0)).name("b2963").ctrl(x4864) // b2963
-    val b2964 = Const(true).name("b2964").ctrl(x4864) // b2964
-    val x4767_d0_b0 = SRAM(size=16, banking=Strided(banks=16, stride=1)).name("x4767_d0_b0").ctrl(x4864).srcCtx("Kmeans.scala:53:32:dists") // x4767 = SRAMNew(ArrayBuffer(Const(16)))
-    isAccum(x4767_d0_b0) = false
-    bufferDepthOf(x4767_d0_b0) = 3
-    val x4767_d1_b0 = SRAM(size=16, banking=Strided(banks=16, stride=1)).name("x4767_d1_b0").ctrl(x4864).srcCtx("Kmeans.scala:53:32:dists") // x4767 = SRAMNew(ArrayBuffer(Const(16)))
-    isAccum(x4767_d1_b0) = false
-    bufferDepthOf(x4767_d1_b0) = 2
-    val x4768 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x4768").ctrl(x4864).srcCtx("Kmeans.scala:54:28") // CounterNew(Const(0),Const(16),Const(1),Const(1))
-    val x4769 = CounterChain(List(x4768)).name("x4769").ctrl(x4864).srcCtx("Kmeans.scala:54:37") // CounterChainNew(List(x4768))
-    val x4797 = LoopController(style=MetaPipe, level=OuterControl, cchain=x4769).name("x4797").ctrl(x4864).srcCtx("Kmeans.scala:54:37") // UnrolledForeach(List(b2964, b2920, b2911),x4769,Block(Const(())),List(List(b2968)),List(List(b2969)))
-    val b2968 = CounterIter(x4768, Some(0)).name("b2968").ctrl(x4797) // b2968
-    val b2969 = Const(true).name("b2969").ctrl(x4797) // b2969
-    val x4770_d0 = Reg(init=Some(0)).name("x4770_d0").ctrl(x4797).srcCtx("Kmeans.scala:55:36:dist") // x4770 = RegNew(Const(0))
-    isAccum(x4770_d0) = false
-    bufferDepthOf(x4770_d0) = 2
-    val x4770_d1 = Reg(init=Some(0)).name("x4770_d1").ctrl(x4797).srcCtx("Kmeans.scala:55:36:dist") // x4770 = RegNew(Const(0))
-    isAccum(x4770_d1) = true
-    bufferDepthOf(x4770_d1) = 1
-    val x4771 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x4771").ctrl(x4797).srcCtx("Kmeans.scala:55:43") // CounterNew(Const(0),Const(32),Const(1),Const(16))
-    val x4772 = CounterChain(List(x4771)).name("x4772").ctrl(x4797).srcCtx("Kmeans.scala:55:86") // CounterChainNew(List(x4771))
-    val x4790 = LoopController(style=InnerPipe, level=InnerControl, cchain=x4772).name("x4790").ctrl(x4797).srcCtx("Kmeans.scala:55:86") // UnrolledReduce(List(b2969, b2964, b2920, b2911),x4772,x4770,Block((x4770) => Const(())),List(List(b2973)),List(List(b2974)))
-    val b2973 = CounterIter(x4771, None).name("b2973").ctrl(x4790) // b2973
-    val b2974 = Const(true).name("b2974").ctrl(x4790) // b2974
-    val x4773 = OpDef(op=BitAnd, inputs=List(b2974, b2969)).name("x4773").ctrl(x4790).srcCtx("UnrollingBase.scala:28:66") // And(b2974,b2969)
-    val x4774 = OpDef(op=BitAnd, inputs=List(b2964, b2920)).name("x4774").ctrl(x4790).srcCtx("UnrollingBase.scala:28:66") // And(b2964,b2920)
-    val x4775 = OpDef(op=BitAnd, inputs=List(x4773, x4774)).name("x4775").ctrl(x4790).srcCtx("UnrollingBase.scala:28:66") // And(x4773,x4774)
-    val x4776 = OpDef(op=BitAnd, inputs=List(x4775, b2911)).name("x4776").ctrl(x4790).srcCtx("UnrollingBase.scala:28:66") // And(x4775,b2911)
-    val x4777 = LoadBanks(List(x4732_d1_b0), List(b2963, b2973)).name("x4777").ctrl(x4790).srcCtx("Kmeans.scala:55:60") // ParSRAMLoad(x4732,List(List(b2963, b2973)),List(x4776))
-    val x4778 = x4777 // x4778 = VectorApply(x4777,0)
-    val x4779 = LoadBanks(List(x4700_d1_b0), List(b2968, b2973)).name("x4779").ctrl(x4790).srcCtx("Kmeans.scala:55:72") // ParSRAMLoad(x4700,List(List(b2968, b2973)),List(x4776))
-    val x4780 = x4779 // x4780 = VectorApply(x4779,0)
-    val x4781 = OpDef(op=FixSub, inputs=List(x4778, x4780)).name("x4781").ctrl(x4790).srcCtx("Kmeans.scala:55:67") // FixSub(x4778,x4780)
-    val x4782 = OpDef(op=FixMul, inputs=List(x4781, x4781)).name("x4782").ctrl(x4790).srcCtx("Kmeans.scala:55:80") // FixMul(x4781,x4781)
-    val x4783 = ReadMem(x4770_d1).name("x4783").ctrl(x4790).srcCtx("Kmeans.scala:55:86") // RegRead(x4770)
-    val x4784 = OpDef(op=FixEql, inputs=List(b2973, Const(0))).name("x4784").ctrl(x4790).srcCtx("Kmeans.scala:55:86") // FixEql(b2973,Const(0))
-    val x4785 = ReduceAccumOp(op=FixAdd, input=x4782, accum=x4783).name("x4785").ctrl(x4790).srcCtx("Kmeans.scala:55:88") // FixAdd(x4782,x4783)
-    val x4786 = OpDef(op=BitAnd, inputs=List(b2969, b2964)).name("x4786").ctrl(x4790).srcCtx("UnrollingBase.scala:28:66") // And(b2969,b2964)
-    val x4787 = OpDef(op=BitAnd, inputs=List(b2920, b2911)).name("x4787").ctrl(x4790).srcCtx("UnrollingBase.scala:28:66") // And(b2920,b2911)
-    val x4788 = OpDef(op=BitAnd, inputs=List(x4786, x4787)).name("x4788").ctrl(x4790).srcCtx("UnrollingBase.scala:28:66") // And(x4786,x4787)
-    val x4789_x4770_d0 = WriteMem(x4770_d0, x4785).name("x4789_x4770_d0").ctrl(x4790).srcCtx("Kmeans.scala:55:86") // RegWrite(x4770,x4785,x4788)
-    val x4789_x4770_d1 = WriteMem(x4770_d1, x4785).name("x4789_x4770_d1").ctrl(x4790).srcCtx("Kmeans.scala:55:86") // RegWrite(x4770,x4785,x4788)
-    val x4796 = UnitController(style=SeqPipe, level=InnerControl).name("x4796").ctrl(x4797).srcCtx("Kmeans.scala:54:37") // UnitPipe(List(b2969, b2964, b2920, b2911),Block(Const(())))
-    val x4791 = ReadMem(x4770_d0).name("x4791").ctrl(x4796).srcCtx("Kmeans.scala:56:32") // RegRead(x4770)
-    val x4792 = OpDef(op=BitAnd, inputs=List(b2969, b2964)).name("x4792").ctrl(x4796).srcCtx("UnrollingBase.scala:28:66") // And(b2969,b2964)
-    val x4793 = OpDef(op=BitAnd, inputs=List(b2920, b2911)).name("x4793").ctrl(x4796).srcCtx("UnrollingBase.scala:28:66") // And(b2920,b2911)
-    val x4794 = OpDef(op=BitAnd, inputs=List(x4792, x4793)).name("x4794").ctrl(x4796).srcCtx("UnrollingBase.scala:28:66") // And(x4792,x4793)
-    val x4795 = StoreBanks(List(x4767_d0_b0, x4767_d1_b0), List(b2968), x4791).name("x4795").ctrl(x4796).srcCtx("Kmeans.scala:56:25") // SRAMStore(x4767,ArrayBuffer(Const(16)),List(b2968),Const(0),x4791,x4794)
-    val x4798_d0 = Reg(init=Some(0)).name("x4798_d0").ctrl(x4864).srcCtx("Kmeans.scala:58:37:minDist") // x4798 = RegNew(Const(0))
-    isAccum(x4798_d0) = false
-    bufferDepthOf(x4798_d0) = 2
-    val x4798_d1 = Reg(init=Some(0)).name("x4798_d1").ctrl(x4864).srcCtx("Kmeans.scala:58:37:minDist") // x4798 = RegNew(Const(0))
-    isAccum(x4798_d1) = true
-    bufferDepthOf(x4798_d1) = 1
-    val x4799 = Counter(min=Const(0), max=Const(16), step=Const(1), par=16).name("x4799").ctrl(x4864).srcCtx("Kmeans.scala:58:49") // CounterNew(Const(0),Const(16),Const(1),Const(16))
-    val x4800 = CounterChain(List(x4799)).name("x4800").ctrl(x4864).srcCtx("Kmeans.scala:58:77") // CounterChainNew(List(x4799))
-    val x4812 = LoopController(style=InnerPipe, level=InnerControl, cchain=x4800).name("x4812").ctrl(x4864).srcCtx("Kmeans.scala:58:77") // UnrolledReduce(List(b2964, b2920, b2911),x4800,x4798,Block((x4798) => Const(())),List(List(b3003)),List(List(b3004)))
-    val b3003 = CounterIter(x4799, None).name("b3003").ctrl(x4812) // b3003
-    val b3004 = Const(true).name("b3004").ctrl(x4812) // b3004
-    val x4801 = OpDef(op=BitAnd, inputs=List(b3004, b2964)).name("x4801").ctrl(x4812).srcCtx("UnrollingBase.scala:28:66") // And(b3004,b2964)
-    val x4802 = OpDef(op=BitAnd, inputs=List(b2920, b2911)).name("x4802").ctrl(x4812).srcCtx("UnrollingBase.scala:28:66") // And(b2920,b2911)
-    val x4803 = OpDef(op=BitAnd, inputs=List(x4801, x4802)).name("x4803").ctrl(x4812).srcCtx("UnrollingBase.scala:28:66") // And(x4801,x4802)
-    val x4804 = LoadBanks(List(x4767_d1_b0), List(b3003)).name("x4804").ctrl(x4812).srcCtx("Kmeans.scala:58:70") // ParSRAMLoad(x4767,List(List(b3003)),List(x4803))
-    val x4805 = x4804 // x4805 = VectorApply(x4804,0)
-    val x4806 = ReadMem(x4798_d1).name("x4806").ctrl(x4812).srcCtx("Kmeans.scala:58:77") // RegRead(x4798)
-    val x4807 = OpDef(op=FixEql, inputs=List(b3003, Const(0))).name("x4807").ctrl(x4812).srcCtx("Kmeans.scala:58:77") // FixEql(b3003,Const(0))
-    val x4808 = ReduceAccumOp(op=FixMin, input=x4805, accum=x4806).name("x4808").ctrl(x4812).srcCtx("Kmeans.scala:58:91") // Min(x4805,x4806)
-    val x4809 = OpDef(op=BitAnd, inputs=List(b2964, b2920)).name("x4809").ctrl(x4812).srcCtx("UnrollingBase.scala:28:66") // And(b2964,b2920)
-    val x4810 = OpDef(op=BitAnd, inputs=List(x4809, b2911)).name("x4810").ctrl(x4812).srcCtx("UnrollingBase.scala:28:66") // And(x4809,b2911)
-    val x4811_x4798_d0 = WriteMem(x4798_d0, x4808).name("x4811_x4798_d0").ctrl(x4812).srcCtx("Kmeans.scala:58:77") // RegWrite(x4798,x4808,x4810)
-    val x4811_x4798_d1 = WriteMem(x4798_d1, x4808).name("x4811_x4798_d1").ctrl(x4812).srcCtx("Kmeans.scala:58:77") // RegWrite(x4798,x4808,x4810)
-    val x4813_d0 = Reg(init=Some(0)).name("x4813_d0").ctrl(x4864).srcCtx("Kmeans.scala:59:37:minCent") // x4813 = RegNew(Const(0))
-    isAccum(x4813_d0) = false
-    bufferDepthOf(x4813_d0) = 2
-    val x4813_d1 = Reg(init=Some(0)).name("x4813_d1").ctrl(x4864).srcCtx("Kmeans.scala:59:37:minCent") // x4813 = RegNew(Const(0))
-    isAccum(x4813_d1) = true
-    bufferDepthOf(x4813_d1) = 1
-    val x4814 = Counter(min=Const(0), max=Const(16), step=Const(1), par=16).name("x4814").ctrl(x4864).srcCtx("Kmeans.scala:59:53") // CounterNew(Const(0),Const(16),Const(1),Const(16))
-    val x4815 = CounterChain(List(x4814)).name("x4815").ctrl(x4864).srcCtx("Kmeans.scala:61:15") // CounterChainNew(List(x4814))
-    val x4830 = LoopController(style=InnerPipe, level=InnerControl, cchain=x4815).name("x4830").ctrl(x4864).srcCtx("Kmeans.scala:61:15") // UnrolledReduce(List(b2964, b2920, b2911),x4815,x4813,Block((x4813) => Const(())),List(List(b3020)),List(List(b3021)))
-    val b3020 = CounterIter(x4814, None).name("b3020").ctrl(x4830) // b3020
-    val b3021 = Const(true).name("b3021").ctrl(x4830) // b3021
-    val x4816 = OpDef(op=BitAnd, inputs=List(b3021, b2964)).name("x4816").ctrl(x4830).srcCtx("UnrollingBase.scala:28:66") // And(b3021,b2964)
-    val x4817 = OpDef(op=BitAnd, inputs=List(b2920, b2911)).name("x4817").ctrl(x4830).srcCtx("UnrollingBase.scala:28:66") // And(b2920,b2911)
-    val x4818 = OpDef(op=BitAnd, inputs=List(x4816, x4817)).name("x4818").ctrl(x4830).srcCtx("UnrollingBase.scala:28:66") // And(x4816,x4817)
-    val x4819 = LoadBanks(List(x4767_d0_b0), List(b3020)).name("x4819").ctrl(x4830).srcCtx("Kmeans.scala:60:24") // ParSRAMLoad(x4767,List(List(b3020)),List(x4818))
-    val x4820 = x4819 // x4820 = VectorApply(x4819,0)
-    val x4821 = ReadMem(x4798_d0).name("x4821").ctrl(x4830).srcCtx("Kmeans.scala:60:40") // RegRead(x4798)
-    val x4822 = OpDef(op=FixEql, inputs=List(x4820, x4821)).name("x4822").ctrl(x4830).srcCtx("Kmeans.scala:60:29") // FixEql(x4820,x4821)
-    val x4823 = OpDef(op=MuxOp, inputs=List(x4822, b3020, Const(-1))).name("x4823").ctrl(x4830).srcCtx("Kmeans.scala:60:18") // Mux(x4822,b3020,Const(-1))
-    val x4824 = ReadMem(x4813_d1).name("x4824").ctrl(x4830).srcCtx("Kmeans.scala:61:15") // RegRead(x4813)
-    val x4825 = OpDef(op=FixEql, inputs=List(b3020, Const(0))).name("x4825").ctrl(x4830).srcCtx("Kmeans.scala:61:15") // FixEql(b3020,Const(0))
-    val x4826 = ReduceAccumOp(op=FixMax, input=x4823, accum=x4824).name("x4826").ctrl(x4830).srcCtx("Kmeans.scala:61:29") // Max(x4823,x4824)
-    val x4827 = OpDef(op=BitAnd, inputs=List(b2964, b2920)).name("x4827").ctrl(x4830).srcCtx("UnrollingBase.scala:28:66") // And(b2964,b2920)
-    val x4828 = OpDef(op=BitAnd, inputs=List(x4827, b2911)).name("x4828").ctrl(x4830).srcCtx("UnrollingBase.scala:28:66") // And(x4827,b2911)
-    val x4829_x4813_d0 = WriteMem(x4813_d0, x4826).name("x4829_x4813_d0").ctrl(x4830).srcCtx("Kmeans.scala:61:15") // RegWrite(x4813,x4826,x4828)
-    val x4829_x4813_d1 = WriteMem(x4813_d1, x4826).name("x4829_x4813_d1").ctrl(x4830).srcCtx("Kmeans.scala:61:15") // RegWrite(x4813,x4826,x4828)
-    val x4831_d0_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x4831_d0_b0").ctrl(x4864).srcCtx("Kmeans.scala:64:36:localCent") // x4831 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
-    isAccum(x4831_d0_b0) = false
-    bufferDepthOf(x4831_d0_b0) = 2
-    val x4832 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x4832").ctrl(x4864).srcCtx("Kmeans.scala:65:31") // CounterNew(Const(0),Const(32),Const(1),Const(16))
-    val x4833 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x4833").ctrl(x4864).srcCtx("Kmeans.scala:65:23") // CounterNew(Const(0),Const(16),Const(1),Const(1))
-    val x4834 = CounterChain(List(x4833,x4832)).name("x4834").ctrl(x4864).srcCtx("Kmeans.scala:65:38") // CounterChainNew(List(x4833, x4832))
-    val x4845 = LoopController(style=InnerPipe, level=InnerControl, cchain=x4834).name("x4845").ctrl(x4864).srcCtx("Kmeans.scala:65:38") // UnrolledForeach(List(b2964, b2920, b2911),x4834,Block(Const(())),List(List(b3041), List(b3042)),List(List(b3043), List(b3044)))
-    val b3041 = CounterIter(x4833, Some(0)).name("b3041").ctrl(x4845) // b3041
-    val b3043 = Const(true).name("b3043").ctrl(x4845) // b3043
-    val b3042 = CounterIter(x4832, None).name("b3042").ctrl(x4845) // b3042
-    val b3044 = Const(true).name("b3044").ctrl(x4845) // b3044
-    val x4835 = ReadMem(x4813_d0).name("x4835").ctrl(x4845).srcCtx("Kmeans.scala:66:52") // RegRead(x4813)
-    val x4836 = OpDef(op=FixEql, inputs=List(b3041, x4835)).name("x4836").ctrl(x4845).srcCtx("Kmeans.scala:66:41") // FixEql(b3041,x4835)
-    val x4837 = OpDef(op=BitAnd, inputs=List(b3043, b3044)).name("x4837").ctrl(x4845).srcCtx("UnrollingBase.scala:28:66") // And(b3043,b3044)
-    val x4838 = OpDef(op=BitAnd, inputs=List(b2964, b2920)).name("x4838").ctrl(x4845).srcCtx("UnrollingBase.scala:28:66") // And(b2964,b2920)
-    val x4839 = OpDef(op=BitAnd, inputs=List(x4837, x4838)).name("x4839").ctrl(x4845).srcCtx("UnrollingBase.scala:28:66") // And(x4837,x4838)
-    val x4840 = OpDef(op=BitAnd, inputs=List(x4839, b2911)).name("x4840").ctrl(x4845).srcCtx("UnrollingBase.scala:28:66") // And(x4839,b2911)
-    val x4841 = LoadBanks(List(x4732_d0_b0), List(b2963, b3042)).name("x4841").ctrl(x4845).srcCtx("Kmeans.scala:66:62") // ParSRAMLoad(x4732,List(List(b2963, b3042)),List(x4840))
-    val x4842 = x4841 // x4842 = VectorApply(x4841,0)
-    val x4843 = OpDef(op=MuxOp, inputs=List(x4836, x4842, Const(0))).name("x4843").ctrl(x4845).srcCtx("Kmeans.scala:66:37") // Mux(x4836,x4842,Const(0))
-    val x4844 = StoreBanks(List(x4831_d0_b0), List(b3041, b3042), x4843).name("x4844").ctrl(x4845).srcCtx("Kmeans.scala:66:32") // ParSRAMStore(x4831,List(List(b3041, b3042)),List(x4843),List(x4840))
-    val x4846 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x4846").ctrl(x4864).srcCtx("Kmeans.scala:69:12") // CounterNew(Const(0),Const(32),Const(1),Const(16))
-    val x4847 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x4847").ctrl(x4864).srcCtx("Kmeans.scala:69:12") // CounterNew(Const(0),Const(16),Const(1),Const(1))
-    val x4848 = CounterChain(List(x4847,x4846)).name("x4848").ctrl(x4864).srcCtx("Kmeans.scala:69:12") // CounterChainNew(ArrayBuffer(x4847, x4846))
-    val x4863 = LoopController(style=InnerPipe, level=InnerControl, cchain=x4848).name("x4863").ctrl(x4864).srcCtx("Kmeans.scala:69:12") // UnrolledForeach(List(),x4848,Block(Const(())),ArrayBuffer(List(b3056), List(b3057)),ArrayBuffer(List(b3058), List(b3059)))
-    val b3056 = CounterIter(x4847, Some(0)).name("b3056").ctrl(x4863) // b3056
-    val b3058 = Const(true).name("b3058").ctrl(x4863) // b3058
-    val b3057 = CounterIter(x4846, None).name("b3057").ctrl(x4863) // b3057
-    val b3059 = Const(true).name("b3059").ctrl(x4863) // b3059
-    val x4849 = OpDef(op=BitAnd, inputs=List(b3058, b3059)).name("x4849").ctrl(x4863).srcCtx("UnrollingBase.scala:28:66") // And(b3058,b3059)
-    val x4850 = OpDef(op=BitAnd, inputs=List(b2920, b2911)).name("x4850").ctrl(x4863).srcCtx("UnrollingBase.scala:28:66") // And(b2920,b2911)
-    val x4851 = OpDef(op=BitAnd, inputs=List(x4849, x4850)).name("x4851").ctrl(x4863).srcCtx("UnrollingBase.scala:28:66") // And(x4849,x4850)
-    val x4852 = LoadBanks(List(x4831_d0_b0), List(b3056, b3057)).name("x4852").ctrl(x4863).srcCtx("Kmeans.scala:69:12") // ParSRAMLoad(x4831,List(ArrayBuffer(b3056, b3057)),List(x4851))
-    val x4853 = x4852 // x4853 = VectorApply(x4852,0)
-    val x4854 = LoadBanks(List(x4764_d1_b0), List(b3056, b3057)).name("x4854").ctrl(x4863).srcCtx("Kmeans.scala:69:12") // ParSRAMLoad(x4764,List(ArrayBuffer(b3056, b3057)),List(x4851))
-    val x4855 = x4854 // x4855 = VectorApply(x4854,0)
-    val x4856 = OpDef(op=BitAnd, inputs=List(b2964, b2920)).name("x4856").ctrl(x4863).srcCtx("Kmeans.scala:69:12") // And(b2964,b2920)
-    val x4857 = OpDef(op=BitAnd, inputs=List(x4856, b2911)).name("x4857").ctrl(x4863).srcCtx("Kmeans.scala:69:12") // And(x4856,b2911)
-    val x4858 = OpDef(op=BitAnd, inputs=List(x4857, x4851)).name("x4858").ctrl(x4863).srcCtx("Kmeans.scala:69:12") // And(x4857,x4851)
-    val x4859 = OpDef(op=FixEql, inputs=List(b2963, Const(0))).name("x4859").ctrl(x4863).srcCtx("Kmeans.scala:69:12") // FixEql(b2963,Const(0))
-    val x4860 = OpDef(op=FixAdd, inputs=List(x4853, x4855)).name("x4860").ctrl(x4863).srcCtx("Kmeans.scala:69:14") // FixAdd(x4853,x4855)
-    val x4861 = OpDef(op=MuxOp, inputs=List(x4859, x4853, x4860)).name("x4861").ctrl(x4863).srcCtx("Kmeans.scala:69:12") // Mux(x4859,x4853,x4860)
-    val x4862 = StoreBanks(List(x4764_d0_b0, x4764_d1_b0), List(b3056, b3057), x4861).name("x4862").ctrl(x4863).srcCtx("Kmeans.scala:69:12") // ParSRAMStore(x4764,List(ArrayBuffer(b3056, b3057)),List(x4861),List(x4851))
-    val x4865 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x4865").ctrl(x4881).srcCtx("Kmeans.scala:70:10") // CounterNew(Const(0),Const(32),Const(1),Const(16))
-    val x4866 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x4866").ctrl(x4881).srcCtx("Kmeans.scala:70:10") // CounterNew(Const(0),Const(16),Const(1),Const(1))
-    val x4867 = CounterChain(List(x4866,x4865)).name("x4867").ctrl(x4881).srcCtx("Kmeans.scala:70:10") // CounterChainNew(ArrayBuffer(x4866, x4865))
-    val x4880 = LoopController(style=InnerPipe, level=InnerControl, cchain=x4867).name("x4880").ctrl(x4881).srcCtx("Kmeans.scala:70:10") // UnrolledForeach(List(),x4867,Block(Const(())),ArrayBuffer(List(b3076), List(b3077)),ArrayBuffer(List(b3078), List(b3079)))
-    val b3076 = CounterIter(x4866, Some(0)).name("b3076").ctrl(x4880) // b3076
-    val b3078 = Const(true).name("b3078").ctrl(x4880) // b3078
-    val b3077 = CounterIter(x4865, None).name("b3077").ctrl(x4880) // b3077
-    val b3079 = Const(true).name("b3079").ctrl(x4880) // b3079
-    val x4868 = OpDef(op=BitAnd, inputs=List(b3078, b3079)).name("x4868").ctrl(x4880).srcCtx("UnrollingBase.scala:28:66") // And(b3078,b3079)
-    val x4869 = OpDef(op=BitAnd, inputs=List(x4868, b2911)).name("x4869").ctrl(x4880).srcCtx("UnrollingBase.scala:28:66") // And(x4868,b2911)
-    val x4870 = LoadBanks(List(x4764_d0_b0), List(b3076, b3077)).name("x4870").ctrl(x4880).srcCtx("Kmeans.scala:70:10") // ParSRAMLoad(x4764,List(ArrayBuffer(b3076, b3077)),List(x4869))
-    val x4871 = x4870 // x4871 = VectorApply(x4870,0)
-    val x4872 = LoadBanks(List(x4728_d2_b0), List(b3076, b3077)).name("x4872").ctrl(x4880).srcCtx("Kmeans.scala:70:10") // ParSRAMLoad(x4728,List(ArrayBuffer(b3076, b3077)),List(x4869))
-    val x4873 = x4872 // x4873 = VectorApply(x4872,0)
-    val x4874 = OpDef(op=BitAnd, inputs=List(b2920, b2911)).name("x4874").ctrl(x4880).srcCtx("Kmeans.scala:70:10") // And(b2920,b2911)
-    val x4875 = OpDef(op=BitAnd, inputs=List(x4874, x4869)).name("x4875").ctrl(x4880).srcCtx("Kmeans.scala:70:10") // And(x4874,x4869)
-    val x4876 = OpDef(op=FixEql, inputs=List(b2919, Const(0))).name("x4876").ctrl(x4880).srcCtx("Kmeans.scala:70:10") // FixEql(b2919,Const(0))
-    val x4877 = OpDef(op=FixAdd, inputs=List(x4871, x4873)).name("x4877").ctrl(x4880).srcCtx("Kmeans.scala:70:12") // FixAdd(x4871,x4873)
-    val x4878 = OpDef(op=MuxOp, inputs=List(x4876, x4871, x4877)).name("x4878").ctrl(x4880).srcCtx("Kmeans.scala:70:10") // Mux(x4876,x4871,x4877)
-    val x4879 = StoreBanks(List(x4728_d0_b0, x4728_d1_b0, x4728_d2_b0), List(b3076, b3077), x4878).name("x4879").ctrl(x4880).srcCtx("Kmeans.scala:70:10") // ParSRAMStore(x4728,List(ArrayBuffer(b3076, b3077)),List(x4878),List(x4869))
-    val x4882 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x4882").ctrl(x4903).srcCtx("Kmeans.scala:73:24") // CounterNew(Const(0),Const(16),Const(1),Const(1))
-    val x4883 = CounterChain(List(x4882)).name("x4883").ctrl(x4903).srcCtx("Kmeans.scala:73:32") // CounterChainNew(List(x4882))
-    val x4902 = LoopController(style=MetaPipe, level=OuterControl, cchain=x4883).name("x4902").ctrl(x4903).srcCtx("Kmeans.scala:73:32") // UnrolledForeach(List(b2911),x4883,Block(Const(())),List(List(b3096)),List(List(b3097)))
-    val b3096 = CounterIter(x4882, Some(0)).name("b3096").ctrl(x4902) // b3096
-    val b3097 = Const(true).name("b3097").ctrl(x4902) // b3097
-    val x4884 = Reg(init=Some(0)).name("x4884").ctrl(x4902).srcCtx("Kmeans.scala:74:33:centCount") // x4884 = RegNew(Const(0))
-    isAccum(x4884) = false
-    bufferDepthOf(x4884) = 2
-    val x4889 = UnitController(style=SeqPipe, level=InnerControl).name("x4889").ctrl(x4902).srcCtx("Kmeans.scala:75:16") // UnitPipe(List(b3097, b2911),Block(x4888))
-    val x4885 = OpDef(op=BitAnd, inputs=List(b3097, b2911)).name("x4885").ctrl(x4889).srcCtx("UnrollingBase.scala:28:66") // And(b3097,b2911)
-    val x4886 = LoadBanks(List(x4728_d1_b0), List(b3096, Const(31))).name("x4886").ctrl(x4889).srcCtx("Kmeans.scala:76:38") // SRAMLoad(x4728,ArrayBuffer(Const(16), Const(32)),List(b3096, Const(31)),Const(0),x4885)
-    val x4887 = OpDef(op=FixMax, inputs=List(x4886, Const(1))).name("x4887").ctrl(x4889).srcCtx("Kmeans.scala:76:29") // Max(x4886,Const(1))
-    val x4888_x4884 = WriteMem(x4884, x4887).name("x4888_x4884").ctrl(x4889).srcCtx("Kmeans.scala:76:23") // RegWrite(x4884,x4887,x4885)
-    val x4890 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x4890").ctrl(x4902).srcCtx("Kmeans.scala:78:21") // CounterNew(Const(0),Const(32),Const(1),Const(16))
-    val x4891 = CounterChain(List(x4890)).name("x4891").ctrl(x4902).srcCtx("Kmeans.scala:78:28") // CounterChainNew(List(x4890))
-    val x4901 = LoopController(style=InnerPipe, level=InnerControl, cchain=x4891).name("x4901").ctrl(x4902).srcCtx("Kmeans.scala:78:28") // UnrolledForeach(List(b3097, b2911),x4891,Block(Const(())),List(List(b3106)),List(List(b3107)))
-    val b3106 = CounterIter(x4890, None).name("b3106").ctrl(x4901) // b3106
-    val b3107 = Const(true).name("b3107").ctrl(x4901) // b3107
-    val x4892 = ReadMem(x4884).name("x4892").ctrl(x4901).srcCtx("Kmeans.scala:79:40") // RegRead(x4884)
-    val x4893 = OpDef(op=FixEql, inputs=List(x4892, Const(0))).name("x4893").ctrl(x4901).srcCtx("Kmeans.scala:79:40") // FixEql(x4892,Const(0))
-    val x4894 = OpDef(op=BitAnd, inputs=List(b3107, b3097)).name("x4894").ctrl(x4901).srcCtx("UnrollingBase.scala:28:66") // And(b3107,b3097)
-    val x4895 = OpDef(op=BitAnd, inputs=List(x4894, b2911)).name("x4895").ctrl(x4901).srcCtx("UnrollingBase.scala:28:66") // And(x4894,b2911)
-    val x4896 = LoadBanks(List(x4728_d0_b0), List(b3096, b3106)).name("x4896").ctrl(x4901).srcCtx("Kmeans.scala:79:69") // ParSRAMLoad(x4728,List(List(b3096, b3106)),List(x4895))
-    val x4897 = x4896 // x4897 = VectorApply(x4896,0)
-    val x4898 = OpDef(op=FixDiv, inputs=List(x4897, x4892)).name("x4898").ctrl(x4901).srcCtx("Kmeans.scala:79:76") // FixDiv(x4897,x4892)
-    val x4899 = OpDef(op=MuxOp, inputs=List(x4893, Const(0), x4898)).name("x4899").ctrl(x4901).srcCtx("Kmeans.scala:79:29") // Mux(x4893,Const(0),x4898)
-    val x4900 = StoreBanks(List(x4700_d0_b0, x4700_d1_b0), List(b3096, b3106), x4899).name("x4900").ctrl(x4901).srcCtx("Kmeans.scala:79:24") // ParSRAMStore(x4700,List(List(b3096, b3106)),List(x4899),List(x4895))
-    val x4904 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x4904").ctrl(x4932).srcCtx("Kmeans.scala:85:33") // CounterNew(Const(0),Const(16),Const(1),Const(1))
-    val x4905 = CounterChain(List(x4904)).name("x4905").ctrl(x4932).srcCtx("Kmeans.scala:85:33") // CounterChainNew(List(x4904))
-    val x4931 = LoopController(style=StreamPipe, level=OuterControl, cchain=x4905).name("x4931").ctrl(x4932).srcCtx("Kmeans.scala:85:33") // UnrolledForeach(List(Const(true)),x4905,Block(Const(())),List(List(b3122)),List(List(b3123)))
-    val b3122 = CounterIter(x4904, Some(0)).name("b3122").ctrl(x4931) // b3122
-    val b3123 = Const(true).name("b3123").ctrl(x4931) // b3123
-    val b5044 = StreamOut(field="offset").name("b5044").ctrl(x4931).srcCtx("Kmeans.scala:85:33") // x4906 = StreamOutNew(BurstCmdBus)
-    isAccum(b5044) = false
-    bufferDepthOf(b5044) = 1
-    val b5045 = StreamOut(field="size").name("b5045").ctrl(x4931).srcCtx("Kmeans.scala:85:33") // x4906 = StreamOutNew(BurstCmdBus)
-    isAccum(b5045) = false
-    bufferDepthOf(b5045) = 1
-    val x4907 = StreamOut(field="data").name("x4907").ctrl(x4931).srcCtx("Kmeans.scala:85:33") // x4907 = StreamOutNew(BurstFullDataBus())
-    isAccum(x4907) = false
-    bufferDepthOf(x4907) = 1
-    val x4908 = StreamIn(field="ack").name("x4908").ctrl(x4931).srcCtx("Kmeans.scala:85:33") // x4908 = StreamInNew(BurstAckBus)
-    isAccum(x4908) = false
-    bufferDepthOf(x4908) = 1
-    val x4919 = UnitController(style=SeqPipe, level=InnerControl).name("x4919").ctrl(x4931).srcCtx("Kmeans.scala:85:33") // UnitPipe(List(b3123),Block(x4918))
-    val x4909 = b3122 // FixConvert(b3122,TRUE,_32,_0) (Same Type. No op)
-    val x4910 = OpDef(op=FixSla, inputs=List(x4909, Const(5))).name("x4910").ctrl(x4919).srcCtx("Kmeans.scala:85:33") // FixLsh(x4909,Const(5))
-    val x4911 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
-    val x4912 = OpDef(op=FixAdd, inputs=List(x4910, x4911)).name("x4912").ctrl(x4919).srcCtx("Kmeans.scala:85:33") // FixAdd(x4910,x4911)
-    val x4913 = OpDef(op=FixSla, inputs=List(x4912, Const(2))).name("x4913").ctrl(x4919).srcCtx("Kmeans.scala:85:33") // FixLsh(x4912,Const(2))
-    val x4914 = x4913 // FixConvert(x4913,TRUE,_64,_0)
-    val x4915 = DramAddress(x4696).name("x4915").ctrl(x4919).srcCtx("Kmeans.scala:85:33") // GetDRAMAddress(x4696)
-    val x4917_x4916 = OpDef(op=FixAdd, inputs=List(x4914, x4915)).name("x4917_x4916").ctrl(x4919).srcCtx("Kmeans.scala:85:33") // FixAdd(x4914,x4915)
-    // x4917 = SimpleStruct(ArrayBuffer((offset,x4916), (size,Const(128)), (isLoad,Const(false))))
-    val x4918_b5046_b5044 = WriteMem(b5044, x4917_x4916).name("x4918_b5046_b5044").ctrl(x4919).srcCtx("Kmeans.scala:85:33") // StreamWrite(x4906,x4917,b3123)
-    val x4918_b5047_b5045 = WriteMem(b5045, Const(128)).name("x4918_b5047_b5045").ctrl(x4919).srcCtx("Kmeans.scala:85:33") // StreamWrite(x4906,x4917,b3123)
-    val x4920 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x4920").ctrl(x4931).srcCtx("Kmeans.scala:85:33") // CounterNew(Const(0),Const(32),Const(1),Const(16))
-    val x4921 = CounterChain(List(x4920)).name("x4921").ctrl(x4931).srcCtx("Kmeans.scala:85:33") // CounterChainNew(List(x4920))
-    val x4927 = LoopController(style=InnerPipe, level=InnerControl, cchain=x4921).name("x4927").ctrl(x4931).srcCtx("Kmeans.scala:85:33") // UnrolledForeach(List(b3123),x4921,Block(Const(())),List(List(b3140)),List(List(b3141)))
-    val b3140 = CounterIter(x4920, None).name("b3140").ctrl(x4927) // b3140
-    val b3141 = Const(true).name("b3141").ctrl(x4927) // b3141
-    val x4922 = OpDef(op=BitAnd, inputs=List(b3141, b3123)).name("x4922").ctrl(x4927).srcCtx("UnrollingBase.scala:28:66") // And(b3141,b3123)
-    val x4923 = LoadBanks(List(x4700_d0_b0), List(b3122, b3140)).name("x4923").ctrl(x4927).srcCtx("Kmeans.scala:85:33") // ParSRAMLoad(x4700,List(List(b3122, b3140)),List(x4922))
-    val x4925_x4924 = x4923 // x4924 = VectorApply(x4923,0)
-    // x4925 = SimpleStruct(ArrayBuffer((_1,x4924), (_2,Const(true))))
-    val x4926_x4926_x4907 = WriteMem(x4907, x4925_x4924).name("x4926_x4926_x4907").ctrl(x4927).srcCtx("Kmeans.scala:85:33") // ParStreamWrite(x4907,List(x4925),List(x4922))
-    val x4928 = FringeDenseStore(dram=List(x4696), cmdStream=List(b5044, b5045), dataStream=List(x4907), ackStream=List(x4908)).name("x4928").ctrl(x4931).srcCtx("Kmeans.scala:85:33") // FringeDenseStore(x4696,x4906,x4907,x4908)
-    val x4930 = UnitController(style=SeqPipe, level=InnerControl).name("x4930").ctrl(x4931).srcCtx("Kmeans.scala:85:33") // UnitPipe(List(b3123),Block(Const(())))
-    val x4929_x4929 = ReadMem(x4908).name("x4929_x4929").ctrl(x4930).srcCtx("Kmeans.scala:85:33") // StreamRead(x4908,b3123)
+    val x5159 = ArgIn(init=0).name("x5159").ctrl(top).srcCtx("Kmeans.scala:27:22:iters") // ArgInNew(Const(0))
+    isAccum(x5159) = false
+    bufferDepthOf(x5159) = 1
+    boundOf(x5159) = 2
+    val x5160 = ArgIn(init=0).name("x5160").ctrl(top).srcCtx("Kmeans.scala:28:22:N") // ArgInNew(Const(0))
+    isAccum(x5160) = false
+    bufferDepthOf(x5160) = 1
+    boundOf(x5160) = 64
+    val x5163 = ReadMem(x5160).name("x5163").ctrl(top).srcCtx("Kmeans.scala:33:26") // RegRead(x5160)
+    val x5164 = DRAM(dims=List(x5163, Const(32))).name("x5164").ctrl(top).srcCtx("Kmeans.scala:33:25:points") // x5164 = DRAMNew(ArrayBuffer(x5163, Const(32)),Const(0))
+    val x5165 = DRAM(dims=List(Const(16), Const(32))).name("x5165").ctrl(top).srcCtx("Kmeans.scala:34:28:centroids") // x5165 = DRAMNew(ArrayBuffer(Const(16), Const(32)),Const(0))
+    val x5492 = UnitController(style=SeqPipe, level=OuterControl).name("x5492").ctrl(top).srcCtx("Kmeans.scala:38:11") // Hwblock(Block(Const(())),false)
+    val x5169_d0_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x5169_d0_b0").ctrl(x5492).srcCtx("Kmeans.scala:39:24:cts") // x5169 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
+    isAccum(x5169_d0_b0) = false
+    bufferDepthOf(x5169_d0_b0) = 1
+    staticDimsOf(x5169_d0_b0) = List(16, 32)
+    val x5169_d1_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x5169_d1_b0").ctrl(x5492).srcCtx("Kmeans.scala:39:24:cts") // x5169 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
+    isAccum(x5169_d1_b0) = false
+    bufferDepthOf(x5169_d1_b0) = 1
+    staticDimsOf(x5169_d1_b0) = List(16, 32)
+    val x5169_d2_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x5169_d2_b0").ctrl(x5492).srcCtx("Kmeans.scala:39:24:cts") // x5169 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
+    isAccum(x5169_d2_b0) = false
+    bufferDepthOf(x5169_d2_b0) = 1
+    staticDimsOf(x5169_d2_b0) = List(16, 32)
+    val x5170 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x5170").ctrl(x5492).srcCtx("Kmeans.scala:42:11") // CounterNew(Const(0),Const(16),Const(1),Const(1))
+    val x5171 = CounterChain(List(x5170)).name("x5171").ctrl(x5492).srcCtx("Kmeans.scala:42:11") // CounterChainNew(List(x5170))
+    val x5193 = LoopController(style=StreamPipe, level=OuterControl, cchain=x5171).name("x5193").ctrl(x5492).srcCtx("Kmeans.scala:42:11") // UnrolledForeach(List(Const(true)),x5171,Block(Const(())),List(List(b2881)),List(List(b2882)))
+    val b2881 = CounterIter(x5170, Some(0)).name("b2881").ctrl(x5193) // b2881
+    val b2882 = Const(true).name("b2882").ctrl(x5193) // b2882
+    val b5596 = StreamOut(field="offset").name("b5596").ctrl(x5193).srcCtx("Kmeans.scala:42:11") // x5172 = StreamOutNew(BurstCmdBus)
+    isAccum(b5596) = false
+    bufferDepthOf(b5596) = 1
+    val b5597 = StreamOut(field="size").name("b5597").ctrl(x5193).srcCtx("Kmeans.scala:42:11") // x5172 = StreamOutNew(BurstCmdBus)
+    isAccum(b5597) = false
+    bufferDepthOf(b5597) = 1
+    val x5173 = StreamIn(field="data").name("x5173").ctrl(x5193).srcCtx("Kmeans.scala:42:11") // x5173 = StreamInNew(BurstDataBus())
+    isAccum(x5173) = false
+    bufferDepthOf(x5173) = 1
+    val x5184 = UnitController(style=SeqPipe, level=InnerControl).name("x5184").ctrl(x5193).srcCtx("Kmeans.scala:42:11") // UnitPipe(List(b2882),Block(x5183))
+    val x5174 = b2881 // FixConvert(b2881,TRUE,_32,_0) (Same Type. No op)
+    val x5175 = OpDef(op=FixSla, inputs=List(x5174, Const(5))).name("x5175").ctrl(x5184).srcCtx("Kmeans.scala:42:11") // FixLsh(x5174,Const(5))
+    val x5176 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x5177 = OpDef(op=FixAdd, inputs=List(x5175, x5176)).name("x5177").ctrl(x5184).srcCtx("Kmeans.scala:42:11") // FixAdd(x5175,x5176)
+    val x5178 = OpDef(op=FixSla, inputs=List(x5177, Const(2))).name("x5178").ctrl(x5184).srcCtx("Kmeans.scala:42:11") // FixLsh(x5177,Const(2))
+    val x5179 = x5178 // FixConvert(x5178,TRUE,_64,_0)
+    val x5180 = DramAddress(x5164).name("x5180").ctrl(x5184).srcCtx("Kmeans.scala:42:11") // GetDRAMAddress(x5164)
+    val x5182_x5181 = OpDef(op=FixAdd, inputs=List(x5179, x5180)).name("x5182_x5181").ctrl(x5184).srcCtx("Kmeans.scala:42:11") // FixAdd(x5179,x5180)
+    // x5182 = SimpleStruct(ArrayBuffer((offset,x5181), (size,Const(128)), (isLoad,Const(true))))
+    val x5183_b5598_b5596 = WriteMem(b5596, x5182_x5181).name("x5183_b5598_b5596").ctrl(x5184).srcCtx("Kmeans.scala:42:11") // StreamWrite(x5172,x5182,b2882)
+    val x5183_b5599_b5597 = WriteMem(b5597, Const(128)).name("x5183_b5599_b5597").ctrl(x5184).srcCtx("Kmeans.scala:42:11") // StreamWrite(x5172,x5182,b2882)
+    val x5185 = FringeDenseLoad(dram=List(x5164), cmdStream=List(b5596, b5597), dataStream=List(x5173)).name("x5185").ctrl(x5193).srcCtx("Kmeans.scala:42:11") // FringeDenseLoad(x5164,x5172,x5173)
+    val x5186 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x5186").ctrl(x5193).srcCtx("Kmeans.scala:42:11") // CounterNew(Const(0),Const(32),Const(1),Const(16))
+    val x5187 = CounterChain(List(x5186)).name("x5187").ctrl(x5193).srcCtx("Kmeans.scala:42:11") // CounterChainNew(List(x5186))
+    val x5192 = LoopController(style=InnerPipe, level=InnerControl, cchain=x5187).name("x5192").ctrl(x5193).srcCtx("Kmeans.scala:42:11") // UnrolledForeach(List(b2882),x5187,Block(Const(())),List(List(b2899)),List(List(b2900)))
+    val b2899 = CounterIter(x5186, None).name("b2899").ctrl(x5192) // b2899
+    val b2900 = Const(true).name("b2900").ctrl(x5192) // b2900
+    val x5188 = OpDef(op=BitAnd, inputs=List(b2900, b2882)).name("x5188").ctrl(x5192).srcCtx("UnrollingBase.scala:28:66") // And(b2900,b2882)
+    val x5189_x5189 = ReadMem(x5173).name("x5189_x5189").ctrl(x5192).srcCtx("Kmeans.scala:42:11") // ParStreamRead(x5173,List(x5188))
+    val x5190_x5190 = x5189_x5189 // x5190 = VectorApply(x5189,0)
+    val x5191 = StoreBanks(List(List(x5169_d0_b0), List(x5169_d1_b0), List(x5169_d2_b0)), List(b2881, b2899), x5190_x5190).name("x5191").ctrl(x5192).srcCtx("Kmeans.scala:42:11") // ParSRAMStore(x5169,List(List(b2881, b2899)),List(x5190),List(x5188))
+    val x5194 = ReadMem(x5159).name("x5194").ctrl(x5492).srcCtx("Kmeans.scala:44:26") // RegRead(x5159)
+    val x5195 = Counter(min=Const(0), max=x5194, step=Const(1), par=1).name("x5195").ctrl(x5492).srcCtx("Kmeans.scala:44:32") // CounterNew(Const(0),x5194,Const(1),Const(1))
+    val x5196 = CounterChain(List(x5195)).name("x5196").ctrl(x5492).srcCtx("Kmeans.scala:44:37") // CounterChainNew(List(x5195))
+    val x5463 = LoopController(style=SeqPipe, level=OuterControl, cchain=x5196).name("x5463").ctrl(x5492).srcCtx("Kmeans.scala:44:37") // UnrolledForeach(List(Const(true)),x5196,Block(Const(())),List(List(b2910)),List(List(b2911)))
+    val b2910 = CounterIter(x5195, Some(0)).name("b2910").ctrl(x5463) // b2910
+    val b2911 = Const(true).name("b2911").ctrl(x5463) // b2911
+    val x5197_d0_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x5197_d0_b0").ctrl(x5463).srcCtx("Kmeans.scala:46:41:newCents") // x5197 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
+    isAccum(x5197_d0_b0) = false
+    bufferDepthOf(x5197_d0_b0) = 1
+    staticDimsOf(x5197_d0_b0) = List(16, 32)
+    val x5197_d1_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x5197_d1_b0").ctrl(x5463).srcCtx("Kmeans.scala:46:41:newCents") // x5197 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
+    isAccum(x5197_d1_b0) = false
+    bufferDepthOf(x5197_d1_b0) = 1
+    staticDimsOf(x5197_d1_b0) = List(16, 32)
+    val x5197_d2_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x5197_d2_b0").ctrl(x5463).srcCtx("Kmeans.scala:46:41:newCents") // x5197 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
+    isAccum(x5197_d2_b0) = true
+    bufferDepthOf(x5197_d2_b0) = 1
+    staticDimsOf(x5197_d2_b0) = List(16, 32)
+    val x5198 = ReadMem(x5160).name("x5198").ctrl(x5463).srcCtx("Kmeans.scala:46:55") // RegRead(x5160)
+    val x5199 = Counter(min=Const(0), max=x5198, step=Const(16), par=1).name("x5199").ctrl(x5463).srcCtx("Kmeans.scala:46:63") // CounterNew(Const(0),x5198,Const(16),Const(1))
+    val x5200 = CounterChain(List(x5199)).name("x5200").ctrl(x5463).srcCtx("Kmeans.scala:70:10") // CounterChainNew(List(x5199))
+    val x5441 = LoopController(style=MetaPipe, level=OuterControl, cchain=x5200).name("x5441").ctrl(x5463).srcCtx("Kmeans.scala:70:10") // UnrolledReduce(List(b2911),x5200,x5197,Block((x5197) => Const(())),List(List(b2919)),List(List(b2920)))
+    val b2919 = CounterIter(x5199, Some(0)).name("b2919").ctrl(x5441) // b2919
+    val b2920 = Const(true).name("b2920").ctrl(x5441) // b2920
+    val x5201_d0_b0 = SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x5201_d0_b0").ctrl(x5441).srcCtx("Kmeans.scala:47:28:pts") // x5201 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
+    isAccum(x5201_d0_b0) = false
+    bufferDepthOf(x5201_d0_b0) = 2
+    staticDimsOf(x5201_d0_b0) = List(16, 32)
+    val x5201_d0_b1 = SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x5201_d0_b1").ctrl(x5441).srcCtx("Kmeans.scala:47:28:pts") // x5201 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
+    isAccum(x5201_d0_b1) = false
+    bufferDepthOf(x5201_d0_b1) = 2
+    staticDimsOf(x5201_d0_b1) = List(16, 32)
+    val x5201_d1_b0 = SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x5201_d1_b0").ctrl(x5441).srcCtx("Kmeans.scala:47:28:pts") // x5201 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
+    isAccum(x5201_d1_b0) = false
+    bufferDepthOf(x5201_d1_b0) = 2
+    staticDimsOf(x5201_d1_b0) = List(16, 32)
+    val x5201_d1_b1 = SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x5201_d1_b1").ctrl(x5441).srcCtx("Kmeans.scala:47:28:pts") // x5201 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
+    isAccum(x5201_d1_b1) = false
+    bufferDepthOf(x5201_d1_b1) = 2
+    staticDimsOf(x5201_d1_b1) = List(16, 32)
+    val x5203 = UnitController(style=SeqPipe, level=InnerControl).name("x5203").ctrl(x5441).srcCtx("Kmeans.scala:70:10") // UnitPipe(List(b2920, b2911),Block(Const(())))
+    val x5202 = OpDef(op=FixAdd, inputs=List(b2919, Const(16))).name("x5202").ctrl(x5203).srcCtx("Kmeans.scala:48:31") // FixAdd(b2919,Const(16))
+    val x5204 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x5204").ctrl(x5441).srcCtx("Kmeans.scala:48:15") // CounterNew(Const(0),Const(16),Const(1),Const(1))
+    val x5205 = CounterChain(List(x5204)).name("x5205").ctrl(x5441).srcCtx("Kmeans.scala:48:15") // CounterChainNew(List(x5204))
+    val x5232 = LoopController(style=StreamPipe, level=OuterControl, cchain=x5205).name("x5232").ctrl(x5441).srcCtx("Kmeans.scala:48:15") // UnrolledForeach(List(b2920, b2911),x5205,Block(Const(())),List(List(b2926)),List(List(b2927)))
+    val b2926 = CounterIter(x5204, Some(0)).name("b2926").ctrl(x5232) // b2926
+    val b2927 = Const(true).name("b2927").ctrl(x5232) // b2927
+    val b5600 = StreamOut(field="offset").name("b5600").ctrl(x5232).srcCtx("Kmeans.scala:48:15") // x5206 = StreamOutNew(BurstCmdBus)
+    isAccum(b5600) = false
+    bufferDepthOf(b5600) = 1
+    val b5601 = StreamOut(field="size").name("b5601").ctrl(x5232).srcCtx("Kmeans.scala:48:15") // x5206 = StreamOutNew(BurstCmdBus)
+    isAccum(b5601) = false
+    bufferDepthOf(b5601) = 1
+    val x5207 = StreamIn(field="data").name("x5207").ctrl(x5232).srcCtx("Kmeans.scala:48:15") // x5207 = StreamInNew(BurstDataBus())
+    isAccum(x5207) = false
+    bufferDepthOf(x5207) = 1
+    val x5221 = UnitController(style=SeqPipe, level=InnerControl).name("x5221").ctrl(x5232).srcCtx("Kmeans.scala:48:15") // UnitPipe(List(b2927, b2920, b2911),Block(x5220))
+    val x5208 = OpDef(op=FixAdd, inputs=List(b2919, b2926)).name("x5208").ctrl(x5221).srcCtx("Kmeans.scala:48:15") // FixAdd(b2919,b2926)
+    val x5209 = x5208 // FixConvert(x5208,TRUE,_32,_0) (Same Type. No op)
+    val x5210 = OpDef(op=FixSla, inputs=List(x5209, Const(5))).name("x5210").ctrl(x5221).srcCtx("Kmeans.scala:48:15") // FixLsh(x5209,Const(5))
+    val x5211 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x5212 = OpDef(op=FixAdd, inputs=List(x5210, x5211)).name("x5212").ctrl(x5221).srcCtx("Kmeans.scala:48:15") // FixAdd(x5210,x5211)
+    val x5213 = OpDef(op=FixSla, inputs=List(x5212, Const(2))).name("x5213").ctrl(x5221).srcCtx("Kmeans.scala:48:15") // FixLsh(x5212,Const(2))
+    val x5214 = x5213 // FixConvert(x5213,TRUE,_64,_0)
+    val x5215 = DramAddress(x5164).name("x5215").ctrl(x5221).srcCtx("Kmeans.scala:48:15") // GetDRAMAddress(x5164)
+    val x5217_x5216 = OpDef(op=FixAdd, inputs=List(x5214, x5215)).name("x5217_x5216").ctrl(x5221).srcCtx("Kmeans.scala:48:15") // FixAdd(x5214,x5215)
+    // x5217 = SimpleStruct(ArrayBuffer((offset,x5216), (size,Const(128)), (isLoad,Const(true))))
+    val x5218 = OpDef(op=BitAnd, inputs=List(b2927, b2920)).name("x5218").ctrl(x5221).srcCtx("UnrollingBase.scala:28:66") // And(b2927,b2920)
+    val x5219 = OpDef(op=BitAnd, inputs=List(x5218, b2911)).name("x5219").ctrl(x5221).srcCtx("UnrollingBase.scala:28:66") // And(x5218,b2911)
+    val x5220_b5602_b5600 = WriteMem(b5600, x5217_x5216).name("x5220_b5602_b5600").ctrl(x5221).srcCtx("Kmeans.scala:48:15") // StreamWrite(x5206,x5217,x5219)
+    val x5220_b5603_b5601 = WriteMem(b5601, Const(128)).name("x5220_b5603_b5601").ctrl(x5221).srcCtx("Kmeans.scala:48:15") // StreamWrite(x5206,x5217,x5219)
+    val x5222 = FringeDenseLoad(dram=List(x5164), cmdStream=List(b5600, b5601), dataStream=List(x5207)).name("x5222").ctrl(x5232).srcCtx("Kmeans.scala:48:15") // FringeDenseLoad(x5164,x5206,x5207)
+    val x5223 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x5223").ctrl(x5232).srcCtx("Kmeans.scala:48:15") // CounterNew(Const(0),Const(32),Const(1),Const(16))
+    val x5224 = CounterChain(List(x5223)).name("x5224").ctrl(x5232).srcCtx("Kmeans.scala:48:15") // CounterChainNew(List(x5223))
+    val x5231 = LoopController(style=InnerPipe, level=InnerControl, cchain=x5224).name("x5231").ctrl(x5232).srcCtx("Kmeans.scala:48:15") // UnrolledForeach(List(b2927, b2920, b2911),x5224,Block(Const(())),List(List(b2947)),List(List(b2948)))
+    val b2947 = CounterIter(x5223, None).name("b2947").ctrl(x5231) // b2947
+    val b2948 = Const(true).name("b2948").ctrl(x5231) // b2948
+    val x5225 = OpDef(op=BitAnd, inputs=List(b2948, b2927)).name("x5225").ctrl(x5231).srcCtx("UnrollingBase.scala:28:66") // And(b2948,b2927)
+    val x5226 = OpDef(op=BitAnd, inputs=List(b2920, b2911)).name("x5226").ctrl(x5231).srcCtx("UnrollingBase.scala:28:66") // And(b2920,b2911)
+    val x5227 = OpDef(op=BitAnd, inputs=List(x5225, x5226)).name("x5227").ctrl(x5231).srcCtx("UnrollingBase.scala:28:66") // And(x5225,x5226)
+    val x5228_x5228 = ReadMem(x5207).name("x5228_x5228").ctrl(x5231).srcCtx("Kmeans.scala:48:15") // ParStreamRead(x5207,List(x5227))
+    val x5229_x5229 = x5228_x5228 // x5229 = VectorApply(x5228,0)
+    val x5230 = StoreBanks(List(List(x5201_d0_b0, x5201_d0_b1), List(x5201_d1_b0, x5201_d1_b1)), List(b2926, b2947), x5229_x5229).name("x5230").ctrl(x5231).srcCtx("Kmeans.scala:48:15") // ParSRAMStore(x5201,List(List(b2926, b2947)),List(x5229),List(x5227))
+    val x5233_d0_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x5233_d0_b0").ctrl(x5441).srcCtx("Kmeans.scala:51:28") // x5233 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
+    isAccum(x5233_d0_b0) = false
+    bufferDepthOf(x5233_d0_b0) = 2
+    staticDimsOf(x5233_d0_b0) = List(16, 32)
+    val x5233_d1_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x5233_d1_b0").ctrl(x5441).srcCtx("Kmeans.scala:51:28") // x5233 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
+    isAccum(x5233_d1_b0) = true
+    bufferDepthOf(x5233_d1_b0) = 1
+    staticDimsOf(x5233_d1_b0) = List(16, 32)
+    val x5234 = Counter(min=Const(0), max=Const(16), step=Const(1), par=2).name("x5234").ctrl(x5441).srcCtx("Kmeans.scala:51:45") // CounterNew(Const(0),Const(16),Const(1),Const(2))
+    val x5235 = CounterChain(List(x5234)).name("x5235").ctrl(x5441).srcCtx("Kmeans.scala:69:12") // CounterChainNew(List(x5234))
+    val x5424 = LoopController(style=MetaPipe, level=OuterControl, cchain=x5235).name("x5424").ctrl(x5441).srcCtx("Kmeans.scala:69:12") // UnrolledReduce(List(b2920, b2911),x5235,x5233,Block((x5233) => Const(())),List(List(b2963, b2964)),List(List(b2965, b2966)))
+    val b2963 = CounterIter(x5234, Some(0)).name("b2963").ctrl(x5424) // b2963
+    val b2965 = Const(true).name("b2965").ctrl(x5424) // b2965
+    val b2964 = CounterIter(x5234, Some(1)).name("b2964").ctrl(x5424) // b2964
+    val b2966 = Const(true).name("b2966").ctrl(x5424) // b2966
+    val x5236_d0_b0 = SRAM(size=16, banking=Strided(banks=16, stride=1)).name("x5236_d0_b0").ctrl(x5424).srcCtx("Kmeans.scala:53:32:dists") // x5236 = SRAMNew(ArrayBuffer(Const(16)))
+    isAccum(x5236_d0_b0) = false
+    bufferDepthOf(x5236_d0_b0) = 3
+    staticDimsOf(x5236_d0_b0) = List(16)
+    val x5236_d1_b0 = SRAM(size=16, banking=Strided(banks=16, stride=1)).name("x5236_d1_b0").ctrl(x5424).srcCtx("Kmeans.scala:53:32:dists") // x5236 = SRAMNew(ArrayBuffer(Const(16)))
+    isAccum(x5236_d1_b0) = false
+    bufferDepthOf(x5236_d1_b0) = 2
+    staticDimsOf(x5236_d1_b0) = List(16)
+    val x5237_d0_b0 = SRAM(size=16, banking=Strided(banks=16, stride=1)).name("x5237_d0_b0").ctrl(x5424).srcCtx("Kmeans.scala:53:32:dists") // x5237 = SRAMNew(ArrayBuffer(Const(16)))
+    isAccum(x5237_d0_b0) = false
+    bufferDepthOf(x5237_d0_b0) = 3
+    staticDimsOf(x5237_d0_b0) = List(16)
+    val x5237_d1_b0 = SRAM(size=16, banking=Strided(banks=16, stride=1)).name("x5237_d1_b0").ctrl(x5424).srcCtx("Kmeans.scala:53:32:dists") // x5237 = SRAMNew(ArrayBuffer(Const(16)))
+    isAccum(x5237_d1_b0) = false
+    bufferDepthOf(x5237_d1_b0) = 2
+    staticDimsOf(x5237_d1_b0) = List(16)
+    val x5298 = UnitController(style=ForkJoin, level=OuterControl).name("x5298").ctrl(x5424).srcCtx("UnrollingTransformer.scala:431:43") // ParallelPipe(List(b2920, b2911),Block(Const(())))
+    val x5238 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x5238").ctrl(x5298).srcCtx("Kmeans.scala:54:28") // CounterNew(Const(0),Const(16),Const(1),Const(1))
+    val x5239 = CounterChain(List(x5238)).name("x5239").ctrl(x5298).srcCtx("Kmeans.scala:54:37") // CounterChainNew(List(x5238))
+    val x5267 = LoopController(style=MetaPipe, level=OuterControl, cchain=x5239).name("x5267").ctrl(x5298).srcCtx("Kmeans.scala:54:37") // UnrolledForeach(List(b2965, b2920, b2911),x5239,Block(Const(())),List(List(b2973)),List(List(b2974)))
+    val b2973 = CounterIter(x5238, Some(0)).name("b2973").ctrl(x5267) // b2973
+    val b2974 = Const(true).name("b2974").ctrl(x5267) // b2974
+    val x5240_d0 = Reg(init=Some(0)).name("x5240_d0").ctrl(x5267).srcCtx("Kmeans.scala:55:36:dist") // x5240 = RegNew(Const(0))
+    isAccum(x5240_d0) = false
+    bufferDepthOf(x5240_d0) = 2
+    val x5240_d1 = Reg(init=Some(0)).name("x5240_d1").ctrl(x5267).srcCtx("Kmeans.scala:55:36:dist") // x5240 = RegNew(Const(0))
+    isAccum(x5240_d1) = true
+    bufferDepthOf(x5240_d1) = 1
+    val x5241 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x5241").ctrl(x5267).srcCtx("Kmeans.scala:55:43") // CounterNew(Const(0),Const(32),Const(1),Const(16))
+    val x5242 = CounterChain(List(x5241)).name("x5242").ctrl(x5267).srcCtx("Kmeans.scala:55:86") // CounterChainNew(List(x5241))
+    val x5260 = LoopController(style=InnerPipe, level=InnerControl, cchain=x5242).name("x5260").ctrl(x5267).srcCtx("Kmeans.scala:55:86") // UnrolledReduce(List(b2974, b2965, b2920, b2911),x5242,x5240,Block((x5240) => Const(())),List(List(b2978)),List(List(b2979)))
+    val b2978 = CounterIter(x5241, None).name("b2978").ctrl(x5260) // b2978
+    val b2979 = Const(true).name("b2979").ctrl(x5260) // b2979
+    val x5243 = OpDef(op=BitAnd, inputs=List(b2979, b2974)).name("x5243").ctrl(x5260).srcCtx("UnrollingBase.scala:28:66") // And(b2979,b2974)
+    val x5244 = OpDef(op=BitAnd, inputs=List(b2965, b2920)).name("x5244").ctrl(x5260).srcCtx("UnrollingBase.scala:28:66") // And(b2965,b2920)
+    val x5245 = OpDef(op=BitAnd, inputs=List(x5243, x5244)).name("x5245").ctrl(x5260).srcCtx("UnrollingBase.scala:28:66") // And(x5243,x5244)
+    val x5246 = OpDef(op=BitAnd, inputs=List(x5245, b2911)).name("x5246").ctrl(x5260).srcCtx("UnrollingBase.scala:28:66") // And(x5245,b2911)
+    val x5247 = LoadBanks(List(x5201_d1_b0), List(b2963, b2978)).name("x5247").ctrl(x5260).srcCtx("Kmeans.scala:55:60") // ParSRAMLoad(x5201,List(List(b2963, b2978)),List(x5246))
+    val x5248 = x5247 // x5248 = VectorApply(x5247,0)
+    val x5249 = LoadBanks(List(x5169_d1_b0), List(b2973, b2978)).name("x5249").ctrl(x5260).srcCtx("Kmeans.scala:55:72") // ParSRAMLoad(x5169,List(List(b2973, b2978)),List(x5246))
+    val x5250 = x5249 // x5250 = VectorApply(x5249,0)
+    val x5251 = OpDef(op=FixSub, inputs=List(x5248, x5250)).name("x5251").ctrl(x5260).srcCtx("Kmeans.scala:55:67") // FixSub(x5248,x5250)
+    val x5252 = OpDef(op=FixMul, inputs=List(x5251, x5251)).name("x5252").ctrl(x5260).srcCtx("Kmeans.scala:55:80") // FixMul(x5251,x5251)
+    val x5253 = ReadMem(x5240_d1).name("x5253").ctrl(x5260).srcCtx("Kmeans.scala:55:86") // RegRead(x5240)
+    val x5254 = OpDef(op=FixEql, inputs=List(b2978, Const(0))).name("x5254").ctrl(x5260).srcCtx("Kmeans.scala:55:86") // FixEql(b2978,Const(0))
+    val x5255 = ReduceAccumOp(op=FixAdd, input=x5252, accum=x5253).name("x5255").ctrl(x5260).srcCtx("Kmeans.scala:55:88") // FixAdd(x5252,x5253)
+    val x5256 = OpDef(op=BitAnd, inputs=List(b2974, b2965)).name("x5256").ctrl(x5260).srcCtx("UnrollingBase.scala:28:66") // And(b2974,b2965)
+    val x5257 = OpDef(op=BitAnd, inputs=List(b2920, b2911)).name("x5257").ctrl(x5260).srcCtx("UnrollingBase.scala:28:66") // And(b2920,b2911)
+    val x5258 = OpDef(op=BitAnd, inputs=List(x5256, x5257)).name("x5258").ctrl(x5260).srcCtx("UnrollingBase.scala:28:66") // And(x5256,x5257)
+    val x5259_x5240_d0 = WriteMem(x5240_d0, x5255).name("x5259_x5240_d0").ctrl(x5260).srcCtx("Kmeans.scala:55:86") // RegWrite(x5240,x5255,x5258)
+    antiDepsOf(x5259_x5240_d0)=List(x5253)
+    val x5259_x5240_d1 = WriteMem(x5240_d1, x5255).name("x5259_x5240_d1").ctrl(x5260).srcCtx("Kmeans.scala:55:86") // RegWrite(x5240,x5255,x5258)
+    antiDepsOf(x5259_x5240_d1)=List(x5253)
+    val x5266 = UnitController(style=SeqPipe, level=InnerControl).name("x5266").ctrl(x5267).srcCtx("Kmeans.scala:54:37") // UnitPipe(List(b2974, b2965, b2920, b2911),Block(Const(())))
+    val x5261 = ReadMem(x5240_d0).name("x5261").ctrl(x5266).srcCtx("Kmeans.scala:56:32") // RegRead(x5240)
+    val x5262 = OpDef(op=BitAnd, inputs=List(b2974, b2965)).name("x5262").ctrl(x5266).srcCtx("UnrollingBase.scala:28:66") // And(b2974,b2965)
+    val x5263 = OpDef(op=BitAnd, inputs=List(b2920, b2911)).name("x5263").ctrl(x5266).srcCtx("UnrollingBase.scala:28:66") // And(b2920,b2911)
+    val x5264 = OpDef(op=BitAnd, inputs=List(x5262, x5263)).name("x5264").ctrl(x5266).srcCtx("UnrollingBase.scala:28:66") // And(x5262,x5263)
+    val x5265 = StoreBanks(List(List(x5236_d0_b0), List(x5236_d1_b0)), List(b2973), x5261).name("x5265").ctrl(x5266).srcCtx("Kmeans.scala:56:25") // SRAMStore(x5236,ArrayBuffer(Const(16)),List(b2973),Const(0),x5261,x5264)
+    val x5268 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x5268").ctrl(x5298).srcCtx("Kmeans.scala:54:28") // CounterNew(Const(0),Const(16),Const(1),Const(1))
+    val x5269 = CounterChain(List(x5268)).name("x5269").ctrl(x5298).srcCtx("Kmeans.scala:54:37") // CounterChainNew(List(x5268))
+    val x5297 = LoopController(style=MetaPipe, level=OuterControl, cchain=x5269).name("x5297").ctrl(x5298).srcCtx("Kmeans.scala:54:37") // UnrolledForeach(List(b2966, b2920, b2911),x5269,Block(Const(())),List(List(b3005)),List(List(b3006)))
+    val b3005 = CounterIter(x5268, Some(0)).name("b3005").ctrl(x5297) // b3005
+    val b3006 = Const(true).name("b3006").ctrl(x5297) // b3006
+    val x5270_d0 = Reg(init=Some(0)).name("x5270_d0").ctrl(x5297).srcCtx("Kmeans.scala:55:36:dist") // x5270 = RegNew(Const(0))
+    isAccum(x5270_d0) = false
+    bufferDepthOf(x5270_d0) = 2
+    val x5270_d1 = Reg(init=Some(0)).name("x5270_d1").ctrl(x5297).srcCtx("Kmeans.scala:55:36:dist") // x5270 = RegNew(Const(0))
+    isAccum(x5270_d1) = true
+    bufferDepthOf(x5270_d1) = 1
+    val x5271 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x5271").ctrl(x5297).srcCtx("Kmeans.scala:55:43") // CounterNew(Const(0),Const(32),Const(1),Const(16))
+    val x5272 = CounterChain(List(x5271)).name("x5272").ctrl(x5297).srcCtx("Kmeans.scala:55:86") // CounterChainNew(List(x5271))
+    val x5290 = LoopController(style=InnerPipe, level=InnerControl, cchain=x5272).name("x5290").ctrl(x5297).srcCtx("Kmeans.scala:55:86") // UnrolledReduce(List(b3006, b2966, b2920, b2911),x5272,x5270,Block((x5270) => Const(())),List(List(b3010)),List(List(b3011)))
+    val b3010 = CounterIter(x5271, None).name("b3010").ctrl(x5290) // b3010
+    val b3011 = Const(true).name("b3011").ctrl(x5290) // b3011
+    val x5273 = OpDef(op=BitAnd, inputs=List(b3011, b3006)).name("x5273").ctrl(x5290).srcCtx("UnrollingBase.scala:28:66") // And(b3011,b3006)
+    val x5274 = OpDef(op=BitAnd, inputs=List(b2966, b2920)).name("x5274").ctrl(x5290).srcCtx("UnrollingBase.scala:28:66") // And(b2966,b2920)
+    val x5275 = OpDef(op=BitAnd, inputs=List(x5273, x5274)).name("x5275").ctrl(x5290).srcCtx("UnrollingBase.scala:28:66") // And(x5273,x5274)
+    val x5276 = OpDef(op=BitAnd, inputs=List(x5275, b2911)).name("x5276").ctrl(x5290).srcCtx("UnrollingBase.scala:28:66") // And(x5275,b2911)
+    val x5277 = LoadBanks(List(x5201_d1_b1), List(b2964, b3010)).name("x5277").ctrl(x5290).srcCtx("Kmeans.scala:55:60") // ParSRAMLoad(x5201,List(List(b2964, b3010)),List(x5276))
+    val x5278 = x5277 // x5278 = VectorApply(x5277,0)
+    val x5279 = LoadBanks(List(x5169_d2_b0), List(b3005, b3010)).name("x5279").ctrl(x5290).srcCtx("Kmeans.scala:55:72") // ParSRAMLoad(x5169,List(List(b3005, b3010)),List(x5276))
+    val x5280 = x5279 // x5280 = VectorApply(x5279,0)
+    val x5281 = OpDef(op=FixSub, inputs=List(x5278, x5280)).name("x5281").ctrl(x5290).srcCtx("Kmeans.scala:55:67") // FixSub(x5278,x5280)
+    val x5282 = OpDef(op=FixMul, inputs=List(x5281, x5281)).name("x5282").ctrl(x5290).srcCtx("Kmeans.scala:55:80") // FixMul(x5281,x5281)
+    val x5283 = ReadMem(x5270_d1).name("x5283").ctrl(x5290).srcCtx("Kmeans.scala:55:86") // RegRead(x5270)
+    val x5284 = OpDef(op=FixEql, inputs=List(b3010, Const(0))).name("x5284").ctrl(x5290).srcCtx("Kmeans.scala:55:86") // FixEql(b3010,Const(0))
+    val x5285 = ReduceAccumOp(op=FixAdd, input=x5282, accum=x5283).name("x5285").ctrl(x5290).srcCtx("Kmeans.scala:55:88") // FixAdd(x5282,x5283)
+    val x5286 = OpDef(op=BitAnd, inputs=List(b3006, b2966)).name("x5286").ctrl(x5290).srcCtx("UnrollingBase.scala:28:66") // And(b3006,b2966)
+    val x5287 = OpDef(op=BitAnd, inputs=List(b2920, b2911)).name("x5287").ctrl(x5290).srcCtx("UnrollingBase.scala:28:66") // And(b2920,b2911)
+    val x5288 = OpDef(op=BitAnd, inputs=List(x5286, x5287)).name("x5288").ctrl(x5290).srcCtx("UnrollingBase.scala:28:66") // And(x5286,x5287)
+    val x5289_x5270_d0 = WriteMem(x5270_d0, x5285).name("x5289_x5270_d0").ctrl(x5290).srcCtx("Kmeans.scala:55:86") // RegWrite(x5270,x5285,x5288)
+    antiDepsOf(x5289_x5270_d0)=List(x5283)
+    val x5289_x5270_d1 = WriteMem(x5270_d1, x5285).name("x5289_x5270_d1").ctrl(x5290).srcCtx("Kmeans.scala:55:86") // RegWrite(x5270,x5285,x5288)
+    antiDepsOf(x5289_x5270_d1)=List(x5283)
+    val x5296 = UnitController(style=SeqPipe, level=InnerControl).name("x5296").ctrl(x5297).srcCtx("Kmeans.scala:54:37") // UnitPipe(List(b3006, b2966, b2920, b2911),Block(Const(())))
+    val x5291 = ReadMem(x5270_d0).name("x5291").ctrl(x5296).srcCtx("Kmeans.scala:56:32") // RegRead(x5270)
+    val x5292 = OpDef(op=BitAnd, inputs=List(b3006, b2966)).name("x5292").ctrl(x5296).srcCtx("UnrollingBase.scala:28:66") // And(b3006,b2966)
+    val x5293 = OpDef(op=BitAnd, inputs=List(b2920, b2911)).name("x5293").ctrl(x5296).srcCtx("UnrollingBase.scala:28:66") // And(b2920,b2911)
+    val x5294 = OpDef(op=BitAnd, inputs=List(x5292, x5293)).name("x5294").ctrl(x5296).srcCtx("UnrollingBase.scala:28:66") // And(x5292,x5293)
+    val x5295 = StoreBanks(List(List(x5237_d0_b0), List(x5237_d1_b0)), List(b3005), x5291).name("x5295").ctrl(x5296).srcCtx("Kmeans.scala:56:25") // SRAMStore(x5237,ArrayBuffer(Const(16)),List(b3005),Const(0),x5291,x5294)
+    val x5299_d0 = Reg(init=Some(0)).name("x5299_d0").ctrl(x5424).srcCtx("Kmeans.scala:58:37:minDist") // x5299 = RegNew(Const(0))
+    isAccum(x5299_d0) = false
+    bufferDepthOf(x5299_d0) = 2
+    val x5299_d1 = Reg(init=Some(0)).name("x5299_d1").ctrl(x5424).srcCtx("Kmeans.scala:58:37:minDist") // x5299 = RegNew(Const(0))
+    isAccum(x5299_d1) = true
+    bufferDepthOf(x5299_d1) = 1
+    val x5300_d0 = Reg(init=Some(0)).name("x5300_d0").ctrl(x5424).srcCtx("Kmeans.scala:58:37:minDist") // x5300 = RegNew(Const(0))
+    isAccum(x5300_d0) = false
+    bufferDepthOf(x5300_d0) = 2
+    val x5300_d1 = Reg(init=Some(0)).name("x5300_d1").ctrl(x5424).srcCtx("Kmeans.scala:58:37:minDist") // x5300 = RegNew(Const(0))
+    isAccum(x5300_d1) = true
+    bufferDepthOf(x5300_d1) = 1
+    val x5329 = UnitController(style=ForkJoin, level=OuterControl).name("x5329").ctrl(x5424).srcCtx("UnrollingTransformer.scala:431:43") // ParallelPipe(List(b2920, b2911),Block(Const(())))
+    val x5301 = Counter(min=Const(0), max=Const(16), step=Const(1), par=16).name("x5301").ctrl(x5329).srcCtx("Kmeans.scala:58:49") // CounterNew(Const(0),Const(16),Const(1),Const(16))
+    val x5302 = CounterChain(List(x5301)).name("x5302").ctrl(x5329).srcCtx("Kmeans.scala:58:77") // CounterChainNew(List(x5301))
+    val x5314 = LoopController(style=InnerPipe, level=InnerControl, cchain=x5302).name("x5314").ctrl(x5329).srcCtx("Kmeans.scala:58:77") // UnrolledReduce(List(b2965, b2920, b2911),x5302,x5299,Block((x5299) => Const(())),List(List(b3044)),List(List(b3045)))
+    val b3044 = CounterIter(x5301, None).name("b3044").ctrl(x5314) // b3044
+    val b3045 = Const(true).name("b3045").ctrl(x5314) // b3045
+    val x5303 = OpDef(op=BitAnd, inputs=List(b3045, b2965)).name("x5303").ctrl(x5314).srcCtx("UnrollingBase.scala:28:66") // And(b3045,b2965)
+    val x5304 = OpDef(op=BitAnd, inputs=List(b2920, b2911)).name("x5304").ctrl(x5314).srcCtx("UnrollingBase.scala:28:66") // And(b2920,b2911)
+    val x5305 = OpDef(op=BitAnd, inputs=List(x5303, x5304)).name("x5305").ctrl(x5314).srcCtx("UnrollingBase.scala:28:66") // And(x5303,x5304)
+    val x5306 = LoadBanks(List(x5236_d1_b0), List(b3044)).name("x5306").ctrl(x5314).srcCtx("Kmeans.scala:58:70") // ParSRAMLoad(x5236,List(List(b3044)),List(x5305))
+    val x5307 = x5306 // x5307 = VectorApply(x5306,0)
+    val x5308 = ReadMem(x5299_d1).name("x5308").ctrl(x5314).srcCtx("Kmeans.scala:58:77") // RegRead(x5299)
+    val x5309 = OpDef(op=FixEql, inputs=List(b3044, Const(0))).name("x5309").ctrl(x5314).srcCtx("Kmeans.scala:58:77") // FixEql(b3044,Const(0))
+    val x5310 = ReduceAccumOp(op=FixMin, input=x5307, accum=x5308).name("x5310").ctrl(x5314).srcCtx("Kmeans.scala:58:91") // Min(x5307,x5308)
+    val x5311 = OpDef(op=BitAnd, inputs=List(b2965, b2920)).name("x5311").ctrl(x5314).srcCtx("UnrollingBase.scala:28:66") // And(b2965,b2920)
+    val x5312 = OpDef(op=BitAnd, inputs=List(x5311, b2911)).name("x5312").ctrl(x5314).srcCtx("UnrollingBase.scala:28:66") // And(x5311,b2911)
+    val x5313_x5299_d0 = WriteMem(x5299_d0, x5310).name("x5313_x5299_d0").ctrl(x5314).srcCtx("Kmeans.scala:58:77") // RegWrite(x5299,x5310,x5312)
+    antiDepsOf(x5313_x5299_d0)=List(x5308)
+    val x5313_x5299_d1 = WriteMem(x5299_d1, x5310).name("x5313_x5299_d1").ctrl(x5314).srcCtx("Kmeans.scala:58:77") // RegWrite(x5299,x5310,x5312)
+    antiDepsOf(x5313_x5299_d1)=List(x5308)
+    val x5315 = Counter(min=Const(0), max=Const(16), step=Const(1), par=16).name("x5315").ctrl(x5329).srcCtx("Kmeans.scala:58:49") // CounterNew(Const(0),Const(16),Const(1),Const(16))
+    val x5316 = CounterChain(List(x5315)).name("x5316").ctrl(x5329).srcCtx("Kmeans.scala:58:77") // CounterChainNew(List(x5315))
+    val x5328 = LoopController(style=InnerPipe, level=InnerControl, cchain=x5316).name("x5328").ctrl(x5329).srcCtx("Kmeans.scala:58:77") // UnrolledReduce(List(b2966, b2920, b2911),x5316,x5300,Block((x5300) => Const(())),List(List(b3058)),List(List(b3059)))
+    val b3058 = CounterIter(x5315, None).name("b3058").ctrl(x5328) // b3058
+    val b3059 = Const(true).name("b3059").ctrl(x5328) // b3059
+    val x5317 = OpDef(op=BitAnd, inputs=List(b3059, b2966)).name("x5317").ctrl(x5328).srcCtx("UnrollingBase.scala:28:66") // And(b3059,b2966)
+    val x5318 = OpDef(op=BitAnd, inputs=List(b2920, b2911)).name("x5318").ctrl(x5328).srcCtx("UnrollingBase.scala:28:66") // And(b2920,b2911)
+    val x5319 = OpDef(op=BitAnd, inputs=List(x5317, x5318)).name("x5319").ctrl(x5328).srcCtx("UnrollingBase.scala:28:66") // And(x5317,x5318)
+    val x5320 = LoadBanks(List(x5237_d1_b0), List(b3058)).name("x5320").ctrl(x5328).srcCtx("Kmeans.scala:58:70") // ParSRAMLoad(x5237,List(List(b3058)),List(x5319))
+    val x5321 = x5320 // x5321 = VectorApply(x5320,0)
+    val x5322 = ReadMem(x5300_d1).name("x5322").ctrl(x5328).srcCtx("Kmeans.scala:58:77") // RegRead(x5300)
+    val x5323 = OpDef(op=FixEql, inputs=List(b3058, Const(0))).name("x5323").ctrl(x5328).srcCtx("Kmeans.scala:58:77") // FixEql(b3058,Const(0))
+    val x5324 = ReduceAccumOp(op=FixMin, input=x5321, accum=x5322).name("x5324").ctrl(x5328).srcCtx("Kmeans.scala:58:91") // Min(x5321,x5322)
+    val x5325 = OpDef(op=BitAnd, inputs=List(b2966, b2920)).name("x5325").ctrl(x5328).srcCtx("UnrollingBase.scala:28:66") // And(b2966,b2920)
+    val x5326 = OpDef(op=BitAnd, inputs=List(x5325, b2911)).name("x5326").ctrl(x5328).srcCtx("UnrollingBase.scala:28:66") // And(x5325,b2911)
+    val x5327_x5300_d0 = WriteMem(x5300_d0, x5324).name("x5327_x5300_d0").ctrl(x5328).srcCtx("Kmeans.scala:58:77") // RegWrite(x5300,x5324,x5326)
+    antiDepsOf(x5327_x5300_d0)=List(x5322)
+    val x5327_x5300_d1 = WriteMem(x5300_d1, x5324).name("x5327_x5300_d1").ctrl(x5328).srcCtx("Kmeans.scala:58:77") // RegWrite(x5300,x5324,x5326)
+    antiDepsOf(x5327_x5300_d1)=List(x5322)
+    val x5330_d0 = Reg(init=Some(0)).name("x5330_d0").ctrl(x5424).srcCtx("Kmeans.scala:59:37:minCent") // x5330 = RegNew(Const(0))
+    isAccum(x5330_d0) = false
+    bufferDepthOf(x5330_d0) = 2
+    val x5330_d1 = Reg(init=Some(0)).name("x5330_d1").ctrl(x5424).srcCtx("Kmeans.scala:59:37:minCent") // x5330 = RegNew(Const(0))
+    isAccum(x5330_d1) = true
+    bufferDepthOf(x5330_d1) = 1
+    val x5331_d0 = Reg(init=Some(0)).name("x5331_d0").ctrl(x5424).srcCtx("Kmeans.scala:59:37:minCent") // x5331 = RegNew(Const(0))
+    isAccum(x5331_d0) = false
+    bufferDepthOf(x5331_d0) = 2
+    val x5331_d1 = Reg(init=Some(0)).name("x5331_d1").ctrl(x5424).srcCtx("Kmeans.scala:59:37:minCent") // x5331 = RegNew(Const(0))
+    isAccum(x5331_d1) = true
+    bufferDepthOf(x5331_d1) = 1
+    val x5366 = UnitController(style=ForkJoin, level=OuterControl).name("x5366").ctrl(x5424).srcCtx("UnrollingTransformer.scala:431:43") // ParallelPipe(List(b2920, b2911),Block(Const(())))
+    val x5332 = Counter(min=Const(0), max=Const(16), step=Const(1), par=16).name("x5332").ctrl(x5366).srcCtx("Kmeans.scala:59:53") // CounterNew(Const(0),Const(16),Const(1),Const(16))
+    val x5333 = CounterChain(List(x5332)).name("x5333").ctrl(x5366).srcCtx("Kmeans.scala:61:15") // CounterChainNew(List(x5332))
+    val x5348 = LoopController(style=InnerPipe, level=InnerControl, cchain=x5333).name("x5348").ctrl(x5366).srcCtx("Kmeans.scala:61:15") // UnrolledReduce(List(b2965, b2920, b2911),x5333,x5330,Block((x5330) => Const(())),List(List(b3079)),List(List(b3080)))
+    val b3079 = CounterIter(x5332, None).name("b3079").ctrl(x5348) // b3079
+    val b3080 = Const(true).name("b3080").ctrl(x5348) // b3080
+    val x5334 = OpDef(op=BitAnd, inputs=List(b3080, b2965)).name("x5334").ctrl(x5348).srcCtx("UnrollingBase.scala:28:66") // And(b3080,b2965)
+    val x5335 = OpDef(op=BitAnd, inputs=List(b2920, b2911)).name("x5335").ctrl(x5348).srcCtx("UnrollingBase.scala:28:66") // And(b2920,b2911)
+    val x5336 = OpDef(op=BitAnd, inputs=List(x5334, x5335)).name("x5336").ctrl(x5348).srcCtx("UnrollingBase.scala:28:66") // And(x5334,x5335)
+    val x5337 = LoadBanks(List(x5236_d0_b0), List(b3079)).name("x5337").ctrl(x5348).srcCtx("Kmeans.scala:60:24") // ParSRAMLoad(x5236,List(List(b3079)),List(x5336))
+    val x5338 = x5337 // x5338 = VectorApply(x5337,0)
+    val x5339 = ReadMem(x5299_d0).name("x5339").ctrl(x5348).srcCtx("Kmeans.scala:60:40") // RegRead(x5299)
+    val x5340 = OpDef(op=FixEql, inputs=List(x5338, x5339)).name("x5340").ctrl(x5348).srcCtx("Kmeans.scala:60:29") // FixEql(x5338,x5339)
+    val x5341 = OpDef(op=MuxOp, inputs=List(x5340, b3079, Const(-1))).name("x5341").ctrl(x5348).srcCtx("Kmeans.scala:60:18") // Mux(x5340,b3079,Const(-1))
+    val x5342 = ReadMem(x5330_d1).name("x5342").ctrl(x5348).srcCtx("Kmeans.scala:61:15") // RegRead(x5330)
+    val x5343 = OpDef(op=FixEql, inputs=List(b3079, Const(0))).name("x5343").ctrl(x5348).srcCtx("Kmeans.scala:61:15") // FixEql(b3079,Const(0))
+    val x5344 = ReduceAccumOp(op=FixMax, input=x5341, accum=x5342).name("x5344").ctrl(x5348).srcCtx("Kmeans.scala:61:29") // Max(x5341,x5342)
+    val x5345 = OpDef(op=BitAnd, inputs=List(b2965, b2920)).name("x5345").ctrl(x5348).srcCtx("UnrollingBase.scala:28:66") // And(b2965,b2920)
+    val x5346 = OpDef(op=BitAnd, inputs=List(x5345, b2911)).name("x5346").ctrl(x5348).srcCtx("UnrollingBase.scala:28:66") // And(x5345,b2911)
+    val x5347_x5330_d0 = WriteMem(x5330_d0, x5344).name("x5347_x5330_d0").ctrl(x5348).srcCtx("Kmeans.scala:61:15") // RegWrite(x5330,x5344,x5346)
+    antiDepsOf(x5347_x5330_d0)=List(x5342)
+    val x5347_x5330_d1 = WriteMem(x5330_d1, x5344).name("x5347_x5330_d1").ctrl(x5348).srcCtx("Kmeans.scala:61:15") // RegWrite(x5330,x5344,x5346)
+    antiDepsOf(x5347_x5330_d1)=List(x5342)
+    val x5349 = Counter(min=Const(0), max=Const(16), step=Const(1), par=16).name("x5349").ctrl(x5366).srcCtx("Kmeans.scala:59:53") // CounterNew(Const(0),Const(16),Const(1),Const(16))
+    val x5350 = CounterChain(List(x5349)).name("x5350").ctrl(x5366).srcCtx("Kmeans.scala:61:15") // CounterChainNew(List(x5349))
+    val x5365 = LoopController(style=InnerPipe, level=InnerControl, cchain=x5350).name("x5365").ctrl(x5366).srcCtx("Kmeans.scala:61:15") // UnrolledReduce(List(b2966, b2920, b2911),x5350,x5331,Block((x5331) => Const(())),List(List(b3096)),List(List(b3097)))
+    val b3096 = CounterIter(x5349, None).name("b3096").ctrl(x5365) // b3096
+    val b3097 = Const(true).name("b3097").ctrl(x5365) // b3097
+    val x5351 = OpDef(op=BitAnd, inputs=List(b3097, b2966)).name("x5351").ctrl(x5365).srcCtx("UnrollingBase.scala:28:66") // And(b3097,b2966)
+    val x5352 = OpDef(op=BitAnd, inputs=List(b2920, b2911)).name("x5352").ctrl(x5365).srcCtx("UnrollingBase.scala:28:66") // And(b2920,b2911)
+    val x5353 = OpDef(op=BitAnd, inputs=List(x5351, x5352)).name("x5353").ctrl(x5365).srcCtx("UnrollingBase.scala:28:66") // And(x5351,x5352)
+    val x5354 = LoadBanks(List(x5237_d0_b0), List(b3096)).name("x5354").ctrl(x5365).srcCtx("Kmeans.scala:60:24") // ParSRAMLoad(x5237,List(List(b3096)),List(x5353))
+    val x5355 = x5354 // x5355 = VectorApply(x5354,0)
+    val x5356 = ReadMem(x5300_d0).name("x5356").ctrl(x5365).srcCtx("Kmeans.scala:60:40") // RegRead(x5300)
+    val x5357 = OpDef(op=FixEql, inputs=List(x5355, x5356)).name("x5357").ctrl(x5365).srcCtx("Kmeans.scala:60:29") // FixEql(x5355,x5356)
+    val x5358 = OpDef(op=MuxOp, inputs=List(x5357, b3096, Const(-1))).name("x5358").ctrl(x5365).srcCtx("Kmeans.scala:60:18") // Mux(x5357,b3096,Const(-1))
+    val x5359 = ReadMem(x5331_d1).name("x5359").ctrl(x5365).srcCtx("Kmeans.scala:61:15") // RegRead(x5331)
+    val x5360 = OpDef(op=FixEql, inputs=List(b3096, Const(0))).name("x5360").ctrl(x5365).srcCtx("Kmeans.scala:61:15") // FixEql(b3096,Const(0))
+    val x5361 = ReduceAccumOp(op=FixMax, input=x5358, accum=x5359).name("x5361").ctrl(x5365).srcCtx("Kmeans.scala:61:29") // Max(x5358,x5359)
+    val x5362 = OpDef(op=BitAnd, inputs=List(b2966, b2920)).name("x5362").ctrl(x5365).srcCtx("UnrollingBase.scala:28:66") // And(b2966,b2920)
+    val x5363 = OpDef(op=BitAnd, inputs=List(x5362, b2911)).name("x5363").ctrl(x5365).srcCtx("UnrollingBase.scala:28:66") // And(x5362,b2911)
+    val x5364_x5331_d0 = WriteMem(x5331_d0, x5361).name("x5364_x5331_d0").ctrl(x5365).srcCtx("Kmeans.scala:61:15") // RegWrite(x5331,x5361,x5363)
+    antiDepsOf(x5364_x5331_d0)=List(x5359)
+    val x5364_x5331_d1 = WriteMem(x5331_d1, x5361).name("x5364_x5331_d1").ctrl(x5365).srcCtx("Kmeans.scala:61:15") // RegWrite(x5331,x5361,x5363)
+    antiDepsOf(x5364_x5331_d1)=List(x5359)
+    val x5367_d0_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x5367_d0_b0").ctrl(x5424).srcCtx("Kmeans.scala:64:36:localCent") // x5367 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
+    isAccum(x5367_d0_b0) = false
+    bufferDepthOf(x5367_d0_b0) = 2
+    staticDimsOf(x5367_d0_b0) = List(16, 32)
+    val x5368_d0_b0 = SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x5368_d0_b0").ctrl(x5424).srcCtx("Kmeans.scala:64:36:localCent") // x5368 = SRAMNew(ArrayBuffer(Const(16), Const(32)))
+    isAccum(x5368_d0_b0) = false
+    bufferDepthOf(x5368_d0_b0) = 2
+    staticDimsOf(x5368_d0_b0) = List(16, 32)
+    val x5397 = UnitController(style=ForkJoin, level=OuterControl).name("x5397").ctrl(x5424).srcCtx("UnrollingTransformer.scala:431:43") // ParallelPipe(List(b2920, b2911),Block(Const(())))
+    val x5369 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x5369").ctrl(x5397).srcCtx("Kmeans.scala:65:31") // CounterNew(Const(0),Const(32),Const(1),Const(16))
+    val x5370 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x5370").ctrl(x5397).srcCtx("Kmeans.scala:65:23") // CounterNew(Const(0),Const(16),Const(1),Const(1))
+    val x5371 = CounterChain(List(x5370,x5369)).name("x5371").ctrl(x5397).srcCtx("Kmeans.scala:65:38") // CounterChainNew(List(x5370, x5369))
+    val x5382 = LoopController(style=InnerPipe, level=InnerControl, cchain=x5371).name("x5382").ctrl(x5397).srcCtx("Kmeans.scala:65:38") // UnrolledForeach(List(b2965, b2920, b2911),x5371,Block(Const(())),List(List(b3122), List(b3123)),List(List(b3124), List(b3125)))
+    val b3122 = CounterIter(x5370, Some(0)).name("b3122").ctrl(x5382) // b3122
+    val b3124 = Const(true).name("b3124").ctrl(x5382) // b3124
+    val b3123 = CounterIter(x5369, None).name("b3123").ctrl(x5382) // b3123
+    val b3125 = Const(true).name("b3125").ctrl(x5382) // b3125
+    val x5372 = ReadMem(x5330_d0).name("x5372").ctrl(x5382).srcCtx("Kmeans.scala:66:52") // RegRead(x5330)
+    val x5373 = OpDef(op=FixEql, inputs=List(b3122, x5372)).name("x5373").ctrl(x5382).srcCtx("Kmeans.scala:66:41") // FixEql(b3122,x5372)
+    val x5374 = OpDef(op=BitAnd, inputs=List(b3124, b3125)).name("x5374").ctrl(x5382).srcCtx("UnrollingBase.scala:28:66") // And(b3124,b3125)
+    val x5375 = OpDef(op=BitAnd, inputs=List(b2965, b2920)).name("x5375").ctrl(x5382).srcCtx("UnrollingBase.scala:28:66") // And(b2965,b2920)
+    val x5376 = OpDef(op=BitAnd, inputs=List(x5374, x5375)).name("x5376").ctrl(x5382).srcCtx("UnrollingBase.scala:28:66") // And(x5374,x5375)
+    val x5377 = OpDef(op=BitAnd, inputs=List(x5376, b2911)).name("x5377").ctrl(x5382).srcCtx("UnrollingBase.scala:28:66") // And(x5376,b2911)
+    val x5378 = LoadBanks(List(x5201_d0_b0), List(b2963, b3123)).name("x5378").ctrl(x5382).srcCtx("Kmeans.scala:66:62") // ParSRAMLoad(x5201,List(List(b2963, b3123)),List(x5377))
+    val x5379 = x5378 // x5379 = VectorApply(x5378,0)
+    val x5380 = OpDef(op=MuxOp, inputs=List(x5373, x5379, Const(0))).name("x5380").ctrl(x5382).srcCtx("Kmeans.scala:66:37") // Mux(x5373,x5379,Const(0))
+    val x5381 = StoreBanks(List(List(x5367_d0_b0)), List(b3122, b3123), x5380).name("x5381").ctrl(x5382).srcCtx("Kmeans.scala:66:32") // ParSRAMStore(x5367,List(List(b3122, b3123)),List(x5380),List(x5377))
+    val x5383 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x5383").ctrl(x5397).srcCtx("Kmeans.scala:65:31") // CounterNew(Const(0),Const(32),Const(1),Const(16))
+    val x5384 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x5384").ctrl(x5397).srcCtx("Kmeans.scala:65:23") // CounterNew(Const(0),Const(16),Const(1),Const(1))
+    val x5385 = CounterChain(List(x5384,x5383)).name("x5385").ctrl(x5397).srcCtx("Kmeans.scala:65:38") // CounterChainNew(List(x5384, x5383))
+    val x5396 = LoopController(style=InnerPipe, level=InnerControl, cchain=x5385).name("x5396").ctrl(x5397).srcCtx("Kmeans.scala:65:38") // UnrolledForeach(List(b2966, b2920, b2911),x5385,Block(Const(())),List(List(b3137), List(b3138)),List(List(b3139), List(b3140)))
+    val b3137 = CounterIter(x5384, Some(0)).name("b3137").ctrl(x5396) // b3137
+    val b3139 = Const(true).name("b3139").ctrl(x5396) // b3139
+    val b3138 = CounterIter(x5383, None).name("b3138").ctrl(x5396) // b3138
+    val b3140 = Const(true).name("b3140").ctrl(x5396) // b3140
+    val x5386 = ReadMem(x5331_d0).name("x5386").ctrl(x5396).srcCtx("Kmeans.scala:66:52") // RegRead(x5331)
+    val x5387 = OpDef(op=FixEql, inputs=List(b3137, x5386)).name("x5387").ctrl(x5396).srcCtx("Kmeans.scala:66:41") // FixEql(b3137,x5386)
+    val x5388 = OpDef(op=BitAnd, inputs=List(b3139, b3140)).name("x5388").ctrl(x5396).srcCtx("UnrollingBase.scala:28:66") // And(b3139,b3140)
+    val x5389 = OpDef(op=BitAnd, inputs=List(b2966, b2920)).name("x5389").ctrl(x5396).srcCtx("UnrollingBase.scala:28:66") // And(b2966,b2920)
+    val x5390 = OpDef(op=BitAnd, inputs=List(x5388, x5389)).name("x5390").ctrl(x5396).srcCtx("UnrollingBase.scala:28:66") // And(x5388,x5389)
+    val x5391 = OpDef(op=BitAnd, inputs=List(x5390, b2911)).name("x5391").ctrl(x5396).srcCtx("UnrollingBase.scala:28:66") // And(x5390,b2911)
+    val x5392 = LoadBanks(List(x5201_d0_b1), List(b2964, b3138)).name("x5392").ctrl(x5396).srcCtx("Kmeans.scala:66:62") // ParSRAMLoad(x5201,List(List(b2964, b3138)),List(x5391))
+    val x5393 = x5392 // x5393 = VectorApply(x5392,0)
+    val x5394 = OpDef(op=MuxOp, inputs=List(x5387, x5393, Const(0))).name("x5394").ctrl(x5396).srcCtx("Kmeans.scala:66:37") // Mux(x5387,x5393,Const(0))
+    val x5395 = StoreBanks(List(List(x5368_d0_b0)), List(b3137, b3138), x5394).name("x5395").ctrl(x5396).srcCtx("Kmeans.scala:66:32") // ParSRAMStore(x5368,List(List(b3137, b3138)),List(x5394),List(x5391))
+    val x5398 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x5398").ctrl(x5424).srcCtx("Kmeans.scala:69:12") // CounterNew(Const(0),Const(32),Const(1),Const(16))
+    val x5399 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x5399").ctrl(x5424).srcCtx("Kmeans.scala:69:12") // CounterNew(Const(0),Const(16),Const(1),Const(1))
+    val x5400 = CounterChain(List(x5399,x5398)).name("x5400").ctrl(x5424).srcCtx("Kmeans.scala:69:12") // CounterChainNew(ArrayBuffer(x5399, x5398))
+    val x5423 = LoopController(style=InnerPipe, level=InnerControl, cchain=x5400).name("x5423").ctrl(x5424).srcCtx("Kmeans.scala:69:12") // UnrolledForeach(List(),x5400,Block(Const(())),ArrayBuffer(List(b3153), List(b3154)),ArrayBuffer(List(b3155), List(b3156)))
+    val b3153 = CounterIter(x5399, Some(0)).name("b3153").ctrl(x5423) // b3153
+    val b3155 = Const(true).name("b3155").ctrl(x5423) // b3155
+    val b3154 = CounterIter(x5398, None).name("b3154").ctrl(x5423) // b3154
+    val b3156 = Const(true).name("b3156").ctrl(x5423) // b3156
+    val x5401 = OpDef(op=BitAnd, inputs=List(b3155, b3156)).name("x5401").ctrl(x5423).srcCtx("UnrollingBase.scala:28:66") // And(b3155,b3156)
+    val x5402 = OpDef(op=BitAnd, inputs=List(b2920, b2911)).name("x5402").ctrl(x5423).srcCtx("UnrollingBase.scala:28:66") // And(b2920,b2911)
+    val x5403 = OpDef(op=BitAnd, inputs=List(x5401, x5402)).name("x5403").ctrl(x5423).srcCtx("UnrollingBase.scala:28:66") // And(x5401,x5402)
+    val x5404 = LoadBanks(List(x5367_d0_b0), List(b3153, b3154)).name("x5404").ctrl(x5423).srcCtx("Kmeans.scala:69:12") // ParSRAMLoad(x5367,List(ArrayBuffer(b3153, b3154)),List(x5403))
+    val x5405 = x5404 // x5405 = VectorApply(x5404,0)
+    val x5406 = LoadBanks(List(x5368_d0_b0), List(b3153, b3154)).name("x5406").ctrl(x5423).srcCtx("Kmeans.scala:69:12") // ParSRAMLoad(x5368,List(ArrayBuffer(b3153, b3154)),List(x5403))
+    val x5407 = x5406 // x5407 = VectorApply(x5406,0)
+    val x5408 = LoadBanks(List(x5233_d1_b0), List(b3153, b3154)).name("x5408").ctrl(x5423).srcCtx("Kmeans.scala:69:12") // ParSRAMLoad(x5233,List(ArrayBuffer(b3153, b3154)),List(x5403))
+    val x5409 = x5408 // x5409 = VectorApply(x5408,0)
+    val x5410 = OpDef(op=BitAnd, inputs=List(b2965, b2920)).name("x5410").ctrl(x5423).srcCtx("Kmeans.scala:69:12") // And(b2965,b2920)
+    val x5411 = OpDef(op=BitAnd, inputs=List(x5410, b2911)).name("x5411").ctrl(x5423).srcCtx("Kmeans.scala:69:12") // And(x5410,b2911)
+    val x5412 = OpDef(op=BitAnd, inputs=List(b2966, b2920)).name("x5412").ctrl(x5423).srcCtx("Kmeans.scala:69:12") // And(b2966,b2920)
+    val x5413 = OpDef(op=BitAnd, inputs=List(x5412, b2911)).name("x5413").ctrl(x5423).srcCtx("Kmeans.scala:69:12") // And(x5412,b2911)
+    val x5414 = OpDef(op=BitAnd, inputs=List(x5411, x5403)).name("x5414").ctrl(x5423).srcCtx("Kmeans.scala:69:12") // And(x5411,x5403)
+    val x5415 = OpDef(op=BitAnd, inputs=List(x5413, x5403)).name("x5415").ctrl(x5423).srcCtx("Kmeans.scala:69:12") // And(x5413,x5403)
+    val x5416 = OpDef(op=FixAdd, inputs=List(x5405, x5407)).name("x5416").ctrl(x5423).srcCtx("Kmeans.scala:69:14") // FixAdd(x5405,x5407)
+    val x5417 = OpDef(op=MuxOp, inputs=List(x5415, x5416, x5405)).name("x5417").ctrl(x5423).srcCtx("Kmeans.scala:69:12") // Mux(x5415,x5416,x5405)
+    val x5418 = OpDef(op=BitOr, inputs=List(x5414, x5415)).name("x5418").ctrl(x5423).srcCtx("Kmeans.scala:69:12") // Or(x5414,x5415)
+    val x5419 = OpDef(op=FixEql, inputs=List(b2963, Const(0))).name("x5419").ctrl(x5423).srcCtx("Kmeans.scala:69:12") // FixEql(b2963,Const(0))
+    val x5420 = OpDef(op=FixAdd, inputs=List(x5417, x5409)).name("x5420").ctrl(x5423).srcCtx("Kmeans.scala:69:14") // FixAdd(x5417,x5409)
+    val x5421 = OpDef(op=MuxOp, inputs=List(x5419, x5417, x5420)).name("x5421").ctrl(x5423).srcCtx("Kmeans.scala:69:12") // Mux(x5419,x5417,x5420)
+    val x5422 = StoreBanks(List(List(x5233_d0_b0), List(x5233_d1_b0)), List(b3153, b3154), x5421).name("x5422").ctrl(x5423).srcCtx("Kmeans.scala:69:12") // ParSRAMStore(x5233,List(ArrayBuffer(b3153, b3154)),List(x5421),List(x5403))
+    antiDepsOf(x5422)=List(x5408)
+    val x5425 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x5425").ctrl(x5441).srcCtx("Kmeans.scala:70:10") // CounterNew(Const(0),Const(32),Const(1),Const(16))
+    val x5426 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x5426").ctrl(x5441).srcCtx("Kmeans.scala:70:10") // CounterNew(Const(0),Const(16),Const(1),Const(1))
+    val x5427 = CounterChain(List(x5426,x5425)).name("x5427").ctrl(x5441).srcCtx("Kmeans.scala:70:10") // CounterChainNew(ArrayBuffer(x5426, x5425))
+    val x5440 = LoopController(style=InnerPipe, level=InnerControl, cchain=x5427).name("x5440").ctrl(x5441).srcCtx("Kmeans.scala:70:10") // UnrolledForeach(List(),x5427,Block(Const(())),ArrayBuffer(List(b3181), List(b3182)),ArrayBuffer(List(b3183), List(b3184)))
+    val b3181 = CounterIter(x5426, Some(0)).name("b3181").ctrl(x5440) // b3181
+    val b3183 = Const(true).name("b3183").ctrl(x5440) // b3183
+    val b3182 = CounterIter(x5425, None).name("b3182").ctrl(x5440) // b3182
+    val b3184 = Const(true).name("b3184").ctrl(x5440) // b3184
+    val x5428 = OpDef(op=BitAnd, inputs=List(b3183, b3184)).name("x5428").ctrl(x5440).srcCtx("UnrollingBase.scala:28:66") // And(b3183,b3184)
+    val x5429 = OpDef(op=BitAnd, inputs=List(x5428, b2911)).name("x5429").ctrl(x5440).srcCtx("UnrollingBase.scala:28:66") // And(x5428,b2911)
+    val x5430 = LoadBanks(List(x5233_d0_b0), List(b3181, b3182)).name("x5430").ctrl(x5440).srcCtx("Kmeans.scala:70:10") // ParSRAMLoad(x5233,List(ArrayBuffer(b3181, b3182)),List(x5429))
+    val x5431 = x5430 // x5431 = VectorApply(x5430,0)
+    val x5432 = LoadBanks(List(x5197_d2_b0), List(b3181, b3182)).name("x5432").ctrl(x5440).srcCtx("Kmeans.scala:70:10") // ParSRAMLoad(x5197,List(ArrayBuffer(b3181, b3182)),List(x5429))
+    val x5433 = x5432 // x5433 = VectorApply(x5432,0)
+    val x5434 = OpDef(op=BitAnd, inputs=List(b2920, b2911)).name("x5434").ctrl(x5440).srcCtx("Kmeans.scala:70:10") // And(b2920,b2911)
+    val x5435 = OpDef(op=BitAnd, inputs=List(x5434, x5429)).name("x5435").ctrl(x5440).srcCtx("Kmeans.scala:70:10") // And(x5434,x5429)
+    val x5436 = OpDef(op=FixEql, inputs=List(b2919, Const(0))).name("x5436").ctrl(x5440).srcCtx("Kmeans.scala:70:10") // FixEql(b2919,Const(0))
+    val x5437 = OpDef(op=FixAdd, inputs=List(x5431, x5433)).name("x5437").ctrl(x5440).srcCtx("Kmeans.scala:70:12") // FixAdd(x5431,x5433)
+    val x5438 = OpDef(op=MuxOp, inputs=List(x5436, x5431, x5437)).name("x5438").ctrl(x5440).srcCtx("Kmeans.scala:70:10") // Mux(x5436,x5431,x5437)
+    val x5439 = StoreBanks(List(List(x5197_d0_b0), List(x5197_d1_b0), List(x5197_d2_b0)), List(b3181, b3182), x5438).name("x5439").ctrl(x5440).srcCtx("Kmeans.scala:70:10") // ParSRAMStore(x5197,List(ArrayBuffer(b3181, b3182)),List(x5438),List(x5429))
+    antiDepsOf(x5439)=List(x5432)
+    val x5442 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x5442").ctrl(x5463).srcCtx("Kmeans.scala:73:24") // CounterNew(Const(0),Const(16),Const(1),Const(1))
+    val x5443 = CounterChain(List(x5442)).name("x5443").ctrl(x5463).srcCtx("Kmeans.scala:73:32") // CounterChainNew(List(x5442))
+    val x5462 = LoopController(style=MetaPipe, level=OuterControl, cchain=x5443).name("x5462").ctrl(x5463).srcCtx("Kmeans.scala:73:32") // UnrolledForeach(List(b2911),x5443,Block(Const(())),List(List(b3201)),List(List(b3202)))
+    val b3201 = CounterIter(x5442, Some(0)).name("b3201").ctrl(x5462) // b3201
+    val b3202 = Const(true).name("b3202").ctrl(x5462) // b3202
+    val x5444 = Reg(init=Some(0)).name("x5444").ctrl(x5462).srcCtx("Kmeans.scala:74:33:centCount") // x5444 = RegNew(Const(0))
+    isAccum(x5444) = false
+    bufferDepthOf(x5444) = 2
+    val x5449 = UnitController(style=SeqPipe, level=InnerControl).name("x5449").ctrl(x5462).srcCtx("Kmeans.scala:75:16") // UnitPipe(List(b3202, b2911),Block(x5448))
+    val x5445 = OpDef(op=BitAnd, inputs=List(b3202, b2911)).name("x5445").ctrl(x5449).srcCtx("UnrollingBase.scala:28:66") // And(b3202,b2911)
+    val x5446 = LoadBanks(List(x5197_d1_b0), List(b3201, Const(31))).name("x5446").ctrl(x5449).srcCtx("Kmeans.scala:76:38") // SRAMLoad(x5197,ArrayBuffer(Const(16), Const(32)),List(b3201, Const(31)),Const(0),x5445)
+    val x5447 = OpDef(op=FixMax, inputs=List(x5446, Const(1))).name("x5447").ctrl(x5449).srcCtx("Kmeans.scala:76:29") // Max(x5446,Const(1))
+    val x5448_x5444 = WriteMem(x5444, x5447).name("x5448_x5444").ctrl(x5449).srcCtx("Kmeans.scala:76:23") // RegWrite(x5444,x5447,x5445)
+    val x5450 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x5450").ctrl(x5462).srcCtx("Kmeans.scala:78:21") // CounterNew(Const(0),Const(32),Const(1),Const(16))
+    val x5451 = CounterChain(List(x5450)).name("x5451").ctrl(x5462).srcCtx("Kmeans.scala:78:28") // CounterChainNew(List(x5450))
+    val x5461 = LoopController(style=InnerPipe, level=InnerControl, cchain=x5451).name("x5461").ctrl(x5462).srcCtx("Kmeans.scala:78:28") // UnrolledForeach(List(b3202, b2911),x5451,Block(Const(())),List(List(b3211)),List(List(b3212)))
+    val b3211 = CounterIter(x5450, None).name("b3211").ctrl(x5461) // b3211
+    val b3212 = Const(true).name("b3212").ctrl(x5461) // b3212
+    val x5452 = ReadMem(x5444).name("x5452").ctrl(x5461).srcCtx("Kmeans.scala:79:40") // RegRead(x5444)
+    val x5453 = OpDef(op=FixEql, inputs=List(x5452, Const(0))).name("x5453").ctrl(x5461).srcCtx("Kmeans.scala:79:40") // FixEql(x5452,Const(0))
+    val x5454 = OpDef(op=BitAnd, inputs=List(b3212, b3202)).name("x5454").ctrl(x5461).srcCtx("UnrollingBase.scala:28:66") // And(b3212,b3202)
+    val x5455 = OpDef(op=BitAnd, inputs=List(x5454, b2911)).name("x5455").ctrl(x5461).srcCtx("UnrollingBase.scala:28:66") // And(x5454,b2911)
+    val x5456 = LoadBanks(List(x5197_d0_b0), List(b3201, b3211)).name("x5456").ctrl(x5461).srcCtx("Kmeans.scala:79:69") // ParSRAMLoad(x5197,List(List(b3201, b3211)),List(x5455))
+    val x5457 = x5456 // x5457 = VectorApply(x5456,0)
+    val x5458 = OpDef(op=FixDiv, inputs=List(x5457, x5452)).name("x5458").ctrl(x5461).srcCtx("Kmeans.scala:79:76") // FixDiv(x5457,x5452)
+    val x5459 = OpDef(op=MuxOp, inputs=List(x5453, Const(0), x5458)).name("x5459").ctrl(x5461).srcCtx("Kmeans.scala:79:29") // Mux(x5453,Const(0),x5458)
+    val x5460 = StoreBanks(List(List(x5169_d0_b0), List(x5169_d1_b0), List(x5169_d2_b0)), List(b3201, b3211), x5459).name("x5460").ctrl(x5461).srcCtx("Kmeans.scala:79:24") // ParSRAMStore(x5169,List(List(b3201, b3211)),List(x5459),List(x5455))
+    val x5464 = Counter(min=Const(0), max=Const(16), step=Const(1), par=1).name("x5464").ctrl(x5492).srcCtx("Kmeans.scala:85:33") // CounterNew(Const(0),Const(16),Const(1),Const(1))
+    val x5465 = CounterChain(List(x5464)).name("x5465").ctrl(x5492).srcCtx("Kmeans.scala:85:33") // CounterChainNew(List(x5464))
+    val x5491 = LoopController(style=StreamPipe, level=OuterControl, cchain=x5465).name("x5491").ctrl(x5492).srcCtx("Kmeans.scala:85:33") // UnrolledForeach(List(Const(true)),x5465,Block(Const(())),List(List(b3227)),List(List(b3228)))
+    val b3227 = CounterIter(x5464, Some(0)).name("b3227").ctrl(x5491) // b3227
+    val b3228 = Const(true).name("b3228").ctrl(x5491) // b3228
+    val b5604 = StreamOut(field="offset").name("b5604").ctrl(x5491).srcCtx("Kmeans.scala:85:33") // x5466 = StreamOutNew(BurstCmdBus)
+    isAccum(b5604) = false
+    bufferDepthOf(b5604) = 1
+    val b5605 = StreamOut(field="size").name("b5605").ctrl(x5491).srcCtx("Kmeans.scala:85:33") // x5466 = StreamOutNew(BurstCmdBus)
+    isAccum(b5605) = false
+    def split1 = {
+    bufferDepthOf(b5605) = 1
+    val x5467 = StreamOut(field="data").name("x5467").ctrl(x5491).srcCtx("Kmeans.scala:85:33") // x5467 = StreamOutNew(BurstFullDataBus())
+    isAccum(x5467) = false
+    bufferDepthOf(x5467) = 1
+    val x5468 = StreamIn(field="ack").name("x5468").ctrl(x5491).srcCtx("Kmeans.scala:85:33") // x5468 = StreamInNew(BurstAckBus)
+    isAccum(x5468) = false
+    bufferDepthOf(x5468) = 1
+    val x5479 = UnitController(style=SeqPipe, level=InnerControl).name("x5479").ctrl(x5491).srcCtx("Kmeans.scala:85:33") // UnitPipe(List(b3228),Block(x5478))
+    val x5469 = b3227 // FixConvert(b3227,TRUE,_32,_0) (Same Type. No op)
+    val x5470 = OpDef(op=FixSla, inputs=List(x5469, Const(5))).name("x5470").ctrl(x5479).srcCtx("Kmeans.scala:85:33") // FixLsh(x5469,Const(5))
+    val x5471 = Const(0) // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x5472 = OpDef(op=FixAdd, inputs=List(x5470, x5471)).name("x5472").ctrl(x5479).srcCtx("Kmeans.scala:85:33") // FixAdd(x5470,x5471)
+    val x5473 = OpDef(op=FixSla, inputs=List(x5472, Const(2))).name("x5473").ctrl(x5479).srcCtx("Kmeans.scala:85:33") // FixLsh(x5472,Const(2))
+    val x5474 = x5473 // FixConvert(x5473,TRUE,_64,_0)
+    val x5475 = DramAddress(x5165).name("x5475").ctrl(x5479).srcCtx("Kmeans.scala:85:33") // GetDRAMAddress(x5165)
+    val x5477_x5476 = OpDef(op=FixAdd, inputs=List(x5474, x5475)).name("x5477_x5476").ctrl(x5479).srcCtx("Kmeans.scala:85:33") // FixAdd(x5474,x5475)
+    // x5477 = SimpleStruct(ArrayBuffer((offset,x5476), (size,Const(128)), (isLoad,Const(false))))
+    val x5478_b5606_b5604 = WriteMem(b5604, x5477_x5476).name("x5478_b5606_b5604").ctrl(x5479).srcCtx("Kmeans.scala:85:33") // StreamWrite(x5466,x5477,b3228)
+    val x5478_b5607_b5605 = WriteMem(b5605, Const(128)).name("x5478_b5607_b5605").ctrl(x5479).srcCtx("Kmeans.scala:85:33") // StreamWrite(x5466,x5477,b3228)
+    val x5480 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x5480").ctrl(x5491).srcCtx("Kmeans.scala:85:33") // CounterNew(Const(0),Const(32),Const(1),Const(16))
+    val x5481 = CounterChain(List(x5480)).name("x5481").ctrl(x5491).srcCtx("Kmeans.scala:85:33") // CounterChainNew(List(x5480))
+    val x5487 = LoopController(style=InnerPipe, level=InnerControl, cchain=x5481).name("x5487").ctrl(x5491).srcCtx("Kmeans.scala:85:33") // UnrolledForeach(List(b3228),x5481,Block(Const(())),List(List(b3245)),List(List(b3246)))
+    val b3245 = CounterIter(x5480, None).name("b3245").ctrl(x5487) // b3245
+    val b3246 = Const(true).name("b3246").ctrl(x5487) // b3246
+    val x5482 = OpDef(op=BitAnd, inputs=List(b3246, b3228)).name("x5482").ctrl(x5487).srcCtx("UnrollingBase.scala:28:66") // And(b3246,b3228)
+    val x5483 = LoadBanks(List(x5169_d0_b0), List(b3227, b3245)).name("x5483").ctrl(x5487).srcCtx("Kmeans.scala:85:33") // ParSRAMLoad(x5169,List(List(b3227, b3245)),List(x5482))
+    val x5485_x5484 = x5483 // x5484 = VectorApply(x5483,0)
+    // x5485 = SimpleStruct(ArrayBuffer((_1,x5484), (_2,Const(true))))
+    val x5486_x5486_x5467 = WriteMem(x5467, x5485_x5484).name("x5486_x5486_x5467").ctrl(x5487).srcCtx("Kmeans.scala:85:33") // ParStreamWrite(x5467,List(x5485),List(x5482))
+    val x5488 = FringeDenseStore(dram=List(x5165), cmdStream=List(b5604, b5605), dataStream=List(x5467), ackStream=List(x5468)).name("x5488").ctrl(x5491).srcCtx("Kmeans.scala:85:33") // FringeDenseStore(x5165,x5466,x5467,x5468)
+    val x5490 = UnitController(style=SeqPipe, level=InnerControl).name("x5490").ctrl(x5491).srcCtx("Kmeans.scala:85:33") // UnitPipe(List(b3228),Block(Const(())))
+    val x5489_x5489 = ReadMem(x5468).name("x5489_x5489").ctrl(x5490).srcCtx("Kmeans.scala:85:33") // StreamRead(x5468,b3228)
+    }; split1
     
   }
 }

@@ -49,34 +49,12 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     }
   }
 
-  trait MirrorRule {
-    def isDefinedAt(n:Any):Boolean
-    def mirror(n:Any, m:Any)
-  }
-  case class NodeMatchRule(node:Any, lambda:(Any, Any) => Unit) extends MirrorRule {
-    def isDefinedAt(n:Any):Boolean = n == node
-    def mirror(n:Any, m:Any) = lambda(n,m)
-  }
-  case object NoneMatchRule extends MirrorRule {
-    def isDefinedAt(n:Any):Boolean = false 
-    def mirror(n:Any, m:Any) = {} 
-  }
-  case class PresetRule(node:Any, map:MetadataMap, v:Any) extends MirrorRule {
-    def isDefinedAt(n:Any):Boolean = n == node
-    def mirror(n:Any, m:Any) = {
-      pirmeta.mirrorExcept(n,m,None,List(map))
-      map.asK(m).foreach { m =>
-        map.update(m, v.asInstanceOf[map.V])
-      }
-    }
-  }
 
   def mirrored[T<:N](
     node:T, 
     container:Option[Container]=None, 
     init:Map[N,N]=Map.empty,
-    mapping:mutable.Map[N,N]=mutable.Map.empty,
-    mirrorRule:MirrorRule = NoneMatchRule
+    mapping:mutable.Map[N,N]=mutable.Map.empty
   ):(T, Set[N]) = {
     mapping ++= init
     container.foreach {
@@ -100,7 +78,6 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     // Mirror metadata
     mapping.foreach { 
       case (n, m) if origValues.contains(m) =>
-      case (n, m) if mirrorRule.isDefinedAt(n) => mirrorRule.mirror(n, m)
       case (n, m) => pirmeta.mirror(n, m)
     }
     (m, newNodes)
@@ -110,10 +87,9 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     node:T, 
     container:Option[Container]=None, 
     init:Map[N,N]=Map.empty,
-    mapping:mutable.Map[N,N]=mutable.Map.empty,
-    mirrorRule:MirrorRule = NoneMatchRule
+    mapping:mutable.Map[N,N]=mutable.Map.empty
   ):T = {
-    mirrored(node, container, init, mapping, mirrorRule)._1
+    mirrored(node, container, init, mapping)._1
   }
 
   def retimerOf(x:Def, cu:GlobalContainer) = {
@@ -147,11 +123,10 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     }).asInstanceOf[Def]
   }
 
-  def swapNode[T<:Primitive](from:Primitive, to:T, at:Option[List[Primitive]]=None, excludes:List[Primitive]=Nil, mirrorMeta:Boolean=true):T = {
+  def swapUsage[T<:Primitive](from:Primitive, to:T, at:Option[List[Primitive]]=None):T = {
     if (from == to) return to
-    if (mirrorMeta) pirmeta.mirror(from, to)
-    val depeds = at.getOrElse(from.depeds).filterNot{ d => excludes.contains(d) }
-    dbg(s"swapNode: from:${qtype(from)} to:${qtype(to)} depeds=${depeds}")
+    val depeds = at.getOrElse(from.depeds)
+    dbg(s"swapUsage: from:${qtype(from)} to:${qtype(to)} depeds=${depeds}")
     depeds.foreach { deped => 
       if (areConnected(deped, to)) {
         disconnect(deped, from)
@@ -162,13 +137,14 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     to
   }
 
-  def lowerNode[T<:Primitive](from:Primitive, at:Option[List[Primitive]]=None)(to:T):T = {
+  def lowerNode[T<:Primitive](from:Primitive)(to:T):T = {
     if (from == to) return to
-    swapNode(from, to, at=at)
+    swapUsage(from, to)
     from.parent.foreach { parent =>
       to.setParent(parent)
       dbg(s"add ${quote(to)} in ${quote(parent)}")
     }
+    pirmeta.migrate(from, to, logger=Some(this))
     removeNode(from)
     to
   }

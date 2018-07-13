@@ -68,7 +68,7 @@ object SPMV_ELL extends PIRApp {
     val x2872 = OpDef(op=BitAnd, inputs=List(x2871, b1680)).name("x2872").ctrl(x2876).srcCtx("UnrollingBase.scala:28:66") // And(x2871,b1680)
     val x2873_x2873 = ReadMem(x2854).name("x2873_x2873").ctrl(x2876).srcCtx("SPMV_ELL.scala:85:19") // ParStreamRead(x2854,List(x2872))
     val x2874_x2874 = x2873_x2873 // x2874 = VectorApply(x2873,0)
-    val x2875 = StoreBanks(List(x2846_d0_b0), List(b1688, b1708), x2874_x2874).name("x2875").ctrl(x2876).srcCtx("SPMV_ELL.scala:85:19") // ParSRAMStore(x2846,List(List(b1688, b1708)),List(x2874),List(x2872))
+    val x2875 = StoreBanks(List(List(x2846_d0_b0)), List(b1688, b1708), x2874_x2874).name("x2875").ctrl(x2876).srcCtx("SPMV_ELL.scala:85:19") // ParSRAMStore(x2846,List(List(b1688, b1708)),List(x2874),List(x2872))
     val x2878 = Counter(min=Const(0), max=Const(32), step=Const(1), par=1).name("x2878").ctrl(x2996).srcCtx("SPMV_ELL.scala:86:21") // CounterNew(Const(0),Const(32),Const(1),Const(1))
     val x2879 = CounterChain(List(x2878)).name("x2879").ctrl(x2996).srcCtx("SPMV_ELL.scala:86:21") // CounterChainNew(List(x2878))
     val x2904 = LoopController(style=StreamPipe, level=OuterControl, cchain=x2879).name("x2904").ctrl(x2996).srcCtx("SPMV_ELL.scala:86:21") // UnrolledForeach(List(b1680),x2879,Block(Const(())),List(List(b1719)),List(List(b1720)))
@@ -107,7 +107,7 @@ object SPMV_ELL extends PIRApp {
     val x2899 = OpDef(op=BitAnd, inputs=List(x2898, b1680)).name("x2899").ctrl(x2903).srcCtx("UnrollingBase.scala:28:66") // And(x2898,b1680)
     val x2900_x2900 = ReadMem(x2881).name("x2900_x2900").ctrl(x2903).srcCtx("SPMV_ELL.scala:86:21") // ParStreamRead(x2881,List(x2899))
     val x2901_x2901 = x2900_x2900 // x2901 = VectorApply(x2900,0)
-    val x2902 = StoreBanks(List(x2847_d0_b0), List(b1719, b1739), x2901_x2901).name("x2902").ctrl(x2903).srcCtx("SPMV_ELL.scala:86:21") // ParSRAMStore(x2847,List(List(b1719, b1739)),List(x2901),List(x2899))
+    val x2902 = StoreBanks(List(List(x2847_d0_b0)), List(b1719, b1739), x2901_x2901).name("x2902").ctrl(x2903).srcCtx("SPMV_ELL.scala:86:21") // ParSRAMStore(x2847,List(List(b1719, b1739)),List(x2901),List(x2899))
     val x2905 = Counter(min=Const(0), max=Const(32), step=Const(1), par=1).name("x2905").ctrl(x2996).srcCtx("SPMV_ELL.scala:88:20") // CounterNew(Const(0),Const(32),Const(1),Const(1))
     val x2906 = CounterChain(List(x2905)).name("x2906").ctrl(x2996).srcCtx("SPMV_ELL.scala:88:26") // CounterChainNew(List(x2905))
     val x2972 = LoopController(style=MetaPipe, level=OuterControl, cchain=x2906).name("x2972").ctrl(x2996).srcCtx("SPMV_ELL.scala:88:26") // UnrolledForeach(List(b1680),x2906,Block(Const(())),List(List(b1750)),List(List(b1751)))
@@ -130,7 +130,7 @@ object SPMV_ELL extends PIRApp {
     val x2912 = OpDef(op=BitAnd, inputs=List(x2911, b1680)).name("x2912").ctrl(x2916).srcCtx("UnrollingBase.scala:28:66") // And(x2911,b1680)
     val x2913 = LoadBanks(List(x2846_d0_b0), List(b1750, b1756)).name("x2913").ctrl(x2916).srcCtx("SPMV_ELL.scala:91:61") // ParSRAMLoad(x2846,List(List(b1750, b1756)),List(x2912))
     val x2914 = x2913 // x2914 = VectorApply(x2913,0)
-    val x2915 = StoreBanks(List(x2908_d0_b0), List(b1756), x2914).name("x2915").ctrl(x2916).srcCtx("SPMV_ELL.scala:91:50") // ParSRAMStore(x2908,List(List(b1756)),List(x2914),List(x2912))
+    val x2915 = StoreBanks(List(List(x2908_d0_b0)), List(b1756), x2914).name("x2915").ctrl(x2916).srcCtx("SPMV_ELL.scala:91:50") // ParSRAMStore(x2908,List(List(b1756)),List(x2914),List(x2912))
     val x2917_d0 = Reg(init=Some(0)).name("x2917_d0").ctrl(x2972).srcCtx("SPMV_ELL.scala:92:20") // x2917 = RegNew(Const(0))
     isAccum(x2917_d0) = false
     bufferDepthOf(x2917_d0) = 2
@@ -179,7 +179,7 @@ object SPMV_ELL extends PIRApp {
     val x2946_x2946 = x2945_x2945 // x2946 = VectorApply(x2945,0)
     val x2947 = OpDef(op=FixLt, inputs=List(b1792, Const(16))).name("x2947").ctrl(x2950).srcCtx("SPMV_ELL.scala:92:20") // FixLt(b1792,Const(16))
     val x2948 = OpDef(op=BitAnd, inputs=List(x2947, x2944)).name("x2948").ctrl(x2950).srcCtx("UnrollingTransformer.scala:239:41") // And(x2947,x2944)
-    val x2949 = StoreBanks(List(x2907_d0_b0), List(b1792), x2946_x2946).name("x2949").ctrl(x2950).srcCtx("SPMV_ELL.scala:92:20") // ParSRAMStore(x2907,List(List(b1792)),List(x2946),List(x2948))
+    val x2949 = StoreBanks(List(List(x2907_d0_b0)), List(b1792), x2946_x2946).name("x2949").ctrl(x2950).srcCtx("SPMV_ELL.scala:92:20") // ParSRAMStore(x2907,List(List(b1792)),List(x2946),List(x2948))
     val x2952_d0 = Reg(init=Some(0)).name("x2952_d0").ctrl(x2972).srcCtx("SPMV_ELL.scala:93:38:element") // x2952 = RegNew(Const(0))
     isAccum(x2952_d0) = false
     bufferDepthOf(x2952_d0) = 2
@@ -202,13 +202,14 @@ object SPMV_ELL extends PIRApp {
     val x2963 = OpDef(op=FixEql, inputs=List(b1806, Const(0))).name("x2963").ctrl(x2967).srcCtx("SPMV_ELL.scala:93:90") // FixEql(b1806,Const(0))
     val x2964 = ReduceAccumOp(op=FixAdd, input=x2961, accum=x2962).name("x2964").ctrl(x2967).srcCtx("SPMV_ELL.scala:93:92") // FixAdd(x2961,x2962)
     val x2965 = OpDef(op=BitAnd, inputs=List(b1751, b1680)).name("x2965").ctrl(x2967).srcCtx("UnrollingBase.scala:28:66") // And(b1751,b1680)
-    // x2966.deps=List(x2962)
     val x2966_x2952_d0 = WriteMem(x2952_d0, x2964).name("x2966_x2952_d0").ctrl(x2967).srcCtx("SPMV_ELL.scala:93:90") // RegWrite(x2952,x2964,x2965)
+    antiDepsOf(x2966_x2952_d0)=List(x2962)
     val x2966_x2952_d1 = WriteMem(x2952_d1, x2964).name("x2966_x2952_d1").ctrl(x2967).srcCtx("SPMV_ELL.scala:93:90") // RegWrite(x2952,x2964,x2965)
+    antiDepsOf(x2966_x2952_d1)=List(x2962)
     val x2971 = UnitController(style=SeqPipe, level=InnerControl).name("x2971").ctrl(x2972).srcCtx("SPMV_ELL.scala:88:26") // UnitPipe(List(b1751, b1680),Block(Const(())))
     val x2968 = ReadMem(x2952_d0).name("x2968").ctrl(x2971).srcCtx("SPMV_ELL.scala:94:28") // RegRead(x2952)
     val x2969 = OpDef(op=BitAnd, inputs=List(b1751, b1680)).name("x2969").ctrl(x2971).srcCtx("UnrollingBase.scala:28:66") // And(b1751,b1680)
-    val x2970 = StoreBanks(List(x2848_d0_b0), List(b1750), x2968).name("x2970").ctrl(x2971).srcCtx("SPMV_ELL.scala:94:26") // SRAMStore(x2848,ArrayBuffer(Const(32)),List(b1750),Const(0),x2968,x2969)
+    val x2970 = StoreBanks(List(List(x2848_d0_b0)), List(b1750), x2968).name("x2970").ctrl(x2971).srcCtx("SPMV_ELL.scala:94:26") // SRAMStore(x2848,ArrayBuffer(Const(32)),List(b1750),Const(0),x2968,x2969)
     val x2995 = UnitController(style=StreamPipe, level=OuterControl).name("x2995").ctrl(x2996).srcCtx("SPMV_ELL.scala:97:36") // UnitPipe(List(b1680),Block(Const(())))
     val b3054 = StreamOut(field="offset").name("b3054").ctrl(x2995).srcCtx("SPMV_ELL.scala:97:36") // x2973 = StreamOutNew(BurstCmdBus)
     isAccum(b3054) = false

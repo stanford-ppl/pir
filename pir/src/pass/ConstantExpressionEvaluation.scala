@@ -16,7 +16,7 @@ class ConstantExpressionEvaluation(implicit compiler:PIR) extends PIRTransformer
           super.visitNode(n, prev)
         } { exp =>
           dbg(s"evaluate ${qdef(n)} -> ${qdef(exp)}")
-          swapNode[Def](n, exp, mirrorMeta=false)
+          swapUsage[Def](n, exp)
           super.visitNode(exp, prev)
         }
       case _ => super.visitNode(n, prev)

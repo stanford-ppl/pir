@@ -12,8 +12,6 @@ object P4 extends PIRApp {
     val x1272 = StreamIn(field="data").name("x1272").ctrl(top).srcCtx("SimpleP4.scala:102:43:stream_in1") // x1272 = StreamInNew(GPInput2)
     isAccum(x1272) = false
     bufferDepthOf(x1272) = 1
-    countsOf(x1271) = Some(1024l)
-    countsOf(x1272) = Some(1024l)
     val x1273 = StreamOut(field="data").name("x1273").ctrl(top).srcCtx("SimpleP4.scala:104:44:stream_out0") // x1273 = StreamOutNew(GPOutput1)
     isAccum(x1273) = false
     bufferDepthOf(x1273) = 1
@@ -25,12 +23,15 @@ object P4 extends PIRApp {
     val x1276_d0_b0 = SRAM(size=4, banking=Strided(banks=1, stride=2)).name("x1276_d0_b0").ctrl(x1359).srcCtx("SimpleP4.scala:109:35:Parser_SRAM") // x1276 = SRAMNew(ArrayBuffer(Const(2), Const(2)))
     isAccum(x1276_d0_b0) = false
     bufferDepthOf(x1276_d0_b0) = 3
+    staticDimsOf(x1276_d0_b0) = List(2, 2)
     val x1276_d1_b0 = SRAM(size=4, banking=Strided(banks=1, stride=2)).name("x1276_d1_b0").ctrl(x1359).srcCtx("SimpleP4.scala:109:35:Parser_SRAM") // x1276 = SRAMNew(ArrayBuffer(Const(2), Const(2)))
     isAccum(x1276_d1_b0) = false
     bufferDepthOf(x1276_d1_b0) = 2
+    staticDimsOf(x1276_d1_b0) = List(2, 2)
     val x1277_d0_b0 = SRAM(size=4, banking=Strided(banks=1, stride=2)).name("x1277_d0_b0").ctrl(x1359).srcCtx("SimpleP4.scala:110:37:Deparser_SRAM") // x1277 = SRAMNew(ArrayBuffer(Const(2), Const(2)))
     isAccum(x1277_d0_b0) = false
     bufferDepthOf(x1277_d0_b0) = 2
+    staticDimsOf(x1277_d0_b0) = List(2, 2)
     val x1278 = Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x1278").ctrl(x1359).srcCtx("SimpleP4.scala:117:35") // CounterNew(Const(0),Const(2),Const(1),Const(1))
     val x1279 = Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x1279").ctrl(x1359).srcCtx("SimpleP4.scala:117:15") // CounterNew(Const(0),Const(2),Const(1),Const(1))
     val x1280 = CounterChain(List(x1279,x1278)).name("x1280").ctrl(x1359).srcCtx("SimpleP4.scala:117:53") // CounterChainNew(List(x1279, x1278))
@@ -53,16 +54,19 @@ object P4 extends PIRApp {
     val x1292 = OpDef(op=BitAnd, inputs=List(x1289, Const(2147418112))).name("x1292").ctrl(x1296).srcCtx("SimpleP4.scala:128:55") // VectorSlice(x1289,31,16) strMask=01111111111111110000000000000000
     val x1293 = x1292 // x1293 = BitsAsData(x1292,FixPt[FALSE,_16,_0])
     val x1294 = OpDef(op=MuxOp, inputs=List(x1288, x1291, x1293)).name("x1294").ctrl(x1296).srcCtx("SimpleP4.scala:128:20:fld") // Mux(x1288,x1291,x1293)
-    val x1295 = StoreBanks(List(x1276_d0_b0, x1276_d1_b0), List(b820, b821), x1294).name("x1295").ctrl(x1296).srcCtx("SimpleP4.scala:129:25") // ParSRAMStore(x1276,List(List(b820, b821)),List(x1294),List(x1281))
+    val x1295 = StoreBanks(List(List(x1276_d0_b0), List(x1276_d1_b0)), List(b820, b821), x1294).name("x1295").ctrl(x1296).srcCtx("SimpleP4.scala:129:25") // ParSRAMStore(x1276,List(List(b820, b821)),List(x1294),List(x1281))
     val x1297_d0_b0 = LUT(inits=List(0, 1), banking=Strided(banks=1, stride=1)).name("x1297_d0_b0").ctrl(x1359).srcCtx("SimpleP4.scala:134:47:match_table") // x1297 = LUTNew(List(2), Seq(Const(0),Const(1)))
     isAccum(x1297_d0_b0) = false
     bufferDepthOf(x1297_d0_b0) = 1
+    staticDimsOf(x1297_d0_b0) = List(2)
     val x1298_d0_b0 = SRAM(size=4, banking=Strided(banks=1, stride=2)).name("x1298_d0_b0").ctrl(x1359).srcCtx("SimpleP4.scala:135:35:mask_table") // x1298 = SRAMNew(ArrayBuffer(Const(2), Const(2)))
     isAccum(x1298_d0_b0) = false
     bufferDepthOf(x1298_d0_b0) = 2
+    staticDimsOf(x1298_d0_b0) = List(2, 2)
     val x1299_d0_b0 = LUT(inits=List(0, 1), banking=Strided(banks=1, stride=1)).name("x1299_d0_b0").ctrl(x1359).srcCtx("SimpleP4.scala:136:61:action_table") // x1299 = LUTNew(List(2, 1), Seq(Const(0),Const(1)))
     isAccum(x1299_d0_b0) = false
     bufferDepthOf(x1299_d0_b0) = 1
+    staticDimsOf(x1299_d0_b0) = List(2, 1)
     val x1300 = Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x1300").ctrl(x1359).srcCtx("SimpleP4.scala:142:36") // CounterNew(Const(0),Const(2),Const(1),Const(1))
     val x1301 = Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x1301").ctrl(x1359).srcCtx("SimpleP4.scala:142:15") // CounterNew(Const(0),Const(2),Const(1),Const(1))
     val x1302 = CounterChain(List(x1301,x1300)).name("x1302").ctrl(x1359).srcCtx("SimpleP4.scala:142:55") // CounterChainNew(List(x1301, x1300))
@@ -75,7 +79,7 @@ object P4 extends PIRApp {
     val x1304 = LoadBanks(List(x1276_d1_b0), List(Const(0), b846)).name("x1304").ctrl(x1308).srcCtx("SimpleP4.scala:144:37") // SRAMLoad(x1276,ArrayBuffer(Const(2), Const(2)),List(Const(0), b846),Const(0),x1303)
     val x1305 = LoadBanks(List(x1297_d0_b0), List(b847)).name("x1305").ctrl(x1308).srcCtx("SimpleP4.scala:144:58") // LUTLoad(x1297,List(b847),x1303)
     val x1306 = OpDef(op=FixEql, inputs=List(x1304, x1305)).name("x1306").ctrl(x1308).srcCtx("SimpleP4.scala:144:44") // FixEql(x1304,x1305)
-    val x1307 = StoreBanks(List(x1298_d0_b0), List(b846, b847), x1306).name("x1307").ctrl(x1308).srcCtx("SimpleP4.scala:144:24") // ParSRAMStore(x1298,List(List(b846, b847)),List(x1306),List(x1303))
+    val x1307 = StoreBanks(List(List(x1298_d0_b0)), List(b846, b847), x1306).name("x1307").ctrl(x1308).srcCtx("SimpleP4.scala:144:24") // ParSRAMStore(x1298,List(List(b846, b847)),List(x1306),List(x1303))
     val x1309 = Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x1309").ctrl(x1359).srcCtx("SimpleP4.scala:150:36") // CounterNew(Const(0),Const(2),Const(1),Const(1))
     val x1310 = Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x1310").ctrl(x1359).srcCtx("SimpleP4.scala:150:15") // CounterNew(Const(0),Const(2),Const(1),Const(1))
     val x1311 = CounterChain(List(x1310,x1309)).name("x1311").ctrl(x1359).srcCtx("SimpleP4.scala:150:55") // CounterChainNew(List(x1310, x1309))
@@ -98,7 +102,7 @@ object P4 extends PIRApp {
     val x1323 = OpDef(op=FixAdd, inputs=List(x1316, Const(1))).name("x1323").ctrl(x1327).srcCtx("SimpleP4.scala:156:54") // FixAdd(x1316,Const(1))
     val x1324 = OpDef(op=MuxOp, inputs=List(x1322, x1323, x1321)).name("x1324").ctrl(x1327).srcCtx("SimpleP4.scala:156:24:action0") // Mux(x1322,x1323,x1321)
     val x1325 = OpDef(op=MuxOp, inputs=List(x1314, x1324, x1316)).name("x1325").ctrl(x1327).srcCtx("SimpleP4.scala:157:28:new_header") // Mux(x1314,x1324,x1316)
-    val x1326 = StoreBanks(List(x1277_d0_b0), List(Const(0), b859), x1325).name("x1326").ctrl(x1327).srcCtx("SimpleP4.scala:160:27") // ParSRAMStore(x1277,List(List(Const(0), b859)),List(x1325),List(x1312))
+    val x1326 = StoreBanks(List(List(x1277_d0_b0)), List(Const(0), b859), x1325).name("x1326").ctrl(x1327).srcCtx("SimpleP4.scala:160:27") // ParSRAMStore(x1277,List(List(Const(0), b859)),List(x1325),List(x1312))
     val x1328 = Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x1328").ctrl(x1359).srcCtx("SimpleP4.scala:163:35") // CounterNew(Const(0),Const(2),Const(1),Const(1))
     val x1329 = Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x1329").ctrl(x1359).srcCtx("SimpleP4.scala:163:15") // CounterNew(Const(0),Const(2),Const(1),Const(1))
     val x1330 = CounterChain(List(x1329,x1328)).name("x1330").ctrl(x1359).srcCtx("SimpleP4.scala:163:53") // CounterChainNew(List(x1329, x1328))

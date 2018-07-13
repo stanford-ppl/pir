@@ -33,36 +33,55 @@ class AccessLowering(implicit compiler:PIR) extends PIRTransformer {
             val faddr = flattenNDAddr(bankCU, ctrlOf(n))(maddrs, dims)
             val access = LoadMem(bank, faddr).setParent(bankCU)
             dbg(s"add ${qtype(access)} in ${qtype(bankCU)}")
-            pirmeta.mirror(n, access)
+            pirmeta.migrate(n, access)
             retime(access, accessCU).asInstanceOf[LocalLoad]
           }
-          lowerNode(n) {
-            if (bankAccesses.size > 1) { BankMerge(bankAccesses) } else bankAccesses.head
-          }
+          swapUsage(n, {
+            if (bankAccesses.size > 1) { 
+              val bm = BankMerge(bankAccesses).setParent(accessCU).ctrl(ctrlOf(n))
+              dbg(s"add ${qtype(bm)} in ${qtype(accessCU)}")
+              bm
+            } else bankAccesses.head
+          })
+          removeNode(n)
         }
-      case Def(n:LocalStore, LocalStore(banks, Some(addrs), data)) =>
+      case Def(n:StoreBanks, StoreBanks(_, addrs, data)) => // using Def here cause List of List not working properly
+        val insts = n.mems
         dbgblk(s"Lowering ${qdef(n)}") {
           val storeCU = globalOf(n).get
-          val dims = staticDimsOf(banks.head)
-          val faddr = flattenNDAddr(storeCU, ctrlOf(n))(addrs, dims)
-          dbg(s"faddr=$faddr")
-          val (maddr,mdata) = if (banks.size > 1) {
+          dbg(s"insts=$insts")
+          val singleBank = insts.forall { _.size == 1 }
+          val dims = staticDimsOf(insts.head.head)
+          if (singleBank) { // Do address flattening inside the PMU
+            insts.foreach { banks =>
+              val bank = assertOne(banks, "bank")
+              // Local write address calculation
+              val bankCU = globalOf(bank).get 
+              val dataLoad = retime(data, bankCU)
+              val inds = addrs.map { ind => retime(ind, bankCU) }
+              val faddr = flattenNDAddr(bankCU, ctrlOf(n))(inds, dims)
+              val access = StoreMem(bank, faddr, dataLoad).setParent(bankCU)
+              dbg(s"add ${qtype(access)} in ${qtype(bankCU)}")
+              pirmeta.migrate(n, access)
+              access
+            }
+          } else { // Do address flattening inside the source CU
+            dbg(s"${qdef(n)} stores multiple banks")
+            val faddr = flattenNDAddr(storeCU, ctrlOf(n))(addrs, dims)
             val bs = BankSelect(addrs).setParent(storeCU).ctrl(ctrlOf(n))
             val maddr = BankMask(bs, faddr).setParent(storeCU).ctrl(ctrlOf(n))
             val mdata = BankMask(bs, data).setParent(storeCU).ctrl(ctrlOf(n))
-            (maddr, mdata)
-          } else {
-            (faddr, data)
-          }
-          banks.foreach { bank =>
-            // Local write address calculation
-            val bankCU = globalOf(bank).get 
-            val dataLoad = retime(mdata, bankCU)
-            val addrLoad = retime(maddr, bankCU)
-            val access = StoreMem(bank, addrLoad, dataLoad).setParent(bankCU)
-            dbg(s"add ${qtype(access)} in ${qtype(bankCU)}")
-            swapNode(n,access, at=Some(List(bank)))
-            access
+            insts.foreach { banks =>
+              banks.map { bank =>
+                // Local write address calculation
+                val bankCU = globalOf(bank).get 
+                val dataLoad = retime(mdata, bankCU)
+                val addrLoad = retime(maddr, bankCU)
+                val access = StoreMem(bank, addrLoad, dataLoad).setParent(bankCU)
+                dbg(s"add ${qtype(access)} in ${qtype(bankCU)}")
+                pirmeta.migrate(n, access)
+              }
+            }
           }
           removeNode(n)
         }

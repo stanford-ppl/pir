@@ -13,15 +13,12 @@ trait Metadata extends Serializable {
 
   def summary(n:Any):List[String] = summerize(n, maps.toSeq:_*)
 
-  def mirrorOnly(orig:Any, clone:Any, logger:Option[Logging]=None, includes:List[MetadataMap]=Nil) = {
-    if (orig != clone) includes.foreach { map => map.mirror(orig, clone, logger) }
+  def mirror(from:Any, to:Any, logger:Option[Logging]=None) = {
+    if (from != to) maps.foreach { map => map.mirror(from, to, logger) }
   }
 
-  def mirror(orig:Any, clone:Any, logger:Option[Logging]=None) = mirrorOnly(orig, clone, logger, maps.toList)
-
-  def mirrorExcept(orig:Any, clone:Any, logger:Option[Logging]=None, excludes:List[MetadataMap]=Nil) = {
-    val includes = (maps.toList diff excludes)
-    mirrorOnly(orig, clone, logger, includes)
+  def migrate(from:Any, to:Any, logger:Option[Logging]=None) = {
+    if (from != to) maps.foreach { map => map.migrate(from, to, logger) }
   }
 
   def removeAll(node:Any) = maps.foreach { map => map.removeAll(node) }
@@ -33,9 +30,11 @@ trait Metadata extends Serializable {
     implicit val kct:ClassTag[K]
     implicit val vct:ClassTag[V]
     type VV
+    type KK
 
     def asK(x:Any):Option[K]
-    def toVs(vv:VV):scala.collection.Set[V]
+    def toVs(vv:VV):Set[V]
+    def toKs(kk:KK):Set[K]
   
     def clear:Unit
     def get(k:K):Option[VV]
@@ -43,6 +42,8 @@ trait Metadata extends Serializable {
     def removeAll(a:Any):Unit
     def update(k:K, v:V):Unit
     def remove(k:K, v:V):Unit
+
+    def getV(v:V):Option[KK]
   
     var nameOpt:Option[String] = None
     def setName(s:String) = nameOpt = Some(s)
@@ -51,41 +52,41 @@ trait Metadata extends Serializable {
 
     def isDefinedAt(k:K) = contains(k)
     // Default just copy over
-    def mirror(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {
-      (orig, clone) match {
-        case (orig:K, clone:K) =>
-          get(orig).foreach { vv => 
-            dbg(logger, s"$name.mirror($orig, $clone)=$vv")
-            toVs(vv).foreach { v => update(clone, v) }
-          }
+    def mirror(from:Any, to:Any, logger:Option[Logging]=None):Unit = {
+      (from, to) match {
+        case (from:K, to:K) => get(from).foreach { vv => toVs(vv).foreach { v => mirrorKey(from, to, v, logger) } }
+        case _ =>
+      }
+      (from, to) match {
+        case (from:V, to:V) => getV(from).foreach { kk => toKs(kk).foreach { k => mirrorValue(from, to, k, logger) } }
         case _ =>
       }
     }
-    def migrate(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {
-      // Replace orig -> any to clone -> any
-      (orig, clone) match {
-        case (orig:K, clone:K) =>
-          get(orig).foreach { vv => 
-            dbg(logger, s"$name.migrate($orig, $clone)=$vv")
-            toVs(vv).foreach { v => 
-              update(clone, v)
-              remove(orig, v)
-            }
-          }
+    def mirrorKey(from:K, to:K, v:V, logger:Option[Logging]) = {
+      dbg(logger, s"$name.mirrorKey $from -> $v => $to -> $v")
+      update(to, v)
+    }
+    def mirrorValue(from:V, to:V, k:K, logger:Option[Logging]) = {
+      dbg(logger, s"$name.mirrorValue $k -> $from => $k -> $to")
+      update(k, to)
+    }
+    def migrate(from:Any, to:Any, logger:Option[Logging]=None):Unit = {
+      (from, to) match {
+        case (from:K, to:K) => get(from).foreach { vv => toVs(vv).foreach { v => migrateKey(from, to, v, logger) } }
         case _ =>
       }
-      // Replace any -> orig to clone -> orig
-      //(orig, clone) match {
-        //case (orig:V, clone:V) =>
-          //get(orig).foreach { vv => 
-            //dbg(logger, s"$name.migrate($orig, $clone)=$vv")
-            //toVs(vv).foreach { v => 
-              //update(clone, v)
-              //remove(orig, v)
-            //}
-          //}
-        //case _ =>
-      //}
+      (from, to) match {
+        case (from:V, to:V) => getV(from).foreach { kk => toKs(kk).foreach { k => migrateValue(from, to, k, logger) } }
+        case _ =>
+      }
+    }
+    def migrateKey(from:K, to:K, v:V, logger:Option[Logging]) = {
+      dbg(logger, s"$name.migrateKey $from -> $v => $to -> $v")
+      update(to, v)
+    }
+    def migrateValue(from:V, to:V, k:K, logger:Option[Logging]) = {
+      dbg(logger, s"$name.migrateValue $k -> $from => $k -> $to")
+      update(k, to)
     }
     def info(a:Any):Option[String] = { 
       a match {

@@ -69,7 +69,7 @@ object DotProduct extends PIRApp {
     val x1401 = OpDef(op=BitAnd, inputs=List(b876, b857)).name("x1401").ctrl(x1405).srcCtx("UnrollingBase.scala:28:66") // And(b876,b857)
     val x1402_x1402 = ReadMem(x1389).name("x1402_x1402").ctrl(x1405).srcCtx("DotProduct.scala:34:16") // ParStreamRead(x1389,List(x1401))
     val x1403_x1403 = x1402_x1402 // x1403 = VectorApply(x1402,0)
-    val x1404 = StoreBanks(List(x1384_d0_b0), List(b875), x1403_x1403).name("x1404").ctrl(x1405).srcCtx("DotProduct.scala:34:16") // ParSRAMStore(x1384,List(List(b875)),List(x1403),List(x1401))
+    val x1404 = StoreBanks(List(List(x1384_d0_b0)), List(b875), x1403_x1403).name("x1404").ctrl(x1405).srcCtx("DotProduct.scala:34:16") // ParSRAMStore(x1384,List(List(b875)),List(x1403),List(x1401))
     val x1425 = UnitController(style=StreamPipe, level=OuterControl).name("x1425").ctrl(x1426).srcCtx("DotProduct.scala:35:16") // UnitPipe(List(b857),Block(Const(())))
     val b1474 = StreamOut(field="offset").name("b1474").ctrl(x1425).srcCtx("DotProduct.scala:35:16") // x1407 = StreamOutNew(BurstCmdBus)
     isAccum(b1474) = false
@@ -98,7 +98,7 @@ object DotProduct extends PIRApp {
     val x1420 = OpDef(op=BitAnd, inputs=List(b897, b857)).name("x1420").ctrl(x1424).srcCtx("UnrollingBase.scala:28:66") // And(b897,b857)
     val x1421_x1421 = ReadMem(x1408).name("x1421_x1421").ctrl(x1424).srcCtx("DotProduct.scala:35:16") // ParStreamRead(x1408,List(x1420))
     val x1422_x1422 = x1421_x1421 // x1422 = VectorApply(x1421,0)
-    val x1423 = StoreBanks(List(x1385_d0_b0), List(b896), x1422_x1422).name("x1423").ctrl(x1424).srcCtx("DotProduct.scala:35:16") // ParSRAMStore(x1385,List(List(b896)),List(x1422),List(x1420))
+    val x1423 = StoreBanks(List(List(x1385_d0_b0)), List(b896), x1422_x1422).name("x1423").ctrl(x1424).srcCtx("DotProduct.scala:35:16") // ParSRAMStore(x1385,List(List(b896)),List(x1422),List(x1420))
     val x1427_d0 = Reg(init=Some(0)).name("x1427_d0").ctrl(x1447).srcCtx("DotProduct.scala:37:22") // x1427 = RegNew(Const(0))
     isAccum(x1427_d0) = false
     bufferDepthOf(x1427_d0) = 2

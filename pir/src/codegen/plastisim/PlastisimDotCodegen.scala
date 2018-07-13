@@ -57,7 +57,7 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
   def emitLink(n:Link) = dbgblk(s"emitLink(${quote(n)})") {
     val srcs = srcsOf(n)
     val dsts = dstsOf(n)
-    val counts = assertUnify(n, "counts") { mem => getCountsOf(mem) }
+    val counts = assertOptionUnify(n, "counts") { mem => getCountsOf(mem) }
     n.foreach { mem =>
       val memSrcs = srcsOf(mem)
       val memDsts = dstsOf(mem)

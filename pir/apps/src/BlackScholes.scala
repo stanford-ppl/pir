@@ -34,24 +34,31 @@ object BlackScholes extends PIRApp {
     val x5435_d0_b0 = SRAM(size=32, banking=Strided(banks=16, stride=1)).name("x5435_d0_b0").ctrl(x5782).srcCtx("BlackScholes.scala:97:34:typeBlk") // x5435 = SRAMNew(ArrayBuffer(Const(32)))
     isAccum(x5435_d0_b0) = false
     bufferDepthOf(x5435_d0_b0) = 2
+    staticDimsOf(x5435_d0_b0) = List(32)
     val x5436_d0_b0 = SRAM(size=32, banking=Strided(banks=16, stride=1)).name("x5436_d0_b0").ctrl(x5782).srcCtx("BlackScholes.scala:98:36:priceBlk") // x5436 = SRAMNew(ArrayBuffer(Const(32)))
     isAccum(x5436_d0_b0) = false
     bufferDepthOf(x5436_d0_b0) = 2
+    staticDimsOf(x5436_d0_b0) = List(32)
     val x5437_d0_b0 = SRAM(size=32, banking=Strided(banks=16, stride=1)).name("x5437_d0_b0").ctrl(x5782).srcCtx("BlackScholes.scala:99:36:strikeBlk") // x5437 = SRAMNew(ArrayBuffer(Const(32)))
     isAccum(x5437_d0_b0) = false
     bufferDepthOf(x5437_d0_b0) = 2
+    staticDimsOf(x5437_d0_b0) = List(32)
     val x5438_d0_b0 = SRAM(size=32, banking=Strided(banks=16, stride=1)).name("x5438_d0_b0").ctrl(x5782).srcCtx("BlackScholes.scala:100:36:rateBlk") // x5438 = SRAMNew(ArrayBuffer(Const(32)))
     isAccum(x5438_d0_b0) = false
     bufferDepthOf(x5438_d0_b0) = 2
+    staticDimsOf(x5438_d0_b0) = List(32)
     val x5439_d0_b0 = SRAM(size=32, banking=Strided(banks=16, stride=1)).name("x5439_d0_b0").ctrl(x5782).srcCtx("BlackScholes.scala:101:36:volBlk") // x5439 = SRAMNew(ArrayBuffer(Const(32)))
     isAccum(x5439_d0_b0) = false
     bufferDepthOf(x5439_d0_b0) = 2
+    staticDimsOf(x5439_d0_b0) = List(32)
     val x5440_d0_b0 = SRAM(size=32, banking=Strided(banks=16, stride=1)).name("x5440_d0_b0").ctrl(x5782).srcCtx("BlackScholes.scala:102:36:timeBlk") // x5440 = SRAMNew(ArrayBuffer(Const(32)))
     isAccum(x5440_d0_b0) = false
     bufferDepthOf(x5440_d0_b0) = 2
+    staticDimsOf(x5440_d0_b0) = List(32)
     val x5441_d0_b0 = SRAM(size=32, banking=Strided(banks=16, stride=1)).name("x5441_d0_b0").ctrl(x5782).srcCtx("BlackScholes.scala:103:38:optpriceBlk") // x5441 = SRAMNew(ArrayBuffer(Const(32)))
     isAccum(x5441_d0_b0) = false
     bufferDepthOf(x5441_d0_b0) = 3
+    staticDimsOf(x5441_d0_b0) = List(32)
     val x5558 = UnitController(style=ForkJoin, level=OuterControl).name("x5558").ctrl(x5782).srcCtx("BlackScholes.scala:105:18") // ParallelPipe(List(b3433),Block(Const(())))
     val x5443 = UnitController(style=SeqPipe, level=InnerControl).name("x5443").ctrl(x5558).srcCtx("BlackScholes.scala:105:18") // UnitPipe(List(b3433),Block(Const(())))
     val x5442 = OpDef(op=FixAdd, inputs=List(b3432, Const(32))).name("x5442").ctrl(x5443).srcCtx("BlackScholes.scala:106:36") // FixAdd(b3432,Const(32))
@@ -83,7 +90,7 @@ object BlackScholes extends PIRApp {
     val x5457 = OpDef(op=BitAnd, inputs=List(b3457, b3433)).name("x5457").ctrl(x5461).srcCtx("UnrollingBase.scala:28:66") // And(b3457,b3433)
     val x5458_x5458 = ReadMem(x5445).name("x5458_x5458").ctrl(x5461).srcCtx("BlackScholes.scala:106:21") // ParStreamRead(x5445,List(x5457))
     val x5459_x5459 = x5458_x5458 // x5459 = VectorApply(x5458,0)
-    val x5460 = StoreBanks(List(x5435_d0_b0), List(b3456), x5459_x5459).name("x5460").ctrl(x5461).srcCtx("BlackScholes.scala:106:21") // ParSRAMStore(x5435,List(List(b3456)),List(x5459),List(x5457))
+    val x5460 = StoreBanks(List(List(x5435_d0_b0)), List(b3456), x5459_x5459).name("x5460").ctrl(x5461).srcCtx("BlackScholes.scala:106:21") // ParSRAMStore(x5435,List(List(b3456)),List(x5459),List(x5457))
     val x5481 = UnitController(style=StreamPipe, level=OuterControl).name("x5481").ctrl(x5558).srcCtx("BlackScholes.scala:107:21") // UnitPipe(List(b3433),Block(Const(())))
     val b5798 = StreamOut(field="offset").name("b5798").ctrl(x5481).srcCtx("BlackScholes.scala:107:21") // x5463 = StreamOutNew(BurstCmdBus)
     isAccum(b5798) = false
@@ -112,7 +119,7 @@ object BlackScholes extends PIRApp {
     val x5476 = OpDef(op=BitAnd, inputs=List(b3478, b3433)).name("x5476").ctrl(x5480).srcCtx("UnrollingBase.scala:28:66") // And(b3478,b3433)
     val x5477_x5477 = ReadMem(x5464).name("x5477_x5477").ctrl(x5480).srcCtx("BlackScholes.scala:107:21") // ParStreamRead(x5464,List(x5476))
     val x5478_x5478 = x5477_x5477 // x5478 = VectorApply(x5477,0)
-    val x5479 = StoreBanks(List(x5436_d0_b0), List(b3477), x5478_x5478).name("x5479").ctrl(x5480).srcCtx("BlackScholes.scala:107:21") // ParSRAMStore(x5436,List(List(b3477)),List(x5478),List(x5476))
+    val x5479 = StoreBanks(List(List(x5436_d0_b0)), List(b3477), x5478_x5478).name("x5479").ctrl(x5480).srcCtx("BlackScholes.scala:107:21") // ParSRAMStore(x5436,List(List(b3477)),List(x5478),List(x5476))
     val x5500 = UnitController(style=StreamPipe, level=OuterControl).name("x5500").ctrl(x5558).srcCtx("BlackScholes.scala:108:21") // UnitPipe(List(b3433),Block(Const(())))
     val b5802 = StreamOut(field="offset").name("b5802").ctrl(x5500).srcCtx("BlackScholes.scala:108:21") // x5482 = StreamOutNew(BurstCmdBus)
     isAccum(b5802) = false
@@ -141,7 +148,7 @@ object BlackScholes extends PIRApp {
     val x5495 = OpDef(op=BitAnd, inputs=List(b3499, b3433)).name("x5495").ctrl(x5499).srcCtx("UnrollingBase.scala:28:66") // And(b3499,b3433)
     val x5496_x5496 = ReadMem(x5483).name("x5496_x5496").ctrl(x5499).srcCtx("BlackScholes.scala:108:21") // ParStreamRead(x5483,List(x5495))
     val x5497_x5497 = x5496_x5496 // x5497 = VectorApply(x5496,0)
-    val x5498 = StoreBanks(List(x5437_d0_b0), List(b3498), x5497_x5497).name("x5498").ctrl(x5499).srcCtx("BlackScholes.scala:108:21") // ParSRAMStore(x5437,List(List(b3498)),List(x5497),List(x5495))
+    val x5498 = StoreBanks(List(List(x5437_d0_b0)), List(b3498), x5497_x5497).name("x5498").ctrl(x5499).srcCtx("BlackScholes.scala:108:21") // ParSRAMStore(x5437,List(List(b3498)),List(x5497),List(x5495))
     val x5519 = UnitController(style=StreamPipe, level=OuterControl).name("x5519").ctrl(x5558).srcCtx("BlackScholes.scala:109:21") // UnitPipe(List(b3433),Block(Const(())))
     val b5806 = StreamOut(field="offset").name("b5806").ctrl(x5519).srcCtx("BlackScholes.scala:109:21") // x5501 = StreamOutNew(BurstCmdBus)
     isAccum(b5806) = false
@@ -170,7 +177,7 @@ object BlackScholes extends PIRApp {
     val x5514 = OpDef(op=BitAnd, inputs=List(b3520, b3433)).name("x5514").ctrl(x5518).srcCtx("UnrollingBase.scala:28:66") // And(b3520,b3433)
     val x5515_x5515 = ReadMem(x5502).name("x5515_x5515").ctrl(x5518).srcCtx("BlackScholes.scala:109:21") // ParStreamRead(x5502,List(x5514))
     val x5516_x5516 = x5515_x5515 // x5516 = VectorApply(x5515,0)
-    val x5517 = StoreBanks(List(x5438_d0_b0), List(b3519), x5516_x5516).name("x5517").ctrl(x5518).srcCtx("BlackScholes.scala:109:21") // ParSRAMStore(x5438,List(List(b3519)),List(x5516),List(x5514))
+    val x5517 = StoreBanks(List(List(x5438_d0_b0)), List(b3519), x5516_x5516).name("x5517").ctrl(x5518).srcCtx("BlackScholes.scala:109:21") // ParSRAMStore(x5438,List(List(b3519)),List(x5516),List(x5514))
     val x5538 = UnitController(style=StreamPipe, level=OuterControl).name("x5538").ctrl(x5558).srcCtx("BlackScholes.scala:110:21") // UnitPipe(List(b3433),Block(Const(())))
     val b5810 = StreamOut(field="offset").name("b5810").ctrl(x5538).srcCtx("BlackScholes.scala:110:21") // x5520 = StreamOutNew(BurstCmdBus)
     isAccum(b5810) = false
@@ -199,7 +206,7 @@ object BlackScholes extends PIRApp {
     val x5533 = OpDef(op=BitAnd, inputs=List(b3541, b3433)).name("x5533").ctrl(x5537).srcCtx("UnrollingBase.scala:28:66") // And(b3541,b3433)
     val x5534_x5534 = ReadMem(x5521).name("x5534_x5534").ctrl(x5537).srcCtx("BlackScholes.scala:110:21") // ParStreamRead(x5521,List(x5533))
     val x5535_x5535 = x5534_x5534 // x5535 = VectorApply(x5534,0)
-    val x5536 = StoreBanks(List(x5439_d0_b0), List(b3540), x5535_x5535).name("x5536").ctrl(x5537).srcCtx("BlackScholes.scala:110:21") // ParSRAMStore(x5439,List(List(b3540)),List(x5535),List(x5533))
+    val x5536 = StoreBanks(List(List(x5439_d0_b0)), List(b3540), x5535_x5535).name("x5536").ctrl(x5537).srcCtx("BlackScholes.scala:110:21") // ParSRAMStore(x5439,List(List(b3540)),List(x5535),List(x5533))
     val x5557 = UnitController(style=StreamPipe, level=OuterControl).name("x5557").ctrl(x5558).srcCtx("BlackScholes.scala:111:21") // UnitPipe(List(b3433),Block(Const(())))
     val b5814 = StreamOut(field="offset").name("b5814").ctrl(x5557).srcCtx("BlackScholes.scala:111:21") // x5539 = StreamOutNew(BurstCmdBus)
     isAccum(b5814) = false
@@ -228,7 +235,7 @@ object BlackScholes extends PIRApp {
     val x5552 = OpDef(op=BitAnd, inputs=List(b3562, b3433)).name("x5552").ctrl(x5556).srcCtx("UnrollingBase.scala:28:66") // And(b3562,b3433)
     val x5553_x5553 = ReadMem(x5540).name("x5553_x5553").ctrl(x5556).srcCtx("BlackScholes.scala:111:21") // ParStreamRead(x5540,List(x5552))
     val x5554_x5554 = x5553_x5553 // x5554 = VectorApply(x5553,0)
-    val x5555 = StoreBanks(List(x5440_d0_b0), List(b3561), x5554_x5554).name("x5555").ctrl(x5556).srcCtx("BlackScholes.scala:111:21") // ParSRAMStore(x5440,List(List(b3561)),List(x5554),List(x5552))
+    val x5555 = StoreBanks(List(List(x5440_d0_b0)), List(b3561), x5554_x5554).name("x5555").ctrl(x5556).srcCtx("BlackScholes.scala:111:21") // ParSRAMStore(x5440,List(List(b3561)),List(x5554),List(x5552))
     val x5559 = Counter(min=Const(0), max=Const(32), step=Const(1), par=16).name("x5559").ctrl(x5782).srcCtx("BlackScholes.scala:114:20") // CounterNew(Const(0),Const(32),Const(1),Const(16))
     val x5560 = CounterChain(List(x5559)).name("x5560").ctrl(x5782).srcCtx("BlackScholes.scala:114:27") // CounterChainNew(List(x5559))
     val x5756 = LoopController(style=InnerPipe, level=InnerControl, cchain=x5560).name("x5756").ctrl(x5782).srcCtx("BlackScholes.scala:114:27") // UnrolledForeach(List(b3433),x5560,Block(Const(())),List(List(b3572)),List(List(b3573)))
@@ -428,7 +435,7 @@ object BlackScholes extends PIRApp {
     val x5752 = OpDef(op=FltSub, inputs=List(x5750, x5751)).name("x5752").ctrl(x5756).srcCtx("BlackScholes.scala:64:51:optionPrice2") // FltSub(x5750,x5751)
     val x5753 = OpDef(op=FixEql, inputs=List(x5573, Const(0))).name("x5753").ctrl(x5756).srcCtx("BlackScholes.scala:65:15") // FixEql(x5573,Const(0))
     val x5754 = OpDef(op=MuxOp, inputs=List(x5753, x5752, x5749)).name("x5754").ctrl(x5756).srcCtx("BlackScholes.scala:65:8:price") // Mux(x5753,x5752,x5749)
-    val x5755 = StoreBanks(List(x5441_d0_b0), List(b3572), x5754).name("x5755").ctrl(x5756).srcCtx("BlackScholes.scala:116:26") // ParSRAMStore(x5441,List(List(b3572)),List(x5754),List(x5561))
+    val x5755 = StoreBanks(List(List(x5441_d0_b0)), List(b3572), x5754).name("x5755").ctrl(x5756).srcCtx("BlackScholes.scala:116:26") // ParSRAMStore(x5441,List(List(b3572)),List(x5754),List(x5561))
     val x5758 = UnitController(style=SeqPipe, level=InnerControl).name("x5758").ctrl(x5782).srcCtx("BlackScholes.scala:96:34") // UnitPipe(List(b3433),Block(Const(())))
     val x5757 = OpDef(op=FixAdd, inputs=List(b3432, Const(32))).name("x5757").ctrl(x5758).srcCtx("BlackScholes.scala:118:22") // FixAdd(b3432,Const(32))
     val x5781 = UnitController(style=StreamPipe, level=OuterControl).name("x5781").ctrl(x5782).srcCtx("BlackScholes.scala:118:34") // UnitPipe(List(b3433),Block(Const(())))

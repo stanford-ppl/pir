@@ -66,7 +66,7 @@ object OuterProduct extends PIRApp {
     val x1698 = OpDef(op=BitAnd, inputs=List(b985, b967)).name("x1698").ctrl(x1702).srcCtx("UnrollingBase.scala:28:66") // And(b985,b967)
     val x1699_x1699 = ReadMem(x1686).name("x1699_x1699").ctrl(x1702).srcCtx("OuterProduct.scala:36:12") // ParStreamRead(x1686,List(x1698))
     val x1700_x1700 = x1699_x1699 // x1700 = VectorApply(x1699,0)
-    val x1701 = StoreBanks(List(x1682_d0_b0), List(b984), x1700_x1700).name("x1701").ctrl(x1702).srcCtx("OuterProduct.scala:36:12") // ParSRAMStore(x1682,List(List(b984)),List(x1700),List(x1698))
+    val x1701 = StoreBanks(List(List(x1682_d0_b0)), List(b984), x1700_x1700).name("x1701").ctrl(x1702).srcCtx("OuterProduct.scala:36:12") // ParSRAMStore(x1682,List(List(b984)),List(x1700),List(x1698))
     val x1704 = ReadMem(x1667_d0).name("x1704").ctrl(x1783).srcCtx("OuterProduct.scala:37:17") // RegRead(x1667)
     val x1705 = Counter(min=Const(0), max=x1704, step=Const(32), par=1).name("x1705").ctrl(x1783).srcCtx("OuterProduct.scala:37:30") // CounterNew(Const(0),x1704,Const(32),Const(1))
     val x1706 = CounterChain(List(x1705)).name("x1706").ctrl(x1783).srcCtx("OuterProduct.scala:37:39") // CounterChainNew(List(x1705))
@@ -109,7 +109,7 @@ object OuterProduct extends PIRApp {
     val x1725 = OpDef(op=BitAnd, inputs=List(x1724, b967)).name("x1725").ctrl(x1729).srcCtx("UnrollingBase.scala:28:66") // And(x1724,b967)
     val x1726_x1726 = ReadMem(x1711).name("x1726_x1726").ctrl(x1729).srcCtx("OuterProduct.scala:39:14") // ParStreamRead(x1711,List(x1725))
     val x1727_x1727 = x1726_x1726 // x1727 = VectorApply(x1726,0)
-    val x1728 = StoreBanks(List(x1707_d0_b0), List(b1014), x1727_x1727).name("x1728").ctrl(x1729).srcCtx("OuterProduct.scala:39:14") // ParSRAMStore(x1707,List(List(b1014)),List(x1727),List(x1725))
+    val x1728 = StoreBanks(List(List(x1707_d0_b0)), List(b1014), x1727_x1727).name("x1728").ctrl(x1729).srcCtx("OuterProduct.scala:39:14") // ParSRAMStore(x1707,List(List(b1014)),List(x1727),List(x1725))
     val x1731_d0_b0 = SRAM(size=1024, banking=Strided(banks=16, stride=1)).name("x1731_d0_b0").ctrl(x1782).srcCtx("OuterProduct.scala:40:32:outTile") // x1731 = SRAMNew(ArrayBuffer(Const(32), Const(32)))
     isAccum(x1731_d0_b0) = false
     bufferDepthOf(x1731_d0_b0) = 3
@@ -129,7 +129,7 @@ object OuterProduct extends PIRApp {
     val x1739 = LoadBanks(List(x1707_d0_b0), List(b1028)).name("x1739").ctrl(x1743).srcCtx("OuterProduct.scala:41:86") // ParSRAMLoad(x1707,List(List(b1028)),List(x1737))
     val x1740 = x1739 // x1740 = VectorApply(x1739,0)
     val x1741 = OpDef(op=FixMul, inputs=List(x1738, x1740)).name("x1741").ctrl(x1743).srcCtx("OuterProduct.scala:41:82") // FixMul(x1738,x1740)
-    val x1742 = StoreBanks(List(x1731_d0_b0), List(b1027, b1028), x1741).name("x1742").ctrl(x1743).srcCtx("OuterProduct.scala:41:73") // ParSRAMStore(x1731,List(List(b1027, b1028)),List(x1741),List(x1737))
+    val x1742 = StoreBanks(List(List(x1731_d0_b0)), List(b1027, b1028), x1741).name("x1742").ctrl(x1743).srcCtx("OuterProduct.scala:41:73") // ParSRAMStore(x1731,List(List(b1027, b1028)),List(x1741),List(x1737))
     val x1745 = UnitController(style=SeqPipe, level=InnerControl).name("x1745").ctrl(x1782).srcCtx("OuterProduct.scala:37:39") // UnitPipe(List(b996, b967),Block(Const(())))
     val x1744 = OpDef(op=FixAdd, inputs=List(b966, Const(32))).name("x1744").ctrl(x1745).srcCtx("OuterProduct.scala:42:19") // FixAdd(b966,Const(32))
     val x1746 = Counter(min=Const(0), max=Const(32), step=Const(1), par=1).name("x1746").ctrl(x1782).srcCtx("OuterProduct.scala:42:43") // CounterNew(Const(0),Const(32),Const(1),Const(1))

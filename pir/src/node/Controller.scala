@@ -60,7 +60,7 @@ trait ControllerUtil {
 
   def accessesOf(n:Controller) = {
     import n.design.pirmeta._
-    ctrlOf.bmap(n).collect { case n:LocalAccess => n }
+    ctrlOf.getV(n).getOrElse(Nil).collect { case n:LocalAccess => n }
   }
 
   def inAccessesOf(n:Controller) = {
