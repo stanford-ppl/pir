@@ -16,6 +16,9 @@ trait MapLike[K,V] extends prism.collection.MapLike[K,V] {
   def removeAll(a:Any) = {
     a match {
       case a:K => removeKey(a)
+      case _ =>
+    }
+    a match {
       case a:V => removeValue(a)
       case _ =>
     }
