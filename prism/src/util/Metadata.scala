@@ -42,6 +42,7 @@ trait Metadata extends Serializable {
     def contains(k:K):Boolean
     def removeAll(a:Any):Unit
     def update(k:K, v:V):Unit
+    def remove(k:K, v:V):Unit
   
     var nameOpt:Option[String] = None
     def setName(s:String) = nameOpt = Some(s)
@@ -54,11 +55,37 @@ trait Metadata extends Serializable {
       (orig, clone) match {
         case (orig:K, clone:K) =>
           get(orig).foreach { vv => 
-            dbg(logger, s"$this($clone)=$name($orig)=$vv")
+            dbg(logger, s"$name.mirror($orig, $clone)=$vv")
             toVs(vv).foreach { v => update(clone, v) }
           }
         case _ =>
       }
+    }
+    def migrate(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {
+      // Replace orig -> any to clone -> any
+      (orig, clone) match {
+        case (orig:K, clone:K) =>
+          get(orig).foreach { vv => 
+            dbg(logger, s"$name.migrate($orig, $clone)=$vv")
+            toVs(vv).foreach { v => 
+              update(clone, v)
+              remove(orig, v)
+            }
+          }
+        case _ =>
+      }
+      // Replace any -> orig to clone -> orig
+      //(orig, clone) match {
+        //case (orig:V, clone:V) =>
+          //get(orig).foreach { vv => 
+            //dbg(logger, s"$name.migrate($orig, $clone)=$vv")
+            //toVs(vv).foreach { v => 
+              //update(clone, v)
+              //remove(orig, v)
+            //}
+          //}
+        //case _ =>
+      //}
     }
     def info(a:Any):Option[String] = { 
       a match {

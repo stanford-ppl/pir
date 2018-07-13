@@ -3,7 +3,9 @@ package util
 
 import scala.collection.mutable
 
-trait ScalaUtil {
+trait ScalaUtil extends ScalaAlias with ScalaUtilFunc
+
+trait ScalaAlias {
   type ClassTag[T] = scala.reflect.ClassTag[T]
   def classTag[T](implicit ctag: ClassTag[T]) = scala.reflect.classTag[T]
   type TypeTag[T] = scala.reflect.runtime.universe.TypeTag[T]
@@ -22,7 +24,9 @@ trait ScalaUtil {
   val Try = scala.util.Try
   val Success = scala.util.Success
   val Failure = scala.util.Failure
+}
 
+trait ScalaUtilFunc {
   def getOrElseUpdate[K,V](map:mutable.Map[K,V], k:K)(vFunc: => V) = {
     if (map.contains(k)) map(k) else {
       val v = vFunc

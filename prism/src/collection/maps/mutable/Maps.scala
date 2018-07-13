@@ -1,8 +1,9 @@
 package prism
 package collection.mutable
 
-import scala.collection.mutable.Set
+import scala.collection.mutable.{ Set => MSet }
 import scala.collection.mutable.Map
+
 trait MapLike[K,V] extends prism.collection.MapLike[K,V] {
   def update(k:K, v:V):Unit
   def getOrElseUpdate(k:K)(vv: => VV):VV
@@ -10,8 +11,6 @@ trait MapLike[K,V] extends prism.collection.MapLike[K,V] {
   def removeKey(k:K):Unit
   def removeValue(v:V):Unit
   def clear:Unit
-  def toVs(vv:VV):Set[V]
-  def toVV(vs:Set[V]):VV
 
   def += (pair:(K,V)) = { val (k,v) = pair; update(k,v)}
   def removeAll(a:Any) = {
@@ -23,33 +22,28 @@ trait MapLike[K,V] extends prism.collection.MapLike[K,V] {
   }
 }
 trait UniMap[K,V] extends prism.collection.UniMap[K,V] with MapLike[K,V] {
-  override type UM = Map[K,VV]
+  override type UM = Map[K,_VV]
   val map:UM = Map.empty 
   def update(k:K, v:V):Unit = check(k,v)
-  def remove(k:K, v:V):Unit = {
-    map.get(k).foreach { vv =>
-      val vs = toVs(vv)
-      vs -= v
-      if (vs.isEmpty) removeKey(k)
-    }
-  }
   def removeKey(k:K):Unit = map -= k
   def removeValue(v:V):Unit = {
-    map.foreach { case (k,vv) =>
+    map.foreach { case (k,_vv) =>
+      val vv = _VVtoVV(_vv)
       if (toVs(vv).contains(v)) remove(k,v)
     }
   }
   def clear = { map.clear }
-  def getOrElse(k:K,vv:VV) = map.getOrElse(k,vv)
 }
 
 class OneToOneMap[K:ClassTag,V:ClassTag] extends prism.collection.OneToOneMap[K,V] with UniMap[K,V] {
-  def toVs(vv:VV):Set[V] = Set(vv)
-  def toVV(vs:Set[V]):V = vs.head
+  type KK = Set[K]
+  def toKs(kk:KK):Set[K] = kk
+  def toKK(ks:Set[K]):KK = ks
   override def update(k:K, v:V):Unit = {
     super.update(k,v)
     map += (k -> v)
   }
+  def remove(k:K, v:V):Unit = removeKey(k)
   def getOrElseUpdate(k:K)(vv: => V):V = {
     if (!map.contains(k)) update(k,vv) 
     map(k)
@@ -72,31 +66,34 @@ class OneToOneMap[K:ClassTag,V:ClassTag] extends prism.collection.OneToOneMap[K,
 }
 
 class OneToManyMap[K:ClassTag,V:ClassTag] extends prism.collection.OneToManyMap[K,V] with UniMap[K,V] {
-  type VV = Set[V]
+  type _VV = MSet[V]
+  def _VVtoVV(_vv:_VV):VV = _vv.toSet
   val vvct = classTag[VV]
-  def toVs(vv:VV):Set[V] = vv
-  def toVV(vs:Set[V]):Set[V] = vs
-  override def apply(k:K) = map.getOrElse(k, Set())
+  type KK = Set[K]
+  def toKs(kk:KK):Set[K] = kk
+  def toKK(ks:Set[K]):KK = ks
+  override def apply(k:K) = map.getOrElse(k, Set()).toSet
   override def update(k:K, v:V):Unit = {
     super.update(k,v)
-    map += k -> (map.getOrElse(k, Set[V]()) + v)
+    map += k -> (map.getOrElse(k, MSet[V]()) + v)
+  }
+  def remove(k:K, v:V):Unit = {
+    map.get(k).foreach { case vv:_VV =>
+      vv -= v
+      if (vv.isEmpty) removeKey(k)
+    }
   }
   def getOrElseUpdate(k:K)(vv: => Set[V]):Set[V] = {
     if (!map.contains(k)) vv.foreach { v => update(k,v) }
-    map(k)
+    map(k).toSet
   }
   def update(k:K, vv:Iterable[V]):Unit = vv.foreach(v => update(k,v))
 }
 
 trait BiMap[K,V] extends prism.collection.BiMap[K,V] with MapLike[K,V] {
-  override type UM = Map[K,VV]
-  val fmap:UniMap[K,V]
-  val bmap:UniMap[V,K]
+  type FM <: UniMap[K,V]
+  type BM <: UniMap[V,K]
 
-  def toKs(kk:KK):Set[K] = bmap.toVs(kk)
-  def toKK(ks:Set[K]):KK = bmap.toVV(ks)
-  def toVs(vv:VV):Set[V] = fmap.toVs(vv) 
-  def toVV(vs:Set[V]):VV = fmap.toVV(vs) 
   def update(k:K, v:V):Unit = {
     fmap.check(k,v)
     bmap.check(v,k)
@@ -125,36 +122,38 @@ trait BiMap[K,V] extends prism.collection.BiMap[K,V] with MapLike[K,V] {
 
 }
 
-class BiOneToOneMap[K:ClassTag,V:ClassTag] extends BiMap[K,V] {
-  override type KK = K
-  override type VV = V
+class BiOneToOneMap[K:ClassTag,V:ClassTag] extends prism.collection.BiOneToOneMap[K,V] with BiMap[K,V] {
+  def _VVtoVV(_vv:_VV):VV = _vv
+  type FM = OneToOneMap[K,V]
+  type BM = OneToOneMap[V,K]
   val fmap = new OneToOneMap[K,V]()
   val bmap = new OneToOneMap[V,K]()
 }
 
-class BiOneToManyMap[K:ClassTag,V:ClassTag] extends BiMap[K,V] {
-  override type KK = K
-  override type VV = Set[V]
+class BiOneToManyMap[K:ClassTag,V:ClassTag] extends prism.collection.BiOneToManyMap[K,V] with BiMap[K,V] {
+  def _VVtoVV(_vv:_VV):VV = _vv.toSet
+  type FM = OneToManyMap[K,V]
+  type BM = OneToOneMap[V,K]
   val fmap = new OneToManyMap[K,V]()
   val bmap = new OneToOneMap[V,K]()
-  override def apply(k:K):VV = fmap.getOrElse(k, Set())
   def update(k:K, vv:Iterable[V]):Unit = vv.foreach(v => update(k,v))
   def ++= (kvv:(K,Iterable[V])):Unit = update(kvv._1, kvv._2)
 }
 
-class BiManyToOneMap[K:ClassTag,V:ClassTag] extends BiMap[K,V] {
-  override type KK = Set[K]
-  override type VV = V
+class BiManyToOneMap[K:ClassTag,V:ClassTag] extends prism.collection.BiManyToOneMap[K,V] with BiMap[K,V] {
+  def _VVtoVV(_vv:_VV):VV = _vv
+  type FM = OneToOneMap[K,V]
+  type BM = OneToManyMap[V,K]
   val fmap = new OneToOneMap[K,V]()
   val bmap = new OneToManyMap[V,K]()
 }
 
-class BiManyToManyMap[K:ClassTag,V:ClassTag] extends BiMap[K,V] {
-  override type KK = Set[K]
-  override type VV = Set[V]
+class BiManyToManyMap[K:ClassTag,V:ClassTag] extends prism.collection.BiManyToManyMap[K,V] with BiMap[K,V] {
+  def _VVtoVV(_vv:_VV):VV = _vv.toSet
+  type FM = OneToManyMap[K,V]
+  type BM = OneToManyMap[V,K]
   val fmap = new OneToManyMap[K,V]()
   val bmap = new OneToManyMap[V,K]()
-  override def apply(k:K):VV = fmap.getOrElse(k, Set())
   def update(k:K, vv:Iterable[V]):Unit = vv.foreach(v => update(k,v))
   def ++= (kvv:(K,Iterable[V])):Unit = update(kvv._1, kvv._2)
 }
