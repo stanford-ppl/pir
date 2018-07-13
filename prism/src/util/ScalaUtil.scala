@@ -37,6 +37,12 @@ trait ScalaUtil {
     res.headOption
   }
 
+  def assertOptionUnify[A,B](list:Iterable[A],info:String)(lambda:A => Option[B]):Option[B] = {
+    val res = list.flatMap(a => lambda(a))
+    assert(res.toSet.size<=1, s"$list doesnt have the same $info = $res")
+    res.headOption
+  }
+
   def assertIdentical[A](list:Iterable[A],info:String):Option[A] = {
     val res = list
     assert(res.toSet.size<=1, s"$list doesnt have the same $info = $res")
@@ -75,6 +81,13 @@ trait ScalaUtil {
 
   def reverseMap[K,V](map:scala.collection.Map[K,V]):Map[V,Set[K]] = {
     map.groupBy(_._2).mapValues(_.keys.toSet)
+  }
+
+  def flatReduce[A](list:List[Option[A]])(lambda:(A,A) => A):Option[A] = {
+    list.reduce[Option[A]]{
+      case (Some(a), Some(b)) => Some(lambda(a,b))
+      case _ => None
+    }
   }
 
 }

@@ -93,6 +93,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(accessLowering).dependsOn(controlPropogator, accessPuller, deadCodeEliminator)
     addPass(deadCodeEliminator)
     addPass(enableDot, new PIRIRDotCodegen(s"top5.dot"))
+    addPass(memoryAnalyzer)
     addPass(controllerRuntimeAnalyzer).dependsOn(controlPropogator)
     addPass(cuStats)
 

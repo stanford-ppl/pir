@@ -3,7 +3,7 @@ package node
 
 import prism.enums._
 
-abstract class Controller(implicit design:PIRDesign) extends prism.node.SubGraph[Controller] with IR {
+abstract class Controller(implicit val design:PIRDesign) extends prism.node.SubGraph[Controller] with IR {
   type P = Controller
   val style:ControlStyle
   val level:ControlLevel
@@ -12,9 +12,8 @@ abstract class Controller(implicit design:PIRDesign) extends prism.node.SubGraph
   def isStream = style==StreamPipe
   val id = design.nextId
 }
-case class ForeverController()(implicit design:PIRDesign) extends Controller {
+case class ForeverController(level:ControlLevel=OuterControl)(implicit design:PIRDesign) extends Controller {
   val style = StreamPipe
-  val level = OuterControl
 }
 case class LoopController(style:ControlStyle, level:ControlLevel, cchain:CounterChain)(implicit design:PIRDesign) extends Controller {
   override def className = s"$style"
@@ -59,18 +58,18 @@ trait ControllerUtil {
     case n => false
   }
 
-  def accessesOf(n:Controller)(implicit design:PIRDesign) = {
-    import design.pirmeta._
+  def accessesOf(n:Controller) = {
+    import n.design.pirmeta._
     ctrlOf.bmap(n).collect { case n:LocalAccess => n }
   }
 
-  def inAccessesOf(n:Controller)(implicit design:PIRDesign) = {
-    import design.pirmeta._
+  def inAccessesOf(n:Controller) = {
+    import n.design.pirmeta._
     accessesOf(n).filter { n => isInAccess(n) }
   }
 
-  def outAccessesOf(n:Controller)(implicit design:PIRDesign) = {
-    import design.pirmeta._
+  def outAccessesOf(n:Controller) = {
+    import n.design.pirmeta._
     accessesOf(n).filter { n => isOutAccess(n) }
   }
 
@@ -78,16 +77,16 @@ trait ControllerUtil {
     (n::n.descendents).flatMap { n => lambda(n) }.toSet
   }
 
-  def inMemsOf(n:Controller)(implicit design:PIRDesign) = {
-    import design.pirmeta._
+  def inMemsOf(n:Controller) = {
+    import n.design.pirmeta._
     total(n)(outAccessesOf).flatMap { a => memsOf(a) }.filterNot { m => 
       val mc = ctrlOf(m)
       mc.isDescendentOf(n) || mc == n
     }
   }
 
-  def outMemsOf(n:Controller)(implicit design:PIRDesign) = {
-    import design.pirmeta._
+  def outMemsOf(n:Controller) = {
+    import n.design.pirmeta._
     total(n)(inAccessesOf).flatMap { a => memsOf(a) }.filterNot { m => 
       val mc = ctrlOf(m)
       mc.isDescendentOf(n) || mc == n

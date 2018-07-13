@@ -86,13 +86,21 @@ class PIRMetadata extends Metadata {
   parOf.setName("parOf")
 
   /*
-   * Number of iterations before the node is active/done again with respect to enable of the
-   * ContextEnable
+   * Number of iterations the node is running
    * */
   val itersOf =  new OneToOneMap[Any, Option[Long]] with MetadataMap {
     override def mirror(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {}
   }
   itersOf.setName("itersOf")
+
+  /*
+   * Number of accumulative iterations before the node is active/done again with respect to enable of the
+   * ContextEnable
+   * */
+  val scaleOf =  new OneToOneMap[Any, Option[Long]] with MetadataMap {
+    override def mirror(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {}
+  }
+  scaleOf.setName("scaleOf")
 
   /*
    * Number of iterations before the node is active through out the execution of the program

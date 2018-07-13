@@ -126,7 +126,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         emitln(s"lat = ${latencyOf(n).get}")
         val accums = loadAccessesOf(n).flatMap { read =>
           memsOf(read).head match {
-            case mem if isAccum(mem) => Some((mem, constItersOf(read)))
+            case mem if isAccum(mem) => Some((mem, constScaleOf(read)))
             case mem => None
           }
         }
@@ -244,7 +244,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         case cuP:DramFringe if enableTrace =>
           emitln(s"scale_in[$idx] = 1")
         case cuP =>
-          emitln(s"scale_in[$idx] = ${constItersOf(reads)}")
+          emitln(s"scale_in[$idx] = ${constScaleOf(reads)}")
       }
       emitln(s"buffer[$idx]=${bufferSizeOf(reads).get}")
     }
@@ -257,7 +257,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         case cuP:DramFringe if enableTrace =>
           emitln(s"scale_out[$idx] = 1")
         case cuP =>
-          emitln(s"scale_out[$idx] = ${constItersOf(writes)}")
+          emitln(s"scale_out[$idx] = ${constScaleOf(writes)}")
       }
     }
   }

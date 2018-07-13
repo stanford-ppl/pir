@@ -43,12 +43,12 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
       inlinksOf(n).foreach { case (link, reads) =>
         val accums = link.filter { mem => isAccum(mem) }
         label += s"\n${quote(link)} ${if (accums.nonEmpty) "(isAccum)" else "" }"
-        getItersOf(reads).foreach { sin => label += s"\n[sin=$sin]" }
+        getScaleOf(reads).foreach { sin => label += s"\n[sin=$sin]" }
         bufferSizeOf(reads).foreach { bs => label += s"\n[bs=$bs]" }
       }
       outlinksOf(n).foreach { case (link, writes) =>
         label += s"\n${quote(link)}"
-        getItersOf(writes).foreach { sout => label += s"\n[sout=$sout]" }
+        getScaleOf(writes).foreach { sout => label += s"\n[sout=$sout]" }
       }
       attr.label(label)
     case n => super.label(attr, n)

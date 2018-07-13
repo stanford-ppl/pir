@@ -1,9 +1,10 @@
 package pir
 package pass
 
+import prism.util._
 import pir.node._
 
-trait RuntimeUtil extends ConstantPropogator { self:Logging =>
+trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { self:Logging =>
   val pirmeta:PIRMetadata
   val spademeta:SpadeMetadata
   import pirmeta._
@@ -18,7 +19,7 @@ trait RuntimeUtil extends ConstantPropogator { self:Logging =>
   }
 
   def getParOf(x:Controller):Int = parOf.getOrElseUpdate(x) {
-    dbgblk(s"getParOf($x)") {
+    dbgblk(s"$x.par") {
       x match {
         case n:ForeverController => 1
         case x:UnitController => 1
@@ -37,9 +38,9 @@ trait RuntimeUtil extends ConstantPropogator { self:Logging =>
    * For controller, itersOf is the number of iteration the current controller runs before saturate
    * */
   def getItersOf(n:Controller):Option[Long] = itersOf.getOrElseUpdate(n) {
-    dbgblk(s"getItersOf($n)") {
+    dbgblk(s"$n.iters") {
       n match {
-        case x:ForeverController => getCountsOf(x)
+        case x:ForeverController => throw PIRException(s"ForeverController doesn't have iter")
         case x:UnitController => Some(1)
         case x:TopController => Some(1)
         case x:LoopController => 
@@ -57,27 +58,23 @@ trait RuntimeUtil extends ConstantPropogator { self:Logging =>
   }
 
   def getCountsOf(n:Controller):Option[Long] = countsOf.getOrElseUpdate(n) {
-    dbgblk(s"getCountsOf($n)") { 
+    dbgblk(s"$n.counts") { 
       n match {
         case ctrl:ArgInController => Some(1l)
         case ctrl:ForeverController => 
-          val leaves = n.descendents.filter { _.children.isEmpty }
-          assertUnify(leaves.filter(c => foreverLoadsOf(c).nonEmpty), s"counts for $n") { c => 
-            getCountsOf(c)
-          }.get
+          val inMems = inMemsOf(ctrl).filter { m => isFIFO(m) }
+          dbg(s"inMems=$inMems")
+          val memCounts = inMems.flatMap { m => 
+            assertOptionUnify(inAccessesOf(m), s"$m inAccesses.ctrl.count") { a => getCountsOf(ctrlOf(a)) }
+          }
+          assertIdentical(memCounts, s"counts for $ctrl") 
+        case n:Controller if n.ancestors.exists(isForever) && n.children.isEmpty =>
+          val forever = n.ancestors.filter(isForever).head
+          dbg(s"Under forever. Is leaf")
+          getCountsOf(forever)
         case n:Controller if n.ancestors.exists(isForever) =>
-          dbg(s"Under forever")
-          val reads = foreverLoadsOf(n).toList
-          dbg(s"reads=${reads}")
-          if (reads.nonEmpty) {
-            val ctxEn = ctxEnOf(reads.head).get
-            computeCount(ctxEn, reads)
-          } else if (n.children.nonEmpty) {
-            assertUnify(n.children, s"counts for $n") { c => 
-              zipMap(getCountsOf(c), itersOf(c)) { case (c, i) => c / i }
-            }.get
-          } else {
-            throw PIRException(s"don't know how to compute getCountsOf($n)")
+          assertOptionUnify(n.children, s"counts for $n") { c =>
+            zipMap(getCountsOf(c), getItersOf(c)) { case (c,i) => c / i }
           }
         case n:Controller =>
           val ancestors = (n::n.ancestors)
@@ -92,41 +89,9 @@ trait RuntimeUtil extends ConstantPropogator { self:Logging =>
     }
   }
 
-  def foreverLoadsOf(n:Controller) = fifoLoadsOf(n) ++ loadsUnderForever(n)
-
-  def fifoLoadsOf(n:Controller) = dbgblk(s"remoteStoreAccessesOf($n)"){
-    val descendents = (n :: n.descendents)
-    val reads = ctrlOf.bmap(n).collect { case n:LocalLoad => n }.toList
-    dbg(s"reads=${reads.map { read => (read, memsOf(read))}}")
-    dbg(s"descendents=$descendents")
-    reads.filter { read => 
-      memsOf(read).forall { mem => 
-        isFIFO(mem) && writersOf(mem).forall { writer => 
-          val writerCtrl = ctrlOf(writer)
-          dbg(s"mem=$mem writerCtrl=$writerCtrl")
-          !descendents.contains(writerCtrl)
-        }
-      } 
-    }
-  }
-
-  def loadsUnderForever(n:Controller) = dbgblk(s"loadAccessesUnderForever($n)"){
-    val forever = n.ancestors.filter(isForever).head
-    val fdescendents = forever::forever.descendents
-    val descendents = n :: n.descendents
-    val reads = ctrlOf.bmap(n).collect { case n:LocalLoad => n }.toList
-    dbg(s"reads=${reads.map { read => (read, memsOf(read))}}")
-    reads.filter { read => memsOf(read).forall { mem => 
-      writersOf(mem).forall { writer =>
-        val writerCtrl = ctrlOf(writer)
-        !descendents.contains(writerCtrl)
-      } && fdescendents.contains(ctrlOf(mem)) 
-    } }
-  }
-
 
   def getParOf(x:PIRNode):Int = parOf.getOrElseUpdate(x) {
-    dbgblk(s"getParOf($x)") {
+    dbgblk(s"$x.par") {
       x match {
         case x:ControlNode => 1
         case x:Counter => x.par
@@ -157,88 +122,67 @@ trait RuntimeUtil extends ConstantPropogator { self:Logging =>
    * local contextEnable
    * */
   def getItersOf(n:PIRNode):Option[Long] = itersOf.getOrElseUpdate(n) {
-    dbgblk(s"getItersOf($n)") {
+    dbgblk(s"$n.iters") {
       n match {
-        case cchain:CounterChain => getItersOf(cchain.outer)
+        case Def(n, CounterChain(counters)) => flatReduce(counters.map(getItersOf)) { _ * _ }
         case Def(ctr:Counter, Counter(min, max, step, par)) =>
           val cmin = getBoundAs[Int](min, logger=Some(this))
           val cmax = getBoundAs[Int](max, logger=Some(this))
           val cstep = getBoundAs[Int](step, logger=Some(this))
           dbg(s"ctr=${quote(ctr)} cmin=$cmin, cmax=$cmax, cstep=$cstep par=$par")
-          val iters = zipMap(cmin, cmax, cstep) { case (cmin, cmax, cstep) =>
+          zipMap(cmin, cmax, cstep) { case (cmin, cmax, cstep) =>
             if ((cmax - cmin) % (cstep * par) != 0)
               warn(s"(max=$cmax - min=$cmin) % (step=$cstep * par=$par) != 0 for ${quote(ctr)}")
             (cmax - cmin) / (cstep * par)
           }
-          val enIters = ctr.getEnable.map { en => getItersOf(en) }.getOrElse(Some(1l))
-          dbg(s"iters=$iters, enIters=$enIters")
-          zipMap(iters, enIters) { case (iters, enIters) => iters * enIters }
-        case Def(n, CounterDone(ctr)) => getItersOf(ctr)
+        case n:ProcessDramCommand => getItersOf(ctrlOf(n))
         case n:DramControllerDone => getItersOf(ctrlOf(n))
-        case n:ForeverControllerDone => getItersOf(ctrlOf(n))
-        case n:ContextEnable => Some(1l)
-        case n:EnabledAccess => getItersOf(accessNextOf(n))
-        case n:GlobalOutput => getItersOf(validOf(n))
-        case n:ProcessDramCommand => Some(1l)
-        case n:Primitive => 
-          val deps = n.deps.filterNot { dep => isBackPressure(dep) || dep.isInstanceOf[Memory] }
-          minByWithBound[Primitive, Option[Long]](deps, Some(1l)) { dep => getItersOf(dep) }
+        case n:Primitive => Some(1l)
       }
     }
   }
 
-  // CtxEn.counts = R.count * R.iters / CtxEn.iters
-  // R.counts = M.counts
-  // M.counts = W.counts
-  // W.counts = Input.counts * Input.iters / W.iters
-  // Input.counts = Output.counts * Output.iters / Input.iters
-  // Output.counts = Def.counts * Def.iters / Output.iters
-  // Def.counts = CtxEn.counts
-  // Def.iters = 1
-  //
-  // CtxEn.counts = R.count * R.iters / CtxEn.iters
-  // CtxEn.counts = M.count * R.iters / 1 
-  // CtxEn.counts = W.count * R.iters
-  // CtxEn.counts = Output.counts * Output.iters / W.iters * R.iters
-  // CtxEn.counts = Def.counts * Def.iters / W.iters * R.iters
-  // CtxEn.counts = CtxEn.counts / W.iters * R.iters
-  
+
+  def getScaleOf(n:PIRNode):Option[Long] = scaleOf.getOrElseUpdate(n) {
+    dbgblk(s"$n.scale") {
+      n match {
+        case n:ContextEnable => Some(1l)
+        case n:ForeverControllerDone => getCountsOf(ctrlOf(n))
+        case n =>
+          val en = enableOf(n)
+          val enScale = en.map { en => getScaleOf(en) }.getOrElse(Some(1l))
+          zipMap(enScale, getItersOf(n), s"$en.scale * $n.iters") { _ * _ }
+      }
+    }
+  }
+
+  def enableOf(n:PIRNode):Option[Primitive] = {
+    n match {
+      case n:LocalAccess => Some(accessNextOf(n))
+      case n:Counter => n.getEnable
+      case Def(n, DataValid(gin)) => enableOf(gin)
+      case n:ControlNode => 
+        assert(n.deps.size==1, s"$n has more than 1 dep")
+        Some(n.deps.head)
+      case n:GlobalInput => goutOf(n).flatMap(enableOf) 
+      case n:GlobalOutput => Some(validOf(n))
+    }
+  }
+
   def getCountsOf(n:PIRNode):Option[Long] = countsOf.getOrElseUpdate(n) {
-    dbgblk(s"getCountsOf($n, ctrl=${ctrlOf(n)})") { 
+    dbgblk(s"$n.counts") { 
       n match {
         case n:ContextEnable => getCountsOf(ctrlOf(n))
-        case n:LocalLoad => assertUnify(memsOf(n), "memCounts") { mem => getCountsOf(mem) }.get
-        case n:Memory if writersOf(n).isEmpty => Some(1)
-        case n:Memory => assertUnify(writersOf(n), "writeCounts") { writer => getCountsOf(writer) }.get
-        case n:LocalStore => computeCount(n, List(dataOf(n)))
-        case Def(n:LocalReset, LocalReset(mems, reset)) => computeCount(n, List(reset))
-        case n:GlobalInput => computeCount(n, List(goutOf(n).get))
-        case n:GlobalOutput => computeCount(n, List(gdataOf(n)))
-        case n:StreamInDef => countsOf.get(n).getOrElse(None)
-        case n:Primitive => getCountsOf(ctxEnOf(n).get)
+        case n:Memory => assertUnify(inAccessesOf(n), s"${inAccessesOf(n)}.counts") { a => getCountsOf(a) }.get
+        case n:Primitive => zipMap(getCountsOf(ctxEnOf(n).get), getScaleOf(n), s"${ctxEnOf(n).get}.counts / $n.scale") { _ / _ }
       }
     }
   }
 
-  def getItersOf(n:Any):Option[Long] = n match {
-    case n:PIRNode => getItersOf(n)
-    case n:Controller => getItersOf(n)
+  def zipMap[A,B,T](a:Option[A], b:Option[B], info:String)(lambda:(A,B) => T):Option[T] = {
+    val res = super.zipMap(a,b)(lambda)
+    dbg(s"$info: $a zip $b => $res")
+    res
   }
-
-  def getCountsOf(n:Any):Option[Long] = n match {
-    case n:PIRNode => getCountsOf(n)
-    case n:Controller => getCountsOf(n)
-  }
-
-  def computeCount(curr:Any, deps:List[Any]) = dbgblk(s"computeCount($curr)"){
-    val currIter = getItersOf(curr)
-    assertUnify(deps, s"counts for ${quote(curr)}") { dep => 
-      zipMap(getCountsOf(dep), getItersOf(dep), currIter) { case (depCount, depIter, currIter) =>
-        dbg(s"$dep.count=$depCount * $dep.iter=$depIter / currIter=$currIter")
-        depCount * depIter / currIter
-      }
-    }.get
-  }
-
-
+  
 }
