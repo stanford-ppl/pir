@@ -32,7 +32,7 @@ trait UniMap[K,V] extends MapLike[K,V] {
   type UM <: Map[K, VV]
 
   val map:UM
-  def apply(n:K):VV = { map(n) }
+  def apply(n:K):VV = { map.get(n).getOrElse(throw PIRException(s"$n not found in $this")) }
   def foreach(lambda:((K,VV)) => Unit):Unit = map.foreach(lambda)
   def map[B](lambda:((K,VV)) => B):Iterable[B] = map.map(lambda)
   def get(n:K):Option[VV] =  { val m = map; m.get(n) }
