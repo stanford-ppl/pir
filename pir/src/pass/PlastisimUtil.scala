@@ -16,11 +16,18 @@ trait PlastisimUtil extends PIRPass {
   lazy val topS = compiler.arch.design.top
   lazy val topParam = topS.param
 
-  lazy val (numRows, numCols) = topParam match {
+  lazy val (numTotalRows, numTotalCols) = topParam match {
     case param:StaticGridTopParam => (param.numRows, param.numCols)
     case param:DynamicGridTopParam => (param.numTotalRows, param.numTotalCols)
     case param:StaticCMeshTopParam => (param.numRows, param.numCols)
     case param:DynamicCMeshTopParam => (param.numTotalRows, param.numTotalCols)
+  }
+
+  lazy val (numRows, numCols) = topParam match {
+    case param:StaticGridTopParam => (param.numRows, param.numCols)
+    case param:DynamicGridTopParam => (param.numRows, param.numCols)
+    case param:StaticCMeshTopParam => (param.numRows, param.numCols)
+    case param:DynamicCMeshTopParam => (param.numRows, param.numCols)
   }
 
   def pmap = pirMap.toOption
@@ -84,7 +91,7 @@ trait PlastisimUtil extends PIRPass {
     case topS:StaticGridTop => Some(0)
     case topS:DynamicGridTop =>
       indexOf.get(sn).map { case List(x,y) =>
-        val idx = (numRows-1-y) * numCols + x
+        val idx = (numTotalRows-1-y) * numTotalCols + x
         dbg(s"$sn: coord = ($x, $y) idx = $idx")
         idx
       }

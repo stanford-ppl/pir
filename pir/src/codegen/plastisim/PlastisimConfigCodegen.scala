@@ -137,6 +137,11 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
           }
         }
     }
+    countsOf(n).fold {
+      emitln(s"# count not exists")
+    } { c =>
+      emitln(s"count = $c")
+    }
   }
 
   def emitNodeBlock(n:Any)(block: => Unit) = dbgblk(s"emitNodeBlock($n)") {
@@ -162,7 +167,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
           case networkParam:DynamicGridNetworkParam[_] => "torus"
           case networkParam:DynamicCMeshNetworkParam[_] => "cmesh"
         }
-        val sq = math.max(numRows, numCols)
+        val sq = math.max(numTotalRows, numTotalCols)
         emitNodeBlock(s"net ${quote(tp)}net") {
           emitln(s"cfg = ${topo}_generic.cfg")
           emitln(s"dim[0] = $sq")
@@ -198,6 +203,11 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
       }
       dsts.zipWithIndex.foreach { case (dst,idx) =>
         emitln(s"dst[$idx] = ${quote(dst)}")
+      }
+      assertOptionUnify(n, s"counts") { m => countsOf(m) }.fold {
+        emitln(s"# count doen't exist")
+      } { c =>
+        emitln(s"count = $c")
       }
       if (isStatic) {
         n.foreach { mem =>
@@ -240,12 +250,12 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   def emitInLinks(n:NetworkNode) = dbgblk(s"emitInLinks($n)") {
     inlinksOf(n).zipWithIndex.foreach { case ((link, reads), idx) =>
       emitln(s"link_in[$idx] = ${quote(link)}")
-      globalOf(n).get match {
-        case cuP:DramFringe if enableTrace =>
-          emitln(s"scale_in[$idx] = 1")
-        case cuP =>
+      //globalOf(n).get match {
+        //case cuP:DramFringe if enableTrace =>
+          //emitln(s"scale_in[$idx] = 1")
+        //case cuP =>
           emitln(s"scale_in[$idx] = ${constScaleOf(reads)}")
-      }
+      //}
       emitln(s"buffer[$idx]=${bufferSizeOf(reads).get}")
     }
   }
@@ -253,12 +263,12 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   def emitOutLinks(n:NetworkNode) = dbgblk(s"emitOutLinks($n)") {
     outlinksOf(n).zipWithIndex.foreach { case ((link, writes), idx) =>
       emitln(s"link_out[$idx] = ${quote(link)}")
-      globalOf(n).get match {
-        case cuP:DramFringe if enableTrace =>
-          emitln(s"scale_out[$idx] = 1")
-        case cuP =>
+      //globalOf(n).get match {
+        //case cuP:DramFringe if enableTrace =>
+          //emitln(s"scale_out[$idx] = 1")
+        //case cuP =>
           emitln(s"scale_out[$idx] = ${constScaleOf(writes)}")
-      }
+      //}
     }
   }
 
