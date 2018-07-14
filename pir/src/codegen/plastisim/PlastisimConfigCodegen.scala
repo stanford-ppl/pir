@@ -109,10 +109,10 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         emitln(s"mc DRAM")
         emitln(s"memfile = $psimHome/configs/DDR3_micron_64M_8B_x4_sg15.ini")
         emitln(s"system = $psimHome/configs/system.ini")
-      case FringeStreamIn(streamIn, streamInDef) =>
+      case FringeStreamIn(streamIn) =>
         val counts:Long = countsOf.get(streamIn).flatten.getOrElse(-1)
         emitln(s"start_at_tokens = ${counts} # number of stream inputs")
-      case FringeStreamOut(streamOut, processStreamOut) =>
+      case FringeStreamOut(streamOut) =>
         val counts:Long = countsOf.get(streamOut).flatten.getOrElse(-1)
         emitln(s"stop_after_tokens = ${counts} # number of stream outputs")
       case cuP:pir.node.ArgFringe =>

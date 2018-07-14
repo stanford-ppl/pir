@@ -10,7 +10,10 @@ trait PIRNodeUtil extends ContainerUtil with MemoryUtil with DramFringeUtil with
   }
 
   def globalOf(n:PIRNode) = {
-    n.collectUp[GlobalContainer]().headOption
+    n match {
+      case n:GlobalContainer => Some(n)
+      case n => n.collectUp[GlobalContainer]().headOption
+    }
   }
 
   def enableOf(n:PIRNode):Option[Primitive] = {

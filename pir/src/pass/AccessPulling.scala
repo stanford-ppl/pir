@@ -31,7 +31,7 @@ class AccessPulling(implicit compiler:PIR) extends PIRTransformer with DFSBottom
       dbg(s"swapParent ${qtype(dep)} from ${dep.parent.map(qtype)} to ${qtype(container)}")
       swapParent(dep, container)
     } else { //Multiple consumer or node cannot be moved, mirror new node into destination consumer containers and reconnect 
-      val m = mirror(dep, Some(container))
+      val m = withParent(container) { mirror(dep) }
       swapConnection(deped, from=dep.out, to=m.out)
     }
   }

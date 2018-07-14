@@ -26,7 +26,9 @@ class RouteThroughElimination(implicit compiler:PIR) extends PIRTransformer with
           val memCU = globalOf(mem).get
           //disconnect(write, rmem)
           disconnect(mem, rwrite)
-          val mwrite = mirror(write, container=Some(memCU), init=Map(rmem -> mem, data -> data))
+          val mwrite = withParent(memCU) {
+            mirror(write, init=Map(rmem -> mem, data -> data))
+          }
           //swapConnection(mem, rwrite.out, write.out)
           //swapParent(write, memCU)
         }

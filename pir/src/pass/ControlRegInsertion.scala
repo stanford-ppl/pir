@@ -27,12 +27,16 @@ class ControlRegInsertion(implicit compiler:PIR) extends PIRTransformer with Sib
     val argFringe = designP.top.argFringe
     val argInCtrl = argFringe.argInController
     val cu = globalOf(ctx).get
-    val writeCtx = ComputeContext().setParent(cu)
-    val reg = TokenIn().setParent(cu)
-    WriteMem(reg, argFringe.tokenInDef).setParent(writeCtx).ctrl(argInCtrl)
-    val innerCtrl = innerCtrlOf(ctx)
-    val read = ReadMem(reg).setParent(ctx).ctrl(innerCtrl)
-    ProcessControlToken(read).setParent(ctx).ctrl(innerCtrl)
+    withParent(cu) {
+      val reg = TokenIn()
+      withParentCtrl(ComputeContext(), argInCtrl) {
+        WriteMem(reg, argFringe.tokenInDef)
+      }
+      withParentCtrl(ctx, innerCtrlOf(ctx)) {
+        val read = ReadMem(reg)
+        ProcessControlToken(read)
+      }
+    }
   }
 
 }

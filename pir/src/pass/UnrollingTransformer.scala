@@ -20,13 +20,14 @@ class UnrollingTransformer(implicit compiler:PIR) extends PIRTransformer with Si
         dbg(s"numReduceStages=$numReduceStages")
         var reduceInput = input
         (0 until numReduceStages).foreach { i =>
-          reduceInput = ReduceOp(op=op, input=reduceInput)
-          ctrlOf(reduceInput) = ctrlOf(n)
+          reduceInput = withParentCtrl(compiler.top, ctrlOf(n)) { 
+            ReduceOp(op=op, input=reduceInput)
+          }
         }
         lowerNode(n) {
-          val accumOp = AccumOp(op=op, input=reduceInput, accum.init)
-          ctrlOf(accumOp) = ctrlOf(n)
-          accumOp
+          withParentCtrl(compiler.top, ctrlOf(n)) { 
+            AccumOp(op=op, input=reduceInput, accum.init)
+          }
         }
       case Def(n:ReduceAccumOp, ReduceAccumOp(op, input, accum)) =>
         err(s"ReduceAccumOp $n on non register type!")
@@ -57,8 +58,9 @@ class UnrollingTransformer(implicit compiler:PIR) extends PIRTransformer with Si
                   val input = assertOne(inputs.filterNot { input =>
                     input.collectInTillMem[Memory]().contains(accum)
                   }, s"accumInput")
-                  val accumOp = AccumOp(op=op, input=input, accum.init)
-                  ctrlOf(accumOp) = ctrlOf(n)
+                  val accumOp = withParentCtrl(compiler.top, ctrlOf(n)) {
+                    AccumOp(op=op, input=input, accum.init)
+                  }
                   accumOp
                 }
               case accum if isRemoteMem(accum) => n

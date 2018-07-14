@@ -11,6 +11,7 @@ trait PIR extends Compiler with PIRWorld {
   def top:Top = design.top
   def pirmeta:PIRMetadata = design.pirmeta
   def spademeta:SpadeMetadata = arch.design.spademeta
+  def designP:PIRDesign = design
 
   override val logExtensions = super.logExtensions ++ List(".py", ".cluster")
 

@@ -11,6 +11,8 @@ abstract class Controller(implicit val design:PIRDesign) extends prism.node.SubG
   def isOuterControl = !isInnerControl
   def isStream = style==StreamPipe
   val id = design.nextId
+
+  design.ctrlStack.headOption.foreach { c => setParent(c) }
 }
 case class ForeverController(level:ControlLevel=OuterControl)(implicit design:PIRDesign) extends Controller {
   val style = StreamPipe

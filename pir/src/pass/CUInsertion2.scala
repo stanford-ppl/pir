@@ -46,7 +46,7 @@ class CUInsertion2(implicit compiler:PIR) extends PIRTransformer with BFSBottomU
         swapParent(topParent, cu)
         if (rest.nonEmpty) {
           rest.foreach { cu =>
-            mirror(n, Some(cu))
+            withParent(cu) { mirror(n) }
           }
         }
       case n =>

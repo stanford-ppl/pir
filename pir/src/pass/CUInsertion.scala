@@ -25,7 +25,7 @@ class CUInsertion(implicit compiler:PIR) extends PIRTransformer with SiblingFirs
         case n@(_:ArgInController | _:ArgOutController) => 
         case n:DramController => 
         case n => 
-          val cu = CUContainer().setParent(CUInsertion.this.compiler.top).ctrl(n)
+          val cu = withParentCtrl(CUInsertion.this.compiler.top, n) { CUContainer() }
           n.name.foreach { name => cu.name(name) }
           dbg(s"${qtype(n)} -> ${qtype(cu)}")
           ctMap += n -> cu
@@ -47,7 +47,7 @@ class CUInsertion(implicit compiler:PIR) extends PIRTransformer with SiblingFirs
     dbg(s"visitNode ${qdef(n)} ${ctrlOf.get(n)}")
     n match {
       case n if within[GlobalContainer](n) =>
-      case n:Memory if isRemoteMem(n) => swapParent(n, CUContainer().setParent(compiler.top).name(s"${qtype(n)}")) 
+      case n:Memory if isRemoteMem(n) => swapParent(n, withParent(top) { CUContainer().name(s"${qtype(n)}") }) 
       case n:ComputeNode if !ctMap(ctrlOf(n)).isAncestorOf(n) => swapParent(n, ctMap(ctrlOf(n)))
       case _ => super.visitNode(n)
     }

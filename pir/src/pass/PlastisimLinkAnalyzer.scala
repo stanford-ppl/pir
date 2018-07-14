@@ -20,29 +20,14 @@ class PlastisimLinkAnalyzer(implicit compiler: PIR) extends PIRTraversal with DF
   }
 
   override def visitNode(n:N) = {
-    //dbgblk(s"visitNode($n)")  {
-      n match {
-        case n:LocalAccess => getScaleOf(n); getCountsOf(n)
-        case n:Memory if !linkGroupOf.contains(n) => computeLinkGroup(n); getCountsOf(n)
-        case n:NetworkNode => computeInterferenceMemory(n); getCountsOf(n)
-        case n:GlobalIO => getCountsOf(n)
-        case n => 
-      }
-    //}
-    super.visitNode(n)
-  }
-
-  def computeInterferenceMemory(n:NetworkNode) = dbgblk(s"computeInterferenceMemory($n)"){
-    val mems = dbgblk(s"inMemsOf") { inMemsOf(n) }
-    mems.foreach { mem =>
-      val linkTp = pinTypeOf(mem)
-      val interfered = mems.filter {
-        case `mem` => false
-        case other if pinTypeOf(other) == linkTp => true
-        case other => false
-      }
-      infMemsOf(mem) = interfered.toSet
+    n match {
+      case n:LocalAccess => getScaleOf(n); getCountsOf(n)
+      case n:Memory if !linkGroupOf.contains(n) => computeLinkGroup(n); getCountsOf(n)
+      case n:NetworkNode => getCountsOf(n)
+      case n:GlobalIO => getCountsOf(n)
+      case n => 
     }
+    super.visitNode(n)
   }
 
   def computeLinkGroup(n:Memory) = dbgblk(s"computeLinkGroup($n)"){
@@ -57,7 +42,7 @@ class PlastisimLinkAnalyzer(implicit compiler: PIR) extends PIRTraversal with DF
         case Def(n, LocalReset(mems, reset:GlobalInput)) => goutOf(reset).get
       }
       dbg(s"src=$src")
-      src.collect[Memory](visitFunc=visitFunc _, logger=Some(this))
+      src.collect[Memory](visitFunc=visitFunc _)
     }.toSet
     dbg(s"group=${group}")
     group.foreach { mem => linkGroupOf += mem -> group }

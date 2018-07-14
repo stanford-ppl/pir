@@ -59,7 +59,12 @@ class PIRMetadata extends Metadata {
    * accesses 
    * */
   //val ctrlOf = new BiManyToOneMap[PIRNode, Controller] with MetadataMap
-  val ctrlOf = new OneToOneMap[PIRNode, Controller] with MetadataMap
+  val ctrlOf = new OneToOneMap[PIRNode, Controller] with MetadataMap {
+    override def mirrorKey(from:K, to:K, v:V, logger:Option[Logging]) = {
+      removeKey(to)
+      super.mirrorKey(from, to, v, logger)
+    }
+  }
   ctrlOf.setName("ctrlOf")
 
   /*
@@ -132,10 +137,6 @@ class PIRMetadata extends Metadata {
   /* ------------- Plastsim metadata (start) ---------- */
   val linkGroupOf = new OneToOneMap[Memory, Set[Memory]] with MetadataMap
   linkGroupOf.setName("linkGroupOf")
-  // Interference memories are memories that are read by the same compute context. They must be
-  // assigned to distinct virtual class to avoid head of line blocking
-  val infMemsOf = new OneToOneMap[Memory, Set[Memory]] with MetadataMap
-  infMemsOf.setName("infMemsOf")
   /* ------------- Plastsim metadata (start) ---------- */
 
   var pirMap:EOption[PIRMap] = Right(PIRMap.empty)

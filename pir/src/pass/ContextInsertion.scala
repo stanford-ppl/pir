@@ -39,14 +39,13 @@ class ContextInsertion(implicit compiler:PIR) extends PIRTransformer with Siblin
       val exps = schedular.scheduleNodesInScope(n.children, newOuts)
       val (mems, others) = exps.partition { _.isInstanceOf[Memory] }
       dbg(s"outs=$outs exps=$exps")
-      val context = ComputeContext().setParent(n)
+      val context = withParent(n) { ComputeContext() }
       dbgblk(s"insertContext $context") {
         var toCtx = others
-        val mapping = mutable.Map[N,N]() ++ init
         others.foreach { exp =>
           exp.deps.filter { dep => within[ComputeContext](dep) && dep.isDescendentOf(n) }.foreach { dep =>
             dbg(s"dep=$dep in ${contextOf(dep).get}")
-            val (mdep, ms) = mirrored(dep, mapping=mapping, container=Some(n)) 
+            val (mdep, ms) = withParent(n) { mirrored(dep, init) }
             swapConnection(exp.asInstanceOf[Def], dep.out, mdep.out)
             toCtx ++= ms.filter { 
               case m:Memory => false

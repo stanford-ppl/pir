@@ -2,7 +2,7 @@ package pir
 
 import scala.reflect.runtime.universe
 
-trait PIRApp extends PIR {
+trait PIRApp extends PIR with pir.pass.BuildEnvironment with Logging {
   override def name:String = this.getClass().getSimpleName().replace("$","")
   
   //def dramDefault = arch.top.dram.dramDefault
@@ -48,7 +48,11 @@ trait PIRApp extends PIR {
 
   def newDesign = {
     design = new PIRDesign()
-    main(design)
+    withLog(compiler.outDir, "main.log", append=false) {
+      withParentCtrl(design.top, design.top.topController) {
+        main(design)
+      }
+    }
     info(s"Finishing graph construction for ${this}")
     arch = getArch(PIRConfig.arch)
     info(s"Configuring spade $arch ...")

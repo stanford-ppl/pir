@@ -12,12 +12,14 @@ class ConstantExpressionEvaluation(implicit compiler:PIR) extends PIRTransformer
   override def visitNode(n:N, prev:T):T = dbgblk(s"visit ${qdef(n)}") {
     n match {
       case Def(n:OpDef, OpDef(op, inputs)) => 
-        constToExp(evalOpt[Any](op, inputs.map(expToOpt))).fold {
-          super.visitNode(n, prev)
-        } { exp =>
-          dbg(s"evaluate ${qdef(n)} -> ${qdef(exp)}")
-          swapUsage[Def](n, exp)
-          super.visitNode(exp, prev)
+        withParentCtrl(n.parent.get, ctrlOf(n)) {
+          constToExp(evalOpt[Any](op, inputs.map(expToOpt))).fold {
+            super.visitNode(n, prev)
+          } { exp =>
+            dbg(s"evaluate ${qdef(n)} -> ${qdef(exp)}")
+            swapUsage[Def](n, exp)
+            super.visitNode(exp, prev)
+          }
         }
       case _ => super.visitNode(n, prev)
     }

@@ -84,19 +84,21 @@ trait GraphTransformer {
     node.ios.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
   }
 
-  def mirrorX[T](n:T, mapping:mutable.Map[N,N]=mutable.Map.empty)(implicit design:Design):T = {
+  def mirror[T](n:T, mapping:mutable.Map[N,N])(implicit design:Design):T = {
     (n match {
       case n:N => 
-        getOrElseUpdate(mapping, n) {
-          val args = n.values //n.productIterator.toList
-          val margs = args.map { arg => mirrorX(arg, mapping) }
-          if (!mapping.contains(n)) n.newInstance(margs) else mapping(n)
-        }
-      case n:Option[_] => n.map { n => mirrorX(n, mapping) }
-      case n:Iterable[_] => n.map { n => mirrorX(n, mapping) }
-      case n:Iterator[_] => n.map { n => mirrorX(n, mapping) }
+        mapping.getOrElse(n, mirrorX(n, mapping))
+      case n:Option[_] => n.map { n => mirror(n, mapping) }
+      case n:Iterable[_] => n.map { n => mirror(n, mapping) }
+      case n:Iterator[_] => n.map { n => mirror(n, mapping) }
       case n => n 
     }).asInstanceOf[T]
+  }
+
+  def mirrorX(n:N, mapping:mutable.Map[N,N])(implicit design:Design) = {
+    val args = n.values //n.productIterator.toList
+    val margs = args.map { arg => mirror(arg, mapping) }
+    mapping.getOrElseUpdate(n, n.newInstance[N](margs))
   }
   
   def lookUp[X](a:X, mapping:Map[N,N]):X = {

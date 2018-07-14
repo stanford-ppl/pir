@@ -77,6 +77,9 @@ class OneToManyMap[K:ClassTag,V:ClassTag] extends prism.collection.OneToManyMap[
   def toKK(ks:Set[K]):KK = ks
   override def apply(k:K) = map.getOrElse(k, Set()).toSet
   override def update(k:K, v:V):Unit = {
+    updateSingle(k,v)
+  }
+  def updateSingle(k:K, v:V):Unit = {
     super.update(k,v)
     map += k -> (map.getOrElse(k, MSet[V]()) + v)
   }
@@ -90,7 +93,10 @@ class OneToManyMap[K:ClassTag,V:ClassTag] extends prism.collection.OneToManyMap[
     if (!map.contains(k)) vv.foreach { v => update(k,v) }
     map(k).toSet
   }
-  def update(k:K, vv:Iterable[V]):Unit = vv.foreach(v => update(k,v))
+  def update(k:K, it:Iterable[V]):Unit = it match { 
+    case v:V => updateSingle(k,v)
+    case vv => vv.foreach(v => updateSingle(k,v))
+  }
 }
 
 trait BiMap[K,V] extends prism.collection.BiMap[K,V] with MapLike[K,V] {

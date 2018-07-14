@@ -4,11 +4,11 @@ package node
 case class ArgFringe()(implicit design:PIRDesign) extends GlobalContainer {
 
   lazy val topController = design.top.topController
-  lazy val argInController = ArgInController().setParent(topController)
-  lazy val argOutController = ArgOutController().setParent(topController)
+  lazy val argInController = withCtrl(topController) { ArgInController() }
+  lazy val argOutController = withCtrl(topController) { ArgOutController() }
 
-  lazy val tokenInDef = TokenInDef().setParent(this).ctrl(argInController)
-  lazy val hostRead = HostRead().setParent(this).ctrl(argOutController)
+  lazy val tokenInDef = withParentCtrl(this, argInController) { TokenInDef() }
+  lazy val hostRead = withParentCtrl(this, argOutController) { HostRead() }
 
 }
 

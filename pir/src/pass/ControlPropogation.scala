@@ -74,7 +74,7 @@ class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSBot
     }
   }
 
-  override def visitNode(n:N, prev:T):T = dbgblk(s"visitNode ${qdef(n)}") {
+  override def visitNode(n:N, prev:T):T = dbgblk(s"visitNode ${qdef(n)} ${ctrlOf.get(n)}") {
     n match {
       case n:ComputeNode =>
         if (!ctrlOf.isDefinedAt(n)) {

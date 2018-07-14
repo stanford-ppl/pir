@@ -4,13 +4,11 @@ package node
 abstract class StreamFringe(implicit design:PIRDesign) extends GlobalContainer
 
 case class FringeStreamIn(
-  streamIn:StreamIn,
-  streamInDef:StreamInDef
+  streamIn:StreamIn
 )(implicit design:PIRDesign) extends StreamFringe
 
 case class FringeStreamOut(
-  streamOut:StreamOut,
-  processStreamOut:ProcessStreamOut
+  streamOut:StreamOut
 )(implicit design:PIRDesign) extends StreamFringe
 
 case class StreamInDef()(implicit design:PIRDesign) extends Def
