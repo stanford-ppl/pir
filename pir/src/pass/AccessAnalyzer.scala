@@ -15,9 +15,15 @@ class AccessAnalyzer(implicit compiler:PIR) extends SiblingFirstTraversal with U
     //super.runPass
   }
 
+  var currMem:Option[Memory] = None
+  def mem = currMem.get
+
   override def visitNode(n:N) = { 
     n match {
-      case n:Memory => analyze(n)
+      case n:Memory => 
+        currMem = Some(n)
+        analyze
+        currMem = None
       case n => super.visitNode(n)
     }
   }
@@ -36,9 +42,9 @@ class AccessAnalyzer(implicit compiler:PIR) extends SiblingFirstTraversal with U
     override lazy val logger = AccessAnalyzer.this.logger
     val forward = true
 
-    def accessesOf(ctx:ComputeContext) = ctx.collectDown[LocalAccess]()
-    def inAccessesOf(ctx:ComputeContext) = ctx.collectDown[LocalAccess]().filter(isOutAccess) // reads
-    def outAccessesOf(ctx:ComputeContext) = ctx.collectDown[LocalAccess]().filter(isInAccess) // writes + resets
+    def accessesOf(ctx:ComputeContext) = ctx.collectDown[LocalAccess]().filter { a => memsOf(a).contains(mem) }
+    def inAccessesOf(ctx:ComputeContext) = accessesOf(ctx).filter(isOutAccess) // reads
+    def outAccessesOf(ctx:ComputeContext) = accessesOf(ctx).filter(isInAccess) // writes + resets
 
     override def visitIn(n:N):List[N] = memorize("ctxVisitIn",n) { n => 
       dbgblk(s"visitIn($n)") {
@@ -79,10 +85,59 @@ class AccessAnalyzer(implicit compiler:PIR) extends SiblingFirstTraversal with U
     } 
   }
 
-  var currMem:Option[Memory] = None
+  def sortContext(ctrl:Controller, ctrlMap:Map[Controller, Set[ComputeContext]]):List[List[ComputeContext]] = dbgblk(s"sortContext($ctrl)") {
+    val currCtxs = {
+      val ctxes = ctrlMap.get(ctrl).getOrElse(Set.empty)
+      val nodes = ctxes.toList
+      val scheduled = ctxSchedular.scheduleScope(nodes)
+      dbgs(s"scheduled $ctrl.ctxes=${scheduled}")
+      scheduled.collect { case a:ComputeContext => List(a) }
+    }
+    val descendentCtxs = {
+      ctrl.style match {
+        case ForkJoin =>
+          val clist = ctrl.children.map { c => sortContext(c, ctrlMap) }.filter { _.nonEmpty }
+          if (clist.isEmpty) Nil else {
+            assertUnify(clist, s"$ctrl.children ordered for $mem") { _.size }
+            List.tabulate(clist.head.size) { i => clist.flatMap { l => l(i) } }
+          }
+        case _ => 
+          val children = controllerSchedular.scheduleScope(ctrl.children)
+          dbgs(s"scheduled $ctrl.children:${children}")
+          children.map { c => sortContext(c, ctrlMap) }.flatten
+      }
+    }
+    mergeSortAccesses(currCtxs, descendentCtxs)
+  }
 
-  def analyze(mem:Memory) = dbgblk(s"analyze($mem)") {
-    currMem = Some(mem)
+  def mergeSortAccesses(currCtxs:List[List[ComputeContext]], descendentCtxs:List[List[ComputeContext]]) = {
+    (currCtxs, descendentCtxs) match {
+      case (Nil, Nil) => Nil
+      case (Nil, descendentCtxs) => descendentCtxs
+      case (currCtxs, Nil) => currCtxs 
+      case (currCtxs, descendentCtxs) =>
+        throw PIRException(
+          s"Accesses from both parent and descendent controller\n" + 
+          s"ctrl=${currCtxs.flatten.map { a => (a,ctrlOf(a)) }.mkString(",")}\n" +
+          s"descendent=${descendentCtxs.flatten.map { a => (a,ctrlOf(a)) }.mkString(",")}"
+        )
+    }
+  }
+
+  def sortCheck(sorted:List[List[ComputeContext]], ctrlMap:Map[Controller, Set[ComputeContext]]) = {
+    assert(sorted.size == ctrlMap.values.flatten.size)
+    if (isLocalMem(mem)) {
+      assert(sorted.forall { _.size == 1 }, s"$mem's sorted ctxs not all size=1 ctxs=${quote(sorted)}")
+      assert(sorted.size == 2, s"$mem sorted ctxs.size != 2 ctxs=${quote(sorted)}")
+      val List(List(ctx1), List(ctx2)) = sorted
+      assert(ctxSchedular.accessesOf(ctx1).forall(isInAccess) , s"$mem sorted access=${quote(sorted)}")
+      assert(ctxSchedular.accessesOf(ctx2).forall(isOutAccess) , s"$mem sorted access=${quote(sorted)}")
+    } else {
+    }
+    sorted
+  }
+
+  def analyze = dbgblk(s"analyze($mem)") {
     val allContexts = accessesOf(mem).map { a => contextOf(a).get }.toSet
     val ctrlMap = reverseMap(allContexts.map { ctx => (ctx, innerCtrlOf(ctx)) }.toMap) // ctrl -> Set(ctx)
     dbg(s"mem ctrl=${ctrlOf(mem)}")
@@ -92,55 +147,11 @@ class AccessAnalyzer(implicit compiler:PIR) extends SiblingFirstTraversal with U
       }
     }
 
-    def sortContext(ctrl:Controller):List[List[ComputeContext]] = dbgblk(s"sortContext($ctrl)") {
-      val currCtxs = {
-        val ctxes = ctrlMap.get(ctrl).getOrElse(Set.empty)
-        val nodes = ctxes.toList
-        val scheduled = ctxSchedular.scheduleScope(nodes)
-        dbgs(s"scheduled $ctrl.ctxes=${scheduled}")
-        scheduled.collect { case a:ComputeContext => List(a) }
-      }
-      val descendentCtxs = {
-        ctrl.style match {
-          case ForkJoin =>
-            val clist = ctrl.children.map { c => sortContext(c) }.filter { _.nonEmpty }
-            if (clist.isEmpty) Nil else {
-              assertUnify(clist, s"$ctrl.children ordered for $mem") { _.size }
-              List.tabulate(clist.head.size) { i => clist.flatMap { l => l(i) } }
-            }
-          case _ => 
-            val children = controllerSchedular.scheduleScope(ctrl.children)
-            dbgs(s"scheduled $ctrl.children:${children}")
-            children.map { c => sortContext(c) }.flatten
-        }
-      }
-      mergeSortAccesses(currCtxs, descendentCtxs)
-    }
-
-    def mergeSortAccesses(currCtxs:List[List[ComputeContext]], descendentCtxs:List[List[ComputeContext]]) = {
-      (currCtxs, descendentCtxs) match {
-        case (Nil, Nil) => Nil
-        case (Nil, descendentCtxs) => descendentCtxs
-        case (currCtxs, Nil) => currCtxs 
-        case (currCtxs, descendentCtxs) =>
-          throw PIRException(
-            s"Accesses from both parent and descendent controller\n" + 
-            s"ctrl=${currCtxs.flatten.map { a => (a,ctrlOf(a)) }.mkString(",")}\n" +
-            s"descendent=${descendentCtxs.flatten.map { a => (a,ctrlOf(a)) }.mkString(",")}"
-          )
-      }
-    }
-
-    sortContext(ctrlOf(mem))
-    currMem = None
+    sortCheck(sortContext(ctrlOf(mem), ctrlMap), ctrlMap)
   }
 
   override def quote(n:Any) = n match {
-    case n:ComputeContext => 
-      val accesses = ctxSchedular.accessesOf(n).filter { a =>
-        memsOf(a).contains(currMem.get)
-      }
-      s"$n(${accesses.mkString(",")})"
+    case n:ComputeContext => s"$n(${ctxSchedular.accessesOf(n).mkString(",")})"
     case n => super.quote(n)
   }
 

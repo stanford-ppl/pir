@@ -29,11 +29,21 @@ trait ControllerTopologicalTraversal extends ControllerTraversal with prism.trav
   // Breaking loop with program order
   override def selectFrontier(unvisited:List[N]) = {
     dbg(s"unvisited=$unvisited")
-    if (forward) {
-      List(unvisited.minBy { _.id })
-    } else {
-      List(unvisited.maxBy { _.id })
+    var breakingPoints = unvisited
+    breakingPoints = filtering(breakingPoints){ 
+      frontier.filter {
+        case n if isVisited(n) => false
+        case _ => true
+      }.toList
     }
+    breakingPoints = filtering(breakingPoints){ // using program order if frontier is empty
+      if (forward) {
+        List(unvisited.minBy { _.id })
+      } else {
+        List(unvisited.maxBy { _.id })
+      }
+    }
+    breakingPoints
   }
 
 }

@@ -44,7 +44,7 @@ class AccessLowering(implicit compiler:PIR) extends PIRTransformer {
           })
           removeNode(n)
         }
-      case Def(n:StoreBanks, StoreBanks(_, addrs, data)) => // using Def here cause List of List not working properly
+      case Def(n:StoreBanks, StoreBanks(_, addrs, data)) => //TODO: using Def here cause List of List not working properly
         val insts = n.mems
         dbgblk(s"Lowering ${qdef(n)}") {
           val storeCU = globalOf(n).get
@@ -52,8 +52,12 @@ class AccessLowering(implicit compiler:PIR) extends PIRTransformer {
           val singleBank = insts.forall { _.size == 1 }
           val dims = staticDimsOf(insts.head.head)
           if (singleBank) { // Do address flattening inside the PMU
-            insts.foreach { banks =>
+            val hackInsts = insts.map { banks => // TODO: hack to get the banks still connected
+              banks.filter { bank => n.depeds.contains(bank) }
+            }.filterNot { _.isEmpty }
+            hackInsts.foreach { banks =>
               val bank = assertOne(banks, "bank")
+              dbg(s"bank=$bank")
               // Local write address calculation
               val bankCU = globalOf(bank).get 
               val dataLoad = retime(data, bankCU)
