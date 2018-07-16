@@ -23,9 +23,9 @@ object PIRConfig extends prism.GlobalConfig {
   register[String]("psim-out", info="Directory to copy psim files over")
   register("trace", default=false, info="Enable trace generation for simulation")
 
-  def genPlastisim = option[Boolean]("psim") && genCtrl && enableMapping && enableCodegen
+  def genPlastisim = option[Boolean]("psim") && genCtrl && enableCodegen
   def runPlastisim = option[Boolean]("run-psim") && genPlastisim
-  def enableTrace = option[Boolean]("trace")
+  def enableTrace = genPlastisim && option[Boolean]("trace")
   def enablePlastiroute = genPlastisim && SpadeConfig.option[String]("net") == "dynamic" && routingAlgo == "proute"
   def genPlacement = genPlastisim && (SpadeConfig.option[String]("net") match {
     case "static" => true
