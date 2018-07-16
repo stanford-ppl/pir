@@ -91,22 +91,16 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
   def getCountsOf(n:Controller):Option[Long] = countsOf.getOrElseUpdate(n) {
     dbgblk(s"getCountsOf $n") { 
       n match {
+        case ctrl:TopController => Some(1l)
         case ctrl:ArgInController => Some(1l)
+        case ctrl:ArgOutController => Some(1l)
         case ctrl:Controller =>
           val foreverInMems = myForeverInMems(ctrl)
           val localForeverInMems = myLocalForeverInMems(ctrl)
           dbg(s"foreverInMems=$foreverInMems")
           dbg(s"localForeverInMems=$localForeverInMems")
-          if (foreverInMems.isEmpty) { // Top down
-            ctrl.parent.fold {
-              if (ctrl.descendents.exists(isForever)) {
-                // Bottom up
-                val children = ctrl.children.filter { c => (c::c.descendents).exists(isForever) }
-                getCountsByChildren(ctrl, children)
-              } else {
-                Some(1l)
-              }
-            } { parent => getCountsByParent(ctrl, parent) }
+          if (foreverInMems.isEmpty) {
+            getCountsByParent(ctrl, ctrl.parent.get)
           } else if (localForeverInMems.nonEmpty) { // Compute base on localForeverInMems
             getCountsByForeverInMems(ctrl, localForeverInMems)
           } else { // Bottom up
