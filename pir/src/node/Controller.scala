@@ -63,31 +63,41 @@ trait ControllerUtil { self:PIRNodeUtil =>
     case n => false
   }
 
-  def accessesOf(n:Controller) = {
+  def localAccessesOf(n:Controller) = {
     ctrlOf.getV(n).getOrElse(Nil).collect { case n:LocalAccess => n }
   }
 
-  def inAccessesOf(n:Controller) = {
-    accessesOf(n).filter { n => isInAccess(n) }
+  def localInMemsOf(n:Controller) = {
+    localAccessesOf(n).filter(isOutAccess).flatMap { a => memsOf(a) }.filterNot { m => 
+      val mc = ctrlOf(m)
+      mc.isDescendentOf(n) || mc == n
+    }
   }
 
-  def outAccessesOf(n:Controller) = {
-    accessesOf(n).filter { n => isOutAccess(n) }
+  def localOutMemsOf(n:Controller) = {
+    localAccessesOf(n).filter(isInAccess).flatMap { a => memsOf(a) }.filterNot { m => 
+      val mc = ctrlOf(m)
+      mc.isDescendentOf(n) || mc == n
+    }
   }
-
+  
   def total[T](n:Controller)(lambda:Controller => Iterable[T]) = {
     (n::n.descendents).flatMap { n => lambda(n) }.toSet
   }
 
+  def accessesOf(n:Controller) = {
+    total(n)(localAccessesOf)
+  }
+
   def inMemsOf(n:Controller) = {
-    total(n)(outAccessesOf).flatMap { a => memsOf(a) }.filterNot { m => 
+    accessesOf(n).filter(isOutAccess).flatMap { a => memsOf(a) }.filterNot { m => 
       val mc = ctrlOf(m)
       mc.isDescendentOf(n) || mc == n
     }
   }
 
   def outMemsOf(n:Controller) = {
-    total(n)(inAccessesOf).flatMap { a => memsOf(a) }.filterNot { m => 
+    accessesOf(n).filter(isInAccess).flatMap { a => memsOf(a) }.filterNot { m => 
       val mc = ctrlOf(m)
       mc.isDescendentOf(n) || mc == n
     }

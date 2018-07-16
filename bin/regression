@@ -4,16 +4,17 @@ APPS=()
 #APPS+=('DotProduct')
 #APPS+=('OuterProduct')
 #APPS+=('TPCHQ6')
-#APPS+=('BlackScholes')
-#APPS+=('GDA')
-#APPS+=('GEMM_Blocked')
-#APPS+=('LogReg')
+APPS+=('BlackScholes')
+APPS+=('GDA')
+APPS+=('GEMM_Blocked')
+APPS+=('LogReg')
 APPS+=('SGD_minibatch')
 APPS+=('Kmeans')
 APPS+=('SPMV_ELL')
 APPS+=('P4')
 APPS+=('lenet_loops')
 APPS+=('DoubleLoad')
+APPS+=('PensieveStream')
 
 logDir=out/regression/
 
@@ -37,8 +38,9 @@ elif [[ $1 == *"r" ]]; then
       [ -e $log ] && rm $log
       bin/pir $APP $@ > $log 2>&1 &
       pids[${i}]=$!
-      sleep 0.5 
-      if [[ ${#pids[@]} > 3 ]]; then
+      sleep 1
+      echo numer of process running ${#pids[@]}
+      if [[ ${#pids[@]} -ge 3 ]]; then
          # wait for all pids
          for pid in ${pids[*]}; do
              wait $pid

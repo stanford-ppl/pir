@@ -40,7 +40,7 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
   def getItersOf(n:Controller):Option[Long] = itersOf.getOrElseUpdate(n) {
     dbgblk(s"getItersOf $n") {
       n match {
-        case x:ForeverController => throw PIRException(s"ForeverController doesn't have iter")
+        case x:ForeverController => getCountsOf(x)
         case x:UnitController => Some(1)
         case x:TopController => Some(1)
         case x:LoopController => 
@@ -57,33 +57,62 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
     }
   }
 
+  def foreverOf(ctrl:Controller):Option[Controller] = ctrl match {
+    case ctrl:ForeverController => Some(ctrl)
+    case ctrl => ctrl.ancestors.filter(isForever).headOption
+  }
+
+  def foreverInMems(ctrl:Controller):List[Memory] = {
+    foreverOf(ctrl).toList.flatMap { ctrl => inMemsOf(ctrl).filter { m => isFIFO(m) } }
+  }
+
+  def myForeverInMems(ctrl:Controller) = {
+    (foreverInMems(ctrl).toSet intersect inMemsOf(ctrl).toSet).toList
+  }
+
+  def myLocalForeverInMems(ctrl:Controller) = {
+    (foreverInMems(ctrl).toSet intersect localInMemsOf(ctrl).toSet).toList
+  }
+
+  def getCountsByChildren(ctrl:Controller, children:List[Controller]) = {
+    assertOptionUnify(children, s"$ctrl counts") { c =>
+      zipMap(getCountsOf(c), getItersOf(c), s"$c.counts / $c.iters") { case (c,i) => c / i }
+    }
+  }
+
+  def getCountsByParent(ctrl:Controller, parent:Controller) = {
+    zipMap(getCountsOf(parent), getItersOf(ctrl), s"$parent.counts * $parent.iters") { case (c, i) => c * i } // Top down
+  }
+
+  def getCountsByForeverInMems(ctrl:Controller, mems:List[Memory]) = {
+    assertUnify(mems, s"$ctrl counts") { mem => countsOf.getOrElseUpdate(mem)(None) }.get
+  }
+
   def getCountsOf(n:Controller):Option[Long] = countsOf.getOrElseUpdate(n) {
     dbgblk(s"getCountsOf $n") { 
       n match {
         case ctrl:ArgInController => Some(1l)
-        case ctrl:ForeverController => 
-          val inMems = inMemsOf(ctrl).filter { m => isFIFO(m) }
-          dbg(s"inMems=$inMems")
-          val memCounts = inMems.flatMap { m => 
-            assertOptionUnify(inAccessesOf(m), s"$m inAccesses.ctrl.count") { a => getCountsOf(ctrlOf(a)) }
-          }
-          assertIdentical(memCounts, s"counts for $ctrl") 
-        case n:Controller if n.ancestors.exists(isForever) && n.children.isEmpty =>
-          val forever = n.ancestors.filter(isForever).head
-          dbg(s"Under forever. Is leaf")
-          getCountsOf(forever)
-        case n:Controller if n.ancestors.exists(isForever) =>
-          assertOptionUnify(n.children, s"counts for $n") { c =>
-            zipMap(getCountsOf(c), getItersOf(c)) { case (c,i) => c / i }
-          }
-        case n:Controller =>
-          val ancestors = (n::n.ancestors)
-          val ancestorIters = ancestors.map { n => getItersOf(n) }
-          dbg(s"ancestors=$ancestors")
-          dbg(s"ancestorIters=$ancestorIters")
-          ancestorIters.reduce[Option[Long]]{
-            case (Some(iter1), Some(iter2)) => Some(iter1 * iter2)
-            case _ => None
+        case ctrl:Controller =>
+          val foreverInMems = myForeverInMems(ctrl)
+          val localForeverInMems = myLocalForeverInMems(ctrl)
+          dbg(s"foreverInMems=$foreverInMems")
+          dbg(s"localForeverInMems=$localForeverInMems")
+          if (foreverInMems.isEmpty) { // Top down
+            ctrl.parent.fold {
+              if (ctrl.descendents.exists(isForever)) {
+                // Bottom up
+                val children = ctrl.children.filter { c => (c::c.descendents).exists(isForever) }
+                getCountsByChildren(ctrl, children)
+              } else {
+                Some(1l)
+              }
+            } { parent => getCountsByParent(ctrl, parent) }
+          } else if (localForeverInMems.nonEmpty) { // Compute base on localForeverInMems
+            getCountsByForeverInMems(ctrl, localForeverInMems)
+          } else { // Bottom up
+            val children = n.children.filter { c => myForeverInMems(c).nonEmpty }
+            assert(children.nonEmpty, s"$ctrl has foreverInMems but $children doesn't")
+            getCountsByChildren(ctrl, children)
           }
       }
     }
@@ -137,6 +166,7 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
           }
         case n:ProcessDramCommand => getItersOf(ctrlOf(n))
         case n:DramControllerDone => getItersOf(ctrlOf(n))
+        case n:ForeverControllerDone => throw PIRException(s"shouldn't get itersOf $n")
         case n:Primitive => Some(1l)
       }
     }
@@ -147,7 +177,15 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
     dbgblk(s"getScaleOf $n") {
       n match {
         case n:ContextEnable => Some(1l)
-        case n:ForeverControllerDone => getCountsOf(ctrlOf(n))
+        case n:ForeverControllerDone => 
+          val ctrl = ctrlOf(ctxEnOf(n).get)
+          var ancestors = (ctrl :: ctrl.ancestors)
+          dbg(s"ancestors=$ancestors")
+          ancestors = ancestors.splitAt(ancestors.indexWhere(isForever)+1)._1 // include forever
+          dbg(s"ancestors until forever = $ancestors")
+          val iters = ancestors.map { c => getItersOf(c) }
+          dbg(s"ancestor iters=$iters")
+          flatReduce(iters) { _ * _ }
         case n =>
           val en = enableOf(n)
           val enScale = en.map { en => getScaleOf(en) }.getOrElse(Some(1l))
