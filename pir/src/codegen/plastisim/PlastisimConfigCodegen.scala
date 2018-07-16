@@ -97,14 +97,17 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
       case cuP:DramFringe if isDenseFringe(cuP) & enableTrace =>
         val size = cuP.collectDown[StreamOut]().filter { _.field == "size" }.head
         val offset = cuP.collectDown[StreamOut]().filter { _.field == "offset" }.head
-        cuP match {
-          case cuP:FringeDenseLoad => emitln(s"dram_cmd_tp=dense_load")
-          case cuP:FringeDenseStore => emitln(s"dram_cmd_tp=dense_store")
-        }
         emitln(s"offset_trace = traces/${dataOf(writersOf(offset).head)}.trace")
         emitln(s"size_trace = traces/${dataOf(writersOf(size).head)}.trace")
         val par = ctrlOf(ctxEnOf(cuP).get).asInstanceOf[DramController].par
-        emitln(s"out_token_size = ${par * bytePerWord}")
+        cuP match {
+          case cuP:FringeDenseLoad => 
+            emitln(s"dram_cmd_tp=dense_load")
+            emitln(s"out_token_size = ${par * bytePerWord}")
+          case cuP:FringeDenseStore => 
+            emitln(s"dram_cmd_tp=dense_store")
+            emitln(s"in_token_size = ${par * bytePerWord}")
+        }
         val psimHome = PLASTISIM_HOME.getOrElse(throw PIRException(s"PLASTISIM_HOME need to set to find ini files"))
         emitln(s"mc DRAM")
         emitln(s"memfile = $psimHome/configs/DDR3_micron_64M_8B_x4_sg15.ini")
@@ -183,7 +186,6 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
       emitln(s"controller=DRAM")
     }
   }
-
   def emitLink(n:Link) = dbgblk(s"emitLink(${quote(n)})") {
     val srcs = srcsOf(n)
     val dsts = dstsOf(n)
@@ -250,12 +252,12 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   def emitInLinks(n:NetworkNode) = dbgblk(s"emitInLinks($n)") {
     inlinksOf(n).zipWithIndex.foreach { case ((link, reads), idx) =>
       emitln(s"link_in[$idx] = ${quote(link)}")
-      //globalOf(n).get match {
-        //case cuP:DramFringe if enableTrace =>
-          //emitln(s"scale_in[$idx] = 1")
-        //case cuP =>
+      globalOf(n).get match {
+        case cuP:FringeDenseLoad if enableTrace =>
+          emitln(s"scale_in[$idx] = 1")
+        case cuP =>
           emitln(s"scale_in[$idx] = ${constScaleOf(reads)}")
-      //}
+      }
       emitln(s"buffer[$idx]=${bufferSizeOf(reads).get}")
     }
   }
@@ -263,12 +265,12 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   def emitOutLinks(n:NetworkNode) = dbgblk(s"emitOutLinks($n)") {
     outlinksOf(n).zipWithIndex.foreach { case ((link, writes), idx) =>
       emitln(s"link_out[$idx] = ${quote(link)}")
-      //globalOf(n).get match {
-        //case cuP:DramFringe if enableTrace =>
-          //emitln(s"scale_out[$idx] = 1")
-        //case cuP =>
+      globalOf(n).get match {
+        case cuP:FringeDenseLoad if enableTrace =>
+          emitln(s"scale_out[$idx] = 1")
+        case cuP =>
           emitln(s"scale_out[$idx] = ${constScaleOf(writes)}")
-      //}
+      }
     }
   }
 
