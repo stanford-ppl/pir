@@ -85,7 +85,10 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
   }
 
   def getCountsByForeverInMems(ctrl:Controller, mems:List[Memory]) = {
-    assertUnify(mems, s"$ctrl counts") { mem => countsOf.getOrElseUpdate(mem)(None) }.get
+    assertOptionUnify(mems, s"$ctrl counts") { mem => 
+      val writerCtrls = writersOf(mem).map { w => ctrlOf(w) }.toSet.toList
+      assertOptionUnify(writerCtrls, s"$mem.writers counts") { writerCtrl => getCountsOf(writerCtrl) }
+    }
   }
 
   def getCountsOf(n:Controller):Option[Long] = countsOf.getOrElseUpdate(n) {
@@ -94,6 +97,7 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
         case ctrl:TopController => Some(1l)
         case ctrl:ArgInController => Some(1l)
         case ctrl:ArgOutController => Some(1l)
+        case ctrl:ForeverController if (myForeverInMems(ctrl).isEmpty) => None // if not annotated
         case ctrl:Controller =>
           val foreverInMems = myForeverInMems(ctrl)
           val localForeverInMems = myLocalForeverInMems(ctrl)
