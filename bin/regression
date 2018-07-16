@@ -4,7 +4,6 @@ APPS=()
 APPS+=('DotProduct')
 APPS+=('OuterProduct')
 APPS+=('TPCHQ6')
-APPS+=('BlackScholes')
 APPS+=('GDA')
 APPS+=('GEMM_Blocked')
 APPS+=('LogReg')
@@ -12,9 +11,10 @@ APPS+=('SGD_minibatch')
 APPS+=('Kmeans')
 APPS+=('SPMV_ELL')
 APPS+=('P4')
-APPS+=('lenet_loops')
 APPS+=('DoubleLoad')
 APPS+=('PensieveStream')
+APPS+=('BlackScholes')
+APPS+=('lenet_loops')
 
 thread_count=4
 
@@ -64,6 +64,9 @@ elif [[ $1 == *"r" ]]; then
              echo $fail$success
            else
              tail $log
+           fi
+           if [[ $fail ]]; then
+             exit
            fi
          done
          # clear pids and runningApps

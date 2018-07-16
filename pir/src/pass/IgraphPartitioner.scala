@@ -24,11 +24,7 @@ class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner with Debugg
     val vertexMap = codegen.getResult // Node -> Partition
     val partitionMap = reverseMap(vertexMap) // Partition -> Node
     var partitions:List[GlobalContainer] = List.fill(partitionMap.keys.size) { 
-      withParent(compiler.top) { 
-        val mcu = CUContainer()
-        pirmeta.mirror(cu, mcu)
-        mcu
-      }
+      withParent(compiler.top) { mirrorX(cu, args=List()).asInstanceOf[GlobalContainer] }
     }
     dbgblk(s"partitionResult") {
       partitionMap.foreach { case (p, vertices) =>

@@ -126,7 +126,7 @@ class PIRMetadata extends Metadata {
   /* 
    * If a node is mirrored, originOf points to the original copy
    * */
-  val originOf = new OneToOneMap[PIRNode, PIRNode] with MetadataMap { // Many to one
+  val originOf = new BiManyToOneMap[PIRNode, PIRNode] with MetadataMap { // Many to one
     override def mirror(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {}
     override def migrateValue(from:V, to:V, k:K, logger:Option[Logging]) = {
       remove(k, from)

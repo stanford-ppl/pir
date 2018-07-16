@@ -20,13 +20,17 @@ object LocalLoad {
     case _ => None
   }
 }
-trait LocalStore extends LocalAccess {
+
+trait LocalInAccess extends LocalAccess {
   override def isInputField(field:Any, fieldIdx:Int) = field match {
     case x:Memory => false
     case x:Iterable[_] if x.exists(_.isInstanceOf[Memory]) => false
     case _ => true
   }
+  // Add new written memory
+  def writes(mem:Memory) = mem.newIn.connect(this.out)
 }
+trait LocalStore extends LocalInAccess
 object LocalStore {
   def unapply(n:Any):Option[(List[Memory], Option[List[Def]], Def)] = n match {
     case WriteMem(mem, data) => Some((List(mem), None, data))
@@ -36,13 +40,7 @@ object LocalStore {
     case _ => None
   }
 }
-trait LocalReset extends LocalAccess {
-  override def isInputField(field:Any, fieldIdx:Int) = field match {
-    case x:Memory => false
-    case x:Iterable[_] if x.exists(_.isInstanceOf[Memory]) => false
-    case _ => true
-  }
-}
+trait LocalReset extends LocalInAccess
 object LocalReset {
   def unapply(n:Any):Option[(List[Memory], Def)] = n match {
     case ResetMem(mem, reset) => Some((List(mem), reset))

@@ -7,6 +7,11 @@ import scala.collection.mutable
 abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWorld with BuildEnvironment with prism.traversal.GraphTransformer {
   import pirmeta._
 
+  /*
+   * TODO: Problematic if mirroring from one parent to another, then the second parent still seeps
+   * the origin mapping from the previous parent. 
+   * Mirror if not in mapping. Adding origins to mapping within the containers
+   * */
   override def mirror[T](xx:T, mapping:mutable.Map[N,N])(implicit design:Design):T = {
     currentParent.foreach { p =>
       p.children.foreach { 
@@ -15,7 +20,6 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
       }
     }
     val origin = (xx match { case xx:N => originOf.getOrElse(xx, xx); case _ => xx }).asInstanceOf[T]
-
     origin match {
       case _:N =>
         dbgblk(s"mirror($origin) in=$currentParent") { super.mirror(origin, mapping) }
@@ -24,7 +28,7 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
   }
 
   override def mirrorX(n:N, mapping:mutable.Map[N,N])(implicit design:Design):N = {
-    val m = n match {
+    n match {
       case n:GlobalInput => 
         goutOf(n).foreach { gout => mapping += gout -> gout }
         super.mirrorX(n, mapping)
@@ -32,10 +36,15 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
         mapping += (n -> n)
         super.mirrorX(n, mapping)
       case n:Memory =>
-        val m = super.mirrorX(n, mapping)
-        val writers = writersOf(n)
-        dbg(s"writers of $n = ${writers}")
-        writers.foreach { writer => mirror(writer, mapping) }
+        val m = super.mirrorX(n, mapping).asInstanceOf[Memory]
+        val inAccesses = inAccessesOf(n)
+        dbg(s"inAccesses of $n = ${inAccesses}")
+        inAccesses.foreach { inaccess => 
+          mapping += (n -> m)
+          val minaccess = mirror(inaccess, mapping)
+          // If minaccess is not newly created, add new written memory
+          if (!memsOf(minaccess).contains(m)) minaccess.asInstanceOf[LocalInAccess].writes(m)
+        }
         m
       case Def(n,LocalStore(mems, addrs, data)) => 
         // prevent mirroring of addrs and data
@@ -53,7 +62,11 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
         super.mirrorX(n, mapping)
       case n => super.mirrorX(n, mapping)
     }
-    originOf(m) = n
+  }
+
+  override def mirrorX(n:N, args:List[Any])(implicit design:Design):N = {
+    val m = super.mirrorX(n, args)
+    originOf(m) = originOf.getOrElse(n,n)
     dbg(s"mirror ${qdef(n)} to ${qdef(m)}")
     pirmeta.mirror(n,m)
     m

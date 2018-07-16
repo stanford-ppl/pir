@@ -84,6 +84,9 @@ trait GraphTransformer {
     node.ios.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
   }
 
+  /*
+   * Mirror only if n is not already in mapping
+   * */
   def mirror[T](n:T, mapping:mutable.Map[N,N])(implicit design:Design):T = {
     (n match {
       case n:N => 
@@ -95,10 +98,20 @@ trait GraphTransformer {
     }).asInstanceOf[T]
   }
 
-  def mirrorX(n:N, mapping:mutable.Map[N,N])(implicit design:Design) = {
+  /*
+   * Mirror only if n is not mirrored during mirroring it's arguments
+   * */
+  def mirrorX(n:N, mapping:mutable.Map[N,N])(implicit design:Design):N = {
     val args = n.values //n.productIterator.toList
     val margs = args.map { arg => mirror(arg, mapping) }
-    mapping.getOrElseUpdate(n, n.newInstance[N](margs))
+    mapping.getOrElseUpdate(n, mirrorX(n, margs))
+  }
+
+  /*
+   * Guaranteed mirror
+   * */
+  def mirrorX(n:N, args:List[Any])(implicit design:Design):N = {
+    n.newInstance[N](args)
   }
   
   def lookUp[X](a:X, mapping:Map[N,N]):X = {
