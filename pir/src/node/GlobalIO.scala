@@ -30,7 +30,7 @@ trait GlobalIOUtil {
     case Def(n, GlobalOutput(data, valid)) => valid
   }
 
-  def gdataOf(n:GlobalOutput) = n match {
+  def dataOf(n:GlobalOutput) = n match {
     case Def(n, GlobalOutput(data, valid)) => data
   }
 

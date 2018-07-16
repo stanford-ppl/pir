@@ -54,19 +54,31 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
   }
 
   def transformInMem(n:Memory) = {
-    withParentCtrl(argFringe, argInCtrl) {
-      n match {
-        case n:ArgIn =>
+    n match {
+      case n:ArgIn =>
+        withParentCtrl(argFringe, argInCtrl) {
           val argInDef = ArgInDef()
           WriteMem(n, argInDef)
           boundOf.get(n).foreach { b => boundOf(argInDef) = b }
-        case n:DramAddress => 
+        }
+      case n:DramAddress => 
+        withParentCtrl(argFringe, argInCtrl) {
           val argInDef = ArgInDef()
           WriteMem(n, argInDef)
           boundOf.get(n).foreach { b => boundOf(argInDef) = b }
-        case n:LUT =>
-          ResetMem(n, argFringe.tokenInDef)
-      }
+        }
+      case n:LUT =>
+        val tokenIn = withParent(top) {
+          TokenIn()
+        }
+        withParentCtrl(argFringe, argInCtrl) {
+          WriteMem(tokenIn, argFringe.tokenInDef)
+        }
+        withParentCtrl(top, topController) {
+          withCtrl(UnitController(SeqPipe, InnerControl)) {
+            ResetMem(n, ReadMem(tokenIn))
+          }
+        }
     }
   }
 
