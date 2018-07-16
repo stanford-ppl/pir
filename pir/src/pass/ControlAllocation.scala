@@ -74,11 +74,13 @@ class ControlAllocation(implicit compiler:PIR) extends ControlTransformer with S
       case Def(n:LocalLoad, LocalLoad(mem::Nil, None)) =>
         val mmem = mirror(mem, mapping)
         mapping.getOrElseUpdate(n, {
-          val m = ReadMem(mmem)
-          pirmeta.mirror(n,m)
-          originOf(m) = n
-          queue += m // TODO:HACK top down traversal doen't automatically traverse the newly created nodes yet
-          m
+          readersOf(mmem).filter { _.isDescendentOf(currentParent.get) }.headOption.getOrElse {
+            val m = ReadMem(mmem)
+            pirmeta.mirror(n,m)
+            originOf(m) = n
+            queue += m // TODO:HACK top down traversal doen't automatically traverse the newly created nodes yet
+            m
+          }
         })
       case Def(n:LocalStore, LocalStore(mem::Nil, None, data)) =>
         val origData = data match {

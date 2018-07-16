@@ -61,31 +61,6 @@ object EnabledAccess {
   }
 }
 
-object WithWriters {
-  def unapply(n:Any):Option[List[LocalStore]] = n match {
-    case n:Memory => Some(writersOf(n).toList)
-    case _ => None
-  }
-}
-object WithWriter {
-  def unapply(n:Any):Option[LocalStore] = n match {
-    case n:Memory if writersOf(n).size == 1 => Some(writersOf(n).head)
-    case _ => None
-  }
-}
-object WithReaders {
-  def unapply(n:Any):Option[List[LocalLoad]] = n match {
-    case n:Memory => Some(readersOf(n).toList)
-    case _ => None
-  }
-}
-object WithReader {
-  def unapply(n:Any):Option[LocalLoad] = n match {
-    case n:Memory if readersOf(n).size == 1 => Some(readersOf(n).head)
-    case _ => None
-  }
-}
-
 // Write without address
 case class ReadMem(mem:Memory)(implicit design:PIRDesign) extends LocalLoad
 case class WriteMem(mem:Memory, data:Def)(implicit design:PIRDesign) extends LocalStore
@@ -165,4 +140,30 @@ trait AccessUtil {
     case n:LocalReset => false
     case n => false
   }
+
+  object WithWriters {
+    def unapply(n:Any):Option[List[LocalStore]] = n match {
+      case n:Memory => Some(writersOf(n).toList)
+      case _ => None
+    }
+  }
+  object WithWriter {
+    def unapply(n:Any):Option[LocalStore] = n match {
+      case n:Memory if writersOf(n).size == 1 => Some(writersOf(n).head)
+      case _ => None
+    }
+  }
+  object WithReaders {
+    def unapply(n:Any):Option[List[LocalLoad]] = n match {
+      case n:Memory => Some(readersOf(n).toList)
+      case _ => None
+    }
+  }
+  object WithReader {
+    def unapply(n:Any):Option[LocalLoad] = n match {
+      case n:Memory if readersOf(n).size == 1 => Some(readersOf(n).head)
+      case _ => None
+    }
+  }
+
 }

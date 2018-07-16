@@ -4,7 +4,7 @@ package mapper
 import pir.node._
 import spade.node._
 
-trait RoutingUtil extends SpadeNodeUtil { self:Logging =>
+trait RoutingUtil extends SpadeNodeUtil with PIRNodeUtil { self:Logging =>
 
   val spademeta:SpadeMetadata
   import spademeta._

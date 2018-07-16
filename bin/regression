@@ -1,20 +1,50 @@
 #!/bin/bash
 
+APPS=()
+#APPS+=('DotProduct')
+#APPS+=('OuterProduct')
+#APPS+=('TPCHQ6')
+#APPS+=('BlackScholes')
+#APPS+=('GDA')
+#APPS+=('GEMM_Blocked')
+#APPS+=('LogReg')
+APPS+=('SGD_minibatch')
+APPS+=('Kmeans')
+APPS+=('SPMV_ELL')
+APPS+=('P4')
+APPS+=('lenet_loops')
+APPS+=('DoubleLoad')
+
 logDir=out/regression/
-mkdir -p $logDir
-rm $logDir/*
 
-APPS=(DotProduct OuterProduct GDA LogReg BlackScholes GEMM_Blocked, P4)
+if [[ $1 == *"s" ]]; then
+    for log in $logDir/*.log; do
+      echo $log=================
+      fail=$(grep "\[fail\]\|\[error\]" $log)
+      success=$(grep "success" $log)
+      if [[ $fail || $success ]]; then
+        echo $fail$success
+      else
+        tail $log
+      fi
+    done
 
-for APP in ${APPS[@]}
-do
-  bin/pir $APP $@ 2>&1 > $logDir/$APP.log &
-  pids[${i}]=$!
-done
-
-# wait for all pids
-for pid in ${pids[*]}; do
-    wait $pid
-done
-
-grep "\[fail\]\|\[error\]" $logDir/*
+elif [[ $1 == *"r" ]]; then
+    mkdir -p $logDir
+    for APP in ${APPS[@]}; do
+      echo running $APP
+      log=$logDir/$APP.log
+      [ -e $log ] && rm $log
+      bin/pir $APP $@ > $log 2>&1 &
+      pids[${i}]=$!
+      sleep 0.5 
+      if [[ ${#pids[@]} > 3 ]]; then
+         # wait for all pids
+         for pid in ${pids[*]}; do
+             wait $pid
+         done
+         pids=()
+      fi
+    done
+    
+fi

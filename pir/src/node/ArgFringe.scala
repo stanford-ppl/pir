@@ -17,8 +17,5 @@ case class TokenInDef()(implicit design:PIRDesign) extends Def with ControlNode
 case class HostRead()(implicit design:PIRDesign) extends Def
 
 trait ArgFringeUtil {
-  implicit def dramAddress_to_access(dramAddr:DramAddress)(implicit design:PIRDesign) = {
-    ReadMem(dramAddr)
-  }
 
 }

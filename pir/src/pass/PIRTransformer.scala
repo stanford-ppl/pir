@@ -14,9 +14,12 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
         case x =>
       }
     }
-    val origin = xx match { case xx:N => originOf.getOrElse(xx, xx); case _ => xx }
-    dbgblk(s"mirror($xx) in=$currentParent") {
-      super.mirror(xx, mapping)
+    val origin = (xx match { case xx:N => originOf.getOrElse(xx, xx); case _ => xx }).asInstanceOf[T]
+
+    origin match {
+      case _:N =>
+        dbgblk(s"mirror($origin) in=$currentParent") { super.mirror(origin, mapping) }
+      case _ => super.mirror(origin, mapping)
     }
   }
 
@@ -66,11 +69,6 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
     val m = mirror[T](node, mapping)
     // Moving newly created nodes into container
     val newNodes = mapping.values.toSet diff mapping.keys.toSet diff origValues
-    // Mirror metadata
-    mapping.foreach { 
-      case (n, m) if origValues.contains(m) =>
-      case (n, m) => pirmeta.mirror(n, m)
-    }
     (m, newNodes)
   }
 

@@ -12,7 +12,8 @@ class PIRMetadata extends Metadata {
   nameOf.setName("nameOf")
 
   /* Source context of the IR from upper compiler */
-  val srcCtxOf = new OneToOneMap[IR, String] with MetadataMap {
+  val srcCtxOf = new OneToOneMap[IR, String] with MetadataMap with PIRNodeUtil {
+    val pirmeta = PIRMetadata.this
     override def get(k:K):Option[V] = k match {
       case k:ContextEnable => get(ctrlOf(k))
       case k:ComputeContext => ctxEnOf(k).flatMap { ctxEn => get(ctxEn) }

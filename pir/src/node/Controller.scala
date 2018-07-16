@@ -53,7 +53,10 @@ sealed trait ControlLevel extends Enum
 case object InnerControl extends ControlLevel
 case object OuterControl extends ControlLevel
 
-trait ControllerUtil {
+trait ControllerUtil { self:PIRNodeUtil =>
+
+  val pirmeta:PIRMetadata
+  import pirmeta._
 
   def isForever(n:Controller) = n match {
     case n:ForeverController => true
@@ -61,17 +64,14 @@ trait ControllerUtil {
   }
 
   def accessesOf(n:Controller) = {
-    import n.design.pirmeta._
     ctrlOf.getV(n).getOrElse(Nil).collect { case n:LocalAccess => n }
   }
 
   def inAccessesOf(n:Controller) = {
-    import n.design.pirmeta._
     accessesOf(n).filter { n => isInAccess(n) }
   }
 
   def outAccessesOf(n:Controller) = {
-    import n.design.pirmeta._
     accessesOf(n).filter { n => isOutAccess(n) }
   }
 
@@ -80,7 +80,6 @@ trait ControllerUtil {
   }
 
   def inMemsOf(n:Controller) = {
-    import n.design.pirmeta._
     total(n)(outAccessesOf).flatMap { a => memsOf(a) }.filterNot { m => 
       val mc = ctrlOf(m)
       mc.isDescendentOf(n) || mc == n
@@ -88,7 +87,6 @@ trait ControllerUtil {
   }
 
   def outMemsOf(n:Controller) = {
-    import n.design.pirmeta._
     total(n)(inAccessesOf).flatMap { a => memsOf(a) }.filterNot { m => 
       val mc = ctrlOf(m)
       mc.isDescendentOf(n) || mc == n

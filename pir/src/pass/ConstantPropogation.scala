@@ -4,7 +4,7 @@ package pass
 import pir.node._
 import prism.enums.{Op => _,_}
 
-trait ConstantPropogator extends Ops { self:Logging =>
+trait ConstantPropogator extends Ops with PIRNodeUtil { self:Logging =>
   val pirmeta:PIRMetadata
   import pirmeta._
 

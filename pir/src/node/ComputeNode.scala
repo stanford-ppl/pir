@@ -43,7 +43,7 @@ case class ComputeContext()(implicit design:PIRDesign) extends Container
 case class ContextEnableOut()(implicit design:PIRDesign) extends ControlNode
 case class ContextEnable(enables:List[Def])(implicit design:PIRDesign) extends ControlNode
 
-trait ComputeNodeUtil {
+trait ComputeNodeUtil extends MemoryUtil { self: PIRNodeUtil =>
   def isCounter(n:PIRNode) = n match {
     case n:Counter => true
     case _ => false

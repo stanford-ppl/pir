@@ -114,6 +114,7 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
 
   val controllerTraversal = new ControllerChildFirstTraversal with UnitTraversal {
     implicit val designP = PlastisimTraceCodegen.this.designP
+    lazy val pirmeta = designP.pirmeta
     override lazy val logger = PlastisimTraceCodegen.this.logger
     override def visitNode(n:N, prev:T):T = {
       n match {

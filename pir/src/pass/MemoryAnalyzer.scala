@@ -10,12 +10,12 @@ class MemoryAnalyzer(implicit compiler:PIR) extends SiblingFirstTraversal with U
 
   override def visitNode(n:N) = { 
     n match {
-      case n:Memory => setTopCtrl(n)
+      case n:Memory => setCtrl(n)
       case n => super.visitNode(n)
     }
   }
 
-  def setTopCtrl(mem:Memory) = dbgblk(s"setTopCtrl($mem)") {
+  def setCtrl(mem:Memory) = dbgblk(s"setCtrl($mem)") {
     val accesses = accessesOf(mem)
     dbg(s"accesses: ${accesses}")
     val accessCtrls:List[Controller] = accesses.map { access => 
@@ -25,10 +25,11 @@ class MemoryAnalyzer(implicit compiler:PIR) extends SiblingFirstTraversal with U
     val lcaCtrl = leastCommonAncesstor(accessCtrls).getOrElse {
       throw PIRException(s"${accessCtrls} do not share common ancestor")
     }
-    ctrlOf(mem) = getCtrlOf(mem)
+    ctrlOf.removeKey(mem)
+    ctrlOf(mem) = lcaCtrl
     ctrlOf.info(mem).foreach(dbg)
 
-    if (compiler.session.hasRun[ContextInsertion]) { //HACk
+    if (compiler.session.hasRun[ContextInsertion]) { //HACK
       val topCtrls = leastMatchedPeers(accessCtrls, Some(lcaCtrl)).get
       accesses.foreach { access =>
         val topCtrl = topCtrls(ctrlOf(access))

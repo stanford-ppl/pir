@@ -24,6 +24,7 @@ class AccessAnalyzer(implicit compiler:PIR) extends SiblingFirstTraversal with U
 
   val controllerSchedular = new ControllerTopologicalTraversal with prism.traversal.BFSTopologicalTraversal with prism.traversal.GraphSchedular {
     implicit val designP = AccessAnalyzer.this.designP
+    lazy val pirmeta = designP.pirmeta
     override lazy val logger = AccessAnalyzer.this.logger
     val forward = true
     override def visitIn(n:N):List[N] = visitLocalIn(n)
@@ -31,61 +32,116 @@ class AccessAnalyzer(implicit compiler:PIR) extends SiblingFirstTraversal with U
     override def scheduleScope(ns:List[N]):List[N] = memorize("controllerScheduleScope", ns) { ns => super.scheduleScope(ns) }
   }
 
-  val accessSchedular = new PIRTraversal with prism.traversal.BFSTopologicalTraversal with prism.traversal.GraphSchedular {
+  val ctxSchedular = new PIRTraversal with prism.traversal.BFSTopologicalTraversal with prism.traversal.GraphSchedular {
     override lazy val logger = AccessAnalyzer.this.logger
     val forward = true
-    override def visitIn(n:N):List[N] = memorize("accessVisitIn",n) { n => 
+
+    def accessesOf(ctx:ComputeContext) = ctx.collectDown[LocalAccess]()
+    def inAccessesOf(ctx:ComputeContext) = ctx.collectDown[LocalAccess]().filter(isOutAccess) // reads
+    def outAccessesOf(ctx:ComputeContext) = ctx.collectDown[LocalAccess]().filter(isInAccess) // writes + resets
+
+    override def visitIn(n:N):List[N] = memorize("ctxVisitIn",n) { n => 
       dbgblk(s"visitIn($n)") {
         n match {
-          case n:LocalAccess if isInAccess(n) => antiDepsOf(n).toList.asInstanceOf[List[LocalAccess]]
-          case n:LocalAccess if isOutAccess(n) => 
-            memsOf(n).flatMap { m => inAccessesOf(m) }.filterNot { a => antiDepsOf(a).contains(n) }
+          case n:ComputeContext => 
+            val antiDeps = accessesOf(n).flatMap { ia => antiDepsOf(ia).map { a => contextOf(a).get } }.toSet.toList
+            val inputs = inAccessesOf(n).flatMap { a =>  // reads
+              memsOf(a).flatMap { mem => 
+                inAccessesOf(mem).filterNot { ia => 
+                  antiDepsOf(ia).contains(a)
+                }.map { ia => contextOf(ia).get }
+              }
+            }.toSet.toList
+            antiDeps ++ inputs
         }
       } 
     }
-    override def visitOut(n:N):List[N] = memorize("accessVisitOut", n) { n => 
+    override def visitOut(n:N):List[N] = memorize("ctxVisitOut", n) { n => 
       dbgblk(s"visitOut($n)"){
         n match {
-          case n:LocalAccess if isInAccess(n) => 
-            memsOf(n).flatMap { m => outAccessesOf(m) }.filterNot { a => antiDepsOf(n).contains(a) }
-          case n:LocalAccess if isOutAccess(n) => scope.filter { a => antiDepsOf(a).contains(n) }
+          case n:ComputeContext => 
+            val accesses = accessesOf(n)
+            val antiDepeds = scope.filter { ctx => 
+              accessesOf(ctx.asInstanceOf[ComputeContext]).exists { a => // If n is antiDep of ctx
+                antiDepsOf(a).exists { antiDep => accesses.contains(antiDep) }
+              }
+            }
+            val outputs = outAccessesOf(n).flatMap { a => // writes + reset
+              memsOf(a).flatMap { mem => 
+                outAccessesOf(mem).filterNot { oa => 
+                  antiDepsOf(a).contains(oa)
+                }.map { oa => contextOf(oa).get }
+              }
+            }
+            antiDepeds ++ outputs
         }
       }
     } 
   }
 
-  def analyze(mem:Memory) = dbgblk(s"analyze($mem)") {
-    val allAccesses = accessesOf(mem)
-    val ctrlMap = reverseMap(allAccesses.map { a => (a, ctrlOf(a)) }.toMap) // ctrl -> Set(access)
+  var currMem:Option[Memory] = None
 
-    def order(ctrl:Controller):List[List[LocalAccess]] = dbgblk(s"order($ctrl)") {
-      if (ctrlMap.contains(ctrl)) {
-        val accesses = ctrlMap(ctrl)
-        allAccesses.map { a =>
-          assert(!ctrlOf(a).isDescendentOf(ctrl), 
-            s"access at both $ctrl($accesses) and its descendents=${ctrlOf(a)}($a) to $mem")
-        }
-        val nodes = accesses.toList
-        val scheduled = accessSchedular.scheduleScope(nodes)
-        dbgs(s"scheduled $ctrl.accesses=${scheduled}")
-        scheduled.collect { case a:LocalAccess => List(a) }
-      } else {
-          ctrl.style match {
-            case ForkJoin =>
-              val clist = ctrl.children.map { c => order(c) }.filter { _.nonEmpty }
-              if (clist.isEmpty) Nil else {
-                assertUnify(clist, s"$ctrl.children ordered for $mem") { _.size }
-                List.tabulate(clist.head.size) { i => clist.flatMap { l => l(i) } }
-              }
-            case _ => 
-              val children = controllerSchedular.scheduleScope(ctrl.children)
-              dbgs(s"scheduled $ctrl.children:${children}")
-              children.map { c => order(c) }.flatten
-          }
+  def analyze(mem:Memory) = dbgblk(s"analyze($mem)") {
+    currMem = Some(mem)
+    val allContexts = accessesOf(mem).map { a => contextOf(a).get }.toSet
+    val ctrlMap = reverseMap(allContexts.map { ctx => (ctx, innerCtrlOf(ctx)) }.toMap) // ctrl -> Set(ctx)
+    dbg(s"mem ctrl=${ctrlOf(mem)}")
+    dbgblk(s"ctrlMap") {
+      ctrlMap.foreach { case (ctrl, ctxs) =>
+        dbg(s"$ctrl -> $ctxs")
       }
     }
 
-    order(ctrlOf(mem))
+    def sortContext(ctrl:Controller):List[List[ComputeContext]] = dbgblk(s"sortContext($ctrl)") {
+      val currCtxs = {
+        val ctxes = ctrlMap.get(ctrl).getOrElse(Set.empty)
+        val nodes = ctxes.toList
+        val scheduled = ctxSchedular.scheduleScope(nodes)
+        dbgs(s"scheduled $ctrl.ctxes=${scheduled}")
+        scheduled.collect { case a:ComputeContext => List(a) }
+      }
+      val descendentCtxs = {
+        ctrl.style match {
+          case ForkJoin =>
+            val clist = ctrl.children.map { c => sortContext(c) }.filter { _.nonEmpty }
+            if (clist.isEmpty) Nil else {
+              assertUnify(clist, s"$ctrl.children ordered for $mem") { _.size }
+              List.tabulate(clist.head.size) { i => clist.flatMap { l => l(i) } }
+            }
+          case _ => 
+            val children = controllerSchedular.scheduleScope(ctrl.children)
+            dbgs(s"scheduled $ctrl.children:${children}")
+            children.map { c => sortContext(c) }.flatten
+        }
+      }
+      mergeSortAccesses(currCtxs, descendentCtxs)
+    }
+
+    def mergeSortAccesses(currCtxs:List[List[ComputeContext]], descendentCtxs:List[List[ComputeContext]]) = {
+      (currCtxs, descendentCtxs) match {
+        case (Nil, Nil) => Nil
+        case (Nil, descendentCtxs) => descendentCtxs
+        case (currCtxs, Nil) => currCtxs 
+        case (currCtxs, descendentCtxs) =>
+          throw PIRException(
+            s"Accesses from both parent and descendent controller\n" + 
+            s"ctrl=${currCtxs.flatten.map { a => (a,ctrlOf(a)) }.mkString(",")}\n" +
+            s"descendent=${descendentCtxs.flatten.map { a => (a,ctrlOf(a)) }.mkString(",")}"
+          )
+      }
+    }
+
+    sortContext(ctrlOf(mem))
+    currMem = None
+  }
+
+  override def quote(n:Any) = n match {
+    case n:ComputeContext => 
+      val accesses = ctxSchedular.accessesOf(n).filter { a =>
+        memsOf(a).contains(currMem.get)
+      }
+      s"$n(${accesses.mkString(",")})"
+    case n => super.quote(n)
   }
 
 }

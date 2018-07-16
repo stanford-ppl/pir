@@ -19,6 +19,7 @@ class CUInsertion(implicit compiler:PIR) extends PIRTransformer with SiblingFirs
   val controllerTraversal = new ControllerSiblingFirstTraversal with prism.traversal.UnitTraversal with Logging {
     override lazy val logger = CUInsertion.this.logger
     implicit val designP = CUInsertion.this.designP
+    lazy val pirmeta = designP.pirmeta
     override def visitNode(n:N, prev:T):T = {
       val cu = n match {
         case n:TopController => 

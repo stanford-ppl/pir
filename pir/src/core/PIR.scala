@@ -93,7 +93,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(accessLowering).dependsOn(controlPropogator, accessPuller, deadCodeEliminator)
     addPass(enableDot, new PIRIRDotCodegen(s"top5.dot"))
     addPass(memoryAnalyzer)
-    addPass(controllerRuntimeAnalyzer).dependsOn(controlPropogator)
+    addPass(controllerRuntimeAnalyzer).dependsOn(controlPropogator, memoryAnalyzer)
     addPass(cuStats)
 
     addPass(enableSplitting, igraphPartioner)
@@ -103,7 +103,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(enableDot, new ControllerDotCodegen(s"controller1.dot"))
     addPass(routeThroughEliminator).dependsOn(accessLowering).dependsOn(igraphPartioner)
     addPass(deadCodeEliminator).dependsOn(routeThroughEliminator)
-    addPass(enableDot, new ControllerDotCodegen(s"controller2.dot")).dependsOn(controlPropogator, memoryAnalyzer)
+    addPass(enableDot, new ControllerDotCodegen(s"controller2.dot")).dependsOn(controlPropogator)
     addPass(enableDot, new PIRIRDotCodegen(s"top7.dot"))
     addPass(enableDot, new SimpleIRDotCodegen(s"simple3.dot")).dependsOn(routeThroughEliminator)
     addPass(debug, new PIRPrinter(s"IR2.txt"))
@@ -114,7 +114,6 @@ trait PIR extends Compiler with PIRWorld {
 
     // Control transformation and analysis
     addPass(genCtrl, memoryAnalyzer).dependsOn(contextInsertion)
-    addPass(genCtrl, accessAnalyzer).dependsOn(accessLowering)
     addPass(genCtrl, controlAllocator).dependsOn(contextInsertion) // set accessDoneOf, duplicateCounterChain for accessDoneOf
     addPass(genCtrl, controlRegInsertion).dependsOn(controlAllocator) // insert reg for no forward depended contextEn
     addPass(genCtrl, memoryAnalyzer).dependsOn(controlRegInsertion)
