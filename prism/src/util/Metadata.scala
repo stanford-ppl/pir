@@ -63,11 +63,11 @@ trait Metadata extends Serializable {
       }
     }
     def mirrorKey(from:K, to:K, v:V, logger:Option[Logging]) = {
-      dbg(logger, s"$name.mirrorKey $from -> $v => $to -> $v")
+      //dbg(logger, s"$name.mirrorKey $from -> $v => $to -> $v")
       update(to, v)
     }
     def mirrorValue(from:V, to:V, k:K, logger:Option[Logging]) = {
-      dbg(logger, s"$name.mirrorValue $k -> $from => $k -> $to")
+      //dbg(logger, s"$name.mirrorValue $k -> $from => $k -> $to")
       update(k, to)
     }
     def migrate(from:Any, to:Any, logger:Option[Logging]=None):Unit = {
@@ -81,11 +81,11 @@ trait Metadata extends Serializable {
       }
     }
     def migrateKey(from:K, to:K, v:V, logger:Option[Logging]) = {
-      dbg(logger, s"$name.migrateKey $from -> $v => $to -> $v")
+      //dbg(logger, s"$name.migrateKey $from -> $v => $to -> $v")
       update(to, v)
     }
     def migrateValue(from:V, to:V, k:K, logger:Option[Logging]) = {
-      dbg(logger, s"$name.migrateValue $k -> $from => $k -> $to")
+      //dbg(logger, s"$name.migrateValue $k -> $from => $k -> $to")
       update(k, to)
     }
     def info(a:Any):Option[String] = { 

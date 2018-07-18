@@ -32,43 +32,49 @@ trait PlastisimUtil extends PIRPass {
 
   def pmap = pirMap.toOption
 
-  def srcsOf(mem:Memory):List[NetworkNode] = dbgblk(s"srcsOf(${quote(mem)})") {
-    def visitFunc(n:PIRNode) = visitGlobalIn(n).filterNot {
-      case n:Memory => true
-      case _ => false
+  def srcsOf(n:Link):Map[Memory, Map[NetworkNode, List[LocalInAccess]]] = {
+    n.map { mem => mem -> inAccessesOf(mem).groupBy { a => ctxEnOf(a).get } }.toMap
+  }
+
+  def dstsOf(n:Link):Map[Memory, Map[NetworkNode, List[LocalOutAccess]]] = {
+    n.map { mem => mem -> outAccessesOf(mem).groupBy { a => ctxEnOf(a).get } }.toMap
+  }
+
+  def inMemsOf(n:NetworkNode):Map[Memory, List[LocalAccess]] = inMemsOf(contextOf(n).get)
+  def outMemsOf(n:NetworkNode):Map[Memory, List[LocalAccess]] = outMemsOf(contextOf(n).get)
+
+  def inlinksOf(n:NetworkNode):Map[Link, List[LocalAccess]] = {
+    inMemsOf(n).groupBy { case (mem, accesses) => linkGroupOf(mem) }.map { case (link, map) =>
+      link -> map.values.flatten.toList
     }
-    mem.collect[NetworkNode](visitFunc=visitFunc _)
   }
 
-  def srcsOf(n:Link):List[NetworkNode] = {
-    n.flatMap { mem => srcsOf(mem) }.toList
-  }
-
-  def dstsOf(mem:Memory):List[NetworkNode] = dbgblk(s"dstsOf(${quote(mem)})"){
-    def visitFunc(n:PIRNode) = visitGlobalOut(n).filterNot {
-      case n:Memory => true
-      case n:NotFull => true
-      case _ => false
+  def outlinksOf(n:NetworkNode):Map[Link, List[LocalAccess]] = {
+    outMemsOf(n).groupBy { case (mem, accesses) => linkGroupOf(mem) }.map { case (link, map) =>
+      link -> map.values.flatten.toList
     }
-    mem.collect[NetworkNode](visitFunc=visitFunc _)
   }
 
-  def dstsOf(n:Link):List[NetworkNode] = {
-    n.flatMap { mem => dstsOf(mem) }.toList
+  override def inAccessesOf(mem:Memory):List[LocalInAccess] = super.inAccessesOf(mem).filterNot { a => isMuted(a) }
+  override def outAccessesOf(mem:Memory):List[LocalOutAccess] = super.outAccessesOf(mem).filterNot { a => isMuted(a) }
+  override def localAccessesOf(n:ComputeContext) = super.localAccessesOf(n).filterNot(a => isMuted(a))
+  override def remoteAccessesOf(n:ComputeContext) = super.remoteAccessesOf(n).filterNot(a => isMuted(a))
+
+  def startAtToken(n:NetworkNode) = globalOf(n).get match {
+    case FringeStreamIn(streamIn) => countsOf.get(streamIn).flatten
+    case cuP:pir.node.ArgFringe if ctrlOf(n).isInstanceOf[ArgInController] => Some(1)
+    case cuP =>
+      val token = inMemsOf(n).flatMap {
+        case (mem, accesses) if isAccum(mem) && inAccessesOf(mem).size <= 1 => Some(constScaleOf(accesses))
+        case (mem, accesses) => None
+      }
+      assertOneOrLess(token, s"token")
   }
 
-  def inlinksOf(n:NetworkNode) = {
-    loadAccessesOf(n).groupBy { read =>
-      val mem::Nil = memsOf(read) // All mems should belongs to the same linkGroup
-      linkGroupOf(mem)
-    }.toSeq
-  }
-
-  def outlinksOf(n:NetworkNode) = {
-    (storeAccessesOf(n) ++ resetAccessesOf(n)).groupBy { write =>
-      val mem::Nil = memsOf(write) // All mems should belongs to the same linkGroup
-      linkGroupOf(mem)
-    }.toSeq
+  def stopAfterToken(n:NetworkNode) = globalOf(n).get match {
+    case FringeStreamOut(streamOut) => countsOf.get(streamOut).flatten
+    case cuP:pir.node.ArgFringe if ctrlOf(n).isInstanceOf[ArgOutController] => Some(1)
+    case cuP => None
   }
 
   /*
@@ -186,10 +192,6 @@ trait PlastisimUtil extends PIRPass {
     }
   }
 
-  def bufferSizeOf(reads:List[LocalLoad]):Option[Int] = {
-    assertUnify(reads, "bufferSize") { read => val mem::Nil = memsOf(read); bufferSizeOf(mem) }.get
-  }
-
   def constScaleOf(x:PIRNode):Long = {
     getScaleOf(x).getOrElse(throw PIRException(s"Cannot constant propogate itersOf($x)"))
   }
@@ -225,6 +227,15 @@ trait PlastisimUtil extends PIRPass {
           case cuS:MC => 100
           case cuS:CU => cuS.param.simdParam.map { _.stageParams.size }.getOrElse(1)
         }
+    }
+  }
+
+  // HACK: get global output of link
+  def goutOf(n:Link):Option[Def] = assertOptionUnify(n, s"write data of $n") { mem =>
+    assertOptionUnify(inAccessesOf(mem), s"write data of $n") {
+      case Def(n, LocalStore(mems, addr, data:GlobalInput)) => Some(goutOf(data).get)
+      case Def(n, LocalReset(mems, reset:GlobalInput)) => Some(goutOf(reset).get)
+      case n => None
     }
   }
 
@@ -273,6 +284,7 @@ trait PlastisimUtil extends PIRPass {
   }
 
   override def quote(n:Any):String = n match {
+    case n:ContextEnable => s"CE${n.id}"
     case n:Set[_] if n.forall(_.isInstanceOf[Memory]) => n.mkString("_") // Link
     case n:ClassTag[_] if isBit(n.asInstanceOf[ClassTag[_<:PinType]]) => "ctrl"
     case n:ClassTag[_] if isWord(n.asInstanceOf[ClassTag[_<:PinType]]) => "scal"

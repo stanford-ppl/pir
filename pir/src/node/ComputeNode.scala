@@ -63,36 +63,23 @@ trait ComputeNodeUtil extends MemoryUtil { self: PIRNodeUtil =>
 
   def cchainOf(n:Counter):CounterChain = n.collectUp[CounterChain]().head
 
-  def loadAccessesOf(n:PIRNode):List[LocalLoad] = n match {
-    case (_:ContextEnable | _:ContextEnableOut) => loadAccessesOf(contextOf(n).get)
-    case n:ComputeContext => n.collectDown[LocalLoad]()
+  def accessesOf(ctx:ComputeContext, mem:Memory) = ctx.collectDown[LocalAccess]().filter { a => memsOf(a).contains(mem) }
+
+  def localAccessesOf(n:ComputeContext) = n.collectDown[LocalAccess]()
+  def remoteAccessesOf(n:ComputeContext) = n.collectOutTillMem[LocalAccess]()
+
+  def inMemsOf(n:ComputeContext):Map[Memory, List[LocalAccess]] = {
+    localAccessesOf(n).filter(isOutAccess).groupBy { out => assertOne(memsOf(out), s"mem") }
   }
 
-  def inMemsOf(n:PIRNode) = {
-    val reads = loadAccessesOf(n)
-    reads.flatMap { read => memsOf(read) }
+  def localOutMemsOf(n:ComputeContext):Map[Memory, List[LocalAccess]] = {
+    localAccessesOf(n).filter(isInAccess).groupBy { in => assertOne(memsOf(in), s"mem") }
   }
 
-  def localStoreAccessesOf(n:PIRNode):List[LocalStore] = n match {
-    case (_:ContextEnable | _:ContextEnableOut) => localStoreAccessesOf(contextOf(n).get)
-    case n:ComputeContext => n.collectDown[LocalStore]()
+  def remoteOutMemsOf(n:ComputeContext):Map[Memory, List[LocalAccess]] = {
+    remoteAccessesOf(n).filter(isInAccess).groupBy { in => assertOne(memsOf(in), s"mem") }
   }
 
-  def remoteStoreAccessesOf(n:PIRNode):List[LocalStore] = n match {
-    case (_:ContextEnable | _:ContextEnableOut) => remoteStoreAccessesOf(contextOf(n).get)
-    case n:ComputeContext => n.collectOutTillMem[LocalStore]()
-  }
-
-  def storeAccessesOf(n:PIRNode):List[LocalStore] = localStoreAccessesOf(n) ++ remoteStoreAccessesOf(n)
-
-  def resetAccessesOf(n:PIRNode):List[LocalReset] = n match {
-    case (_:ContextEnable | _:ContextEnableOut) => resetAccessesOf(contextOf(n).get)
-    case n:ComputeContext => n.collectOutTillMem[LocalReset]()
-  }
-
-  def outMemsOf(n:PIRNode) = {
-    val outAccesses = storeAccessesOf(n) ++ resetAccessesOf(n)
-    outAccesses.flatMap { write => memsOf(write) }
-  }
+  def outMemsOf(n:ComputeContext):Map[Memory, List[LocalAccess]] = localOutMemsOf(n) ++ remoteOutMemsOf(n)
 
 }

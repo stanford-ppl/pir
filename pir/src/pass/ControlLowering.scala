@@ -22,23 +22,22 @@ class ControlLowering(implicit compiler:PIR) extends ControlTransformer with Sib
   }
 
   def computeNotEmpties(context:ComputeContext) = dbgblk(s"computeNotEmpties") {
-    val readMems = inMemsOf(context)// All read memories should be local to the context in the same GlobalContainer
-    dbg(s"readMems:${readMems.map(qtype)}")
-    readMems.map { mem => 
-      allocateWithFields[NotEmpty](mem)
-    }.toList
+    val inMems = inMemsOf(context)// All read memories should be local to the context in the same GlobalContainer
+    dbg(s"inMems:${inMems.keys.map(qtype)}")
+    inMems.keys.map { mem => allocateWithFields[NotEmpty](mem) }.toList
   }
 
   def computeNotFulls(context:ComputeContext) = dbgblk(s"computeNotFulls") {
-    var notFulls:List[Def] = localStoreAccessesOf(context).map {
-      case Def(writer, LocalStore(mem::Nil, _, _)) => 
-        val notFull = allocateWithFields[NotFull](mem)
-        dbg(s"localMem: $mem, notFull:$notFull")
-        notFull
-    }
-    val remoteStores = remoteStoreAccessesOf(context)
-    dbg(s"remoteStores=${quote(remoteStores)}")
-    notFulls = notFulls ++ remoteStores.flatMap {
+    val local = localOutMemsOf(context)
+    dbg(s"outMems (local):${local.keys.map(qtype)}")
+    var notFulls:List[Def] = local.map { case (mem, accesses) =>
+      val notFull = allocateWithFields[NotFull](mem)
+      dbg(s"localMem: $mem, notFull:$notFull")
+      notFull
+    }.toList
+    val remote = remoteOutMemsOf(context)
+    dbg(s"outMems (remote):${remote.keys.map(qtype)}")
+    notFulls = notFulls ++ remote.values.flatten.flatMap {
       case Def(writer, EnabledStoreMem(mem, _, _, writeNext)) => 
         val notFull:Def = if (compiler.arch.designParam.topParam.busWithReady) {
           val gout = writeNext.collect[GlobalOutput](visitFunc=visitGlobalIn _).head

@@ -22,7 +22,9 @@ class PlastisimLinkAnalyzer(implicit compiler: PIR) extends PIRTraversal with DF
   override def visitNode(n:N) = {
     n match {
       case n:LocalAccess => getScaleOf(n); getCountsOf(n)
-      case n:Memory if !linkGroupOf.contains(n) => computeLinkGroup(n); getCountsOf(n)
+      case n:Memory => 
+        if (!linkGroupOf.contains(n)) computeLinkGroup(n)
+        if (inAccessesOf(n).size <= 1) getCountsOf(n)
       case n:NetworkNode => getCountsOf(n)
       case n:GlobalIO => getCountsOf(n)
       case n => 

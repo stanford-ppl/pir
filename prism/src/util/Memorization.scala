@@ -18,6 +18,15 @@ trait Memorization {
     ).asInstanceOf[Cache[I,O]].apply(input)
   }
 
+  def withMemory[T](block: => T):T = {
+    val saved = memorizing
+    memorizing = true
+    val res = block
+    memorizing = saved
+    resetAllCaches
+    res
+  }
+
 }
 case class Cache[I,O](memorization:Memorization, lambda:I => O) {
   val memory = mutable.Map[Any,O]()

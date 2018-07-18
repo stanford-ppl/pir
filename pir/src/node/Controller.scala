@@ -22,7 +22,7 @@ case class LoopController(style:ControlStyle, level:ControlLevel, cchain:Counter
 }
 case class UnitController(style:ControlStyle, level:ControlLevel)(implicit design:PIRDesign) extends Controller
 case class TopController()(implicit design:PIRDesign) extends Controller {
-  val style = SeqPipe
+  val style = MetaPipe
   val level = OuterControl 
 }
 case class ArgInController()(implicit design:PIRDesign) extends Controller {

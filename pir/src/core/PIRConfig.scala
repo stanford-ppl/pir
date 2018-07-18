@@ -20,6 +20,7 @@ object PIRConfig extends prism.GlobalConfig {
   /* ------------------- Plastisim --------------------  */
   register("psim", default=true, info="Enable code generations for plastisim")
   register("run-psim", default=false, info="Launch Plastisim simulation")
+  register[Long]("psim-timeout", info="Maximum time out for psim")
   register[String]("psim-out", info="Directory to copy psim files over")
   register("trace", default=false, info="Enable trace generation for simulation")
 

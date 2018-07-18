@@ -10,6 +10,7 @@ case class ArgOption[T:ClassTag](key:String, default:Option[T], info:String) {
   def parse[T:ClassTag](values:List[String]):T = {
     (implicitly[ClassTag[T]] match {
       case ct if ct == classTag[Int] => values.head.toInt
+      case ct if ct == classTag[Long] => values.head.toLong
       case ct if ct == classTag[String] => values.head
       case ct if ct == classTag[Boolean] => values.head == "true"
     }).asInstanceOf[T]

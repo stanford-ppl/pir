@@ -7,10 +7,13 @@ object LocalAccess {
     case LocalLoad(mems, addrs) => Some(mems, addrs)
     case LocalStore(mems, addrs, data) => Some(mems, addrs)
     case LocalReset(mems, reset) => Some(mems, None)
+    case EnabledEnqueueMem(mem, writeNext) => Some(List(mem), None)
+    case EnabledDequeueMem(mem, readNext) => Some(List(mem), None)
     case _ => None
   }
 }
-trait LocalLoad extends LocalAccess
+trait LocalOutAccess extends LocalAccess
+trait LocalLoad extends LocalOutAccess
 object LocalLoad {
   def unapply(n:Any):Option[(List[Memory], Option[List[Def]])] = n match {
     case ReadMem(mem) => Some((List(mem), None))
@@ -55,6 +58,8 @@ object EnabledAccess {
     case EnabledLoadMem(mem, faddr, readNext) => Some((List(mem), readNext))
     case EnabledStoreMem(mem, faddr, data, writeNext) => Some((List(mem), writeNext))
     case EnabledResetMem(mem, reset, writeNext) => Some((List(mem), writeNext))
+    case EnabledEnqueueMem(mem, writeNext) => Some((List(mem), writeNext))
+    case EnabledDequeueMem(mem, readNext) => Some((List(mem), readNext))
     case _ => None
   }
 }
@@ -77,6 +82,8 @@ case class BankMask(mask:Def, exp:Def)(implicit design:PIRDesign) extends Def
 case class EnabledLoadMem(mem:Memory, faddr:Option[Def], readNext:Def)(implicit design:PIRDesign) extends LocalLoad with EnabledAccess
 case class EnabledStoreMem(mem:Memory, faddr:Option[Def], data:Def, writeNext:Def)(implicit design:PIRDesign) extends LocalStore with EnabledAccess
 case class EnabledResetMem(mem:Memory, reset:Def, writeNext:Def)(implicit design:PIRDesign) extends LocalReset with EnabledAccess
+case class EnabledEnqueueMem(mem:Memory, writeNext:Def)(implicit design:PIRDesign) extends LocalInAccess with EnabledAccess
+case class EnabledDequeueMem(mem:Memory, readNext:Def)(implicit design:PIRDesign) extends LocalOutAccess with EnabledAccess
 
 case class FIFOEmpty(mem:Memory)(implicit design:PIRDesign) extends Def
 case class FIFOPeak(mem:Memory)(implicit design:PIRDesign) extends Def
@@ -87,11 +94,11 @@ case class NotEmpty(mem:Memory)(implicit design:PIRDesign) extends ControlNode
 case class NotFull(mem:Memory)(implicit design:PIRDesign) extends ControlNode
 
 trait AccessUtil {
+
   def memsOf(n:LocalAccess) = {
     n match {
-      case n:LocalStore => n.collect[Memory](visitFunc=n.visitGlobalOut, depth=2)
-      case n:LocalLoad => n.collect[Memory](visitFunc=n.visitGlobalIn, depth=2)
-      case n:LocalReset => n.collect[Memory](visitFunc=n.visitGlobalOut, depth=2)
+      case n if isInAccess(n) => n.collect[Memory](visitFunc=n.visitGlobalOut, depth=2)
+      case n if isOutAccess(n) => n.collect[Memory](visitFunc=n.visitGlobalIn, depth=2)
     }
   }
 
@@ -100,42 +107,41 @@ trait AccessUtil {
     data
   }
 
+  def origDataOf(n:LocalStore) = {
+    dataOf(n) match {
+      case Def(gin, GlobalInput(Def(gout, GlobalOutput(data, valid)))) => data
+      case data => data 
+    }
+  }
+
   def accessNextOf(n:PIRNode) = {
     n match {
       case Def(n,EnabledLoadMem(mem, faddr, readNext)) => readNext
       case Def(n,EnabledStoreMem(mem, faddr, data, writeNext)) => writeNext
       case Def(n,EnabledResetMem(mem, reset, writeNext)) => writeNext
+      case Def(n,EnabledEnqueueMem(mem, writeNext)) => writeNext
+      case Def(n,EnabledDequeueMem(mem, readNext)) => readNext
     }
   }
 
-  def resetersOf(mem:Memory):List[LocalReset] = {
-    mem.collect[LocalReset](visitFunc=mem.visitGlobalIn, depth=2)
-  }
+  def inAccessesOf(mem:Memory):List[LocalInAccess] = mem.collect[LocalInAccess](visitFunc=mem.visitGlobalIn, depth=2)
+  def outAccessesOf(mem:Memory):List[LocalOutAccess] = mem.collect[LocalOutAccess](visitFunc=mem.visitGlobalOut, depth=2)
 
-  def writersOf(mem:Memory):List[LocalStore] = {
-    mem.collect[LocalStore](visitFunc=mem.visitGlobalIn, depth=2)
-  }
+  def accessesOf(mem:Memory):List[LocalAccess] = inAccessesOf(mem) ++ outAccessesOf(mem)
 
-  def readersOf(mem:Memory):List[LocalLoad] = {
-    mem.collect[LocalLoad](visitFunc=mem.visitGlobalOut, depth=2)
-  }
+  def resetersOf(mem:Memory):List[LocalReset] = inAccessesOf(mem).collect { case a:LocalReset => a }
 
-  def inAccessesOf(mem:Memory):List[LocalAccess] = resetersOf(mem) ++ writersOf(mem)
-  def outAccessesOf(mem:Memory):List[LocalAccess] = readersOf(mem)
+  def writersOf(mem:Memory):List[LocalStore] = inAccessesOf(mem).collect { case a:LocalStore => a }
 
-  def accessesOf(mem:Memory):List[LocalAccess] = writersOf(mem) ++ readersOf(mem) ++ resetersOf(mem)
+  def readersOf(mem:Memory):List[LocalLoad] = outAccessesOf(mem).collect { case a:LocalLoad => a }
 
   def isInAccess(n:PIRNode) = n match {
-    case n:LocalLoad => false
-    case n:LocalStore => true
-    case n:LocalReset => true
+    case n:LocalInAccess => true
     case n => false
   }
 
   def isOutAccess(n:PIRNode) = n match {
-    case n:LocalLoad => true
-    case n:LocalStore => false
-    case n:LocalReset => false
+    case n:LocalOutAccess => true
     case n => false
   }
 

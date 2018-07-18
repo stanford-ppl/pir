@@ -27,48 +27,64 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     runPsim
   }
 
-  def runPsim = {
-    zipOption(PLASTISIM_HOME, psimOut).fold {
-      warn(s"set PLASTISIM_HOME to launch plastiroute automatically!")
-      } { case (psimHome, psimOut) =>
-        val log = s"$dirName/psim.log"
-        var succeed:Option[Boolean] = None
-        def processOutput(line:String) = {
-          if (succeed.isEmpty && line.contains("Simulation complete at cycle")) {
-            info(Console.GREEN, s"psim", line)
-            succeed = Some(true)
-          }
-          if (line.contains("DEADLOCK")) {
-            info(Console.RED, s"psim", line)
-            succeed = Some(false)
-          }
-        }
-        if (runPlastisim) {
-          if (enablePlastiroute) {
-            shellProcess(s"psim", s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/proute.place", log)(processOutput)
-          } else {
-            //TODO: static place file breaks the simulator
-            if (isDynamic(topS)) {
-              shellProcess(s"psim", s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/pir.place", log)(processOutput)
-            } else {
-              shellProcess(s"psim", s"$psimHome/plastisim -f $psimOut/config.psim", log)(processOutput)
-            }
-          }
-          if (!succeed.getOrElse(false)) fail(s"Plastisim failed. details in $log")
-        } else {
-          info(s"To run simulation manually, use following command, or use --run-psim to launch simulation automatically")
-          if (enablePlastiroute) {
-            info(cstr(Console.YELLOW, s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/proute.place"))
-          } else {
-            //TODO: static place file breaks the simulator
-            if (isDynamic(topS)) {
-              info(cstr(Console.YELLOW,s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/pir.place"))
-            } else {
-              info(cstr(Console.YELLOW,s"$psimHome/plastisim -f $psimOut/config.psim"))
-            }
+  lazy val nameMap = reverseOneToOneMap(designP.top.collectDown[NetworkNode]().map {
+    node => node -> s"${quote(node)}"
+  }.toMap)
+
+  var simulationSucceeded:Option[Boolean] = None
+  def processOutput(line:String) = {
+    if (line.contains("Simulation complete at cycle")) {
+      if (simulationSucceeded.isEmpty) {
+        info(Console.GREEN, s"psim", line)
+        simulationSucceeded = Some(true)
+      } else {
+        info(Console.RED, s"psim", line)
+      }
+    }
+    if (line.contains("DEADLOCK") || line.contains("TIMEOUT")) {
+      info(Console.RED, s"psim", line)
+      simulationSucceeded = Some(false)
+    }
+    if (line.contains("Total Active")) {
+      val node = line.split(":")(0).trim
+      nameMap.get(node).foreach { node =>
+        activeOf(node) = line.split("Total Active:")(1).trim.toLong
+        stalledOf(node) = line.split("Stalled:")(1).split("Starved")(0).trim.toFloat
+        starvedOf(node) = line.split("Starved:")(1).split("Total Active")(0).trim.toFloat
+        zipOption(countsOf.getOrElse(node,None), activeOf.get(node)).foreach { case (count, active) =>
+          if (active < count) { 
+            err(s"$node count=$count active=$active", false)
+            simulationSucceeded = Some(false)
           }
         }
       }
+    }
+  }
+
+  def runPsim = {
+    zipOption(PLASTISIM_HOME, psimOut).fold {
+      warn(s"set PLASTISIM_HOME to launch plastiroute automatically!")
+    } { case (psimHome, psimOut) =>
+      val log = s"$dirName/psim.log"
+      val timeOut = getOption[Long]("psim-timeout").fold("") { t => s"-c $t" }
+      val command = if (enablePlastiroute) {
+        s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/proute.place $timeOut"
+      } else {
+        //TODO: static place file breaks the simulator
+        if (isDynamic(topS)) {
+          s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/pir.place $timeOut"
+        } else {
+          s"$psimHome/plastisim -f $psimOut/config.psim $timeOut"
+        }
+      }
+      if (runPlastisim) {
+        shellProcess(s"psim", command, log)(processOutput)
+        if (!simulationSucceeded.getOrElse(false)) fail(s"Plastisim failed. details in $log")
+      } else {
+        info(s"To run simulation manually, use following command, or use --run-psim to launch simulation automatically")
+        info(cstr(Console.YELLOW, command))
+      }
+    }
   }
 
   override def emitNode(n:N) = n match {
@@ -91,7 +107,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
 
   lazy val bytePerWord = topParam.wordWidth / 8
 
-  def emitNodeSpecs(n:ContextEnable) = {
+  def emitNodeSpecs(n:NetworkNode) = {
     val cuP = globalOf(n).get
     cuP match {
       case cuP:DramFringe if isDenseFringe(cuP) & enableTrace =>
@@ -112,34 +128,11 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         emitln(s"mc DRAM")
         emitln(s"memfile = $psimHome/configs/DDR3_micron_64M_8B_x4_sg15.ini")
         emitln(s"system = $psimHome/configs/system.ini")
-      case FringeStreamIn(streamIn) =>
-        val counts:Long = countsOf.get(streamIn).flatten.getOrElse(-1)
-        emitln(s"start_at_tokens = ${counts} # number of stream inputs")
-      case FringeStreamOut(streamOut) =>
-        val counts:Long = countsOf.get(streamOut).flatten.getOrElse(-1)
-        emitln(s"stop_after_tokens = ${counts} # number of stream outputs")
-      case cuP:pir.node.ArgFringe =>
-        ctrlOf(n) match {
-          case _:ArgInController =>
-            emitln(s"start_at_tokens = 1")
-          case _:ArgOutController =>
-            emitln(s"stop_after_tokens = 1")
-        }
       case cuP =>
         emitln(s"lat = ${latencyOf(n).get}")
-        val accums = loadAccessesOf(n).flatMap { read =>
-          memsOf(read).head match {
-            case mem if isAccum(mem) => Some((mem, constScaleOf(read)))
-            case mem => None
-          }
-        }
-        assertOneOrLess(accums, s"accum").foreach { case (accum, scaleIn) =>
-          //HACK: set token to 1 to allow accumulator start the first run
-          if (inAccessesOf(accum).size <= 1) {
-            emitln(s"start_at_tokens = $scaleIn # accum=$accum")
-          }
-        }
     }
+    startAtToken(n).foreach { token => emitln(s"start_at_tokens = $token") }
+    stopAfterToken(n).foreach { token => emitln(s"stop_after_tokens = $token") }
     countsOf(n).fold {
       emitln(s"# count not exists")
     } { c =>
@@ -187,8 +180,10 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     }
   }
   def emitLink(n:Link) = dbgblk(s"emitLink(${quote(n)})") {
-    val srcs = srcsOf(n)
-    val dsts = dstsOf(n)
+    val srcMap = srcsOf(n)
+    val dstMap = dstsOf(n)
+    val srcs:List[NetworkNode] = srcMap.values.flatMap { _.keys }.toSet.toList
+    val dsts:List[NetworkNode] = dstMap.values.flatMap { _.keys }.toSet.toList
 
     val isStatic = topS match {
       case topS if isDynamic(topS) => isLocalLink(n)
@@ -206,19 +201,17 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
       dsts.zipWithIndex.foreach { case (dst,idx) =>
         emitln(s"dst[$idx] = ${quote(dst)}")
       }
-      assertOptionUnify(n, s"counts") { m => countsOf(m) }.fold {
+      assertOptionUnify(n, s"counts") { m => countsOf.getOrElse(m, None) }.fold {
         emitln(s"# count doen't exist")
       } { c =>
         emitln(s"count = $c")
       }
       if (isStatic) {
         n.foreach { mem =>
-          val memSrcs = srcsOf(mem)
-          val memDsts = dstsOf(mem)
-          memSrcs.foreach { src =>
+          srcMap(mem).foreach { case (src, ias) =>
             val srcIdx = srcs.indexOf(src)
             val lat = staticLatencyOf(src, mem).get
-            memDsts.foreach { dst =>
+            dstMap(mem).foreach { case (dst, oas) =>
               val dstIdx = dsts.indexOf(dst)
               emitln(s"lat[$srcIdx, $dstIdx] = $lat") // Local latency is always 1
             }
@@ -228,14 +221,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         //emitln(s"net = ${quote(tp)}net")
         //HACK: everything onto vecnet
         emitln(s"net = vecnet")
-        // HACK: get global output of link
-        val data = assertIdentical(n.flatMap { mem =>
-          inAccessesOf(mem).map {
-            case Def(n, LocalStore(mems, addr, data:GlobalInput)) => goutOf(data).get
-            case Def(n, LocalReset(mems, reset:GlobalInput)) => goutOf(reset).get
-          }
-        }, s"write data of $n").get
-        val vc_id = data.id
+        val vc_id = goutOf(n).get.id
         emitln(s"vc_id = $vc_id")
         val sids = srcs.map(src => globalOf(src).get.id)
         val dids = dsts.map(dst => globalOf(dst).get.id)
@@ -258,7 +244,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         case cuP =>
           emitln(s"scale_in[$idx] = ${constScaleOf(reads)}")
       }
-      emitln(s"buffer[$idx]=${bufferSizeOf(reads).get}")
+      emitln(s"buffer[$idx]=${assertOptionUnify(link, "bufferSize")(bufferSizeOf).get}")
     }
   }
 

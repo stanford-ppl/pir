@@ -15,7 +15,7 @@ class MapTest extends UnitTest with Serialization {
     map += (1 -> "a")
     map += (2 -> "b")
     map += (3 -> "c")
-    intercept[RebindingException[_,_]] {
+    intercept[RebindingException] {
       map += (1 -> "d")
     }
 
@@ -38,7 +38,7 @@ class MapTest extends UnitTest with Serialization {
     map += (1 -> "a")
     map += (2 -> "b")
     map += (3 -> "c")
-    intercept[RebindingException[_,_]] {
+    intercept[RebindingException] {
       map = map + (4 -> "a")
     }
 
@@ -51,7 +51,7 @@ class MapTest extends UnitTest with Serialization {
     map = map + (1 -> "a")
     map = map + (2 -> "b")
     map = map + (1 -> "c")
-    intercept[RebindingException[_,_]] {
+    intercept[RebindingException] {
       map = map + (4 -> "a")
     }
 
@@ -67,14 +67,14 @@ class MapTest extends UnitTest with Serialization {
     var map = immutable.BiManyToOneMap.empty[Int,String]
     map = map + (1 -> "a")
     map = map + (2 -> "b")
-    intercept[RebindingException[_,_]] {
+    intercept[RebindingException] {
       map = map + (1 -> "c")
     }
     map = map + (4 -> "a")
     assert(map.fmap.map == Map(1 -> "a", 2 -> "b", 4 -> "a"))
     assert(map.bmap.map == Map("a" -> Set(1,4), "b" -> Set(2)))
 
-    intercept[RebindingException[_,_]] {
+    intercept[RebindingException] {
       map = map ++ (Set(1,4) -> "e")
     }
     map = map ++ (Set(3,5) -> "e")
@@ -101,7 +101,7 @@ class MapTest extends UnitTest with Serialization {
     map += (1 -> "a")
     map += (2 -> "b")
     map += (3 -> "c")
-    intercept[RebindingException[_,_]] {
+    intercept[RebindingException] {
       map += (1 -> "d")
     }
 
@@ -122,7 +122,7 @@ class MapTest extends UnitTest with Serialization {
     map += (1 -> "a")
     map += (2 -> "b")
     map += (3 -> "c")
-    intercept[RebindingException[_,_]] {
+    intercept[RebindingException] {
       map += (4 -> "a")
     }
 
@@ -135,7 +135,7 @@ class MapTest extends UnitTest with Serialization {
     map += (1 -> "a")
     map += (2 -> "b")
     map += (1 -> "c")
-    intercept[RebindingException[_,_]] {
+    intercept[RebindingException] {
       map += (4 -> "a")
     }
     assert(map.fmap.map == Map(1 -> Set("a","c"), 2 -> Set("b")))

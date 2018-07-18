@@ -104,8 +104,7 @@ trait BiMap[K,V] extends prism.collection.BiMap[K,V] with MapLike[K,V] {
   type BM <: UniMap[V,K]
 
   def update(k:K, v:V):Unit = {
-    fmap.check(k,v)
-    bmap.check(v,k)
+    super.check(k,v)
     fmap.update(k,v)
     bmap.update(v,k)
   }

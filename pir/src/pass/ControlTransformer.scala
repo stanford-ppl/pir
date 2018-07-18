@@ -4,7 +4,7 @@ package pass
 import pir.node._
 import scala.collection.mutable
 
-abstract class ControlTransformer(implicit compiler:PIR) extends PIRTransformer { self:PIRTraversal =>
+abstract class ControlTransformer(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._
 
   def allocateWithFields[T<:PIRNode:ClassTag:TypeTag](fields:Any*):T = {
@@ -24,12 +24,18 @@ abstract class ControlTransformer(implicit compiler:PIR) extends PIRTransformer 
     val fromCU = globalOf(fromCtx).get
     val toCU = globalOf(toCtx).get
     if (fromCU == toCU) from else {
-      val gout = withParent(fromCtx) { allocateWithFields[GlobalOutput](from,validFunc) }
+      val gout = from match {
+        case from:GlobalInput => goutOf(from).get
+        case from:GlobalOutput => from
+        case from => withParent(fromCtx) { allocateWithFields[GlobalOutput](from,validFunc) }
+      }
       withParent(toCtx) {
-        if (compiler.arch.designParam.topParam.busWithReady) {
-          allocateWithFields[ReadyValidGlobalInput](gout, readyFunc)
-        } else {
-          allocateWithFields[ValidGlobalInput](gout)
+        toCtx.collectDown[GlobalInput]().filter { gin => goutOf(gin).get == gout }.headOption.getOrElse {
+          if (compiler.arch.designParam.topParam.busWithReady) {
+            allocateWithFields[ReadyValidGlobalInput](gout, readyFunc)
+          } else {
+            allocateWithFields[ValidGlobalInput](gout)
+          }
         }
       }
     }

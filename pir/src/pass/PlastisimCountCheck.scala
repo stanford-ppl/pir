@@ -18,18 +18,18 @@ class PlastisimCountCheck(implicit compiler: PIR) extends PIRTraversal with Sibl
 
   def countCheck(n:NetworkNode) = {
     countsOf(n).foreach { ncnt =>
-      inlinksOf(n).foreach { case (link, reads) =>
-        val sin = assertIdentical(reads.flatMap{ r => scaleOf(r) }, "scaleOf")
-        val lcnt = assertIdentical(link.flatMap { m => countsOf(m) }, "counts")
-        zipOption(sin, lcnt).foreach { case (sin, lcnt) =>
-          assert(lcnt * sin == ncnt, s"$link.count=$lcnt * sin=$sin != $n.count=$ncnt")
+      inMemsOf(n).foreach { case (mem, reads) =>
+        val sin = assertOptionUnify(reads, "scaleOf") { r => scaleOf(r) }
+        val mcnt = countsOf.getOrElse(mem, None)
+        zipOption(sin, mcnt).foreach { case (sin, mcnt) =>
+          assert(mcnt * sin == ncnt, s"$mem.count=$mcnt * sin=$sin != $n.count=$ncnt")
         }
       }
-      outlinksOf(n).foreach { case (link, writes) =>
-        val sout = assertIdentical(writes.flatMap{ r => scaleOf(r) }, "scaleOf")
-        val lcnt = assertIdentical(link.flatMap { m => countsOf(m) }, "counts")
-        zipOption(sout, lcnt).foreach { case (sout, lcnt) =>
-          assert(lcnt * sout == ncnt, s"$link.count=$lcnt * sout=$sout != $n.count=$ncnt")
+      outMemsOf(n).foreach { case (mem, writes) =>
+        val sout = assertOptionUnify(writes, "scaleOf") { r => scaleOf(r) }
+        val mcnt = countsOf.getOrElse(mem, None)
+        zipOption(sout, mcnt).foreach { case (sout, mcnt) =>
+          assert(mcnt * sout == ncnt, s"$mem.count=$mcnt * sout=$sout != $n.count=$ncnt")
         }
       }
     }

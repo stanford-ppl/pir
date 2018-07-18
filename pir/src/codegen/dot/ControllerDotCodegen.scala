@@ -50,7 +50,6 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
       case n:Memory =>
         (accessesOf(n)).foreach { access =>
           label += s"\n$access"
-          topCtrlOf.get(access).foreach { m => label += s"\n(topCtrl=$m)" }
           itersOf.get(access).foreach { m => label += s"\n(iters=$m)" }
         }
     }

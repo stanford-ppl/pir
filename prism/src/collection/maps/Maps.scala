@@ -83,7 +83,7 @@ trait OneToOneMap[K,V] extends UniMap[K,V] {
   }
   def check(pair:(K,V)):Unit = {
     val (k,v) = pair
-    if (map.contains(k) && map(k)!=v) throw RebindingException(this, k, v)
+    if (map.contains(k) && map(k)!=v) throw RebindingException(this, k, map(k), v)
   }
 }
 
@@ -124,9 +124,15 @@ abstract class BiMap[K:ClassTag,V:ClassTag] extends UniMap[K,V] {
 
   def check(pair:(K,V)):Unit = {
     val (k,v) = pair
-    fmap.check(k,v)
-    bmap.check(v,k)
+    try {
+      fmap.check(k,v)
+      bmap.check(v,k)
+    } catch {
+      case RebindingException(`fmap`, k, v, nv) => throw RebindingException(this, k, v, nv)
+      case RebindingException(`bmap`, v, k, nk) => throw RebindingException(this, v, k, nk)
+    }
   }
+
   def isMapped(x:Any) = x match {
     case x:K => fmap.contains(x)
     case x:V => bmap.contains(x)
@@ -165,6 +171,6 @@ trait BiManyToManyMap[K,V] extends BiMap[K,V] {
   override def apply(k:K):VV = fmap.getOrElse(k, Set())
 }
 
-case class RebindingException[K,V](map:OneToOneMap[K,V], k:K, v:V) extends PIRException {
-  def msg = s"${map} already contains key $k -> ${map(k)} but try to rebind to $v"
+case class RebindingException(map:MapLike[_,_], k:Any, v:Any, nv:Any) extends PIRException {
+  def msg = s"${map} already contains key $k -> $v but try to rebind to $nv"
 }

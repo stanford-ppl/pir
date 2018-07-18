@@ -28,15 +28,6 @@ class MemoryAnalyzer(implicit compiler:PIR) extends SiblingFirstTraversal with U
     ctrlOf.removeKey(mem)
     ctrlOf(mem) = lcaCtrl
     ctrlOf.info(mem).foreach(dbg)
-
-    if (compiler.session.hasRun[ContextInsertion]) { //HACK
-      val topCtrls = leastMatchedPeers(accessCtrls, Some(lcaCtrl)).get
-      accesses.foreach { access =>
-        val topCtrl = topCtrls(ctrlOf(access))
-        topCtrlOf(access) = topCtrl
-        topCtrlOf.info(access).foreach(dbg)
-      }
-    }
   }
 
 }

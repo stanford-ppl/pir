@@ -69,13 +69,6 @@ class PIRMetadata extends Metadata {
   ctrlOf.setName("ctrlOf")
 
   /*
-   * Defined on accesses of Memory. Child of the ctrlOf(mem) on ancesstor path of the access if
-   * ctrlOf(mem) != ctrlOf(access). Otherwise it's the ctrlOf(access) 
-   * */
-  val topCtrlOf = new BiManyToOneMap[PIRNode, Controller] with MetadataMap
-  topCtrlOf.setName("topCtrlOf")
-
-  /*
    * User annotation on variable value
    * */
   val boundOf = new OneToOneMap[PIRNode, Any] with MetadataMap
@@ -135,9 +128,20 @@ class PIRMetadata extends Metadata {
   }
   originOf.setName("originOf")
 
+  val isMuted = new OneToOneMap[PIRNode, Boolean] with MetadataMap {
+    override def apply(k:K):V = get(k).getOrElse(false)
+  }
+  isMuted.setName("isMuted")
+
   /* ------------- Plastsim metadata (start) ---------- */
   val linkGroupOf = new OneToOneMap[Memory, Set[Memory]] with MetadataMap
   linkGroupOf.setName("linkGroupOf")
+  val stalledOf = new OneToOneMap[PIRNode, Float] with MetadataMap
+  stalledOf.setName("stalledOf")
+  val starvedOf = new OneToOneMap[PIRNode, Float] with MetadataMap
+  starvedOf.setName("starvedOf")
+  val activeOf = new OneToOneMap[PIRNode, Long] with MetadataMap
+  activeOf.setName("activeOf")
   /* ------------- Plastsim metadata (start) ---------- */
 
   var pirMap:EOption[PIRMap] = Right(PIRMap.empty)

@@ -27,7 +27,6 @@ trait PIR extends Compiler with PIRWorld {
   /* Analysis */
   lazy val testTraversal = new TestTraversal()
   lazy val memoryAnalyzer = new MemoryAnalyzer()
-  lazy val accessAnalyzer = new AccessAnalyzer()
   lazy val controlPropogator = new ControlPropogation()
   lazy val controllerRuntimeAnalyzer = new ControllerRuntimeAnalyzer()
   lazy val psimLinkAnalyzer = new PlastisimLinkAnalyzer()
@@ -49,6 +48,7 @@ trait PIR extends Compiler with PIRWorld {
   lazy val controlRegInsertion = new ControlRegInsertion()
   lazy val controlAllocator = new ControlAllocation()
   lazy val controlLowering = new ControlLowering()
+  lazy val localMemDuplication = new LocalMemDuplication()
 
   /* Mapping */
   lazy val cuPruning = new CUPruning()
@@ -113,6 +113,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top8.dot")).dependsOn(contextInsertion)
 
     // Control transformation and analysis
+    //addPass(genCtrl, localMemDuplication)
     addPass(genCtrl, memoryAnalyzer).dependsOn(contextInsertion)
     addPass(genCtrl, controlAllocator).dependsOn(contextInsertion) // set accessDoneOf, duplicateCounterChain for accessDoneOf
     addPass(genCtrl, controlRegInsertion).dependsOn(controlAllocator) // insert reg for no forward depended contextEn
@@ -122,12 +123,12 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genCtrl, deadCodeEliminator) // Remove redundant counterChains
     addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top10.dot"))
     addPass(genCtrl, controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable
+    addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top11.dot"))
     addPass(genCtrl, irCheck)
 
     session.rerun {
     addPass(enableDot, new ControllerPrinter(s"controller.txt"))
     addPass(cuStats)
-    addPass(genCtrl, accessAnalyzer).dependsOn(accessLowering)
 
     // Simulation analyzer
     addPass(enableTrace, psimTraceCodegen)
@@ -155,6 +156,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genPlastisim, psimDotCodegen).dependsOn(psimLinkAnalyzer)
     addPass(enableMapping && genPlacement, psimPlacementCodegen).dependsOn(cuPlacer)
     addPass(enableMapping && genPlastisim, psimConfigCodegen).dependsOn(cuPlacer, linkCSVCodegen, psimTraceCodegen)
+    addPass(runPlastisim, psimDotCodegen)
 
      // Simulation
 

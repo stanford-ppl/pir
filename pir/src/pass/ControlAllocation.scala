@@ -4,15 +4,27 @@ package pass
 import pir.node._
 import scala.collection.mutable
 
-class ControlAllocation(implicit compiler:PIR) extends ControlTransformer with SiblingFirstTraversal with UnitTraversal {
+class ControlAllocation(implicit compiler:PIR) extends ControlTransformer with ContextLinerizer with AccessControlUtil {
   import pirmeta._
 
   val forward = true
 
-  override def visitNode(n:N):Unit = {
-    n match {
-      case n:LocalAccess => super.visitNode(transformAccess(n))
-      case n => super.visitNode(n)
+  val memories = mutable.Queue[Memory]()
+  val processed = mutable.ListBuffer[Memory]()
+
+  override def runPass = {
+    memories ++= designP.top.collectDown[Memory]()
+    while (memories.nonEmpty) {
+      analyze(memories.dequeue)
+    }
+  }
+
+  def analyze(mem:Memory) = if (!processed.contains(mem)) {
+    processed += mem
+    dbgblk(s"ctrlAlloc($mem)") {
+      accessesOf(mem).foreach(transformAccess)
+      memories ++= linearizeAccessContext(mem)
+      ()
     }
   }
 
@@ -66,44 +78,46 @@ class ControlAllocation(implicit compiler:PIR) extends ControlTransformer with S
     }
   }
 
+  private def dataOf(n:LocalLoad):Def = {
+    val mem::Nil = memsOf(n)
+    val writer::Nil = writersOf(mem)
+    dataOf(writer)
+  }
+
   override def mirrorX(n:N, mapping:mutable.Map[N,N])(implicit design:Design):N = {
     n match {
-      case n:Memory =>
-        val cu = globalOf(currentParent.get).get
-        withParent(cu) { super.mirrorX(n, mapping) }
       case Def(n:LocalLoad, LocalLoad(mem::Nil, None)) =>
-        val mmem = mirror(mem, mapping)
-        mapping.getOrElseUpdate(n, {
-          readersOf(mmem).filter { _.isDescendentOf(currentParent.get) }.headOption.getOrElse {
-            val m = ReadMem(mmem)
-            pirmeta.mirror(n,m)
-            originOf(m) = n
-            queue += m // TODO:HACK top down traversal doen't automatically traverse the newly created nodes yet
-            m
-          }
-        })
-      case Def(n:LocalStore, LocalStore(mem::Nil, None, data)) =>
-        val origData = data match {
-          case Def(gin, GlobalInput(Def(gout, GlobalOutput(data, valid)))) => data
-          case data => data // mirroring not lowered node
-        }
-        val mmem = mirror(mem, mapping)
         val cu = globalOf(currentParent.get).get
-        mapping.getOrElseUpdate(n, {
-          val mwriter = writersOf(mmem).headOption
-          dbg(s"mwriter=$mwriter")
-          mwriter.getOrElse {
-            withParent(cu) {
-              withParent(ComputeContext()) {
-                val m = WriteMem(mmem, origData)
-                pirmeta.mirror(n,m)
-                originOf(m) = n
-                queue += m
-                m
-              }
-            }
+        val writer::Nil = writersOf(mem)
+        val data = dataOf(n)
+        val readCtx = currentParent.get
+        readCtx.collectDown[LocalLoad]().filter { load =>
+          memsOf(load).contains(mem) && dataOf(load) == data
+        }.headOption.getOrElse {
+          val mmem = withParentCtrl(cu, ctrlOf(mem)) { 
+            mirrorX(mem, mem.values).asInstanceOf[Memory]
           }
-        })
+          dbg(s"data=${qdef(data)}")
+          val writeCtx = data match {
+            case data:GlobalInput => 
+              cu.collectDown[GlobalInput]().filter { gin => 
+                goutOf(gin).get == goutOf(data).get 
+              }.headOption.fold {
+                withParent(cu) { ComputeContext() }
+              } { gin => contextOf(gin).get }
+            case data => withParent(cu) { ComputeContext() } // Haven't lowered
+          }
+          withParentCtrl(writeCtx, ctrlOf(writer)) {
+            WriteMem(mmem, data)
+          }
+          val m = withParentCtrl(readCtx, ctrlOf(n)) { ReadMem(mmem) }
+          memories += mmem
+          pirmeta.mirror(n,m)
+          originOf(m) = n
+          m
+        }
+      case n:Memory => throw PIRException(s"Shouldn't mirror memory this way")
+      case n:LocalStore => throw PIRException(s"Shouldn't mirror store this way")
       case n => super.mirrorX(n, mapping)
     }
   }
@@ -111,7 +125,7 @@ class ControlAllocation(implicit compiler:PIR) extends ControlTransformer with S
   def getAccessNext(n:LocalAccess, mem:Memory) = {
     mem match {
       case mem if isFIFO(mem) => allocateControllerEnable(ctrlOf(n))
-      case mem => allocateControllerDone(topCtrlOf(n))
+      case mem => allocateControllerDone(getTopCtrl(n))
     }
   }
 

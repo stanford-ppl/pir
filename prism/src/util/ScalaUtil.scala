@@ -87,11 +87,31 @@ trait ScalaUtilFunc {
     map.groupBy(_._2).mapValues(_.keys.toSet)
   }
 
+  def reverseOneToOneMap[K,V](map:scala.collection.Map[K,V]):Map[V,K] = {
+    reverseMap(map).map { case (v, ks) => v -> assertIdentical(ks, "name").get }
+  }
+
   def flatReduce[A](list:List[Option[A]])(lambda:(A,A) => A):Option[A] = {
     list.reduce[Option[A]]{
       case (Some(a), Some(b)) => Some(lambda(a,b))
       case _ => None
     }
+  }
+
+  /*
+   * If a and b can be reduced, reduce return Some(c) else None
+   * */
+  def partialReduce[A](list:List[A])(reduce:(A,A) => Option[A]):List[A] = {
+    val queue = scala.collection.mutable.Queue[A]()
+    val reduced = scala.collection.mutable.Queue[A]()
+    queue ++= list
+    while (queue.nonEmpty) {
+      val a = queue.dequeue
+      val cs = queue.flatMap { b => reduce(a,b) }
+      if (cs.isEmpty) reduced += a
+      else queue ++= cs
+    }
+    reduced.toList
   }
 
 }

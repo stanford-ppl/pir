@@ -56,7 +56,7 @@ class IRCheck(implicit compiler:PIR) extends PIRPass {
             io.connected.foreach { connected => 
               dbg(s"connected=${connected.src}.$connected")
             }
-            err(s"$cu's global input ${io.src}.$io")
+            err(s"$cu's global input ${io.src}.$io from ${io.connected.map(_.src)}")
         }
       case io =>
     }
