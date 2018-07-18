@@ -78,10 +78,10 @@ class ControlAllocation(implicit compiler:PIR) extends ControlTransformer with C
     }
   }
 
-  private def dataOf(n:LocalLoad):Def = {
+  private def origDataOf(n:LocalLoad):Def = {
     val mem::Nil = memsOf(n)
     val writer::Nil = writersOf(mem)
-    dataOf(writer)
+    origDataOf(writer)
   }
 
   override def mirrorX(n:N, mapping:mutable.Map[N,N])(implicit design:Design):N = {
@@ -89,15 +89,15 @@ class ControlAllocation(implicit compiler:PIR) extends ControlTransformer with C
       case Def(n:LocalLoad, LocalLoad(mem::Nil, None)) =>
         val cu = globalOf(currentParent.get).get
         val writer::Nil = writersOf(mem)
-        val data = dataOf(n)
+        val data = origDataOf(n)
+        dbg(s"data=${qdef(data)}")
         val readCtx = currentParent.get
         readCtx.collectDown[LocalLoad]().filter { load =>
-          memsOf(load).contains(mem) && dataOf(load) == data
+          origDataOf(load) == data
         }.headOption.getOrElse {
           val mmem = withParentCtrl(cu, ctrlOf(mem)) { 
             mirrorX(mem, mem.values).asInstanceOf[Memory]
           }
-          dbg(s"data=${qdef(data)}")
           val writeCtx = data match {
             case data:GlobalInput => 
               cu.collectDown[GlobalInput]().filter { gin => 

@@ -27,15 +27,25 @@ abstract class ControlTransformer(implicit compiler:PIR) extends PIRTransformer 
       val gout = from match {
         case from:GlobalInput => goutOf(from).get
         case from:GlobalOutput => from
-        case from => withParent(fromCtx) { allocateWithFields[GlobalOutput](from,validFunc) }
+        case from => withParent(fromCtx) { 
+          allocateWithFields[GlobalOutput](from,validFunc)
+        }
       }
       withParent(toCtx) {
-        toCtx.collectDown[GlobalInput]().filter { gin => goutOf(gin).get == gout }.headOption.getOrElse {
-          if (compiler.arch.designParam.topParam.busWithReady) {
+        if (compiler.arch.designParam.topParam.busWithReady) {
+          toCtx.collectDown[ReadyValidGlobalInput]().filter { gin => goutOf(gin).get == gout }.headOption.fold {
             allocateWithFields[ReadyValidGlobalInput](gout, readyFunc)
-          } else {
-            allocateWithFields[ValidGlobalInput](gout)
+          } { case Def(gin, ReadyValidGlobalInput(gout, origReady)) =>
+            val ready = readyFunc
+            withCtrl(ctrlOf(ready)) {
+              val newReady = And(ready, origReady)
+              dbg(s"Anding $ready with original ready $origReady")
+              swapConnection(gin, origReady.out, newReady.out)
+              gin
+            }
           }
+        } else {
+          allocateWithFields[ValidGlobalInput](gout)
         }
       }
     }
