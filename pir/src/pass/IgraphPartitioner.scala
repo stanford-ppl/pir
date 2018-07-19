@@ -31,11 +31,14 @@ class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner with Debugg
       }
     }
     dbgblk(s"partitionResult") {
-      partitionMap.foreach { case (p, vertices) =>
-        val cu = partitions(p)
-        dbgblk(s"cu=${cu}") {
-          vertices.foreach { v => swapParent(v, cu) }
+      breakPoint(List(cu), s"split $cu") {
+        partitionMap.foreach { case (p, vertices) =>
+          val cu = partitions(p)
+          dbgblk(s"cu=${cu}") {
+            vertices.foreach { v => swapParent(v, cu) }
+          }
         }
+        partitions
       }
       partitions = fixCycle(partitions)
     }
@@ -81,7 +84,7 @@ class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner with Debugg
         }.getOrElse(throw PIRException(s"This shouldn't happen. The original dataflow is not a dag!"))
         val tree = schedular.scheduleNode(dep)
         val other = otherCU(dep)
-        breakPoint(partitions) {
+        breakPoint(partitions, s"Cycle in $partitions") {
           tree.foreach { n =>
             swapParent(n, other)
           }
@@ -97,7 +100,7 @@ class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner with Debugg
     cu2.children.exists { _.deps.exists { _.isDescendentOf(cu1) } }
   }
 
-  def breakPoint(origPartitions:List[GlobalContainer])(newPartitionBlk: => List[GlobalContainer]):List[GlobalContainer] = if (PIRConfig.enableBreakPoint) {
+  def breakPoint(origPartitions:List[GlobalContainer], info:String)(newPartitionBlk: => List[GlobalContainer]):List[GlobalContainer] = if (PIRConfig.enableBreakPoint) {
     var newPartitions:Option[List[GlobalContainer]] = None
     val act:BreakAction = {
       case ("o", bp) =>
@@ -106,7 +109,7 @@ class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner with Debugg
         new PartitalDotCodegen("after.dot", newPartitions.get).run.open
         bp(())
     }
-    breakPoint(s"Cycle in $origPartitions", act)
+    breakPoint(info, act)
     newPartitions.getOrElse(newPartitionBlk)
   } else newPartitionBlk
 

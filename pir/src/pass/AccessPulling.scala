@@ -39,18 +39,19 @@ class AccessPulling(implicit compiler:PIR) extends PIRTransformer with DFSBottom
   override def visitNode(n:N):Unit = {
     dbgs(s"visitNode ${qdef(n)}")
     n match {
-      case n:Def =>
-        val localDeps = n.deps.flatMap {
-          case n:Memory if isRemoteMem(n) => None
-          case n:LocalStore => None
-          case n:LocalReset => None
-          case n:ArgInDef => None
-          case n:TokenInDef => None
-          case n => Some(n)
+      case n:Memory =>
+      case n:Primitive =>
+        val portableDeps = n.deps.flatMap {
+          case dep:Memory if isRemoteMem(dep) => None
+          case dep:LocalStore => None
+          case dep:LocalReset => None
+          case dep:ArgInDef => None
+          case dep:TokenInDef => None
+          case dep => Some(dep)
         }
         dbg(s"${n}.parent=${n.parent}")
         val cu = globalOf(n).get 
-        localDeps.foreach { dep =>
+        portableDeps.foreach { dep =>
           if (!cu.isAncestorOf(dep)) pullNode(dep, n, cu)
         }
       case _ =>
