@@ -12,18 +12,19 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
    * the origin mapping from the previous parent. 
    * Mirror if not in mapping. Adding origins to mapping within the containers
    * */
-  override def mirror[T](xx:T, mapping:mutable.Map[N,N])(implicit design:Design):T = {
+  override def mirror[T](x:T, mapping:mutable.Map[N,N])(implicit design:Design):T = {
     currentParent.foreach { p =>
       p.children.foreach { 
         case m:N if originOf.contains(m) => mapping += originOf(m) -> m
         case x =>
       }
     }
-    val origin = (xx match { case xx:N => originOf.getOrElse(xx, xx); case _ => xx }).asInstanceOf[T]
-    origin match {
-      case _:N =>
-        dbgblk(s"mirror($origin) in=$currentParent") { super.mirror(origin, mapping) }
-      case _ => super.mirror(origin, mapping)
+    x match {
+      case x:N =>
+        dbgblk(s"mirror(${originOf(x)}) in=$currentParent") { 
+          super.mirror(originOf(x), mapping).asInstanceOf[T]
+        }
+      case _ => super.mirror(x, mapping)
     }
   }
 
@@ -52,9 +53,7 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
         mapping += data -> data
         super.mirrorX(n, mapping)
       case n:Counter =>
-        var cc = cchainOf(n)
-        cc = originOf.getOrElse(cc,cc).asInstanceOf[CounterChain]
-        mapping.get(cc).fold {
+        mapping.get(originOf(cchainOf(n))).fold {
           val m = super.mirrorX(n, mapping)
           val mcc = mirror(cchainOf(n), mapping)
           m.unsetParent
