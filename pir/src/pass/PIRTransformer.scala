@@ -29,7 +29,7 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
   }
 
   override def mirrorX(n:N, mapping:mutable.Map[N,N])(implicit design:Design):N = {
-    n match {
+    originOf(n) match {
       case n:GlobalInput => 
         goutOf(n).foreach { gout => mapping += gout -> gout }
         super.mirrorX(n, mapping)

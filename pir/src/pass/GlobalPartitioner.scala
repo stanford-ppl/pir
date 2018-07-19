@@ -31,8 +31,7 @@ trait GlobalPartioner extends PIRTransformer with CUPruner {
   def retimeGlobal(cu:GlobalContainer) = dbgblk(s"retimeGlobal") {
     cu.ins.filter { in => 
       in.src match {
-        case src:LocalStore => false
-        case src:LocalReset => false
+        case src:LocalInAccess if memsOf(src).forall(isLocalMem) => false
         case src => true
       }
     }.groupBy { in =>
