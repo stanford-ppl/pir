@@ -33,18 +33,17 @@ class PlastisimLinkAnalyzer(implicit compiler: PIR) extends PIRTraversal with DF
   }
 
   def computeLinkGroup(n:Memory) = dbgblk(s"computeLinkGroup($n)"){
-    val group = inAccessesOf(n).flatMap { access => 
+    val group = inAccessesOf(n).flatMap { case Def(n, LocalInAccess(mems, addr, src::Nil)) => 
       def visitFunc(n:PIRNode) = visitGlobalOut(n).filterNot {
         case n:DataReady => true // Remove back pressure
         case _ => false
       }
-      val src = access match {
-        case Def(n, LocalStore(mems, addr, data:GlobalInput)) => goutOf(data).get
-        case Def(n, LocalStore(mems, addr, data)) => data
-        case Def(n, LocalReset(mems, reset:GlobalInput)) => goutOf(reset).get
+      val origSrc = src match {
+        case Def(gin, GlobalInput(gout)) => gout
+        case src => src
       }
-      dbg(s"src=$src")
-      src.collect[Memory](visitFunc=visitFunc _)
+      dbg(s"origSrc=$origSrc")
+      origSrc.collect[Memory](visitFunc=visitFunc _)
     }.toSet
     dbg(s"group=${group}")
     group.foreach { mem => linkGroupOf += mem -> group }

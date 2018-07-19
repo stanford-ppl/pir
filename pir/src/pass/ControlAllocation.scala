@@ -78,6 +78,10 @@ class ControlAllocation(implicit compiler:PIR) extends ControlTransformer with C
     }
   }
 
+  def origDataOf(n:LocalStore):Def = dataOf(n) match {
+    case Def(gin, GlobalInput(Def(gout, GlobalOutput(data, valid)))) => data
+    case data => data
+  }
   private def origDataOf(n:LocalLoad):List[Def] = {
     val mem::Nil = memsOf(n)
     writersOf(mem).map { writer =>
@@ -147,13 +151,8 @@ class ControlAllocation(implicit compiler:PIR) extends ControlTransformer with C
             allocateWithFields[NotFull](mem) // ready
           }
           val writeNext = gdata match {
-            case gdata:GlobalInput => 
-              assert(isReg(mem) || isFIFO(mem), s"${qdef(n)}'s data is Global")
-              allocateWithFields[DataValid](gdata) 
-            case gdata => 
-              // writeNext could be compute locally, from data producer, or from addresser. For now always
-              // compute locally
-              getAccessNext(n, mem)
+            case gdata:GlobalInput => allocateWithFields[DataValid](gdata) 
+            case gdata => getAccessNext(n, mem)
           }
           EnabledStoreMem(mem, addr.map(assertOne(_,s"$n.addr")), gdata, writeNext)
         }
@@ -167,6 +166,7 @@ class ControlAllocation(implicit compiler:PIR) extends ControlTransformer with C
           }
           val writeNext = greset match {
             case greset:GlobalInput => allocateWithFields[DataValid](greset)
+            case reset => getAccessNext(n, mem)
           }
           EnabledResetMem(mem, greset, writeNext)
         }

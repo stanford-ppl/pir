@@ -15,7 +15,7 @@ class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSBot
 
   override def runPass =  {
     controllerTraversal.traverseTop
-    traverseTop
+    //traverseTop
   }
 
   override def finPass = {
@@ -53,12 +53,12 @@ class ControlPropogation(implicit compiler:PIR) extends PIRTraversal with BFSBot
       dbg(s"setting ${qtype(n)}.ctrl=$ctrl")
       ctrlOf.removeKey(n)
       ctrlOf(n) = ctrl
-      n.children.foreach(c => resetController(c, ctrl))
+      n.counters.foreach(c => resetController(c, ctrl))
     case n:ComputeNode => 
       dbg(s"setting ${qtype(n)}.ctrl=$ctrl")
       ctrlOf.removeKey(n)
       ctrlOf(n) = ctrl
-      n.deps.foreach(d => resetController(d, ctrl))
+      //n.deps.foreach(d => resetController(d, ctrl))
     case n =>
   }
 

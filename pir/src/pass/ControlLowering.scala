@@ -38,13 +38,15 @@ class ControlLowering(implicit compiler:PIR) extends ControlTransformer with Sib
     val remote = remoteOutMemsOf(context)
     dbg(s"outMems (remote):${remote.keys.map(qtype)}")
     notFulls = notFulls ++ remote.values.flatten.flatMap {
-      case Def(writer, EnabledStoreMem(mem, _, _, writeNext)) => 
+      case inAccess:LocalInAccess with EnabledAccess => 
+        val mem::Nil = memsOf(inAccess)
+        val writeNext = accessNextOf(inAccess)
         val notFull:Def = if (compiler.arch.designParam.topParam.busWithReady) {
           val gout = writeNext.collect[GlobalOutput](visitFunc=visitGlobalIn _).head
           allocateWithFields[DataReady](gout)
         } else {
-          val writerCtx = contextOf(writer).get
-          withParentCtrl(writerCtx, ctrlOf(writer)) {
+          val inCtx = contextOf(inAccess).get
+          withParentCtrl(inCtx, ctrlOf(inAccess)) {
             val notFull = allocateWithFields[NotFull](mem)
             insertGlobalIO(notFull, context)(allocateWithFields[High]())(allocateWithFields[High]())
           }

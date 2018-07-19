@@ -33,6 +33,16 @@ trait LocalInAccess extends LocalAccess {
   // Add new written memory
   def writes(mem:Memory) = mem.newIn.connect(this.out)
 }
+object LocalInAccess {
+  def unapply(n:Any):Option[(List[Memory], Option[List[Def]], List[Def])] = n match {
+    case ResetMem(mem, reset) => Some((List(mem), None, List(reset)))
+    case WriteMem(mem, data) => Some((List(mem), None, List(data)))
+    case StoreBanks(mems, addrs, data) => Some((mems.flatten, Some(addrs), List(data)))
+    case StoreMem(mem, faddr, data) => Some((List(mem), Some(List(faddr)), List(data)))
+    case EnabledStoreMem(mem, faddr, data, enqEn) => Some((List(mem), faddr.map { a => List(a)}, List(data)))
+    case EnabledResetMem(mem, reset, enqEn) => Some((List(mem), None, List(reset)))
+  }
+}
 trait LocalStore extends LocalInAccess
 object LocalStore {
   def unapply(n:Any):Option[(List[Memory], Option[List[Def]], Def)] = n match {
@@ -105,13 +115,6 @@ trait AccessUtil {
   def dataOf(n:LocalStore) = {
     val Def(writer, LocalStore(mems, addrs, data)) = n
     data
-  }
-
-  def origDataOf(n:LocalStore) = {
-    dataOf(n) match {
-      case Def(gin, GlobalInput(Def(gout, GlobalOutput(data, valid)))) => data
-      case data => data 
-    }
   }
 
   def accessNextOf(n:PIRNode) = {

@@ -34,6 +34,13 @@ trait GlobalIOUtil {
     case Def(n, GlobalOutput(data, valid)) => data
   }
 
+  def originSrcOf(n:Def) = {
+    n match {
+      case Def(gin, GlobalInput(gout)) => gout
+      case n => n
+    }
+  }
+
   def connectedOf(gio:GlobalIO, logger:Option[Logging]=None) = gio match {
     case gio:GlobalInput => goutOf(gio, logger).toList
     case gio:GlobalOutput => ginsOf(gio, logger)
