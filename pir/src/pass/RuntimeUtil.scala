@@ -151,7 +151,7 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
   def getItersOf(n:PIRNode):Option[Long] = itersOf.getOrElseUpdate(n) {
     dbgblk(s"getItersOf $n") {
       n match {
-        case Def(n, CounterChain(counters)) => flatReduce(counters.map(getItersOf)) { _ * _ }
+        case n:CounterChain => flatReduce(n.counters.map(getItersOf)) { _ * _ }
         case Def(ctr:Counter, Counter(min, max, step, par)) =>
           val cmin = getBoundAs[Int](min, logger=Some(this))
           val cmax = getBoundAs[Int](max, logger=Some(this))
