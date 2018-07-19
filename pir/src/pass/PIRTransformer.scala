@@ -52,11 +52,19 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
         mapping += data -> data
         super.mirrorX(n, mapping)
       case n:Counter =>
-        val m = super.mirrorX(n, mapping)
-        val mcc = mirror(cchainOf(n), mapping)
-        m.unsetParent
-        m.setParent(mcc)
-        m
+        var cc = cchainOf(n)
+        cc = originOf.getOrElse(cc,cc).asInstanceOf[CounterChain]
+        mapping.get(cc).fold {
+          val m = super.mirrorX(n, mapping)
+          val mcc = mirror(cchainOf(n), mapping)
+          m.unsetParent
+          m.setParent(mcc)
+          m
+        } { mcc =>
+          withParent(mcc.asInstanceOf[CounterChain]) {
+            mirror(n, mapping) // should be already mirrored 
+          }
+        }
       case n:CounterChain =>
         n.counters.foreach { ctr => mirror(ctr, mapping) }
         super.mirrorX(n, mapping)
