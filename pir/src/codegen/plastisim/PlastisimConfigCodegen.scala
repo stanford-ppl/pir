@@ -124,10 +124,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
             emitln(s"dram_cmd_tp=dense_store")
             emitln(s"in_token_size = ${par * bytePerWord}")
         }
-        val psimHome = PLASTISIM_HOME.getOrElse(throw PIRException(s"PLASTISIM_HOME need to set to find ini files"))
-        //emitln(s"mc DRAM")
-        //emitln(s"memfile = $psimHome/configs/DDR3_micron_64M_8B_x4_sg15.ini")
-        //emitln(s"system = $psimHome/configs/system.ini")
+        emitln(s"controller=DRAM")
       case cuP =>
         emitln(s"lat = ${latencyOf(n).get}")
     }
@@ -177,9 +174,13 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   }
 
   def emitMemoryController = {
-    //if (enableTrace) {
-      //emitln(s"controller=DRAM")
-    //}
+    if (enableTrace) {
+      val psimHome = PLASTISIM_HOME.getOrElse(throw PIRException(s"PLASTISIM_HOME need to set to find ini files"))
+      emitNodeBlock(s"mc DRAM") {
+        emitln(s"memfile = $psimHome/configs/DDR3_micron_64M_8B_x4_sg15.ini")
+        emitln(s"sysfile = $psimHome/configs/system.ini")
+      }
+    }
   }
   def emitLink(n:Link) = dbgblk(s"emitLink(${quote(n)})") {
     val srcMap = srcsOf(n)
