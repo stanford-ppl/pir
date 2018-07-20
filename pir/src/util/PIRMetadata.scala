@@ -42,16 +42,7 @@ class PIRMetadata extends Metadata {
   /*
    * Antidependencies between accesses
    * */
-  val antiDepsOf = new OneToManyMap[PIRNode, PIRNode] with MetadataMap {
-    override def migrateKey(from:K, to:K, v:V, logger:Option[Logging]) = {
-      dbg(logger, s"$name.migrateKey $from -> $v => $to -> $v")
-      update(to, v)
-    }
-    override def migrateValue(from:V, to:V, k:K, logger:Option[Logging]) = {
-      dbg(logger, s"$name.migrateValue $k -> $from => $k -> $to")
-      update(k, to)
-    }
-  }
+  val antiDepsOf = new OneToManyMap[PIRNode, PIRNode] with MetadataMap
   antiDepsOf.setName("antiDepsOf")
 
   /* 
