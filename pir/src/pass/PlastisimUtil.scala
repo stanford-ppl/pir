@@ -226,6 +226,7 @@ trait PlastisimUtil extends PIRPass {
         mappedTo[Routable](cuP, pmap).map {
           case cuS:MC => 100
           case cuS:CU => cuS.param.simdParam.map { _.stageParams.size }.getOrElse(1)
+          case cuS:spade.node.ArgFringe => 1
         }
     }
   }
