@@ -39,7 +39,7 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
       }
       startAtToken(n).foreach { token => label += s"\nstart_at_tokens=$token" }
       stopAfterToken(n).foreach { token => label += s"\nstop_after_tokens=$token" }
-      countsOf(n).foreach { counts => label += s"\ncounts=$counts" }
+      countOf(n).foreach { count => label += s"\ncount=$count" }
       activeOf.get(n).foreach { active => label += s"\nactive=$active" }
       stalledOf.get(n).foreach { stalled => label += s"\nstalled=$stalled %" }
       starvedOf.get(n).foreach { starved => label += s"\nstarved=$starved %" }
@@ -62,7 +62,7 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
     val dstMap = dstsOf(n)
     val srcs:List[NetworkNode] = srcMap.values.flatMap { _.keys }.toSet.toList
     val dsts:List[NetworkNode] = dstMap.values.flatMap { _.keys }.toSet.toList
-    val counts = assertOptionUnify(n, "counts") { mem => countsOf.getOrElse(mem, None) }
+    val count = assertOptionUnify(n, "count") { mem => countOf.getOrElse(mem, None) }
 
     val from = goutOf(n)
     n.foreach { mem =>
@@ -75,7 +75,7 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
           var label = s"$mem"
           from.foreach{ from => label += s"\nid=${from.id}" } 
           sout.foreach { sout => label += s"\nsout=$sout" }
-          counts.foreach { counts => label += s"\ncount=$counts" }
+          count.foreach { count => label += s"\ncount=$count" }
           sin.foreach { sin => label += s"\nsin=$sin" }
           bs.foreach { bs => label += s"\nbs=$bs" }
           lat.foreach { lat => label += s"\nlat=$lat" }

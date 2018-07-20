@@ -35,9 +35,9 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
   }
 
   /*
-   * For controller, itersOf is the number of iteration the current controller runs before saturate
+   * For controller, iterOf is the number of iteration the current controller runs before saturate
    * */
-  def getItersOf(n:Controller):Option[Long] = itersOf.getOrElseUpdate(n) {
+  def getItersOf(n:Controller):Option[Long] = iterOf.getOrElseUpdate(n) {
     dbgblk(s"getItersOf $n") {
       n match {
         case x:ForeverController => getCountsOf(x)
@@ -57,41 +57,24 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
     }
   }
 
-  def foreverOf(ctrl:Controller):Option[Controller] = ctrl match {
-    case ctrl:ForeverController => Some(ctrl)
-    case ctrl => ctrl.ancestors.filter(isForever).headOption
-  }
-
-  def foreverInMems(ctrl:Controller):List[Memory] = {
-    foreverOf(ctrl).toList.flatMap { ctrl => inMemsOf(ctrl).filter { m => isFIFO(m) } }
-  }
-
-  def myForeverInMems(ctrl:Controller) = {
-    (foreverInMems(ctrl).toSet intersect inMemsOf(ctrl).toSet).toList
-  }
-
-  def myLocalForeverInMems(ctrl:Controller) = {
-    (foreverInMems(ctrl).toSet intersect localInMemsOf(ctrl).toSet).toList
-  }
-
   def getCountsByChildren(ctrl:Controller, children:List[Controller]) = {
-    assertOptionUnify(children, s"$ctrl counts") { c =>
-      zipMap(getCountsOf(c), getItersOf(c), s"$c.counts / $c.iters") { case (c,i) => c / i }
+    assertOptionUnify(children, s"$ctrl count") { c =>
+      zipMap(getCountsOf(c), getItersOf(c), s"$c.count / $c.iter") { case (c,i) => c / i }
     }
   }
 
   def getCountsByParent(ctrl:Controller, parent:Controller) = {
-    zipMap(getCountsOf(parent), getItersOf(ctrl), s"$parent.counts * $parent.iters") { case (c, i) => c * i } // Top down
+    zipMap(getCountsOf(parent), getItersOf(ctrl), s"$parent.count * $parent.iter") { case (c, i) => c * i } // Top down
   }
 
   def getCountsByForeverInMems(ctrl:Controller, mems:List[Memory]) = {
-    assertOptionUnify(mems, s"$ctrl counts") { mem => 
+    assertOptionUnify(mems, s"$ctrl count") { mem => 
       val writerCtrls = writersOf(mem).map { w => ctrlOf(w) }.toSet.toList
-      assertOptionUnify(writerCtrls, s"$mem.writers counts") { writerCtrl => getCountsOf(writerCtrl) }
+      assertOptionUnify(writerCtrls, s"$mem.writers count") { writerCtrl => getCountsOf(writerCtrl) }
     }
   }
 
-  def getCountsOf(n:Controller):Option[Long] = countsOf.getOrElseUpdate(n) {
+  def getCountsOf(n:Controller):Option[Long] = countOf.getOrElseUpdate(n) {
     dbgblk(s"getCountsOf $n") { 
       n match {
         case ctrl:TopController => Some(1l)
@@ -145,10 +128,10 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
   }
 
   /*
-   * For PIR nodes, itersOf is iteration interval between activation of the nodes with respect to
+   * For PIR nodes, iterOf is iteration interval between activation of the nodes with respect to
    * local contextEnable
    * */
-  def getItersOf(n:PIRNode):Option[Long] = itersOf.getOrElseUpdate(n) {
+  def getItersOf(n:PIRNode):Option[Long] = iterOf.getOrElseUpdate(n) {
     dbgblk(s"getItersOf $n") {
       n match {
         case n:CounterChain => flatReduce(n.counters.map(getItersOf)) { _ * _ }
@@ -164,7 +147,7 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
           }
         case n:ProcessDramCommand => getItersOf(ctrlOf(n))
         case n:DramControllerDone => getItersOf(ctrlOf(n))
-        case n:ForeverControllerDone => throw PIRException(s"shouldn't get itersOf $n")
+        case n:ForeverControllerDone => throw PIRException(s"shouldn't get iterOf $n")
         case n:Primitive => Some(1l)
       }
     }
@@ -181,23 +164,23 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
           dbg(s"ancestors=$ancestors")
           ancestors = ancestors.splitAt(ancestors.indexWhere(isForever)+1)._1 // include forever
           dbg(s"ancestors until forever = $ancestors")
-          val iters = ancestors.map { c => getItersOf(c) }
-          dbg(s"ancestor iters=$iters")
-          flatReduce(iters) { _ * _ }
+          val iter = ancestors.map { c => getItersOf(c) }
+          dbg(s"ancestor iter=$iter")
+          flatReduce(iter) { _ * _ }
         case n =>
           val en = enableOf(n)
           val enScale = en.map { en => getScaleOf(en) }.getOrElse(Some(1l))
-          zipMap(enScale, getItersOf(n), s"$en.scale * $n.iters") { _ * _ }
+          zipMap(enScale, getItersOf(n), s"$en.scale * $n.iter") { _ * _ }
       }
     }
   }
 
-  def getCountsOf(n:PIRNode):Option[Long] = countsOf.getOrElseUpdate(n) {
+  def getCountsOf(n:PIRNode):Option[Long] = countOf.getOrElseUpdate(n) {
     dbgblk(s"getCountsOf $n") { 
       n match {
         case n:ContextEnable => getCountsOf(ctrlOf(n))
-        case n:Memory => assertUnify(inAccessesOf(n), s"${inAccessesOf(n)}.counts") { a => getCountsOf(a) }.get
-        case n:Primitive => zipMap(getCountsOf(ctxEnOf(n).get), getScaleOf(n), s"${ctxEnOf(n).get}.counts / $n.scale") { _ / _ }
+        case n:Memory => assertUnify(inAccessesOf(n), s"${inAccessesOf(n)}.count") { a => getCountsOf(a) }.get
+        case n:Primitive => zipMap(getCountsOf(ctxEnOf(n).get), getScaleOf(n), s"${ctxEnOf(n).get}.count / $n.scale") { _ / _ }
       }
     }
   }

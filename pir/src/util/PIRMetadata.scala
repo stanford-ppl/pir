@@ -32,6 +32,12 @@ class PIRMetadata extends Metadata {
   srcCtxOf.setName("srcCtxOf")
 
   /*
+   * User annotation of file to load the memory
+   * */
+  val fileNameOf = new OneToOneMap[IR, String] with MetadataMap
+  fileNameOf.setName("fileNameOf")
+
+  /*
    * Whether a memory is a accumulator. Set by spatial
    * */
   val isAccum = new OneToOneMap[Memory, Boolean] with MetadataMap {
@@ -86,8 +92,8 @@ class PIRMetadata extends Metadata {
   /*
    * Number of iterations the node is running
    * */
-  val itersOf =  new OneToOneMap[Any, Option[Long]] with MetadataMap
-  itersOf.setName("itersOf")
+  val iterOf =  new OneToOneMap[Any, Option[Long]] with MetadataMap
+  iterOf.setName("iterOf")
 
   /*
    * Number of accumulative iterations before the node is active/done again with respect to enable of the
@@ -101,10 +107,10 @@ class PIRMetadata extends Metadata {
   /*
    * Number of iterations before the node is active through out the execution of the program
    * */
-  val countsOf =  new OneToOneMap[Any, Option[Long]] with MetadataMap {
+  val countOf =  new OneToOneMap[Any, Option[Long]] with MetadataMap {
     override def mirror(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {}
   }
-  countsOf.setName("countsOf")
+  countOf.setName("countOf")
 
 
   /* 

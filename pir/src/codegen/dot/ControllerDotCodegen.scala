@@ -36,7 +36,7 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
       case n:StreamOut => label +=s"\n(${n.field})"
       case n =>
     }
-    val metas = List(parOf, itersOf, countsOf, boundOf, ctrlOf, srcCtxOf)
+    val metas = List(parOf, iterOf, countOf, boundOf, ctrlOf, srcCtxOf)
     metas.foreach { meta =>
       meta.asK(n).flatMap { k => meta.get(k) }.foreach { v =>
         label += s"\n(${meta.name}=$v)"
@@ -50,7 +50,7 @@ class ControllerDotCodegen(val fileName:String)(implicit compiler:PIR) extends P
       case n:Memory =>
         (accessesOf(n)).foreach { access =>
           label += s"\n$access"
-          itersOf.get(access).foreach { m => label += s"\n(iters=$m)" }
+          iterOf.get(access).foreach { m => label += s"\n(iter=$m)" }
         }
     }
     attr.label(label)

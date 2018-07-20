@@ -61,7 +61,7 @@ trait PlastisimUtil extends PIRPass {
   override def remoteAccessesOf(n:ComputeContext) = super.remoteAccessesOf(n).filterNot(a => isMuted(a))
 
   def startAtToken(n:NetworkNode) = globalOf(n).get match {
-    case FringeStreamIn(streamIn) => countsOf.get(streamIn).flatten
+    case FringeStreamIn(streamIn) => countOf.get(streamIn).flatten
     case cuP:pir.node.ArgFringe if ctrlOf(n).isInstanceOf[ArgInController] => Some(1)
     case cuP =>
       val token = inMemsOf(n).flatMap {
@@ -72,7 +72,7 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def stopAfterToken(n:NetworkNode) = globalOf(n).get match {
-    case FringeStreamOut(streamOut) => countsOf.get(streamOut).flatten
+    case FringeStreamOut(streamOut) => countOf.get(streamOut).flatten
     case cuP:pir.node.ArgFringe if ctrlOf(n).isInstanceOf[ArgOutController] => Some(1)
     case cuP => None
   }
@@ -198,7 +198,7 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def constCountsOf(x:PIRNode):Long = {
-    getCountsOf(x).getOrElse(throw PIRException(s"Cannot constant propogate countsOf($x)"))
+    getCountsOf(x).getOrElse(throw PIRException(s"Cannot constant propogate countOf($x)"))
   }
 
   def constScaleOf(accesses:List[LocalAccess]):Long = {
@@ -206,7 +206,7 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def constCountsOf(accesses:List[LocalAccess]):Long = {
-    assertUnify(accesses, "counts") { access => constCountsOf(access) }.get
+    assertUnify(accesses, "count") { access => constCountsOf(access) }.get
   }
 
   def getScaleOf(accesses:List[LocalAccess]):Option[Long] = {
@@ -214,7 +214,7 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def getCountsOf(accesses:List[LocalAccess]):Option[Long] = {
-    assertIdentical(accesses.flatMap { a => getCountsOf(a)}, "counts")
+    assertIdentical(accesses.flatMap { a => getCountsOf(a)}, "count")
   }
 
   def pinTypeOf(link:Link):ClassTag[_<:PinType] = assertUnify(link, "tp")(mem => pinTypeOf(mem)).get

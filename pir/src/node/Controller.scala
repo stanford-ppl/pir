@@ -103,4 +103,24 @@ trait ControllerUtil { self:PIRNodeUtil =>
     }
   }
 
+  def foreverOf(ctrl:Controller):Option[Controller] = ctrl match {
+    case ctrl:ForeverController => Some(ctrl)
+    case ctrl => ctrl.ancestors.filter(isForever).headOption
+  }
+
+  // Memories forever controller depends on
+  def foreverInMems(ctrl:Controller):List[Memory] = {
+    foreverOf(ctrl).toList.flatMap { ctrl => inMemsOf(ctrl).filter { m => isFIFO(m) } }
+  }
+
+  // Memories forever controller and current controller depends on
+  def myForeverInMems(ctrl:Controller) = {
+    (foreverInMems(ctrl).toSet intersect inMemsOf(ctrl).toSet).toList
+  }
+
+  // Memories forever controller and current controller (exclude descendents) depends on
+  def myLocalForeverInMems(ctrl:Controller) = {
+    (foreverInMems(ctrl).toSet intersect localInMemsOf(ctrl).toSet).toList
+  }
+
 }

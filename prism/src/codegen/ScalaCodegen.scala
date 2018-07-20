@@ -36,6 +36,10 @@ trait ScalaCodegen extends Codegen {
     emitBlock(s=s, ss=Some(ss), es=None)(block)
   }
 
+  def emitLambda[T](s:String, ss:String, es:String)(block: =>T):T = { 
+    emitBlock(s=s, ss=Some(ss), es=Some(es))(block)
+  }
+
   def emitBlock[T](s:String, ss:Option[String]=None, es:Option[String]=None, b:Braces=CurlyBraces)(block: =>T):T = { 
     emitBS(s, b)
     ss.foreach { ss => write(s" $ss =>") }

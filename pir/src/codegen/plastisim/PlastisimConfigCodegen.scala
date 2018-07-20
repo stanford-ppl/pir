@@ -51,7 +51,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         activeOf(node) = line.split("Total Active:")(1).trim.toLong
         stalledOf(node) = line.split("Stalled:")(1).split("Starved")(0).trim.toFloat
         starvedOf(node) = line.split("Starved:")(1).split("Total Active")(0).trim.toFloat
-        zipOption(countsOf.getOrElse(node,None), activeOf.get(node)).foreach { case (count, active) =>
+        zipOption(countOf.getOrElse(node,None), activeOf.get(node)).foreach { case (count, active) =>
           if (active < count) { 
             err(s"$node count=$count active=$active", false)
             simulationSucceeded = Some(false)
@@ -133,7 +133,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     }
     startAtToken(n).foreach { token => emitln(s"start_at_tokens = $token") }
     stopAfterToken(n).foreach { token => emitln(s"stop_after_tokens = $token") }
-    countsOf(n).fold {
+    countOf(n).fold {
       emitln(s"# count not exists")
     } { c =>
       emitln(s"count = $c")
@@ -203,7 +203,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
       dsts.zipWithIndex.foreach { case (dst,idx) =>
         emitln(s"dst[$idx] = ${quote(dst)}")
       }
-      assertOptionUnify(n, s"counts") { m => countsOf.getOrElse(m, None) }.fold {
+      assertOptionUnify(n, s"count") { m => countOf.getOrElse(m, None) }.fold {
         emitln(s"# count doen't exist")
       } { c =>
         emitln(s"count = $c")

@@ -7,13 +7,16 @@ object SPMV_ELL extends PIRApp {
   def main(implicit design:PIRDesign) = {
     import design.pirmeta._
     val x2828 = withCtrl(design.top.topController) { DRAM(dims=List(Const(64), Const(16))).name("x2828").srcCtx("SPMV_ELL.scala:70:30:values_dram") } // x2828 = DRAMNew(ArrayBuffer(Const(64), Const(16)),Const(0))
+    fileNameOf(x2828) = "/Users/Yaqi/spatial-lang//gen/SPMV_ELL/ell_values.csv"
     val x2829 = withCtrl(design.top.topController) { DRAM(dims=List(Const(64), Const(16))).name("x2829").srcCtx("SPMV_ELL.scala:71:30:cols_dram") } // x2829 = DRAMNew(ArrayBuffer(Const(64), Const(16)),Const(0))
+    fileNameOf(x2829) = "/Users/Yaqi/spatial-lang//gen/SPMV_ELL/ell_cols.csv"
     val x2830 = withCtrl(design.top.topController) { DRAM(dims=List(Const(64))).name("x2830").srcCtx("SPMV_ELL.scala:72:27:vec_dram") } // x2830 = DRAMNew(ArrayBuffer(Const(64)),Const(0))
+    fileNameOf(x2830) = "/Users/Yaqi/spatial-lang//gen/SPMV_ELL/ell_vec.csv"
     val x2831 = withCtrl(design.top.topController) { DRAM(dims=List(Const(64))).name("x2831").srcCtx("SPMV_ELL.scala:73:30:result_dram") } // x2831 = DRAMNew(ArrayBuffer(Const(64)),Const(0))
     val x2997 = withCtrl(design.top.topController) { UnitController(style=SeqPipe, level=OuterControl).name("x2997").srcCtx("SPMV_ELL.scala:79:11") } // Hwblock(Block(Const(())),false)
-    val x2844 = withCtrl(x2997) { Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x2844").srcCtx("SPMV_ELL.scala:80:20") } // CounterNew(Const(0),Const(2),Const(1),Const(1))
-    val x2845 = withCtrl(x2997) { CounterChain(List(x2844)).name("x2845").srcCtx("SPMV_ELL.scala:80:25") } // CounterChainNew(List(x2844))
-    val x2996 = withCtrl(x2997) { LoopController(style=MetaPipe, level=OuterControl, cchain=x2845).name("x2996").srcCtx("SPMV_ELL.scala:80:25") } // UnrolledForeach(List(Const(true)),x2845,Block(Const(())),List(List(b1679)),List(List(b1680)))
+    val x2844 = withCtrl(x2997) { Counter(min=Const(0), max=Const(64), step=Const(32), par=1).name("x2844").srcCtx("SPMV_ELL.scala:80:17") } // CounterNew(Const(0),Const(64),Const(32),Const(1))
+    val x2845 = withCtrl(x2997) { CounterChain(List(x2844)).name("x2845").srcCtx("SPMV_ELL.scala:80:23") } // CounterChainNew(List(x2844))
+    val x2996 = withCtrl(x2997) { LoopController(style=MetaPipe, level=OuterControl, cchain=x2845).name("x2996").srcCtx("SPMV_ELL.scala:80:23") } // UnrolledForeach(List(Const(true)),x2845,Block(Const(())),List(List(b1679)),List(List(b1680)))
     val b1679 = withCtrl(x2996) { CounterIter(x2844, Some(0)).name("b1679") } // b1679
     val b1680 = withCtrl(x2996) { Const(true).name("b1680") } // b1680
     val x2846_d0_b0 = withCtrl(x2996) { SRAM(size=512, banking=Strided(banks=1, stride=16)).name("x2846_d0_b0").srcCtx("SPMV_ELL.scala:81:34:cols_sram") } // x2846 = SRAMNew(ArrayBuffer(Const(32), Const(16)))
@@ -28,7 +31,7 @@ object SPMV_ELL extends PIRApp {
     isAccum(x2848_d0_b0) = false
     bufferDepthOf(x2848_d0_b0) = 2
     staticDimsOf(x2848_d0_b0) = List(32)
-    val x2850 = withCtrl(x2996) { UnitController(style=SeqPipe, level=InnerControl).name("x2850").srcCtx("SPMV_ELL.scala:80:25") } // UnitPipe(List(b1680),Block(Const(())))
+    val x2850 = withCtrl(x2996) { UnitController(style=SeqPipe, level=InnerControl).name("x2850").srcCtx("SPMV_ELL.scala:80:23") } // UnitPipe(List(b1680),Block(Const(())))
     val x2849 = withCtrl(x2850) { OpDef(op=FixAdd, inputs=List(b1679, Const(32))).name("x2849").srcCtx("SPMV_ELL.scala:85:44") } // FixAdd(b1679,Const(32))
     val x2851 = withCtrl(x2996) { Counter(min=Const(0), max=Const(32), step=Const(1), par=1).name("x2851").srcCtx("SPMV_ELL.scala:85:19") } // CounterNew(Const(0),Const(32),Const(1),Const(1))
     val x2852 = withCtrl(x2996) { CounterChain(List(x2851)).name("x2852").srcCtx("SPMV_ELL.scala:85:19") } // CounterChainNew(List(x2851))

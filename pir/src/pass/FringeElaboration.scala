@@ -100,7 +100,7 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
     }
     withParentCtrl(fringe, ctrlOf(fringe)) {
       fringe match {
-        case FringeDenseLoad(dram,cmdStream,dataStream) =>
+        case FringeDenseLoad(dram::Nil,cmdStream,dataStream) =>
           val offset = streamOuts.filter { _.field=="offset"}.head
           val size = streamOuts.filter { _.field=="size"}.head
           val data = streamIns.filter { _.field=="data"}.head
@@ -108,11 +108,11 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
             val offsetRead = ReadMem(offset)
             val sizeRead = ReadMem(size)
             withCtrl(DramController(csize, par)) {
-              val pdc = ProcessDramDenseLoad(offsetRead, sizeRead)
+              val pdc = ProcessDramDenseLoad(dram, offsetRead, sizeRead)
               WriteMem(data, pdc)
             }
           }
-        case FringeDenseStore(dram,cmdStream,dataStream,ackStream) =>
+        case FringeDenseStore(dram::Nil,cmdStream,dataStream,ackStream) =>
           val offset = streamOuts.filter { _.field=="offset"}.head
           val size = streamOuts.filter { _.field=="size"}.head
           val data = streamOuts.filter { _.field=="data"}.head
@@ -122,7 +122,7 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
             val sizeRead = ReadMem(size)
             withCtrl(DramController(csize, par)) {
               val dataRead = ReadMem(data)
-              val pdc = ProcessDramDenseStore(offsetRead, sizeRead, dataRead)
+              val pdc = ProcessDramDenseStore(dram, offsetRead, sizeRead, dataRead)
               WriteMem(ack, pdc)
             }
           }
@@ -134,19 +134,19 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
     withParentCtrl(fringe, ctrlOf(fringe)) {
       withCtrl(ForeverController(level=InnerControl)) {
         fringe match {
-          case FringeSparseLoad(dram, addrStream, dataStream) =>
+          case FringeSparseLoad(dram::Nil, addrStream, dataStream) =>
             val addr = streamOuts.filter { _.field=="addr"}.head
             val data = streamIns.filter { _.field=="data"}.head
             val addrRead = ReadMem(addr)
-            val pdc = ProcessDramSparseLoad(addrRead)
+            val pdc = ProcessDramSparseLoad(dram, addrRead)
             WriteMem(data, pdc)
-          case FringeSparseStore(dram, cmdStream, ackStream) =>
+          case FringeSparseStore(dram::Nil, cmdStream, ackStream) =>
             val ack = streamIns.filter { _.field=="ack"}.head
             val addr = cmdStream(0)
             val data = cmdStream(1)
             val addrRead = ReadMem(addr)
             val dataRead = ReadMem(data)
-            val pdc = ProcessDramSparseStore(addrRead, dataRead)
+            val pdc = ProcessDramSparseStore(dram, addrRead, dataRead)
             WriteMem(ack, pdc)
         }
       }
@@ -172,9 +172,9 @@ class FringeElaboration(implicit compiler:PIR) extends PIRTransformer with Sibli
         val innerCtrl = ForeverController(level=InnerControl)
         withCtrl(innerCtrl) {
           val streamInDef = StreamInDef()
-          val counts = countsOf.get(streamIn).getOrElse(None)
-          countsOf(innerCtrl) = counts
-          countsOf(streamInDef) = counts
+          val count = countOf.get(streamIn).getOrElse(None)
+          countOf(innerCtrl) = count
+          countOf(streamInDef) = count
           WriteMem(streamIn, streamInDef)
         }
       }

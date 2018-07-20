@@ -15,12 +15,15 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
   val fileName = s"gen_trace.scala"
 
   override def initPass = {
-    offsetMap.clear
     resetAllCaches
     super.initPass
+    offsetMap = scala.collection.immutable.ListMap[DRAM, Int]()
   }
 
-  val offsetMap = mutable.Map[DRAM, Int]()
+  lazy val bytePerWord = topParam.wordWidth / 8
+
+  // mutable.ListMap doesn't preserve the order even scaladoc says so
+  var offsetMap = scala.collection.immutable.ListMap[DRAM, Int]()
 
   lazy val ctrlbmap = ctrlOf.rmap
 
@@ -32,12 +35,11 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
     val drams = top.collectDown[DramFringe]().flatMap { _.dram }.toSet
     var offset = 0
     drams.foreach { dram =>
-      offsetMap += dram -> offset
-      emitComment(s"$dram -> $offset")
-      dbg(s"$dram -> $offset")
       val dims = staticDimsOf.get(dram).getOrElse {
         throw PIRException(s"static dimention of $dram unknown!")
       }
+      emitComment(s"$dram -> $offset dims=$dims size=${dims.product}")
+      offsetMap += dram -> offset
       val size = dims.product
       offset += size
     }
@@ -146,6 +148,25 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
             }
           }
           emitLoop(0)
+        case n:DramController =>
+          nodeOf[ProcessDramCommand](n) match {
+            case Def(_, ProcessDramDenseLoad(dram, offset, size)) =>
+              emitLambda(s"(0 until $size / $bytePerWord / ${n.par}).foreach", s"i") {
+                genNodes(n)
+                super.visitNode(n, prev)
+              }
+            case Def(_, ProcessDramDenseStore(dram, offset, size, data)) =>
+              emitLambda(s"(0 until $size / $bytePerWord / ${n.par}).foreach", s"i") {
+                genNodes(n)
+                super.visitNode(n, prev)
+              }
+          }
+        case n:ForeverController if (foreverInMems(n).nonEmpty)=>
+          emitComment(s"$n")
+          emitBlock(s"while (${foreverInMems(n)}.exists{_.nonEmpty})") {
+            genNodes(n)
+            super.visitNode(n, prev)
+          }
         case n =>
           emitComment(s"$n")
           emitBlock(s"ctrl") {
@@ -171,6 +192,27 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
     scheduled.foreach(genNode)
   }
 
+  def genDRAM = {
+    emitln(s"val dram = scala.collection.mutable.ArrayBuffer[Any]()")
+    offsetMap.foreach { 
+      case (dram, offset) if fileNameOf.contains(dram)=>
+        val fn = fileNameOf(dram)
+        emitln(s"// $dram")
+        staticDimsOf(dram) match {
+          case List(dim1) =>
+            emitLambda(s"""dram ++= scala.io.Source.fromFile("$fn").getLines.toArray.map""", "line") {
+              emitln(s"""parse(line)""")
+            }
+          case List(dim1, dim2) =>
+            emitLambda(s"""dram ++= scala.io.Source.fromFile("$fn").getLines.toArray.map""", "line", ".flatten.asInstanceOf[Array[Any]]") {
+              emitln(s"""line.split(",").map { e => parse(e) }""")
+            }
+        }
+      case (dram, offset) =>
+        emitln(s"dram ++= Array.ofDim[Any](${staticDimsOf(dram).product}) // $dram")
+    }
+  }
+
   def genNode(n:N) = {
     emitted += n
     n match {
@@ -181,7 +223,7 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
       case Def(n, GlobalOutput(data, valid)) =>
         emitln(s"val $n = ${data}")
       case DramAddress(dram) if offsetMap.contains(dram) => 
-        emitln(s"val $n = Some(${offsetMap(dram)})") 
+        emitln(s"val $n = Some(${offsetMap(dram)} * $bytePerWord)") 
       case n if isReg(n) & boundOf.contains(n) => 
         emitln(s"val $n = Some(${boundOf(n)})")
       case n if isFIFO(n) & boundOf.contains(n) => 
@@ -191,7 +233,8 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
       case n if isFIFO(n) =>
         emitln(s"val $n = mutable.Queue[Any]()")
       case SRAM(size, banking) => 
-        emitln(s"val $n = Array.ofDim[Any](${staticDimsOf(n).mkString(",")})")
+        val dims = staticDimsOf(n)
+        emitln(s"val $n = Array.ofDim[Any](${dims.product}) // dims=$dims")
       case Def(n, LocalStore(mems, None, data)) =>
         mems.foreach { 
           case mem if isReg(mem) =>
@@ -208,10 +251,10 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
       case n:LocalLoad if memsOf(n).size==1 && isFIFO(memsOf(n).head) =>
         val mem = memsOf(n).head
         emitln(s"val $n = ${mem}.dequeue")
-      case Def(n, LocalLoad(mem::Nil, Some(addr))) =>
-        emitln(s"val $n = vecLoad($mem, $addr)")
-      case Def(n, LocalStore(mem::Nil, Some(addr), data)) =>
-        emitln(s"vecStore($mem, $addr, $data)")
+      case Def(n, EnabledLoadMem(mem, Some(faddr), readNext)) =>
+        emitln(s"val $n = fvecLoad($mem, $faddr)")
+      case Def(n, EnabledStoreMem(mem, Some(faddr), data, writeNext)) =>
+        emitln(s"fvecStore($mem, $faddr, $data)")
       case Const(c) =>
         emitln(s"val $n = $c")
       case Def(n, OpDef(op, inputs)) =>
@@ -227,10 +270,12 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
             val par = getParOf(counter)
             emitln(s"val $n = List.tabulate(${par}) { p => ${ctrlOf(n)}_iter${idx} + p * ${ctr.step} }")
         }
-      case Def(n,ProcessDramDenseLoad(offset, size)) =>
+      case Def(n,ProcessDramDenseLoad(dram, offset, size)) =>
         val par = getParOf(n)
-        emitLambda(s"val $n = (0 until $size by $par).map ", "i") {
-          emitln(s"List.tabulate($par) { j => $offset.asInstanceOf[Int] + i + j } //TODO")
+        emitLambda(s"val $n = List.tabulate($par)", s"j") {
+          emitln(s"val byteOffset = $offset.asInstanceOf[Int] / $bytePerWord")
+          emitln(s"val addr = byteOffset + i * $par + j")
+          emitln(s"dram(addr)")
         }
       case n:Container =>
       case n =>
@@ -245,11 +290,13 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
     emitBlock(s"object tracer") {
       emitln(s"val pws = mutable.Map[String, PrintWriter]()")
       emitBlock(s"def main(args:Array[String]) = ") {
+        genDRAM
         controllerTraversal.traverseTop
         emitln(s"pws.foreach(_._2.close)")
       }
-      emitBlock(s"def trace(fileName:String, node:Any)") {
-        emitln(s"""getWriter(fileName).write(node.toString + "\\n")""")
+      emitBlock(s"def trace(fileName:String, node:Any) = node match") {
+        emitln(s"""case node:List[_] => getWriter(fileName).write(node.mkString(",") + "\\n")""")
+        emitln(s"""case node => getWriter(fileName).write(node.toString + "\\n")""")
       }
       emitBlock(s"def getWriter(fileName:String) = ") {
         emitln(s"pws.getOrElseUpdate(fileName, new PrintWriter(new File(fileName)))")
@@ -259,6 +306,23 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
       }
 
       emitln(s"""
+
+  import scala.util.{Try, Success, Failure}
+  def parse(x:String):Any = {
+    Try(x.toInt).recoverWith{ case _ => Try(x.toLong) }.recoverWith { case _ => Try(x.toFloat) }.recoverWith { case _ => Try(x.toDouble) }.get
+  }
+
+  def fvecLoad(mem:Array[Any], addr:Any):Any = addr match {
+    case addrs:List[_] => addrs.map { a => mem(a.asInstanceOf[Int]) }
+    case addr:Int => mem(addr)
+  }
+
+  def fvecStore(mem:Array[Any], addr:Any, data:Any) = (addr, data) match {
+    case (addr:List[_],data:List[_]) => addr.zip(data).foreach { case (a, d) => mem(a.asInstanceOf[Int]) = d }
+    case (addr:Int, data) => mem(addr) = data
+    case (addr, data) => throw new Exception(s"Unknown "+ addr + " " + data + " type for fvecStore")
+  }
+
   def vecLoad(mem:Array[_], addr:List[_]):Any =  {
     val idx::rest = addr
     if (rest.isEmpty) {
@@ -445,6 +509,10 @@ def eval(op:Op, ins:List[Any]):Any = {
     case (Bypass   , a::_)                      => a
     case (MuxOp    , ToBool(true)::a::b::_)     => a
     case (MuxOp    , ToBool(false)::a::b::_)    => b
+    case (op, (a:List[_])::(b:List[_])::(c:List[_])::rest) => (a,b,c).zipped.map { case (a,b,c) => eval(op, a::b::c::rest) }
+    case (op, (a:List[_])::(b:List[_])::rest) => (a,b).zipped.map { case (a,b) => eval(op, a::b::rest) }
+    case (op, a::(b:List[_])::(c:List[_])::rest) => (b,c).zipped.map { case (b,c) => eval(op, a::b::c::rest) }
+    case (op, (a:List[_])::b::(c:List[_])::rest) => (a,c).zipped.map { case (a,c) => eval(op, a::b::c::rest) }
     case (op, (a:List[_])::rest) => a.map { a => eval(op, a::rest) }
     case (op, (a::(b:List[_])::rest)) => b.map { b => eval(op, a::b::rest) }
 

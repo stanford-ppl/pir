@@ -11,10 +11,10 @@ class ControllerRuntimeAnalyzer(implicit design:PIR) extends PIRPass with Contro
       case n:ForeverController => 
       case n =>
         getItersOf(n)
-        itersOf.info(n).foreach(dbg)
+        iterOf.info(n).foreach(dbg)
     }
     getCountsOf(n)
-    countsOf.info(n).foreach(dbg)
+    countOf.info(n).foreach(dbg)
     super.visitNode(n)
   }
 }

@@ -7,7 +7,7 @@ object PensieveStream extends PIRApp {
   def main(implicit design:PIRDesign) = {
     import design.pirmeta._
     val x3094 = withCtrl(design.top.topController) { StreamIn(field="data").name("x3094").srcCtx("PensieveStream.scala:70:49:stream_in") } // x3094 = StreamInNew(GPInput1)
-    countsOf(x3094) = Some(1024l)
+    countOf(x3094) = Some(1024l)
     isAccum(x3094) = false
     bufferDepthOf(x3094) = 1
     val x3095 = withCtrl(design.top.topController) { StreamOut(field="data").name("x3095").srcCtx("PensieveStream.scala:72:50:stream_out") } // x3095 = StreamOutNew(GPOutput1)
