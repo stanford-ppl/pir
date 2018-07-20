@@ -111,10 +111,10 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     val cuP = globalOf(n).get
     cuP match {
       case cuP:DramFringe if isDenseFringe(cuP) & enableTrace =>
-        val size = cuP.collectDown[StreamOut]().filter { _.field == "size" }.head
         val offset = cuP.collectDown[StreamOut]().filter { _.field == "offset" }.head
-        emitln(s"offset_trace = traces/${dataOf(writersOf(offset).head)}.trace")
-        emitln(s"size_trace = traces/${dataOf(writersOf(size).head)}.trace")
+        val size = cuP.collectDown[StreamOut]().filter { _.field == "size" }.head
+        emitln(s"offset_trace = traces/${readersOf(offset).head}.trace")
+        emitln(s"size_trace = traces/${readersOf(size).head}.trace")
         val par = ctrlOf(ctxEnOf(cuP).get).asInstanceOf[DramController].par
         cuP match {
           case cuP:FringeDenseLoad => 

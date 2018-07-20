@@ -8,7 +8,7 @@ import sys.process._
 
 import scala.collection.mutable
 
-class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with ScalaCodegen {
+class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with ScalaCodegen with Memorization {
   import pirmeta._
   import spademeta._
 
@@ -16,6 +16,7 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
 
   override def initPass = {
     offsetMap.clear
+    resetAllCaches
     super.initPass
   }
 
@@ -25,6 +26,7 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
 
   val tracked = mutable.ListBuffer[PNode]()
   val traced = mutable.ListBuffer[PNode]()
+  val emitted = mutable.ListBuffer[PNode]()
 
   def setDramOffset = dbgblk(s"setDramOffset"){
     val drams = top.collectDown[DramFringe]().flatMap { _.dram }.toSet
@@ -46,7 +48,6 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
     val forward = false
     override def visitFunc(n:N):List[N] = super.visitFunc(n).filter { 
       case n:ControlNode => false
-      case n:CounterIter => false
       case n => true
     }
     override def visitIn(n:N):List[N] = n match {
@@ -58,34 +59,47 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
     override def isDepFree(n:N) = true
   }
 
+  val forwardSchedular = new PIRTraversal with prism.traversal.BFSTopologicalTraversal with prism.traversal.GraphSchedular {
+    override lazy val logger = PlastisimTraceCodegen.this.logger
+    val forward = true
+    override def visitIn(n:N):List[N] = visitGlobalIn(n)
+    override def visitOut(n:N):List[N] = visitGlobalOut(n)
+  }
+
   def gatherTracedNodes = {
     val fringes = compiler.top.collectDown[DramFringe]()
     fringes.foreach { fringe =>
       fringe.collectDown[StreamOut]().filter { so => 
           so.field == "offset" || so.field == "size" || so.field == "addr"
       }.foreach { so =>
-        val writer = writersOf(so).head
-        val data = dataOf(writer)
-        traced += data
-        dbgblk(s"trace nodes for $so") {
-          val nodes = backwardSchedular.scheduleNode(data)
+        val read = readersOf(so).head
+        traced += read
+        dbgblk(s"trace nodes for $so at $read") {
+          val nodes = backwardSchedular.scheduleNode(read)
           tracked ++= nodes
           nodes.reverseIterator.foreach { n => dbg(qdef(n)) }
         }
       }
     }
-    ctrlbmap.foreach { case (c, nodes) => 
-      nodes.collect { case cc:CounterChain => cc }.headOption.foreach { cc =>
-        cc.counters.foreach { ctr =>
-          dbgblk(s"trace nodes for $ctr") {
+    ctrlbmap.keys.foreach { 
+      case c:LoopController => 
+        cchainOf(c).counters.foreach { ctr =>
+          dbgblk(s"track nodes for $ctr") {
             val nodes = backwardSchedular.scheduleNode(ctr)
             tracked ++= nodes
             nodes.reverseIterator.foreach { n => dbg(qdef(n)) }
           }
         }
-      }
+      case c =>
     }
   }
+
+  def nodeOf[T<:PIRNode:ClassTag](n:Controller):T = memorize(s"nodeOf", (n, implicitly[ClassTag[T]])) { case (n, ct) =>
+    assertOne(ctrlbmap(n).collect { case ct(cc) => originOf(cc) }.toSet, s"$n.$ct")
+  }
+  def cchainOf(n:LoopController):CounterChain = nodeOf[CounterChain](n)
+  def countersOf(n:LoopController) = cchainOf(n).counters
+  def iterOf(n:Counter):Option[CounterIter] = assertOneOrLess(n.collectOut[CounterIter](depth=2), s"counter Iter")
 
   override def runPass = {
     setDramOffset
@@ -104,33 +118,29 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
     }
   }
 
-  val forwardSchedular = new PIRTraversal with prism.traversal.BFSTopologicalTraversal with prism.traversal.GraphSchedular {
-    override lazy val logger = PlastisimTraceCodegen.this.logger
-    val forward = true
-    override def visitIn(n:N):List[N] = visitGlobalIn(n)
-    override def visitOut(n:N):List[N] = visitGlobalOut(n)
-  }
-
-
-  val controllerTraversal = new ControllerChildFirstTraversal with UnitTraversal {
-    implicit val designP = PlastisimTraceCodegen.this.designP
+  val controllerTraversal = new ControllerTopDownTopologicalTraversal with prism.traversal.DFSTopDownTopologicalTraversal with UnitTraversal {
+    val traceGen = PlastisimTraceCodegen.this
+    implicit val designP = traceGen.designP
     lazy val pirmeta = designP.pirmeta
-    override lazy val logger = PlastisimTraceCodegen.this.logger
+    override lazy val logger = traceGen.logger
+    val forward = true
+
     override def visitNode(n:N, prev:T):T = {
       n match {
         case n:LoopController => 
           emitln(s"// loop $n")
-          val cchain = ctrlbmap(n).collect { case cc:CounterChain => cc }.head
-          val counters = cchain.counters
-          genNodes(n)
+          val counters = traceGen.cchainOf(n).counters
           def emitLoop(idx:Int):Unit = {
             if (idx >= counters.size) {
+              genNodes(n)
               super.visitNode(n, prev) 
             } else {
               val counter = counters(idx)
+              // Exps to compute counter bounds
+              val exps = backwardSchedular.scheduleNode(counter).reverse
+              genNodes(exps)
               emitLambda(s"$counter.foreach", s"${n}_iter$idx") {
-                val iters = ctrlbmap(n).collect { case n:CounterIter => n }
-                iters.foreach(genNode)
+                traceGen.cchainOf(n).counters.flatMap(iterOf).foreach(genNode)
                 emitLoop(idx+1)
               }
             }
@@ -146,22 +156,26 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
     }
   }
 
-  def genNodes(n:Controller) = {
-    ctrlbmap.get(n).foreach { ns =>
-      val nodes = ns.filter { n => tracked.contains(n) }.toList
-      var scheduled = forwardSchedular.scheduleScope(nodes)
-      val (mems, others) = scheduled.partition { case mem:Memory => true; case _ => false }
-      scheduled = mems ++ others
-      scheduled.foreach { n =>
-        genNode(n)
-      }
-    }
+  def reschedule(exps:List[N]) = {
+    val (mems, others) = exps.partition { case mem:Memory => true; case _ => false }
+    mems ++ others
+  }
+
+  def genNodes(n:Controller):Unit = {
+    ctrlbmap.get(n).foreach { nodes => genNodes(nodes.toList) }
+  }
+
+  def genNodes(ns:List[N]):Unit = {
+    val nodes = ns.filter { n => !emitted.contains(n) && tracked.contains(n) }
+    val scheduled = reschedule(forwardSchedular.scheduleScope(nodes))
+    scheduled.foreach(genNode)
   }
 
   def genNode(n:N) = {
+    emitted += n
     n match {
       case Def(n, Counter(min, max, step, par)) =>
-        emitln(s"val $n = Range(${min}, ${max}, ${step} * ${par})")
+        emitln(s"val $n = Range(${min}.asInstanceOf[Int], ${max}.asInstanceOf[Int], ${step}.asInstanceOf[Int] * ${par})")
       case Def(n,GlobalInput(gout:GlobalOutput)) =>
         emitln(s"val $n = ${gout}")
       case Def(n, GlobalOutput(data, valid)) =>
@@ -177,7 +191,7 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
       case n if isFIFO(n) =>
         emitln(s"val $n = mutable.Queue[Any]()")
       case SRAM(size, banking) => 
-        emitln(s"val $n = Array.ofDims[Any](${staticDimsOf(n).mkString(",")})")
+        emitln(s"val $n = Array.ofDim[Any](${staticDimsOf(n).mkString(",")})")
       case Def(n, LocalStore(mems, None, data)) =>
         mems.foreach { 
           case mem if isReg(mem) =>
@@ -194,17 +208,32 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
       case n:LocalLoad if memsOf(n).size==1 && isFIFO(memsOf(n).head) =>
         val mem = memsOf(n).head
         emitln(s"val $n = ${mem}.dequeue")
+      case Def(n, LocalLoad(mem::Nil, Some(addr))) =>
+        emitln(s"val $n = vecLoad($mem, $addr)")
+      case Def(n, LocalStore(mem::Nil, Some(addr), data)) =>
+        emitln(s"vecStore($mem, $addr, $data)")
       case Const(c) =>
         emitln(s"val $n = $c")
       case Def(n, OpDef(op, inputs)) =>
         emitln(s"val $n = eval($op, ${inputs})")
-      case Def(n, CounterIter(counter, Some(offset))) =>
+      case Def(n, CounterIter(counter, offset)) =>
         val cchain = cchainOf(counter)
         val idx = cchain.counters.indexOf(counter)
-        val ctr = ctrlbmap(ctrlOf(n)).collect { case cc:CounterChain => cc }.head.counters(idx)
-        emitln(s"val $n = ${ctrlOf(n)}_iter${idx} + $offset * ${ctr.step}")
+        val ctr = cchainOf(ctrlOf(cchain).asInstanceOf[LoopController]).counters(idx)
+        offset match {
+          case Some(offset) =>
+            emitln(s"val $n = ${ctrlOf(n)}_iter${idx} + $offset * ${ctr.step}")
+          case None =>
+            val par = getParOf(counter)
+            emitln(s"val $n = List.tabulate(${par}) { p => ${ctrlOf(n)}_iter${idx} + p * ${ctr.step} }")
+        }
+      case Def(n,ProcessDramDenseLoad(offset, size)) =>
+        val par = getParOf(n)
+        emitLambda(s"val $n = (0 until $size by $par).map ", "i") {
+          emitln(s"List.tabulate($par) { j => $offset.asInstanceOf[Int] + i + j } //TODO")
+        }
       case n:Container =>
-      case n => 
+      case n =>
         emitln(s"// TODO: unmatched node ${qdef(n)}")
     }
     if (traced.contains(n)) emitln(s"""trace(args(0) + "/$n.trace", $n)""")
@@ -228,6 +257,46 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
       emitBlock(s"def ctrl(block : => Unit)") {
         emitln(s"block")
       }
+
+      emitln(s"""
+  def vecLoad(mem:Array[_], addr:List[_]):Any =  {
+    val idx::rest = addr
+    if (rest.isEmpty) {
+      idx match {
+        case idx:List[_] => idx.map { vi => mem(vi.asInstanceOf[Int]) }
+        case idx => mem(idx.asInstanceOf[Int])
+      }
+    } else {
+      idx match {
+        case idx:List[_] => idx.map { vi => vecLoad(mem(vi.asInstanceOf[Int]).asInstanceOf[Array[_]], rest) }
+        case idx => vecLoad(mem(idx.asInstanceOf[Int]).asInstanceOf[Array[_]], rest)
+      }
+    }
+  }
+
+  def vecStore(mem:Array[_], addr:List[_], data:Any):Unit =  {
+    val idx::rest = addr
+    if (rest.isEmpty) {
+      (idx, data) match {
+        case (idx:List[_], data:List[_]) => 
+          idx.zip(data).foreach { case (i, d) => 
+            mem.asInstanceOf[Array[Any]](i.asInstanceOf[Int]) = d
+          }
+        case (idx,data) => 
+          mem.asInstanceOf[Array[Any]](idx.asInstanceOf[Int]) = data
+      }
+    } else {
+      val range = (idx, data) match {
+        case (idx:List[_], data:List[_]) => idx.zip(data)
+        case (idx,data) => List((idx, data))
+      }
+      range.foreach { case (i,d) => 
+        vecStore(mem(i.asInstanceOf[Int]).asInstanceOf[Array[_]], rest, d)
+      }
+    }
+  }
+      """)
+
       emitOps
     }
   }
@@ -376,6 +445,8 @@ def eval(op:Op, ins:List[Any]):Any = {
     case (Bypass   , a::_)                      => a
     case (MuxOp    , ToBool(true)::a::b::_)     => a
     case (MuxOp    , ToBool(false)::a::b::_)    => b
+    case (op, (a:List[_])::rest) => a.map { a => eval(op, a::rest) }
+    case (op, (a::(b:List[_])::rest)) => b.map { b => eval(op, a::b::rest) }
 
     case (op, ins) => throw new Exception("Don't know how to evaluate " + op + " ins=" + ins)
   }

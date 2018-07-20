@@ -154,7 +154,7 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
       to.setParent(parent)
       dbg(s"add ${quote(to)} in ${quote(parent)}")
     }
-    pirmeta.migrate(from, to, logger=Some(this))
+    pirmeta.migrate(from, to)
     removeNode(from)
     to
   }
@@ -189,6 +189,12 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
 
   override def removeNode(node:N) = {
     super.removeNode(node)
+    if (originOf(node) == node) {
+      originOf.bmap(node).headOption.foreach { m =>
+        originOf.migrate(node, m, logger=Some(this))
+        dbg(s"originOf.migrate $node -> $m")
+      }
+    }
     pirmeta.removeAll(node)
     dbg(s"removeNode($node)")
   }
