@@ -139,6 +139,7 @@ trait PlastisimUtil extends PIRPass {
       case Def(n, LocalStore(_, _, data:GlobalInput)) => false
       case Def(n, LocalStore(_, _, data)) => true // Local edge
       case Def(n, LocalReset(_, reset:GlobalInput)) => false
+      case Def(n, LocalReset(_, reset)) => true
     }.get
   }
 
