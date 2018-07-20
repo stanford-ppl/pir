@@ -295,7 +295,7 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
         emitln(s"pws.foreach(_._2.close)")
       }
       emitBlock(s"def trace(fileName:String, node:Any) = node match") {
-        emitln(s"""case node:List[_] => getWriter(fileName).write(node.mkString(",") + "\\n")""")
+        emitln(s"""case node:List[_] => getWriter(fileName).write(node.mkString(" ") + "\\n")""")
         emitln(s"""case node => getWriter(fileName).write(node.toString + "\\n")""")
       }
       emitBlock(s"def getWriter(fileName:String) = ") {
