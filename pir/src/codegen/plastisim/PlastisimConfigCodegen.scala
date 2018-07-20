@@ -53,7 +53,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         starvedOf(node) = line.split("Starved:")(1).split("Total Active")(0).trim.toFloat
         zipOption(countOf.getOrElse(node,None), activeOf.get(node)).foreach { case (count, active) =>
           if (active < count) { 
-            err(s"$node count=$count active=$active", false)
+            err(s"${quote(node)} count=$count active=$active", false)
             simulationSucceeded = Some(false)
           }
         }
@@ -241,12 +241,12 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   def emitInLinks(n:NetworkNode) = dbgblk(s"emitInLinks($n)") {
     inlinksOf(n).zipWithIndex.foreach { case ((link, reads), idx) =>
       emitln(s"link_in[$idx] = ${quote(link)}")
-      globalOf(n).get match {
-        case cuP:FringeDenseLoad if enableTrace =>
-          emitln(s"scale_in[$idx] = 1")
-        case cuP =>
+      //globalOf(n).get match {
+        //case cuP:FringeDenseLoad if enableTrace =>
+          //emitln(s"scale_in[$idx] = 1")
+        //case cuP =>
           emitln(s"scale_in[$idx] = ${constScaleOf(reads)}")
-      }
+      //}
       emitln(s"buffer[$idx]=${assertOptionUnify(link, "bufferSize")(bufferSizeOf).get}")
     }
   }
@@ -254,12 +254,12 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
   def emitOutLinks(n:NetworkNode) = dbgblk(s"emitOutLinks($n)") {
     outlinksOf(n).zipWithIndex.foreach { case ((link, writes), idx) =>
       emitln(s"link_out[$idx] = ${quote(link)}")
-      globalOf(n).get match {
-        case cuP:FringeDenseLoad if enableTrace =>
-          emitln(s"scale_out[$idx] = 1")
-        case cuP =>
+      //globalOf(n).get match {
+        //case cuP:FringeDenseLoad if enableTrace =>
+          //emitln(s"scale_out[$idx] = 1")
+        //case cuP =>
           emitln(s"scale_out[$idx] = ${constScaleOf(writes)}")
-      }
+      //}
     }
   }
 
