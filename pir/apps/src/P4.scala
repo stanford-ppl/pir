@@ -9,12 +9,12 @@ object P4 extends PIRApp {
     val x1271 = withCtrl(design.top.topController) { StreamIn(field="data").name("x1271").srcCtx("SimpleP4.scala:101:43:stream_in0") } // x1271 = StreamInNew(GPInput1)
     isAccum(x1271) = false
     bufferDepthOf(x1271) = 1
-    countsOf(x1271) = Some(1024l)
+    countsOf(x1271) = Some(1048576)
     val x1272 = withCtrl(design.top.topController) { StreamIn(field="data").name("x1272").srcCtx("SimpleP4.scala:102:43:stream_in1") } // x1272 = StreamInNew(GPInput2)
     isAccum(x1272) = false
     bufferDepthOf(x1272) = 1
-    countsOf(x1272) = Some(1024l)
-    val x1273 = withCtrl(design.top.topController) { StreamOut(field="data").name("x1274").srcCtx("SimpleP4.scala:104:44:stream_out0") } // x1273 = StreamOutNew(GPOutput1)
+    countsOf(x1272) = Some(1048576)
+    val x1273 = withCtrl(design.top.topController) { StreamOut(field="data").name("x1273").srcCtx("SimpleP4.scala:104:44:stream_out0") } // x1273 = StreamOutNew(GPOutput1)
     isAccum(x1273) = false
     bufferDepthOf(x1273) = 1
     val x1274 = withCtrl(design.top.topController) { StreamOut(field="data").name("x1274").srcCtx("SimpleP4.scala:105:44:stream_out1") } // x1274 = StreamOutNew(GPOutput2)
