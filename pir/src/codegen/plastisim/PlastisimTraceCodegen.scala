@@ -28,6 +28,7 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
   lazy val ctrlbmap = ctrlOf.rmap
 
   val tracked = mutable.ListBuffer[PNode]()
+  val trackedCtrls = mutable.ListBuffer[Controller]()
   val traced = mutable.ListBuffer[PNode]()
   val emitted = mutable.ListBuffer[PNode]()
 
@@ -83,7 +84,13 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
         }
       }
     }
-    ctrlbmap.keys.foreach { 
+
+    val ctrls = tracked.flatMap { n => ctrlOf.get(n) }.toSet.asInstanceOf[Set[Controller]].flatMap { ctrl =>
+      ctrl :: ctrl.ancestors
+    }
+    trackedCtrls ++= ctrls
+    dbg(s"tracking ctrls=$ctrls")
+    ctrls.foreach { 
       case c:LoopController => 
         cchainOf(c).counters.foreach { ctr =>
           dbgblk(s"track nodes for $ctr") {
@@ -128,6 +135,7 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
     val forward = true
 
     override def visitNode(n:N, prev:T):T = {
+      if (!trackedCtrls.contains(n)) return
       n match {
         case n:LoopController => 
           emitln(s"// loop $n")
@@ -320,7 +328,7 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
   def fvecStore(mem:Array[Any], addr:Any, data:Any) = (addr, data) match {
     case (addr:List[_],data:List[_]) => addr.zip(data).foreach { case (a, d) => mem(a.asInstanceOf[Int]) = d }
     case (addr:Int, data) => mem(addr) = data
-    case (addr, data) => throw new Exception(s"Unknown "+ addr + " " + data + " type for fvecStore")
+    case (addr, data) => throw new Exception("Unknown "+ addr + " " + data + " type for fvecStore")
   }
 
   def vecLoad(mem:Array[_], addr:List[_]):Any =  {

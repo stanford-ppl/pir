@@ -1,13 +1,13 @@
 #!/bin/bash
 
-thread_count=16
+thread_count=4
 
 APPS=()
-#APPS+=('DotProduct')
+APPS+=('DotProduct')
 APPS+=('OuterProduct')
 APPS+=('TPCHQ6')
 APPS+=('GDA')
-APPS+=('GEMM_Blocked')
+#APPS+=('GEMM_Blocked')
 APPS+=('LogReg')
 APPS+=('SGD_minibatch')
 APPS+=('Kmeans')
