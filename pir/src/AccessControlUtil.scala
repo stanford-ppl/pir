@@ -5,7 +5,7 @@ import pir.node._
 
 import scala.collection.mutable
 
-trait AccessControlUtil extends PIRNodeUtil with Logging {
+trait AccessControlUtil extends PIRNodeUtil with Logging with prism.traversal.GraphUtil {
   implicit val compiler:PIR
   val pirmeta:PIRMetadata
   import pirmeta._
@@ -29,7 +29,9 @@ trait AccessControlUtil extends PIRNodeUtil with Logging {
         ancestors = ancestors.tail
         val nextAccesses = accessesOf(next).filter { a => memsOf(a).contains(mem) }
         dbg(s"$next accesses=$nextAccesses")
-        foundOtherAccess = nextAccesses.exists { a => contextOf(a).get != ctx }
+        foundOtherAccess = nextAccesses.exists { a => 
+          contextOf(a).get != ctx && leastCommonAncesstor(ctrlOf(a), ctrl).get.style != ForkJoin
+        }
       } while (next != memCtrl && !foundOtherAccess)
       if (foundOtherAccess) {
         getTopCtrl(ctrl, next)

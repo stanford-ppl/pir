@@ -102,14 +102,19 @@ trait ScalaUtilFunc {
    * If a and b can be reduced, reduce return Some(c) else None
    * */
   def partialReduce[A](list:List[A])(reduce:(A,A) => Option[A]):List[A] = {
-    val queue = scala.collection.mutable.Queue[A]()
+    val queue = scala.collection.mutable.ListBuffer[A]()
     val reduced = scala.collection.mutable.Queue[A]()
     queue ++= list
     while (queue.nonEmpty) {
-      val a = queue.dequeue
-      val cs = queue.flatMap { b => reduce(a,b) }
+      val a = queue.remove(0)
+      val cs = queue.flatMap { b => reduce(a,b).map { c => (b,c) } }
       if (cs.isEmpty) reduced += a
-      else queue ++= cs
+      else {
+        cs.foreach { case (b,c) =>
+          queue -= b
+          queue +=c
+        }
+      }
     }
     reduced.toList
   }

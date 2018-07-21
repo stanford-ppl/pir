@@ -118,14 +118,14 @@ trait ContextLinerizer extends PIRTransformer with PIRNodeUtil with Logging with
 
   private def muteAccess(n:Memory, sorted:List[ContextGroup]) = {
     sorted match {
-      case List(InGroup(List(ctx1)), OutGroup(List(ctx2))) =>
+      case List(InGroup(ctx1s), OutGroup(ctx2s)) =>
       case List(InGroup(List(ctx1)), InGroup(List(ctx2)), OutGroup(List(ctx3))) =>
         dbg(s"MuteAccess In $ctx1 (mute) => In $ctx2 => Out $ctx3")
         accessesOf(ctx1, mem).filter(isInAccess).foreach { access =>
           isMuted(access) = true
           isMuted.info(access).foreach(dbg)
         }
-      case List(InGroup(List(ctx1)), OutGroup(List(ctx2)), InGroup(List(ctx3))) =>
+      case List(InGroup(ctx1s), OutGroup(ctx2s), InGroup(ctx3s)) =>
       case List(InGroup(List(ctx1)), OutGroup(List(ctx2)), OutGroup(List(ctx3))) =>
         dbg(s"MuteAccess In $ctx1 => Out $ctx2 => Out $ctx3 (mute)")
         accessesOf(ctx3, mem).filter(isInAccess).foreach { access =>
@@ -146,7 +146,7 @@ trait ContextLinerizer extends PIRTransformer with PIRNodeUtil with Logging with
    * */
   private def insertMatchingAccesses(n:Memory, sorted:List[ContextGroup]) = {
     sorted match {
-      case List(InGroup(List(ctx1)), OutGroup(List(ctx2))) =>
+      case List(InGroup(ctx1s), OutGroup(ctx2s)) =>
       case List(InGroup(List(ctx1)), InGroup(List(ctx2)), OutGroup(List(ctx3))) =>
         dbgblk(s"InsertMatchingAccess In $ctx1 => (Out) In $ctx2 => Out $ctx3") {
           val ctrl1 = innerCtrlOf(ctx1)
@@ -158,7 +158,7 @@ trait ContextLinerizer extends PIRTransformer with PIRNodeUtil with Logging with
           }
           ()
         }
-      case List(InGroup(List(ctx1)), OutGroup(List(ctx2)), InGroup(List(ctx3))) =>
+      case List(InGroup(ctx1s), OutGroup(ctx2s), InGroup(ctx3s)) =>
       case List(InGroup(List(ctx1)), OutGroup(List(ctx2)), OutGroup(List(ctx3))) =>
         dbgblk(s"InsertMatchingAccess In $ctx1 => Out $ctx2 (In) => Out $ctx3") {
           val ctrl2 = innerCtrlOf(ctx2)
