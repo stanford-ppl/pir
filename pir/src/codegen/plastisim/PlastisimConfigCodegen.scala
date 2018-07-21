@@ -33,6 +33,9 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
 
   var simulationSucceeded:Option[Boolean] = None
   def processOutput(line:String) = {
+    if (line.contains("Total DRAM")) {
+      info(Console.GREEN, s"psim", line)
+    }
     if (line.contains("Simulation complete at cycle")) {
       if (simulationSucceeded.isEmpty) {
         info(Console.GREEN, s"psim", line)
@@ -48,7 +51,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     if (line.contains("Total Active")) {
       val node = line.split(":")(0).trim
       nameMap.get(node).foreach { node =>
-        activeOf(node) = line.split("Total Active:")(1).trim.toLong
+        activeOf(node) = line.split("Total Active:")(1).split("Expected Active")(0).trim.toLong
         stalledOf(node) = line.split("Stalled:")(1).split("Starved")(0).trim.toFloat
         starvedOf(node) = line.split("Starved:")(1).split("Total Active")(0).trim.toFloat
         zipOption(countOf.getOrElse(node,None), activeOf.get(node)).foreach { case (count, active) =>
