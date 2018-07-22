@@ -31,7 +31,7 @@ trait GraphCollector[ND<:Node[ND]] extends GraphUtil { self:ND =>
       visited += node
       node match {
         case _ if withinDepth(depth) & prefix(node) => accumulate(prev, node)
-        case _ if withinDepth(depth) => accumulate(prev, node); super.visitNode(n, prev)
+        case _ if withinDepth(depth) => super.visitNode(n, accumulate(prev, node))
         case _ => prev 
       }
     }
