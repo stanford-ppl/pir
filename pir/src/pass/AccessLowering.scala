@@ -83,8 +83,12 @@ class AccessLowering(implicit compiler:PIR) extends PIRTransformer {
               banks.map { bank =>
                 // Local write address calculation
                 val (maddr, mdata) = withParentCtrl(storeCU, ctrlOf(n)) {
-                  val maddr = BankMask(bs, faddr) // enable of faddr is bs == bank id
-                  val mdata = BankMask(bs, data) // enable of data is bs == bank id
+                  // TODO HACK: this make the PMU has lots of distinct outputs as supposed to 1
+                  // output. Causing the CU splitted in very not reasonable way
+                  //val maddr = BankMask(bs, faddr) // enable of faddr is bs == bank id
+                  //val mdata = BankMask(bs, data) // enable of data is bs == bank id
+                  val maddr = faddr
+                  val mdata = data
                   (maddr, mdata)
                 }
                 val bankCU = globalOf(bank).get 

@@ -12,33 +12,6 @@ trait Debugger extends PIRPass {
     snapshotCount = 0
   }
 
-  //def act(m:Any, f:Any, answer:String):Unit = {
-    //answer match {
-      //case "o" =>
-        //f match {
-          //case SearchFailure(from:Bundle[_], to, msg) if isBit(from) =>
-            //new PIRNetworkDotCodegen[Bit](s"control.dot", m).run.open
-          //case SearchFailure(from:Bundle[_], to, msg) if isWord(from) =>
-            //new PIRNetworkDotCodegen[Word](s"scalar.dot", m).run.open
-          //case SearchFailure(from:Bundle[_], to, msg) if isVector(from) =>
-            //new PIRNetworkDotCodegen[Vector](s"vector.dot", m).run.open
-          //case _ =>
-            //new PIRNetworkDotCodegen[Bit](s"control.dot", m).run.open
-            //new PIRNetworkDotCodegen[Word](s"scalar.dot", m).run.open
-            //new PIRNetworkDotCodegen[Vector](s"vector.dot", m).run.open
-        //}
-        //val answer = ask(s"Waiting for input ...")
-        //act(m, f, answer)
-      //case "q" =>
-        //info(s"Stop debugging and exiting...")
-        //System.exit(-1)
-      //case "n" =>
-      //case _ =>
-        //val answer = ask(s"Invalid input, o-open, q-quit, n-next ...")
-        //act(m, f, answer)
-    //}
-  //}
-
   var snapshotCount = 0
   lazy val snapshotInterval = PIRConfig.option[Int]("snapint")
   def snapshot[M](m:M):M = {

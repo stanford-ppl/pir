@@ -6,7 +6,7 @@ import spade.param._
 import spade.node._
 import prism.collection.immutable._
 
-trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme with Debugger {
+trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme with Debugger with prism.util.Memorization {
 
   import pirmeta._
   import PIRConfig._
@@ -40,7 +40,8 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme
     val (marked, unmarked) = ports.partition { port => getStaticMarkerOf(pmap, port).nonEmpty }
     val markedAndMatched = marked.filter { port => staticMarkerOf(pmap, port) == marker }
     gio match {
-      case gio:GlobalOutput => markedAndMatched ++ unmarked // one to many
+      case gio:GlobalOutput if markedAndMatched.nonEmpty => markedAndMatched /*++ unmarked*/ // one to many
+      case gio:GlobalOutput => unmarked // one to many
       case gio:GlobalInput if markedAndMatched.nonEmpty => markedAndMatched // one to one
       case gio:GlobalInput => unmarked // one to one
     }
@@ -164,26 +165,32 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme
     }
   }
 
-  def refineUnplacedNeighbors(unplaced:List[(GlobalIO, GlobalIO)], pmap:PIRMap) = dbgblk(s"refineUnplacedNeighbors", buffer=true){
-    val groups = unplaced.groupBy { case (tailP, headP) => tailP }
-    flatFold(groups, pmap) { case (pmap, (tailP, edgesP)) =>
-      val costMap = edgesP.map { case (tailP, headP) => (headP, spanMaxCost(tailP, headP, pmap)) }
-      val maxCost = costMap.map { _._2 }.max
-      val reached = span(tailP, pmap, maxCost)
-      pmap.flatMap[CUMap]{ cumap =>
-        flatFold(costMap, cumap) { case (cumap, (headP, maxCost)) =>
-          val neighborP = globalOf(headP).get
-          val canReach = reached.filter { case (cuS, cost) => cost <= maxCost }.toMap
-          dbg(s"neighborP=$neighborP, maxCost=$maxCost, canReach=$canReach")
-          dbg(s"canReach=$canReach")
-          dbg(s"cumap($neighborP)=${cumap(neighborP)}")
-          cumap.weightedFilterAt(neighborP) { cuS => 
-            canReach.get(cuS).map { cost =>
-              cumap.weight(neighborP, cuS) + cost
+  def refineUnplacedNeighbors(unplaced:List[(GlobalIO, GlobalIO)], pmap:PIRMap) =  {
+    dbgblk(s"refineUnplacedNeighbors", buffer=true){
+      val groups = unplaced.groupBy { case (tailP, headP) => tailP }
+      flatFold(groups, pmap) { case (pmap, (tailP, edgesP)) =>
+        val costMap = edgesP.map { case (tailP, headP) => (headP, spanMaxCost(tailP, headP, pmap)) }
+        val maxCost = costMap.map { _._2 }.max
+        val reached = span(tailP, pmap, maxCost)
+        pmap.flatMap[CUMap]{ cumap =>
+          flatFold(costMap, cumap) { case (cumap, (headP, maxCost)) =>
+            val neighborP = globalOf(headP).get
+            val canReach = reached.filter { case (cuS, cost) => cost <= maxCost }.toMap
+            dbg(s"neighborP=${quote(neighborP)}, maxCost=$maxCost")
+            dbg(s"canReach=${canReach.map(quote).mkString(",")}")
+            //dbg(s"cumap($neighborP)=${cumap(neighborP)}")
+            cumap.weightedFilterAt(neighborP) { cuS => 
+              canReach.get(cuS).map { cost =>
+                if (isGlobalInput(tailP)) { // Force my producer to be closer to me
+                  cumap.weight(neighborP, cuS) + cost
+                } else {
+                  cumap.weight(neighborP, cuS) + 1 // Don't care how far my consumer is to me
+                }
+              }
+            }.map { filtered =>
+              dbg(s"filtered=${filtered.freeWeightedValues(neighborP).map(quote)}")
+              filtered
             }
-          }.map { filtered =>
-            dbg(s"filtered=${filtered.freeWeightedValues(neighborP)}")
-            filtered
           }
         }
       }
@@ -215,7 +222,13 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme
     case n:PT => s"${quote(n.src)}.${n}"
     case n:Edge => s"${quote(n.src)}.$n"
     case n:GlobalIO => s"${globalOf(n).get}.${super.quote(n)}"
+    case n:GlobalContainer => s"${globalOf(n).get}(${cuType(n).get})"
+    case (a,b) => s"(${quote(a)},${quote(b)})"
     case n => super.quote(n)
+  }
+
+  override def cuType(n:PIRNode):Option[String] = memorize("cuType", n) { n =>
+    super.cuType(n)
   }
 
 }

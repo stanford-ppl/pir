@@ -5,7 +5,7 @@ import pir.node._
 import pir.mapper._
 import pir.codegen._
 
-class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner with Debugger {
+class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner with Debugger with Logging { self =>
   import pirmeta._
 
   override def initPass = {
@@ -107,6 +107,12 @@ class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner with Debugg
         new PartitalDotCodegen("before.dot", origPartitions).run.open
         newPartitions = Some(newPartitionBlk)
         new PartitalDotCodegen("after.dot", newPartitions.get).run.open
+        bp(())
+      case ("s", bp) =>
+        new SimpleIRDotCodegen(s"simple.dot") { override lazy val logger = self.logger }.run.open
+        bp(())
+      case ("t", bp) =>
+        new PIRIRDotCodegen(s"top.dot"){ override lazy val logger = self.logger }.run.open
         bp(())
     }
     breakPoint(info, act)
