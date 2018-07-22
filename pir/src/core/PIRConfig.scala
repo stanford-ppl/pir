@@ -27,17 +27,11 @@ object PIRConfig extends prism.GlobalConfig {
   def genPlastisim = option[Boolean]("psim") && genCtrl && enableCodegen
   def runPlastisim = option[Boolean]("run-psim") && genPlastisim
   def enableTrace = genPlastisim && option[Boolean]("trace")
-  def enablePlastiroute = genPlastisim && SpadeConfig.option[String]("net") == "dynamic" && routingAlgo == "proute"
-  def genPlacement = genPlastisim && (SpadeConfig.option[String]("net") match {
-    case "static" => true
-    case "dynamic" => routingAlgo != "proute"
-    case _ => false
-  })
 
   /* ------------------- Routing --------------------  */
   register("routing-algo", default="dor", info="If net=[dynamic] - [dor, planed, proute]. Option ignored for other network. dor - dimention order routing. planed - arbitrary source routing, proute - use plastiroute for place and route. If proute is chosen plastiroute will be launched from pir if $PLASTIROUTE_HOME is set") 
   register("routing-cost", default="H-hop", info="Routing cost [hop, balanced, H-hop, H-balanced]. hop - use hop count only for cost in search, balanced - use traffic load + hop count as cost, H-hop: use Manhattan distance as heurisc cost and use hop count for cost. H-balanced: use Manhattan distance as heurisc cost and use hop count and traffic load for cost.") 
-
+  register("proute-slink", default=0, info="Number of static link used in plastiroute") 
   def enableHopCountCost = option[String]("routing-cost") match {
     case "hop" => true
     case "balanced" => false
@@ -60,6 +54,12 @@ object PIRConfig extends prism.GlobalConfig {
   }
   def routingAlgo = option[String]("routing-algo")
 
+  def enablePlastiroute = genPlastisim && SpadeConfig.option[String]("net") == "dynamic" && routingAlgo == "proute"
+  def genPlacement = genPlastisim && (SpadeConfig.option[String]("net") match {
+    case "static" => true
+    case "dynamic" => routingAlgo != "proute"
+    case _ => false
+  })
 
   /* ------------------- Debugging --------------------  */
   register("save-pir", default=false, info="Save IR into a file") 
