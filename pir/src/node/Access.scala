@@ -87,6 +87,7 @@ case class StoreMem(mem:Memory, addr:Def, data:Def)(implicit design:PIRDesign) e
 case class BankMerge(bankLoads:List[LocalLoad])(implicit design:PIRDesign) extends Def
 case class BankSelect(addrs:List[Def])(implicit design:PIRDesign) extends Def
 case class BankMask(mask:Def, exp:Def)(implicit design:PIRDesign) extends Def
+case class SelectByValid(exp1: Def, exp2:Def)(implicit design:PIRDesign) extends Def
 
 // Lowered with control
 case class EnabledLoadMem(mem:Memory, faddr:Option[Def], readNext:Def)(implicit design:PIRDesign) extends LocalLoad with EnabledAccess

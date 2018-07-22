@@ -31,7 +31,17 @@ class ControlAllocation(implicit compiler:PIR) extends ControlTransformer with C
   def prevCtrl(ctrl:Controller) = {
     val context = currentParent.get
     val inner = innerCtrlOf(context)
-    val chain = inner.ancestorSlice(ctrl).dropRight(1)
+    val chain = leastCommonAncesstor(inner, ctrl).get match {
+      case lca if lca == ctrl =>
+        inner.ancestorSlice(ctrl).dropRight(1)
+      case lca if lca.style == ForkJoin => 
+        val ctrlslice = ctrl.ancestorSlice(lca)
+        val innerslice = inner.ancestorSlice(lca)
+        dbg(s"ctrlslice = $ctrlslice")
+        dbg(s"innerslice = $innerslice")
+        innerslice.dropRight(ctrlslice.size)
+      case lca => throw PIRException(s"$ctrl is not ancestors of $inner")
+    }
     if (chain.isEmpty) None else Some(chain.last)
   }
 

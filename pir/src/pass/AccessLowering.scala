@@ -32,14 +32,17 @@ class AccessLowering(implicit compiler:PIR) extends PIRTransformer {
             val dims = staticDimsOf(banks.head)
             val access = withParentCtrl(bankCU, ctrlOf(n)) {
               val faddr = flattenNDAddr(maddrs, dims)
-              LoadMem(bank, faddr)
+              val bs = BankSelect(maddrs) // compute which bank to load
+              LoadMem(bank, BankMask(bs, faddr)) // enable of faddr is bs == bank id
             }
             pirmeta.migrate(n, access)
             retime(access, accessCU).asInstanceOf[LocalLoad]
           }
           swapUsage(n, {
             if (bankAccesses.size > 1) { 
-              withParentCtrl(accessCU, ctrlOf(n)) { BankMerge(bankAccesses) }
+              withParentCtrl(accessCU, ctrlOf(n)) { 
+                bankAccesses.reduce[Def] { case (a1, a2) => SelectByValid(a1, a2) }
+              }
             } else bankAccesses.head
           })
           removeNode(n)
@@ -71,16 +74,19 @@ class AccessLowering(implicit compiler:PIR) extends PIRTransformer {
             }
           } else { // Do address flattening inside the source CU
             dbg(s"${qdef(n)} stores multiple banks")
-            val (maddr, mdata) = withParentCtrl(storeCU, ctrlOf(n)) {
+            val (faddr, bs) = withParentCtrl(storeCU, ctrlOf(n)) {
               val faddr = flattenNDAddr(addrs, dims)
-              val bs = BankSelect(addrs)
-              val maddr = BankMask(bs, faddr)
-              val mdata = BankMask(bs, data)
-              (maddr, mdata)
+              val bs = BankSelect(addrs) // compute which bank to store
+              (faddr, bs)
             }
             insts.foreach { banks =>
               banks.map { bank =>
                 // Local write address calculation
+                val (maddr, mdata) = withParentCtrl(storeCU, ctrlOf(n)) {
+                  val maddr = BankMask(bs, faddr) // enable of faddr is bs == bank id
+                  val mdata = BankMask(bs, data) // enable of data is bs == bank id
+                  (maddr, mdata)
+                }
                 val bankCU = globalOf(bank).get 
                 val dataLoad = retime(mdata, bankCU)
                 val addrLoad = retime(maddr, bankCU)
