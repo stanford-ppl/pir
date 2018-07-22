@@ -38,29 +38,15 @@ trait ContextLinerizer extends PIRTransformer with PIRNodeUtil with Logging with
   }
 
   private def accessesOf(ctx:ComputeContext):List[LocalAccess] = accessesOf(ctx, mem)
-  private def accessesOf(cg:ContextGroup):List[LocalAccess] = cg.ctxs.flatMap(ctx => accessesOf(ctx))
+  private def accessesOf(cg:ContextGroup):List[LocalAccess] = accessesOf(cg.ctx)
   private def isInCtx(ctx:ComputeContext) = accessesOf(ctx).forall(isInAccess)
   private def isOutCtx(ctx:ComputeContext) = accessesOf(ctx).forall(isOutAccess)
-  private def isInGroup(cg:ContextGroup) = cg.ctxs.forall(isInCtx)
-  private def isOutGroup(cg:ContextGroup) = cg.ctxs.forall(isOutCtx)
+  private def isInGroup(cg:ContextGroup) = isInCtx(cg.ctx)
+  private def isOutGroup(cg:ContextGroup) = isOutCtx(cg.ctx)
 
   private def createContextGroup(ctxs:List[ComputeContext]) = {
-    val groups = partialReduce(ctxs.map { ctx => ContextGroup(mem, List(ctx)) }) {
-      case (g1@ContextGroup(_, ctxs1), g2@ContextGroup(_, ctxs2)) =>
-        val lca = leastCommonAncesstor((ctxs1 ++ ctxs2).map(innerCtrlOf)).get
-        if (lca.style == ForkJoin) {
-          dbg(s"ForkJoin merging $ctxs1 $ctxs2")
-          assert(isInGroup(g1) == isInGroup(g2))
-          Some(ContextGroup(mem, ctxs1 ++ ctxs2)) }
-        else {
-          None
-        }
-    }
-    ctxGroups = groups.flatMap { case cg@ContextGroup(mem, ctxs) => ctxs.map { _ -> cg } }.toMap
-
-/*    ctxGroups.values.foreach { cg =>*/
-      //dbg(s"${quote(cg)}: ${accessesOf(cg).map { a => (a, antiDepsOf(a)) }.mkString(",")}")
-/*    }*/
+    val groups = ctxs.map { ctx => ContextGroup(mem, ctx) }
+    ctxGroups = groups.map { case cg@ContextGroup(mem, ctx) => ctx -> cg }.toMap
 
     ctxs.foreach { ctx1 =>
       ctxs.foreach { ctx2 =>
@@ -118,15 +104,15 @@ trait ContextLinerizer extends PIRTransformer with PIRNodeUtil with Logging with
 
   private def muteAccess(n:Memory, sorted:List[ContextGroup]) = {
     sorted match {
-      case List(InGroup(ctx1s), OutGroup(ctx2s)) =>
-      case List(InGroup(List(ctx1)), InGroup(List(ctx2)), OutGroup(List(ctx3))) =>
+      case List(InGroup(ctx1), OutGroup(ctx2)) =>
+      case List(InGroup(ctx1), InGroup(ctx2), OutGroup(ctx3)) =>
         dbg(s"MuteAccess In $ctx1 (mute) => In $ctx2 => Out $ctx3")
         accessesOf(ctx1, mem).filter(isInAccess).foreach { access =>
           isMuted(access) = true
           isMuted.info(access).foreach(dbg)
         }
-      case List(InGroup(ctx1s), OutGroup(ctx2s), InGroup(ctx3s)) =>
-      case List(InGroup(List(ctx1)), OutGroup(List(ctx2)), OutGroup(List(ctx3))) =>
+      case List(InGroup(ctx1), OutGroup(ctx2), InGroup(ctx3s)) =>
+      case List(InGroup(ctx1), OutGroup(ctx2), OutGroup(ctx3)) =>
         dbg(s"MuteAccess In $ctx1 => Out $ctx2 => Out $ctx3 (mute)")
         accessesOf(ctx3, mem).filter(isInAccess).foreach { access =>
           isMuted(access) = true
@@ -146,8 +132,8 @@ trait ContextLinerizer extends PIRTransformer with PIRNodeUtil with Logging with
    * */
   private def insertMatchingAccesses(n:Memory, sorted:List[ContextGroup]) = {
     sorted match {
-      case List(InGroup(ctx1s), OutGroup(ctx2s)) =>
-      case List(InGroup(List(ctx1)), InGroup(List(ctx2)), OutGroup(List(ctx3))) =>
+      case List(InGroup(ctx1), OutGroup(ctx2)) =>
+      case List(InGroup(ctx1), InGroup(ctx2), OutGroup(ctx3)) =>
         dbgblk(s"InsertMatchingAccess In $ctx1 => (Out) In $ctx2 => Out $ctx3") {
           val ctrl1 = innerCtrlOf(ctx1)
           val ctrl2 = innerCtrlOf(ctx2)
@@ -158,8 +144,8 @@ trait ContextLinerizer extends PIRTransformer with PIRNodeUtil with Logging with
           }
           ()
         }
-      case List(InGroup(ctx1s), OutGroup(ctx2s), InGroup(ctx3s)) =>
-      case List(InGroup(List(ctx1)), OutGroup(List(ctx2)), OutGroup(List(ctx3))) =>
+      case List(InGroup(ctx1), OutGroup(ctx2), InGroup(ctx3s)) =>
+      case List(InGroup(ctx1), OutGroup(ctx2), OutGroup(ctx3)) =>
         dbgblk(s"InsertMatchingAccess In $ctx1 => Out $ctx2 (In) => Out $ctx3") {
           val ctrl2 = innerCtrlOf(ctx2)
           val ctrl3 = innerCtrlOf(ctx3)
@@ -179,8 +165,8 @@ trait ContextLinerizer extends PIRTransformer with PIRNodeUtil with Logging with
     val mems = scala.collection.mutable.ListBuffer[Memory]()
     val moreThanTwo = sorted.size > 2
     sorted.sliding(size=2,step=1).foreach { 
-      case List(InGroup(ctxs1), OutGroup(ctxs2)) if !moreThanTwo => // optimization no token inserted
-      case List(ContextGroup(_, List(ctx1)), ContextGroup(_, List(ctx2))) =>
+      case List(InGroup(ctx1), OutGroup(ctx2)) if !moreThanTwo => // optimization no token inserted
+      case List(ContextGroup(_, ctx1), ContextGroup(_, ctx2)) =>
         dbgblk(s"Insert Token ${quote(ctx1)} -> ${quote(ctx2)}") {
           val cu = globalOf(n).get
           withParentCtrl(cu, ctrlOf(n)) {
@@ -200,27 +186,27 @@ trait ContextLinerizer extends PIRTransformer with PIRNodeUtil with Logging with
   }
 
   override def quote(n:Any) = n match {
-    case n:ContextGroup => s"CG(${n.ctxs.map(quote).mkString(",")})"
+    case n:ContextGroup => s"CG(${quote(n.ctx)})"
     case n:ComputeContext if currMem.nonEmpty => s"$n(${accessesOf(n, mem).mkString(",")})"
     case n => super.quote(n)
   }
 
   object InGroup {
     def unapply(g:Any) = g match {
-      case g:ContextGroup if isInGroup(g) => Some((g.ctxs))
+      case g:ContextGroup if isInGroup(g) => Some((g.ctx))
       case _ => None
     }
   }
   object OutGroup {
     def unapply(g:Any) = g match {
-      case g:ContextGroup if isOutGroup(g) => Some((g.ctxs))
+      case g:ContextGroup if isOutGroup(g) => Some((g.ctx))
       case _ => None
     }
   }
 }
 
 object ContextDesign extends prism.node.Design
-case class ContextGroup(mem:Memory, ctxs:List[ComputeContext]) extends prism.node.Atom[ContextGroup] {
+case class ContextGroup(mem:Memory, ctx:ComputeContext) extends prism.node.Atom[ContextGroup] {
   override type A = ContextGroup
   val id = ContextDesign.nextId
   def connect(other:ContextGroup) = {
