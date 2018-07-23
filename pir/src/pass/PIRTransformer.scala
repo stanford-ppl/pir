@@ -190,7 +190,9 @@ abstract class PIRTransformer(implicit compiler:PIR) extends PIRPass with PIRWor
   override def removeNode(node:N) = {
     super.removeNode(node)
     if (originOf(node) == node) {
-      originOf.bmap(node).headOption.foreach { m =>
+      val duplicates = originOf.bmap(node)
+      if (duplicates.nonEmpty) dbg(s"duplicates=$duplicates")
+      duplicates.filterNot { _ == node }.headOption.foreach { m =>
         originOf.migrate(node, m, logger=Some(this))
         dbg(s"originOf.migrate $node -> $m")
       }

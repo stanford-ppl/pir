@@ -131,7 +131,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
       case cuP:DramFringe if isSparseFringe(cuP) & enableTrace =>
         val addr = cuP.collectDown[StreamOut]().filter { _.field == "addr" }.head
         emitln(s"offset_trace = traces/${readersOf(addr).head}.trace")
-        emitln(s"size_trace = 64") // burst size
+        emitln(s"size_trace = ${topParam.burstSizeByte}") // burst size (byte)
         val par = 1
         cuP match {
           case cuP:FringeSparseLoad => 

@@ -121,7 +121,7 @@ class PIRMetadata extends Metadata {
     override def mirror(orig:Any, clone:Any, logger:Option[Logging]=None):Unit = {}
     override def migrateValue(from:V, to:V, k:K, logger:Option[Logging]) = {
       remove(k, from)
-      super.migrateValue(from, to, k, logger)
+      if (k != to) super.migrateValue(from, to, k, logger)
     }
   }
   originOf.setName("originOf")

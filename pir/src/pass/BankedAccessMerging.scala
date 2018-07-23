@@ -17,15 +17,7 @@ class BankedAccessMerging(implicit compiler:PIR) extends PIRTransformer with PIR
   }
 
   def groupAccesses[A<:LocalAccess](accesses:List[A]):List[List[A]] = {
-    val accessGroups = partialReduce(accesses.map { a => Set(a) }) { case (a1s, a2s) =>
-      val lca = leastCommonAncesstor((a1s ++ a2s).map(a => ctrlOf(a))).get
-      if (lca.style == ForkJoin) {
-        dbg(s"ForkJoin merging $a1s $a2s")
-        Some(a1s ++ a2s) }
-      else {
-        None
-      }
-    }
+    val accessGroups = groupByForkJoin(accesses)
     accessGroups.filter { _.size > 1}.map(_.toList)
   }
 

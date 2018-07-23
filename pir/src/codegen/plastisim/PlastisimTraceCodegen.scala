@@ -104,7 +104,10 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
   }
 
   def nodeOf[T<:PIRNode:ClassTag](n:Controller):T = memorize(s"nodeOf", (n, implicitly[ClassTag[T]])) { case (n, ct) =>
-    assertOne(ctrlbmap(n).collect { case ct(cc) => originOf(cc) }.toSet, s"$n.$ct")
+    val nodes = ctrlbmap(n).collect { case ct(cc) => originOf(cc) }.toSet.toList
+    val grouped = groupByForkJoin(nodes).map(_.head)
+    dbg(s"grouped=${grouped.map { node => (node, ctrlOf(node))}}")
+    assertOne(grouped, s"$n.$ct")
   }
   def cchainOf(n:LoopController):CounterChain = nodeOf[CounterChain](n)
   def countersOf(n:LoopController) = cchainOf(n).counters

@@ -12,7 +12,7 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
       case pass:P => this._pass = Some(pass)
       case _ => throw SessionRestoreFailure(s"Restored Runner[${pct}] cannot load $pass") 
     }
-    this.name = s"$id-$pass"
+    this.name = s"${"%02d".format(id)}-$pass"
     dependencies.clear
     this
   }
