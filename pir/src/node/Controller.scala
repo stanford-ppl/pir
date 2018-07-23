@@ -53,7 +53,7 @@ sealed trait ControlLevel extends Enum
 case object InnerControl extends ControlLevel
 case object OuterControl extends ControlLevel
 
-trait ControllerUtil { self:PIRNodeUtil =>
+trait ControllerUtil extends prism.traversal.GraphUtil { self:PIRNodeUtil =>
 
   val pirmeta:PIRMetadata
   import pirmeta._
@@ -121,6 +121,18 @@ trait ControllerUtil { self:PIRNodeUtil =>
   // Memories forever controller and current controller (exclude descendents) depends on
   def myLocalForeverInMems(ctrl:Controller) = {
     (foreverInMems(ctrl).toSet intersect localInMemsOf(ctrl).toSet).toList
+  }
+
+  def groupByForkJoin[N<:PIRNode](nodes:List[N], logger:Option[Logging]=None):List[Set[N]] = {
+    partialReduce(nodes.map { n => Set(n) }) { case (n1s, n2s) =>
+      val lca = leastCommonAncesstor((n1s ++ n2s).map(n => ctrlOf(n))).get
+      if (lca.style == ForkJoin) {
+        dbg(logger, s"ForkJoin merging $n1s $n2s")
+        Some(n1s ++ n2s) }
+      else {
+        None
+      }
+    }
   }
 
 }

@@ -57,7 +57,7 @@ object PIRConfig extends prism.GlobalConfig {
   def enablePlastiroute = genPlastisim && SpadeConfig.option[String]("net") == "dynamic" && routingAlgo == "proute"
   def genPlacement = genPlastisim && (SpadeConfig.option[String]("net") match {
     case "static" => true
-    case "dynamic" => routingAlgo != "proute"
+    case "dynamic" => true
     case _ => false
   })
 
