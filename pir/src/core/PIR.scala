@@ -134,7 +134,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(cuStats)
 
     // Simulation analyzer
-    addPass(enableTrace, psimTraceCodegen)
+    addPass(enableTrace, psimTraceCodegen).dependsOn(controlLowering)
     addPass(psimLinkAnalyzer).dependsOn(controlLowering)
     addPass(psimDotCodegen).dependsOn(psimLinkAnalyzer)
     addPass(psimCountCheck).dependsOn(psimLinkAnalyzer)

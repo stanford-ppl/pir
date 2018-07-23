@@ -15,6 +15,7 @@ trait PlastisimUtil extends PIRPass {
 
   lazy val topS = compiler.arch.design.top
   lazy val topParam = topS.param
+  lazy val burstSize = topParam.burstSizeWord
 
   lazy val (numTotalRows, numTotalCols) = topParam match {
     case param:StaticGridTopParam => (param.numRows, param.numCols)

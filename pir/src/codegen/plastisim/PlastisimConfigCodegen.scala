@@ -55,8 +55,14 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         stalledOf(node) = line.split("Stalled:")(1).split("Starved")(0).trim.toFloat
         starvedOf(node) = line.split("Starved:")(1).split("Total Active")(0).trim.toFloat
         zipOption(countOf.getOrElse(node,None), activeOf.get(node)).foreach { case (count, active) =>
-          if (active < count) { 
-            err(s"${quote(node)} count=$count active=$active", false)
+          val expectedCount = globalOf(node).get match {
+            case cuP:FringeDenseLoad =>
+              val par = ctrlOf(ctxEnOf(cuP).get).asInstanceOf[DramController].par
+              count / (burstSize / par)
+            case cuP => count
+          }
+          if (active < expectedCount) { 
+            err(s"${quote(node)} count=$expectedCount active=$active", false)
             simulationSucceeded = Some(false)
           }
         }
@@ -255,15 +261,65 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     }
   }
 
+  /*
+   * Load
+   * for (numCommands) {
+   *   Pipe {
+   *     // enqueue offset
+   *     // enqueue size
+   *   }
+   *   Pipe {
+   *     // read offset
+   *     // read size
+   *     for (size by burstSize) { // consume token here
+   *       // handle burst command
+   *       for (burstSize par readPar) { // modeled here
+   *         // send data
+   *       }
+   *     }
+   *   }
+   * }
+   * */
+
+  /*
+   * Store
+   * for (numCommands) {
+   *   Pipe {
+   *     // enqueue offset
+   *     // enqueue size
+   *     for (size par writePar) {
+   *       // enqueue data
+   *     }
+   *   }
+   *   Pipe {
+   *     // read offset
+   *     // read size
+   *     for (size by burstSize) {
+   *       for (burstSize par writePar) {
+   *         // read data // modeled here, consume token here
+   *       }
+   *       // handle burst command
+   *     }
+   *   }
+   * }
+   * */
   def emitInLinks(n:NetworkNode) = dbgblk(s"emitInLinks($n)") {
     inlinksOf(n).zipWithIndex.foreach { case ((link, reads), idx) =>
       emitln(s"link_in[$idx] = ${quote(link)}")
-      //globalOf(n).get match {
-        //case cuP:FringeDenseLoad if enableTrace =>
-          //emitln(s"scale_in[$idx] = 1")
-        //case cuP =>
+      globalOf(n).get match {
+        case cuP:FringeDenseLoad if enableTrace =>
+          // HACK: original scale in = size / read par
+          // we want size / burstSize
+          val par = ctrlOf(ctxEnOf(cuP).get).asInstanceOf[DramController].par
+          emitln(s"scale_in[$idx] = ${constScaleOf(reads) * par / burstSize}")
+        case cuP:FringeDenseStore if enableTrace =>
+          // scale_in for data is 1
+          // scale_in for offset and size are size / burstSize * burstSize / writePar = size /
+          // writePar
           emitln(s"scale_in[$idx] = ${constScaleOf(reads)}")
-      //}
+        case cuP =>
+          emitln(s"scale_in[$idx] = ${constScaleOf(reads)}")
+      }
       emitln(s"buffer[$idx]=${assertOptionUnify(link, "bufferSize")(bufferSizeOf).get}")
     }
   }
