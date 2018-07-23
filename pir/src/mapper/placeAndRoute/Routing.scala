@@ -133,37 +133,38 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme
     case param:DynamicCMeshTopParam => (param.numTotalRows, param.numTotalCols)
   }
 
-  def spanMaxCost(tailP:GlobalIO, headP:GlobalIO, pmap:PIRMap) = dbgblk(s"spanMaxCost(${quote(tailP)}, ${quote(headP)})", buffer=false) {
-    type ArgFringe = pir.node.ArgFringe
-    type DramFringe = pir.node.DramFringe
-    val scuP = globalOf(tailP).get
-    val ecuP = globalOf(headP).get
-    (scuP, ecuP) match {
-      case (scuP:ArgFringe  , ecuP           ) if (isMesh(designS) | isCMesh(designS)) & isStatic(designS) => numRows + 2
-      case (scuP            , ecuP:ArgFringe ) if (isMesh(designS) | isCMesh(designS)) & isStatic(designS) => numRows + 2
-      case (scuP:ArgFringe  , ecuP           ) if (isMesh(designS) | isCMesh(designS)) & isDynamic(designS) => numCols / 2 + numRows + 2
-      case (scuP            , ecuP:ArgFringe ) if (isMesh(designS) | isCMesh(designS)) & isDynamic(designS) => numCols / 2 + numRows + 2
-      case (scuP:DramFringe , ecuP           ) => numCols / 2 + 2
-      case (scuP            , ecuP:DramFringe) => numCols / 2 + 2
-      case (scuP            , ecuP           ) => 
-        val lowerBound = 3
-        val upperBound = numRows / 2 + numCols / 2
-        val sdegree = degree(scuP)
-        val edegree = degree(ecuP)
-        val degreeScale = (sdegree + edegree) * 1.0 / (maxDegree * 2)
-        val usageScale = pmap.cumap.mappedValues.size * 1.0 / pmap.cumap.values.size
-        val scale = Math.max(degreeScale, usageScale)
-        val cost = lowerBound + (Math.max(0, (upperBound - lowerBound)) * scale).toInt
-        dbg(s"lowerBound=$lowerBound, upperBound=$upperBound, sdegree=$sdegree, edegree=$edegree, maxDegree=$maxDegree")
-        dbg(s"degreeScale=$degreeScale, usageScale=$usageScale, cost=$cost")
-        //println(s"degreeScale=$degreeScale, usageScale=$usageScale, cost=$cost")
-        assert(cost >= lowerBound, s"cost=$cost < lowerBound=$lowerBound")
-        assert(cost <= upperBound, s"cost=$cost > upperBound=$upperBound")
-        //println(s"lowerBound=$lowerBound, upperBound=$upperBound, sdegree=$sdegree, edegree=$edegree, maxDegree=$maxDegree cost=$cost")
-        cost
-      case _ => throw PIRException(s"Don't know how to compute spanMaxCost")
-    }
-  }
+  def spanMaxCost(tailP:GlobalIO, headP:GlobalIO, pmap:PIRMap) = -1 
+  //def spanMaxCost(tailP:GlobalIO, headP:GlobalIO, pmap:PIRMap) = dbgblk(s"spanMaxCost(${quote(tailP)}, ${quote(headP)})", buffer=false) {
+    //type ArgFringe = pir.node.ArgFringe
+    //type DramFringe = pir.node.DramFringe
+    //val scuP = globalOf(tailP).get
+    //val ecuP = globalOf(headP).get
+    //(scuP, ecuP) match {
+      //case (scuP:ArgFringe  , ecuP           ) if (isMesh(designS) | isCMesh(designS)) & isStatic(designS) => numRows + 2
+      //case (scuP            , ecuP:ArgFringe ) if (isMesh(designS) | isCMesh(designS)) & isStatic(designS) => numRows + 2
+      //case (scuP:ArgFringe  , ecuP           ) if (isMesh(designS) | isCMesh(designS)) & isDynamic(designS) => numCols / 2 + numRows + 2
+      //case (scuP            , ecuP:ArgFringe ) if (isMesh(designS) | isCMesh(designS)) & isDynamic(designS) => numCols / 2 + numRows + 2
+      //case (scuP:DramFringe , ecuP           ) => numCols / 2 + 2
+      //case (scuP            , ecuP:DramFringe) => numCols / 2 + 2
+      //case (scuP            , ecuP           ) => 
+        //val lowerBound = 3
+        //val upperBound = numRows / 2 + numCols / 2
+        //val sdegree = degree(scuP)
+        //val edegree = degree(ecuP)
+        //val degreeScale = (sdegree + edegree) * 1.0 / (maxDegree * 2)
+        //val usageScale = pmap.cumap.mappedValues.size * 1.0 / pmap.cumap.values.size
+        //val scale = Math.max(degreeScale, usageScale)
+        //val cost = lowerBound + (Math.max(0, (upperBound - lowerBound)) * scale).toInt
+        //dbg(s"lowerBound=$lowerBound, upperBound=$upperBound, sdegree=$sdegree, edegree=$edegree, maxDegree=$maxDegree")
+        //dbg(s"degreeScale=$degreeScale, usageScale=$usageScale, cost=$cost")
+        ////println(s"degreeScale=$degreeScale, usageScale=$usageScale, cost=$cost")
+        //assert(cost >= lowerBound, s"cost=$cost < lowerBound=$lowerBound")
+        //assert(cost <= upperBound, s"cost=$cost > upperBound=$upperBound")
+        ////println(s"lowerBound=$lowerBound, upperBound=$upperBound, sdegree=$sdegree, edegree=$edegree, maxDegree=$maxDegree cost=$cost")
+        //cost
+      //case _ => throw PIRException(s"Don't know how to compute spanMaxCost")
+    //}
+  //}
 
   def refineUnplacedNeighbors(unplaced:List[(GlobalIO, GlobalIO)], pmap:PIRMap) =  {
     dbgblk(s"refineUnplacedNeighbors", buffer=true){

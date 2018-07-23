@@ -1,21 +1,29 @@
 #!/bin/bash
 
-thread_count=4
+thread_count=16
 
 APPS=()
-APPS+=('DotProduct')
-APPS+=('OuterProduct')
-APPS+=('TPCHQ6')
-APPS+=('GDA')
+#APPS+=('DotProduct')
+#APPS+=('OuterProduct')
+#APPS+=('TPCHQ6')
+#APPS+=('GDA')
 #APPS+=('GEMM_Blocked')
-APPS+=('LogReg')
-APPS+=('SGD_minibatch')
-APPS+=('Kmeans')
-APPS+=('SPMV_ELL')
-APPS+=('P4')
-APPS+=('PensieveStream')
+#APPS+=('LogReg')
+#APPS+=('SGD_minibatch')
+#APPS+=('Kmeans')
+#APPS+=('SPMV_ELL')
+#APPS+=('P4')
+#APPS+=('PensieveStream')
 #APPS+=('BlackScholes')
-APPS+=('lenet_loops')
+#APPS+=('lenet_loops')
+
+APPS+=('DotProduct__N_1048576_ts_65536_op_1')
+APPS+=('TPCHQ6__N_1048576_ts_65536_op_1')
+APPS+=('OuterProduct__M_12288_N_12288_ts1_64_ts2_1024_op1_1_op2_2_ip2_16_ip1_1')
+APPS+=('BlackScholes__N_1048576_ts_65536_op_1')
+APPS+=('GDA__C_128_R_4096_ts_512_op_1_mp1_8_mp2_1')
+APPS+=('LogReg__iters_4_D_128_N_8192_ts_512_op_1_mp_4')
+APPS+=('Kmeans__I_2_N_16384_K_64_D_64_ts_1024_op_1_mp1_4_mp2_1_mp3_1')
 
 #APPS+=('DoubleLoad')
 
