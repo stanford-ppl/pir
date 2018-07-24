@@ -53,3 +53,5 @@ tags
 lib/
 *.!*
 .prismrc
+
+*__*.scala

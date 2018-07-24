@@ -24,6 +24,7 @@ APPS+=('BlackScholes__N_1048576_ts_65536_op_1')
 APPS+=('GDA__C_128_R_4096_ts_512_op_1_mp1_8_mp2_1')
 APPS+=('LogReg__iters_4_D_128_N_8192_ts_512_op_1_mp_4')
 APPS+=('Kmeans__I_2_N_16384_K_64_D_64_ts_1024_op_1_mp1_4_mp2_1_mp3_1')
+APPS+=('lenet_loops__batch_par_1_conv1_par_2_conv2_par_4_mat1_par_1_mat2_par_1')
 
 #APPS+=('DoubleLoad')
 
