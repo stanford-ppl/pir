@@ -32,7 +32,7 @@ class PIRNetworkDotCodegen[B<:PinType:ClassTag](fileName:String, mapping: => Any
 
   override def label(attr:DotAttr, n:Any) = n match {
     case n:Routable => 
-      mappedTo[pir.node.GlobalContainer](n).fold {
+      mappedTo[pir.node.GlobalContainer](n, mapping).fold {
         super.label(attr, n)
       } { cuP =>
         var label = s"${quote(n)}"
