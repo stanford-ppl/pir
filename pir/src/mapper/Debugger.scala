@@ -77,9 +77,10 @@ trait Debugger extends PIRPass {
   }
 
   def breakPoint[M](m:PIRMap)(block: => EOption[M]):EOption[M] = if (PIRConfig.enableBreakPoint) {
-    def handle(m:PIRMap, error:Any) = {
-    }
     Try(block) match {
+      case Failure(InvalidMapping(m, e)) => 
+        breakPoint(s"$e", openDot(m, e))
+        throw e
       case Failure(e) => 
         breakPoint(s"$e", openDot(m, e))
         throw e

@@ -20,9 +20,25 @@ trait StaticRouting extends Routing {
       dbg(s"marked=${quote(marked)}")
       dbg(s"unmarked=${quote(unmarked)}")
       dbg(s"markedAndMatched=${quote(markedAndMatched)}")
+      // In search always search from input -> output
+      // Once there's a matched source, take the matched source to coalescing braodcast
       (tail match {
-        case out:OutputEdge[_] => markedAndMatched ++ unmarked // one to many
-        case in:InputEdge[_] if markedAndMatched.nonEmpty => markedAndMatched // one to one
+        case out:OutputEdge[_] =>  // in search always from out to in
+          val sources = markedAndMatched.map { in => pmap.fimap(in.asInstanceOf[FIMap.K]) }.toSet
+          val otherSource = sources.filter { _ != out }
+          if (otherSource.nonEmpty) {
+            /*
+             *       +----------+
+             * other | ---------| markedAndMatched
+             * out   |          | unmarked
+             *       +----------+
+             * */
+            val onlyFromOut = unmarked.filter { in => otherSource.forall { !_.isConnectedTo(in) } }
+            onlyFromOut
+          } else { // I am the only source
+            markedAndMatched ++ unmarked
+          }
+        case in:InputEdge[_] if markedAndMatched.nonEmpty => markedAndMatched // this will follow the marked all the way to the source
         case in:InputEdge[_] => unmarked // one to one
       }).toList.asInstanceOf[List[Edge]]
     }
@@ -31,13 +47,21 @@ trait StaticRouting extends Routing {
   override def set(
     pmap:PIRMap, 
     route:Route, 
-    headP:GlobalIO, 
-    tailP:GlobalIO
-  ):EOption[PIRMap] = if (isStaticLink(route)) dbgblk(s"set route from ${quote(headP)} to ${quote(tailP)}",buffer=false){
+    marker:MKMap.V
+  ):EOption[PIRMap] = if (isStaticLink(route)) dbgblk(s"set route for ${quote(marker)}",buffer=false){
     var pm = pmap
-    pm = setFanIn(pmap, route, headP, tailP)
-    pm = setMarker(pmap, route, headP, tailP)
+    try {
+      pm = setFanIn(pm, route, marker)
+      pm = setMarker(pm, route, marker)
+    } catch {
+      case e:PIRException => throw InvalidMapping(pmap, e)
+      case x:Throwable => throw x
+    }
     Right(pm)
-  } else super.set(pmap, route, headP, tailP)
+  } else super.set(pmap, route, marker)
 
+}
+
+case class InvalidMapping(pmap:PIRMap, e:PIRException) extends PIRException {
+  def msg = s"${e.msg}"
 }

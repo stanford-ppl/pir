@@ -18,7 +18,7 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme
   ) (implicit 
     portTp:PT => ClassTag[_<:PinType], 
     gioTp:GlobalIO => ClassTag[_<:PinType]
-  ):List[PT] = {
+  ):List[PT] = dbgblk(s"portS(${quote(gio)}, ${quote(cuS)})"){
     val marker = markerOf(gio)
     var ports = cuS.collectDown[PT]()
     ports = ports.filter { port => isInput(port) == isGlobalInput(gio) }
@@ -34,17 +34,14 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme
         ports = origPorts.filter { port => portTp(port) == classTag[Word] }
         if (ports.isEmpty) ports = origPorts.filter { port => portTp(port) == classTag[Vector] }
       case tp if tp == classTag[Vector] =>
-        ports = ports.filter { port => portTp(port) == classTag[Vector] }
+        ports = origPorts.filter { port => portTp(port) == classTag[Vector] }
     }
 
     val (marked, unmarked) = ports.partition { port => getStaticMarkerOf(pmap, port).nonEmpty }
     val markedAndMatched = marked.filter { port => staticMarkerOf(pmap, port) == marker }
-    gio match {
-      case gio:GlobalOutput if markedAndMatched.nonEmpty => markedAndMatched /*++ unmarked*/ // one to many
-      case gio:GlobalOutput => unmarked // one to many
-      case gio:GlobalInput if markedAndMatched.nonEmpty => markedAndMatched // one to one
-      case gio:GlobalInput => unmarked // one to one
-    }
+    dbg(s"markedAndMatched=${markedAndMatched.map(quote)}")
+    dbg(s"unmarked=${unmarked.map(quote)}")
+    assertOneOrLess(markedAndMatched, s"marked ports for ${quote(gio)} in ${quote(cuS)}").map { p => List(p) }.getOrElse(unmarked)
   }
 
   def tailToHead(
@@ -58,8 +55,7 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme
   def set(
     pmap:PIRMap, 
     route:Route, 
-    headP:GlobalIO, 
-    tailP:GlobalIO
+    marker:MKMap.V
   ):EOption[PIRMap] = throw PIRException(s"UnsupportedTarget")
 
   def span(
@@ -102,7 +98,7 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme
     val ecuP = globalOf(end).get
     val ecuS = pmap.cumap.mappedValue(ecuP)
     val maxCost = searchMaxCost(start, end)
-    dbgblk(s"search(headP=${quote(start)} tailP=${quote(end)} scuS=${quote(scuS)} ecuS=${quote(ecuS)} maxCost=$maxCost",buffer=false) {
+    dbgblk(s"search(headP=${quote(start)} tailP=${quote(end)} scuS=${quote(scuS)} ecuS=${quote(ecuS)} maxCost=$maxCost",buffer=true) {
       val startTails = portsS(start, scuS, pmap)
       val endHeads = portsS(end, ecuS, pmap)
       val startBundle = startTails.head.src.asInstanceOf[Bundle[_]]
@@ -200,14 +196,16 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme
 
   def routePlacedNeighbors(placed:List[(GlobalIO, GlobalIO)], pmap:PIRMap) = dbgblk(s"routePlacedNeighbors"){
     flatFold(placed, pmap) { case (pmap, (tailP, headP)) =>
-      search(start=tailP,end=headP,pmap=pmap).flatMap { route => 
-        set(pmap, route, headP, tailP)
+      val (outP, inP) = (tailP, headP) match {
+        case (outP, inP) if isGlobalOutput(outP) & isGlobalInput(inP)  => (outP,inP)
+        case (inP, outP) if isGlobalOutput(outP) & isGlobalInput(inP)  => (outP,inP)
       }
+      search(start=outP,end=inP,pmap=pmap).flatMap { route => set(pmap, route, markerOf(outP)) }
     }
   }
 
   def route(cuP:CUMap.K, pmap:PIRMap):EOption[PIRMap] = breakPoint(pmap) { 
-    dbgblk(s"route(${quote(cuP)})",buffer=true) {
+    dbgblk(s"route(${quote(cuP)})",buffer=false) {
       val iosP = cuP.collectDown[GlobalIO]().toList
       val edgesP = iosP.flatMap { tailP => connectedOf(tailP).map { headP => (tailP, headP) } }
       val (placed, unplaced) = edgesP.partition { case (tailP, headP) =>
@@ -220,7 +218,7 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme
   }
 
   override def quote(n:Any) = n match {
-    case n:PT => s"${quote(n.src)}.${n}"
+    case n:PT => s"${quote(n.src)}.$n"
     case n:Edge => s"${quote(n.src)}.$n"
     case n:GlobalIO => s"${globalOf(n).get}.${super.quote(n)}"
     case n:GlobalContainer => s"${globalOf(n).get}(${cuType(n).get})"

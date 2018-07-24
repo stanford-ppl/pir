@@ -48,7 +48,6 @@ trait RoutingUtil extends SpadeNodeUtil with PIRNodeUtil { self:Logging =>
   def staticMarkerOf(pmap:PIRMap, edge:prism.node.Edge[_]):MKMap.V = getStaticMarkerOf(pmap, edge).get
 
   def setMarker(mkmap:MKMap, port:PT, marker:GlobalOutput):MKMap = {
-    dbg(s"setMKMap: ${quote(port.src)}.${quote(port)} - ${quote(marker)}")
     if (isStatic(port))
       getStaticMarkerOf(mkmap, port).foreach { mk => assert(mk == marker, s"$mk != marker") }
     mkmap + (port, marker)
@@ -57,22 +56,22 @@ trait RoutingUtil extends SpadeNodeUtil with PIRNodeUtil { self:Logging =>
   def setMarker(
     pmap:PIRMap, 
     route:Route, 
-    headP:GlobalIO, 
-    tailP:GlobalIO
+    marker:MKMap.V,
   ):PIRMap = {
     pmap.map[MKMap] { mkmap =>
       var mk = mkmap
-      val marker = markerOf(headP)
+      var info = s"setMarker(${quote(marker)}): "
       route.foreach { case (tailS, headS) =>
         mk = setMarker(mk, tailS, marker)
         mk = setMarker(mk, headS, marker)
+        info += s",${quote(tailS)},${quote(headS)}"
       }
+      dbg(info)
       mk
     }
   }
 
   def setFanIn(fimap:FIMap, tail:Edge, head:Edge):FIMap = {
-    dbg(s"setFIMap: ${quote(tail.src)}.${quote(tail)} - ${quote(head.src)}.${quote(head)}")
     (tail, head) match {
       case (tail:FIMap.K, head:FIMap.V) =>
         fimap + (tail, head)
@@ -85,19 +84,22 @@ trait RoutingUtil extends SpadeNodeUtil with PIRNodeUtil { self:Logging =>
   def setFanIn(
     pmap:PIRMap, 
     route:Route, 
-    headP:GlobalIO, 
-    tailP:GlobalIO
+    marker:MKMap.V,
   ):PIRMap = {
     pmap.map[FIMap] { fimap =>
       var fm = fimap
+      var info = s"setFanIn(${quote(marker)}): "
       route.iterator.sliding(size=2,step=1).foreach {
         case List((tail1S, head1S), (tail2S, head2S)) =>
           fm = setFanIn(fm, tail1S.external, head1S.external)
           fm = setFanIn(fm, head1S.internal, tail2S.internal)
+          info += s", ${quote(tail1S.external)} - ${quote(head1S.external)}, ${quote(head1S.internal)} - ${quote(tail2S.internal)}"
         case List((tail1S, head1S)) =>  // If only 1 element in route
       }
       val (tailS, headS) = route.last
       fm = setFanIn(fm, tailS.external, headS.external)
+      info += s", ${quote(tailS.external)} - ${quote(headS.external)}"
+      dbg(info)
       fm
     }
   }

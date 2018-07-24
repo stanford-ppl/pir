@@ -8,8 +8,12 @@ trait StaticDynamicPlacer extends Placer with StaticDynamicRouter with BackTrack
 
   private def bindLambda(cuP:CUMap.K, cuS:CUMap.V, pmap:PIRMap) = {
     pmap.flatMap[CUMap] { cumap => 
-      dbgblk(s"set ${quote(cuP)} -> ${quote(cuS)}") { cumap.set(cuP,cuS) }
-    }.flatMap { pmap => route(cuP, pmap) }.map { pmap => snapshot(pmap) }
+      cumap.set(cuP,cuS)
+    }.flatMap { pmap => 
+      route(cuP, pmap) 
+    }.map { pmap => 
+      snapshot(pmap) 
+    }
   }
 
   override def place(pmap:PIRMap) = if (isStatic(designS) || isDynamic(designS)) {

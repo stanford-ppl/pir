@@ -11,10 +11,9 @@ trait DynamicRouting extends Routing {
   override def set(
     pmap:PIRMap, 
     route:Route, 
-    headP:GlobalIO, 
-    tailP:GlobalIO
-  ):EOption[PIRMap] = if (isDynamicLink(route)) dbgblk(s"set route from ${quote(headP)} to ${quote(tailP)}",buffer=false){
-    Right(setMarker(pmap, route, headP, tailP))
-  } else super.set(pmap, route, headP, tailP)
+    marker:MKMap.V, 
+  ):EOption[PIRMap] = if (isDynamicLink(route)) dbgblk(s"set route for ${quote(marker)}",buffer=false){
+    Right(setMarker(pmap, route, marker))
+  } else super.set(pmap, route, marker)
 
 }
