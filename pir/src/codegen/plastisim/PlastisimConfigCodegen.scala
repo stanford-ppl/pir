@@ -80,11 +80,11 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/proute.place $timeOut"
       } else {
         //TODO: static place file breaks the simulator
-        if (isDynamic(topS)) {
+        //if (isDynamic(topS)) {
           s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/pir.place $timeOut"
-        } else {
-          s"$psimHome/plastisim -f $psimOut/config.psim $timeOut"
-        }
+        //} else {
+          //s"$psimHome/plastisim -f $psimOut/config.psim $timeOut"
+        //}
       }
       if (runPlastisim) {
         shellProcess(s"psim", command, log)(processOutput)
@@ -213,7 +213,8 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
 
     val isStatic = topS match {
       case topS if isDynamic(topS) => isLocalLink(n)
-      case topS => isStaticLink(n) // TODO: static place file break the simulator
+      //case topS => isStaticLink(n) // TODO: static place file break the simulator
+      case topS => isLocalLink(n)
     }
 
     val linkstr = if (isStatic) "" else "net"
@@ -246,7 +247,9 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
       } else {
         //emitln(s"net = ${quote(tp)}net")
         //HACK: everything onto vecnet
-        emitln(s"net = vecnet")
+        if (isDynamic(designS)) {
+          emitln(s"net = vecnet")
+        }
         val vc_id = goutOf(n).get.id
         emitln(s"vc_id = $vc_id")
         val sids = srcs.map(src => globalOf(src).get.id)
