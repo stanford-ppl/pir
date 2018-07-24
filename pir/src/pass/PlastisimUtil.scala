@@ -114,7 +114,7 @@ trait PlastisimUtil extends PIRPass {
   }
 
   def isStaticLink(mem:Memory):Boolean = {
-    assertUnify(inAccessesOf(mem), "isStaticLink"){
+    assertUnify(inAccessesOf(mem), "isStaticLink") {
       case Def(n, LocalStore(_, _, data:GlobalInput)) => 
         val port = mappedTo[MKMap.K](data).get
         isStaticLink(port)
@@ -277,11 +277,9 @@ trait PlastisimUtil extends PIRPass {
       case topS if isPointToPoint(topS) | isAsic(topS) => Some(1)
       case topS =>
         mappedTo[MKMap.K](gin, pmap).flatMap { port =>
-          if (isStaticLink(port)) {
-            val gout = goutOf(gin).get
-            val routes = mappedTo[List[(MKMap.K,MKMap.K)]]((gin, gout)).get
-            Some(routes.size)
-          } else None
+          val gout = goutOf(gin).get
+          val routes = mappedTo[List[(MKMap.K,MKMap.K)]]((gin, gout)).get
+          Some(routes.size)
         }
     }
   }
@@ -292,6 +290,13 @@ trait PlastisimUtil extends PIRPass {
     case n:ClassTag[_] if isBit(n.asInstanceOf[ClassTag[_<:PinType]]) => "ctrl"
     case n:ClassTag[_] if isWord(n.asInstanceOf[ClassTag[_<:PinType]]) => "scal"
     case n:ClassTag[_] if isVector(n.asInstanceOf[ClassTag[_<:PinType]]) => "vec"
+    // TODO: Not sure why this in RoutingUtil no work
+    case n:Bundle[_] => s"${routableOf(n).get}.$n"
+    case n:Port[_] => s"${quote(n.src)}.$n"
+    case n:Edge => s"${quote(n.src)}.$n"
+    case n:GlobalIO => s"${globalOf(n).get}.${super.quote(n)}"
+    case n:GlobalContainer => s"${globalOf(n).get}(${cuType(n).get})"
+    case (a,b) => s"(${quote(a)},${quote(b)})"
     case n => super.quote(n)
   }
 }

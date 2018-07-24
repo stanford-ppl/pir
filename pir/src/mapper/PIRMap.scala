@@ -53,7 +53,7 @@ object CUMap {
 case class MKMap(
   fmap:OneToManyMap[MKMap.K,MKMap.V], 
   bmap:OneToManyMap[MKMap.V,MKMap.K]
-) extends BiManyToManyMapLike[MKMap.K,MKMap.V,MKMap] {
+) extends BiManyToManyMapLike[MKMap.K,MKMap.V,MKMap] with MappingCollection{
   def apply(v:V):KK = bmap(v)
   def get(v:V):Option[KK] = bmap.get(v)
   def contains(v:V) = bmap.contains(v)

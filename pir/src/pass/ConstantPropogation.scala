@@ -8,18 +8,18 @@ trait ConstantPropogator extends Ops with PIRNodeUtil { self:Logging =>
   val pirmeta:PIRMetadata
   import pirmeta._
 
-  def getBoundOf(n:PIRNode, logger:Option[Logging]=None):Option[Any] = {
-    boundOf.get(n).orElse { pir.dbgblk(logger, s"getBoundOf($n)") {
+  def getBoundOf(n:PIRNode):Option[Any] = {
+    boundOf.get(n).orElse { dbgblk(s"getBoundOf($n)") {
       val bound = n match {
         case Def(n, Const(value)) => Some(value)
         case Def(n, High()) => Some(true)
         case Def(n, Low()) => Some(false)
-        case Def(n, LocalLoad(mem::Nil, None)) => getBoundOf(mem, logger)
-        case Def(n, LocalStore(mems, None, data)) => getBoundOf(data, logger)
-        case WithWriter(writer) => getBoundOf(writer, logger)
-        case Def(n, OpDef(op, inputs)) => evalOpt[Option[Int]](op, inputs.map { in => getBoundOf(in, logger) })
-        case Def(n, GlobalInput(gout)) => getBoundOf(gout, logger)
-        case Def(n, GlobalOutput(data, valid)) => getBoundOf(data, logger)
+        case Def(n, LocalLoad(mem::Nil, None)) => getBoundOf(mem)
+        case Def(n, LocalStore(mems, None, data)) => getBoundOf(data)
+        case WithWriter(writer) => getBoundOf(writer)
+        case Def(n, OpDef(op, inputs)) => evalOpt[Option[Int]](op, inputs.map { in => getBoundOf(in) })
+        case Def(n, GlobalInput(gout)) => getBoundOf(gout)
+        case Def(n, GlobalOutput(data, valid)) => getBoundOf(data)
         case n => None
       }
       bound.foreach { boundOf(n) = _ }
@@ -27,8 +27,8 @@ trait ConstantPropogator extends Ops with PIRNodeUtil { self:Logging =>
     } }
   }
 
-  def getBoundAs[T:ClassTag](n:PIRNode, logger:Option[Logging]=None):Option[T] = {
-    getBoundOf(n, logger).map {
+  def getBoundAs[T:ClassTag](n:PIRNode):Option[T] = {
+    getBoundOf(n).map {
       case c:T => c
       case c => throw PIRException(s"getBoundOf($n) = $c but expect type ${implicitly[ClassTag[T]]}")
     }

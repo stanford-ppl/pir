@@ -3,12 +3,7 @@ package pass
 
 import pir.node._
 
-trait BuildEnvironment {
-
-  private lazy val logger = this match {
-    case logger:Logging => Some(logger)
-    case logger => None
-  }
+trait BuildEnvironment extends Logging {
 
   def designP:PIRDesign
 
@@ -37,14 +32,14 @@ trait BuildEnvironment {
     }
   }
 
-  def withParent[T](p:Container)(scope: => T) = dbgblk(logger, s"withParent($p)"){
+  def withParent[T](p:Container)(scope: => T) = dbgblk(s"withParent($p)"){
     designP.parentStack.push(p)
     val res = scope
     designP.parentStack.pop
     res
   }
 
-  def withCtrl[T](ctrl:Controller)(scope: => T) = dbgblk(logger, s"withCtrl($ctrl)"){
+  def withCtrl[T](ctrl:Controller)(scope: => T) = dbgblk(s"withCtrl($ctrl)"){
     designP.ctrlStack.push(ctrl)
     val res = scope
     designP.ctrlStack.pop

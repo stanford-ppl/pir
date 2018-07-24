@@ -8,7 +8,7 @@ trait TypeUtil extends ConstantPropogator with RuntimeUtil with PIRNodeUtil { se
   val pirmeta:PIRMetadata
   import pirmeta._
 
-  def pinTypeOf(n:PIRNode, logger:Option[Logging]=None):ClassTag[_<:PinType] = pir.dbgblk(logger, s"pinTypeOf($n)") {
+  def pinTypeOf(n:PIRNode):ClassTag[_<:PinType] = dbgblk(s"pinTypeOf($n)") {
     implicit val design = n.design.asInstanceOf[PIRDesign]
     n match {
       case n:ControlNode => classTag[Bit]
@@ -24,8 +24,8 @@ trait TypeUtil extends ConstantPropogator with RuntimeUtil with PIRNodeUtil { se
       case n:LocalAccess if getParOf(n) == 1 => classTag[Word]
       case n:LocalAccess if getParOf(n) > 1 => classTag[Vector]
 
-      case n:GlobalInput => pinTypeOf(goutOf(n).get, logger)
-      case Def(n, GlobalOutput(data, valid)) => pinTypeOf(data, logger)
+      case n:GlobalInput => pinTypeOf(goutOf(n).get)
+      case Def(n, GlobalOutput(data, valid)) => pinTypeOf(data)
 
       case n:ProcessDramDenseStore => classTag[Bit]
       case n:ProcessDramSparseStore => classTag[Bit]
@@ -36,7 +36,7 @@ trait TypeUtil extends ConstantPropogator with RuntimeUtil with PIRNodeUtil { se
     }
   }
 
-  implicit def pnodeToBct(x:PIRNode):ClassTag[_<:PinType] = pinTypeOf(x, None)
+  implicit def pnodeToBct(x:PIRNode):ClassTag[_<:PinType] = pinTypeOf(x)
 
   def isPMU(n:GlobalContainer):Boolean = {
     cuType(n) == Some("pmu")

@@ -6,7 +6,7 @@ import pir.mapper._
 
 import prism.collection.mutable._
 
-class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIRDotCodegen(fileName) with PlastisimCodegen {
+class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIRDotCodegen(fileName) with PlastisimCodegen with RoutingUtil {
   import pirmeta._
   import spademeta._
 

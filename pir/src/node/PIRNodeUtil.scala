@@ -3,7 +3,8 @@ package node
 
 trait PIRNodeUtil extends ContainerUtil with MemoryUtil with DramFringeUtil with StreamFringeUtil
   with GlobalIOUtil with DefUtil with AccessUtil with ComputeNodeUtil with ArgFringeUtil 
-  with ControllerUtil {
+  with ControllerUtil with Logging {
+  val pirmeta:PIRMetadata
 
   def within[T<:PIRNode:ClassTag](n:PIRNode) = {
     n.ancestors.collect { case cu:T => cu }.nonEmpty
@@ -27,6 +28,13 @@ trait PIRNodeUtil extends ContainerUtil with MemoryUtil with DramFringeUtil with
       case n:GlobalInput => goutOf(n).flatMap(enableOf) 
       case n:GlobalOutput => Some(validOf(n))
     }
+  }
+
+  override def quote(n:Any) = n match {
+    case n:IR => n.qtype(pirmeta)
+    case n:Iterable[_] => n.map(quote).toString
+    case n:Option[_] => n.map(quote).toString
+    case n => super.quote(n)
   }
 
 }

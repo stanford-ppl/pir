@@ -123,11 +123,11 @@ trait ControllerUtil extends prism.traversal.GraphUtil { self:PIRNodeUtil =>
     (foreverInMems(ctrl).toSet intersect localInMemsOf(ctrl).toSet).toList
   }
 
-  def groupByForkJoin[N<:PIRNode](nodes:List[N], logger:Option[Logging]=None):List[Set[N]] = {
+  def groupByForkJoin[N<:PIRNode](nodes:List[N]):List[Set[N]] = {
     partialReduce(nodes.map { n => Set(n) }) { case (n1s, n2s) =>
       val lca = leastCommonAncesstor((n1s ++ n2s).map(n => ctrlOf(n))).get
       if (lca.style == ForkJoin) {
-        dbg(logger, s"ForkJoin merging $n1s $n2s")
+        dbg(s"ForkJoin merging $n1s $n2s")
         Some(n1s ++ n2s) }
       else {
         None

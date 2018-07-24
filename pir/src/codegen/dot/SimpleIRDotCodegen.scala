@@ -29,8 +29,8 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
 
   override def emitEdge(from:prism.node.Output[N], to:prism.node.Input[N], attr:DotAttr):Unit = {
     dbg(s"edge:${from.src}.$from -> ${to.src}.$to")
-    val fromPinType = pinTypeOf(from.src, logger=Some(this))
-    val toPinType = pinTypeOf(to.src, logger=Some(this))
+    val fromPinType = pinTypeOf(from.src)
+    val toPinType = pinTypeOf(to.src)
     dbg(s"from:${from.src}[$fromPinType], to:${to.src}[$toPinType]")
     //(from.src, to.src.asInstanceOf[N]) match {
       //case (fromsrc, Def(tosrc, LocalAccess(_, Some(addrs)))) if (addrs.contains(fromsrc)) =>
@@ -40,9 +40,9 @@ class SimpleIRDotCodegen(override val fileName:String)(implicit compiler:PIR) ex
         //assert(fromPinType == toPinType, s"from:${fromsrc}[$fromPinType], to:${tosrc}[$toPinType]")
     //}
     fromPinType match {
-      case tp if isBit(tp) => attr.set("style", "dashed").set("color","red")
-      case tp if isWord(tp) => attr.set("style", "solid")
-      case tp if isVector(tp) => attr.set("style", "bold").set("color","sienna")
+      case tp if isBit(tp) => attr.set("style", "dashed").set("color","red").label(s"${from.src.id}")
+      case tp if isWord(tp) => attr.set("style", "solid").label(s"${from.src.id}")
+      case tp if isVector(tp) => attr.set("style", "bold").set("color","sienna").label(s"${from.src.id}")
     }
     super.emitEdge(from, to, attr)
   }

@@ -136,9 +136,9 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
       n match {
         case n:CounterChain => flatReduce(n.counters.map(getItersOf)) { _ * _ }
         case Def(ctr:Counter, Counter(min, max, step, par)) =>
-          val cmin = getBoundAs[Int](min, logger=Some(this))
-          val cmax = getBoundAs[Int](max, logger=Some(this))
-          val cstep = getBoundAs[Int](step, logger=Some(this))
+          val cmin = getBoundAs[Int](min)
+          val cmax = getBoundAs[Int](max)
+          val cstep = getBoundAs[Int](step)
           dbg(s"ctr=${quote(ctr)} cmin=$cmin, cmax=$cmax, cstep=$cstep par=$par")
           zipMap(cmin, cmax, cstep) { case (cmin, cmax, cstep) =>
             if ((cmax - cmin) % (cstep * par) != 0)

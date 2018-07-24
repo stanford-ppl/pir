@@ -6,7 +6,7 @@ import spade.node._
 import prism.mapper._
 import prism.collection.immutable._
 
-trait MappingUtil extends RoutingUtil { self:Logging =>
+trait MappingUtil extends RoutingUtil { self:SpadeNodeUtil with PIRNodeUtil =>
 
   val pirmeta:PIRMetadata
   import pirmeta._
@@ -31,9 +31,9 @@ trait MappingUtil extends RoutingUtil { self:Logging =>
       case (port:MKMap.K, mapping:MKMap) => mapping.get(port).asInstanceOf[Option[T]]
 
       case ((from:Edge, to:Edge), mapping) => 
-        zipMap(mappedTo[Set[MKMap.V]](from, mapping), mappedTo[Set[MKMap.V]](to, mapping)) { 
-          case (tmk, fmk) if tmk == fmk => Some(tmk)
-          case _ => None
+        zipMap(mappedTo[Set[MKMap.V]](from, mapping), mappedTo[Set[MKMap.V]](to, mapping)) { case (tmk, fmk) =>
+          val intsect = (tmk intersect fmk)
+          if (intsect.isEmpty) None else Some(intsect)
         }.flatten.asInstanceOf[Option[T]]
 
       case (n:GlobalInput, mapping:PIRMap) => // Option[PT] input port
@@ -67,9 +67,7 @@ trait MappingUtil extends RoutingUtil { self:Logging =>
         mappedTo[CUMap.V](cuP, mapping).flatMap { cuS =>
           val marker = markerOf(out)
           mappedTo[MKMap.K](in).flatMap { inport => 
-            dbgblk(s"extractRoute(in=${quote(in)} out=${quote(out)}, cuS=${quote(cuS)})") {
-              extractRoute(inport, marker, cuS, mapping)
-            }
+            extractRoute(inport, marker, cuS, mapping)
           }
         }.asInstanceOf[Option[T]]
 
@@ -87,17 +85,20 @@ trait MappingUtil extends RoutingUtil { self:Logging =>
     marker:MKMap.V, 
     cuS:CUMap.V, 
     mapping:PIRMap
-  ):Option[List[(MKMap.K, MKMap.K)]] = dbgblk(s"extractRoute(${quote(inport)})") {
+  ):Option[List[(MKMap.K, MKMap.K)]] = dbgblk(s"extractRoute(inport=${quote(inport)}),marker=${quote(marker)}, cuS=${quote(cuS)}") {
     val outports = inport.connected.filter { outport => 
       mapping.mkmap.get(outport).fold(false) { _.contains(marker) }
     }
     val outport = assertOneOrLess(outports, s"inport=${quote(inport)} marker=${quote(marker)}")
+    dbg(s"outport=${quote(outport)}")
     outport.flatMap { outport =>
       if (routableOf(outport).get == cuS) {
         Some(List((outport, inport)))
       } else {
         val inports = fimappedTo(outport.internal, mapping).fold {
-          outport.internal.connected.filter { in_internal => isMapped((outport.internal, in_internal), mapping) }.map { _.src.asInstanceOf[MKMap.K] }
+          outport.internal.connected.filter { in_internal => 
+            mappedTo[Set[MKMap.V]]((outport.internal, in_internal), mapping).fold(false) { _.contains(marker) }
+          }.map { _.src.asInstanceOf[MKMap.K] }
         } { _.map { _.src.asInstanceOf[MKMap.K] }}
         assertOneOrLess(inports, s"outport=${quote(outport)} marker=${quote(marker)}").flatMap { nextInport =>
           extractRoute(nextInport, marker, cuS, mapping).map { route =>

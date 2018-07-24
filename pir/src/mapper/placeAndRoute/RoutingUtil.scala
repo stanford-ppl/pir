@@ -4,7 +4,7 @@ package mapper
 import pir.node._
 import spade.node._
 
-trait RoutingUtil extends SpadeNodeUtil with PIRNodeUtil { self:Logging =>
+trait RoutingUtil extends pir.pass.TypeUtil with prism.util.Memorization with Logging { self:SpadeNodeUtil with PIRNodeUtil =>
 
   val spademeta:SpadeMetadata
   import spademeta._
@@ -140,6 +140,20 @@ trait RoutingUtil extends SpadeNodeUtil with PIRNodeUtil { self:Logging =>
     assertOne(indexOf(from).zip(indexOf(to)).zipWithIndex.flatMap{ case ((f, t), dim) => 
       if (f != t) Some(dim) else None
     }, s"changing dimension from ${quote(from)} to ${quote(to)}")
+  }
+
+  override def quote(n:Any) = n match {
+    case n:PT => s"${quote(n.src)}.$n"
+    case n:Edge => s"${quote(n.src)}.$n"
+    case n:GlobalIO => s"${globalOf(n).get}.${super.quote(n)}"
+    case n:GlobalContainer => s"${globalOf(n).get}(${cuType(n).get})"
+    case (a,b) => s"(${quote(a)},${quote(b)})"
+    case n => super.quote(n)
+  }
+
+  memorizing = true
+  override def cuType(n:PIRNode):Option[String] = memorize("cuType", n) { n =>
+    super.cuType(n)
   }
 
 }

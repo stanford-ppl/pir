@@ -41,6 +41,8 @@ trait Printer {
   }
 
   val streamStack = Stack[StreamWriter]()
+
+  def isOpened = streamStack.nonEmpty
   
   def sw:StreamWriter = { streamStack.headOption.getOrElse(throw new Exception(s"No Stream defined for $this")) }
 

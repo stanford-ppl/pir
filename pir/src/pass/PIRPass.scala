@@ -5,9 +5,14 @@ import pir.node._
 import pir.mapper._
 
 abstract class PIRPass(implicit override val compiler:PIR) extends Pass 
-  with prism.traversal.GraphUtil with RuntimeUtil with TypeUtil with MappingUtil 
-  with PIRNodeUtil with RoutingUtil 
-  with spade.SpadeAlias with MappingLogger {
+  with prism.traversal.GraphUtil  
+  with spade.SpadeAlias 
+  with PIRNodeUtil 
+  with RoutingUtil 
+  with RuntimeUtil 
+  with TypeUtil 
+  with MappingUtil
+  with MappingLogger {
 
   implicit val designP:PIRDesign = compiler.design
   lazy val pirmeta = compiler.pirmeta
@@ -22,13 +27,6 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
   def qtype(n:Any) = n match {
     case n:IR => n.qtype
     case n => s"$n"
-  }
-
-  override def quote(n:Any) = n match {
-    case n:Iterable[_] => n.map(quote).toString
-    case n:Option[_] => n.map(quote).toString
-    case n:SNode => n.qindex
-    case n => qtype(n)
   }
 
 }

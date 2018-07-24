@@ -33,6 +33,12 @@ trait IR extends prism.node.IR {
     this
   }
 
-  def qtype(implicit design:PIRDesign) = name.map { name => s"${className}${id}[$name]" }.getOrElse(this.toString)
+  def qtype(implicit design:PIRDesign):String = {
+    qtype(design.pirmeta)
+  }
+  def qtype(pirmeta:PIRMetadata):String = {
+    import pirmeta._
+    nameOf.get(this).map { name => s"${className}${id}[$name]" }.getOrElse(this.toString)
+  }
 }
 

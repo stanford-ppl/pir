@@ -3,12 +3,12 @@ package codegen
 
 import java.io.FileOutputStream
 
-trait Logging {
+trait Logging extends Serializable {
 
   def debug = Config.debug
-  lazy val logger = new Printer {
-    override def emit(s:String):Unit = if (debug) { super.emit(s); flush }
-    override def emitln(s:String):Unit = if (debug) { super.emitln(s); flush }
+  @transient lazy val logger = new Printer {
+    override def emit(s:String):Unit = if (debug && isOpened) { super.emit(s); flush }
+    override def emitln(s:String):Unit = if (debug && isOpened) { super.emitln(s); flush }
 
     override def emitBlock[T](bs:Option[String], b:Option[Braces], es:Option[()=>String])(block: =>T):T = { 
       emitBSln(bs, b, None)

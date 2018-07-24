@@ -6,7 +6,7 @@ import spade.param._
 import spade.node._
 import prism.collection.immutable._
 
-trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme with Debugger with prism.util.Memorization {
+trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme with Debugger {
 
   import pirmeta._
   import PIRConfig._
@@ -211,19 +211,6 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme
         routePlacedNeighbors(placed, pmap)
       }
     } 
-  }
-
-  override def quote(n:Any) = n match {
-    case n:PT => s"${quote(n.src)}.$n"
-    case n:Edge => s"${quote(n.src)}.$n"
-    case n:GlobalIO => s"${globalOf(n).get}.${super.quote(n)}"
-    case n:GlobalContainer => s"${globalOf(n).get}(${cuType(n).get})"
-    case (a,b) => s"(${quote(a)},${quote(b)})"
-    case n => super.quote(n)
-  }
-
-  override def cuType(n:PIRNode):Option[String] = memorize("cuType", n) { n =>
-    super.cuType(n)
   }
 
 }

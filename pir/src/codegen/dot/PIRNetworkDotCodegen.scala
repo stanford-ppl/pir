@@ -6,7 +6,7 @@ import spade.node._
 import prism.collection.immutable._
 
 class PIRNetworkDotCodegen[B<:PinType:ClassTag](fileName:String, mapping: => Any, override val openDot:Boolean)(implicit compiler:PIR) 
-  extends spade.codegen.NetworkDotCodegen[B](fileName)(implicitly[ClassTag[B]], compiler.arch) with MappingUtil with pir.pass.TypeUtil {
+  extends spade.codegen.NetworkDotCodegen[B](fileName)(implicitly[ClassTag[B]], compiler.arch) with SpadeNodeUtil with pir.node.PIRNodeUtil with MappingUtil with pir.pass.TypeUtil {
 
   def this(fileName:String, mapping: => Any)(implicit compiler:PIR) = this(fileName, mapping, SpadeConfig.openDot)
 
