@@ -29,10 +29,10 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
       val routes = mappedTo[Route]((gin, gout)).get
       val routables = routes.map { case (out, in) => routableOf(out).get }
       val isStaticLink = !routables.exists { _.isInstanceOf[Router] }
-      if (isStaticLink) { // Dynamic
-        emitDynamicRoute(gout, gin, routes)
-      } else { // Static
+      if (isStaticLink) { // Static 
         emitStaticRoute(gout, gin, routes)
+      } else { // Dynamic
+        emitDynamicRoute(gout, gin, routes)
       }
     case n:GlobalInput =>
       val gin = n
