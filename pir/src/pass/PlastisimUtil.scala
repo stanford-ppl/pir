@@ -157,9 +157,13 @@ trait PlastisimUtil extends PIRPass {
             cuS.param.rSizeFifoParam.size
           case memP:StreamOut if memP.field == "offset" & isLoad =>
             cuS.param.rOffsetFifoParam.size
+          case memP:StreamOut if memP.field == "addr" & isLoad =>
+            cuS.param.rOffsetFifoParam.size
           case memP:StreamOut if memP.field == "size" & isStore =>
             cuS.param.wSizeFifoParam.size
           case memP:StreamOut if memP.field == "offset" & isStore =>
+            cuS.param.wOffsetFifoParam.size
+          case memP:StreamOut if memP.field == "addr" & isStore =>
             cuS.param.wOffsetFifoParam.size
           case memP:StreamOut if memP.field == "data" & isStore=>
             if (isWord(memP)) cuS.param.sDataFifoParam.size

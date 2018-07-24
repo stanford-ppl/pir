@@ -127,7 +127,9 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
       val log = s"$dirName/trace.log"
       //shell(s"trace", s"scalac ${dirName}/gen_trace.scala -d $psimOut/trace_classes", log)
       //shell(s"trace", s"scala -classpath $psimOut/trace_classes tracer $psimOut/traces", log)
-      shell(s"trace", s"""${sys.env.get("PIR_HOME").get}/bin/run_trace $dirName $psimOut""", log)
+      if (shell(s"trace", s"""${sys.env.get("PIR_HOME").get}/bin/run_trace $dirName $psimOut""", log) != 0) {
+        fail(s"fail to generate trace")
+      }
     }
   }
 

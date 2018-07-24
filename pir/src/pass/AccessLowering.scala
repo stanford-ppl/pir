@@ -32,8 +32,11 @@ class AccessLowering(implicit compiler:PIR) extends PIRTransformer {
             val dims = staticDimsOf(banks.head)
             val access = withParentCtrl(bankCU, ctrlOf(n)) {
               val faddr = flattenNDAddr(maddrs, dims)
-              val bs = BankSelect(maddrs) // compute which bank to load
-              LoadMem(bank, BankMask(bs, faddr)) // enable of faddr is bs == bank id
+              val addr = if (banks.size > 1) {
+                val bs =  BankSelect(maddrs)// compute which bank to load
+                BankMask(bs, faddr)
+              } else faddr
+              LoadMem(bank, addr) // enable of addr is bs == bank id
             }
             pirmeta.migrate(n, access)
             retime(access, accessCU).asInstanceOf[LocalLoad]
