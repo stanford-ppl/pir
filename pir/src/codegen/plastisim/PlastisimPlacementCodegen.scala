@@ -15,21 +15,29 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
 
   type Route = List[(MKMap.K,MKMap.K)]
 
-  override def emitNode(n:N) = n match {
-    case n:GlobalContainer =>
+  override def emitNode(n:N) = 
+    n match {
+    case n:GlobalContainer if isDynamic(designS) =>
       emitln(s"N ${n.id} ${addrOf(n).get}")
       super.visitNode(n)
-    case n:GlobalInput =>
+    case n:GlobalContainer =>
+      emitln(s"N ${n.id} 0")
+      super.visitNode(n)
+    case n:GlobalInput if isDynamic(designS) | isStatic(designS) =>
       val gin = n
       val gout = goutOf(gin).get
       val routes = mappedTo[Route]((gin, gout)).get
       val routables = routes.map { case (out, in) => routableOf(out).get }
-      val isStaticLink = routables.exists { _.isInstanceOf[Router] }
+      val isStaticLink = !routables.exists { _.isInstanceOf[Router] }
       if (isStaticLink) { // Dynamic
         emitDynamicRoute(gout, gin, routes)
       } else { // Static
         emitStaticRoute(gout, gin, routes)
       }
+    case n:GlobalInput =>
+      val gin = n
+      val gout = goutOf(gin).get
+      emitStaticRoute(gout, gin, List((null,null)))
     case n => super.visitNode(n)
   }
 
@@ -44,8 +52,8 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
   }
 
   def emitStaticRoute(gout:GlobalOutput, gin:GlobalInput, routes:Route) = {
-    val src = globalOf(gin).get.id
-    val dst = globalOf(gout).get.id
+    val src = globalOf(gout).get.id
+    val dst = globalOf(gin).get.id
     emitln(s"S ${gout.id} $src $dst ${routes.size}")
   }
 

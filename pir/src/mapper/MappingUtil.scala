@@ -77,6 +77,11 @@ trait MappingUtil extends RoutingUtil { self:Logging =>
     })
   }
 
+  def fimappedTo(edge:Edge, mapping:PIRMap):Option[List[prism.node.Edge[_]]] = edge match {
+    case edge:FIMap.K => mapping.fimap.get(edge).map { e => List(e) }
+    case edge:FIMap.V => mapping.fimap.bmap.get(edge).map { _.toList }
+  }
+
   private def extractRoute(
     inport:MKMap.K, 
     marker:MKMap.V, 
@@ -91,9 +96,9 @@ trait MappingUtil extends RoutingUtil { self:Logging =>
       if (routableOf(outport).get == cuS) {
         Some(List((outport, inport)))
       } else {
-        val inports = outport.internal.connected.map{ _.src.asInstanceOf[MKMap.K] }.filter { inport =>
-          mapping.mkmap.get(inport).fold(false) { _.contains(marker) }
-        }
+        val inports = fimappedTo(outport.internal, mapping).fold {
+          outport.internal.connected.filter { in_internal => isMapped((outport.internal, in_internal), mapping) }.map { _.src.asInstanceOf[MKMap.K] }
+        } { _.map { _.src.asInstanceOf[MKMap.K] }}
         assertOneOrLess(inports, s"outport=${quote(outport)} marker=${quote(marker)}").flatMap { nextInport =>
           extractRoute(nextInport, marker, cuS, mapping).map { route =>
             route :+ (outport, inport)

@@ -178,11 +178,7 @@ trait Routing extends PIRPass with spade.util.NetworkAStarSearch with CostScheme
             //dbg(s"cumap($neighborP)=${cumap(neighborP)}")
             cumap.weightedFilterAt(neighborP) { cuS => 
               canReach.get(cuS).map { cost =>
-                if (isGlobalInput(tailP)) { // Force my producer to be closer to me
-                  cumap.weight(neighborP, cuS) + cost
-                } else {
-                  cumap.weight(neighborP, cuS) + 1 // Don't care how far my consumer is to me
-                }
+                cumap.weight(neighborP, cuS) + math.ceil(cost.toFloat / unplaced.size).toInt
               }
             }.map { filtered =>
               dbg(s"filtered=${filtered.freeWeightedValues(neighborP).map(quote)}")
