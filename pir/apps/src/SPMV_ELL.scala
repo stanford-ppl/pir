@@ -7,11 +7,11 @@ object SPMV_ELL extends PIRApp {
   def main(implicit design:PIRDesign) = {
     import design.pirmeta._
     val x2828 = withCtrl(design.top.topController) { DRAM(dims=List(Const(64), Const(16))).name("x2828").srcCtx("SPMV_ELL.scala:71:30:values_dram") } // x2828 = DRAMNew(ArrayBuffer(Const(64), Const(16)),Const(0))
-    fileNameOf(x2828) = "/Users/Yaqi/spatial-lang//gen/SPMV_ELL/ell_values.csv"
+    fileNameOf(x2828) = "/home/yaqiz/spatial-lang/gen/SPMV_ELL/ell_values.csv"
     val x2829 = withCtrl(design.top.topController) { DRAM(dims=List(Const(64), Const(16))).name("x2829").srcCtx("SPMV_ELL.scala:72:30:cols_dram") } // x2829 = DRAMNew(ArrayBuffer(Const(64), Const(16)),Const(0))
-    fileNameOf(x2829) = "/Users/Yaqi/spatial-lang//gen/SPMV_ELL/ell_cols.csv"
+    fileNameOf(x2829) = "/home/yaqiz/spatial-lang/gen/SPMV_ELL/ell_cols.csv"
     val x2830 = withCtrl(design.top.topController) { DRAM(dims=List(Const(64))).name("x2830").srcCtx("SPMV_ELL.scala:73:27:vec_dram") } // x2830 = DRAMNew(ArrayBuffer(Const(64)),Const(0))
-    fileNameOf(x2830) = "/Users/Yaqi/spatial-lang//gen/SPMV_ELL/ell_vec.csv"
+    fileNameOf(x2830) = "/home/yaqiz/spatial-lang/gen/SPMV_ELL/ell_vec.csv"
     val x2831 = withCtrl(design.top.topController) { DRAM(dims=List(Const(64))).name("x2831").srcCtx("SPMV_ELL.scala:74:30:result_dram") } // x2831 = DRAMNew(ArrayBuffer(Const(64)),Const(0))
     val x2997 = withCtrl(design.top.topController) { UnitController(style=SeqPipe, level=OuterControl).name("x2997").srcCtx("SPMV_ELL.scala:80:11") } // Hwblock(Block(Const(())),false)
     val x2844 = withCtrl(x2997) { Counter(min=Const(0), max=Const(64), step=Const(32), par=1).name("x2844").srcCtx("SPMV_ELL.scala:81:17") } // CounterNew(Const(0),Const(64),Const(32),Const(1))

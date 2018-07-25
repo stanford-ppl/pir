@@ -154,7 +154,7 @@ object GEMM_Blocked extends PIRApp {
     val x4706 = withCtrl(x4725) { LoopController(style=MetaPipe, level=OuterControl, cchain=x4386).name("x4706").srcCtx("GEMM_Blocked.scala:44:42") } // UnrolledForeach(List(b1842, b1833, b1828),x4386,Block(Const(())),List(List(b1886)),List(List(b1887)))
     val b1886 = withCtrl(x4706) { CounterIter(x4385, Some(0)).name("b1886") } // b1886
     val b1887 = withCtrl(x4706) { Const(true).name("b1887") } // b1887
-    val x4387_d0_b0 = withCtrl(x4706) { SRAM(size=64, banking=Strided(banks=8, stride=1)).name("x4387_d0_b0").srcCtx("GEMM_Blocked.scala:45:35") } // x4387 = SRAMNew(ArrayBuffer(Const(64)))
+    val x4387_d0_b0 = withCtrl(x4706) { SRAM(size=64, banking=Strided(banks=16, stride=1)).name("x4387_d0_b0").srcCtx("GEMM_Blocked.scala:45:35") } // x4387 = SRAMNew(ArrayBuffer(Const(64)))
     isAccum(x4387_d0_b0) = false
     bufferDepthOf(x4387_d0_b0) = 2
     staticDimsOf(x4387_d0_b0) = List(64)
@@ -203,7 +203,7 @@ object GEMM_Blocked extends PIRApp {
     val x4417_b4814_b4812 = withCtrl(x4418) { WriteMem(b4812, x4412_x4411).name("x4417_b4814_b4812").srcCtx("GEMM_Blocked.scala:46:22") } // StreamWrite(x4399,x4412,x4416)
     val x4417_b4815_b4813 = withCtrl(x4418) { WriteMem(b4813, Const(256)).name("x4417_b4815_b4813").srcCtx("GEMM_Blocked.scala:46:22") } // StreamWrite(x4399,x4412,x4416)
     val x4419 = withCtrl(x4431) { FringeDenseLoad(dram=List(x4328), cmdStream=List(b4812, b4813), dataStream=List(x4400)).name("x4419").srcCtx("GEMM_Blocked.scala:46:22") } // FringeDenseLoad(x4328,x4399,x4400)
-    val x4420 = withCtrl(x4431) { Counter(min=Const(0), max=Const(64), step=Const(1), par=1).name("x4420").srcCtx("GEMM_Blocked.scala:46:22") } // CounterNew(Const(0),Const(64),Const(1),Const(1))
+    val x4420 = withCtrl(x4431) { Counter(min=Const(0), max=Const(64), step=Const(1), par=16).name("x4420").srcCtx("GEMM_Blocked.scala:46:22") } // CounterNew(Const(0),Const(64),Const(1),Const(16))
     val x4421 = withCtrl(x4431) { CounterChain(List(x4420)).name("x4421").srcCtx("GEMM_Blocked.scala:46:22") } // CounterChainNew(List(x4420))
     val x4430 = withCtrl(x4431) { LoopController(style=InnerPipe, level=InnerControl, cchain=x4421).name("x4430").srcCtx("GEMM_Blocked.scala:46:22") } // UnrolledForeach(List(b1901, b1887, b1842, b1833, b1828),x4421,Block(Const(())),List(List(b1925)),List(List(b1926)))
     val b1925 = withCtrl(x4430) { CounterIter(x4420, None).name("b1925") } // b1925
