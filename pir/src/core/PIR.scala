@@ -133,6 +133,8 @@ trait PIR extends Compiler with PIRWorld {
     addPass(enableDot, new ControllerPrinter(s"controller.txt"))
     addPass(cuStats)
 
+    session.rerun {
+
     // Simulation analyzer
     addPass(enableTrace, psimTraceCodegen).dependsOn(controlLowering)
     addPass(psimLinkAnalyzer).dependsOn(controlLowering)
@@ -143,7 +145,6 @@ trait PIR extends Compiler with PIRWorld {
     addPass(enableDot, new SimpleIRDotCodegen(s"simple.dot"))
     addPass(debug, new PIRPrinter(s"IR.txt"))
 
-    session.rerun {
     // Mapping
     //addPass(genPlastisim, psimVCAllocator).dependsOn(psimLinkAnalyzer)
     addPass(cuPruning)

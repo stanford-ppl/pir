@@ -15,8 +15,8 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen wi
   def postSplitting = compiler.session.hasRunAll[IgraphPartioner]
   def isLastRun = runner == compiler.session.runnersOf[CUStatistics].last
 
-  override def dbg(s:Any) = {
-    super.dbg(s)
+  def sinfo(s:Any) = {
+    dbg(s)
     if (PIRConfig.printStat && isLastRun) {
       info(s"$s")
     }
@@ -35,9 +35,9 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen wi
 
   override def runPass =  {
     if (postSplitting) {
-      dbg(s"=========== Post-splitting CU Statistics ==================")
+      sinfo(s"=========== Post-splitting CU Statistics ==================")
     } else {
-      dbg(s"=========== Pre-splitting CU Statistics ==================")
+      sinfo(s"=========== Pre-splitting CU Statistics ==================")
     }
     val cus = compiler.top.collectDown[GlobalContainer]()
     cus.foreach(dump)
@@ -51,11 +51,11 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen wi
 
   def printStat(cuMap:Map[Option[String], List[GlobalContainer]]) = {
     val cus = cuMap.values.flatten
-    dbg(s"")
-    dbg(s"number of cus=${cus.size}")
+    sinfo(s"")
+    sinfo(s"number of cus=${cus.size}")
     cuMap.foreach { case (cuType, cus) =>
       val key = cuType.getOrElse("cu")
-      dbg(s"number of $key = ${cus.size}")
+      sinfo(s"number of $key = ${cus.size}")
       val cin = stat(cus) { cu => inputsP(cu).filter { io => isBit(io) }.size }
       val cout = stat(cus) { cu => outputsP(cu).filter { io => isBit(io) }.size }
       val sin = stat(cus) { cu => inputsP(cu).filter { io => isWord(io) }.size }
@@ -63,9 +63,9 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen wi
       val vin = stat(cus) { cu => inputsP(cu).filter { io => isVector(io) }.size }
       val vout = stat(cus) { cu => outputsP(cu).filter { io => isVector(io) }.size }
       val stages = stat(cus) { _.collectDown[StageDef]().size }
-      dbg(s"- cin $cin sin $sin vin $vin")
-      dbg(s"- cout $cout sout $sout vout $vout")
-      dbg(s"- stages $stages")
+      sinfo(s"- cin $cin sin $sin vin $vin")
+      sinfo(s"- cout $cout sout $sout vout $vout")
+      sinfo(s"- stages $stages")
     }
   }
 
@@ -82,10 +82,10 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen wi
     val mcsP = (cmap("dfg") ++ cmap("sfg")).size
     val cusP = (cmap("pcu") ++ cmap("scu") ++ cmap("ocu") ++ cmap("dag")).size
 
-    dbg(s"PCU usage = $pcusP / $pcusS (${fstr(pct(pcusP, pcusS))}%)")
-    dbg(s"PMU usage = $pmusP / $pmusS (${fstr(pct(pmusP, pmusS))}%)")
-    dbg(s"MC usage = $mcsP / $mcsS (${fstr(pct(mcsP, mcsS))}%)")
-    dbg(s"Total usage = $cusP / $cusS (${fstr(pct(cusP, cusS))}%)")
+    sinfo(s"PCU usage = $pcusP / $pcusS (${fstr(pct(pcusP, pcusS))}%)")
+    sinfo(s"PMU usage = $pmusP / $pmusS (${fstr(pct(pmusP, pmusS))}%)")
+    sinfo(s"MC usage = $mcsP / $mcsS (${fstr(pct(mcsP, mcsS))}%)")
+    sinfo(s"Total usage = $cusP / $cusS (${fstr(pct(cusP, cusS))}%)")
   }
 
   def dump(cu:GlobalContainer) = {

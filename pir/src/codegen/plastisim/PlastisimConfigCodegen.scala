@@ -136,10 +136,10 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         emitln(s"controller=DRAM")
       case cuP:DramFringe if isSparseFringe(cuP) & enableTrace =>
         val addr = cuP.collectDown[StreamOut]().filter { _.field == "addr" }.head
+        val par = getParOf(writersOf(addr).head)
         emitln(s"offset_trace = traces/${readersOf(addr).head}.trace")
-        emitln(s"size_trace = ${bytePerWord}") // burst size (byte)
+        emitln(s"size_trace = ${par * bytePerWord}") // burst size (byte)
         emitln(s"burst_size = $bytePerWord")
-        val par = 1
         cuP match {
           case cuP:FringeSparseLoad => 
             emitln(s"dram_cmd_tp=dense_load")
@@ -148,6 +148,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
             emitln(s"dram_cmd_tp=dense_store")
             emitln(s"in_token_size = ${par * bytePerWord}")
         }
+        emitln(s"controller=DRAM")
         //TODO: for scatther this is not called addr
       case cuP =>
         emitln(s"lat = ${latencyOf(n).get}")
