@@ -176,12 +176,11 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
           case networkParam:DynamicGridNetworkParam[_] => "torus"
           case networkParam:DynamicCMeshNetworkParam[_] => "cmesh"
         }
-        val sq = math.max(numTotalRows, numTotalCols)
         if (quote(tp) == "vec") {
           emitNodeBlock(s"net ${quote(tp)}net") {
             emitln(s"cfg = ${topo}_generic.cfg")
-            emitln(s"dim[0] = $sq")
-            emitln(s"dim[1] = $sq")
+            emitln(s"dim[0] = $maxDim")
+            emitln(s"dim[1] = $maxDim")
             emitln(s"num_classes = ${numVC}")
           }
         }

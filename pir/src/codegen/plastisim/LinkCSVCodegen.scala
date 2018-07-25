@@ -23,7 +23,7 @@ class LinkCSVCodegen(implicit compiler: PIR) extends PlastisimCodegen with CSVCo
       dstCUs.foreach { case (cu, gins) =>
         if (gins.size > 1) warn(s"duplicate $gins from the same source $n in the same cu=$cu")
       }
-      dstCUs.keys.zipWithIndex.foreach{ case (cu, idx) =>
+      dstCUs.keys.toList.zipWithIndex.foreach{ case (cu, idx) =>
         row(s"dst[$idx]") = cu.id
       }
     case n => super.visitNode(n)

@@ -31,6 +31,8 @@ trait PlastisimUtil extends PIRPass {
     case param:DynamicCMeshTopParam => (param.numRows, param.numCols)
   }
 
+  lazy val maxDim = math.max(numTotalRows, numTotalCols)
+
   def pmap = pirMap.toOption
 
   def srcsOf(n:Link):Map[Memory, Map[NetworkNode, List[LocalInAccess]]] = {
@@ -98,7 +100,7 @@ trait PlastisimUtil extends PIRPass {
     case topS:StaticGridTop => Some(0)
     case topS:DynamicGridTop =>
       indexOf.get(sn).map { case List(x,y) =>
-        val idx = (numTotalRows-1-y) * numTotalCols + x
+        val idx = (numTotalRows-1-y) * maxDim + x
         dbg(s"$sn: coord = ($x, $y) idx = $idx")
         idx
       }
