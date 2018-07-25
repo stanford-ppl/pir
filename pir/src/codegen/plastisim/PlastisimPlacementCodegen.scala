@@ -61,7 +61,12 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
     if (isDynamic(designS)) {
       getCommand.foreach { command =>
         val log = s"$dirName/proute.log"
-        val exitCode = shell("proute", command, log)
+        val exitCode = shellProcess("proute", command, log) { line =>
+          if (line.contains("Could not find node")) {
+            err(line, exception=false)
+            fail(s"Plastiroute failed. details in $log")
+          }
+        }
         if (exitCode != 0) {
           fail(s"Plastiroute failed. details in $log")
         }
