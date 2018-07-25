@@ -156,7 +156,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(enableMapping && enableDot, new PIRNetworkDotCodegen[Vector](s"vector.dot")).dependsOn(cuPlacer)
 
     // Codegen
-    addPass(genPlastisim, terminalCSVCodegen)
+    addPass(genPlastisim, terminalCSVCodegen).dependsOn(cuPlacer)
     addPass(genPlastisim, linkCSVCodegen).dependsOn(terminalCSVCodegen, psimLinkAnalyzer)
     addPass(genPlastisim, psimDotCodegen).dependsOn(psimLinkAnalyzer)
     addPass(enableMapping && genPlacement, psimPlacementCodegen).dependsOn(cuPlacer)
