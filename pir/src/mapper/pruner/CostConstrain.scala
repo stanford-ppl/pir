@@ -27,7 +27,9 @@ trait CostConstrain[C<:Cost[C]] extends Constrain {
       val kcost = getKeyCost(key)
       dbg(s"${quote(key)} not fit. Cost:${kcost}")
       fg.filterNotAt(key) { v => nonSplitableValues.contains(v) } match {
-        case Left(InvalidFactorGraph(fg:FG, key)) => Left(CostConstrainFailure(fg , key, kcost, false))
+        case Left(InvalidFactorGraph(fg:FG, key)) => 
+          dbg(s"nonSplitableValues:${nonSplitableValues.map(quote)}")
+          Left(CostConstrainFailure(fg , key, kcost, false))
         case Right(fg) => Left(CostConstrainFailure(fg , key, kcost, splitables.nonEmpty))
       }
     } else {

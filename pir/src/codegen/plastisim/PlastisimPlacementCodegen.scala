@@ -4,14 +4,15 @@ package codegen
 import pir.node._
 import pir.mapper._
 import spade.node._
-import spade.param._
 import prism.collection.mutable._
 
 class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen with RoutingUtil {
   import pirmeta._
   import PIRConfig._
 
-  val fileName = s"pir.place"
+  def isInitPlacement = isDynamic(designS) && routingAlgo != "proute"
+
+  val fileName = if (isInitPlacement) s"init.place" else s"final.place"
 
   type Route = List[(MKMap.K,MKMap.K)]
 
@@ -26,13 +27,11 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
     case n:GlobalInput if isDynamic(designS) | isStatic(designS) =>
       val gin = n
       val gout = goutOf(gin).get
-      val routes = mappedTo[Route]((gin, gout)).get
-      val routables = routes.map { case (out, in) => routableOf(out).get }
-      val isStaticLink = !routables.exists { _.isInstanceOf[Router] }
-      if (isStaticLink) { // Static 
-        emitStaticRoute(gout, gin, routes)
+      val route = mappedTo[Route]((gin, gout)).get
+      if (isStaticLink(route)) { // Static 
+        emitStaticRoute(gout, gin, route)
       } else { // Dynamic
-        emitDynamicRoute(gout, gin, routes)
+        emitDynamicRoute(gout, gin, route)
       }
     case n:GlobalInput =>
       val gin = n
@@ -55,6 +54,34 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
     val src = globalOf(gout).get.id
     val dst = globalOf(gin).get.id
     emitln(s"S ${gout.id} $src $dst ${routes.size}")
+  }
+
+  override def finPass = {
+    super.finPass
+    if (isDynamic(designS)) {
+      getCommand.foreach { command =>
+        val log = s"$dirName/proute.log"
+        val exitCode = shell("proute", command, log)
+        if (exitCode != 0) {
+          fail(s"Plastiroute failed. details in $log")
+        }
+      }
+    }
+  }
+
+  def getCommand = {
+    zipOption(PLASTIROUTE_HOME, psimOut).fold[Option[String]] {
+      warn(s"set PLASTIROUTE_HOME and PLASTISIM_HOME to launch plastiroute automatically!")
+      None
+    } { case (prouteHome:String, psimOut:String) =>
+      val log = s"$dirName/proute.log"
+      var command = s"$prouteHome/plastiroute -n $psimOut/node.csv -l $psimOut/link.csv -o $psimOut/final.place -r $numRows -c $numCols -s1"
+      command += s" -x${option[Int]("proute-slink")}"
+      if (isInitPlacement) {
+        command += s" -b $psimOut/init.place -i=0"
+      }
+      Some(command)
+    }
   }
 
 }

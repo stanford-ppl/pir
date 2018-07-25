@@ -76,16 +76,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     } { case (psimHome, psimOut) =>
       val log = s"$dirName/psim.log"
       val timeOut = getOption[Long]("psim-timeout").fold("") { t => s"-c $t" }
-      val command = if (enablePlastiroute) {
-        s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/proute.place $timeOut"
-      } else {
-        //TODO: static place file breaks the simulator
-        //if (isDynamic(topS)) {
-          s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/pir.place $timeOut"
-        //} else {
-          //s"$psimHome/plastisim -f $psimOut/config.psim $timeOut"
-        //}
-      }
+      val command = s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/final.place $timeOut"
       if (runPlastisim) {
         shellProcess(s"psim", command, log)(processOutput)
         if (!simulationSucceeded.getOrElse(false)) fail(s"Plastisim failed. details in $log")

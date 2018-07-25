@@ -35,7 +35,7 @@ class PIRNetworkDotCodegen[B<:PinType:ClassTag](fileName:String, mapping: => Any
       mappedTo[pir.node.GlobalContainer](n, mapping).fold {
         super.label(attr, n)
       } { cuP =>
-        var label = s"${quote(n)}"
+        var label = super.label(attr,n).label.get
         label += s"\n(${quote(cuP)}[${cuType(cuP).get}])"
         attr.label(label)
       }

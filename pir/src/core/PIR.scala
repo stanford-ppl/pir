@@ -158,9 +158,9 @@ trait PIR extends Compiler with PIRWorld {
     // Codegen
     addPass(genPlastisim, terminalCSVCodegen).dependsOn(cuPlacer)
     addPass(genPlastisim, linkCSVCodegen).dependsOn(terminalCSVCodegen, psimLinkAnalyzer)
+    addPass(genPlastisim && enableMapping, psimPlacementCodegen).dependsOn(cuPlacer,linkCSVCodegen)
     addPass(genPlastisim, psimDotCodegen).dependsOn(psimLinkAnalyzer)
-    addPass(enableMapping && genPlacement, psimPlacementCodegen).dependsOn(cuPlacer)
-    addPass(enableMapping && genPlastisim, psimConfigCodegen).dependsOn(cuPlacer, linkCSVCodegen, psimTraceCodegen)
+    addPass(genPlastisim && enableMapping, psimConfigCodegen).dependsOn(cuPlacer, psimPlacementCodegen, psimTraceCodegen)
     addPass(runPlastisim, psimDotCodegen)
 
      // Simulation

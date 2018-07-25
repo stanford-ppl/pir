@@ -54,9 +54,6 @@ object PIRConfig extends prism.GlobalConfig {
   }
   def routingAlgo = option[String]("routing-algo")
 
-  def enablePlastiroute = genPlastisim && SpadeConfig.option[String]("net") == "dynamic" && routingAlgo == "proute"
-  def genPlacement = genPlastisim
-
   /* ------------------- Debugging --------------------  */
   register("save-pir", default=false, info="Save IR into a file") 
   register("load-pir", default=false, info="Load IR from a file")

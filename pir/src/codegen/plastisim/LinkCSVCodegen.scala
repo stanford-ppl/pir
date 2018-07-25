@@ -29,21 +29,4 @@ class LinkCSVCodegen(implicit compiler: PIR) extends PlastisimCodegen with CSVCo
     case n => super.visitNode(n)
   }
 
-  override def finPass = {
-    super.finPass
-    if (enablePlastiroute) {
-      zipOption(PLASTIROUTE_HOME, psimOut). fold {
-        warn(s"set PLASTIROUTE_HOME and PLASTISIM_HOME to launch plastiroute automatically!")
-      } { case (prouteHome:String, psimOut:String) =>
-        val log = s"$dirName/proute.log"
-        var command = s"$prouteHome/plastiroute -n $psimOut/node.csv -l $psimOut/link.csv -o $psimOut/proute.place -r $numRows -c $numCols -s1"
-        command += s" -x${option[Int]("proute-slink")}"
-        val exitCode = shell("proute", command, log)
-        if (exitCode != 0) {
-          fail(s"Plastiroute failed. details in $log")
-        }
-      }
-    }
-  }
-
 }
