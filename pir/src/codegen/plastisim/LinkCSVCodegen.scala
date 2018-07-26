@@ -18,6 +18,11 @@ class LinkCSVCodegen(implicit compiler: PIR) extends PlastisimCodegen with CSVCo
       val row = newRow
       row("link") = n.id
       row("src") = globalOf(n).get.id
+      row("tp") = pinTypeOf(n) match {
+        case ct if isBit(ct) => 0
+        case ct if isWord(ct) => 1
+        case ct if isVector(ct) => 2
+      }
       row("count") = count
       val dstCUs = ginsOf(n).groupBy { gin => globalOf(gin).get }
       dstCUs.foreach { case (cu, gins) =>
