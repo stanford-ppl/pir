@@ -66,6 +66,9 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
             err(line, exception=false)
             fail(s"Plastiroute failed. details in $log")
           }
+          if (line.contains("Used") && line.contains("VCs.")) {
+            info(Console.GREEN, s"proute", line)
+          }
         }
         if (exitCode != 0) {
           fail(s"Plastiroute failed. details in $log")
