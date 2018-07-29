@@ -19,7 +19,7 @@ class LinkCSVCodegen(implicit compiler: PIR) extends PlastisimCodegen with CSVCo
       row("link") = n.id
       row("src") = globalOf(n).get.id
       row("tp") = pinTypeOf(n) match {
-        case ct if isBit(ct) => 0
+        case ct if isBit(ct) => 1 //HACK: generate bit to word for now
         case ct if isWord(ct) => 1
         case ct if isVector(ct) => 2
       }

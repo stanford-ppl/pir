@@ -32,6 +32,7 @@ object PIRConfig extends prism.GlobalConfig {
   register("routing-algo", default="dor", info="If net=[dynamic] - [dor, planed, proute]. Option ignored for other network. dor - dimention order routing. planed - arbitrary source routing, proute - use plastiroute for place and route. If proute is chosen plastiroute will be launched from pir if $PLASTIROUTE_HOME is set") 
   register("routing-cost", default="H-hop", info="Routing cost [hop, balanced, H-hop, H-balanced]. hop - use hop count only for cost in search, balanced - use traffic load + hop count as cost, H-hop: use Manhattan distance as heurisc cost and use hop count for cost. H-balanced: use Manhattan distance as heurisc cost and use hop count and traffic load for cost.") 
   register("proute-slink", default=0, info="Number of static link used in plastiroute") 
+  register("proute-iter", default=10, info="Number of iterations to run in plastiroute") 
   def enableHopCountCost = option[String]("routing-cost") match {
     case "hop" => true
     case "balanced" => false
