@@ -3,17 +3,20 @@ package codegen
 
 import pir.node._
 import pir.pass._
+import pir.mapper._
 import spade.node._
 import spade.param._
 
 import prism.codegen.JsonCodegen
 
 class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen with TypeUtil {
+  import pirmeta._
 
   val fileName = "stat.json"
 
-  def postSplitting = compiler.session.hasRunAll[IgraphPartioner]
   def isLastRun = runner == compiler.session.runnersOf[CUStatistics].last
+  def postSplitting = compiler.session.hasRunAll[IgraphPartioner]
+  def postMapping = compiler.session.hasRunAll[CUPlacer]
 
   def sinfo(s:Any) = {
     dbg(s)
@@ -30,12 +33,15 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen wi
 
   def pct(nom:Int, den:Int) =  if (den == 0) 0 else nom * 100.0f / den
   def fstr(float:Float) = f"$float%.2f"
+  def pctstr(a:Int, b:Int) = s"${a} / ${b} (${fstr(pct(a,b))}%)"
 
   val formatter = java.text.NumberFormat.getInstance
 
   override def runPass =  {
     if (postSplitting) {
       sinfo(s"=========== Post-splitting CU Statistics ==================")
+    } else if (postMapping) {
+      sinfo(s"=========== Post-mapping CU Statistics ==================")
     } else {
       sinfo(s"=========== Pre-splitting CU Statistics ==================")
     }
@@ -43,7 +49,7 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen wi
     cus.foreach(dump)
     val cuMap = cus.groupBy(cuType) // tp -> cus
     printStat(cuMap)
-    printUsage(cuMap)
+    if (postMapping) printUsage(cuMap)
   }
 
   def inputsP(cuP:GlobalContainer) = cuP.ins.groupBy { _.from.src }.map { case (src, ins) => ins.head.src }
@@ -67,25 +73,45 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen wi
       sinfo(s"- cout $cout sout $sout vout $vout")
       sinfo(s"- stages $stages")
     }
-  }
 
-  def printUsage(cuMap:Map[Option[String], List[GlobalContainer]]) = {
     def cmap(key:String) = cuMap.get(Some(key)).getOrElse(Nil)
 
-    val cellsS = compiler.arch.top.collectDown[Routable]()
-    val cusS = cellsS.filter { _.param.isInstanceOf[CUParam] }.size
-    val pcusS = cellsS.filter { _.param.isInstanceOf[PCUParam] }.size
-    val pmusS = cellsS.filter { _.param.isInstanceOf[PMUParam] }.size
-    val mcsS = cellsS.filter { _.param.isInstanceOf[MCParam] }.size
     val pcusP = (cmap("pcu") ++ cmap("scu") ++ cmap("ocu")).size
     val pmusP = (cmap("pmu")).size
     val mcsP = (cmap("dfg") ++ cmap("sfg")).size
     val cusP = (cmap("pcu") ++ cmap("scu") ++ cmap("ocu") ++ cmap("dag")).size
 
-    sinfo(s"PCU usage = $pcusP / $pcusS (${fstr(pct(pcusP, pcusS))}%)")
-    sinfo(s"PMU usage = $pmusP / $pmusS (${fstr(pct(pmusP, pmusS))}%)")
-    sinfo(s"MC usage = $mcsP / $mcsS (${fstr(pct(mcsP, mcsS))}%)")
-    sinfo(s"Total usage = $cusP / $cusS (${fstr(pct(cusP, cusS))}%)")
+    sinfo(s"compute CU = $pcusP")
+    sinfo(s"memory CU = $pmusP")
+    sinfo(s"mc CU = $mcsP")
+    sinfo(s"Total = $cusP")
+  }
+
+  def isComputeCU(cuP:GlobalContainer) = {
+    List("pcu", "scu", "ocu").contains(cuType(cuP).get)
+  }
+
+  def printUsage(cuMap:Map[Option[String], List[GlobalContainer]]):Unit = {
+    if (isAsic(designS)) return
+    val cumap = pirMap.right.get.cumap
+
+    val cellsS = compiler.arch.top.collectDown[Routable]()
+    val pcusS = cellsS.filter { _.param.isInstanceOf[PCUParam] }
+    val pmusS = cellsS.filter { _.param.isInstanceOf[PMUParam] }
+    val mcsS = cellsS.filter { _.param.isInstanceOf[MCParam] }
+    val agsS = cellsS.filter { _.param.isInstanceOf[DramAGParam] }
+    
+    val groups:Map[Parameter, List[GlobalContainer]] = cumap.usedMap.bmap.map.groupBy { case (cuS, cuP) => cuS.param }.map { case (param, groups) =>
+      param -> groups.map { _._2 }.toList
+    }
+    def cusOf(param:Parameter) = groups.getOrElse(param, Nil)
+
+    sinfo(s"PCU = ${pctstr(cusOf(pcusS.head.param).size, pcusS.size)}")
+    sinfo(s"PMU-comp = ${pctstr(cusOf(pmusS.head.param).filter(isComputeCU).size, pmusS.size)}")
+    sinfo(s"PMU-mem = ${pctstr(cusOf(pmusS.head.param).filter(cuP => cuType(cuP).get=="pmu").size, pmusS.size)}")
+    sinfo(s"AG-ag = ${pctstr(cusOf(agsS.head.param).filter(cuP => cuType(cuP).get=="dag").size, agsS.size)}")
+    sinfo(s"AG-comp = ${pctstr(cusOf(agsS.head.param).filter(isComputeCU).size, agsS.size)}")
+    sinfo(s"MC = ${pctstr(cusOf(mcsS.head.param).size, mcsS.size)}")
   }
 
   def dump(cu:GlobalContainer) = {
