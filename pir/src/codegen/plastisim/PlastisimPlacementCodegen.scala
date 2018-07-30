@@ -84,8 +84,8 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
     } { case (prouteHome:String, psimOut:String) =>
       val log = s"$dirName/proute.log"
       var command = s"$prouteHome/plastiroute -n $psimOut/node.csv -l $psimOut/link.csv -o $psimOut/final.place -r $numRows -c $numCols -s1 -g $psimOut/proute.dot"
-      command += s" -x${option[Int]("proute-vlink")}"
-      command += s" -e ${option[Int]("proute-slink")}"
+      command += s" -x${SpadeConfig.option[Int]("vlink")}"
+      command += s" -e ${SpadeConfig.option[Int]("slink")}"
       command += s" -i ${option[Int]("proute-iter")}"
       if (isInitPlacement) {
         command += s" -b $psimOut/init.place"
