@@ -62,9 +62,11 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
       getCommand.foreach { command =>
         val log = s"$dirName/proute.log"
         val exitCode = shellProcess("proute", command, log) { line =>
+          if (verbose) println(line)
           if (line.contains("Could not find node")) {
-            err(line, exception=false)
-            fail(s"Plastiroute failed. details in $log")
+            warn(line)
+            //err(line, exception=false)
+            //fail(s"Plastiroute failed. details in $log")
           }
           if (line.contains("Used") && line.contains("VCs.")) {
             info(Console.GREEN, s"proute", line)
@@ -86,7 +88,7 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
       var command = s"$prouteHome/plastiroute -n $psimOut/node.csv -l $psimOut/link.csv -o $psimOut/final.place -r $numRows -c $numCols -s1 -g $psimOut/proute.dot"
       command += s" -x${SpadeConfig.option[Int]("vlink")}"
       command += s" -e ${SpadeConfig.option[Int]("slink")}"
-      command += s" -i ${option[Int]("proute-iter")}"
+      command += s" -i100 -p100 -t1 -d100 -a route_min_directed_valient -s0"
       if (isInitPlacement) {
         command += s" -b $psimOut/init.place"
       }
