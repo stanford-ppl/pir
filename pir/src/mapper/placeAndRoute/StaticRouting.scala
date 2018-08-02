@@ -24,19 +24,22 @@ trait StaticRouting extends Routing {
       // Once there's a matched source, take the matched source to coalescing braodcast
       (tail match {
         case out:OutputEdge[_] =>  // in search always from out to in
-          val sources = markedAndMatched.flatMap { in => pmap.fimap.get(in.asInstanceOf[FIMap.K]) }.toSet
-          val otherSource = sources.filter { _ != out }
-          if (otherSource.nonEmpty) {
+          //val sources = markedAndMatched.flatMap { in => pmap.fimap.get(in.asInstanceOf[FIMap.K]) }.toSet
+          //val otherSource = sources.filter { _ != out }
+          //if (otherSource.nonEmpty) {
             /*
              *       +----------+
              * other | ---------| markedAndMatched
              * out   |          | unmarked
              *       +----------+
              * */
-            val onlyFromOut = unmarked.filter { in => otherSource.forall { !_.isConnectedTo(in) } }
-            onlyFromOut
-          } else { // I am the only source
-            markedAndMatched ++ unmarked
+            //val onlyFromOut = unmarked.filter { in => otherSource.forall { !_.isConnectedTo(in) } }
+            //onlyFromOut
+          //} else { // I am the only source
+            //markedAndMatched ++ unmarked
+          //}
+          tail.connected.filter { head =>
+            pmap.fimap.get(head.asInstanceOf[FIMap.K]).fold { true } { _ == tail }
           }
         case in:InputEdge[_] if pmap.fimap.contains(in) => List(pmap.fimap(in))
         case in:InputEdge[_] if markedAndMatched.nonEmpty => markedAndMatched
