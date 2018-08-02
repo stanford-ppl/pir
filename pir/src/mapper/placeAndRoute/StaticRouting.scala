@@ -38,9 +38,9 @@ trait StaticRouting extends Routing {
           //} else { // I am the only source
             //markedAndMatched ++ unmarked
           //}
-          tail.connected.filter { head =>
+          markedAndMatched.filter { head =>
             pmap.fimap.get(head.asInstanceOf[FIMap.K]).fold { true } { _ == tail }
-          }
+          } ++ unmarked
         case in:InputEdge[_] if pmap.fimap.contains(in) => List(pmap.fimap(in))
         case in:InputEdge[_] if markedAndMatched.nonEmpty => markedAndMatched
         case in:InputEdge[_] => unmarked // one to one
