@@ -52,7 +52,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     if (line.contains("Total Active")) {
       val node = line.split(":")(0).trim
       nameMap.get(node).foreach { node =>
-        activeOf(node) = line.split("Total Active:")(1).split("Expected Active")(0).trim.toLong
+        activeOf(node) = line.split("Total Active:")(1).split("Total Output")(0).trim.toLong
         stalledOf(node) = line.split("Stalled:")(1).split("Starved")(0).trim.toFloat
         starvedOf(node) = line.split("Starved:")(1).split("Total Active")(0).trim.toFloat
         zipOption(countOf.getOrElse(node,None), activeOf.get(node)).foreach { case (count, active) =>
