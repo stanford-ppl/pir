@@ -79,7 +79,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
       command += getOption[Long]("psim-timeout").fold("") { t => s" -c $t" }
       command += (SpadeConfig.option[String]("link-prop") match {
         case "db" => s" -l B"
-        case "cb" => s" -l C"
+        case "cd" => s" -l C"
       })
       command += s" -w ${SpadeConfig.option[String]("flit-width")}" 
       if (runPlastisim) {
