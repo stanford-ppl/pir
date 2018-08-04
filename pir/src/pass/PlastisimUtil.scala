@@ -6,12 +6,18 @@ import pir.mapper._
 import spade.node._
 import spade.param._
 
-trait PlastisimUtil extends PIRPass {
+trait PlastisimUtil extends PIRPass with prism.util.Memorization {
   import pirmeta._
   import spademeta._
 
   type NetworkNode = ContextEnable
   type Link = linkGroupOf.V
+
+  override def initPass = {
+    super.initPass
+    memorizing = true
+    resetAllCaches
+  }
 
   lazy val topS = compiler.arch.design.top
   lazy val topParam = topS.param
@@ -223,6 +229,8 @@ trait PlastisimUtil extends PIRPass {
   def getCountsOf(accesses:List[LocalAccess]):Option[Long] = {
     assertIdentical(accesses.flatMap { a => getCountsOf(a)}, "count")
   }
+
+  override def pinTypeOf(n:PIRNode):ClassTag[_<:PinType] = memorize("pinTypeOf", n) { n => super.pinTypeOf(n) }
 
   def pinTypeOf(link:Link):ClassTag[_<:PinType] = assertUnify(link, "tp")(mem => pinTypeOf(mem)).get
 

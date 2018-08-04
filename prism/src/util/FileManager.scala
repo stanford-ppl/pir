@@ -21,7 +21,7 @@ trait FileManager {
 
   def clearLogs(outDir:String) = {
     val logs = getListOfFiles(outDir).filter(isLog)
-    logs.foreach(deleteFiles)
+    logs.foreach(deleteFile)
   }
   
   def getListOfFiles(dir: String):List[File] = {
@@ -33,11 +33,15 @@ trait FileManager {
     }
   }
 
-  def deleteFiles(file: File): Unit = {
+  def deleteFile(file: File): Unit = {
     if (file.isDirectory) {
-      Option(file.listFiles).map(_.toList).getOrElse(Nil).foreach(deleteFiles(_))
+      Option(file.listFiles).map(_.toList).getOrElse(Nil).foreach(deleteFile(_))
     }
     file.delete
+  }
+
+  def deleteFile(path: String): Unit = {
+    deleteFile(new File(path))
   }
 
   def copyFile(src: String, dst: String):Unit = {
@@ -103,6 +107,15 @@ trait FileManager {
     new File(path).exists
   }
 
-  def getLines(path:String) = Source.fromFile(path).getLines
+  def getLines(path:String):Iterator[String] = Source.fromFile(path).getLines
+
+  def getCSVRows(path:String):Iterator[Map[String,String]] = {
+    val iter = getLines(path)
+    val headers = iter.next.split(",").map(_.trim)
+    iter.map { line =>
+      val cells = line.split(",").map(_.trim)
+      headers.zip(cells).toMap
+    }
+  }
 
 }

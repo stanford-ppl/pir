@@ -33,7 +33,6 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
 
   var simulationSucceeded:Option[Boolean] = None
   def processOutput(line:String) = {
-    if (verbose) println(line)
     if (line.contains("Total DRAM")) {
       info(Console.GREEN, s"psim", line)
     }
@@ -76,8 +75,12 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
       warn(s"set PLASTISIM_HOME to launch plastiroute automatically!")
     } { case (psimHome, psimOut) =>
       val log = s"$dirName/psim.log"
-      val timeOut = getOption[Long]("psim-timeout").fold("") { t => s"-c $t" }
-      val command = s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/final.place $timeOut -l B"
+      var command = s"$psimHome/plastisim -f $psimOut/config.psim -p $psimOut/final.place"
+      command += getOption[Long]("psim-timeout").fold("") { t => s" -c $t" }
+      command += (SpadeConfig.option[String]("link-prop") match {
+        case "db" => s" -l B"
+        case "cb" => s" -l C"
+      })
       if (runPlastisim) {
         shellProcess(s"psim", command, log)(processOutput)
         if (!simulationSucceeded.getOrElse(false)) fail(s"Plastisim failed. details in $log")
