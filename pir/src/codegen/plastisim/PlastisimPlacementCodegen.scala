@@ -26,7 +26,8 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
     hops += "Stat" -> mutable.Map.empty
   }
 
-  def countHop(net:String, gout:MKMap.V, hop:(MKMap.K,MKMap.K)) = {
+  def countHop(net:String, gout:MKMap.V, hop:(MKMap.K,MKMap.K)):Unit = {
+    if (!isDynamic(designS) && !isStatic(designS)) return
     val count = hops(net).getOrElseUpdate(gout, mutable.Map[Hop,Long]())
     count.getOrElseUpdate(hop, {
       val (from,to) = hop
@@ -114,9 +115,9 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
         } else {
           getCSVRows(summaryPath.get).foreach { row =>
             var msg = s"DynHopsVec:${row("DynHopsVec")}"
-            msg += s" DynHopsScal:${row("DynHopsScal")}"
-            msg += s" StatHopsVec:${row("StatHopsVec")}"
-            msg += s" StatHopsScal:${row("StatHopsScal")}"
+            msg += s", DynHopsScal:${row("DynHopsScal")}"
+            msg += s", StatHopsVec:${row("StatHopsVec")}"
+            msg += s", StatHopsScal:${row("StatHopsScal")}"
             info(Console.GREEN, s"proute", msg)
           }
         }
@@ -134,7 +135,7 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
         }.map { case (tp, groups) =>
           s"${net}Hops$tp: ${groups.values.sum}"
         }
-      }.mkString(" ")
+      }.mkString(",")
       info(Console.GREEN, s"pir", msg)
       hops.foreach { case (net, map) =>
         map.foreach { case (gout, map) =>
