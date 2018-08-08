@@ -82,6 +82,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         case "cd" => s" -l C"
       })
       command += s" -w ${SpadeConfig.option[String]("flit-width")}" 
+      command += s" -q${option[Int]("psim-q")}" 
       if (runPlastisim) {
         shellProcess(s"psim", command, log)(processOutput)
         if (!simulationSucceeded.getOrElse(false)) fail(s"Plastisim failed. details in $log")

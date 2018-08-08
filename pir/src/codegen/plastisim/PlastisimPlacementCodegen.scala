@@ -96,23 +96,34 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
     super.finPass
     if (isDynamic(designS)) {
       getCommand.foreach { command =>
-        dbg(s"Run command:")
-        dbg(command)
-        deleteFile(summaryPath.get)
-        deleteFile(log)
-        val exitCode = shellProcess("proute", command, log) { line =>
-          if (line.contains("Could not find node")) {
-            warn(line)
-            //err(line, exception=false)
-            //fail(s"Plastiroute failed. details in $log")
+        if (option[Boolean]("rerun-proute")) {
+          dbg(s"Run command:")
+          dbg(command)
+          deleteFile(summaryPath.get)
+          deleteFile(log)
+          val exitCode = shellProcess("proute", command, log) { line =>
+            if (line.contains("Could not find node")) {
+              warn(line)
+              //err(line, exception=false)
+              //fail(s"Plastiroute failed. details in $log")
+            }
+            if (line.contains("Used") && line.contains("VCs.")) {
+              info(Console.GREEN, s"proute", line)
+            }
           }
-          if (line.contains("Used") && line.contains("VCs.")) {
-            info(Console.GREEN, s"proute", line)
+          if (exitCode != 0) {
+            fail(s"Plastiroute failed. details in $log")
+          } else {
+            getCSVRows(summaryPath.get).foreach { row =>
+              var msg = s"DynHopsVec:${row("DynHopsVec")}"
+              msg += s", DynHopsScal:${row("DynHopsScal")}"
+              msg += s", StatHopsVec:${row("StatHopsVec")}"
+              msg += s", StatHopsScal:${row("StatHopsScal")}"
+              info(Console.GREEN, s"proute", msg)
+            }
           }
-        }
-        if (exitCode != 0) {
-          fail(s"Plastiroute failed. details in $log")
         } else {
+          info(s"Using old placement")
           getCSVRows(summaryPath.get).foreach { row =>
             var msg = s"DynHopsVec:${row("DynHopsVec")}"
             msg += s", DynHopsScal:${row("DynHopsScal")}"
@@ -159,6 +170,8 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
       command += s" -x${SpadeConfig.option[Int]("vlink")}"
       command += s" -e ${SpadeConfig.option[Int]("slink")}"
       command += s" -a ${option[String]("proute-algo")} "
+      command += s" -q${option[String]("proute-q")} "
+      command += s" -s${option[String]("proute-seed")} "
       command += s" ${option[String]("proute-opts")}"
       Some(command)
     }
