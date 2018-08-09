@@ -27,7 +27,13 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
     case n:NetworkNode if activeOf.contains(n) & countOf.contains(n) => 
       checkActive(n).map { case (active, expected) =>
         if (active == 0) attr.fillcolor("red").style(filled)
-        else if (active < expected) attr.fillcolor("orange").style(filled)
+        else if (active < expected) {
+          finalStateOf.get(n).map {
+            case "STARVE" => attr.fillcolor("orangered").style(filled)
+            case "STALL" => attr.fillcolor("orange").style(filled)
+            case "BOTH" => attr.fillcolor("orangered").style(filled)
+          }.getOrElse(attr.fillcolor("orange").style(filled))
+        }
         else attr.fillcolor("limegreen").style(filled)
       }.getOrElse(super.color(attr, n))
     case n => super.color(attr, n)
@@ -53,6 +59,7 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
       activeOf.get(n).foreach { active => label += s"\nactive=$active" }
       stalledOf.get(n).foreach { stalled => label += s"\nstalled=$stalled %" }
       starvedOf.get(n).foreach { starved => label += s"\nstarved=$starved %" }
+      finalStateOf.get(n).foreach { state => label += s"\nstate=$state" }
       val cuP = globalOf(n).get
       cuP match {
         case cuP:DramFringe if PIRConfig.enableTrace =>

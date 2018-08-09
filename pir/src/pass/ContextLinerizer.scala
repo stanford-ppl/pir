@@ -23,9 +23,9 @@ trait ContextLinerizer extends PIRTransformer with PIRNodeUtil with Logging with
       ctxs.foreach { ctx => assert(isInCtx(ctx) != isOutCtx(ctx)) }
       createContextGroup(ctxs)
       val sorted = sortContext(mem, ctxs)
+      muteAccess(mem, sorted)
       val mems = tokenInsertion(n, sorted)
       //insertMatchingAccesses(mem, sorted)
-      muteAccess(mem, sorted)
       ctxGroups = Map.empty
       currMem = None
       mems
@@ -165,6 +165,8 @@ trait ContextLinerizer extends PIRTransformer with PIRNodeUtil with Logging with
     val mems = scala.collection.mutable.ListBuffer[Memory]()
     val moreThanTwo = sorted.size > 2
     sorted.sliding(size=2,step=1).foreach { 
+      //TODO: from write to read, allocate a token buffer for true data dependency. any not muted
+      //access should write token to that token buffer
       case List(InGroup(ctx1), OutGroup(ctx2)) if !moreThanTwo => // optimization no token inserted
       case List(ContextGroup(_, ctx1), ContextGroup(_, ctx2)) =>
         dbgblk(s"Insert Token ${quote(ctx1)} -> ${quote(ctx2)}") {

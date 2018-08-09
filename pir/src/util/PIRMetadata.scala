@@ -140,6 +140,8 @@ class PIRMetadata extends Metadata {
   starvedOf.setName("starvedOf")
   val activeOf = new OneToOneMap[PIRNode, Long] with MetadataMap
   activeOf.setName("activeOf")
+  val finalStateOf = new OneToOneMap[PIRNode, String] with MetadataMap
+  finalStateOf.setName("finalStateOf")
   /* ------------- Plastsim metadata (start) ---------- */
 
   var pirMap:EOption[PIRMap] = Right(PIRMap.empty)

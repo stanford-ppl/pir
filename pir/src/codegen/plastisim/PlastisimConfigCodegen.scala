@@ -54,6 +54,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         activeOf(node) = line.split("Total Active:")(1).split("Total Output")(0).trim.toLong
         stalledOf(node) = line.split("Stalled:")(1).split("Starved")(0).trim.toFloat
         starvedOf(node) = line.split("Starved:")(1).split("Total Active")(0).trim.toFloat
+        if (line.contains("Final State")) finalStateOf(node) = line.split("Final State:")(1).trim
         checkActive(node).foreach { case (active, expected) =>
           if (active < expected) { 
             err(s"${quote(node)} count=$expected active=$active", false)
