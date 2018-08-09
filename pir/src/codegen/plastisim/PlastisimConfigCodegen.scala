@@ -54,15 +54,9 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         activeOf(node) = line.split("Total Active:")(1).split("Total Output")(0).trim.toLong
         stalledOf(node) = line.split("Stalled:")(1).split("Starved")(0).trim.toFloat
         starvedOf(node) = line.split("Starved:")(1).split("Total Active")(0).trim.toFloat
-        zipOption(countOf.getOrElse(node,None), activeOf.get(node)).foreach { case (count, active) =>
-          val expectedCount = globalOf(node).get match {
-            case cuP:FringeDenseLoad =>
-              val par = ctrlOf(ctxEnOf(cuP).get).asInstanceOf[DramController].par
-              count / (burstSize / par)
-            case cuP => count
-          }
-          if (active < expectedCount) { 
-            err(s"${quote(node)} count=$expectedCount active=$active", false)
+        checkActive(node).foreach { case (active, expected) =>
+          if (active < expected) { 
+            err(s"${quote(node)} count=$expected active=$active", false)
             simulationSucceeded = Some(false)
           }
         }

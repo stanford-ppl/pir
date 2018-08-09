@@ -23,6 +23,16 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
     case n => super.visitNode(n)
   }
 
+  override def color(attr:DotAttr, n:Any) = n match {
+    case n:NetworkNode if activeOf.contains(n) & countOf.contains(n) => 
+      checkActive(n).map { case (active, expected) =>
+        if (active == 0) attr.fillcolor("red").style(filled)
+        else if (active < expected) attr.fillcolor("orange").style(filled)
+        else attr.fillcolor("limegreen").style(filled)
+      }.getOrElse(super.color(attr, n))
+    case n => super.color(attr, n)
+  }
+
   override def label(attr:DotAttr, n:Any) = n match {
     case n:ContextEnable =>
       var label = ""

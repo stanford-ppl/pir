@@ -313,4 +313,17 @@ trait PlastisimUtil extends PIRPass with prism.util.Memorization {
     case (a,b) => s"(${quote(a)},${quote(b)})"
     case n => super.quote(n)
   }
+
+
+  def checkActive(node:NetworkNode):Option[(Long, Long)] = {
+    zipOption(countOf.getOrElse(node,None), activeOf.get(node)).map { case (count, active) =>
+      val expectedCount = globalOf(node).get match {
+        case cuP:FringeDenseLoad =>
+          val par = ctrlOf(ctxEnOf(cuP).get).asInstanceOf[DramController].par
+          count / (burstSize / par)
+        case cuP => count
+      }
+      (active, expectedCount)
+    }
+  }
 }
