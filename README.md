@@ -124,12 +124,12 @@ $PIR_HOME/bin/dot -c out/<Arch>/vector
 
 # Plastisim
 Install plastisim
+```
 git clone https://github.com/acrucker/plastisim
 set $PLASTISIM_HOME
 cd $PLASTISIM_HOME
 git submodule update --init
 make
-```
 --psim: Enable code generations for plastisim [default=true]
 --psim_out: Directory to copy psim files over 
 --run-psim: Launch Plastisim simulation [default=false]
