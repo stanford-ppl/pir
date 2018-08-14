@@ -6,594 +6,840 @@ import prism.enums._
 object LSTMPipe extends PIRApp {
   def main(implicit design:PIRDesign) = {
     import design.pirmeta._
-    val x5586 = withCtrl(design.top.topController) { DRAM(dims=List(Const(8), Const(128))).name("x5586").srcCtx("LSTMPipe.scala:24:23:dout") } // x5586 = DRAMNew(ArrayBuffer(Const(8), Const(128)),Const(0))
-    val x5587 = withCtrl(design.top.topController) { DRAM(dims=List(Const(8), Const(128))).name("x5587").srcCtx("DataGenerator.scala:156:20:xInit") } // x5587 = DRAMNew(ArrayBuffer(Const(8), Const(128)),Const(0))
-    val x5594 = withCtrl(design.top.topController) { DRAM(dims=List(Const(2), Const(128))).name("x5594").srcCtx("DataGenerator.scala:156:20:cInit") } // x5594 = DRAMNew(ArrayBuffer(Const(2), Const(128)),Const(0))
-    val x5601 = withCtrl(design.top.topController) { DRAM(dims=List(Const(2), Const(128))).name("x5601").srcCtx("DataGenerator.scala:156:20:hInit") } // x5601 = DRAMNew(ArrayBuffer(Const(2), Const(128)),Const(0))
-    val x5608 = withCtrl(design.top.topController) { DRAM(dims=List(Const(2), Const(128), Const(4), Const(128))).name("x5608").srcCtx("DataGenerator.scala:182:20:wxInit") } // x5608 = DRAMNew(ArrayBuffer(Const(2), Const(128), Const(4), Const(128)),Const(0))
-    val x5621 = withCtrl(design.top.topController) { DRAM(dims=List(Const(2), Const(128), Const(4), Const(128))).name("x5621").srcCtx("DataGenerator.scala:182:20:whInit") } // x5621 = DRAMNew(ArrayBuffer(Const(2), Const(128), Const(4), Const(128)),Const(0))
-    val x5634 = withCtrl(design.top.topController) { DRAM(dims=List(Const(2), Const(4), Const(128))).name("x5634").srcCtx("DataGenerator.scala:168:20:bInit") } // x5634 = DRAMNew(ArrayBuffer(Const(2), Const(4), Const(128)),Const(0))
-    val x6031 = withCtrl(design.top.topController) { UnitController(style=SeqPipe, level=OuterControl).name("x6031").srcCtx("LSTMPipe.scala:34:11") } // Hwblock(Block(Const(())),false)
-    val x5644_d0_b0 = withCtrl(x6031) { SRAM(size=1024, banking=Strided(banks=16, stride=1)).name("x5644_d0_b0").srcCtx("DataGenerator.scala:43:21:x") } // x5644 = SRAMNew(ArrayBuffer(Const(8), Const(128)))
-    isAccum(x5644_d0_b0) = false
-    bufferDepthOf(x5644_d0_b0) = 1
-    staticDimsOf(x5644_d0_b0) = List(8, 128)
-    val x5644_d1_b0 = withCtrl(x6031) { SRAM(size=1024, banking=Strided(banks=16, stride=1)).name("x5644_d1_b0").srcCtx("DataGenerator.scala:43:21:x") } // x5644 = SRAMNew(ArrayBuffer(Const(8), Const(128)))
-    isAccum(x5644_d1_b0) = false
-    bufferDepthOf(x5644_d1_b0) = 4
-    staticDimsOf(x5644_d1_b0) = List(8, 128)
-    val x5645 = withCtrl(x6031) { Counter(min=Const(0), max=Const(8), step=Const(1), par=1).name("x5645").srcCtx("DataGenerator.scala:44:8") } // CounterNew(Const(0),Const(8),Const(1),Const(1))
-    val x5646 = withCtrl(x6031) { CounterChain(List(x5645)).name("x5646").srcCtx("DataGenerator.scala:44:8") } // CounterChainNew(List(x5645))
-    val x5668 = withCtrl(x6031) { LoopController(style=StreamPipe, level=OuterControl, cchain=x5646).name("x5668").srcCtx("DataGenerator.scala:44:8") } // UnrolledForeach(List(Const(true)),x5646,Block(Const(())),List(List(b3296)),List(List(b3297)))
-    val b3296 = withCtrl(x5668) { CounterIter(x5645, Some(0)).name("b3296") } // b3296
-    val b3297 = withCtrl(x5668) { Const(true).name("b3297") } // b3297
-    val b6042 = withCtrl(x5668) { StreamOut(field="offset").name("b6042").srcCtx("DataGenerator.scala:44:8") } // x5647 = StreamOutNew(BurstCmdBus)
-    isAccum(b6042) = false
-    bufferDepthOf(b6042) = 1
-    val b6043 = withCtrl(x5668) { StreamOut(field="size").name("b6043").srcCtx("DataGenerator.scala:44:8") } // x5647 = StreamOutNew(BurstCmdBus)
-    isAccum(b6043) = false
-    bufferDepthOf(b6043) = 1
-    val x5648 = withCtrl(x5668) { StreamIn(field="data").name("x5648").srcCtx("DataGenerator.scala:44:8") } // x5648 = StreamInNew(BurstDataBus())
-    isAccum(x5648) = false
-    bufferDepthOf(x5648) = 1
-    val x5659 = withCtrl(x5668) { UnitController(style=SeqPipe, level=InnerControl).name("x5659").srcCtx("DataGenerator.scala:44:8") } // UnitPipe(List(b3297),Block(x5658))
-    val x5649 = withCtrl(x5659) { b3296 } // FixConvert(b3296,TRUE,_32,_0) (Same Type. No op)
-    val x5650 = withCtrl(x5659) { OpDef(op=FixSla, inputs=List(x5649, Const(7))).name("x5650").srcCtx("DataGenerator.scala:44:8") } // FixLsh(x5649,Const(7))
-    val x5651 = withCtrl(x5659) { Const(0) } // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
-    val x5652 = withCtrl(x5659) { OpDef(op=FixAdd, inputs=List(x5650, x5651)).name("x5652").srcCtx("DataGenerator.scala:44:8") } // FixAdd(x5650,x5651)
-    val x5653 = withCtrl(x5659) { OpDef(op=FixSla, inputs=List(x5652, Const(2))).name("x5653").srcCtx("DataGenerator.scala:44:8") } // FixLsh(x5652,Const(2))
-    val x5654 = withCtrl(x5659) { x5653 } // FixConvert(x5653,TRUE,_64,_0)
-    val x5655 = withCtrl(x5659) { DramAddress(x5587).name("x5655").srcCtx("DataGenerator.scala:44:8") } // GetDRAMAddress(x5587)
-    val x5657_x5656 = withCtrl(x5659) { OpDef(op=FixAdd, inputs=List(x5654, x5655)).name("x5657_x5656").srcCtx("DataGenerator.scala:44:8") } // FixAdd(x5654,x5655)
-    // x5657 = SimpleStruct(ArrayBuffer((offset,x5656), (size,Const(512)), (isLoad,Const(true))))
-    val x5658_b6044_b6042 = withCtrl(x5659) { WriteMem(b6042, x5657_x5656).name("x5658_b6044_b6042").srcCtx("DataGenerator.scala:44:8") } // StreamWrite(x5647,x5657,b3297)
-    val x5658_b6045_b6043 = withCtrl(x5659) { WriteMem(b6043, Const(512)).name("x5658_b6045_b6043").srcCtx("DataGenerator.scala:44:8") } // StreamWrite(x5647,x5657,b3297)
-    val x5660 = withCtrl(x5668) { FringeDenseLoad(dram=List(x5587), cmdStream=List(b6042, b6043), dataStream=List(x5648)).name("x5660").srcCtx("DataGenerator.scala:44:8") } // FringeDenseLoad(x5587,x5647,x5648)
-    val x5661 = withCtrl(x5668) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x5661").srcCtx("DataGenerator.scala:44:8") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
-    val x5662 = withCtrl(x5668) { CounterChain(List(x5661)).name("x5662").srcCtx("DataGenerator.scala:44:8") } // CounterChainNew(List(x5661))
-    val x5667 = withCtrl(x5668) { LoopController(style=InnerPipe, level=InnerControl, cchain=x5662).name("x5667").srcCtx("DataGenerator.scala:44:8") } // UnrolledForeach(List(b3297),x5662,Block(Const(())),List(List(b3314)),List(List(b3315)))
-    val b3314 = withCtrl(x5667) { CounterIter(x5661, None).name("b3314") } // b3314
-    val b3315 = withCtrl(x5667) { Const(true).name("b3315") } // b3315
-    val x5663 = withCtrl(x5667) { OpDef(op=BitAnd, inputs=List(b3315, b3297)).name("x5663").srcCtx("UnrollingBase.scala:28:66") } // And(b3315,b3297)
-    val x5664_x5664 = withCtrl(x5667) { ReadMem(x5648).name("x5664_x5664").srcCtx("DataGenerator.scala:44:8") } // ParStreamRead(x5648,List(x5663))
-    val x5665_x5665 = withCtrl(x5667) { x5664_x5664 } // VectorApply(x5664,0)
-    val x5666 = withCtrl(x5667) { StoreBanks(List(List(x5644_d0_b0), List(x5644_d1_b0)), List(b3296, b3314), x5665_x5665).name("x5666").srcCtx("DataGenerator.scala:44:8") } // ParSRAMStore(x5644,List(List(b3296, b3314)),List(x5665),List(x5663))
-    val x5669_d0_b0 = withCtrl(x6031) { SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x5669_d0_b0").srcCtx("DataGenerator.scala:43:21:c") } // x5669 = SRAMNew(ArrayBuffer(Const(2), Const(128)))
-    isAccum(x5669_d0_b0) = false
-    bufferDepthOf(x5669_d0_b0) = 2
-    staticDimsOf(x5669_d0_b0) = List(2, 128)
-    val x5669_d1_b0 = withCtrl(x6031) { SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x5669_d1_b0").srcCtx("DataGenerator.scala:43:21:c") } // x5669 = SRAMNew(ArrayBuffer(Const(2), Const(128)))
-    isAccum(x5669_d1_b0) = false
-    bufferDepthOf(x5669_d1_b0) = 2
-    staticDimsOf(x5669_d1_b0) = List(2, 128)
-    val x5670 = withCtrl(x6031) { Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x5670").srcCtx("DataGenerator.scala:44:8") } // CounterNew(Const(0),Const(2),Const(1),Const(1))
-    val x5671 = withCtrl(x6031) { CounterChain(List(x5670)).name("x5671").srcCtx("DataGenerator.scala:44:8") } // CounterChainNew(List(x5670))
-    val x5693 = withCtrl(x6031) { LoopController(style=StreamPipe, level=OuterControl, cchain=x5671).name("x5693").srcCtx("DataGenerator.scala:44:8") } // UnrolledForeach(List(Const(true)),x5671,Block(Const(())),List(List(b3325)),List(List(b3326)))
-    val b3325 = withCtrl(x5693) { CounterIter(x5670, Some(0)).name("b3325") } // b3325
-    val b3326 = withCtrl(x5693) { Const(true).name("b3326") } // b3326
-    val b6046 = withCtrl(x5693) { StreamOut(field="offset").name("b6046").srcCtx("DataGenerator.scala:44:8") } // x5672 = StreamOutNew(BurstCmdBus)
-    isAccum(b6046) = false
-    bufferDepthOf(b6046) = 1
-    val b6047 = withCtrl(x5693) { StreamOut(field="size").name("b6047").srcCtx("DataGenerator.scala:44:8") } // x5672 = StreamOutNew(BurstCmdBus)
-    isAccum(b6047) = false
-    bufferDepthOf(b6047) = 1
-    val x5673 = withCtrl(x5693) { StreamIn(field="data").name("x5673").srcCtx("DataGenerator.scala:44:8") } // x5673 = StreamInNew(BurstDataBus())
-    isAccum(x5673) = false
-    bufferDepthOf(x5673) = 1
-    val x5684 = withCtrl(x5693) { UnitController(style=SeqPipe, level=InnerControl).name("x5684").srcCtx("DataGenerator.scala:44:8") } // UnitPipe(List(b3326),Block(x5683))
-    val x5674 = withCtrl(x5684) { b3325 } // FixConvert(b3325,TRUE,_32,_0) (Same Type. No op)
-    val x5675 = withCtrl(x5684) { OpDef(op=FixSla, inputs=List(x5674, Const(7))).name("x5675").srcCtx("DataGenerator.scala:44:8") } // FixLsh(x5674,Const(7))
-    val x5676 = withCtrl(x5684) { Const(0) } // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
-    val x5677 = withCtrl(x5684) { OpDef(op=FixAdd, inputs=List(x5675, x5676)).name("x5677").srcCtx("DataGenerator.scala:44:8") } // FixAdd(x5675,x5676)
-    val x5678 = withCtrl(x5684) { OpDef(op=FixSla, inputs=List(x5677, Const(2))).name("x5678").srcCtx("DataGenerator.scala:44:8") } // FixLsh(x5677,Const(2))
-    val x5679 = withCtrl(x5684) { x5678 } // FixConvert(x5678,TRUE,_64,_0)
-    val x5680 = withCtrl(x5684) { DramAddress(x5594).name("x5680").srcCtx("DataGenerator.scala:44:8") } // GetDRAMAddress(x5594)
-    val x5682_x5681 = withCtrl(x5684) { OpDef(op=FixAdd, inputs=List(x5679, x5680)).name("x5682_x5681").srcCtx("DataGenerator.scala:44:8") } // FixAdd(x5679,x5680)
-    // x5682 = SimpleStruct(ArrayBuffer((offset,x5681), (size,Const(512)), (isLoad,Const(true))))
-    val x5683_b6048_b6046 = withCtrl(x5684) { WriteMem(b6046, x5682_x5681).name("x5683_b6048_b6046").srcCtx("DataGenerator.scala:44:8") } // StreamWrite(x5672,x5682,b3326)
-    val x5683_b6049_b6047 = withCtrl(x5684) { WriteMem(b6047, Const(512)).name("x5683_b6049_b6047").srcCtx("DataGenerator.scala:44:8") } // StreamWrite(x5672,x5682,b3326)
-    val x5685 = withCtrl(x5693) { FringeDenseLoad(dram=List(x5594), cmdStream=List(b6046, b6047), dataStream=List(x5673)).name("x5685").srcCtx("DataGenerator.scala:44:8") } // FringeDenseLoad(x5594,x5672,x5673)
-    val x5686 = withCtrl(x5693) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x5686").srcCtx("DataGenerator.scala:44:8") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
-    val x5687 = withCtrl(x5693) { CounterChain(List(x5686)).name("x5687").srcCtx("DataGenerator.scala:44:8") } // CounterChainNew(List(x5686))
-    val x5692 = withCtrl(x5693) { LoopController(style=InnerPipe, level=InnerControl, cchain=x5687).name("x5692").srcCtx("DataGenerator.scala:44:8") } // UnrolledForeach(List(b3326),x5687,Block(Const(())),List(List(b3343)),List(List(b3344)))
-    val b3343 = withCtrl(x5692) { CounterIter(x5686, None).name("b3343") } // b3343
-    val b3344 = withCtrl(x5692) { Const(true).name("b3344") } // b3344
-    val x5688 = withCtrl(x5692) { OpDef(op=BitAnd, inputs=List(b3344, b3326)).name("x5688").srcCtx("UnrollingBase.scala:28:66") } // And(b3344,b3326)
-    val x5689_x5689 = withCtrl(x5692) { ReadMem(x5673).name("x5689_x5689").srcCtx("DataGenerator.scala:44:8") } // ParStreamRead(x5673,List(x5688))
-    val x5690_x5690 = withCtrl(x5692) { x5689_x5689 } // VectorApply(x5689,0)
-    val x5691 = withCtrl(x5692) { StoreBanks(List(List(x5669_d0_b0), List(x5669_d1_b0)), List(b3325, b3343), x5690_x5690).name("x5691").srcCtx("DataGenerator.scala:44:8") } // ParSRAMStore(x5669,List(List(b3325, b3343)),List(x5690),List(x5688))
-    val x5694_d0_b0 = withCtrl(x6031) { SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x5694_d0_b0").srcCtx("DataGenerator.scala:43:21:h") } // x5694 = SRAMNew(ArrayBuffer(Const(2), Const(128)))
-    isAccum(x5694_d0_b0) = false
-    bufferDepthOf(x5694_d0_b0) = 4
-    staticDimsOf(x5694_d0_b0) = List(2, 128)
-    val x5695 = withCtrl(x6031) { Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x5695").srcCtx("DataGenerator.scala:44:8") } // CounterNew(Const(0),Const(2),Const(1),Const(1))
-    val x5696 = withCtrl(x6031) { CounterChain(List(x5695)).name("x5696").srcCtx("DataGenerator.scala:44:8") } // CounterChainNew(List(x5695))
-    val x5718 = withCtrl(x6031) { LoopController(style=StreamPipe, level=OuterControl, cchain=x5696).name("x5718").srcCtx("DataGenerator.scala:44:8") } // UnrolledForeach(List(Const(true)),x5696,Block(Const(())),List(List(b3354)),List(List(b3355)))
-    val b3354 = withCtrl(x5718) { CounterIter(x5695, Some(0)).name("b3354") } // b3354
-    val b3355 = withCtrl(x5718) { Const(true).name("b3355") } // b3355
-    val b6050 = withCtrl(x5718) { StreamOut(field="offset").name("b6050").srcCtx("DataGenerator.scala:44:8") } // x5697 = StreamOutNew(BurstCmdBus)
-    isAccum(b6050) = false
-    bufferDepthOf(b6050) = 1
-    val b6051 = withCtrl(x5718) { StreamOut(field="size").name("b6051").srcCtx("DataGenerator.scala:44:8") } // x5697 = StreamOutNew(BurstCmdBus)
-    isAccum(b6051) = false
-    bufferDepthOf(b6051) = 1
-    val x5698 = withCtrl(x5718) { StreamIn(field="data").name("x5698").srcCtx("DataGenerator.scala:44:8") } // x5698 = StreamInNew(BurstDataBus())
-    isAccum(x5698) = false
-    bufferDepthOf(x5698) = 1
-    val x5709 = withCtrl(x5718) { UnitController(style=SeqPipe, level=InnerControl).name("x5709").srcCtx("DataGenerator.scala:44:8") } // UnitPipe(List(b3355),Block(x5708))
-    val x5699 = withCtrl(x5709) { b3354 } // FixConvert(b3354,TRUE,_32,_0) (Same Type. No op)
-    val x5700 = withCtrl(x5709) { OpDef(op=FixSla, inputs=List(x5699, Const(7))).name("x5700").srcCtx("DataGenerator.scala:44:8") } // FixLsh(x5699,Const(7))
-    val x5701 = withCtrl(x5709) { Const(0) } // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
-    val x5702 = withCtrl(x5709) { OpDef(op=FixAdd, inputs=List(x5700, x5701)).name("x5702").srcCtx("DataGenerator.scala:44:8") } // FixAdd(x5700,x5701)
-    val x5703 = withCtrl(x5709) { OpDef(op=FixSla, inputs=List(x5702, Const(2))).name("x5703").srcCtx("DataGenerator.scala:44:8") } // FixLsh(x5702,Const(2))
-    val x5704 = withCtrl(x5709) { x5703 } // FixConvert(x5703,TRUE,_64,_0)
-    val x5705 = withCtrl(x5709) { DramAddress(x5601).name("x5705").srcCtx("DataGenerator.scala:44:8") } // GetDRAMAddress(x5601)
-    val x5707_x5706 = withCtrl(x5709) { OpDef(op=FixAdd, inputs=List(x5704, x5705)).name("x5707_x5706").srcCtx("DataGenerator.scala:44:8") } // FixAdd(x5704,x5705)
-    // x5707 = SimpleStruct(ArrayBuffer((offset,x5706), (size,Const(512)), (isLoad,Const(true))))
-    val x5708_b6052_b6050 = withCtrl(x5709) { WriteMem(b6050, x5707_x5706).name("x5708_b6052_b6050").srcCtx("DataGenerator.scala:44:8") } // StreamWrite(x5697,x5707,b3355)
-    val x5708_b6053_b6051 = withCtrl(x5709) { WriteMem(b6051, Const(512)).name("x5708_b6053_b6051").srcCtx("DataGenerator.scala:44:8") } // StreamWrite(x5697,x5707,b3355)
-    val x5710 = withCtrl(x5718) { FringeDenseLoad(dram=List(x5601), cmdStream=List(b6050, b6051), dataStream=List(x5698)).name("x5710").srcCtx("DataGenerator.scala:44:8") } // FringeDenseLoad(x5601,x5697,x5698)
-    val x5711 = withCtrl(x5718) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x5711").srcCtx("DataGenerator.scala:44:8") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
-    val x5712 = withCtrl(x5718) { CounterChain(List(x5711)).name("x5712").srcCtx("DataGenerator.scala:44:8") } // CounterChainNew(List(x5711))
-    val x5717 = withCtrl(x5718) { LoopController(style=InnerPipe, level=InnerControl, cchain=x5712).name("x5717").srcCtx("DataGenerator.scala:44:8") } // UnrolledForeach(List(b3355),x5712,Block(Const(())),List(List(b3372)),List(List(b3373)))
-    val b3372 = withCtrl(x5717) { CounterIter(x5711, None).name("b3372") } // b3372
-    val b3373 = withCtrl(x5717) { Const(true).name("b3373") } // b3373
-    val x5713 = withCtrl(x5717) { OpDef(op=BitAnd, inputs=List(b3373, b3355)).name("x5713").srcCtx("UnrollingBase.scala:28:66") } // And(b3373,b3355)
-    val x5714_x5714 = withCtrl(x5717) { ReadMem(x5698).name("x5714_x5714").srcCtx("DataGenerator.scala:44:8") } // ParStreamRead(x5698,List(x5713))
-    val x5715_x5715 = withCtrl(x5717) { x5714_x5714 } // VectorApply(x5714,0)
-    val x5716 = withCtrl(x5717) { StoreBanks(List(List(x5694_d0_b0)), List(b3354, b3372), x5715_x5715).name("x5716").srcCtx("DataGenerator.scala:44:8") } // ParSRAMStore(x5694,List(List(b3354, b3372)),List(x5715),List(x5713))
-    val x5719_d0_b0 = withCtrl(x6031) { SRAM(size=131072, banking=Strided(banks=16, stride=1)).name("x5719_d0_b0").srcCtx("DataGenerator.scala:76:21:wx") } // x5719 = SRAMNew(ArrayBuffer(Const(2), Const(128), Const(4), Const(128)))
-    isAccum(x5719_d0_b0) = false
-    bufferDepthOf(x5719_d0_b0) = 1
-    staticDimsOf(x5719_d0_b0) = List(2, 128, 4, 128)
-    val x5720 = withCtrl(x6031) { Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x5720").srcCtx("DataGenerator.scala:77:8") } // CounterNew(Const(0),Const(2),Const(1),Const(1))
-    val x5721 = withCtrl(x6031) { Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x5721").srcCtx("DataGenerator.scala:77:8") } // CounterNew(Const(0),Const(128),Const(1),Const(1))
-    val x5722 = withCtrl(x6031) { Counter(min=Const(0), max=Const(4), step=Const(1), par=1).name("x5722").srcCtx("DataGenerator.scala:77:8") } // CounterNew(Const(0),Const(4),Const(1),Const(1))
-    val x5723 = withCtrl(x6031) { CounterChain(List(x5720,x5721,x5722)).name("x5723").srcCtx("DataGenerator.scala:77:8") } // CounterChainNew(List(x5720, x5721, x5722))
-    val x5755 = withCtrl(x6031) { LoopController(style=StreamPipe, level=OuterControl, cchain=x5723).name("x5755").srcCtx("DataGenerator.scala:77:8") } // UnrolledForeach(List(Const(true)),x5723,Block(Const(())),List(List(b3385), List(b3386), List(b3387)),List(List(b3388), List(b3389), List(b3390)))
-    val b3385 = withCtrl(x5755) { CounterIter(x5720, Some(0)).name("b3385") } // b3385
-    val b3388 = withCtrl(x5755) { Const(true).name("b3388") } // b3388
-    val b3386 = withCtrl(x5755) { CounterIter(x5721, Some(0)).name("b3386") } // b3386
-    val b3389 = withCtrl(x5755) { Const(true).name("b3389") } // b3389
-    val b3387 = withCtrl(x5755) { CounterIter(x5722, Some(0)).name("b3387") } // b3387
-    val b3390 = withCtrl(x5755) { Const(true).name("b3390") } // b3390
-    val b6054 = withCtrl(x5755) { StreamOut(field="offset").name("b6054").srcCtx("DataGenerator.scala:77:8") } // x5724 = StreamOutNew(BurstCmdBus)
-    isAccum(b6054) = false
-    bufferDepthOf(b6054) = 1
-    val b6055 = withCtrl(x5755) { StreamOut(field="size").name("b6055").srcCtx("DataGenerator.scala:77:8") } // x5724 = StreamOutNew(BurstCmdBus)
-    isAccum(b6055) = false
-    bufferDepthOf(b6055) = 1
-    val x5725 = withCtrl(x5755) { StreamIn(field="data").name("x5725").srcCtx("DataGenerator.scala:77:8") } // x5725 = StreamInNew(BurstDataBus())
-    isAccum(x5725) = false
-    bufferDepthOf(x5725) = 1
-    val x5744 = withCtrl(x5755) { UnitController(style=SeqPipe, level=InnerControl).name("x5744").srcCtx("DataGenerator.scala:77:8") } // UnitPipe(List(b3388, b3389, b3390),Block(x5743))
-    val x5726 = withCtrl(x5744) { b3385 } // FixConvert(b3385,TRUE,_32,_0) (Same Type. No op)
-    val x5727 = withCtrl(x5744) { OpDef(op=FixSla, inputs=List(x5726, Const(16))).name("x5727").srcCtx("DataGenerator.scala:77:8") } // FixLsh(x5726,Const(16))
-    val x5728 = withCtrl(x5744) { b3386 } // FixConvert(b3386,TRUE,_32,_0) (Same Type. No op)
-    val x5729 = withCtrl(x5744) { OpDef(op=FixSla, inputs=List(x5728, Const(9))).name("x5729").srcCtx("DataGenerator.scala:77:8") } // FixLsh(x5728,Const(9))
-    val x5730 = withCtrl(x5744) { b3387 } // FixConvert(b3387,TRUE,_32,_0) (Same Type. No op)
-    val x5731 = withCtrl(x5744) { OpDef(op=FixSla, inputs=List(x5730, Const(7))).name("x5731").srcCtx("DataGenerator.scala:77:8") } // FixLsh(x5730,Const(7))
-    val x5732 = withCtrl(x5744) { Const(0) } // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
-    val x5733 = withCtrl(x5744) { OpDef(op=FixAdd, inputs=List(x5727, x5729)).name("x5733").srcCtx("DataGenerator.scala:77:8") } // FixAdd(x5727,x5729)
-    val x5734 = withCtrl(x5744) { OpDef(op=FixAdd, inputs=List(x5731, x5732)).name("x5734").srcCtx("DataGenerator.scala:77:8") } // FixAdd(x5731,x5732)
-    val x5735 = withCtrl(x5744) { OpDef(op=FixAdd, inputs=List(x5733, x5734)).name("x5735").srcCtx("DataGenerator.scala:77:8") } // FixAdd(x5733,x5734)
-    val x5736 = withCtrl(x5744) { OpDef(op=FixSla, inputs=List(x5735, Const(2))).name("x5736").srcCtx("DataGenerator.scala:77:8") } // FixLsh(x5735,Const(2))
-    val x5737 = withCtrl(x5744) { x5736 } // FixConvert(x5736,TRUE,_64,_0)
-    val x5738 = withCtrl(x5744) { DramAddress(x5608).name("x5738").srcCtx("DataGenerator.scala:77:8") } // GetDRAMAddress(x5608)
-    val x5740_x5739 = withCtrl(x5744) { OpDef(op=FixAdd, inputs=List(x5737, x5738)).name("x5740_x5739").srcCtx("DataGenerator.scala:77:8") } // FixAdd(x5737,x5738)
-    // x5740 = SimpleStruct(ArrayBuffer((offset,x5739), (size,Const(512)), (isLoad,Const(true))))
-    val x5741 = withCtrl(x5744) { OpDef(op=BitAnd, inputs=List(b3388, b3389)).name("x5741").srcCtx("UnrollingBase.scala:28:66") } // And(b3388,b3389)
-    val x5742 = withCtrl(x5744) { OpDef(op=BitAnd, inputs=List(x5741, b3390)).name("x5742").srcCtx("UnrollingBase.scala:28:66") } // And(x5741,b3390)
-    val x5743_b6056_b6054 = withCtrl(x5744) { WriteMem(b6054, x5740_x5739).name("x5743_b6056_b6054").srcCtx("DataGenerator.scala:77:8") } // StreamWrite(x5724,x5740,x5742)
-    val x5743_b6057_b6055 = withCtrl(x5744) { WriteMem(b6055, Const(512)).name("x5743_b6057_b6055").srcCtx("DataGenerator.scala:77:8") } // StreamWrite(x5724,x5740,x5742)
-    val x5745 = withCtrl(x5755) { FringeDenseLoad(dram=List(x5608), cmdStream=List(b6054, b6055), dataStream=List(x5725)).name("x5745").srcCtx("DataGenerator.scala:77:8") } // FringeDenseLoad(x5608,x5724,x5725)
-    val x5746 = withCtrl(x5755) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x5746").srcCtx("DataGenerator.scala:77:8") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
-    val x5747 = withCtrl(x5755) { CounterChain(List(x5746)).name("x5747").srcCtx("DataGenerator.scala:77:8") } // CounterChainNew(List(x5746))
-    val x5754 = withCtrl(x5755) { LoopController(style=InnerPipe, level=InnerControl, cchain=x5747).name("x5754").srcCtx("DataGenerator.scala:77:8") } // UnrolledForeach(List(b3388, b3389, b3390),x5747,Block(Const(())),List(List(b3415)),List(List(b3416)))
-    val b3415 = withCtrl(x5754) { CounterIter(x5746, None).name("b3415") } // b3415
-    val b3416 = withCtrl(x5754) { Const(true).name("b3416") } // b3416
-    val x5748 = withCtrl(x5754) { OpDef(op=BitAnd, inputs=List(b3416, b3388)).name("x5748").srcCtx("UnrollingBase.scala:28:66") } // And(b3416,b3388)
-    val x5749 = withCtrl(x5754) { OpDef(op=BitAnd, inputs=List(b3389, b3390)).name("x5749").srcCtx("UnrollingBase.scala:28:66") } // And(b3389,b3390)
-    val x5750 = withCtrl(x5754) { OpDef(op=BitAnd, inputs=List(x5748, x5749)).name("x5750").srcCtx("UnrollingBase.scala:28:66") } // And(x5748,x5749)
-    val x5751_x5751 = withCtrl(x5754) { ReadMem(x5725).name("x5751_x5751").srcCtx("DataGenerator.scala:77:8") } // ParStreamRead(x5725,List(x5750))
-    val x5752_x5752 = withCtrl(x5754) { x5751_x5751 } // VectorApply(x5751,0)
-    val x5753 = withCtrl(x5754) { StoreBanks(List(List(x5719_d0_b0)), List(b3385, b3386, b3387, b3415), x5752_x5752).name("x5753").srcCtx("DataGenerator.scala:77:8") } // ParSRAMStore(x5719,List(List(b3385, b3386, b3387, b3415)),List(x5752),List(x5750))
-    val x5756_d0_b0 = withCtrl(x6031) { SRAM(size=131072, banking=Strided(banks=16, stride=1)).name("x5756_d0_b0").srcCtx("DataGenerator.scala:76:21:wh") } // x5756 = SRAMNew(ArrayBuffer(Const(2), Const(128), Const(4), Const(128)))
-    isAccum(x5756_d0_b0) = false
-    bufferDepthOf(x5756_d0_b0) = 1
-    staticDimsOf(x5756_d0_b0) = List(2, 128, 4, 128)
-    val x5757 = withCtrl(x6031) { Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x5757").srcCtx("DataGenerator.scala:77:8") } // CounterNew(Const(0),Const(2),Const(1),Const(1))
-    val x5758 = withCtrl(x6031) { Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x5758").srcCtx("DataGenerator.scala:77:8") } // CounterNew(Const(0),Const(128),Const(1),Const(1))
-    val x5759 = withCtrl(x6031) { Counter(min=Const(0), max=Const(4), step=Const(1), par=1).name("x5759").srcCtx("DataGenerator.scala:77:8") } // CounterNew(Const(0),Const(4),Const(1),Const(1))
-    val x5760 = withCtrl(x6031) { CounterChain(List(x5757,x5758,x5759)).name("x5760").srcCtx("DataGenerator.scala:77:8") } // CounterChainNew(List(x5757, x5758, x5759))
-    val x5792 = withCtrl(x6031) { LoopController(style=StreamPipe, level=OuterControl, cchain=x5760).name("x5792").srcCtx("DataGenerator.scala:77:8") } // UnrolledForeach(List(Const(true)),x5760,Block(Const(())),List(List(b3430), List(b3431), List(b3432)),List(List(b3433), List(b3434), List(b3435)))
-    val b3430 = withCtrl(x5792) { CounterIter(x5757, Some(0)).name("b3430") } // b3430
-    val b3433 = withCtrl(x5792) { Const(true).name("b3433") } // b3433
-    val b3431 = withCtrl(x5792) { CounterIter(x5758, Some(0)).name("b3431") } // b3431
-    val b3434 = withCtrl(x5792) { Const(true).name("b3434") } // b3434
-    val b3432 = withCtrl(x5792) { CounterIter(x5759, Some(0)).name("b3432") } // b3432
-    val b3435 = withCtrl(x5792) { Const(true).name("b3435") } // b3435
-    val b6058 = withCtrl(x5792) { StreamOut(field="offset").name("b6058").srcCtx("DataGenerator.scala:77:8") } // x5761 = StreamOutNew(BurstCmdBus)
-    isAccum(b6058) = false
-    bufferDepthOf(b6058) = 1
-    val b6059 = withCtrl(x5792) { StreamOut(field="size").name("b6059").srcCtx("DataGenerator.scala:77:8") } // x5761 = StreamOutNew(BurstCmdBus)
-    isAccum(b6059) = false
-    bufferDepthOf(b6059) = 1
-    val x5762 = withCtrl(x5792) { StreamIn(field="data").name("x5762").srcCtx("DataGenerator.scala:77:8") } // x5762 = StreamInNew(BurstDataBus())
-    isAccum(x5762) = false
-    bufferDepthOf(x5762) = 1
-    val x5781 = withCtrl(x5792) { UnitController(style=SeqPipe, level=InnerControl).name("x5781").srcCtx("DataGenerator.scala:77:8") } // UnitPipe(List(b3433, b3434, b3435),Block(x5780))
-    val x5763 = withCtrl(x5781) { b3430 } // FixConvert(b3430,TRUE,_32,_0) (Same Type. No op)
-    val x5764 = withCtrl(x5781) { OpDef(op=FixSla, inputs=List(x5763, Const(16))).name("x5764").srcCtx("DataGenerator.scala:77:8") } // FixLsh(x5763,Const(16))
-    val x5765 = withCtrl(x5781) { b3431 } // FixConvert(b3431,TRUE,_32,_0) (Same Type. No op)
-    val x5766 = withCtrl(x5781) { OpDef(op=FixSla, inputs=List(x5765, Const(9))).name("x5766").srcCtx("DataGenerator.scala:77:8") } // FixLsh(x5765,Const(9))
-    val x5767 = withCtrl(x5781) { b3432 } // FixConvert(b3432,TRUE,_32,_0) (Same Type. No op)
-    val x5768 = withCtrl(x5781) { OpDef(op=FixSla, inputs=List(x5767, Const(7))).name("x5768").srcCtx("DataGenerator.scala:77:8") } // FixLsh(x5767,Const(7))
-    val x5769 = withCtrl(x5781) { Const(0) } // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
-    val x5770 = withCtrl(x5781) { OpDef(op=FixAdd, inputs=List(x5764, x5766)).name("x5770").srcCtx("DataGenerator.scala:77:8") } // FixAdd(x5764,x5766)
-    val x5771 = withCtrl(x5781) { OpDef(op=FixAdd, inputs=List(x5768, x5769)).name("x5771").srcCtx("DataGenerator.scala:77:8") } // FixAdd(x5768,x5769)
-    val x5772 = withCtrl(x5781) { OpDef(op=FixAdd, inputs=List(x5770, x5771)).name("x5772").srcCtx("DataGenerator.scala:77:8") } // FixAdd(x5770,x5771)
-    val x5773 = withCtrl(x5781) { OpDef(op=FixSla, inputs=List(x5772, Const(2))).name("x5773").srcCtx("DataGenerator.scala:77:8") } // FixLsh(x5772,Const(2))
-    val x5774 = withCtrl(x5781) { x5773 } // FixConvert(x5773,TRUE,_64,_0)
-    val x5775 = withCtrl(x5781) { DramAddress(x5621).name("x5775").srcCtx("DataGenerator.scala:77:8") } // GetDRAMAddress(x5621)
-    val x5777_x5776 = withCtrl(x5781) { OpDef(op=FixAdd, inputs=List(x5774, x5775)).name("x5777_x5776").srcCtx("DataGenerator.scala:77:8") } // FixAdd(x5774,x5775)
-    // x5777 = SimpleStruct(ArrayBuffer((offset,x5776), (size,Const(512)), (isLoad,Const(true))))
-    val x5778 = withCtrl(x5781) { OpDef(op=BitAnd, inputs=List(b3433, b3434)).name("x5778").srcCtx("UnrollingBase.scala:28:66") } // And(b3433,b3434)
-    val x5779 = withCtrl(x5781) { OpDef(op=BitAnd, inputs=List(x5778, b3435)).name("x5779").srcCtx("UnrollingBase.scala:28:66") } // And(x5778,b3435)
-    val x5780_b6060_b6058 = withCtrl(x5781) { WriteMem(b6058, x5777_x5776).name("x5780_b6060_b6058").srcCtx("DataGenerator.scala:77:8") } // StreamWrite(x5761,x5777,x5779)
-    val x5780_b6061_b6059 = withCtrl(x5781) { WriteMem(b6059, Const(512)).name("x5780_b6061_b6059").srcCtx("DataGenerator.scala:77:8") } // StreamWrite(x5761,x5777,x5779)
-    val x5782 = withCtrl(x5792) { FringeDenseLoad(dram=List(x5621), cmdStream=List(b6058, b6059), dataStream=List(x5762)).name("x5782").srcCtx("DataGenerator.scala:77:8") } // FringeDenseLoad(x5621,x5761,x5762)
-    val x5783 = withCtrl(x5792) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x5783").srcCtx("DataGenerator.scala:77:8") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
-    val x5784 = withCtrl(x5792) { CounterChain(List(x5783)).name("x5784").srcCtx("DataGenerator.scala:77:8") } // CounterChainNew(List(x5783))
-    val x5791 = withCtrl(x5792) { LoopController(style=InnerPipe, level=InnerControl, cchain=x5784).name("x5791").srcCtx("DataGenerator.scala:77:8") } // UnrolledForeach(List(b3433, b3434, b3435),x5784,Block(Const(())),List(List(b3460)),List(List(b3461)))
-    val b3460 = withCtrl(x5791) { CounterIter(x5783, None).name("b3460") } // b3460
-    val b3461 = withCtrl(x5791) { Const(true).name("b3461") } // b3461
-    val x5785 = withCtrl(x5791) { OpDef(op=BitAnd, inputs=List(b3461, b3433)).name("x5785").srcCtx("UnrollingBase.scala:28:66") } // And(b3461,b3433)
-    val x5786 = withCtrl(x5791) { OpDef(op=BitAnd, inputs=List(b3434, b3435)).name("x5786").srcCtx("UnrollingBase.scala:28:66") } // And(b3434,b3435)
-    val x5787 = withCtrl(x5791) { OpDef(op=BitAnd, inputs=List(x5785, x5786)).name("x5787").srcCtx("UnrollingBase.scala:28:66") } // And(x5785,x5786)
-    val x5788_x5788 = withCtrl(x5791) { ReadMem(x5762).name("x5788_x5788").srcCtx("DataGenerator.scala:77:8") } // ParStreamRead(x5762,List(x5787))
-    val x5789_x5789 = withCtrl(x5791) { x5788_x5788 } // VectorApply(x5788,0)
-    val x5790 = withCtrl(x5791) { StoreBanks(List(List(x5756_d0_b0)), List(b3430, b3431, b3432, b3460), x5789_x5789).name("x5790").srcCtx("DataGenerator.scala:77:8") } // ParSRAMStore(x5756,List(List(b3430, b3431, b3432, b3460)),List(x5789),List(x5787))
-    val x5793_d0_b0 = withCtrl(x6031) { SRAM(size=1024, banking=Strided(banks=16, stride=1)).name("x5793_d0_b0").srcCtx("DataGenerator.scala:59:21:b") } // x5793 = SRAMNew(ArrayBuffer(Const(2), Const(4), Const(128)))
-    isAccum(x5793_d0_b0) = false
-    bufferDepthOf(x5793_d0_b0) = 1
-    staticDimsOf(x5793_d0_b0) = List(2, 4, 128)
-    val x5794 = withCtrl(x6031) { Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x5794").srcCtx("DataGenerator.scala:60:8") } // CounterNew(Const(0),Const(2),Const(1),Const(1))
-    val x5795 = withCtrl(x6031) { Counter(min=Const(0), max=Const(4), step=Const(1), par=1).name("x5795").srcCtx("DataGenerator.scala:60:8") } // CounterNew(Const(0),Const(4),Const(1),Const(1))
-    val x5796 = withCtrl(x6031) { CounterChain(List(x5794,x5795)).name("x5796").srcCtx("DataGenerator.scala:60:8") } // CounterChainNew(List(x5794, x5795))
-    val x5823 = withCtrl(x6031) { LoopController(style=StreamPipe, level=OuterControl, cchain=x5796).name("x5823").srcCtx("DataGenerator.scala:60:8") } // UnrolledForeach(List(Const(true)),x5796,Block(Const(())),List(List(b3474), List(b3475)),List(List(b3476), List(b3477)))
-    val b3474 = withCtrl(x5823) { CounterIter(x5794, Some(0)).name("b3474") } // b3474
-    val b3476 = withCtrl(x5823) { Const(true).name("b3476") } // b3476
-    val b3475 = withCtrl(x5823) { CounterIter(x5795, Some(0)).name("b3475") } // b3475
-    val b3477 = withCtrl(x5823) { Const(true).name("b3477") } // b3477
-    val b6062 = withCtrl(x5823) { StreamOut(field="offset").name("b6062").srcCtx("DataGenerator.scala:60:8") } // x5797 = StreamOutNew(BurstCmdBus)
-    isAccum(b6062) = false
-    bufferDepthOf(b6062) = 1
-    val b6063 = withCtrl(x5823) { StreamOut(field="size").name("b6063").srcCtx("DataGenerator.scala:60:8") } // x5797 = StreamOutNew(BurstCmdBus)
-    isAccum(b6063) = false
-    bufferDepthOf(b6063) = 1
-    val x5798 = withCtrl(x5823) { StreamIn(field="data").name("x5798").srcCtx("DataGenerator.scala:60:8") } // x5798 = StreamInNew(BurstDataBus())
-    isAccum(x5798) = false
-    bufferDepthOf(x5798) = 1
-    val x5813 = withCtrl(x5823) { UnitController(style=SeqPipe, level=InnerControl).name("x5813").srcCtx("DataGenerator.scala:60:8") } // UnitPipe(List(b3476, b3477),Block(x5812))
-    val x5799 = withCtrl(x5813) { b3474 } // FixConvert(b3474,TRUE,_32,_0) (Same Type. No op)
-    val x5800 = withCtrl(x5813) { OpDef(op=FixSla, inputs=List(x5799, Const(9))).name("x5800").srcCtx("DataGenerator.scala:60:8") } // FixLsh(x5799,Const(9))
-    val x5801 = withCtrl(x5813) { b3475 } // FixConvert(b3475,TRUE,_32,_0) (Same Type. No op)
-    val x5802 = withCtrl(x5813) { OpDef(op=FixSla, inputs=List(x5801, Const(7))).name("x5802").srcCtx("DataGenerator.scala:60:8") } // FixLsh(x5801,Const(7))
-    val x5803 = withCtrl(x5813) { Const(0) } // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
-    val x5804 = withCtrl(x5813) { OpDef(op=FixAdd, inputs=List(x5800, x5802)).name("x5804").srcCtx("DataGenerator.scala:60:8") } // FixAdd(x5800,x5802)
-    val x5805 = withCtrl(x5813) { OpDef(op=FixAdd, inputs=List(x5804, x5803)).name("x5805").srcCtx("DataGenerator.scala:60:8") } // FixAdd(x5804,x5803)
-    val x5806 = withCtrl(x5813) { OpDef(op=FixSla, inputs=List(x5805, Const(2))).name("x5806").srcCtx("DataGenerator.scala:60:8") } // FixLsh(x5805,Const(2))
-    val x5807 = withCtrl(x5813) { x5806 } // FixConvert(x5806,TRUE,_64,_0)
-    val x5808 = withCtrl(x5813) { DramAddress(x5634).name("x5808").srcCtx("DataGenerator.scala:60:8") } // GetDRAMAddress(x5634)
-    val x5810_x5809 = withCtrl(x5813) { OpDef(op=FixAdd, inputs=List(x5807, x5808)).name("x5810_x5809").srcCtx("DataGenerator.scala:60:8") } // FixAdd(x5807,x5808)
-    // x5810 = SimpleStruct(ArrayBuffer((offset,x5809), (size,Const(512)), (isLoad,Const(true))))
-    val x5811 = withCtrl(x5813) { OpDef(op=BitAnd, inputs=List(b3476, b3477)).name("x5811").srcCtx("UnrollingBase.scala:28:66") } // And(b3476,b3477)
-    val x5812_b6064_b6062 = withCtrl(x5813) { WriteMem(b6062, x5810_x5809).name("x5812_b6064_b6062").srcCtx("DataGenerator.scala:60:8") } // StreamWrite(x5797,x5810,x5811)
-    val x5812_b6065_b6063 = withCtrl(x5813) { WriteMem(b6063, Const(512)).name("x5812_b6065_b6063").srcCtx("DataGenerator.scala:60:8") } // StreamWrite(x5797,x5810,x5811)
-    val x5814 = withCtrl(x5823) { FringeDenseLoad(dram=List(x5634), cmdStream=List(b6062, b6063), dataStream=List(x5798)).name("x5814").srcCtx("DataGenerator.scala:60:8") } // FringeDenseLoad(x5634,x5797,x5798)
-    val x5815 = withCtrl(x5823) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x5815").srcCtx("DataGenerator.scala:60:8") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
-    val x5816 = withCtrl(x5823) { CounterChain(List(x5815)).name("x5816").srcCtx("DataGenerator.scala:60:8") } // CounterChainNew(List(x5815))
-    val x5822 = withCtrl(x5823) { LoopController(style=InnerPipe, level=InnerControl, cchain=x5816).name("x5822").srcCtx("DataGenerator.scala:60:8") } // UnrolledForeach(List(b3476, b3477),x5816,Block(Const(())),List(List(b3498)),List(List(b3499)))
-    val b3498 = withCtrl(x5822) { CounterIter(x5815, None).name("b3498") } // b3498
-    val b3499 = withCtrl(x5822) { Const(true).name("b3499") } // b3499
-    val x5817 = withCtrl(x5822) { OpDef(op=BitAnd, inputs=List(b3499, b3476)).name("x5817").srcCtx("UnrollingBase.scala:28:66") } // And(b3499,b3476)
-    val x5818 = withCtrl(x5822) { OpDef(op=BitAnd, inputs=List(x5817, b3477)).name("x5818").srcCtx("UnrollingBase.scala:28:66") } // And(x5817,b3477)
-    val x5819_x5819 = withCtrl(x5822) { ReadMem(x5798).name("x5819_x5819").srcCtx("DataGenerator.scala:60:8") } // ParStreamRead(x5798,List(x5818))
-    val x5820_x5820 = withCtrl(x5822) { x5819_x5819 } // VectorApply(x5819,0)
-    val x5821 = withCtrl(x5822) { StoreBanks(List(List(x5793_d0_b0)), List(b3474, b3475, b3498), x5820_x5820).name("x5821").srcCtx("DataGenerator.scala:60:8") } // ParSRAMStore(x5793,List(List(b3474, b3475, b3498)),List(x5820),List(x5818))
-    val x5824 = withCtrl(x6031) { Counter(min=Const(0), max=Const(8), step=Const(1), par=1).name("x5824").srcCtx("LSTMPipe.scala:42:28") } // CounterNew(Const(0),Const(8),Const(1),Const(1))
-    val x5825 = withCtrl(x6031) { CounterChain(List(x5824)).name("x5825").srcCtx("LSTMPipe.scala:42:41") } // CounterChainNew(List(x5824))
-    val x6002 = withCtrl(x6031) { LoopController(style=MetaPipe, level=OuterControl, cchain=x5825).name("x6002").srcCtx("LSTMPipe.scala:42:41") } // UnrolledForeach(List(Const(true)),x5825,Block(Const(())),List(List(b3509)),List(List(b3510)))
-    val b3509 = withCtrl(x6002) { CounterIter(x5824, Some(0)).name("b3509") } // b3509
-    val b3510 = withCtrl(x6002) { Const(true).name("b3510") } // b3510
-    val x5826 = withCtrl(x6002) { Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x5826").srcCtx("LSTMPipe.scala:43:31") } // CounterNew(Const(0),Const(2),Const(1),Const(1))
-    val x5827 = withCtrl(x6002) { CounterChain(List(x5826)).name("x5827").srcCtx("LSTMPipe.scala:43:45") } // CounterChainNew(List(x5826))
-    val x6001 = withCtrl(x6002) { LoopController(style=MetaPipe, level=OuterControl, cchain=x5827).name("x6001").srcCtx("LSTMPipe.scala:43:45") } // UnrolledForeach(List(b3510),x5827,Block(Const(())),List(List(b3513)),List(List(b3514)))
-    val b3513 = withCtrl(x6001) { CounterIter(x5826, Some(0)).name("b3513") } // b3513
-    val b3514 = withCtrl(x6001) { Const(true).name("b3514") } // b3514
-    val x5828_d0_b0 = withCtrl(x6001) { SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x5828_d0_b0").srcCtx("LSTMPipe.scala:46:34:reduceMem") } // x5828 = SRAMNew(ArrayBuffer(Const(4), Const(128)))
-    isAccum(x5828_d0_b0) = false
-    bufferDepthOf(x5828_d0_b0) = 2
-    staticDimsOf(x5828_d0_b0) = List(4, 128)
-    val x5828_d1_b0 = withCtrl(x6001) { SRAM(size=512, banking=Strided(banks=1, stride=128)).name("x5828_d1_b0").srcCtx("LSTMPipe.scala:46:34:reduceMem") } // x5828 = SRAMNew(ArrayBuffer(Const(4), Const(128)))
-    isAccum(x5828_d1_b0) = true
-    bufferDepthOf(x5828_d1_b0) = 1
-    staticDimsOf(x5828_d1_b0) = List(4, 128)
-    val x5829_d0_b0 = withCtrl(x6001) { SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x5829_d0_b0").srcCtx("LSTMPipe.scala:47:32:foldMem") } // x5829 = SRAMNew(ArrayBuffer(Const(4), Const(128)))
-    isAccum(x5829_d0_b0) = false
-    bufferDepthOf(x5829_d0_b0) = 2
-    staticDimsOf(x5829_d0_b0) = List(4, 128)
-    val x5830 = withCtrl(x6001) { Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x5830").srcCtx("LSTMPipe.scala:49:79") } // CounterNew(Const(0),Const(128),Const(1),Const(1))
-    val x5831 = withCtrl(x6001) { CounterChain(List(x5830)).name("x5831").srcCtx("LSTMPipe.scala:62:12") } // CounterChainNew(List(x5830))
-    val x5880 = withCtrl(x6001) { LoopController(style=MetaPipe, level=OuterControl, cchain=x5831).name("x5880").srcCtx("LSTMPipe.scala:62:12") } // UnrolledReduce(List(b3514, b3510),x5831,x5828,Block((x5828) => Const(())),List(List(b3522)),List(List(b3523)))
-    val b3522 = withCtrl(x5880) { CounterIter(x5830, Some(0)).name("b3522") } // b3522
-    val b3523 = withCtrl(x5880) { Const(true).name("b3523") } // b3523
-    val x5832_d0_b0 = withCtrl(x5880) { SRAM(size=512, banking=Strided(banks=16, stride=1)).name("x5832_d0_b0").srcCtx("LSTMPipe.scala:50:29:re") } // x5832 = SRAMNew(ArrayBuffer(Const(4), Const(128)))
-    isAccum(x5832_d0_b0) = false
-    bufferDepthOf(x5832_d0_b0) = 2
-    staticDimsOf(x5832_d0_b0) = List(4, 128)
-    val x5833 = withCtrl(x5880) { Reg(init=Some(0.0)).name("x5833").srcCtx("LSTMPipe.scala:62:12") } // x5833 = RegNew(Const(0))
-    isAccum(x5833) = false
-    bufferDepthOf(x5833) = 2
-    val x5834 = withCtrl(x5880) { Reg(init=Some(0.0)).name("x5834").srcCtx("LSTMPipe.scala:62:12") } // x5834 = RegNew(Const(0))
-    isAccum(x5834) = false
-    bufferDepthOf(x5834) = 2
-    val x5841 = withCtrl(x5880) { UnitController(style=SeqPipe, level=InnerControl).name("x5841").srcCtx("LSTMPipe.scala:62:12") } // UnitPipe(List(b3523, b3514, b3510),Block(Const(())))
-    val x5835 = withCtrl(x5841) { OpDef(op=BitAnd, inputs=List(b3523, b3514)).name("x5835").srcCtx("UnrollingBase.scala:28:66") } // And(b3523,b3514)
-    val x5836 = withCtrl(x5841) { OpDef(op=BitAnd, inputs=List(x5835, b3510)).name("x5836").srcCtx("UnrollingBase.scala:28:66") } // And(x5835,b3510)
-    val x5837 = withCtrl(x5841) { LoadBanks(List(x5644_d1_b0), List(b3509, b3522)).name("x5837").srcCtx("LSTMPipe.scala:51:25:xEle") } // SRAMLoad(x5644,ArrayBuffer(Const(8), Const(128)),List(b3509, b3522),Const(0),x5836)
-    val x5838 = withCtrl(x5841) { LoadBanks(List(x5694_d0_b0), List(b3513, b3522)).name("x5838").srcCtx("LSTMPipe.scala:52:25:hEle") } // SRAMLoad(x5694,ArrayBuffer(Const(2), Const(128)),List(b3513, b3522),Const(0),x5836)
-    val x5839_x5833 = withCtrl(x5841) { WriteMem(x5833, x5837).name("x5839_x5833").srcCtx("LSTMPipe.scala:62:12") } // RegWrite(x5833,x5837,x5836)
-    val x5840_x5834 = withCtrl(x5841) { WriteMem(x5834, x5838).name("x5840_x5834").srcCtx("LSTMPipe.scala:62:12") } // RegWrite(x5834,x5838,x5836)
-    val x5842 = withCtrl(x5880) { Counter(min=Const(0), max=Const(4), step=Const(1), par=1).name("x5842").srcCtx("LSTMPipe.scala:53:29") } // CounterNew(Const(0),Const(4),Const(1),Const(1))
-    val x5843 = withCtrl(x5880) { CounterChain(List(x5842)).name("x5843").srcCtx("LSTMPipe.scala:53:35") } // CounterChainNew(List(x5842))
-    val x5861 = withCtrl(x5880) { LoopController(style=MetaPipe, level=OuterControl, cchain=x5843).name("x5861").srcCtx("LSTMPipe.scala:53:35") } // UnrolledForeach(List(b3523, b3514, b3510),x5843,Block(Const(())),List(List(b3536)),List(List(b3537)))
-    val b3536 = withCtrl(x5861) { CounterIter(x5842, Some(0)).name("b3536") } // b3536
-    val b3537 = withCtrl(x5861) { Const(true).name("b3537") } // b3537
-    val x5844 = withCtrl(x5861) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x5844").srcCtx("LSTMPipe.scala:54:42") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
-    val x5845 = withCtrl(x5861) { CounterChain(List(x5844)).name("x5845").srcCtx("LSTMPipe.scala:54:56") } // CounterChainNew(List(x5844))
-    val x5860 = withCtrl(x5861) { LoopController(style=InnerPipe, level=InnerControl, cchain=x5845).name("x5860").srcCtx("LSTMPipe.scala:54:56") } // UnrolledForeach(List(b3537, b3523, b3514, b3510),x5845,Block(Const(())),List(List(b3540)),List(List(b3541)))
-    val b3540 = withCtrl(x5860) { CounterIter(x5844, None).name("b3540") } // b3540
-    val b3541 = withCtrl(x5860) { Const(true).name("b3541") } // b3541
-    val x5846 = withCtrl(x5860) { OpDef(op=BitAnd, inputs=List(b3541, b3537)).name("x5846").srcCtx("UnrollingBase.scala:28:66") } // And(b3541,b3537)
-    val x5847 = withCtrl(x5860) { OpDef(op=BitAnd, inputs=List(b3523, b3514)).name("x5847").srcCtx("UnrollingBase.scala:28:66") } // And(b3523,b3514)
-    val x5848 = withCtrl(x5860) { OpDef(op=BitAnd, inputs=List(x5846, x5847)).name("x5848").srcCtx("UnrollingBase.scala:28:66") } // And(x5846,x5847)
-    val x5849 = withCtrl(x5860) { OpDef(op=BitAnd, inputs=List(x5848, b3510)).name("x5849").srcCtx("UnrollingBase.scala:28:66") } // And(x5848,b3510)
-    val x5850 = withCtrl(x5860) { LoadBanks(List(x5719_d0_b0), List(b3513, b3522, b3536, b3540)).name("x5850").srcCtx("LSTMPipe.scala:55:29") } // ParSRAMLoad(x5719,List(List(b3513, b3522, b3536, b3540)),List(x5849))
-    val x5851 = withCtrl(x5860) { x5850 } // VectorApply(x5850,0)
-    val x5852 = withCtrl(x5860) { ReadMem(x5833).name("x5852").srcCtx("LSTMPipe.scala:62:12") } // RegRead(x5833)
-    val x5853 = withCtrl(x5860) { OpDef(op=FixMul, inputs=List(x5851, x5852)).name("x5853").srcCtx("LSTMPipe.scala:55:67:reX") } // FixMul(x5851,x5852)
-    val x5854 = withCtrl(x5860) { LoadBanks(List(x5756_d0_b0), List(b3513, b3522, b3536, b3540)).name("x5854").srcCtx("LSTMPipe.scala:56:29") } // ParSRAMLoad(x5756,List(List(b3513, b3522, b3536, b3540)),List(x5849))
-    val x5855 = withCtrl(x5860) { x5854 } // VectorApply(x5854,0)
-    val x5856 = withCtrl(x5860) { ReadMem(x5834).name("x5856").srcCtx("LSTMPipe.scala:62:12") } // RegRead(x5834)
-    val x5857 = withCtrl(x5860) { OpDef(op=FixMul, inputs=List(x5855, x5856)).name("x5857").srcCtx("LSTMPipe.scala:56:67:reH") } // FixMul(x5855,x5856)
-    val x5858 = withCtrl(x5860) { OpDef(op=FixAdd, inputs=List(x5853, x5857)).name("x5858").srcCtx("LSTMPipe.scala:57:46") } // FixAdd(x5853,x5857)
-    val x5859 = withCtrl(x5860) { StoreBanks(List(List(x5832_d0_b0)), List(b3536, b3540), x5858).name("x5859").srcCtx("LSTMPipe.scala:57:40") } // ParSRAMStore(x5832,List(List(b3536, b3540)),List(x5858),List(x5849))
-    val x5862 = withCtrl(x5880) { Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x5862").srcCtx("LSTMPipe.scala:62:12") } // CounterNew(Const(0),Const(128),Const(1),Const(1))
-    val x5863 = withCtrl(x5880) { Counter(min=Const(0), max=Const(4), step=Const(1), par=1).name("x5863").srcCtx("LSTMPipe.scala:62:12") } // CounterNew(Const(0),Const(4),Const(1),Const(1))
-    val x5864 = withCtrl(x5880) { CounterChain(List(x5863,x5862)).name("x5864").srcCtx("LSTMPipe.scala:62:12") } // CounterChainNew(ArrayBuffer(x5863, x5862))
-    val x5879 = withCtrl(x5880) { LoopController(style=InnerPipe, level=InnerControl, cchain=x5864).name("x5879").srcCtx("LSTMPipe.scala:62:12") } // UnrolledForeach(List(),x5864,Block(Const(())),ArrayBuffer(List(b3558), List(b3559)),ArrayBuffer(List(b3560), List(b3561)))
-    val b3558 = withCtrl(x5879) { CounterIter(x5863, Some(0)).name("b3558") } // b3558
-    val b3560 = withCtrl(x5879) { Const(true).name("b3560") } // b3560
-    val b3559 = withCtrl(x5879) { CounterIter(x5862, None).name("b3559") } // b3559
-    val b3561 = withCtrl(x5879) { Const(true).name("b3561") } // b3561
-    val x5865 = withCtrl(x5879) { OpDef(op=BitAnd, inputs=List(b3560, b3561)).name("x5865").srcCtx("UnrollingBase.scala:28:66") } // And(b3560,b3561)
-    val x5866 = withCtrl(x5879) { OpDef(op=BitAnd, inputs=List(b3514, b3510)).name("x5866").srcCtx("UnrollingBase.scala:28:66") } // And(b3514,b3510)
-    val x5867 = withCtrl(x5879) { OpDef(op=BitAnd, inputs=List(x5865, x5866)).name("x5867").srcCtx("UnrollingBase.scala:28:66") } // And(x5865,x5866)
-    val x5868 = withCtrl(x5879) { LoadBanks(List(x5832_d0_b0), List(b3558, b3559)).name("x5868").srcCtx("LSTMPipe.scala:62:12") } // ParSRAMLoad(x5832,List(ArrayBuffer(b3558, b3559)),List(x5867))
-    val x5869 = withCtrl(x5879) { x5868 } // VectorApply(x5868,0)
-    val x5870 = withCtrl(x5879) { LoadBanks(List(x5828_d1_b0), List(b3558, b3559)).name("x5870").srcCtx("LSTMPipe.scala:62:12") } // ParSRAMLoad(x5828,List(ArrayBuffer(b3558, b3559)),List(x5867))
-    val x5871 = withCtrl(x5879) { x5870 } // VectorApply(x5870,0)
-    val x5872 = withCtrl(x5879) { OpDef(op=BitAnd, inputs=List(b3523, b3514)).name("x5872").srcCtx("LSTMPipe.scala:62:12") } // And(b3523,b3514)
-    val x5873 = withCtrl(x5879) { OpDef(op=BitAnd, inputs=List(x5872, b3510)).name("x5873").srcCtx("LSTMPipe.scala:62:12") } // And(x5872,b3510)
-    val x5874 = withCtrl(x5879) { OpDef(op=BitAnd, inputs=List(x5873, x5867)).name("x5874").srcCtx("LSTMPipe.scala:62:12") } // And(x5873,x5867)
-    val x5875 = withCtrl(x5879) { OpDef(op=FixEql, inputs=List(b3522, Const(0))).name("x5875").srcCtx("LSTMPipe.scala:62:12") } // FixEql(b3522,Const(0))
-    val x5876 = withCtrl(x5879) { OpDef(op=FixAdd, inputs=List(x5869, x5871)).name("x5876").srcCtx("LSTMPipe.scala:62:14") } // FixAdd(x5869,x5871)
-    val x5877 = withCtrl(x5879) { OpDef(op=MuxOp, inputs=List(x5875, x5869, x5876)).name("x5877").srcCtx("LSTMPipe.scala:62:12") } // Mux(x5875,x5869,x5876)
-    val x5878 = withCtrl(x5879) { StoreBanks(List(List(x5828_d0_b0), List(x5828_d1_b0)), List(b3558, b3559), x5877).name("x5878").srcCtx("LSTMPipe.scala:62:12") } // ParSRAMStore(x5828,List(ArrayBuffer(b3558, b3559)),List(x5877),List(x5867))
-    antiDepsOf(x5878)=List(x5870)
-    val x5881 = withCtrl(x6001) { Counter(min=Const(0), max=Const(4), step=Const(1), par=1).name("x5881").srcCtx("LSTMPipe.scala:65:32") } // CounterNew(Const(0),Const(4),Const(1),Const(1))
-    val x5882 = withCtrl(x6001) { CounterChain(List(x5881)).name("x5882").srcCtx("LSTMPipe.scala:65:45") } // CounterChainNew(List(x5881))
-    val x5895 = withCtrl(x6001) { LoopController(style=MetaPipe, level=OuterControl, cchain=x5882).name("x5895").srcCtx("LSTMPipe.scala:65:45") } // UnrolledForeach(List(b3514, b3510),x5882,Block(Const(())),List(List(b3580)),List(List(b3581)))
-    val b3580 = withCtrl(x5895) { CounterIter(x5881, Some(0)).name("b3580") } // b3580
-    val b3581 = withCtrl(x5895) { Const(true).name("b3581") } // b3581
-    val x5883 = withCtrl(x5895) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x5883").srcCtx("LSTMPipe.scala:66:40") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
-    val x5884 = withCtrl(x5895) { CounterChain(List(x5883)).name("x5884").srcCtx("LSTMPipe.scala:66:54") } // CounterChainNew(List(x5883))
-    val x5894 = withCtrl(x5895) { LoopController(style=InnerPipe, level=InnerControl, cchain=x5884).name("x5894").srcCtx("LSTMPipe.scala:66:54") } // UnrolledForeach(List(b3581, b3514, b3510),x5884,Block(Const(())),List(List(b3584)),List(List(b3585)))
-    val b3584 = withCtrl(x5894) { CounterIter(x5883, None).name("b3584") } // b3584
-    val b3585 = withCtrl(x5894) { Const(true).name("b3585") } // b3585
-    val x5885 = withCtrl(x5894) { OpDef(op=BitAnd, inputs=List(b3585, b3581)).name("x5885").srcCtx("UnrollingBase.scala:28:66") } // And(b3585,b3581)
-    val x5886 = withCtrl(x5894) { OpDef(op=BitAnd, inputs=List(b3514, b3510)).name("x5886").srcCtx("UnrollingBase.scala:28:66") } // And(b3514,b3510)
-    val x5887 = withCtrl(x5894) { OpDef(op=BitAnd, inputs=List(x5885, x5886)).name("x5887").srcCtx("UnrollingBase.scala:28:66") } // And(x5885,x5886)
-    val x5888 = withCtrl(x5894) { LoadBanks(List(x5828_d0_b0), List(b3580, b3584)).name("x5888").srcCtx("LSTMPipe.scala:67:48") } // ParSRAMLoad(x5828,List(List(b3580, b3584)),List(x5887))
-    val x5889 = withCtrl(x5894) { x5888 } // VectorApply(x5888,0)
-    val x5890 = withCtrl(x5894) { LoadBanks(List(x5793_d0_b0), List(b3513, b3580, b3584)).name("x5890").srcCtx("LSTMPipe.scala:67:66") } // ParSRAMLoad(x5793,List(List(b3513, b3580, b3584)),List(x5887))
-    val x5891 = withCtrl(x5894) { x5890 } // VectorApply(x5890,0)
-    val x5892 = withCtrl(x5894) { OpDef(op=FixAdd, inputs=List(x5889, x5891)).name("x5892").srcCtx("LSTMPipe.scala:67:63") } // FixAdd(x5889,x5891)
-    val x5893 = withCtrl(x5894) { StoreBanks(List(List(x5829_d0_b0)), List(b3580, b3584), x5892).name("x5893").srcCtx("LSTMPipe.scala:67:37") } // ParSRAMStore(x5829,List(List(b3580, b3584)),List(x5892),List(x5887))
-    val x5896_d0_b0 = withCtrl(x6001) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x5896_d0_b0").srcCtx("LSTMPipe.scala:72:29:cbuf") } // x5896 = SRAMNew(ArrayBuffer(Const(128)))
-    isAccum(x5896_d0_b0) = false
-    bufferDepthOf(x5896_d0_b0) = 2
-    staticDimsOf(x5896_d0_b0) = List(128)
-    val x5896_d1_b0 = withCtrl(x6001) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x5896_d1_b0").srcCtx("LSTMPipe.scala:72:29:cbuf") } // x5896 = SRAMNew(ArrayBuffer(Const(128)))
-    isAccum(x5896_d1_b0) = true
-    bufferDepthOf(x5896_d1_b0) = 1
-    staticDimsOf(x5896_d1_b0) = List(128)
-    val x5897_d0_b0 = withCtrl(x6001) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x5897_d0_b0").srcCtx("LSTMPipe.scala:73:29:hbuf") } // x5897 = SRAMNew(ArrayBuffer(Const(128)))
-    isAccum(x5897_d0_b0) = false
-    bufferDepthOf(x5897_d0_b0) = 2
-    staticDimsOf(x5897_d0_b0) = List(128)
-    val x5897_d1_b0 = withCtrl(x6001) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x5897_d1_b0").srcCtx("LSTMPipe.scala:73:29:hbuf") } // x5897 = SRAMNew(ArrayBuffer(Const(128)))
-    isAccum(x5897_d1_b0) = true
-    bufferDepthOf(x5897_d1_b0) = 1
-    staticDimsOf(x5897_d1_b0) = List(128)
-    val x5898 = withCtrl(x6001) { Counter(min=Const(0), max=Const(4), step=Const(1), par=1).name("x5898").srcCtx("LSTMPipe.scala:75:27") } // CounterNew(Const(0),Const(4),Const(1),Const(1))
-    val x5899 = withCtrl(x6001) { CounterChain(List(x5898)).name("x5899").srcCtx("LSTMPipe.scala:75:33") } // CounterChainNew(List(x5898))
-    val x5988 = withCtrl(x6001) { LoopController(style=MetaPipe, level=OuterControl, cchain=x5899).name("x5988").srcCtx("LSTMPipe.scala:75:33") } // UnrolledForeach(List(b3514, b3510),x5899,Block(Const(())),List(List(b3601)),List(List(b3602)))
-    val b3601 = withCtrl(x5988) { CounterIter(x5898, Some(0)).name("b3601") } // b3601
-    val b3602 = withCtrl(x5988) { Const(true).name("b3602") } // b3602
-    val x5900 = withCtrl(x5988) { FIFO(size=16).name("x5900").srcCtx("LSTMPipe.scala:76:31:sigQ") } // x5900 = FIFONew(Const(16))
-    isAccum(x5900) = false
-    bufferDepthOf(x5900) = 2
-    val x5901 = withCtrl(x5988) { FIFO(size=16).name("x5901").srcCtx("LSTMPipe.scala:77:31:actQ") } // x5901 = FIFONew(Const(16))
-    isAccum(x5901) = false
-    bufferDepthOf(x5901) = 2
-    val x5902 = withCtrl(x5988) { FIFO(size=16).name("x5902").srcCtx("LSTMPipe.scala:78:34:sigEleQ") } // x5902 = FIFONew(Const(16))
-    isAccum(x5902) = false
-    bufferDepthOf(x5902) = 2
-    val x5903 = withCtrl(x5988) { FIFO(size=16).name("x5903").srcCtx("LSTMPipe.scala:79:39:cNewMultAddQ") } // x5903 = FIFONew(Const(16))
-    isAccum(x5903) = false
-    bufferDepthOf(x5903) = 2
-    val x5904 = withCtrl(x5988) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x5904").srcCtx("LSTMPipe.scala:81:40") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
-    val x5905 = withCtrl(x5988) { CounterChain(List(x5904)).name("x5905").srcCtx("LSTMPipe.scala:81:54") } // CounterChainNew(List(x5904))
-    val x5933 = withCtrl(x5988) { LoopController(style=InnerPipe, level=InnerControl, cchain=x5905).name("x5933").srcCtx("LSTMPipe.scala:81:54") } // UnrolledForeach(List(b3602, b3514, b3510),x5905,Block(Const(())),List(List(b3609)),List(List(b3610)))
-    val b3609 = withCtrl(x5933) { CounterIter(x5904, None).name("b3609") } // b3609
-    val b3610 = withCtrl(x5933) { Const(true).name("b3610") } // b3610
-    val x5906 = withCtrl(x5933) { OpDef(op=BitAnd, inputs=List(b3610, b3602)).name("x5906").srcCtx("UnrollingBase.scala:28:66") } // And(b3610,b3602)
-    val x5907 = withCtrl(x5933) { OpDef(op=BitAnd, inputs=List(b3514, b3510)).name("x5907").srcCtx("UnrollingBase.scala:28:66") } // And(b3514,b3510)
-    val x5908 = withCtrl(x5933) { OpDef(op=BitAnd, inputs=List(x5906, x5907)).name("x5908").srcCtx("UnrollingBase.scala:28:66") } // And(x5906,x5907)
-    val x5909 = withCtrl(x5933) { LoadBanks(List(x5669_d1_b0), List(b3513, b3609)).name("x5909").srcCtx("LSTMPipe.scala:82:27:cEle") } // ParSRAMLoad(x5669,List(List(b3513, b3609)),List(x5908))
-    val x5910 = withCtrl(x5933) { x5909 } // VectorApply(x5909,0)
-    val x5911 = withCtrl(x5933) { LoadBanks(List(x5829_d0_b0), List(b3601, b3609)).name("x5911").srcCtx("LSTMPipe.scala:83:33:pEle") } // ParSRAMLoad(x5829,List(List(b3601, b3609)),List(x5908))
-    val x5912 = withCtrl(x5933) { x5911 } // VectorApply(x5911,0)
-    val x5913 = withCtrl(x5933) { OpDef(op=FixLt, inputs=List(x5912, Const(-2.5))).name("x5913").srcCtx("NonLinearity.scala:94:12") } // FixLt(x5912,Const(-2.5))
-    val x5914 = withCtrl(x5933) { OpDef(op=FixLeq, inputs=List(Const(2.5), x5912)).name("x5914").srcCtx("NonLinearity.scala:94:34") } // FixLeq(Const(2.5),x5912)
-    val x5915 = withCtrl(x5933) { OpDef(op=FixMul, inputs=List(Const(0.19999999), x5912)).name("x5915").srcCtx("NonLinearity.scala:94:56") } // FixMul(Const(0.199999988079071044921875),x5912)
-    val x5916 = withCtrl(x5933) { OpDef(op=FixAdd, inputs=List(x5915, Const(0.5))).name("x5916").srcCtx("NonLinearity.scala:94:61") } // FixAdd(x5915,Const(0.5))
-    val x5917 = withCtrl(x5933) { OpDef(op=MuxOp, inputs=List(x5914, Const(1.0), x5916)).name("x5917").srcCtx("NonLinearity.scala:94:30") } // Mux(x5914,Const(1),x5916)
-    val x5918 = withCtrl(x5933) { OpDef(op=MuxOp, inputs=List(x5913, Const(0.0), x5917)).name("x5918").srcCtx("NonLinearity.scala:94:8:sigEle") } // Mux(x5913,Const(0),x5917)
-    val x5919 = withCtrl(x5933) { OpDef(op=FixAbs, inputs=List(x5912)).name("x5919").srcCtx("NonLinearity.scala:73:20:absin") } // FixAbs(x5912)
-    val x5920 = withCtrl(x5933) { OpDef(op=FixSra, inputs=List(x5919, Const(2))).name("x5920").srcCtx("NonLinearity.scala:74:22:div4") } // FixRsh(x5919,Const(2))
-    val x5921 = withCtrl(x5933) { OpDef(op=FixAdd, inputs=List(x5920, Const(0.375))).name("x5921").srcCtx("NonLinearity.scala:75:19:li") } // FixAdd(x5920,Const(0.375))
-    val x5922 = withCtrl(x5933) { OpDef(op=FixLt, inputs=List(Const(2.5), x5919)).name("x5922").srcCtx("NonLinearity.scala:76:28") } // FixLt(Const(2.5),x5919)
-    val x5923 = withCtrl(x5933) { OpDef(op=FixLt, inputs=List(Const(0.5), x5919)).name("x5923").srcCtx("NonLinearity.scala:77:14") } // FixLt(Const(0.5),x5919)
-    val x5924 = withCtrl(x5933) { OpDef(op=FixLt, inputs=List(x5919, Const(2.5))).name("x5924").srcCtx("NonLinearity.scala:77:31") } // FixLt(x5919,Const(2.5))
-    val x5925 = withCtrl(x5933) { OpDef(op=BitAnd, inputs=List(x5923, x5924)).name("x5925").srcCtx("NonLinearity.scala:77:22") } // And(x5923,x5924)
-    val x5926 = withCtrl(x5933) { OpDef(op=MuxOp, inputs=List(x5925, x5921, x5919)).name("x5926").srcCtx("NonLinearity.scala:77:10") } // Mux(x5925,x5921,x5919)
-    val x5927 = withCtrl(x5933) { OpDef(op=MuxOp, inputs=List(x5922, Const(1.0), x5926)).name("x5927").srcCtx("NonLinearity.scala:76:21:absout") } // Mux(x5922,Const(1),x5926)
-    val x5928 = withCtrl(x5933) { OpDef(op=FixNeg, inputs=List(x5927)).name("x5928").srcCtx("NonLinearity.scala:80:23:negout") } // FixNeg(x5927)
-    val x5929 = withCtrl(x5933) { OpDef(op=FixLt, inputs=List(x5912, Const(0.0))).name("x5929").srcCtx("NonLinearity.scala:81:12") } // FixLt(x5912,Const(0))
-    val x5930 = withCtrl(x5933) { OpDef(op=MuxOp, inputs=List(x5929, x5928, x5927)).name("x5930").srcCtx("NonLinearity.scala:81:8:actEle") } // Mux(x5929,x5928,x5927)
-    val x5931_x5900 = withCtrl(x5933) { WriteMem(x5900, x5918).name("x5931_x5900").srcCtx("LSTMPipe.scala:88:23") } // ParFIFOEnq(x5900,List(x5918),List(x5908))
-    val x5932_x5901 = withCtrl(x5933) { WriteMem(x5901, x5930).name("x5932_x5901").srcCtx("LSTMPipe.scala:89:23") } // ParFIFOEnq(x5901,List(x5930),List(x5908))
-    val x5934 = withCtrl(x5988) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x5934").srcCtx("LSTMPipe.scala:92:40") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
-    val x5935 = withCtrl(x5988) { CounterChain(List(x5934)).name("x5935").srcCtx("LSTMPipe.scala:92:54") } // CounterChainNew(List(x5934))
-    val x5959 = withCtrl(x5988) { LoopController(style=InnerPipe, level=InnerControl, cchain=x5935).name("x5959").srcCtx("LSTMPipe.scala:92:54") } // UnrolledForeach(List(b3602, b3514, b3510),x5935,Block(Const(())),List(List(b3641)),List(List(b3642)))
-    val b3641 = withCtrl(x5959) { CounterIter(x5934, None).name("b3641") } // b3641
-    val b3642 = withCtrl(x5959) { Const(true).name("b3642") } // b3642
-    val x5936 = withCtrl(x5959) { OpDef(op=BitAnd, inputs=List(b3642, b3602)).name("x5936").srcCtx("UnrollingBase.scala:28:66") } // And(b3642,b3602)
-    val x5937 = withCtrl(x5959) { OpDef(op=BitAnd, inputs=List(b3514, b3510)).name("x5937").srcCtx("UnrollingBase.scala:28:66") } // And(b3514,b3510)
-    val x5938 = withCtrl(x5959) { OpDef(op=BitAnd, inputs=List(x5936, x5937)).name("x5938").srcCtx("UnrollingBase.scala:28:66") } // And(x5936,x5937)
-    val x5939 = withCtrl(x5959) { ReadMem(x5900).name("x5939").srcCtx("LSTMPipe.scala:93:36:sigEle") } // ParFIFODeq(x5900,List(x5938))
-    val x5940 = withCtrl(x5959) { x5939 } // VectorApply(x5939,0)
-    val x5941 = withCtrl(x5959) { ReadMem(x5901).name("x5941").srcCtx("LSTMPipe.scala:94:36:actEle") } // ParFIFODeq(x5901,List(x5938))
-    val x5942 = withCtrl(x5959) { x5941 } // VectorApply(x5941,0)
-    val x5943 = withCtrl(x5959) { LoadBanks(List(x5896_d1_b0), List(b3641)).name("x5943").srcCtx("LSTMPipe.scala:96:31:cLast") } // ParSRAMLoad(x5896,List(List(b3641)),List(x5938))
-    val x5944 = withCtrl(x5959) { x5943 } // VectorApply(x5943,0)
-    val x5945 = withCtrl(x5959) { OpDef(op=FixMul, inputs=List(x5944, x5942)).name("x5945").srcCtx("LSTMPipe.scala:97:36:cNewMult") } // FixMul(x5944,x5942)
-    val x5946 = withCtrl(x5959) { LoadBanks(List(x5669_d0_b0), List(b3513, b3641)).name("x5946").srcCtx("LSTMPipe.scala:98:43") } // ParSRAMLoad(x5669,List(List(b3513, b3641)),List(x5938))
-    val x5947 = withCtrl(x5959) { x5946 } // VectorApply(x5946,0)
-    val x5948 = withCtrl(x5959) { OpDef(op=FixMul, inputs=List(x5940, x5947)).name("x5948").srcCtx("LSTMPipe.scala:98:40") } // FixMul(x5940,x5947)
-    val x5949 = withCtrl(x5959) { OpDef(op=FixAdd, inputs=List(x5948, x5944)).name("x5949").srcCtx("LSTMPipe.scala:98:65:cNewMultAdd") } // FixAdd(x5948,x5944)
-    val x5950 = withCtrl(x5959) { OpDef(op=FixEql, inputs=List(b3601, Const(0))).name("x5950").srcCtx("LSTMPipe.scala:16:40") } // FixEql(b3601,Const(0))
-    val x5951 = withCtrl(x5959) { OpDef(op=FixEql, inputs=List(b3601, Const(1))).name("x5951").srcCtx("LSTMPipe.scala:18:40") } // FixEql(b3601,Const(1))
-    val x5952 = withCtrl(x5959) { OpDef(op=FixEql, inputs=List(b3601, Const(2))).name("x5952").srcCtx("LSTMPipe.scala:20:40") } // FixEql(b3601,Const(2))
-    val x5953 = withCtrl(x5959) { OpDef(op=MuxOp, inputs=List(x5952, x5949, x5944)).name("x5953").srcCtx("LSTMPipe.scala:103:24") } // Mux(x5952,x5949,x5944)
-    val x5954 = withCtrl(x5959) { OpDef(op=MuxOp, inputs=List(x5951, x5945, x5953)).name("x5954").srcCtx("LSTMPipe.scala:102:22") } // Mux(x5951,x5945,x5953)
-    val x5955 = withCtrl(x5959) { OpDef(op=MuxOp, inputs=List(x5950, x5940, x5954)).name("x5955").srcCtx("LSTMPipe.scala:101:20") } // Mux(x5950,x5940,x5954)
-    val x5956 = withCtrl(x5959) { StoreBanks(List(List(x5896_d0_b0), List(x5896_d1_b0)), List(b3641), x5955).name("x5956").srcCtx("LSTMPipe.scala:100:33") } // ParSRAMStore(x5896,List(List(b3641)),List(x5955),List(x5938))
-    antiDepsOf(x5956)=List(x5943)
-    val x5957_x5902 = withCtrl(x5959) { WriteMem(x5902, x5940).name("x5957_x5902").srcCtx("LSTMPipe.scala:107:26") } // ParFIFOEnq(x5902,List(x5940),List(x5938))
-    val x5958_x5903 = withCtrl(x5959) { WriteMem(x5903, x5949).name("x5958_x5903").srcCtx("LSTMPipe.scala:108:31") } // ParFIFOEnq(x5903,List(x5949),List(x5938))
-    val x5960 = withCtrl(x5988) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x5960").srcCtx("LSTMPipe.scala:111:40") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6386 = withCtrl(design.top.topController) { DRAM(dims=List(Const(8), Const(128))).name("x6386").srcCtx("LSTMPipe.scala:24:23:dout") } // x6386 = DRAMNew(ArrayBuffer(Const(8), Const(128)),Const(0))
+    val x6387 = withCtrl(design.top.topController) { DRAM(dims=List(Const(8), Const(128))).name("x6387").srcCtx("DataGenerator.scala:156:20:xInit") } // x6387 = DRAMNew(ArrayBuffer(Const(8), Const(128)),Const(0))
+    val x6394 = withCtrl(design.top.topController) { DRAM(dims=List(Const(2), Const(128))).name("x6394").srcCtx("DataGenerator.scala:156:20:cInit") } // x6394 = DRAMNew(ArrayBuffer(Const(2), Const(128)),Const(0))
+    val x6401 = withCtrl(design.top.topController) { DRAM(dims=List(Const(2), Const(128))).name("x6401").srcCtx("DataGenerator.scala:156:20:hInit") } // x6401 = DRAMNew(ArrayBuffer(Const(2), Const(128)),Const(0))
+    val x6408 = withCtrl(design.top.topController) { DRAM(dims=List(Const(2), Const(128), Const(4), Const(128))).name("x6408").srcCtx("DataGenerator.scala:182:20:wxInit") } // x6408 = DRAMNew(ArrayBuffer(Const(2), Const(128), Const(4), Const(128)),Const(0))
+    val x6421 = withCtrl(design.top.topController) { DRAM(dims=List(Const(2), Const(128), Const(4), Const(128))).name("x6421").srcCtx("DataGenerator.scala:182:20:whInit") } // x6421 = DRAMNew(ArrayBuffer(Const(2), Const(128), Const(4), Const(128)),Const(0))
+    val x6434 = withCtrl(design.top.topController) { DRAM(dims=List(Const(2), Const(4), Const(128))).name("x6434").srcCtx("DataGenerator.scala:168:20:bInit") } // x6434 = DRAMNew(ArrayBuffer(Const(2), Const(4), Const(128)),Const(0))
+    val x6946 = withCtrl(design.top.topController) { UnitController(style=SeqPipe, level=OuterControl).name("x6946").srcCtx("LSTMPipe.scala:34:11") } // Hwblock(Block(Const(())),false)
+    val x6444_d0_b0 = withCtrl(x6946) { SRAM(size=1024, banking=Strided(banks=16, stride=1)).name("x6444_d0_b0").srcCtx("DataGenerator.scala:43:21:x") } // x6444 = SRAMNew(ArrayBuffer(Const(8), Const(128)))
+    isAccum(x6444_d0_b0) = false
+    bufferDepthOf(x6444_d0_b0) = 1
+    staticDimsOf(x6444_d0_b0) = List(8, 128)
+    val x6444_d1_b0 = withCtrl(x6946) { SRAM(size=1024, banking=Strided(banks=16, stride=1)).name("x6444_d1_b0").srcCtx("DataGenerator.scala:43:21:x") } // x6444 = SRAMNew(ArrayBuffer(Const(8), Const(128)))
+    isAccum(x6444_d1_b0) = false
+    bufferDepthOf(x6444_d1_b0) = 4
+    staticDimsOf(x6444_d1_b0) = List(8, 128)
+    val x6445 = withCtrl(x6946) { Counter(min=Const(0), max=Const(8), step=Const(1), par=1).name("x6445").srcCtx("DataGenerator.scala:44:8") } // CounterNew(Const(0),Const(8),Const(1),Const(1))
+    val x6446 = withCtrl(x6946) { CounterChain(List(x6445)).name("x6446").srcCtx("DataGenerator.scala:44:8") } // CounterChainNew(List(x6445))
+    val x6468 = withCtrl(x6946) { LoopController(style=StreamPipe, level=OuterControl, cchain=x6446).name("x6468").srcCtx("DataGenerator.scala:44:8") } // UnrolledForeach(List(Const(true)),x6446,Block(Const(())),List(List(b3495)),List(List(b3496)))
+    val b3495 = withCtrl(x6468) { CounterIter(x6445, Some(0)).name("b3495") } // b3495
+    val b3496 = withCtrl(x6468) { Const(true).name("b3496") } // b3496
+    val b6957 = withCtrl(x6468) { StreamOut(field="offset").name("b6957").srcCtx("DataGenerator.scala:44:8") } // x6447 = StreamOutNew(BurstCmdBus)
+    isAccum(b6957) = false
+    bufferDepthOf(b6957) = 1
+    val b6958 = withCtrl(x6468) { StreamOut(field="size").name("b6958").srcCtx("DataGenerator.scala:44:8") } // x6447 = StreamOutNew(BurstCmdBus)
+    isAccum(b6958) = false
+    bufferDepthOf(b6958) = 1
+    val x6448 = withCtrl(x6468) { StreamIn(field="data").name("x6448").srcCtx("DataGenerator.scala:44:8") } // x6448 = StreamInNew(BurstDataBus())
+    isAccum(x6448) = false
+    bufferDepthOf(x6448) = 1
+    val x6459 = withCtrl(x6468) { UnitController(style=SeqPipe, level=InnerControl).name("x6459").srcCtx("DataGenerator.scala:44:8") } // UnitPipe(List(b3496),Block(x6458))
+    val x6449 = withCtrl(x6459) { b3495 } // FixConvert(b3495,TRUE,_32,_0) (Same Type. No op)
+    val x6450 = withCtrl(x6459) { OpDef(op=FixSla, inputs=List(x6449, Const(7))).name("x6450").srcCtx("DataGenerator.scala:44:8") } // FixLsh(x6449,Const(7))
+    val x6451 = withCtrl(x6459) { Const(0) } // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x6452 = withCtrl(x6459) { OpDef(op=FixAdd, inputs=List(x6450, x6451)).name("x6452").srcCtx("DataGenerator.scala:44:8") } // FixAdd(x6450,x6451)
+    val x6453 = withCtrl(x6459) { OpDef(op=FixSla, inputs=List(x6452, Const(2))).name("x6453").srcCtx("DataGenerator.scala:44:8") } // FixLsh(x6452,Const(2))
+    val x6454 = withCtrl(x6459) { x6453 } // FixConvert(x6453,TRUE,_64,_0)
+    val x6455 = withCtrl(x6459) { DramAddress(x6387).name("x6455").srcCtx("DataGenerator.scala:44:8") } // GetDRAMAddress(x6387)
+    val x6457_x6456 = withCtrl(x6459) { OpDef(op=FixAdd, inputs=List(x6454, x6455)).name("x6457_x6456").srcCtx("DataGenerator.scala:44:8") } // FixAdd(x6454,x6455)
+    // x6457 = SimpleStruct(ArrayBuffer((offset,x6456), (size,Const(512)), (isLoad,Const(true))))
+    val x6458_b6959_b6957 = withCtrl(x6459) { WriteMem(b6957, x6457_x6456).name("x6458_b6959_b6957").srcCtx("DataGenerator.scala:44:8") } // StreamWrite(x6447,x6457,b3496)
+    val x6458_b6960_b6958 = withCtrl(x6459) { WriteMem(b6958, Const(512)).name("x6458_b6960_b6958").srcCtx("DataGenerator.scala:44:8") } // StreamWrite(x6447,x6457,b3496)
+    val x6460 = withCtrl(x6468) { FringeDenseLoad(dram=List(x6387), cmdStream=List(b6957, b6958), dataStream=List(x6448)).name("x6460").srcCtx("DataGenerator.scala:44:8") } // FringeDenseLoad(x6387,x6447,x6448)
+    val x6461 = withCtrl(x6468) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6461").srcCtx("DataGenerator.scala:44:8") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6462 = withCtrl(x6468) { CounterChain(List(x6461)).name("x6462").srcCtx("DataGenerator.scala:44:8") } // CounterChainNew(List(x6461))
+    val x6467 = withCtrl(x6468) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6462).name("x6467").srcCtx("DataGenerator.scala:44:8") } // UnrolledForeach(List(b3496),x6462,Block(Const(())),List(List(b3513)),List(List(b3514)))
+    val b3513 = withCtrl(x6467) { CounterIter(x6461, None).name("b3513") } // b3513
+    val b3514 = withCtrl(x6467) { Const(true).name("b3514") } // b3514
+    val x6463 = withCtrl(x6467) { OpDef(op=BitAnd, inputs=List(b3514, b3496)).name("x6463").srcCtx("UnrollingBase.scala:28:66") } // And(b3514,b3496)
+    val x6464_x6464 = withCtrl(x6467) { ReadMem(x6448).name("x6464_x6464").srcCtx("DataGenerator.scala:44:8") } // ParStreamRead(x6448,List(x6463))
+    val x6465_x6465 = withCtrl(x6467) { x6464_x6464 } // VectorApply(x6464,0)
+    val x6466 = withCtrl(x6467) { StoreBanks(List(List(x6444_d0_b0), List(x6444_d1_b0)), List(b3495, b3513), x6465_x6465).name("x6466").srcCtx("DataGenerator.scala:44:8") } // ParSRAMStore(x6444,List(List(b3495, b3513)),List(x6465),List(x6463))
+    val x6469_d0_b0 = withCtrl(x6946) { SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x6469_d0_b0").srcCtx("DataGenerator.scala:43:21:c") } // x6469 = SRAMNew(ArrayBuffer(Const(2), Const(128)))
+    isAccum(x6469_d0_b0) = false
+    bufferDepthOf(x6469_d0_b0) = 2
+    staticDimsOf(x6469_d0_b0) = List(2, 128)
+    val x6469_d1_b0 = withCtrl(x6946) { SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x6469_d1_b0").srcCtx("DataGenerator.scala:43:21:c") } // x6469 = SRAMNew(ArrayBuffer(Const(2), Const(128)))
+    isAccum(x6469_d1_b0) = false
+    bufferDepthOf(x6469_d1_b0) = 2
+    staticDimsOf(x6469_d1_b0) = List(2, 128)
+    val x6470 = withCtrl(x6946) { Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x6470").srcCtx("DataGenerator.scala:44:8") } // CounterNew(Const(0),Const(2),Const(1),Const(1))
+    val x6471 = withCtrl(x6946) { CounterChain(List(x6470)).name("x6471").srcCtx("DataGenerator.scala:44:8") } // CounterChainNew(List(x6470))
+    val x6493 = withCtrl(x6946) { LoopController(style=StreamPipe, level=OuterControl, cchain=x6471).name("x6493").srcCtx("DataGenerator.scala:44:8") } // UnrolledForeach(List(Const(true)),x6471,Block(Const(())),List(List(b3524)),List(List(b3525)))
+    val b3524 = withCtrl(x6493) { CounterIter(x6470, Some(0)).name("b3524") } // b3524
+    val b3525 = withCtrl(x6493) { Const(true).name("b3525") } // b3525
+    val b6961 = withCtrl(x6493) { StreamOut(field="offset").name("b6961").srcCtx("DataGenerator.scala:44:8") } // x6472 = StreamOutNew(BurstCmdBus)
+    isAccum(b6961) = false
+    bufferDepthOf(b6961) = 1
+    val b6962 = withCtrl(x6493) { StreamOut(field="size").name("b6962").srcCtx("DataGenerator.scala:44:8") } // x6472 = StreamOutNew(BurstCmdBus)
+    isAccum(b6962) = false
+    bufferDepthOf(b6962) = 1
+    val x6473 = withCtrl(x6493) { StreamIn(field="data").name("x6473").srcCtx("DataGenerator.scala:44:8") } // x6473 = StreamInNew(BurstDataBus())
+    isAccum(x6473) = false
+    bufferDepthOf(x6473) = 1
+    val x6484 = withCtrl(x6493) { UnitController(style=SeqPipe, level=InnerControl).name("x6484").srcCtx("DataGenerator.scala:44:8") } // UnitPipe(List(b3525),Block(x6483))
+    val x6474 = withCtrl(x6484) { b3524 } // FixConvert(b3524,TRUE,_32,_0) (Same Type. No op)
+    val x6475 = withCtrl(x6484) { OpDef(op=FixSla, inputs=List(x6474, Const(7))).name("x6475").srcCtx("DataGenerator.scala:44:8") } // FixLsh(x6474,Const(7))
+    val x6476 = withCtrl(x6484) { Const(0) } // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x6477 = withCtrl(x6484) { OpDef(op=FixAdd, inputs=List(x6475, x6476)).name("x6477").srcCtx("DataGenerator.scala:44:8") } // FixAdd(x6475,x6476)
+    val x6478 = withCtrl(x6484) { OpDef(op=FixSla, inputs=List(x6477, Const(2))).name("x6478").srcCtx("DataGenerator.scala:44:8") } // FixLsh(x6477,Const(2))
+    val x6479 = withCtrl(x6484) { x6478 } // FixConvert(x6478,TRUE,_64,_0)
+    val x6480 = withCtrl(x6484) { DramAddress(x6394).name("x6480").srcCtx("DataGenerator.scala:44:8") } // GetDRAMAddress(x6394)
+    val x6482_x6481 = withCtrl(x6484) { OpDef(op=FixAdd, inputs=List(x6479, x6480)).name("x6482_x6481").srcCtx("DataGenerator.scala:44:8") } // FixAdd(x6479,x6480)
+    // x6482 = SimpleStruct(ArrayBuffer((offset,x6481), (size,Const(512)), (isLoad,Const(true))))
+    val x6483_b6963_b6961 = withCtrl(x6484) { WriteMem(b6961, x6482_x6481).name("x6483_b6963_b6961").srcCtx("DataGenerator.scala:44:8") } // StreamWrite(x6472,x6482,b3525)
+    val x6483_b6964_b6962 = withCtrl(x6484) { WriteMem(b6962, Const(512)).name("x6483_b6964_b6962").srcCtx("DataGenerator.scala:44:8") } // StreamWrite(x6472,x6482,b3525)
+    val x6485 = withCtrl(x6493) { FringeDenseLoad(dram=List(x6394), cmdStream=List(b6961, b6962), dataStream=List(x6473)).name("x6485").srcCtx("DataGenerator.scala:44:8") } // FringeDenseLoad(x6394,x6472,x6473)
+    val x6486 = withCtrl(x6493) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6486").srcCtx("DataGenerator.scala:44:8") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6487 = withCtrl(x6493) { CounterChain(List(x6486)).name("x6487").srcCtx("DataGenerator.scala:44:8") } // CounterChainNew(List(x6486))
+    val x6492 = withCtrl(x6493) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6487).name("x6492").srcCtx("DataGenerator.scala:44:8") } // UnrolledForeach(List(b3525),x6487,Block(Const(())),List(List(b3542)),List(List(b3543)))
+    val b3542 = withCtrl(x6492) { CounterIter(x6486, None).name("b3542") } // b3542
+    val b3543 = withCtrl(x6492) { Const(true).name("b3543") } // b3543
+    val x6488 = withCtrl(x6492) { OpDef(op=BitAnd, inputs=List(b3543, b3525)).name("x6488").srcCtx("UnrollingBase.scala:28:66") } // And(b3543,b3525)
+    val x6489_x6489 = withCtrl(x6492) { ReadMem(x6473).name("x6489_x6489").srcCtx("DataGenerator.scala:44:8") } // ParStreamRead(x6473,List(x6488))
+    val x6490_x6490 = withCtrl(x6492) { x6489_x6489 } // VectorApply(x6489,0)
+    val x6491 = withCtrl(x6492) { StoreBanks(List(List(x6469_d0_b0), List(x6469_d1_b0)), List(b3524, b3542), x6490_x6490).name("x6491").srcCtx("DataGenerator.scala:44:8") } // ParSRAMStore(x6469,List(List(b3524, b3542)),List(x6490),List(x6488))
+    val x6494_d0_b0 = withCtrl(x6946) { SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x6494_d0_b0").srcCtx("DataGenerator.scala:43:21:h") } // x6494 = SRAMNew(ArrayBuffer(Const(2), Const(128)))
+    isAccum(x6494_d0_b0) = false
+    bufferDepthOf(x6494_d0_b0) = 4
+    staticDimsOf(x6494_d0_b0) = List(2, 128)
+    val x6495 = withCtrl(x6946) { Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x6495").srcCtx("DataGenerator.scala:44:8") } // CounterNew(Const(0),Const(2),Const(1),Const(1))
+    val x6496 = withCtrl(x6946) { CounterChain(List(x6495)).name("x6496").srcCtx("DataGenerator.scala:44:8") } // CounterChainNew(List(x6495))
+    val x6518 = withCtrl(x6946) { LoopController(style=StreamPipe, level=OuterControl, cchain=x6496).name("x6518").srcCtx("DataGenerator.scala:44:8") } // UnrolledForeach(List(Const(true)),x6496,Block(Const(())),List(List(b3553)),List(List(b3554)))
+    val b3553 = withCtrl(x6518) { CounterIter(x6495, Some(0)).name("b3553") } // b3553
+    val b3554 = withCtrl(x6518) { Const(true).name("b3554") } // b3554
+    val b6965 = withCtrl(x6518) { StreamOut(field="offset").name("b6965").srcCtx("DataGenerator.scala:44:8") } // x6497 = StreamOutNew(BurstCmdBus)
+    isAccum(b6965) = false
+    bufferDepthOf(b6965) = 1
+    val b6966 = withCtrl(x6518) { StreamOut(field="size").name("b6966").srcCtx("DataGenerator.scala:44:8") } // x6497 = StreamOutNew(BurstCmdBus)
+    isAccum(b6966) = false
+    bufferDepthOf(b6966) = 1
+    val x6498 = withCtrl(x6518) { StreamIn(field="data").name("x6498").srcCtx("DataGenerator.scala:44:8") } // x6498 = StreamInNew(BurstDataBus())
+    isAccum(x6498) = false
+    bufferDepthOf(x6498) = 1
+    val x6509 = withCtrl(x6518) { UnitController(style=SeqPipe, level=InnerControl).name("x6509").srcCtx("DataGenerator.scala:44:8") } // UnitPipe(List(b3554),Block(x6508))
+    val x6499 = withCtrl(x6509) { b3553 } // FixConvert(b3553,TRUE,_32,_0) (Same Type. No op)
+    val x6500 = withCtrl(x6509) { OpDef(op=FixSla, inputs=List(x6499, Const(7))).name("x6500").srcCtx("DataGenerator.scala:44:8") } // FixLsh(x6499,Const(7))
+    val x6501 = withCtrl(x6509) { Const(0) } // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x6502 = withCtrl(x6509) { OpDef(op=FixAdd, inputs=List(x6500, x6501)).name("x6502").srcCtx("DataGenerator.scala:44:8") } // FixAdd(x6500,x6501)
+    val x6503 = withCtrl(x6509) { OpDef(op=FixSla, inputs=List(x6502, Const(2))).name("x6503").srcCtx("DataGenerator.scala:44:8") } // FixLsh(x6502,Const(2))
+    val x6504 = withCtrl(x6509) { x6503 } // FixConvert(x6503,TRUE,_64,_0)
+    val x6505 = withCtrl(x6509) { DramAddress(x6401).name("x6505").srcCtx("DataGenerator.scala:44:8") } // GetDRAMAddress(x6401)
+    val x6507_x6506 = withCtrl(x6509) { OpDef(op=FixAdd, inputs=List(x6504, x6505)).name("x6507_x6506").srcCtx("DataGenerator.scala:44:8") } // FixAdd(x6504,x6505)
+    // x6507 = SimpleStruct(ArrayBuffer((offset,x6506), (size,Const(512)), (isLoad,Const(true))))
+    val x6508_b6967_b6965 = withCtrl(x6509) { WriteMem(b6965, x6507_x6506).name("x6508_b6967_b6965").srcCtx("DataGenerator.scala:44:8") } // StreamWrite(x6497,x6507,b3554)
+    val x6508_b6968_b6966 = withCtrl(x6509) { WriteMem(b6966, Const(512)).name("x6508_b6968_b6966").srcCtx("DataGenerator.scala:44:8") } // StreamWrite(x6497,x6507,b3554)
+    val x6510 = withCtrl(x6518) { FringeDenseLoad(dram=List(x6401), cmdStream=List(b6965, b6966), dataStream=List(x6498)).name("x6510").srcCtx("DataGenerator.scala:44:8") } // FringeDenseLoad(x6401,x6497,x6498)
+    val x6511 = withCtrl(x6518) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6511").srcCtx("DataGenerator.scala:44:8") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6512 = withCtrl(x6518) { CounterChain(List(x6511)).name("x6512").srcCtx("DataGenerator.scala:44:8") } // CounterChainNew(List(x6511))
+    val x6517 = withCtrl(x6518) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6512).name("x6517").srcCtx("DataGenerator.scala:44:8") } // UnrolledForeach(List(b3554),x6512,Block(Const(())),List(List(b3571)),List(List(b3572)))
+    val b3571 = withCtrl(x6517) { CounterIter(x6511, None).name("b3571") } // b3571
+    val b3572 = withCtrl(x6517) { Const(true).name("b3572") } // b3572
+    val x6513 = withCtrl(x6517) { OpDef(op=BitAnd, inputs=List(b3572, b3554)).name("x6513").srcCtx("UnrollingBase.scala:28:66") } // And(b3572,b3554)
+    val x6514_x6514 = withCtrl(x6517) { ReadMem(x6498).name("x6514_x6514").srcCtx("DataGenerator.scala:44:8") } // ParStreamRead(x6498,List(x6513))
+    val x6515_x6515 = withCtrl(x6517) { x6514_x6514 } // VectorApply(x6514,0)
+    val x6516 = withCtrl(x6517) { StoreBanks(List(List(x6494_d0_b0)), List(b3553, b3571), x6515_x6515).name("x6516").srcCtx("DataGenerator.scala:44:8") } // ParSRAMStore(x6494,List(List(b3553, b3571)),List(x6515),List(x6513))
+    val x6519_d0_b0 = withCtrl(x6946) { SRAM(size=32768, banking=Strided(banks=16, stride=1)).name("x6519_d0_b0").srcCtx("DataGenerator.scala:76:21:wx") } // x6519 = SRAMNew(ArrayBuffer(Const(2), Const(128), Const(4), Const(128)))
+    isAccum(x6519_d0_b0) = false
+    bufferDepthOf(x6519_d0_b0) = 1
+    staticDimsOf(x6519_d0_b0) = List(2, 128, 4, 128)
+    val x6519_d0_b1 = withCtrl(x6946) { SRAM(size=32768, banking=Strided(banks=16, stride=1)).name("x6519_d0_b1").srcCtx("DataGenerator.scala:76:21:wx") } // x6519 = SRAMNew(ArrayBuffer(Const(2), Const(128), Const(4), Const(128)))
+    isAccum(x6519_d0_b1) = false
+    bufferDepthOf(x6519_d0_b1) = 1
+    staticDimsOf(x6519_d0_b1) = List(2, 128, 4, 128)
+    val x6519_d0_b2 = withCtrl(x6946) { SRAM(size=32768, banking=Strided(banks=16, stride=1)).name("x6519_d0_b2").srcCtx("DataGenerator.scala:76:21:wx") } // x6519 = SRAMNew(ArrayBuffer(Const(2), Const(128), Const(4), Const(128)))
+    isAccum(x6519_d0_b2) = false
+    bufferDepthOf(x6519_d0_b2) = 1
+    staticDimsOf(x6519_d0_b2) = List(2, 128, 4, 128)
+    val x6519_d0_b3 = withCtrl(x6946) { SRAM(size=32768, banking=Strided(banks=16, stride=1)).name("x6519_d0_b3").srcCtx("DataGenerator.scala:76:21:wx") } // x6519 = SRAMNew(ArrayBuffer(Const(2), Const(128), Const(4), Const(128)))
+    isAccum(x6519_d0_b3) = false
+    bufferDepthOf(x6519_d0_b3) = 1
+    staticDimsOf(x6519_d0_b3) = List(2, 128, 4, 128)
+    val x6520 = withCtrl(x6946) { Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x6520").srcCtx("DataGenerator.scala:77:8") } // CounterNew(Const(0),Const(2),Const(1),Const(1))
+    val x6521 = withCtrl(x6946) { Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x6521").srcCtx("DataGenerator.scala:77:8") } // CounterNew(Const(0),Const(128),Const(1),Const(1))
+    val x6522 = withCtrl(x6946) { Counter(min=Const(0), max=Const(4), step=Const(1), par=1).name("x6522").srcCtx("DataGenerator.scala:77:8") } // CounterNew(Const(0),Const(4),Const(1),Const(1))
+    val x6523 = withCtrl(x6946) { CounterChain(List(x6520,x6521,x6522)).name("x6523").srcCtx("DataGenerator.scala:77:8") } // CounterChainNew(List(x6520, x6521, x6522))
+    val x6555 = withCtrl(x6946) { LoopController(style=StreamPipe, level=OuterControl, cchain=x6523).name("x6555").srcCtx("DataGenerator.scala:77:8") } // UnrolledForeach(List(Const(true)),x6523,Block(Const(())),List(List(b3584), List(b3585), List(b3586)),List(List(b3587), List(b3588), List(b3589)))
+    val b3584 = withCtrl(x6555) { CounterIter(x6520, Some(0)).name("b3584") } // b3584
+    val b3587 = withCtrl(x6555) { Const(true).name("b3587") } // b3587
+    val b3585 = withCtrl(x6555) { CounterIter(x6521, Some(0)).name("b3585") } // b3585
+    val b3588 = withCtrl(x6555) { Const(true).name("b3588") } // b3588
+    val b3586 = withCtrl(x6555) { CounterIter(x6522, Some(0)).name("b3586") } // b3586
+    val b3589 = withCtrl(x6555) { Const(true).name("b3589") } // b3589
+    val b6969 = withCtrl(x6555) { StreamOut(field="offset").name("b6969").srcCtx("DataGenerator.scala:77:8") } // x6524 = StreamOutNew(BurstCmdBus)
+    isAccum(b6969) = false
+    bufferDepthOf(b6969) = 1
+    val b6970 = withCtrl(x6555) { StreamOut(field="size").name("b6970").srcCtx("DataGenerator.scala:77:8") } // x6524 = StreamOutNew(BurstCmdBus)
+    isAccum(b6970) = false
+    bufferDepthOf(b6970) = 1
+    val x6525 = withCtrl(x6555) { StreamIn(field="data").name("x6525").srcCtx("DataGenerator.scala:77:8") } // x6525 = StreamInNew(BurstDataBus())
+    isAccum(x6525) = false
+    bufferDepthOf(x6525) = 1
+    val x6544 = withCtrl(x6555) { UnitController(style=SeqPipe, level=InnerControl).name("x6544").srcCtx("DataGenerator.scala:77:8") } // UnitPipe(List(b3587, b3588, b3589),Block(x6543))
+    val x6526 = withCtrl(x6544) { b3584 } // FixConvert(b3584,TRUE,_32,_0) (Same Type. No op)
+    val x6527 = withCtrl(x6544) { OpDef(op=FixSla, inputs=List(x6526, Const(16))).name("x6527").srcCtx("DataGenerator.scala:77:8") } // FixLsh(x6526,Const(16))
+    val x6528 = withCtrl(x6544) { b3585 } // FixConvert(b3585,TRUE,_32,_0) (Same Type. No op)
+    val x6529 = withCtrl(x6544) { OpDef(op=FixSla, inputs=List(x6528, Const(9))).name("x6529").srcCtx("DataGenerator.scala:77:8") } // FixLsh(x6528,Const(9))
+    val x6530 = withCtrl(x6544) { b3586 } // FixConvert(b3586,TRUE,_32,_0) (Same Type. No op)
+    val x6531 = withCtrl(x6544) { OpDef(op=FixSla, inputs=List(x6530, Const(7))).name("x6531").srcCtx("DataGenerator.scala:77:8") } // FixLsh(x6530,Const(7))
+    val x6532 = withCtrl(x6544) { Const(0) } // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x6533 = withCtrl(x6544) { OpDef(op=FixAdd, inputs=List(x6527, x6529)).name("x6533").srcCtx("DataGenerator.scala:77:8") } // FixAdd(x6527,x6529)
+    val x6534 = withCtrl(x6544) { OpDef(op=FixAdd, inputs=List(x6531, x6532)).name("x6534").srcCtx("DataGenerator.scala:77:8") } // FixAdd(x6531,x6532)
+    val x6535 = withCtrl(x6544) { OpDef(op=FixAdd, inputs=List(x6533, x6534)).name("x6535").srcCtx("DataGenerator.scala:77:8") } // FixAdd(x6533,x6534)
+    val x6536 = withCtrl(x6544) { OpDef(op=FixSla, inputs=List(x6535, Const(2))).name("x6536").srcCtx("DataGenerator.scala:77:8") } // FixLsh(x6535,Const(2))
+    val x6537 = withCtrl(x6544) { x6536 } // FixConvert(x6536,TRUE,_64,_0)
+    val x6538 = withCtrl(x6544) { DramAddress(x6408).name("x6538").srcCtx("DataGenerator.scala:77:8") } // GetDRAMAddress(x6408)
+    val x6540_x6539 = withCtrl(x6544) { OpDef(op=FixAdd, inputs=List(x6537, x6538)).name("x6540_x6539").srcCtx("DataGenerator.scala:77:8") } // FixAdd(x6537,x6538)
+    // x6540 = SimpleStruct(ArrayBuffer((offset,x6539), (size,Const(512)), (isLoad,Const(true))))
+    val x6541 = withCtrl(x6544) { OpDef(op=BitAnd, inputs=List(b3587, b3588)).name("x6541").srcCtx("UnrollingBase.scala:28:66") } // And(b3587,b3588)
+    val x6542 = withCtrl(x6544) { OpDef(op=BitAnd, inputs=List(x6541, b3589)).name("x6542").srcCtx("UnrollingBase.scala:28:66") } // And(x6541,b3589)
+    val x6543_b6971_b6969 = withCtrl(x6544) { WriteMem(b6969, x6540_x6539).name("x6543_b6971_b6969").srcCtx("DataGenerator.scala:77:8") } // StreamWrite(x6524,x6540,x6542)
+    val x6543_b6972_b6970 = withCtrl(x6544) { WriteMem(b6970, Const(512)).name("x6543_b6972_b6970").srcCtx("DataGenerator.scala:77:8") } // StreamWrite(x6524,x6540,x6542)
+    val x6545 = withCtrl(x6555) { FringeDenseLoad(dram=List(x6408), cmdStream=List(b6969, b6970), dataStream=List(x6525)).name("x6545").srcCtx("DataGenerator.scala:77:8") } // FringeDenseLoad(x6408,x6524,x6525)
+    val x6546 = withCtrl(x6555) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6546").srcCtx("DataGenerator.scala:77:8") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6547 = withCtrl(x6555) { CounterChain(List(x6546)).name("x6547").srcCtx("DataGenerator.scala:77:8") } // CounterChainNew(List(x6546))
+    val x6554 = withCtrl(x6555) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6547).name("x6554").srcCtx("DataGenerator.scala:77:8") } // UnrolledForeach(List(b3587, b3588, b3589),x6547,Block(Const(())),List(List(b3614)),List(List(b3615)))
+    val b3614 = withCtrl(x6554) { CounterIter(x6546, None).name("b3614") } // b3614
+    val b3615 = withCtrl(x6554) { Const(true).name("b3615") } // b3615
+    val x6548 = withCtrl(x6554) { OpDef(op=BitAnd, inputs=List(b3615, b3587)).name("x6548").srcCtx("UnrollingBase.scala:28:66") } // And(b3615,b3587)
+    val x6549 = withCtrl(x6554) { OpDef(op=BitAnd, inputs=List(b3588, b3589)).name("x6549").srcCtx("UnrollingBase.scala:28:66") } // And(b3588,b3589)
+    val x6550 = withCtrl(x6554) { OpDef(op=BitAnd, inputs=List(x6548, x6549)).name("x6550").srcCtx("UnrollingBase.scala:28:66") } // And(x6548,x6549)
+    val x6551_x6551 = withCtrl(x6554) { ReadMem(x6525).name("x6551_x6551").srcCtx("DataGenerator.scala:77:8") } // ParStreamRead(x6525,List(x6550))
+    val x6552_x6552 = withCtrl(x6554) { x6551_x6551 } // VectorApply(x6551,0)
+    val x6553 = withCtrl(x6554) { StoreBanks(List(List(x6519_d0_b0, x6519_d0_b1, x6519_d0_b2, x6519_d0_b3)), List(b3584, b3585, b3586, b3614), x6552_x6552).name("x6553").srcCtx("DataGenerator.scala:77:8") } // ParSRAMStore(x6519,List(List(b3584, b3585, b3586, b3614)),List(x6552),List(x6550))
+    val x6556_d0_b0 = withCtrl(x6946) { SRAM(size=32768, banking=Strided(banks=16, stride=1)).name("x6556_d0_b0").srcCtx("DataGenerator.scala:76:21:wh") } // x6556 = SRAMNew(ArrayBuffer(Const(2), Const(128), Const(4), Const(128)))
+    isAccum(x6556_d0_b0) = false
+    bufferDepthOf(x6556_d0_b0) = 1
+    staticDimsOf(x6556_d0_b0) = List(2, 128, 4, 128)
+    val x6556_d0_b1 = withCtrl(x6946) { SRAM(size=32768, banking=Strided(banks=16, stride=1)).name("x6556_d0_b1").srcCtx("DataGenerator.scala:76:21:wh") } // x6556 = SRAMNew(ArrayBuffer(Const(2), Const(128), Const(4), Const(128)))
+    isAccum(x6556_d0_b1) = false
+    bufferDepthOf(x6556_d0_b1) = 1
+    staticDimsOf(x6556_d0_b1) = List(2, 128, 4, 128)
+    val x6556_d0_b2 = withCtrl(x6946) { SRAM(size=32768, banking=Strided(banks=16, stride=1)).name("x6556_d0_b2").srcCtx("DataGenerator.scala:76:21:wh") } // x6556 = SRAMNew(ArrayBuffer(Const(2), Const(128), Const(4), Const(128)))
+    isAccum(x6556_d0_b2) = false
+    bufferDepthOf(x6556_d0_b2) = 1
+    staticDimsOf(x6556_d0_b2) = List(2, 128, 4, 128)
+    val x6556_d0_b3 = withCtrl(x6946) { SRAM(size=32768, banking=Strided(banks=16, stride=1)).name("x6556_d0_b3").srcCtx("DataGenerator.scala:76:21:wh") } // x6556 = SRAMNew(ArrayBuffer(Const(2), Const(128), Const(4), Const(128)))
+    isAccum(x6556_d0_b3) = false
+    bufferDepthOf(x6556_d0_b3) = 1
+    staticDimsOf(x6556_d0_b3) = List(2, 128, 4, 128)
+    val x6557 = withCtrl(x6946) { Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x6557").srcCtx("DataGenerator.scala:77:8") } // CounterNew(Const(0),Const(2),Const(1),Const(1))
+    val x6558 = withCtrl(x6946) { Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x6558").srcCtx("DataGenerator.scala:77:8") } // CounterNew(Const(0),Const(128),Const(1),Const(1))
+    val x6559 = withCtrl(x6946) { Counter(min=Const(0), max=Const(4), step=Const(1), par=1).name("x6559").srcCtx("DataGenerator.scala:77:8") } // CounterNew(Const(0),Const(4),Const(1),Const(1))
+    val x6560 = withCtrl(x6946) { CounterChain(List(x6557,x6558,x6559)).name("x6560").srcCtx("DataGenerator.scala:77:8") } // CounterChainNew(List(x6557, x6558, x6559))
+    val x6592 = withCtrl(x6946) { LoopController(style=StreamPipe, level=OuterControl, cchain=x6560).name("x6592").srcCtx("DataGenerator.scala:77:8") } // UnrolledForeach(List(Const(true)),x6560,Block(Const(())),List(List(b3629), List(b3630), List(b3631)),List(List(b3632), List(b3633), List(b3634)))
+    val b3629 = withCtrl(x6592) { CounterIter(x6557, Some(0)).name("b3629") } // b3629
+    val b3632 = withCtrl(x6592) { Const(true).name("b3632") } // b3632
+    val b3630 = withCtrl(x6592) { CounterIter(x6558, Some(0)).name("b3630") } // b3630
+    val b3633 = withCtrl(x6592) { Const(true).name("b3633") } // b3633
+    val b3631 = withCtrl(x6592) { CounterIter(x6559, Some(0)).name("b3631") } // b3631
+    val b3634 = withCtrl(x6592) { Const(true).name("b3634") } // b3634
+    val b6973 = withCtrl(x6592) { StreamOut(field="offset").name("b6973").srcCtx("DataGenerator.scala:77:8") } // x6561 = StreamOutNew(BurstCmdBus)
+    isAccum(b6973) = false
+    bufferDepthOf(b6973) = 1
+    val b6974 = withCtrl(x6592) { StreamOut(field="size").name("b6974").srcCtx("DataGenerator.scala:77:8") } // x6561 = StreamOutNew(BurstCmdBus)
+    isAccum(b6974) = false
+    bufferDepthOf(b6974) = 1
+    val x6562 = withCtrl(x6592) { StreamIn(field="data").name("x6562").srcCtx("DataGenerator.scala:77:8") } // x6562 = StreamInNew(BurstDataBus())
+    isAccum(x6562) = false
+    bufferDepthOf(x6562) = 1
+    val x6581 = withCtrl(x6592) { UnitController(style=SeqPipe, level=InnerControl).name("x6581").srcCtx("DataGenerator.scala:77:8") } // UnitPipe(List(b3632, b3633, b3634),Block(x6580))
+    val x6563 = withCtrl(x6581) { b3629 } // FixConvert(b3629,TRUE,_32,_0) (Same Type. No op)
+    val x6564 = withCtrl(x6581) { OpDef(op=FixSla, inputs=List(x6563, Const(16))).name("x6564").srcCtx("DataGenerator.scala:77:8") } // FixLsh(x6563,Const(16))
+    val x6565 = withCtrl(x6581) { b3630 } // FixConvert(b3630,TRUE,_32,_0) (Same Type. No op)
+    val x6566 = withCtrl(x6581) { OpDef(op=FixSla, inputs=List(x6565, Const(9))).name("x6566").srcCtx("DataGenerator.scala:77:8") } // FixLsh(x6565,Const(9))
+    val x6567 = withCtrl(x6581) { b3631 } // FixConvert(b3631,TRUE,_32,_0) (Same Type. No op)
+    val x6568 = withCtrl(x6581) { OpDef(op=FixSla, inputs=List(x6567, Const(7))).name("x6568").srcCtx("DataGenerator.scala:77:8") } // FixLsh(x6567,Const(7))
+    val x6569 = withCtrl(x6581) { Const(0) } // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x6570 = withCtrl(x6581) { OpDef(op=FixAdd, inputs=List(x6564, x6566)).name("x6570").srcCtx("DataGenerator.scala:77:8") } // FixAdd(x6564,x6566)
+    val x6571 = withCtrl(x6581) { OpDef(op=FixAdd, inputs=List(x6568, x6569)).name("x6571").srcCtx("DataGenerator.scala:77:8") } // FixAdd(x6568,x6569)
+    val x6572 = withCtrl(x6581) { OpDef(op=FixAdd, inputs=List(x6570, x6571)).name("x6572").srcCtx("DataGenerator.scala:77:8") } // FixAdd(x6570,x6571)
+    val x6573 = withCtrl(x6581) { OpDef(op=FixSla, inputs=List(x6572, Const(2))).name("x6573").srcCtx("DataGenerator.scala:77:8") } // FixLsh(x6572,Const(2))
+    val x6574 = withCtrl(x6581) { x6573 } // FixConvert(x6573,TRUE,_64,_0)
+    val x6575 = withCtrl(x6581) { DramAddress(x6421).name("x6575").srcCtx("DataGenerator.scala:77:8") } // GetDRAMAddress(x6421)
+    val x6577_x6576 = withCtrl(x6581) { OpDef(op=FixAdd, inputs=List(x6574, x6575)).name("x6577_x6576").srcCtx("DataGenerator.scala:77:8") } // FixAdd(x6574,x6575)
+    // x6577 = SimpleStruct(ArrayBuffer((offset,x6576), (size,Const(512)), (isLoad,Const(true))))
+    val x6578 = withCtrl(x6581) { OpDef(op=BitAnd, inputs=List(b3632, b3633)).name("x6578").srcCtx("UnrollingBase.scala:28:66") } // And(b3632,b3633)
+    val x6579 = withCtrl(x6581) { OpDef(op=BitAnd, inputs=List(x6578, b3634)).name("x6579").srcCtx("UnrollingBase.scala:28:66") } // And(x6578,b3634)
+    val x6580_b6975_b6973 = withCtrl(x6581) { WriteMem(b6973, x6577_x6576).name("x6580_b6975_b6973").srcCtx("DataGenerator.scala:77:8") } // StreamWrite(x6561,x6577,x6579)
+    val x6580_b6976_b6974 = withCtrl(x6581) { WriteMem(b6974, Const(512)).name("x6580_b6976_b6974").srcCtx("DataGenerator.scala:77:8") } // StreamWrite(x6561,x6577,x6579)
+    val x6582 = withCtrl(x6592) { FringeDenseLoad(dram=List(x6421), cmdStream=List(b6973, b6974), dataStream=List(x6562)).name("x6582").srcCtx("DataGenerator.scala:77:8") } // FringeDenseLoad(x6421,x6561,x6562)
+    val x6583 = withCtrl(x6592) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6583").srcCtx("DataGenerator.scala:77:8") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6584 = withCtrl(x6592) { CounterChain(List(x6583)).name("x6584").srcCtx("DataGenerator.scala:77:8") } // CounterChainNew(List(x6583))
+    val x6591 = withCtrl(x6592) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6584).name("x6591").srcCtx("DataGenerator.scala:77:8") } // UnrolledForeach(List(b3632, b3633, b3634),x6584,Block(Const(())),List(List(b3659)),List(List(b3660)))
+    val b3659 = withCtrl(x6591) { CounterIter(x6583, None).name("b3659") } // b3659
+    val b3660 = withCtrl(x6591) { Const(true).name("b3660") } // b3660
+    val x6585 = withCtrl(x6591) { OpDef(op=BitAnd, inputs=List(b3660, b3632)).name("x6585").srcCtx("UnrollingBase.scala:28:66") } // And(b3660,b3632)
+    val x6586 = withCtrl(x6591) { OpDef(op=BitAnd, inputs=List(b3633, b3634)).name("x6586").srcCtx("UnrollingBase.scala:28:66") } // And(b3633,b3634)
+    val x6587 = withCtrl(x6591) { OpDef(op=BitAnd, inputs=List(x6585, x6586)).name("x6587").srcCtx("UnrollingBase.scala:28:66") } // And(x6585,x6586)
+    val x6588_x6588 = withCtrl(x6591) { ReadMem(x6562).name("x6588_x6588").srcCtx("DataGenerator.scala:77:8") } // ParStreamRead(x6562,List(x6587))
+    val x6589_x6589 = withCtrl(x6591) { x6588_x6588 } // VectorApply(x6588,0)
+    val x6590 = withCtrl(x6591) { StoreBanks(List(List(x6556_d0_b0, x6556_d0_b1, x6556_d0_b2, x6556_d0_b3)), List(b3629, b3630, b3631, b3659), x6589_x6589).name("x6590").srcCtx("DataGenerator.scala:77:8") } // ParSRAMStore(x6556,List(List(b3629, b3630, b3631, b3659)),List(x6589),List(x6587))
+    val x6593_d0_b0 = withCtrl(x6946) { SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x6593_d0_b0").srcCtx("DataGenerator.scala:59:21:b") } // x6593 = SRAMNew(ArrayBuffer(Const(2), Const(4), Const(128)))
+    isAccum(x6593_d0_b0) = false
+    bufferDepthOf(x6593_d0_b0) = 1
+    staticDimsOf(x6593_d0_b0) = List(2, 4, 128)
+    val x6593_d0_b1 = withCtrl(x6946) { SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x6593_d0_b1").srcCtx("DataGenerator.scala:59:21:b") } // x6593 = SRAMNew(ArrayBuffer(Const(2), Const(4), Const(128)))
+    isAccum(x6593_d0_b1) = false
+    bufferDepthOf(x6593_d0_b1) = 1
+    staticDimsOf(x6593_d0_b1) = List(2, 4, 128)
+    val x6593_d0_b2 = withCtrl(x6946) { SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x6593_d0_b2").srcCtx("DataGenerator.scala:59:21:b") } // x6593 = SRAMNew(ArrayBuffer(Const(2), Const(4), Const(128)))
+    isAccum(x6593_d0_b2) = false
+    bufferDepthOf(x6593_d0_b2) = 1
+    staticDimsOf(x6593_d0_b2) = List(2, 4, 128)
+    val x6593_d0_b3 = withCtrl(x6946) { SRAM(size=256, banking=Strided(banks=16, stride=1)).name("x6593_d0_b3").srcCtx("DataGenerator.scala:59:21:b") } // x6593 = SRAMNew(ArrayBuffer(Const(2), Const(4), Const(128)))
+    isAccum(x6593_d0_b3) = false
+    bufferDepthOf(x6593_d0_b3) = 1
+    staticDimsOf(x6593_d0_b3) = List(2, 4, 128)
+    val x6594 = withCtrl(x6946) { Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x6594").srcCtx("DataGenerator.scala:60:8") } // CounterNew(Const(0),Const(2),Const(1),Const(1))
+    val x6595 = withCtrl(x6946) { Counter(min=Const(0), max=Const(4), step=Const(1), par=1).name("x6595").srcCtx("DataGenerator.scala:60:8") } // CounterNew(Const(0),Const(4),Const(1),Const(1))
+    val x6596 = withCtrl(x6946) { CounterChain(List(x6594,x6595)).name("x6596").srcCtx("DataGenerator.scala:60:8") } // CounterChainNew(List(x6594, x6595))
+    val x6623 = withCtrl(x6946) { LoopController(style=StreamPipe, level=OuterControl, cchain=x6596).name("x6623").srcCtx("DataGenerator.scala:60:8") } // UnrolledForeach(List(Const(true)),x6596,Block(Const(())),List(List(b3673), List(b3674)),List(List(b3675), List(b3676)))
+    val b3673 = withCtrl(x6623) { CounterIter(x6594, Some(0)).name("b3673") } // b3673
+    val b3675 = withCtrl(x6623) { Const(true).name("b3675") } // b3675
+    val b3674 = withCtrl(x6623) { CounterIter(x6595, Some(0)).name("b3674") } // b3674
+    val b3676 = withCtrl(x6623) { Const(true).name("b3676") } // b3676
+    val b6977 = withCtrl(x6623) { StreamOut(field="offset").name("b6977").srcCtx("DataGenerator.scala:60:8") } // x6597 = StreamOutNew(BurstCmdBus)
+    isAccum(b6977) = false
+    bufferDepthOf(b6977) = 1
+    val b6978 = withCtrl(x6623) { StreamOut(field="size").name("b6978").srcCtx("DataGenerator.scala:60:8") } // x6597 = StreamOutNew(BurstCmdBus)
+    isAccum(b6978) = false
+    bufferDepthOf(b6978) = 1
+    val x6598 = withCtrl(x6623) { StreamIn(field="data").name("x6598").srcCtx("DataGenerator.scala:60:8") } // x6598 = StreamInNew(BurstDataBus())
+    isAccum(x6598) = false
+    bufferDepthOf(x6598) = 1
+    val x6613 = withCtrl(x6623) { UnitController(style=SeqPipe, level=InnerControl).name("x6613").srcCtx("DataGenerator.scala:60:8") } // UnitPipe(List(b3675, b3676),Block(x6612))
+    val x6599 = withCtrl(x6613) { b3673 } // FixConvert(b3673,TRUE,_32,_0) (Same Type. No op)
+    val x6600 = withCtrl(x6613) { OpDef(op=FixSla, inputs=List(x6599, Const(9))).name("x6600").srcCtx("DataGenerator.scala:60:8") } // FixLsh(x6599,Const(9))
+    val x6601 = withCtrl(x6613) { b3674 } // FixConvert(b3674,TRUE,_32,_0) (Same Type. No op)
+    val x6602 = withCtrl(x6613) { OpDef(op=FixSla, inputs=List(x6601, Const(7))).name("x6602").srcCtx("DataGenerator.scala:60:8") } // FixLsh(x6601,Const(7))
+    val x6603 = withCtrl(x6613) { Const(0) } // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x6604 = withCtrl(x6613) { OpDef(op=FixAdd, inputs=List(x6600, x6602)).name("x6604").srcCtx("DataGenerator.scala:60:8") } // FixAdd(x6600,x6602)
+    val x6605 = withCtrl(x6613) { OpDef(op=FixAdd, inputs=List(x6604, x6603)).name("x6605").srcCtx("DataGenerator.scala:60:8") } // FixAdd(x6604,x6603)
+    val x6606 = withCtrl(x6613) { OpDef(op=FixSla, inputs=List(x6605, Const(2))).name("x6606").srcCtx("DataGenerator.scala:60:8") } // FixLsh(x6605,Const(2))
+    val x6607 = withCtrl(x6613) { x6606 } // FixConvert(x6606,TRUE,_64,_0)
+    val x6608 = withCtrl(x6613) { DramAddress(x6434).name("x6608").srcCtx("DataGenerator.scala:60:8") } // GetDRAMAddress(x6434)
+    val x6610_x6609 = withCtrl(x6613) { OpDef(op=FixAdd, inputs=List(x6607, x6608)).name("x6610_x6609").srcCtx("DataGenerator.scala:60:8") } // FixAdd(x6607,x6608)
+    // x6610 = SimpleStruct(ArrayBuffer((offset,x6609), (size,Const(512)), (isLoad,Const(true))))
+    val x6611 = withCtrl(x6613) { OpDef(op=BitAnd, inputs=List(b3675, b3676)).name("x6611").srcCtx("UnrollingBase.scala:28:66") } // And(b3675,b3676)
+    val x6612_b6979_b6977 = withCtrl(x6613) { WriteMem(b6977, x6610_x6609).name("x6612_b6979_b6977").srcCtx("DataGenerator.scala:60:8") } // StreamWrite(x6597,x6610,x6611)
+    val x6612_b6980_b6978 = withCtrl(x6613) { WriteMem(b6978, Const(512)).name("x6612_b6980_b6978").srcCtx("DataGenerator.scala:60:8") } // StreamWrite(x6597,x6610,x6611)
+    val x6614 = withCtrl(x6623) { FringeDenseLoad(dram=List(x6434), cmdStream=List(b6977, b6978), dataStream=List(x6598)).name("x6614").srcCtx("DataGenerator.scala:60:8") } // FringeDenseLoad(x6434,x6597,x6598)
+    val x6615 = withCtrl(x6623) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6615").srcCtx("DataGenerator.scala:60:8") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6616 = withCtrl(x6623) { CounterChain(List(x6615)).name("x6616").srcCtx("DataGenerator.scala:60:8") } // CounterChainNew(List(x6615))
+    val x6622 = withCtrl(x6623) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6616).name("x6622").srcCtx("DataGenerator.scala:60:8") } // UnrolledForeach(List(b3675, b3676),x6616,Block(Const(())),List(List(b3697)),List(List(b3698)))
+    val b3697 = withCtrl(x6622) { CounterIter(x6615, None).name("b3697") } // b3697
+    val b3698 = withCtrl(x6622) { Const(true).name("b3698") } // b3698
+    val x6617 = withCtrl(x6622) { OpDef(op=BitAnd, inputs=List(b3698, b3675)).name("x6617").srcCtx("UnrollingBase.scala:28:66") } // And(b3698,b3675)
+    val x6618 = withCtrl(x6622) { OpDef(op=BitAnd, inputs=List(x6617, b3676)).name("x6618").srcCtx("UnrollingBase.scala:28:66") } // And(x6617,b3676)
+    val x6619_x6619 = withCtrl(x6622) { ReadMem(x6598).name("x6619_x6619").srcCtx("DataGenerator.scala:60:8") } // ParStreamRead(x6598,List(x6618))
+    val x6620_x6620 = withCtrl(x6622) { x6619_x6619 } // VectorApply(x6619,0)
+    val x6621 = withCtrl(x6622) { StoreBanks(List(List(x6593_d0_b0, x6593_d0_b1, x6593_d0_b2, x6593_d0_b3)), List(b3673, b3674, b3697), x6620_x6620).name("x6621").srcCtx("DataGenerator.scala:60:8") } // ParSRAMStore(x6593,List(List(b3673, b3674, b3697)),List(x6620),List(x6618))
+    val x6624 = withCtrl(x6946) { Counter(min=Const(0), max=Const(8), step=Const(1), par=1).name("x6624").srcCtx("LSTMPipe.scala:42:28") } // CounterNew(Const(0),Const(8),Const(1),Const(1))
+    val x6625 = withCtrl(x6946) { CounterChain(List(x6624)).name("x6625").srcCtx("LSTMPipe.scala:42:41") } // CounterChainNew(List(x6624))
+    val x6917 = withCtrl(x6946) { LoopController(style=MetaPipe, level=OuterControl, cchain=x6625).name("x6917").srcCtx("LSTMPipe.scala:42:41") } // UnrolledForeach(List(Const(true)),x6625,Block(Const(())),List(List(b3708)),List(List(b3709)))
+    val b3708 = withCtrl(x6917) { CounterIter(x6624, Some(0)).name("b3708") } // b3708
+    val b3709 = withCtrl(x6917) { Const(true).name("b3709") } // b3709
+    val x6626 = withCtrl(x6917) { Counter(min=Const(0), max=Const(2), step=Const(1), par=1).name("x6626").srcCtx("LSTMPipe.scala:43:31") } // CounterNew(Const(0),Const(2),Const(1),Const(1))
+    val x6627 = withCtrl(x6917) { CounterChain(List(x6626)).name("x6627").srcCtx("LSTMPipe.scala:43:45") } // CounterChainNew(List(x6626))
+    val x6916 = withCtrl(x6917) { LoopController(style=MetaPipe, level=OuterControl, cchain=x6627).name("x6916").srcCtx("LSTMPipe.scala:43:45") } // UnrolledForeach(List(b3709),x6627,Block(Const(())),List(List(b3712)),List(List(b3713)))
+    val b3712 = withCtrl(x6916) { CounterIter(x6626, Some(0)).name("b3712") } // b3712
+    val b3713 = withCtrl(x6916) { Const(true).name("b3713") } // b3713
+    val x6628_d0_b0 = withCtrl(x6916) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x6628_d0_b0").srcCtx("LSTMPipe.scala:46:34:reduceMem") } // x6628 = SRAMNew(ArrayBuffer(Const(4), Const(128)))
+    isAccum(x6628_d0_b0) = false
+    bufferDepthOf(x6628_d0_b0) = 2
+    staticDimsOf(x6628_d0_b0) = List(4, 128)
+    val x6628_d0_b1 = withCtrl(x6916) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x6628_d0_b1").srcCtx("LSTMPipe.scala:46:34:reduceMem") } // x6628 = SRAMNew(ArrayBuffer(Const(4), Const(128)))
+    isAccum(x6628_d0_b1) = false
+    bufferDepthOf(x6628_d0_b1) = 2
+    staticDimsOf(x6628_d0_b1) = List(4, 128)
+    val x6628_d0_b2 = withCtrl(x6916) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x6628_d0_b2").srcCtx("LSTMPipe.scala:46:34:reduceMem") } // x6628 = SRAMNew(ArrayBuffer(Const(4), Const(128)))
+    isAccum(x6628_d0_b2) = false
+    bufferDepthOf(x6628_d0_b2) = 2
+    staticDimsOf(x6628_d0_b2) = List(4, 128)
+    val x6628_d0_b3 = withCtrl(x6916) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x6628_d0_b3").srcCtx("LSTMPipe.scala:46:34:reduceMem") } // x6628 = SRAMNew(ArrayBuffer(Const(4), Const(128)))
+    isAccum(x6628_d0_b3) = false
+    bufferDepthOf(x6628_d0_b3) = 2
+    staticDimsOf(x6628_d0_b3) = List(4, 128)
+    val x6628_d1_b0 = withCtrl(x6916) { SRAM(size=512, banking=Strided(banks=1, stride=128)).name("x6628_d1_b0").srcCtx("LSTMPipe.scala:46:34:reduceMem") } // x6628 = SRAMNew(ArrayBuffer(Const(4), Const(128)))
+    isAccum(x6628_d1_b0) = true
+    bufferDepthOf(x6628_d1_b0) = 1
+    staticDimsOf(x6628_d1_b0) = List(4, 128)
+    val x6629_d0_b0 = withCtrl(x6916) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x6629_d0_b0").srcCtx("LSTMPipe.scala:47:32:foldMem") } // x6629 = SRAMNew(ArrayBuffer(Const(4), Const(128)))
+    isAccum(x6629_d0_b0) = false
+    bufferDepthOf(x6629_d0_b0) = 2
+    staticDimsOf(x6629_d0_b0) = List(4, 128)
+    val x6629_d0_b1 = withCtrl(x6916) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x6629_d0_b1").srcCtx("LSTMPipe.scala:47:32:foldMem") } // x6629 = SRAMNew(ArrayBuffer(Const(4), Const(128)))
+    isAccum(x6629_d0_b1) = false
+    bufferDepthOf(x6629_d0_b1) = 2
+    staticDimsOf(x6629_d0_b1) = List(4, 128)
+    val x6629_d0_b2 = withCtrl(x6916) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x6629_d0_b2").srcCtx("LSTMPipe.scala:47:32:foldMem") } // x6629 = SRAMNew(ArrayBuffer(Const(4), Const(128)))
+    isAccum(x6629_d0_b2) = false
+    bufferDepthOf(x6629_d0_b2) = 2
+    staticDimsOf(x6629_d0_b2) = List(4, 128)
+    val x6629_d0_b3 = withCtrl(x6916) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x6629_d0_b3").srcCtx("LSTMPipe.scala:47:32:foldMem") } // x6629 = SRAMNew(ArrayBuffer(Const(4), Const(128)))
+    isAccum(x6629_d0_b3) = false
+    bufferDepthOf(x6629_d0_b3) = 2
+    staticDimsOf(x6629_d0_b3) = List(4, 128)
+    val x6630 = withCtrl(x6916) { Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x6630").srcCtx("LSTMPipe.scala:49:79") } // CounterNew(Const(0),Const(128),Const(1),Const(1))
+    val x6631 = withCtrl(x6916) { CounterChain(List(x6630)).name("x6631").srcCtx("LSTMPipe.scala:63:12") } // CounterChainNew(List(x6630))
+    val x6732 = withCtrl(x6916) { LoopController(style=MetaPipe, level=OuterControl, cchain=x6631).name("x6732").srcCtx("LSTMPipe.scala:63:12") } // UnrolledReduce(List(b3713, b3709),x6631,x6628,Block((x6628) => Const(())),List(List(b3721)),List(List(b3722)))
+    val b3721 = withCtrl(x6732) { CounterIter(x6630, Some(0)).name("b3721") } // b3721
+    val b3722 = withCtrl(x6732) { Const(true).name("b3722") } // b3722
+    val x6632_d0_b0 = withCtrl(x6732) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x6632_d0_b0").srcCtx("LSTMPipe.scala:50:29:re") } // x6632 = SRAMNew(ArrayBuffer(Const(4), Const(128)))
+    isAccum(x6632_d0_b0) = false
+    bufferDepthOf(x6632_d0_b0) = 2
+    staticDimsOf(x6632_d0_b0) = List(4, 128)
+    val x6632_d0_b1 = withCtrl(x6732) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x6632_d0_b1").srcCtx("LSTMPipe.scala:50:29:re") } // x6632 = SRAMNew(ArrayBuffer(Const(4), Const(128)))
+    isAccum(x6632_d0_b1) = false
+    bufferDepthOf(x6632_d0_b1) = 2
+    staticDimsOf(x6632_d0_b1) = List(4, 128)
+    val x6632_d0_b2 = withCtrl(x6732) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x6632_d0_b2").srcCtx("LSTMPipe.scala:50:29:re") } // x6632 = SRAMNew(ArrayBuffer(Const(4), Const(128)))
+    isAccum(x6632_d0_b2) = false
+    bufferDepthOf(x6632_d0_b2) = 2
+    staticDimsOf(x6632_d0_b2) = List(4, 128)
+    val x6632_d0_b3 = withCtrl(x6732) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x6632_d0_b3").srcCtx("LSTMPipe.scala:50:29:re") } // x6632 = SRAMNew(ArrayBuffer(Const(4), Const(128)))
+    isAccum(x6632_d0_b3) = false
+    bufferDepthOf(x6632_d0_b3) = 2
+    staticDimsOf(x6632_d0_b3) = List(4, 128)
+    val x6633_d0 = withCtrl(x6732) { Reg(init=Some(0.0)).name("x6633_d0").srcCtx("LSTMPipe.scala:63:12") } // x6633 = RegNew(Const(0))
+    isAccum(x6633_d0) = false
+    bufferDepthOf(x6633_d0) = 2
+    val x6633_d1 = withCtrl(x6732) { Reg(init=Some(0.0)).name("x6633_d1").srcCtx("LSTMPipe.scala:63:12") } // x6633 = RegNew(Const(0))
+    isAccum(x6633_d1) = false
+    bufferDepthOf(x6633_d1) = 2
+    val x6633_d2 = withCtrl(x6732) { Reg(init=Some(0.0)).name("x6633_d2").srcCtx("LSTMPipe.scala:63:12") } // x6633 = RegNew(Const(0))
+    isAccum(x6633_d2) = false
+    bufferDepthOf(x6633_d2) = 2
+    val x6633_d3 = withCtrl(x6732) { Reg(init=Some(0.0)).name("x6633_d3").srcCtx("LSTMPipe.scala:63:12") } // x6633 = RegNew(Const(0))
+    isAccum(x6633_d3) = false
+    bufferDepthOf(x6633_d3) = 2
+    val x6634_d0 = withCtrl(x6732) { Reg(init=Some(0.0)).name("x6634_d0").srcCtx("LSTMPipe.scala:63:12") } // x6634 = RegNew(Const(0))
+    isAccum(x6634_d0) = false
+    bufferDepthOf(x6634_d0) = 2
+    val x6634_d1 = withCtrl(x6732) { Reg(init=Some(0.0)).name("x6634_d1").srcCtx("LSTMPipe.scala:63:12") } // x6634 = RegNew(Const(0))
+    isAccum(x6634_d1) = false
+    bufferDepthOf(x6634_d1) = 2
+    val x6634_d2 = withCtrl(x6732) { Reg(init=Some(0.0)).name("x6634_d2").srcCtx("LSTMPipe.scala:63:12") } // x6634 = RegNew(Const(0))
+    isAccum(x6634_d2) = false
+    bufferDepthOf(x6634_d2) = 2
+    val x6634_d3 = withCtrl(x6732) { Reg(init=Some(0.0)).name("x6634_d3").srcCtx("LSTMPipe.scala:63:12") } // x6634 = RegNew(Const(0))
+    isAccum(x6634_d3) = false
+    bufferDepthOf(x6634_d3) = 2
+    val x6641 = withCtrl(x6732) { UnitController(style=SeqPipe, level=InnerControl).name("x6641").srcCtx("LSTMPipe.scala:63:12") } // UnitPipe(List(b3722, b3713, b3709),Block(Const(())))
+    val x6635 = withCtrl(x6641) { OpDef(op=BitAnd, inputs=List(b3722, b3713)).name("x6635").srcCtx("UnrollingBase.scala:28:66") } // And(b3722,b3713)
+    val x6636 = withCtrl(x6641) { OpDef(op=BitAnd, inputs=List(x6635, b3709)).name("x6636").srcCtx("UnrollingBase.scala:28:66") } // And(x6635,b3709)
+    val x6637 = withCtrl(x6641) { LoadBanks(List(x6444_d1_b0), List(b3708, b3721)).name("x6637").srcCtx("LSTMPipe.scala:51:25:xEle") } // SRAMLoad(x6444,ArrayBuffer(Const(8), Const(128)),List(b3708, b3721),Const(0),x6636)
+    val x6638 = withCtrl(x6641) { LoadBanks(List(x6494_d0_b0), List(b3712, b3721)).name("x6638").srcCtx("LSTMPipe.scala:52:25:hEle") } // SRAMLoad(x6494,ArrayBuffer(Const(2), Const(128)),List(b3712, b3721),Const(0),x6636)
+    val x6639_x6633_d0 = withCtrl(x6641) { WriteMem(x6633_d0, x6637).name("x6639_x6633_d0").srcCtx("LSTMPipe.scala:63:12") } // RegWrite(x6633,x6637,x6636)
+    val x6639_x6633_d1 = withCtrl(x6641) { WriteMem(x6633_d1, x6637).name("x6639_x6633_d1").srcCtx("LSTMPipe.scala:63:12") } // RegWrite(x6633,x6637,x6636)
+    val x6639_x6633_d2 = withCtrl(x6641) { WriteMem(x6633_d2, x6637).name("x6639_x6633_d2").srcCtx("LSTMPipe.scala:63:12") } // RegWrite(x6633,x6637,x6636)
+    val x6639_x6633_d3 = withCtrl(x6641) { WriteMem(x6633_d3, x6637).name("x6639_x6633_d3").srcCtx("LSTMPipe.scala:63:12") } // RegWrite(x6633,x6637,x6636)
+    val x6640_x6634_d0 = withCtrl(x6641) { WriteMem(x6634_d0, x6638).name("x6640_x6634_d0").srcCtx("LSTMPipe.scala:63:12") } // RegWrite(x6634,x6638,x6636)
+    val x6640_x6634_d1 = withCtrl(x6641) { WriteMem(x6634_d1, x6638).name("x6640_x6634_d1").srcCtx("LSTMPipe.scala:63:12") } // RegWrite(x6634,x6638,x6636)
+    val x6640_x6634_d2 = withCtrl(x6641) { WriteMem(x6634_d2, x6638).name("x6640_x6634_d2").srcCtx("LSTMPipe.scala:63:12") } // RegWrite(x6634,x6638,x6636)
+    val x6640_x6634_d3 = withCtrl(x6641) { WriteMem(x6634_d3, x6638).name("x6640_x6634_d3").srcCtx("LSTMPipe.scala:63:12") } // RegWrite(x6634,x6638,x6636)
+    val x6642 = withCtrl(x6732) { Counter(min=Const(0), max=Const(4), step=Const(1), par=4).name("x6642").srcCtx("LSTMPipe.scala:53:34") } // CounterNew(Const(0),Const(4),Const(1),Const(4))
+    val x6643 = withCtrl(x6732) { CounterChain(List(x6642)).name("x6643").srcCtx("LSTMPipe.scala:53:47") } // CounterChainNew(List(x6642))
+    val x6713 = withCtrl(x6732) { LoopController(style=MetaPipe, level=OuterControl, cchain=x6643).name("x6713").srcCtx("LSTMPipe.scala:53:47") } // UnrolledForeach(List(b3722, b3713, b3709),x6643,Block(Const(())),List(List(b3735, b3736, b3737, b3738)),List(List(b3739, b3740, b3741, b3742)))
+    val b3735 = withCtrl(x6713) { CounterIter(x6642, Some(0)).name("b3735") } // b3735
+    val b3739 = withCtrl(x6713) { Const(true).name("b3739") } // b3739
+    val b3736 = withCtrl(x6713) { CounterIter(x6642, Some(1)).name("b3736") } // b3736
+    val b3740 = withCtrl(x6713) { Const(true).name("b3740") } // b3740
+    val b3737 = withCtrl(x6713) { CounterIter(x6642, Some(2)).name("b3737") } // b3737
+    val b3741 = withCtrl(x6713) { Const(true).name("b3741") } // b3741
+    val b3738 = withCtrl(x6713) { CounterIter(x6642, Some(3)).name("b3738") } // b3738
+    val b3742 = withCtrl(x6713) { Const(true).name("b3742") } // b3742
+    val x6712 = withCtrl(x6713) { UnitController(style=ForkJoin, level=OuterControl).name("x6712").srcCtx("UnrollingTransformer.scala:431:43") } // ParallelPipe(List(b3722, b3713, b3709),Block(Const(())))
+    val x6644 = withCtrl(x6712) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6644").srcCtx("LSTMPipe.scala:55:42") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6645 = withCtrl(x6712) { CounterChain(List(x6644)).name("x6645").srcCtx("LSTMPipe.scala:55:56") } // CounterChainNew(List(x6644))
+    val x6660 = withCtrl(x6712) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6645).name("x6660").srcCtx("LSTMPipe.scala:55:56") } // UnrolledForeach(List(b3739, b3722, b3713, b3709),x6645,Block(Const(())),List(List(b3751)),List(List(b3752)))
+    val b3751 = withCtrl(x6660) { CounterIter(x6644, None).name("b3751") } // b3751
+    val b3752 = withCtrl(x6660) { Const(true).name("b3752") } // b3752
+    val x6646 = withCtrl(x6660) { OpDef(op=BitAnd, inputs=List(b3752, b3739)).name("x6646").srcCtx("UnrollingBase.scala:28:66") } // And(b3752,b3739)
+    val x6647 = withCtrl(x6660) { OpDef(op=BitAnd, inputs=List(b3722, b3713)).name("x6647").srcCtx("UnrollingBase.scala:28:66") } // And(b3722,b3713)
+    val x6648 = withCtrl(x6660) { OpDef(op=BitAnd, inputs=List(x6646, x6647)).name("x6648").srcCtx("UnrollingBase.scala:28:66") } // And(x6646,x6647)
+    val x6649 = withCtrl(x6660) { OpDef(op=BitAnd, inputs=List(x6648, b3709)).name("x6649").srcCtx("UnrollingBase.scala:28:66") } // And(x6648,b3709)
+    val x6650 = withCtrl(x6660) { LoadBanks(List(x6519_d0_b0), List(b3712, b3721, b3735, b3751)).name("x6650").srcCtx("LSTMPipe.scala:56:29") } // ParSRAMLoad(x6519,List(List(b3712, b3721, b3735, b3751)),List(x6649))
+    val x6651 = withCtrl(x6660) { x6650 } // VectorApply(x6650,0)
+    val x6652 = withCtrl(x6660) { ReadMem(x6633_d0).name("x6652").srcCtx("LSTMPipe.scala:63:12") } // RegRead(x6633)
+    val x6653 = withCtrl(x6660) { OpDef(op=FixMul, inputs=List(x6651, x6652)).name("x6653").srcCtx("LSTMPipe.scala:56:67:reX") } // FixMul(x6651,x6652)
+    val x6654 = withCtrl(x6660) { LoadBanks(List(x6556_d0_b0), List(b3712, b3721, b3735, b3751)).name("x6654").srcCtx("LSTMPipe.scala:57:29") } // ParSRAMLoad(x6556,List(List(b3712, b3721, b3735, b3751)),List(x6649))
+    val x6655 = withCtrl(x6660) { x6654 } // VectorApply(x6654,0)
+    val x6656 = withCtrl(x6660) { ReadMem(x6634_d0).name("x6656").srcCtx("LSTMPipe.scala:63:12") } // RegRead(x6634)
+    val x6657 = withCtrl(x6660) { OpDef(op=FixMul, inputs=List(x6655, x6656)).name("x6657").srcCtx("LSTMPipe.scala:57:67:reH") } // FixMul(x6655,x6656)
+    val x6658 = withCtrl(x6660) { OpDef(op=FixAdd, inputs=List(x6653, x6657)).name("x6658").srcCtx("LSTMPipe.scala:58:46") } // FixAdd(x6653,x6657)
+    val x6659 = withCtrl(x6660) { StoreBanks(List(List(x6632_d0_b0)), List(b3735, b3751), x6658).name("x6659").srcCtx("LSTMPipe.scala:58:40") } // ParSRAMStore(x6632,List(List(b3735, b3751)),List(x6658),List(x6649))
+    val x6661 = withCtrl(x6712) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6661").srcCtx("LSTMPipe.scala:55:42") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6662 = withCtrl(x6712) { CounterChain(List(x6661)).name("x6662").srcCtx("LSTMPipe.scala:55:56") } // CounterChainNew(List(x6661))
+    val x6677 = withCtrl(x6712) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6662).name("x6677").srcCtx("LSTMPipe.scala:55:56") } // UnrolledForeach(List(b3740, b3722, b3713, b3709),x6662,Block(Const(())),List(List(b3768)),List(List(b3769)))
+    val b3768 = withCtrl(x6677) { CounterIter(x6661, None).name("b3768") } // b3768
+    val b3769 = withCtrl(x6677) { Const(true).name("b3769") } // b3769
+    val x6663 = withCtrl(x6677) { OpDef(op=BitAnd, inputs=List(b3769, b3740)).name("x6663").srcCtx("UnrollingBase.scala:28:66") } // And(b3769,b3740)
+    val x6664 = withCtrl(x6677) { OpDef(op=BitAnd, inputs=List(b3722, b3713)).name("x6664").srcCtx("UnrollingBase.scala:28:66") } // And(b3722,b3713)
+    val x6665 = withCtrl(x6677) { OpDef(op=BitAnd, inputs=List(x6663, x6664)).name("x6665").srcCtx("UnrollingBase.scala:28:66") } // And(x6663,x6664)
+    val x6666 = withCtrl(x6677) { OpDef(op=BitAnd, inputs=List(x6665, b3709)).name("x6666").srcCtx("UnrollingBase.scala:28:66") } // And(x6665,b3709)
+    val x6667 = withCtrl(x6677) { LoadBanks(List(x6519_d0_b1), List(b3712, b3721, b3736, b3768)).name("x6667").srcCtx("LSTMPipe.scala:56:29") } // ParSRAMLoad(x6519,List(List(b3712, b3721, b3736, b3768)),List(x6666))
+    val x6668 = withCtrl(x6677) { x6667 } // VectorApply(x6667,0)
+    val x6669 = withCtrl(x6677) { ReadMem(x6633_d1).name("x6669").srcCtx("LSTMPipe.scala:63:12") } // RegRead(x6633)
+    val x6670 = withCtrl(x6677) { OpDef(op=FixMul, inputs=List(x6668, x6669)).name("x6670").srcCtx("LSTMPipe.scala:56:67:reX") } // FixMul(x6668,x6669)
+    val x6671 = withCtrl(x6677) { LoadBanks(List(x6556_d0_b1), List(b3712, b3721, b3736, b3768)).name("x6671").srcCtx("LSTMPipe.scala:57:29") } // ParSRAMLoad(x6556,List(List(b3712, b3721, b3736, b3768)),List(x6666))
+    val x6672 = withCtrl(x6677) { x6671 } // VectorApply(x6671,0)
+    val x6673 = withCtrl(x6677) { ReadMem(x6634_d1).name("x6673").srcCtx("LSTMPipe.scala:63:12") } // RegRead(x6634)
+    val x6674 = withCtrl(x6677) { OpDef(op=FixMul, inputs=List(x6672, x6673)).name("x6674").srcCtx("LSTMPipe.scala:57:67:reH") } // FixMul(x6672,x6673)
+    val x6675 = withCtrl(x6677) { OpDef(op=FixAdd, inputs=List(x6670, x6674)).name("x6675").srcCtx("LSTMPipe.scala:58:46") } // FixAdd(x6670,x6674)
+    val x6676 = withCtrl(x6677) { StoreBanks(List(List(x6632_d0_b1)), List(b3736, b3768), x6675).name("x6676").srcCtx("LSTMPipe.scala:58:40") } // ParSRAMStore(x6632,List(List(b3736, b3768)),List(x6675),List(x6666))
+    val x6678 = withCtrl(x6712) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6678").srcCtx("LSTMPipe.scala:55:42") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6679 = withCtrl(x6712) { CounterChain(List(x6678)).name("x6679").srcCtx("LSTMPipe.scala:55:56") } // CounterChainNew(List(x6678))
+    val x6694 = withCtrl(x6712) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6679).name("x6694").srcCtx("LSTMPipe.scala:55:56") } // UnrolledForeach(List(b3741, b3722, b3713, b3709),x6679,Block(Const(())),List(List(b3785)),List(List(b3786)))
+    val b3785 = withCtrl(x6694) { CounterIter(x6678, None).name("b3785") } // b3785
+    val b3786 = withCtrl(x6694) { Const(true).name("b3786") } // b3786
+    val x6680 = withCtrl(x6694) { OpDef(op=BitAnd, inputs=List(b3786, b3741)).name("x6680").srcCtx("UnrollingBase.scala:28:66") } // And(b3786,b3741)
+    val x6681 = withCtrl(x6694) { OpDef(op=BitAnd, inputs=List(b3722, b3713)).name("x6681").srcCtx("UnrollingBase.scala:28:66") } // And(b3722,b3713)
+    val x6682 = withCtrl(x6694) { OpDef(op=BitAnd, inputs=List(x6680, x6681)).name("x6682").srcCtx("UnrollingBase.scala:28:66") } // And(x6680,x6681)
+    val x6683 = withCtrl(x6694) { OpDef(op=BitAnd, inputs=List(x6682, b3709)).name("x6683").srcCtx("UnrollingBase.scala:28:66") } // And(x6682,b3709)
+    val x6684 = withCtrl(x6694) { LoadBanks(List(x6519_d0_b2), List(b3712, b3721, b3737, b3785)).name("x6684").srcCtx("LSTMPipe.scala:56:29") } // ParSRAMLoad(x6519,List(List(b3712, b3721, b3737, b3785)),List(x6683))
+    val x6685 = withCtrl(x6694) { x6684 } // VectorApply(x6684,0)
+    val x6686 = withCtrl(x6694) { ReadMem(x6633_d2).name("x6686").srcCtx("LSTMPipe.scala:63:12") } // RegRead(x6633)
+    val x6687 = withCtrl(x6694) { OpDef(op=FixMul, inputs=List(x6685, x6686)).name("x6687").srcCtx("LSTMPipe.scala:56:67:reX") } // FixMul(x6685,x6686)
+    val x6688 = withCtrl(x6694) { LoadBanks(List(x6556_d0_b2), List(b3712, b3721, b3737, b3785)).name("x6688").srcCtx("LSTMPipe.scala:57:29") } // ParSRAMLoad(x6556,List(List(b3712, b3721, b3737, b3785)),List(x6683))
+    val x6689 = withCtrl(x6694) { x6688 } // VectorApply(x6688,0)
     def split1 = {
-    val x5961 = withCtrl(x5988) { CounterChain(List(x5960)).name("x5961").srcCtx("LSTMPipe.scala:111:54") } // CounterChainNew(List(x5960))
-    val x5987 = withCtrl(x5988) { LoopController(style=InnerPipe, level=InnerControl, cchain=x5961).name("x5987").srcCtx("LSTMPipe.scala:111:54") } // UnrolledForeach(List(b3602, b3514, b3510),x5961,Block(Const(())),List(List(b3669)),List(List(b3670)))
-    val b3669 = withCtrl(x5987) { CounterIter(x5960, None).name("b3669") } // b3669
-    val b3670 = withCtrl(x5987) { Const(true).name("b3670") } // b3670
-    val x5962 = withCtrl(x5987) { OpDef(op=BitAnd, inputs=List(b3670, b3602)).name("x5962").srcCtx("UnrollingBase.scala:28:66") } // And(b3670,b3602)
-    val x5963 = withCtrl(x5987) { OpDef(op=BitAnd, inputs=List(b3514, b3510)).name("x5963").srcCtx("UnrollingBase.scala:28:66") } // And(b3514,b3510)
-    val x5964 = withCtrl(x5987) { OpDef(op=BitAnd, inputs=List(x5962, x5963)).name("x5964").srcCtx("UnrollingBase.scala:28:66") } // And(x5962,x5963)
-    val x5965 = withCtrl(x5987) { ReadMem(x5902).name("x5965").srcCtx("LSTMPipe.scala:112:39:sigEle") } // ParFIFODeq(x5902,List(x5964))
-    val x5966 = withCtrl(x5987) { x5965 } // VectorApply(x5965,0)
-    val x5967 = withCtrl(x5987) { ReadMem(x5903).name("x5967").srcCtx("LSTMPipe.scala:113:49:cNewMultAdd") } // ParFIFODeq(x5903,List(x5964))
-    val x5968 = withCtrl(x5987) { x5967 } // VectorApply(x5967,0)
-    val x5969 = withCtrl(x5987) { OpDef(op=FixAbs, inputs=List(x5968)).name("x5969").srcCtx("NonLinearity.scala:73:20:absin") } // FixAbs(x5968)
-    val x5970 = withCtrl(x5987) { OpDef(op=FixSra, inputs=List(x5969, Const(2))).name("x5970").srcCtx("NonLinearity.scala:74:22:div4") } // FixRsh(x5969,Const(2))
-    val x5971 = withCtrl(x5987) { OpDef(op=FixAdd, inputs=List(x5970, Const(0.375))).name("x5971").srcCtx("NonLinearity.scala:75:19:li") } // FixAdd(x5970,Const(0.375))
-    val x5972 = withCtrl(x5987) { OpDef(op=FixLt, inputs=List(Const(2.5), x5969)).name("x5972").srcCtx("NonLinearity.scala:76:28") } // FixLt(Const(2.5),x5969)
-    val x5973 = withCtrl(x5987) { OpDef(op=FixLt, inputs=List(Const(0.5), x5969)).name("x5973").srcCtx("NonLinearity.scala:77:14") } // FixLt(Const(0.5),x5969)
-    val x5974 = withCtrl(x5987) { OpDef(op=FixLt, inputs=List(x5969, Const(2.5))).name("x5974").srcCtx("NonLinearity.scala:77:31") } // FixLt(x5969,Const(2.5))
-    val x5975 = withCtrl(x5987) { OpDef(op=BitAnd, inputs=List(x5973, x5974)).name("x5975").srcCtx("NonLinearity.scala:77:22") } // And(x5973,x5974)
-    val x5976 = withCtrl(x5987) { OpDef(op=MuxOp, inputs=List(x5975, x5971, x5969)).name("x5976").srcCtx("NonLinearity.scala:77:10") } // Mux(x5975,x5971,x5969)
-    val x5977 = withCtrl(x5987) { OpDef(op=MuxOp, inputs=List(x5972, Const(1.0), x5976)).name("x5977").srcCtx("NonLinearity.scala:76:21:absout") } // Mux(x5972,Const(1),x5976)
-    val x5978 = withCtrl(x5987) { OpDef(op=FixNeg, inputs=List(x5977)).name("x5978").srcCtx("NonLinearity.scala:80:23:negout") } // FixNeg(x5977)
-    val x5979 = withCtrl(x5987) { OpDef(op=FixLt, inputs=List(x5968, Const(0.0))).name("x5979").srcCtx("NonLinearity.scala:81:12") } // FixLt(x5968,Const(0))
-    val x5980 = withCtrl(x5987) { OpDef(op=MuxOp, inputs=List(x5979, x5978, x5977)).name("x5980").srcCtx("NonLinearity.scala:81:8") } // Mux(x5979,x5978,x5977)
-    val x5981 = withCtrl(x5987) { OpDef(op=FixAdd, inputs=List(x5980, x5966)).name("x5981").srcCtx("LSTMPipe.scala:115:50:hNew") } // FixAdd(x5980,x5966)
-    val x5982 = withCtrl(x5987) { LoadBanks(List(x5897_d1_b0), List(b3669)).name("x5982").srcCtx("LSTMPipe.scala:116:31:hLast") } // ParSRAMLoad(x5897,List(List(b3669)),List(x5964))
-    val x5983 = withCtrl(x5987) { x5982 } // VectorApply(x5982,0)
-    val x5984 = withCtrl(x5987) { OpDef(op=FixEql, inputs=List(b3601, Const(3))).name("x5984").srcCtx("LSTMPipe.scala:22:40") } // FixEql(b3601,Const(3))
-    val x5985 = withCtrl(x5987) { OpDef(op=MuxOp, inputs=List(x5984, x5981, x5983)).name("x5985").srcCtx("LSTMPipe.scala:118:31:update") } // Mux(x5984,x5981,x5983)
-    val x5986 = withCtrl(x5987) { StoreBanks(List(List(x5897_d0_b0), List(x5897_d1_b0)), List(b3669), x5985).name("x5986").srcCtx("LSTMPipe.scala:119:33") } // ParSRAMStore(x5897,List(List(b3669)),List(x5985),List(x5964))
-    antiDepsOf(x5986)=List(x5982)
-    val x5989 = withCtrl(x6001) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x5989").srcCtx("LSTMPipe.scala:123:38") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
-    val x5990 = withCtrl(x6001) { CounterChain(List(x5989)).name("x5990").srcCtx("LSTMPipe.scala:123:52") } // CounterChainNew(List(x5989))
-    val x6000 = withCtrl(x6001) { LoopController(style=InnerPipe, level=InnerControl, cchain=x5990).name("x6000").srcCtx("LSTMPipe.scala:123:52") } // UnrolledForeach(List(b3514, b3510),x5990,Block(Const(())),List(List(b3700)),List(List(b3701)))
-    val b3700 = withCtrl(x6000) { CounterIter(x5989, None).name("b3700") } // b3700
-    val b3701 = withCtrl(x6000) { Const(true).name("b3701") } // b3701
-    val x5991 = withCtrl(x6000) { OpDef(op=BitAnd, inputs=List(b3701, b3514)).name("x5991").srcCtx("UnrollingBase.scala:28:66") } // And(b3701,b3514)
-    val x5992 = withCtrl(x6000) { OpDef(op=BitAnd, inputs=List(x5991, b3510)).name("x5992").srcCtx("UnrollingBase.scala:28:66") } // And(x5991,b3510)
-    val x5993 = withCtrl(x6000) { LoadBanks(List(x5897_d0_b0), List(b3700)).name("x5993").srcCtx("LSTMPipe.scala:124:42") } // ParSRAMLoad(x5897,List(List(b3700)),List(x5992))
-    val x5994 = withCtrl(x6000) { x5993 } // VectorApply(x5993,0)
-    val x5995 = withCtrl(x6000) { StoreBanks(List(List(x5694_d0_b0)), List(b3513, b3700), x5994).name("x5995").srcCtx("LSTMPipe.scala:124:36") } // ParSRAMStore(x5694,List(List(b3513, b3700)),List(x5994),List(x5992))
-    val x5996 = withCtrl(x6000) { StoreBanks(List(List(x5644_d0_b0), List(x5644_d1_b0)), List(b3509, b3700), x5994).name("x5996").srcCtx("LSTMPipe.scala:125:35") } // ParSRAMStore(x5644,List(List(b3509, b3700)),List(x5994),List(x5992))
-    val x5997 = withCtrl(x6000) { LoadBanks(List(x5896_d0_b0), List(b3700)).name("x5997").srcCtx("LSTMPipe.scala:126:42") } // ParSRAMLoad(x5896,List(List(b3700)),List(x5992))
-    val x5998 = withCtrl(x6000) { x5997 } // VectorApply(x5997,0)
-    val x5999 = withCtrl(x6000) { StoreBanks(List(List(x5669_d0_b0), List(x5669_d1_b0)), List(b3513, b3700), x5998).name("x5999").srcCtx("LSTMPipe.scala:126:36") } // ParSRAMStore(x5669,List(List(b3513, b3700)),List(x5998),List(x5992))
-    val x6003 = withCtrl(x6031) { Counter(min=Const(0), max=Const(8), step=Const(1), par=1).name("x6003").srcCtx("LSTMPipe.scala:131:47") } // CounterNew(Const(0),Const(8),Const(1),Const(1))
-    val x6004 = withCtrl(x6031) { CounterChain(List(x6003)).name("x6004").srcCtx("LSTMPipe.scala:131:47") } // CounterChainNew(List(x6003))
-    val x6030 = withCtrl(x6031) { LoopController(style=StreamPipe, level=OuterControl, cchain=x6004).name("x6030").srcCtx("LSTMPipe.scala:131:47") } // UnrolledForeach(List(Const(true)),x6004,Block(Const(())),List(List(b3716)),List(List(b3717)))
-    val b3716 = withCtrl(x6030) { CounterIter(x6003, Some(0)).name("b3716") } // b3716
-    val b3717 = withCtrl(x6030) { Const(true).name("b3717") } // b3717
-    val b6066 = withCtrl(x6030) { StreamOut(field="offset").name("b6066").srcCtx("LSTMPipe.scala:131:47") } // x6005 = StreamOutNew(BurstCmdBus)
-    isAccum(b6066) = false
-    bufferDepthOf(b6066) = 1
-    val b6067 = withCtrl(x6030) { StreamOut(field="size").name("b6067").srcCtx("LSTMPipe.scala:131:47") } // x6005 = StreamOutNew(BurstCmdBus)
-    isAccum(b6067) = false
-    bufferDepthOf(b6067) = 1
-    val x6006 = withCtrl(x6030) { StreamOut(field="data").name("x6006").srcCtx("LSTMPipe.scala:131:47") } // x6006 = StreamOutNew(BurstFullDataBus())
-    isAccum(x6006) = false
-    bufferDepthOf(x6006) = 1
-    val x6007 = withCtrl(x6030) { StreamIn(field="ack").name("x6007").srcCtx("LSTMPipe.scala:131:47") } // x6007 = StreamInNew(BurstAckBus)
-    isAccum(x6007) = false
-    bufferDepthOf(x6007) = 1
-    val x6018 = withCtrl(x6030) { UnitController(style=SeqPipe, level=InnerControl).name("x6018").srcCtx("LSTMPipe.scala:131:47") } // UnitPipe(List(b3717),Block(x6017))
-    val x6008 = withCtrl(x6018) { b3716 } // FixConvert(b3716,TRUE,_32,_0) (Same Type. No op)
-    val x6009 = withCtrl(x6018) { OpDef(op=FixSla, inputs=List(x6008, Const(7))).name("x6009").srcCtx("LSTMPipe.scala:131:47") } // FixLsh(x6008,Const(7))
-    val x6010 = withCtrl(x6018) { Const(0) } // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
-    val x6011 = withCtrl(x6018) { OpDef(op=FixAdd, inputs=List(x6009, x6010)).name("x6011").srcCtx("LSTMPipe.scala:131:47") } // FixAdd(x6009,x6010)
-    val x6012 = withCtrl(x6018) { OpDef(op=FixSla, inputs=List(x6011, Const(2))).name("x6012").srcCtx("LSTMPipe.scala:131:47") } // FixLsh(x6011,Const(2))
-    val x6013 = withCtrl(x6018) { x6012 } // FixConvert(x6012,TRUE,_64,_0)
-    val x6014 = withCtrl(x6018) { DramAddress(x5586).name("x6014").srcCtx("LSTMPipe.scala:131:47") } // GetDRAMAddress(x5586)
-    val x6016_x6015 = withCtrl(x6018) { OpDef(op=FixAdd, inputs=List(x6013, x6014)).name("x6016_x6015").srcCtx("LSTMPipe.scala:131:47") } // FixAdd(x6013,x6014)
-    // x6016 = SimpleStruct(ArrayBuffer((offset,x6015), (size,Const(512)), (isLoad,Const(false))))
-    val x6017_b6068_b6066 = withCtrl(x6018) { WriteMem(b6066, x6016_x6015).name("x6017_b6068_b6066").srcCtx("LSTMPipe.scala:131:47") } // StreamWrite(x6005,x6016,b3717)
-    val x6017_b6069_b6067 = withCtrl(x6018) { WriteMem(b6067, Const(512)).name("x6017_b6069_b6067").srcCtx("LSTMPipe.scala:131:47") } // StreamWrite(x6005,x6016,b3717)
-    val x6019 = withCtrl(x6030) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6019").srcCtx("LSTMPipe.scala:131:47") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
-    val x6020 = withCtrl(x6030) { CounterChain(List(x6019)).name("x6020").srcCtx("LSTMPipe.scala:131:47") } // CounterChainNew(List(x6019))
-    val x6026 = withCtrl(x6030) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6020).name("x6026").srcCtx("LSTMPipe.scala:131:47") } // UnrolledForeach(List(b3717),x6020,Block(Const(())),List(List(b3734)),List(List(b3735)))
-    val b3734 = withCtrl(x6026) { CounterIter(x6019, None).name("b3734") } // b3734
-    val b3735 = withCtrl(x6026) { Const(true).name("b3735") } // b3735
-    val x6021 = withCtrl(x6026) { OpDef(op=BitAnd, inputs=List(b3735, b3717)).name("x6021").srcCtx("UnrollingBase.scala:28:66") } // And(b3735,b3717)
-    val x6022 = withCtrl(x6026) { LoadBanks(List(x5644_d0_b0), List(b3716, b3734)).name("x6022").srcCtx("LSTMPipe.scala:131:47") } // ParSRAMLoad(x5644,List(List(b3716, b3734)),List(x6021))
-    val x6024_x6023 = withCtrl(x6026) { x6022 } // VectorApply(x6022,0)
-    // x6024 = SimpleStruct(ArrayBuffer((_1,x6023), (_2,Const(true))))
-    val x6025_x6025_x6006 = withCtrl(x6026) { WriteMem(x6006, x6024_x6023).name("x6025_x6025_x6006").srcCtx("LSTMPipe.scala:131:47") } // ParStreamWrite(x6006,List(x6024),List(x6021))
-    val x6027 = withCtrl(x6030) { FringeDenseStore(dram=List(x5586), cmdStream=List(b6066, b6067), dataStream=List(x6006), ackStream=List(x6007)).name("x6027").srcCtx("LSTMPipe.scala:131:47") } // FringeDenseStore(x5586,x6005,x6006,x6007)
-    val x6029 = withCtrl(x6030) { UnitController(style=SeqPipe, level=InnerControl).name("x6029").srcCtx("LSTMPipe.scala:131:47") } // UnitPipe(List(b3717),Block(Const(())))
-    val x6028_x6028 = withCtrl(x6029) { ReadMem(x6007).name("x6028_x6028").srcCtx("LSTMPipe.scala:131:47") } // StreamRead(x6007,b3717)
+    val x6690 = withCtrl(x6694) { ReadMem(x6634_d2).name("x6690").srcCtx("LSTMPipe.scala:63:12") } // RegRead(x6634)
+    val x6691 = withCtrl(x6694) { OpDef(op=FixMul, inputs=List(x6689, x6690)).name("x6691").srcCtx("LSTMPipe.scala:57:67:reH") } // FixMul(x6689,x6690)
+    val x6692 = withCtrl(x6694) { OpDef(op=FixAdd, inputs=List(x6687, x6691)).name("x6692").srcCtx("LSTMPipe.scala:58:46") } // FixAdd(x6687,x6691)
+    val x6693 = withCtrl(x6694) { StoreBanks(List(List(x6632_d0_b2)), List(b3737, b3785), x6692).name("x6693").srcCtx("LSTMPipe.scala:58:40") } // ParSRAMStore(x6632,List(List(b3737, b3785)),List(x6692),List(x6683))
+    val x6695 = withCtrl(x6712) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6695").srcCtx("LSTMPipe.scala:55:42") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6696 = withCtrl(x6712) { CounterChain(List(x6695)).name("x6696").srcCtx("LSTMPipe.scala:55:56") } // CounterChainNew(List(x6695))
+    val x6711 = withCtrl(x6712) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6696).name("x6711").srcCtx("LSTMPipe.scala:55:56") } // UnrolledForeach(List(b3742, b3722, b3713, b3709),x6696,Block(Const(())),List(List(b3802)),List(List(b3803)))
+    val b3802 = withCtrl(x6711) { CounterIter(x6695, None).name("b3802") } // b3802
+    val b3803 = withCtrl(x6711) { Const(true).name("b3803") } // b3803
+    val x6697 = withCtrl(x6711) { OpDef(op=BitAnd, inputs=List(b3803, b3742)).name("x6697").srcCtx("UnrollingBase.scala:28:66") } // And(b3803,b3742)
+    val x6698 = withCtrl(x6711) { OpDef(op=BitAnd, inputs=List(b3722, b3713)).name("x6698").srcCtx("UnrollingBase.scala:28:66") } // And(b3722,b3713)
+    val x6699 = withCtrl(x6711) { OpDef(op=BitAnd, inputs=List(x6697, x6698)).name("x6699").srcCtx("UnrollingBase.scala:28:66") } // And(x6697,x6698)
+    val x6700 = withCtrl(x6711) { OpDef(op=BitAnd, inputs=List(x6699, b3709)).name("x6700").srcCtx("UnrollingBase.scala:28:66") } // And(x6699,b3709)
+    val x6701 = withCtrl(x6711) { LoadBanks(List(x6519_d0_b3), List(b3712, b3721, b3738, b3802)).name("x6701").srcCtx("LSTMPipe.scala:56:29") } // ParSRAMLoad(x6519,List(List(b3712, b3721, b3738, b3802)),List(x6700))
+    val x6702 = withCtrl(x6711) { x6701 } // VectorApply(x6701,0)
+    val x6703 = withCtrl(x6711) { ReadMem(x6633_d3).name("x6703").srcCtx("LSTMPipe.scala:63:12") } // RegRead(x6633)
+    val x6704 = withCtrl(x6711) { OpDef(op=FixMul, inputs=List(x6702, x6703)).name("x6704").srcCtx("LSTMPipe.scala:56:67:reX") } // FixMul(x6702,x6703)
+    val x6705 = withCtrl(x6711) { LoadBanks(List(x6556_d0_b3), List(b3712, b3721, b3738, b3802)).name("x6705").srcCtx("LSTMPipe.scala:57:29") } // ParSRAMLoad(x6556,List(List(b3712, b3721, b3738, b3802)),List(x6700))
+    val x6706 = withCtrl(x6711) { x6705 } // VectorApply(x6705,0)
+    val x6707 = withCtrl(x6711) { ReadMem(x6634_d3).name("x6707").srcCtx("LSTMPipe.scala:63:12") } // RegRead(x6634)
+    val x6708 = withCtrl(x6711) { OpDef(op=FixMul, inputs=List(x6706, x6707)).name("x6708").srcCtx("LSTMPipe.scala:57:67:reH") } // FixMul(x6706,x6707)
+    val x6709 = withCtrl(x6711) { OpDef(op=FixAdd, inputs=List(x6704, x6708)).name("x6709").srcCtx("LSTMPipe.scala:58:46") } // FixAdd(x6704,x6708)
+    val x6710 = withCtrl(x6711) { StoreBanks(List(List(x6632_d0_b3)), List(b3738, b3802), x6709).name("x6710").srcCtx("LSTMPipe.scala:58:40") } // ParSRAMStore(x6632,List(List(b3738, b3802)),List(x6709),List(x6700))
+    val x6714 = withCtrl(x6732) { Counter(min=Const(0), max=Const(128), step=Const(1), par=1).name("x6714").srcCtx("LSTMPipe.scala:63:12") } // CounterNew(Const(0),Const(128),Const(1),Const(1))
+    val x6715 = withCtrl(x6732) { Counter(min=Const(0), max=Const(4), step=Const(1), par=1).name("x6715").srcCtx("LSTMPipe.scala:63:12") } // CounterNew(Const(0),Const(4),Const(1),Const(1))
+    val x6716 = withCtrl(x6732) { CounterChain(List(x6715,x6714)).name("x6716").srcCtx("LSTMPipe.scala:63:12") } // CounterChainNew(ArrayBuffer(x6715, x6714))
+    val x6731 = withCtrl(x6732) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6716).name("x6731").srcCtx("LSTMPipe.scala:63:12") } // UnrolledForeach(List(),x6716,Block(Const(())),ArrayBuffer(List(b3821), List(b3822)),ArrayBuffer(List(b3823), List(b3824)))
+    val b3821 = withCtrl(x6731) { CounterIter(x6715, Some(0)).name("b3821") } // b3821
+    val b3823 = withCtrl(x6731) { Const(true).name("b3823") } // b3823
+    val b3822 = withCtrl(x6731) { CounterIter(x6714, None).name("b3822") } // b3822
+    val b3824 = withCtrl(x6731) { Const(true).name("b3824") } // b3824
+    val x6717 = withCtrl(x6731) { OpDef(op=BitAnd, inputs=List(b3823, b3824)).name("x6717").srcCtx("UnrollingBase.scala:28:66") } // And(b3823,b3824)
+    val x6718 = withCtrl(x6731) { OpDef(op=BitAnd, inputs=List(b3713, b3709)).name("x6718").srcCtx("UnrollingBase.scala:28:66") } // And(b3713,b3709)
+    val x6719 = withCtrl(x6731) { OpDef(op=BitAnd, inputs=List(x6717, x6718)).name("x6719").srcCtx("UnrollingBase.scala:28:66") } // And(x6717,x6718)
+    val x6720 = withCtrl(x6731) { LoadBanks(List(x6632_d0_b0, x6632_d0_b1, x6632_d0_b2, x6632_d0_b3), List(b3821, b3822)).name("x6720").srcCtx("LSTMPipe.scala:63:12") } // ParSRAMLoad(x6632,List(ArrayBuffer(b3821, b3822)),List(x6719))
+    val x6721 = withCtrl(x6731) { x6720 } // VectorApply(x6720,0)
+    val x6722 = withCtrl(x6731) { LoadBanks(List(x6628_d1_b0), List(b3821, b3822)).name("x6722").srcCtx("LSTMPipe.scala:63:12") } // ParSRAMLoad(x6628,List(ArrayBuffer(b3821, b3822)),List(x6719))
+    val x6723 = withCtrl(x6731) { x6722 } // VectorApply(x6722,0)
+    val x6724 = withCtrl(x6731) { OpDef(op=BitAnd, inputs=List(b3722, b3713)).name("x6724").srcCtx("LSTMPipe.scala:63:12") } // And(b3722,b3713)
+    val x6725 = withCtrl(x6731) { OpDef(op=BitAnd, inputs=List(x6724, b3709)).name("x6725").srcCtx("LSTMPipe.scala:63:12") } // And(x6724,b3709)
+    val x6726 = withCtrl(x6731) { OpDef(op=BitAnd, inputs=List(x6725, x6719)).name("x6726").srcCtx("LSTMPipe.scala:63:12") } // And(x6725,x6719)
+    val x6727 = withCtrl(x6731) { OpDef(op=FixEql, inputs=List(b3721, Const(0))).name("x6727").srcCtx("LSTMPipe.scala:63:12") } // FixEql(b3721,Const(0))
+    val x6728 = withCtrl(x6731) { OpDef(op=FixAdd, inputs=List(x6721, x6723)).name("x6728").srcCtx("LSTMPipe.scala:63:14") } // FixAdd(x6721,x6723)
+    val x6729 = withCtrl(x6731) { OpDef(op=MuxOp, inputs=List(x6727, x6721, x6728)).name("x6729").srcCtx("LSTMPipe.scala:63:12") } // Mux(x6727,x6721,x6728)
+    val x6730 = withCtrl(x6731) { StoreBanks(List(List(x6628_d0_b0, x6628_d0_b1, x6628_d0_b2, x6628_d0_b3), List(x6628_d1_b0)), List(b3821, b3822), x6729).name("x6730").srcCtx("LSTMPipe.scala:63:12") } // ParSRAMStore(x6628,List(ArrayBuffer(b3821, b3822)),List(x6729),List(x6719))
+    antiDepsOf(x6730)=List(x6722)
+    val x6733 = withCtrl(x6916) { Counter(min=Const(0), max=Const(4), step=Const(1), par=4).name("x6733").srcCtx("LSTMPipe.scala:66:32") } // CounterNew(Const(0),Const(4),Const(1),Const(4))
+    val x6734 = withCtrl(x6916) { CounterChain(List(x6733)).name("x6734").srcCtx("LSTMPipe.scala:66:45") } // CounterChainNew(List(x6733))
+    val x6784 = withCtrl(x6916) { LoopController(style=MetaPipe, level=OuterControl, cchain=x6734).name("x6784").srcCtx("LSTMPipe.scala:66:45") } // UnrolledForeach(List(b3713, b3709),x6734,Block(Const(())),List(List(b3843, b3844, b3845, b3846)),List(List(b3847, b3848, b3849, b3850)))
+    val b3843 = withCtrl(x6784) { CounterIter(x6733, Some(0)).name("b3843") } // b3843
+    val b3847 = withCtrl(x6784) { Const(true).name("b3847") } // b3847
+    val b3844 = withCtrl(x6784) { CounterIter(x6733, Some(1)).name("b3844") } // b3844
+    val b3848 = withCtrl(x6784) { Const(true).name("b3848") } // b3848
+    val b3845 = withCtrl(x6784) { CounterIter(x6733, Some(2)).name("b3845") } // b3845
+    val b3849 = withCtrl(x6784) { Const(true).name("b3849") } // b3849
+    val b3846 = withCtrl(x6784) { CounterIter(x6733, Some(3)).name("b3846") } // b3846
+    val b3850 = withCtrl(x6784) { Const(true).name("b3850") } // b3850
+    val x6783 = withCtrl(x6784) { UnitController(style=ForkJoin, level=OuterControl).name("x6783").srcCtx("UnrollingTransformer.scala:431:43") } // ParallelPipe(List(b3713, b3709),Block(Const(())))
+    val x6735 = withCtrl(x6783) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6735").srcCtx("LSTMPipe.scala:67:40") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6736 = withCtrl(x6783) { CounterChain(List(x6735)).name("x6736").srcCtx("LSTMPipe.scala:67:54") } // CounterChainNew(List(x6735))
+    val x6746 = withCtrl(x6783) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6736).name("x6746").srcCtx("LSTMPipe.scala:67:54") } // UnrolledForeach(List(b3847, b3713, b3709),x6736,Block(Const(())),List(List(b3859)),List(List(b3860)))
+    val b3859 = withCtrl(x6746) { CounterIter(x6735, None).name("b3859") } // b3859
+    val b3860 = withCtrl(x6746) { Const(true).name("b3860") } // b3860
+    val x6737 = withCtrl(x6746) { OpDef(op=BitAnd, inputs=List(b3860, b3847)).name("x6737").srcCtx("UnrollingBase.scala:28:66") } // And(b3860,b3847)
+    val x6738 = withCtrl(x6746) { OpDef(op=BitAnd, inputs=List(b3713, b3709)).name("x6738").srcCtx("UnrollingBase.scala:28:66") } // And(b3713,b3709)
+    val x6739 = withCtrl(x6746) { OpDef(op=BitAnd, inputs=List(x6737, x6738)).name("x6739").srcCtx("UnrollingBase.scala:28:66") } // And(x6737,x6738)
+    val x6740 = withCtrl(x6746) { LoadBanks(List(x6628_d0_b0), List(b3843, b3859)).name("x6740").srcCtx("LSTMPipe.scala:68:48") } // ParSRAMLoad(x6628,List(List(b3843, b3859)),List(x6739))
+    val x6741 = withCtrl(x6746) { x6740 } // VectorApply(x6740,0)
+    val x6742 = withCtrl(x6746) { LoadBanks(List(x6593_d0_b0), List(b3712, b3843, b3859)).name("x6742").srcCtx("LSTMPipe.scala:68:66") } // ParSRAMLoad(x6593,List(List(b3712, b3843, b3859)),List(x6739))
+    val x6743 = withCtrl(x6746) { x6742 } // VectorApply(x6742,0)
+    val x6744 = withCtrl(x6746) { OpDef(op=FixAdd, inputs=List(x6741, x6743)).name("x6744").srcCtx("LSTMPipe.scala:68:63") } // FixAdd(x6741,x6743)
+    val x6745 = withCtrl(x6746) { StoreBanks(List(List(x6629_d0_b0)), List(b3843, b3859), x6744).name("x6745").srcCtx("LSTMPipe.scala:68:37") } // ParSRAMStore(x6629,List(List(b3843, b3859)),List(x6744),List(x6739))
+    val x6747 = withCtrl(x6783) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6747").srcCtx("LSTMPipe.scala:67:40") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6748 = withCtrl(x6783) { CounterChain(List(x6747)).name("x6748").srcCtx("LSTMPipe.scala:67:54") } // CounterChainNew(List(x6747))
+    val x6758 = withCtrl(x6783) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6748).name("x6758").srcCtx("LSTMPipe.scala:67:54") } // UnrolledForeach(List(b3848, b3713, b3709),x6748,Block(Const(())),List(List(b3871)),List(List(b3872)))
+    val b3871 = withCtrl(x6758) { CounterIter(x6747, None).name("b3871") } // b3871
+    val b3872 = withCtrl(x6758) { Const(true).name("b3872") } // b3872
+    val x6749 = withCtrl(x6758) { OpDef(op=BitAnd, inputs=List(b3872, b3848)).name("x6749").srcCtx("UnrollingBase.scala:28:66") } // And(b3872,b3848)
+    val x6750 = withCtrl(x6758) { OpDef(op=BitAnd, inputs=List(b3713, b3709)).name("x6750").srcCtx("UnrollingBase.scala:28:66") } // And(b3713,b3709)
+    val x6751 = withCtrl(x6758) { OpDef(op=BitAnd, inputs=List(x6749, x6750)).name("x6751").srcCtx("UnrollingBase.scala:28:66") } // And(x6749,x6750)
+    val x6752 = withCtrl(x6758) { LoadBanks(List(x6628_d0_b1), List(b3844, b3871)).name("x6752").srcCtx("LSTMPipe.scala:68:48") } // ParSRAMLoad(x6628,List(List(b3844, b3871)),List(x6751))
+    val x6753 = withCtrl(x6758) { x6752 } // VectorApply(x6752,0)
+    val x6754 = withCtrl(x6758) { LoadBanks(List(x6593_d0_b1), List(b3712, b3844, b3871)).name("x6754").srcCtx("LSTMPipe.scala:68:66") } // ParSRAMLoad(x6593,List(List(b3712, b3844, b3871)),List(x6751))
+    val x6755 = withCtrl(x6758) { x6754 } // VectorApply(x6754,0)
+    val x6756 = withCtrl(x6758) { OpDef(op=FixAdd, inputs=List(x6753, x6755)).name("x6756").srcCtx("LSTMPipe.scala:68:63") } // FixAdd(x6753,x6755)
+    val x6757 = withCtrl(x6758) { StoreBanks(List(List(x6629_d0_b1)), List(b3844, b3871), x6756).name("x6757").srcCtx("LSTMPipe.scala:68:37") } // ParSRAMStore(x6629,List(List(b3844, b3871)),List(x6756),List(x6751))
+    val x6759 = withCtrl(x6783) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6759").srcCtx("LSTMPipe.scala:67:40") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6760 = withCtrl(x6783) { CounterChain(List(x6759)).name("x6760").srcCtx("LSTMPipe.scala:67:54") } // CounterChainNew(List(x6759))
+    val x6770 = withCtrl(x6783) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6760).name("x6770").srcCtx("LSTMPipe.scala:67:54") } // UnrolledForeach(List(b3849, b3713, b3709),x6760,Block(Const(())),List(List(b3883)),List(List(b3884)))
+    val b3883 = withCtrl(x6770) { CounterIter(x6759, None).name("b3883") } // b3883
+    val b3884 = withCtrl(x6770) { Const(true).name("b3884") } // b3884
+    val x6761 = withCtrl(x6770) { OpDef(op=BitAnd, inputs=List(b3884, b3849)).name("x6761").srcCtx("UnrollingBase.scala:28:66") } // And(b3884,b3849)
+    val x6762 = withCtrl(x6770) { OpDef(op=BitAnd, inputs=List(b3713, b3709)).name("x6762").srcCtx("UnrollingBase.scala:28:66") } // And(b3713,b3709)
+    val x6763 = withCtrl(x6770) { OpDef(op=BitAnd, inputs=List(x6761, x6762)).name("x6763").srcCtx("UnrollingBase.scala:28:66") } // And(x6761,x6762)
+    val x6764 = withCtrl(x6770) { LoadBanks(List(x6628_d0_b2), List(b3845, b3883)).name("x6764").srcCtx("LSTMPipe.scala:68:48") } // ParSRAMLoad(x6628,List(List(b3845, b3883)),List(x6763))
+    val x6765 = withCtrl(x6770) { x6764 } // VectorApply(x6764,0)
+    val x6766 = withCtrl(x6770) { LoadBanks(List(x6593_d0_b2), List(b3712, b3845, b3883)).name("x6766").srcCtx("LSTMPipe.scala:68:66") } // ParSRAMLoad(x6593,List(List(b3712, b3845, b3883)),List(x6763))
+    val x6767 = withCtrl(x6770) { x6766 } // VectorApply(x6766,0)
+    val x6768 = withCtrl(x6770) { OpDef(op=FixAdd, inputs=List(x6765, x6767)).name("x6768").srcCtx("LSTMPipe.scala:68:63") } // FixAdd(x6765,x6767)
+    val x6769 = withCtrl(x6770) { StoreBanks(List(List(x6629_d0_b2)), List(b3845, b3883), x6768).name("x6769").srcCtx("LSTMPipe.scala:68:37") } // ParSRAMStore(x6629,List(List(b3845, b3883)),List(x6768),List(x6763))
+    val x6771 = withCtrl(x6783) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6771").srcCtx("LSTMPipe.scala:67:40") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6772 = withCtrl(x6783) { CounterChain(List(x6771)).name("x6772").srcCtx("LSTMPipe.scala:67:54") } // CounterChainNew(List(x6771))
+    val x6782 = withCtrl(x6783) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6772).name("x6782").srcCtx("LSTMPipe.scala:67:54") } // UnrolledForeach(List(b3850, b3713, b3709),x6772,Block(Const(())),List(List(b3895)),List(List(b3896)))
+    val b3895 = withCtrl(x6782) { CounterIter(x6771, None).name("b3895") } // b3895
+    val b3896 = withCtrl(x6782) { Const(true).name("b3896") } // b3896
+    val x6773 = withCtrl(x6782) { OpDef(op=BitAnd, inputs=List(b3896, b3850)).name("x6773").srcCtx("UnrollingBase.scala:28:66") } // And(b3896,b3850)
+    val x6774 = withCtrl(x6782) { OpDef(op=BitAnd, inputs=List(b3713, b3709)).name("x6774").srcCtx("UnrollingBase.scala:28:66") } // And(b3713,b3709)
+    val x6775 = withCtrl(x6782) { OpDef(op=BitAnd, inputs=List(x6773, x6774)).name("x6775").srcCtx("UnrollingBase.scala:28:66") } // And(x6773,x6774)
+    val x6776 = withCtrl(x6782) { LoadBanks(List(x6628_d0_b3), List(b3846, b3895)).name("x6776").srcCtx("LSTMPipe.scala:68:48") } // ParSRAMLoad(x6628,List(List(b3846, b3895)),List(x6775))
+    val x6777 = withCtrl(x6782) { x6776 } // VectorApply(x6776,0)
+    val x6778 = withCtrl(x6782) { LoadBanks(List(x6593_d0_b3), List(b3712, b3846, b3895)).name("x6778").srcCtx("LSTMPipe.scala:68:66") } // ParSRAMLoad(x6593,List(List(b3712, b3846, b3895)),List(x6775))
+    val x6779 = withCtrl(x6782) { x6778 } // VectorApply(x6778,0)
+    val x6780 = withCtrl(x6782) { OpDef(op=FixAdd, inputs=List(x6777, x6779)).name("x6780").srcCtx("LSTMPipe.scala:68:63") } // FixAdd(x6777,x6779)
+    val x6781 = withCtrl(x6782) { StoreBanks(List(List(x6629_d0_b3)), List(b3846, b3895), x6780).name("x6781").srcCtx("LSTMPipe.scala:68:37") } // ParSRAMStore(x6629,List(List(b3846, b3895)),List(x6780),List(x6775))
+    val x6785_d0_b0 = withCtrl(x6916) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x6785_d0_b0").srcCtx("LSTMPipe.scala:73:29:cbuf") } // x6785 = SRAMNew(ArrayBuffer(Const(128)))
+    isAccum(x6785_d0_b0) = false
+    bufferDepthOf(x6785_d0_b0) = 2
+    staticDimsOf(x6785_d0_b0) = List(128)
+    val x6785_d1_b0 = withCtrl(x6916) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x6785_d1_b0").srcCtx("LSTMPipe.scala:73:29:cbuf") } // x6785 = SRAMNew(ArrayBuffer(Const(128)))
+    isAccum(x6785_d1_b0) = false
+    bufferDepthOf(x6785_d1_b0) = 2
+    staticDimsOf(x6785_d1_b0) = List(128)
+    val x6786_d0_b0 = withCtrl(x6916) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x6786_d0_b0").srcCtx("LSTMPipe.scala:74:29:hbuf") } // x6786 = SRAMNew(ArrayBuffer(Const(128)))
+    isAccum(x6786_d0_b0) = false
+    bufferDepthOf(x6786_d0_b0) = 2
+    staticDimsOf(x6786_d0_b0) = List(128)
+    val x6786_d1_b0 = withCtrl(x6916) { SRAM(size=128, banking=Strided(banks=16, stride=1)).name("x6786_d1_b0").srcCtx("LSTMPipe.scala:74:29:hbuf") } // x6786 = SRAMNew(ArrayBuffer(Const(128)))
+    isAccum(x6786_d1_b0) = true
+    bufferDepthOf(x6786_d1_b0) = 1
+    staticDimsOf(x6786_d1_b0) = List(128)
+    val x6787 = withCtrl(x6916) { FIFO(size=16).name("x6787").srcCtx("LSTMPipe.scala:75:37:splitQsigEle") } // x6787 = FIFONew(Const(16))
+    isAccum(x6787) = false
+    bufferDepthOf(x6787) = 2
+    val x6788 = withCtrl(x6916) { FIFO(size=16).name("x6788").srcCtx("LSTMPipe.scala:76:37:splitQactEle") } // x6788 = FIFONew(Const(16))
+    isAccum(x6788) = false
+    bufferDepthOf(x6788) = 2
+    val x6789 = withCtrl(x6916) { FIFO(size=16).name("x6789").srcCtx("LSTMPipe.scala:77:36:splitQclast") } // x6789 = FIFONew(Const(16))
+    isAccum(x6789) = false
+    bufferDepthOf(x6789) = 2
+    val x6790 = withCtrl(x6916) { FIFO(size=16).name("x6790").srcCtx("LSTMPipe.scala:78:39:splitQcNewMult") } // x6790 = FIFONew(Const(16))
+    isAccum(x6790) = false
+    bufferDepthOf(x6790) = 2
+    val x6791 = withCtrl(x6916) { FIFO(size=16).name("x6791").srcCtx("LSTMPipe.scala:79:42:splitQcNewMultAdd") } // x6791 = FIFONew(Const(16))
+    isAccum(x6791) = false
+    bufferDepthOf(x6791) = 2
+    val x6792 = withCtrl(x6916) { Counter(min=Const(0), max=Const(4), step=Const(1), par=1).name("x6792").srcCtx("LSTMPipe.scala:81:27") } // CounterNew(Const(0),Const(4),Const(1),Const(1))
+    val x6793 = withCtrl(x6916) { CounterChain(List(x6792)).name("x6793").srcCtx("LSTMPipe.scala:81:33") } // CounterChainNew(List(x6792))
+    val x6903 = withCtrl(x6916) { LoopController(style=MetaPipe, level=OuterControl, cchain=x6793).name("x6903").srcCtx("LSTMPipe.scala:81:33") } // UnrolledForeach(List(b3713, b3709),x6793,Block(Const(())),List(List(b3918)),List(List(b3919)))
+    val b3918 = withCtrl(x6903) { CounterIter(x6792, Some(0)).name("b3918") } // b3918
+    val b3919 = withCtrl(x6903) { Const(true).name("b3919") } // b3919
+    val x6794 = withCtrl(x6903) { FIFO(size=16).name("x6794").srcCtx("LSTMPipe.scala:82:31:sigQ") } // x6794 = FIFONew(Const(16))
+    isAccum(x6794) = false
+    bufferDepthOf(x6794) = 2
+    val x6795 = withCtrl(x6903) { FIFO(size=16).name("x6795").srcCtx("LSTMPipe.scala:83:31:actQ") } // x6795 = FIFONew(Const(16))
+    isAccum(x6795) = false
+    bufferDepthOf(x6795) = 2
+    val x6796 = withCtrl(x6903) { FIFO(size=16).name("x6796").srcCtx("LSTMPipe.scala:84:34:sigEleQ") } // x6796 = FIFONew(Const(16))
+    isAccum(x6796) = false
+    bufferDepthOf(x6796) = 2
+    val x6797 = withCtrl(x6903) { FIFO(size=16).name("x6797").srcCtx("LSTMPipe.scala:85:39:cNewMultAddQ") } // x6797 = FIFONew(Const(16))
+    isAccum(x6797) = false
+    bufferDepthOf(x6797) = 2
+    val x6798 = withCtrl(x6903) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6798").srcCtx("LSTMPipe.scala:87:40") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6799 = withCtrl(x6903) { CounterChain(List(x6798)).name("x6799").srcCtx("LSTMPipe.scala:87:54") } // CounterChainNew(List(x6798))
+    val x6827 = withCtrl(x6903) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6799).name("x6827").srcCtx("LSTMPipe.scala:87:54") } // UnrolledForeach(List(b3919, b3713, b3709),x6799,Block(Const(())),List(List(b3926)),List(List(b3927)))
+    val b3926 = withCtrl(x6827) { CounterIter(x6798, None).name("b3926") } // b3926
+    val b3927 = withCtrl(x6827) { Const(true).name("b3927") } // b3927
+    val x6800 = withCtrl(x6827) { OpDef(op=BitAnd, inputs=List(b3927, b3919)).name("x6800").srcCtx("UnrollingBase.scala:28:66") } // And(b3927,b3919)
+    val x6801 = withCtrl(x6827) { OpDef(op=BitAnd, inputs=List(b3713, b3709)).name("x6801").srcCtx("UnrollingBase.scala:28:66") } // And(b3713,b3709)
+    val x6802 = withCtrl(x6827) { OpDef(op=BitAnd, inputs=List(x6800, x6801)).name("x6802").srcCtx("UnrollingBase.scala:28:66") } // And(x6800,x6801)
+    val x6803 = withCtrl(x6827) { LoadBanks(List(x6469_d1_b0), List(b3712, b3926)).name("x6803").srcCtx("LSTMPipe.scala:88:27:cEle") } // ParSRAMLoad(x6469,List(List(b3712, b3926)),List(x6802))
+    val x6804 = withCtrl(x6827) { x6803 } // VectorApply(x6803,0)
+    val x6805 = withCtrl(x6827) { LoadBanks(List(x6629_d0_b0, x6629_d0_b1, x6629_d0_b2, x6629_d0_b3), List(b3918, b3926)).name("x6805").srcCtx("LSTMPipe.scala:89:33:pEle") } // ParSRAMLoad(x6629,List(List(b3918, b3926)),List(x6802))
+    val x6806 = withCtrl(x6827) { x6805 } // VectorApply(x6805,0)
+    val x6807 = withCtrl(x6827) { OpDef(op=FixLt, inputs=List(x6806, Const(-2.5))).name("x6807").srcCtx("NonLinearity.scala:94:12") } // FixLt(x6806,Const(-2.5))
+    val x6808 = withCtrl(x6827) { OpDef(op=FixLeq, inputs=List(Const(2.5), x6806)).name("x6808").srcCtx("NonLinearity.scala:94:34") } // FixLeq(Const(2.5),x6806)
+    val x6809 = withCtrl(x6827) { OpDef(op=FixMul, inputs=List(Const(0.19999999), x6806)).name("x6809").srcCtx("NonLinearity.scala:94:56") } // FixMul(Const(0.199999988079071044921875),x6806)
+    val x6810 = withCtrl(x6827) { OpDef(op=FixAdd, inputs=List(x6809, Const(0.5))).name("x6810").srcCtx("NonLinearity.scala:94:61") } // FixAdd(x6809,Const(0.5))
+    val x6811 = withCtrl(x6827) { OpDef(op=MuxOp, inputs=List(x6808, Const(1.0), x6810)).name("x6811").srcCtx("NonLinearity.scala:94:30") } // Mux(x6808,Const(1),x6810)
+    val x6812 = withCtrl(x6827) { OpDef(op=MuxOp, inputs=List(x6807, Const(0.0), x6811)).name("x6812").srcCtx("NonLinearity.scala:94:8:sigEle") } // Mux(x6807,Const(0),x6811)
+    val x6813 = withCtrl(x6827) { OpDef(op=FixAbs, inputs=List(x6806)).name("x6813").srcCtx("NonLinearity.scala:73:20:absin") } // FixAbs(x6806)
+    val x6814 = withCtrl(x6827) { OpDef(op=FixSra, inputs=List(x6813, Const(2))).name("x6814").srcCtx("NonLinearity.scala:74:22:div4") } // FixRsh(x6813,Const(2))
+    val x6815 = withCtrl(x6827) { OpDef(op=FixAdd, inputs=List(x6814, Const(0.375))).name("x6815").srcCtx("NonLinearity.scala:75:19:li") } // FixAdd(x6814,Const(0.375))
+    val x6816 = withCtrl(x6827) { OpDef(op=FixLt, inputs=List(Const(2.5), x6813)).name("x6816").srcCtx("NonLinearity.scala:76:28") } // FixLt(Const(2.5),x6813)
+    val x6817 = withCtrl(x6827) { OpDef(op=FixLt, inputs=List(Const(0.5), x6813)).name("x6817").srcCtx("NonLinearity.scala:77:14") } // FixLt(Const(0.5),x6813)
+    val x6818 = withCtrl(x6827) { OpDef(op=FixLt, inputs=List(x6813, Const(2.5))).name("x6818").srcCtx("NonLinearity.scala:77:31") } // FixLt(x6813,Const(2.5))
+    val x6819 = withCtrl(x6827) { OpDef(op=BitAnd, inputs=List(x6817, x6818)).name("x6819").srcCtx("NonLinearity.scala:77:22") } // And(x6817,x6818)
+    val x6820 = withCtrl(x6827) { OpDef(op=MuxOp, inputs=List(x6819, x6815, x6813)).name("x6820").srcCtx("NonLinearity.scala:77:10") } // Mux(x6819,x6815,x6813)
+    val x6821 = withCtrl(x6827) { OpDef(op=MuxOp, inputs=List(x6816, Const(1.0), x6820)).name("x6821").srcCtx("NonLinearity.scala:76:21:absout") } // Mux(x6816,Const(1),x6820)
+    val x6822 = withCtrl(x6827) { OpDef(op=FixNeg, inputs=List(x6821)).name("x6822").srcCtx("NonLinearity.scala:80:23:negout") } // FixNeg(x6821)
+    val x6823 = withCtrl(x6827) { OpDef(op=FixLt, inputs=List(x6806, Const(0.0))).name("x6823").srcCtx("NonLinearity.scala:81:12") } // FixLt(x6806,Const(0))
+    val x6824 = withCtrl(x6827) { OpDef(op=MuxOp, inputs=List(x6823, x6822, x6821)).name("x6824").srcCtx("NonLinearity.scala:81:8:actEle") } // Mux(x6823,x6822,x6821)
+    val x6825_x6794 = withCtrl(x6827) { WriteMem(x6794, x6812).name("x6825_x6794").srcCtx("LSTMPipe.scala:94:23") } // ParFIFOEnq(x6794,List(x6812),List(x6802))
+    val x6826_x6795 = withCtrl(x6827) { WriteMem(x6795, x6824).name("x6826_x6795").srcCtx("LSTMPipe.scala:95:23") } // ParFIFOEnq(x6795,List(x6824),List(x6802))
+    val x6828 = withCtrl(x6903) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6828").srcCtx("LSTMPipe.scala:100:40") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6829 = withCtrl(x6903) { CounterChain(List(x6828)).name("x6829").srcCtx("LSTMPipe.scala:100:54") } // CounterChainNew(List(x6828))
+    val x6849 = withCtrl(x6903) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6829).name("x6849").srcCtx("LSTMPipe.scala:100:54") } // UnrolledForeach(List(b3919, b3713, b3709),x6829,Block(Const(())),List(List(b3958)),List(List(b3959)))
+    val b3958 = withCtrl(x6849) { CounterIter(x6828, None).name("b3958") } // b3958
+    val b3959 = withCtrl(x6849) { Const(true).name("b3959") } // b3959
+    val x6830 = withCtrl(x6849) { OpDef(op=BitAnd, inputs=List(b3959, b3919)).name("x6830").srcCtx("UnrollingBase.scala:28:66") } // And(b3959,b3919)
+    val x6831 = withCtrl(x6849) { OpDef(op=BitAnd, inputs=List(b3713, b3709)).name("x6831").srcCtx("UnrollingBase.scala:28:66") } // And(b3713,b3709)
+    val x6832 = withCtrl(x6849) { OpDef(op=BitAnd, inputs=List(x6830, x6831)).name("x6832").srcCtx("UnrollingBase.scala:28:66") } // And(x6830,x6831)
+    val x6833 = withCtrl(x6849) { ReadMem(x6794).name("x6833").srcCtx("LSTMPipe.scala:101:36:sigEle") } // ParFIFODeq(x6794,List(x6832))
+    val x6834 = withCtrl(x6849) { x6833 } // VectorApply(x6833,0)
+    val x6835 = withCtrl(x6849) { ReadMem(x6795).name("x6835").srcCtx("LSTMPipe.scala:102:36:actEle") } // ParFIFODeq(x6795,List(x6832))
+    val x6836 = withCtrl(x6849) { x6835 } // VectorApply(x6835,0)
+    val x6837 = withCtrl(x6849) { LoadBanks(List(x6785_d1_b0), List(b3958)).name("x6837").srcCtx("LSTMPipe.scala:104:31:cLast") } // ParSRAMLoad(x6785,List(List(b3958)),List(x6832))
+    val x6838 = withCtrl(x6849) { x6837 } // VectorApply(x6837,0)
+    val x6839 = withCtrl(x6849) { OpDef(op=FixMul, inputs=List(x6838, x6836)).name("x6839").srcCtx("LSTMPipe.scala:105:36:cNewMult") } // FixMul(x6838,x6836)
+    val x6840 = withCtrl(x6849) { LoadBanks(List(x6469_d0_b0), List(b3712, b3958)).name("x6840").srcCtx("LSTMPipe.scala:106:43") } // ParSRAMLoad(x6469,List(List(b3712, b3958)),List(x6832))
+    val x6841 = withCtrl(x6849) { x6840 } // VectorApply(x6840,0)
+    val x6842 = withCtrl(x6849) { OpDef(op=FixMul, inputs=List(x6834, x6841)).name("x6842").srcCtx("LSTMPipe.scala:106:40") } // FixMul(x6834,x6841)
+    val x6843 = withCtrl(x6849) { OpDef(op=FixAdd, inputs=List(x6842, x6838)).name("x6843").srcCtx("LSTMPipe.scala:106:65:cNewMultAdd") } // FixAdd(x6842,x6838)
+    val x6844_x6787 = withCtrl(x6849) { WriteMem(x6787, x6834).name("x6844_x6787").srcCtx("LSTMPipe.scala:108:31") } // ParFIFOEnq(x6787,List(x6834),List(x6832))
+    val x6845_x6788 = withCtrl(x6849) { WriteMem(x6788, x6836).name("x6845_x6788").srcCtx("LSTMPipe.scala:109:31") } // ParFIFOEnq(x6788,List(x6836),List(x6832))
+    val x6846_x6789 = withCtrl(x6849) { WriteMem(x6789, x6838).name("x6846_x6789").srcCtx("LSTMPipe.scala:110:30") } // ParFIFOEnq(x6789,List(x6838),List(x6832))
+    val x6847_x6790 = withCtrl(x6849) { WriteMem(x6790, x6839).name("x6847_x6790").srcCtx("LSTMPipe.scala:111:33") } // ParFIFOEnq(x6790,List(x6839),List(x6832))
+    val x6848_x6791 = withCtrl(x6849) { WriteMem(x6791, x6843).name("x6848_x6791").srcCtx("LSTMPipe.scala:112:36") } // ParFIFOEnq(x6791,List(x6843),List(x6832))
+    val x6850 = withCtrl(x6903) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6850").srcCtx("LSTMPipe.scala:115:40") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6851 = withCtrl(x6903) { CounterChain(List(x6850)).name("x6851").srcCtx("LSTMPipe.scala:115:54") } // CounterChainNew(List(x6850))
+    val x6874 = withCtrl(x6903) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6851).name("x6874").srcCtx("LSTMPipe.scala:115:54") } // UnrolledForeach(List(b3919, b3713, b3709),x6851,Block(Const(())),List(List(b3982)),List(List(b3983)))
+    val b3982 = withCtrl(x6874) { CounterIter(x6850, None).name("b3982") } // b3982
+    val b3983 = withCtrl(x6874) { Const(true).name("b3983") } // b3983
+    val x6852 = withCtrl(x6874) { OpDef(op=BitAnd, inputs=List(b3983, b3919)).name("x6852").srcCtx("UnrollingBase.scala:28:66") } // And(b3983,b3919)
+    val x6853 = withCtrl(x6874) { OpDef(op=BitAnd, inputs=List(b3713, b3709)).name("x6853").srcCtx("UnrollingBase.scala:28:66") } // And(b3713,b3709)
+    val x6854 = withCtrl(x6874) { OpDef(op=BitAnd, inputs=List(x6852, x6853)).name("x6854").srcCtx("UnrollingBase.scala:28:66") } // And(x6852,x6853)
+    val x6855 = withCtrl(x6874) { ReadMem(x6787).name("x6855").srcCtx("LSTMPipe.scala:116:44:sigEle") } // ParFIFODeq(x6787,List(x6854))
+    val x6856 = withCtrl(x6874) { x6855 } // VectorApply(x6855,0)
+    val x6857 = withCtrl(x6874) { ReadMem(x6788).name("x6857").srcCtx("LSTMPipe.scala:117:44:actEle") } // ParFIFODeq(x6788,List(x6854))
+    val x6858 = withCtrl(x6874) { x6857 } // VectorApply(x6857,0)
+    val x6859 = withCtrl(x6874) { ReadMem(x6789).name("x6859").srcCtx("LSTMPipe.scala:118:42:cLast") } // ParFIFODeq(x6789,List(x6854))
+    val x6860 = withCtrl(x6874) { x6859 } // VectorApply(x6859,0)
+    val x6861 = withCtrl(x6874) { ReadMem(x6790).name("x6861").srcCtx("LSTMPipe.scala:119:48:cNewMult") } // ParFIFODeq(x6790,List(x6854))
+    val x6862 = withCtrl(x6874) { x6861 } // VectorApply(x6861,0)
+    val x6863 = withCtrl(x6874) { ReadMem(x6791).name("x6863").srcCtx("LSTMPipe.scala:120:54:cNewMultAdd") } // ParFIFODeq(x6791,List(x6854))
+    val x6864 = withCtrl(x6874) { x6863 } // VectorApply(x6863,0)
+    val x6865 = withCtrl(x6874) { OpDef(op=FixEql, inputs=List(b3918, Const(0))).name("x6865").srcCtx("LSTMPipe.scala:16:40") } // FixEql(b3918,Const(0))
+    val x6866 = withCtrl(x6874) { OpDef(op=FixEql, inputs=List(b3918, Const(1))).name("x6866").srcCtx("LSTMPipe.scala:18:40") } // FixEql(b3918,Const(1))
+    val x6867 = withCtrl(x6874) { OpDef(op=FixEql, inputs=List(b3918, Const(2))).name("x6867").srcCtx("LSTMPipe.scala:20:40") } // FixEql(b3918,Const(2))
+    val x6868 = withCtrl(x6874) { OpDef(op=MuxOp, inputs=List(x6867, x6864, x6860)).name("x6868").srcCtx("LSTMPipe.scala:124:24") } // Mux(x6867,x6864,x6860)
+    val x6869 = withCtrl(x6874) { OpDef(op=MuxOp, inputs=List(x6866, x6862, x6868)).name("x6869").srcCtx("LSTMPipe.scala:123:22") } // Mux(x6866,x6862,x6868)
+    val x6870 = withCtrl(x6874) { OpDef(op=MuxOp, inputs=List(x6865, x6856, x6869)).name("x6870").srcCtx("LSTMPipe.scala:122:38") } // Mux(x6865,x6856,x6869)
+    val x6871 = withCtrl(x6874) { StoreBanks(List(List(x6785_d0_b0), List(x6785_d1_b0)), List(b3982), x6870).name("x6871").srcCtx("LSTMPipe.scala:122:33") } // ParSRAMStore(x6785,List(List(b3982)),List(x6870),List(x6854))
+    val x6872_x6796 = withCtrl(x6874) { WriteMem(x6796, x6856).name("x6872_x6796").srcCtx("LSTMPipe.scala:127:26") } // ParFIFOEnq(x6796,List(x6856),List(x6854))
+    val x6873_x6797 = withCtrl(x6874) { WriteMem(x6797, x6864).name("x6873_x6797").srcCtx("LSTMPipe.scala:128:31") } // ParFIFOEnq(x6797,List(x6864),List(x6854))
+    val x6875 = withCtrl(x6903) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6875").srcCtx("LSTMPipe.scala:131:40") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6876 = withCtrl(x6903) { CounterChain(List(x6875)).name("x6876").srcCtx("LSTMPipe.scala:131:54") } // CounterChainNew(List(x6875))
+    val x6902 = withCtrl(x6903) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6876).name("x6902").srcCtx("LSTMPipe.scala:131:54") } // UnrolledForeach(List(b3919, b3713, b3709),x6876,Block(Const(())),List(List(b4009)),List(List(b4010)))
+    val b4009 = withCtrl(x6902) { CounterIter(x6875, None).name("b4009") } // b4009
+    val b4010 = withCtrl(x6902) { Const(true).name("b4010") } // b4010
+    val x6877 = withCtrl(x6902) { OpDef(op=BitAnd, inputs=List(b4010, b3919)).name("x6877").srcCtx("UnrollingBase.scala:28:66") } // And(b4010,b3919)
+    val x6878 = withCtrl(x6902) { OpDef(op=BitAnd, inputs=List(b3713, b3709)).name("x6878").srcCtx("UnrollingBase.scala:28:66") } // And(b3713,b3709)
+    val x6879 = withCtrl(x6902) { OpDef(op=BitAnd, inputs=List(x6877, x6878)).name("x6879").srcCtx("UnrollingBase.scala:28:66") } // And(x6877,x6878)
+    val x6880 = withCtrl(x6902) { ReadMem(x6796).name("x6880").srcCtx("LSTMPipe.scala:132:39:sigEle") } // ParFIFODeq(x6796,List(x6879))
+    val x6881 = withCtrl(x6902) { x6880 } // VectorApply(x6880,0)
+    val x6882 = withCtrl(x6902) { ReadMem(x6797).name("x6882").srcCtx("LSTMPipe.scala:133:49:cNewMultAdd") } // ParFIFODeq(x6797,List(x6879))
+    val x6883 = withCtrl(x6902) { x6882 } // VectorApply(x6882,0)
+    val x6884 = withCtrl(x6902) { OpDef(op=FixAbs, inputs=List(x6883)).name("x6884").srcCtx("NonLinearity.scala:73:20:absin") } // FixAbs(x6883)
+    val x6885 = withCtrl(x6902) { OpDef(op=FixSra, inputs=List(x6884, Const(2))).name("x6885").srcCtx("NonLinearity.scala:74:22:div4") } // FixRsh(x6884,Const(2))
+    val x6886 = withCtrl(x6902) { OpDef(op=FixAdd, inputs=List(x6885, Const(0.375))).name("x6886").srcCtx("NonLinearity.scala:75:19:li") } // FixAdd(x6885,Const(0.375))
+    val x6887 = withCtrl(x6902) { OpDef(op=FixLt, inputs=List(Const(2.5), x6884)).name("x6887").srcCtx("NonLinearity.scala:76:28") } // FixLt(Const(2.5),x6884)
+    val x6888 = withCtrl(x6902) { OpDef(op=FixLt, inputs=List(Const(0.5), x6884)).name("x6888").srcCtx("NonLinearity.scala:77:14") } // FixLt(Const(0.5),x6884)
+    val x6889 = withCtrl(x6902) { OpDef(op=FixLt, inputs=List(x6884, Const(2.5))).name("x6889").srcCtx("NonLinearity.scala:77:31") } // FixLt(x6884,Const(2.5))
+    val x6890 = withCtrl(x6902) { OpDef(op=BitAnd, inputs=List(x6888, x6889)).name("x6890").srcCtx("NonLinearity.scala:77:22") } // And(x6888,x6889)
+    val x6891 = withCtrl(x6902) { OpDef(op=MuxOp, inputs=List(x6890, x6886, x6884)).name("x6891").srcCtx("NonLinearity.scala:77:10") } // Mux(x6890,x6886,x6884)
+    val x6892 = withCtrl(x6902) { OpDef(op=MuxOp, inputs=List(x6887, Const(1.0), x6891)).name("x6892").srcCtx("NonLinearity.scala:76:21:absout") } // Mux(x6887,Const(1),x6891)
+    val x6893 = withCtrl(x6902) { OpDef(op=FixNeg, inputs=List(x6892)).name("x6893").srcCtx("NonLinearity.scala:80:23:negout") } // FixNeg(x6892)
+    val x6894 = withCtrl(x6902) { OpDef(op=FixLt, inputs=List(x6883, Const(0.0))).name("x6894").srcCtx("NonLinearity.scala:81:12") } // FixLt(x6883,Const(0))
+    val x6895 = withCtrl(x6902) { OpDef(op=MuxOp, inputs=List(x6894, x6893, x6892)).name("x6895").srcCtx("NonLinearity.scala:81:8") } // Mux(x6894,x6893,x6892)
+    val x6896 = withCtrl(x6902) { OpDef(op=FixAdd, inputs=List(x6895, x6881)).name("x6896").srcCtx("LSTMPipe.scala:135:50:hNew") } // FixAdd(x6895,x6881)
+    val x6897 = withCtrl(x6902) { LoadBanks(List(x6786_d1_b0), List(b4009)).name("x6897").srcCtx("LSTMPipe.scala:136:31:hLast") } // ParSRAMLoad(x6786,List(List(b4009)),List(x6879))
+    val x6898 = withCtrl(x6902) { x6897 } // VectorApply(x6897,0)
+    val x6899 = withCtrl(x6902) { OpDef(op=FixEql, inputs=List(b3918, Const(3))).name("x6899").srcCtx("LSTMPipe.scala:22:40") } // FixEql(b3918,Const(3))
+    val x6900 = withCtrl(x6902) { OpDef(op=MuxOp, inputs=List(x6899, x6896, x6898)).name("x6900").srcCtx("LSTMPipe.scala:138:31:update") } // Mux(x6899,x6896,x6898)
+    val x6901 = withCtrl(x6902) { StoreBanks(List(List(x6786_d0_b0), List(x6786_d1_b0)), List(b4009), x6900).name("x6901").srcCtx("LSTMPipe.scala:139:33") } // ParSRAMStore(x6786,List(List(b4009)),List(x6900),List(x6879))
+    antiDepsOf(x6901)=List(x6897)
+    val x6904 = withCtrl(x6916) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6904").srcCtx("LSTMPipe.scala:143:38") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6905 = withCtrl(x6916) { CounterChain(List(x6904)).name("x6905").srcCtx("LSTMPipe.scala:143:52") } // CounterChainNew(List(x6904))
+    val x6915 = withCtrl(x6916) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6905).name("x6915").srcCtx("LSTMPipe.scala:143:52") } // UnrolledForeach(List(b3713, b3709),x6905,Block(Const(())),List(List(b4040)),List(List(b4041)))
+    val b4040 = withCtrl(x6915) { CounterIter(x6904, None).name("b4040") } // b4040
+    val b4041 = withCtrl(x6915) { Const(true).name("b4041") } // b4041
+    val x6906 = withCtrl(x6915) { OpDef(op=BitAnd, inputs=List(b4041, b3713)).name("x6906").srcCtx("UnrollingBase.scala:28:66") } // And(b4041,b3713)
+    val x6907 = withCtrl(x6915) { OpDef(op=BitAnd, inputs=List(x6906, b3709)).name("x6907").srcCtx("UnrollingBase.scala:28:66") } // And(x6906,b3709)
+    val x6908 = withCtrl(x6915) { LoadBanks(List(x6786_d0_b0), List(b4040)).name("x6908").srcCtx("LSTMPipe.scala:144:42") } // ParSRAMLoad(x6786,List(List(b4040)),List(x6907))
+    val x6909 = withCtrl(x6915) { x6908 } // VectorApply(x6908,0)
+    val x6910 = withCtrl(x6915) { StoreBanks(List(List(x6494_d0_b0)), List(b3712, b4040), x6909).name("x6910").srcCtx("LSTMPipe.scala:144:36") } // ParSRAMStore(x6494,List(List(b3712, b4040)),List(x6909),List(x6907))
+    val x6911 = withCtrl(x6915) { StoreBanks(List(List(x6444_d0_b0), List(x6444_d1_b0)), List(b3708, b4040), x6909).name("x6911").srcCtx("LSTMPipe.scala:145:35") } // ParSRAMStore(x6444,List(List(b3708, b4040)),List(x6909),List(x6907))
+    val x6912 = withCtrl(x6915) { LoadBanks(List(x6785_d0_b0), List(b4040)).name("x6912").srcCtx("LSTMPipe.scala:146:42") } // ParSRAMLoad(x6785,List(List(b4040)),List(x6907))
+    val x6913 = withCtrl(x6915) { x6912 } // VectorApply(x6912,0)
+    val x6914 = withCtrl(x6915) { StoreBanks(List(List(x6469_d0_b0), List(x6469_d1_b0)), List(b3712, b4040), x6913).name("x6914").srcCtx("LSTMPipe.scala:146:36") } // ParSRAMStore(x6469,List(List(b3712, b4040)),List(x6913),List(x6907))
+    val x6918 = withCtrl(x6946) { Counter(min=Const(0), max=Const(8), step=Const(1), par=1).name("x6918").srcCtx("LSTMPipe.scala:151:47") } // CounterNew(Const(0),Const(8),Const(1),Const(1))
+    val x6919 = withCtrl(x6946) { CounterChain(List(x6918)).name("x6919").srcCtx("LSTMPipe.scala:151:47") } // CounterChainNew(List(x6918))
+    val x6945 = withCtrl(x6946) { LoopController(style=StreamPipe, level=OuterControl, cchain=x6919).name("x6945").srcCtx("LSTMPipe.scala:151:47") } // UnrolledForeach(List(Const(true)),x6919,Block(Const(())),List(List(b4056)),List(List(b4057)))
+    val b4056 = withCtrl(x6945) { CounterIter(x6918, Some(0)).name("b4056") } // b4056
+    val b4057 = withCtrl(x6945) { Const(true).name("b4057") } // b4057
+    val b6981 = withCtrl(x6945) { StreamOut(field="offset").name("b6981").srcCtx("LSTMPipe.scala:151:47") } // x6920 = StreamOutNew(BurstCmdBus)
+    isAccum(b6981) = false
+    bufferDepthOf(b6981) = 1
+    val b6982 = withCtrl(x6945) { StreamOut(field="size").name("b6982").srcCtx("LSTMPipe.scala:151:47") } // x6920 = StreamOutNew(BurstCmdBus)
+    isAccum(b6982) = false
+    bufferDepthOf(b6982) = 1
+    val x6921 = withCtrl(x6945) { StreamOut(field="data").name("x6921").srcCtx("LSTMPipe.scala:151:47") } // x6921 = StreamOutNew(BurstFullDataBus())
+    isAccum(x6921) = false
+    bufferDepthOf(x6921) = 1
+    val x6922 = withCtrl(x6945) { StreamIn(field="ack").name("x6922").srcCtx("LSTMPipe.scala:151:47") } // x6922 = StreamInNew(BurstAckBus)
+    isAccum(x6922) = false
+    bufferDepthOf(x6922) = 1
+    val x6933 = withCtrl(x6945) { UnitController(style=SeqPipe, level=InnerControl).name("x6933").srcCtx("LSTMPipe.scala:151:47") } // UnitPipe(List(b4057),Block(x6932))
+    val x6923 = withCtrl(x6933) { b4056 } // FixConvert(b4056,TRUE,_32,_0) (Same Type. No op)
+    val x6924 = withCtrl(x6933) { OpDef(op=FixSla, inputs=List(x6923, Const(7))).name("x6924").srcCtx("LSTMPipe.scala:151:47") } // FixLsh(x6923,Const(7))
+    val x6925 = withCtrl(x6933) { Const(0) } // FixConvert(Const(0),TRUE,_32,_0) (Same Type. No op)
+    val x6926 = withCtrl(x6933) { OpDef(op=FixAdd, inputs=List(x6924, x6925)).name("x6926").srcCtx("LSTMPipe.scala:151:47") } // FixAdd(x6924,x6925)
+    val x6927 = withCtrl(x6933) { OpDef(op=FixSla, inputs=List(x6926, Const(2))).name("x6927").srcCtx("LSTMPipe.scala:151:47") } // FixLsh(x6926,Const(2))
+    val x6928 = withCtrl(x6933) { x6927 } // FixConvert(x6927,TRUE,_64,_0)
+    val x6929 = withCtrl(x6933) { DramAddress(x6386).name("x6929").srcCtx("LSTMPipe.scala:151:47") } // GetDRAMAddress(x6386)
+    val x6931_x6930 = withCtrl(x6933) { OpDef(op=FixAdd, inputs=List(x6928, x6929)).name("x6931_x6930").srcCtx("LSTMPipe.scala:151:47") } // FixAdd(x6928,x6929)
+    // x6931 = SimpleStruct(ArrayBuffer((offset,x6930), (size,Const(512)), (isLoad,Const(false))))
+    val x6932_b6983_b6981 = withCtrl(x6933) { WriteMem(b6981, x6931_x6930).name("x6932_b6983_b6981").srcCtx("LSTMPipe.scala:151:47") } // StreamWrite(x6920,x6931,b4057)
+    val x6932_b6984_b6982 = withCtrl(x6933) { WriteMem(b6982, Const(512)).name("x6932_b6984_b6982").srcCtx("LSTMPipe.scala:151:47") } // StreamWrite(x6920,x6931,b4057)
+    val x6934 = withCtrl(x6945) { Counter(min=Const(0), max=Const(128), step=Const(1), par=16).name("x6934").srcCtx("LSTMPipe.scala:151:47") } // CounterNew(Const(0),Const(128),Const(1),Const(16))
+    val x6935 = withCtrl(x6945) { CounterChain(List(x6934)).name("x6935").srcCtx("LSTMPipe.scala:151:47") } // CounterChainNew(List(x6934))
+    val x6941 = withCtrl(x6945) { LoopController(style=InnerPipe, level=InnerControl, cchain=x6935).name("x6941").srcCtx("LSTMPipe.scala:151:47") } // UnrolledForeach(List(b4057),x6935,Block(Const(())),List(List(b4074)),List(List(b4075)))
+    val b4074 = withCtrl(x6941) { CounterIter(x6934, None).name("b4074") } // b4074
+    val b4075 = withCtrl(x6941) { Const(true).name("b4075") } // b4075
+    val x6936 = withCtrl(x6941) { OpDef(op=BitAnd, inputs=List(b4075, b4057)).name("x6936").srcCtx("UnrollingBase.scala:28:66") } // And(b4075,b4057)
+    val x6937 = withCtrl(x6941) { LoadBanks(List(x6444_d0_b0), List(b4056, b4074)).name("x6937").srcCtx("LSTMPipe.scala:151:47") } // ParSRAMLoad(x6444,List(List(b4056, b4074)),List(x6936))
+    val x6939_x6938 = withCtrl(x6941) { x6937 } // VectorApply(x6937,0)
+    // x6939 = SimpleStruct(ArrayBuffer((_1,x6938), (_2,Const(true))))
+    val x6940_x6940_x6921 = withCtrl(x6941) { WriteMem(x6921, x6939_x6938).name("x6940_x6940_x6921").srcCtx("LSTMPipe.scala:151:47") } // ParStreamWrite(x6921,List(x6939),List(x6936))
+    val x6942 = withCtrl(x6945) { FringeDenseStore(dram=List(x6386), cmdStream=List(b6981, b6982), dataStream=List(x6921), ackStream=List(x6922)).name("x6942").srcCtx("LSTMPipe.scala:151:47") } // FringeDenseStore(x6386,x6920,x6921,x6922)
+    val x6944 = withCtrl(x6945) { UnitController(style=SeqPipe, level=InnerControl).name("x6944").srcCtx("LSTMPipe.scala:151:47") } // UnitPipe(List(b4057),Block(Const(())))
+    val x6943_x6943 = withCtrl(x6944) { ReadMem(x6922).name("x6943_x6943").srcCtx("LSTMPipe.scala:151:47") } // StreamRead(x6922,b4057)
     }; split1
     
   }
