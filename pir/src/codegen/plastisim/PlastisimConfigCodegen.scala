@@ -36,13 +36,14 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     if (line.contains("Total DRAM")) {
       info(Console.GREEN, s"psim", line)
     }
-    if (line.contains("Simulation complete at cycle")) {
+    if (line.contains("Simulation complete at cycle:")) {
       if (simulationSucceeded.isEmpty) {
         info(Console.GREEN, s"psim", line)
         simulationSucceeded = Some(true)
       } else {
         info(Console.RED, s"psim", line)
       }
+      psimCycle = Some(line.split("Simulation complete at cycle:")(1).trim.toLong)
     }
     if (line.contains("DEADLOCK") || line.contains("TIMEOUT")) {
       info(Console.RED, s"psim", line)
@@ -106,7 +107,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     }
   }
 
-  lazy val bytePerWord = topParam.wordWidth / 8
+  lazy val bytePerWord = designParam.wordWidth / 8
 
   def emitNodeSpecs(n:NetworkNode) = {
     val cuP = globalOf(n).get

@@ -63,10 +63,7 @@ trait PIR extends Compiler with PIRWorld {
   lazy val psimDotCodegen = new PlastisimDotCodegen(s"psim.dot")
   lazy val terminalCSVCodegen = new TerminalCSVCodegen()
   lazy val linkCSVCodegen = new LinkCSVCodegen()
-
-  /* Simulator */
-
-  /* Debug */
+  lazy val areaPowerStat = new AreaPowerStat()
 
   override def initSession = {
     val sess = session
@@ -164,7 +161,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(genPlastisim && enableMapping, psimConfigCodegen).dependsOn(cuPlacer, psimPlacementCodegen, psimTraceCodegen)
     addPass(runPlastisim, psimDotCodegen)
 
-     // Simulation
+    addPass(areaPowerStat).dependsOn(psimConfigCodegen, cuPlacer)
 
     }
   }

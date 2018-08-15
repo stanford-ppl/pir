@@ -96,6 +96,7 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
     super.finPass
     if (isDynamic(designS)) {
       getCommand.foreach { command =>
+        val statKeys = List("DynHopsVec", "DynHopsScal", "StatHopsVec", "StatHopsScal")
         if (option[Boolean]("rerun-proute")) {
           dbg(s"Run command:")
           dbg(command)
@@ -115,26 +116,20 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
             fail(s"Plastiroute failed. details in $log")
           } else {
             getCSVRows(summaryPath.get).foreach { row =>
-              var msg = s"DynHopsVec:${row("DynHopsVec")}"
-              msg += s", DynHopsScal:${row("DynHopsScal")}"
-              msg += s", StatHopsVec:${row("StatHopsVec")}"
-              msg += s", StatHopsScal:${row("StatHopsScal")}"
-              info(Console.GREEN, s"proute", msg)
+              statKeys.foreach { key => totalHopCountOf(key) = row(key).toLong }
             }
+            printHops("proute")
           }
         } else {
           info(s"Using old placement")
           getCSVRows(summaryPath.get).foreach { row =>
-            var msg = s"DynHopsVec:${row("DynHopsVec")}"
-            msg += s", DynHopsScal:${row("DynHopsScal")}"
-            msg += s", StatHopsVec:${row("StatHopsVec")}"
-            msg += s", StatHopsScal:${row("StatHopsScal")}"
-            info(Console.GREEN, s"proute", msg)
+            statKeys.foreach { key => totalHopCountOf(key) = row(key).toLong }
           }
+          printHops("proute")
         }
       }
     } else {
-      val msg:String = hops.flatMap { case (net, map) =>
+      hops.foreach { case (net, map) =>
         map.map { case (gout, map) =>
           (gout, map.values.sum)
         }.groupBy { case (gout,map) =>
@@ -143,11 +138,11 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
             case ct if isWord(ct) => "Scal"
             case ct if isVector(ct) => "Vec"
           }
-        }.map { case (tp, groups) =>
-          s"${net}Hops$tp: ${groups.values.sum}"
+        }.foreach { case (tp, groups) =>
+          totalHopCountOf(s"${net}Hops$tp") = groups.values.sum
         }
-      }.mkString(",")
-      info(Console.GREEN, s"pir", msg)
+      }
+      printHops("pir")
       hops.foreach { case (net, map) =>
         map.foreach { case (gout, map) =>
           val count = map.values.sum
@@ -155,6 +150,12 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
         }
       }
     }
+  }
+
+  def printHops(header:String) = {
+    val msg = totalHopCountOf.map.toSeq.map { case (k,v) => s"$k: $v" }.mkString(",")
+    info(Console.GREEN, header, "\n" + msg)
+    dbg(msg)
   }
 
   def getCommand = {

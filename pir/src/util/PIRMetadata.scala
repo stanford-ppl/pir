@@ -142,9 +142,18 @@ class PIRMetadata extends Metadata {
   activeOf.setName("activeOf")
   val finalStateOf = new OneToOneMap[PIRNode, String] with MetadataMap
   finalStateOf.setName("finalStateOf")
+  val totalHopCountOf = new OneToOneMap[String, Long] with MetadataMap
+  totalHopCountOf.setName("totalHopCountOf")
+  var psimCycle:Option[Long] = None
   /* ------------- Plastsim metadata (start) ---------- */
 
   var pirMap:EOption[PIRMap] = Right(PIRMap.empty)
 
+
+  override def reset = {
+    pirMap = Right(PIRMap.empty)
+    psimCycle = None
+    super.reset
+  }
 }
 

@@ -20,8 +20,9 @@ trait PlastisimUtil extends PIRPass with prism.util.Memorization {
   }
 
   lazy val topS = compiler.arch.design.top
+  lazy val designParam = designS.param
   lazy val topParam = topS.param
-  lazy val burstSize = topParam.burstSizeWord
+  lazy val burstSize = designParam.burstSizeWord
 
   lazy val (numTotalRows, numTotalCols) = topParam match {
     case param:StaticGridTopParam => (param.numRows, param.numCols)

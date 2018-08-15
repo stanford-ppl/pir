@@ -20,7 +20,7 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
     offsetMap = scala.collection.immutable.ListMap[DRAM, Int]()
   }
 
-  lazy val bytePerWord = topParam.wordWidth / 8
+  lazy val bytePerWord = designParam.wordWidth / 8
 
   // mutable.ListMap doesn't preserve the order even scaladoc says so
   var offsetMap = scala.collection.immutable.ListMap[DRAM, Int]()
