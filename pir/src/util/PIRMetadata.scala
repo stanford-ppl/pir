@@ -134,12 +134,14 @@ class PIRMetadata extends Metadata {
   /* ------------- Plastsim metadata (start) ---------- */
   val linkGroupOf = new OneToOneMap[Memory, Set[Memory]] with MetadataMap
   linkGroupOf.setName("linkGroupOf")
-  val stalledOf = new OneToOneMap[PIRNode, Float] with MetadataMap
-  stalledOf.setName("stalledOf")
-  val starvedOf = new OneToOneMap[PIRNode, Float] with MetadataMap
-  starvedOf.setName("starvedOf")
+  val stallRateOf = new OneToOneMap[PIRNode, Float] with MetadataMap
+  stallRateOf.setName("stallRateOf")
+  val starveRateOf = new OneToOneMap[PIRNode, Float] with MetadataMap
+  starveRateOf.setName("starveRateOf")
   val activeOf = new OneToOneMap[PIRNode, Long] with MetadataMap
   activeOf.setName("activeOf")
+  val activeRateOf = new OneToOneMap[PIRNode, Float] with MetadataMap
+  activeRateOf.setName("activeRateOf")
   val finalStateOf = new OneToOneMap[PIRNode, String] with MetadataMap
   finalStateOf.setName("finalStateOf")
   val totalHopCountOf = new OneToOneMap[String, Long] with MetadataMap

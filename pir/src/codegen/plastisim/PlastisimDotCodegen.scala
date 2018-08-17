@@ -56,9 +56,9 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
       startAtToken(n).foreach { token => label += s"\nstart_at_tokens=$token" }
       stopAfterToken(n).foreach { token => label += s"\nstop_after_tokens=$token" }
       countOf(n).foreach { count => label += s"\ncount=$count" }
-      activeOf.get(n).foreach { active => label += s"\nactive=$active" }
-      stalledOf.get(n).foreach { stalled => label += s"\nstalled=$stalled %" }
-      starvedOf.get(n).foreach { starved => label += s"\nstarved=$starved %" }
+      zipOption(activeOf.get(n), activeRateOf.get(n)).foreach { case (active, rate) => label += s"\nactive=$active ($rate %)" }
+      stallRateOf.get(n).foreach { stalled => label += s"\nstalled=$stalled %" }
+      starveRateOf.get(n).foreach { starved => label += s"\nstarved=$starved %" }
       finalStateOf.get(n).foreach { state => label += s"\nstate=$state" }
       val cuP = globalOf(n).get
       cuP match {

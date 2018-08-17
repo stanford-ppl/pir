@@ -54,6 +54,7 @@ class AreaPowerStat(implicit compiler:PIR) extends PIRCodegen with prism.codegen
     val cellsS = compiler.arch.top.collectDown[Routable]()
     val pcusS = cellsS.filter { _.param.isInstanceOf[PCUParam] }
     val pmusS = cellsS.filter { _.param.isInstanceOf[PMUParam] }
+    val dagsS = cellsS.filter { _.param.isInstanceOf[DramAGParam] }
     val row = SpadeConfig.option[Int]("row")
     val col = SpadeConfig.option[Int]("col")
     val nRouter = if (isDynamic(compiler.arch.top)) row * (col + 2) else 0
@@ -76,6 +77,7 @@ class AreaPowerStat(implicit compiler:PIR) extends PIRCodegen with prism.codegen
       }.sum
       emitln(s"conf['pcu_total_active'] = ${totalActiveOf(pcusS.head.param)}")
       emitln(s"conf['pmu_total_active'] = ${totalActiveOf(pmusS.head.param)}")
+      emitln(s"conf['dag_total_active'] = ${totalActiveOf(dagsS.head.param)}")
     }
     emitln(s"conf['freq']=${compiler.arch.designParam.clockFrequency}")
     psimCycle.foreach { cycle =>

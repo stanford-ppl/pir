@@ -5,7 +5,7 @@ from collections import OrderedDict
 # from https://docs.google.com/spreadsheets/d/1ib4jPlyKifF4ALXWo8rhwFOWV6EBJF7sJ32UU5CRf_Y/edit?usp=sharing
 scale_28_to_45 = 1/0.47436959
 cu_area = { "pcu": 0.849, "pmu": 0.532 } # mm^2
-cu_power = { "pcu":224, "pmu":300.3135 } # mW
+cu_power = { "pcu":224.0, "pmu":300.3135, "dag":31.4111 } # mW
 D_v1_s4_q4      = { "vlink":1, "slink":4, 'net':'dynamic', 'flit-width':512, 'psim-q':4}
 D_v1_s4_q8      = { "vlink":1, "slink":4, 'net':'dynamic', 'flit-width':512, 'psim-q':8}
 D_v1_s4_q16 = { "vlink":1, "slink":4, 'net':'dynamic', 'flit-width':512, 'psim-q':16}
@@ -144,8 +144,10 @@ class PlasticineModel:
         summary = self.get_net_energy_summary(**conf)
         summary["pcu_unit_energy"] = self.get_cu_energy("pcu", **conf)
         summary["pmu_unit_energy"] = self.get_cu_energy("pmu", **conf)
+        summary["dag_unit_energy"] = self.get_cu_energy("dag", **conf)
         summary["total_pcu_energy"] = conf["pcu_total_active"] * summary["pcu_unit_energy"]
         summary["total_pmu_energy"] = conf["pmu_total_active"] * summary["pmu_unit_energy"]
+        summary["total_dag_energy"] = conf["dag_total_active"] * summary["dag_unit_energy"]
         summary['total_energy'] = sum([summary[e] for e in ['total_net_energy',
             'total_pcu_energy', 'total_pmu_energy']])
         return summary
