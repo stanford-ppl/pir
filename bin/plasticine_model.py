@@ -149,7 +149,7 @@ class PlasticineModel:
         summary["total_pmu_energy"] = conf["pmu_total_active"] * summary["pmu_unit_energy"]
         summary["total_dag_energy"] = conf["dag_total_active"] * summary["dag_unit_energy"]
         summary['total_energy'] = sum([summary[e] for e in ['total_net_energy',
-            'total_pcu_energy', 'total_pmu_energy']])
+            'total_pcu_energy', 'total_pmu_energy', 'total_dag_energy']])
         return summary
 
     # unit in W

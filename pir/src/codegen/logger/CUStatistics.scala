@@ -11,6 +11,7 @@ import prism.codegen.JsonCodegen
 
 class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen with TypeUtil {
   import pirmeta._
+  import PIRConfig._
 
   val fileName = "stat.json"
 
@@ -20,7 +21,7 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen wi
 
   def sinfo(s:Any) = {
     dbg(s)
-    if (PIRConfig.printStat && isLastRun) {
+    if (printStat && isLastRun) {
       info(s"$s")
     }
   }
@@ -48,30 +49,32 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen wi
     val cus = compiler.top.collectDown[GlobalContainer]()
     cus.foreach(dump)
     val cuMap = cus.groupBy(cuType) // tp -> cus
-    printStat(cuMap)
+    printCUStat(cuMap)
     if (postMapping) printUsage(cuMap)
   }
 
   def inputsP(cuP:GlobalContainer) = cuP.ins.groupBy { _.from.src }.map { case (src, ins) => ins.head.src }
   def outputsP(cuP:GlobalContainer) = cuP.outs.map { _.src }
 
-  def printStat(cuMap:Map[Option[String], List[GlobalContainer]]) = {
+  def printCUStat(cuMap:Map[Option[String], List[GlobalContainer]]) = {
     val cus = cuMap.values.flatten
-    sinfo(s"")
-    sinfo(s"number of cus=${cus.size}")
-    cuMap.foreach { case (cuType, cus) =>
-      val key = cuType.getOrElse("cu")
-      sinfo(s"number of $key = ${cus.size}")
-      val cin = stat(cus) { cu => inputsP(cu).filter { io => isBit(io) }.size }
-      val cout = stat(cus) { cu => outputsP(cu).filter { io => isBit(io) }.size }
-      val sin = stat(cus) { cu => inputsP(cu).filter { io => isWord(io) }.size }
-      val sout = stat(cus) { cu => outputsP(cu).filter { io => isWord(io) }.size }
-      val vin = stat(cus) { cu => inputsP(cu).filter { io => isVector(io) }.size }
-      val vout = stat(cus) { cu => outputsP(cu).filter { io => isVector(io) }.size }
-      val stages = stat(cus) { _.collectDown[StageDef]().size }
-      sinfo(s"- cin $cin sin $sin vin $vin")
-      sinfo(s"- cout $cout sout $sout vout $vout")
-      sinfo(s"- stages $stages")
+
+    if (verbose) {
+      sinfo(s"number of cus=${cus.size}")
+      cuMap.foreach { case (cuType, cus) =>
+        val key = cuType.getOrElse("cu")
+        sinfo(s"number of $key = ${cus.size}")
+        val cin = stat(cus) { cu => inputsP(cu).filter { io => isBit(io) }.size }
+        val cout = stat(cus) { cu => outputsP(cu).filter { io => isBit(io) }.size }
+        val sin = stat(cus) { cu => inputsP(cu).filter { io => isWord(io) }.size }
+        val sout = stat(cus) { cu => outputsP(cu).filter { io => isWord(io) }.size }
+        val vin = stat(cus) { cu => inputsP(cu).filter { io => isVector(io) }.size }
+        val vout = stat(cus) { cu => outputsP(cu).filter { io => isVector(io) }.size }
+        val stages = stat(cus) { _.collectDown[StageDef]().size }
+        sinfo(s"- cin $cin sin $sin vin $vin")
+        sinfo(s"- cout $cout sout $sout vout $vout")
+        sinfo(s"- stages $stages")
+      }
     }
 
     def cmap(key:String) = cuMap.get(Some(key)).getOrElse(Nil)

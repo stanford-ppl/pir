@@ -108,7 +108,7 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
               //err(line, exception=false)
               //fail(s"Plastiroute failed. details in $log")
             }
-            if (line.contains("Used") && line.contains("VCs.")) {
+            if (line.contains("Used") && line.contains("VCs.") && verbose) {
               info(Console.GREEN, s"proute", line)
             }
           }
@@ -154,7 +154,7 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
 
   def printHops(header:String) = {
     val msg = totalHopCountOf.map.toSeq.map { case (k,v) => s"$k: $v" }.mkString(",")
-    info(Console.GREEN, header, "\n" + msg)
+    if (verbose) info(Console.GREEN, header, "\n" + msg)
     dbg(msg)
   }
 

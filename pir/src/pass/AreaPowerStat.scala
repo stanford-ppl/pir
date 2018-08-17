@@ -16,6 +16,7 @@ class AreaPowerStat(implicit compiler:PIR) extends PIRCodegen with prism.codegen
   val fileName = "area_power_model.py"
 
   override def runPass:Unit =  {
+    if (printStat) println("")
     if (isStatic(designS) || isDynamic(designS)) genScript
   }
 
@@ -23,10 +24,10 @@ class AreaPowerStat(implicit compiler:PIR) extends PIRCodegen with prism.codegen
     super.finPass
     if (isStatic(designS) || isDynamic(designS)) {
       shellProcess("pir", s"python $outputPath", s"${buildPath(dirName, "area_power.log")}") { line =>
-        if (PIRConfig.printStat) {
+        if (printStat && !verbose) {
           if (line.contains("total_area")) info(Console.GREEN, s"pir", line)
-          if (line.contains("total_energy")) info(Console.GREEN, s"pir", line)
-          if (line.contains("total_power")) info(Console.GREEN, s"pir", line)
+          else if (line.contains("total_energy")) info(Console.GREEN, s"pir", line)
+          else if (line.contains("total_power")) info(Console.GREEN, s"pir", line)
         }
         if (line.contains("Cannot find kws in the table")) {
           val kws = line.split("kws:")(1)
@@ -78,6 +79,11 @@ class AreaPowerStat(implicit compiler:PIR) extends PIRCodegen with prism.codegen
       emitln(s"conf['pcu_total_active'] = ${totalActiveOf(pcusS.head.param)}")
       emitln(s"conf['pmu_total_active'] = ${totalActiveOf(pmusS.head.param)}")
       emitln(s"conf['dag_total_active'] = ${totalActiveOf(dagsS.head.param)}")
+      if (printStat && verbose) {
+        info(s"pcu_total_active = ${totalActiveOf(pcusS.head.param)}")
+        info(s"pmu_total_active = ${totalActiveOf(pmusS.head.param)}")
+        info(s"dag_total_active = ${totalActiveOf(dagsS.head.param)}")
+      }
     }
     emitln(s"conf['freq']=${compiler.arch.designParam.clockFrequency}")
     psimCycle.foreach { cycle =>
