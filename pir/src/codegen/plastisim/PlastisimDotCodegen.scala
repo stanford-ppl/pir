@@ -33,8 +33,13 @@ class PlastisimDotCodegen(fileName:String)(implicit compiler: PIR) extends PIRIR
             case "STALL" => attr.fillcolor("orange").style(filled)
             case "BOTH" => attr.fillcolor("orangered").style(filled)
           }.getOrElse(attr.fillcolor("orange").style(filled))
+        } else {
+          // Generate Green between 100 to 255
+          val G = Math.round((1 - activeRateOf(n) / 100) * (255 - 50) + 50).toInt
+          var HG = G.toHexString
+          while (HG.size < 2) HG = "0" + HG
+          attr.fillcolor(s"#00${HG}00").style(filled)
         }
-        else attr.fillcolor("limegreen").style(filled)
       }.getOrElse(super.color(attr, n))
     case n => super.color(attr, n)
   }
