@@ -25,8 +25,8 @@ class AreaPowerStat(implicit compiler:PIR) extends PIRCodegen with prism.codegen
       shellProcess("pir", s"python $outputPath", s"${buildPath(dirName, "area_power.log")}") { line =>
         if (PIRConfig.printStat) {
           if (line.contains("total_area")) info(Console.GREEN, s"pir", line)
-          if (line.contains("total_net_energy")) info(Console.GREEN, s"pir", line)
-          if (line.contains("total_net_power")) info(Console.GREEN, s"pir", line)
+          if (line.contains("total_energy")) info(Console.GREEN, s"pir", line)
+          if (line.contains("total_power")) info(Console.GREEN, s"pir", line)
         }
         if (line.contains("Cannot find kws in the table")) {
           val kws = line.split("kws:")(1)
@@ -65,6 +65,18 @@ class AreaPowerStat(implicit compiler:PIR) extends PIRCodegen with prism.codegen
     List("DynHopsVec", "DynHopsScal", "StatHopsVec", "StatHopsScal").foreach { key =>
       emitln(s"conf['$key']=${totalHopCountOf.get(key).getOrElse(0l)}")
     }
+    pirMap.right.foreach { pmap =>
+      val cumap = pmap.cumap
+      val groups:Map[Parameter, List[GlobalContainer]] = cumap.usedMap.bmap.map.groupBy { case (cuS, cuP) => cuS.param }.map { case (param, groups) =>
+        param -> groups.map { _._2 }.toList
+      }
+      def cusOf(param:Parameter) = groups.getOrElse(param, Nil)
+      def totalActiveOf(param:Parameter) = cusOf(param).map { cuP => 
+        cuP.collectDown[ContextEnable]().map { ctxEn => activeOf(ctxEn) }.max
+      }.sum
+      emitln(s"conf['pcu_total_active'] = ${totalActiveOf(pcusS.head.param)}")
+      emitln(s"conf['pmu_total_active'] = ${totalActiveOf(pmusS.head.param)}")
+    }
     emitln(s"conf['freq']=${compiler.arch.designParam.clockFrequency}")
     psimCycle.foreach { cycle =>
       emitln(s"conf['cycle']=${cycle}")
@@ -78,7 +90,7 @@ model = PlasticineModel(os.environ['PIR_HOME'] + '/spade/' + 'data', tech=28)
 area = model.get_area_summary(**conf)
 energy = model.get_energy_summary(**conf)
 if 'cycle' in conf:
-   power = model.get_power_summary(**conf)
+   power = model.get_power_summary(energy, **conf)
 else:
    power = {}
 
