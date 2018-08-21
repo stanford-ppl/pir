@@ -67,7 +67,7 @@ trait Debugger extends PIRPass {
     scala.io.StdIn.readLine()
   }
 
-  def breakPoint(msg:String, act:BreakAction):Unit = if (PIRConfig.enableBreakPoint) {
+  def breakPoint(msg:String, act:BreakAction):Unit = {
     logger.closeAllBuffersAndWrite
     info(Console.RED, "break", msg)
     val answer = ask(s"Waiting for input ...")
@@ -76,7 +76,7 @@ trait Debugger extends PIRPass {
     actWithDefault((answer, { case unit:Unit => breakPoint(msg, actWithDefault) }))
   }
 
-  def breakPoint[M](m:PIRMap)(block: => EOption[M]):EOption[M] = if (PIRConfig.enableBreakPoint) {
+  def breakPoint[M](m:PIRMap)(block: => EOption[M]):EOption[M] = if (PIRConfig.enablePlaceAndRouteBreakPoint) {
     Try(block) match {
       case Failure(InvalidMapping(m, e)) => 
         breakPoint(s"$e", openDot(m, e))

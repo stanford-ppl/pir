@@ -100,7 +100,7 @@ class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner with Debugg
     cu2.children.exists { _.deps.exists { _.isDescendentOf(cu1) } }
   }
 
-  def breakPoint(origPartitions:List[GlobalContainer], info:String)(newPartitionBlk: => List[GlobalContainer]):List[GlobalContainer] = if (PIRConfig.enableBreakPoint) {
+  def breakPoint(origPartitions:List[GlobalContainer], info:String)(newPartitionBlk: => List[GlobalContainer]):List[GlobalContainer] = if (PIRConfig.enableSplitBreakPoint) {
     var newPartitions:Option[List[GlobalContainer]] = None
     val act:BreakAction = {
       case ("o", bp) =>

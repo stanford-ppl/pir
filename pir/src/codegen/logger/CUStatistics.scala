@@ -59,22 +59,20 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen wi
   def printCUStat(cuMap:Map[Option[String], List[GlobalContainer]]) = {
     val cus = cuMap.values.flatten
 
-    if (verbose) {
-      sinfo(s"number of cus=${cus.size}")
-      cuMap.foreach { case (cuType, cus) =>
-        val key = cuType.getOrElse("cu")
-        sinfo(s"number of $key = ${cus.size}")
-        val cin = stat(cus) { cu => inputsP(cu).filter { io => isBit(io) }.size }
-        val cout = stat(cus) { cu => outputsP(cu).filter { io => isBit(io) }.size }
-        val sin = stat(cus) { cu => inputsP(cu).filter { io => isWord(io) }.size }
-        val sout = stat(cus) { cu => outputsP(cu).filter { io => isWord(io) }.size }
-        val vin = stat(cus) { cu => inputsP(cu).filter { io => isVector(io) }.size }
-        val vout = stat(cus) { cu => outputsP(cu).filter { io => isVector(io) }.size }
-        val stages = stat(cus) { _.collectDown[StageDef]().size }
-        sinfo(s"- cin $cin sin $sin vin $vin")
-        sinfo(s"- cout $cout sout $sout vout $vout")
-        sinfo(s"- stages $stages")
-      }
+    dbg(s"number of cus=${cus.size}")
+    cuMap.foreach { case (cuType, cus) =>
+      val key = cuType.getOrElse("cu")
+      dbg(s"number of $key = ${cus.size}")
+      val cin = stat(cus) { cu => inputsP(cu).filter { io => isBit(io) }.size }
+      val cout = stat(cus) { cu => outputsP(cu).filter { io => isBit(io) }.size }
+      val sin = stat(cus) { cu => inputsP(cu).filter { io => isWord(io) }.size }
+      val sout = stat(cus) { cu => outputsP(cu).filter { io => isWord(io) }.size }
+      val vin = stat(cus) { cu => inputsP(cu).filter { io => isVector(io) }.size }
+      val vout = stat(cus) { cu => outputsP(cu).filter { io => isVector(io) }.size }
+      val stages = stat(cus) { _.collectDown[StageDef]().size }
+      dbg(s"- cin $cin sin $sin vin $vin")
+      dbg(s"- cout $cout sout $sout vout $vout")
+      dbg(s"- stages $stages")
     }
 
     def cmap(key:String) = cuMap.get(Some(key)).getOrElse(Nil)
