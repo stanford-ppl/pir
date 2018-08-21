@@ -92,7 +92,7 @@ class AreaPowerStat(implicit compiler:PIR) extends PIRCodegen with prism.codegen
 
 emitln(s"""
 import sys,os
-sys.path.insert(0, os.environ['PIR_HOME'] + "bin/")
+sys.path.insert(0, os.environ['PIR_HOME'] + "/bin/")
 from plasticine_model import *
 model = PlasticineModel(os.environ['PIR_HOME'] + '/spade/' + 'data', tech=28)
 area = model.get_area_summary(**conf)
