@@ -21,6 +21,7 @@ class TestTraversal(implicit compiler:PIR) extends PIRTraversal with BFSBottomUp
 
   override def visitNode(n:N) = {
     dbg(s"Visiting ${qdef(n)}")
+    srcOrderOf(n) = n.id
     super.visitNode(n)
   }
 

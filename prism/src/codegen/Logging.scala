@@ -10,7 +10,7 @@ trait Logging extends Serializable {
     override def emit(s:String):Unit = if (debug && isOpened) { super.emit(s); flush }
     override def emitln(s:String):Unit = if (debug && isOpened) { super.emitln(s); flush }
 
-    override def emitBlock[T](bs:Option[String], b:Option[Braces], es:Option[()=>String])(block: =>T):T = { 
+    override def emitBlock[T](bs:Option[String], b:Option[Braces], es:Option[()=>String])(block: =>T):T = if (debug && isOpened) { 
       emitBSln(bs, b, None)
       val res = block
       val resHeader = s"result${bs.fold("") { bs => s" [$bs]"}} ="
@@ -28,7 +28,7 @@ trait Logging extends Serializable {
       }
       emitBEln(None, b, es.map(es => es()))
       res
-    }
+    } else block
   }
 
   def quote(n:Any):String = n.toString
@@ -48,8 +48,8 @@ trait Logging extends Serializable {
   def dbeln(s:String):Unit = logger.emitBEln(s)
   def dbeln:Unit = logger.emitBEln("")
 
-  def withLog(outDir:String, logFile:String, append:Boolean=false)(lambda: => Unit) {
+  def withLog[T](outDir:String, logFile:String, append:Boolean=false)(lambda: => T):T = {
     if (logger.isOpen) lambda 
-    else logger.withOpen(outDir, logFile, append) { lambda }
+    else logger.withOpen[T](outDir, logFile, append) { lambda }
   }
 }

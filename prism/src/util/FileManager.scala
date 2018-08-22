@@ -8,13 +8,13 @@ trait FileManager {
 
   val separator = File.separator
 
-  def logExtensions = List(".dot", ".svg", ".txt", ".csv", ".pdf")
+  def logExtensions = List(".log", ".dot", ".svg", ".txt", ".csv", ".pdf")
 
   def isLog(file:File):Boolean = isLog(file.getName())
   def isLog(fileName:String):Boolean = {
     fileName match {
-      case fileName if fileName.endsWith(".log") & fileName.contains("-") =>
-        fileName.split("-")(0).forall { _.isDigit }
+      //case fileName if fileName.endsWith(".log") & fileName.contains("-") =>
+        //fileName.split("-")(0).forall { _.isDigit }
       case fileName => logExtensions.exists { ext => fileName.endsWith(ext) }
     }
   }

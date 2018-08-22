@@ -32,6 +32,12 @@ class PIRMetadata extends Metadata {
   srcCtxOf.setName("srcCtxOf")
 
   /*
+   * An ID indicate program order
+   * */
+  val srcOrderOf =  new OneToOneMap[PIRNode, Int] with MetadataMap
+  srcOrderOf.setName("srcOrderOf")
+
+  /*
    * User annotation of file to load the memory
    * */
   val fileNameOf = new OneToOneMap[IR, String] with MetadataMap

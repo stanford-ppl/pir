@@ -4,7 +4,7 @@ package pass
 import pir.node._
 import scala.collection.mutable
 
-class ControlAllocation(implicit compiler:PIR) extends ControlTransformer with ContextLinerizer with AccessControlUtil {
+class ControlAllocation(implicit compiler:PIR) extends ControlTransformer with ContextLinearizer with AccessControlUtil {
   import pirmeta._
 
   val forward = true

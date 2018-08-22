@@ -201,7 +201,7 @@ trait PlastisimUtil extends PIRPass with prism.util.Memorization {
   def bufferSizeOf(memP:Memory):Option[Int] = {
     val cuP = globalOf(memP).get
     topS match {
-      case topS if isAsic(topS) => Some(10) // as large as possible
+      case topS if isAsic(topS) => Some(10000) // as large as needed
       case topS =>
         mappedTo[Routable](cuP, pmap).map { cuS => bufferSizeOf(memP, cuP, cuS) }
     }

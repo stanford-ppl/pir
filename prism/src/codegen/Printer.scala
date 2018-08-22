@@ -15,6 +15,8 @@ trait Printer {
     def flush = writer.flush
     def close = writer.close
     def getPath:String
+    var level = 0
+    var listing = false
   }
   case class StdoutWriter() extends StreamWriter {
     val outputStream = System.out
@@ -46,16 +48,23 @@ trait Printer {
   
   def sw:StreamWriter = { streamStack.headOption.getOrElse(throw new Exception(s"No Stream defined for $this")) }
 
-  def openBuffer = open(ByteWriter())
+  def openBuffer = {
+    val bw = ByteWriter()
+    streamStack.headOption.foreach { stream =>
+      bw.level = stream.level
+      bw.listing = stream.listing
+    }
+    open(bw)
+  }
 
   def openStdout = open(StdoutWriter())
 
-  def openFile(dirName:String, fileName:String, append:Boolean):StreamWriter = {
-    openFile(buildPath(dirName, fileName), append)
-  }
-
   def openFile(filePath:String, append:Boolean=false):StreamWriter = {
     open(FileWriter(filePath, append))
+  }
+
+  def openFile(dirName:String, fileName:String, append:Boolean):StreamWriter = {
+    openFile(buildPath(dirName, fileName), append)
   }
 
   def withOpen[T](dirName:String, fileName:String, append:Boolean)(lambda: => T):T = {
@@ -71,7 +80,7 @@ trait Printer {
     res
   }
 
-  def withOpen(fileName:String, append:Boolean=false)(lambda: => Unit)(implicit compiler:Compiler):Unit = {
+  def withOpen[T](fileName:String, append:Boolean=false)(lambda: => T)(implicit compiler:Compiler):T = {
     withOpen(compiler.outDir, fileName, append)(lambda)
   }
 
@@ -120,12 +129,10 @@ trait Printer {
   }
 
   val tab = "  "
-  var level = 0
-  var listing = false
-  def incLevel = level += 1
-  def decLevel = { level -= 1; assert(level >= 0) }
-  def blist = { listing = true; incLevel }
-  def elist = { listing = false; decLevel }
+  def incLevel = sw.level += 1
+  def decLevel = { sw.level -= 1; assert(sw.level >= 0) }
+  def blist = { sw.listing = true; incLevel }
+  def elist = { sw.listing = false; decLevel }
 
   trait Braces { def s:String; def e:String }
   case object Brackets extends Braces { def s = "["; def e = "]" }
@@ -133,8 +140,8 @@ trait Printer {
   case object Parentheses extends Braces { def s = "("; def e = ")" }
   case object NoneBraces extends Braces { def s = ""; def e = "" }
 
-  def indent(s:String) = if (s=="") "" else s"${tab*level}$s"
-  def listFormat(s:String) = if (listing) s"- $s" else s
+  def indent(s:String) = if (s=="") "" else s"${tab*sw.level}$s"
+  def listFormat(s:String) = if (sw.listing) s"- $s" else s
 
   def write(s:String):Unit = sw.print(s)
   def writeln(s:String):Unit = sw.println(s)

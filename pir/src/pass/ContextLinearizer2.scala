@@ -6,7 +6,7 @@ import pir.node._
 
 import scala.collection.mutable
 
-trait ContextLinerizer extends PIRTransformer with PIRNodeUtil with Logging with prism.traversal.GraphUtil with AccessControlUtil with Memorization { self:ControlAllocation =>
+trait ContextLinearizer2 extends PIRTransformer with PIRNodeUtil with Logging with prism.traversal.GraphUtil with AccessControlUtil with Memorization { self:ControlAllocation =>
   implicit val compiler:PIR
   val pirmeta:PIRMetadata
   import pirmeta._
