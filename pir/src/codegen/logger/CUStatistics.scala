@@ -62,7 +62,6 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen wi
     dbg(s"number of cus=${cus.size}")
     cuMap.foreach { case (cuType, cus) =>
       val key = cuType.getOrElse("cu")
-      dbg(s"number of $key = ${cus.size}")
       val cin = stat(cus) { cu => inputsP(cu).filter { io => isBit(io) }.size }
       val cout = stat(cus) { cu => outputsP(cu).filter { io => isBit(io) }.size }
       val sin = stat(cus) { cu => inputsP(cu).filter { io => isWord(io) }.size }
@@ -70,6 +69,7 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen wi
       val vin = stat(cus) { cu => inputsP(cu).filter { io => isVector(io) }.size }
       val vout = stat(cus) { cu => outputsP(cu).filter { io => isVector(io) }.size }
       val stages = stat(cus) { _.collectDown[StageDef]().size }
+      dbg(s"number of $key = ${cus.size}")
       dbg(s"- cin $cin sin $sin vin $vin")
       dbg(s"- cout $cout sout $sout vout $vout")
       dbg(s"- stages $stages")

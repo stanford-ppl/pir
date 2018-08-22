@@ -1,11 +1,44 @@
 package pir
 package mapper
 
-import pir.codegen._
 import spade.node._
-import prism.mapper.SearchFailure
 
 trait Debugger extends PIRPass {
+
+  type BreakAction = PartialFunction[(String, Unit => Unit), Unit]
+
+  val quit:BreakAction = {
+    case ("q", bp) => 
+      info(s"Stop debugging and exiting...")
+      System.exit(-1)
+  }
+
+  val continue:BreakAction = {
+    case ("n", bp) =>
+  }
+
+  val invalidInput:BreakAction = {
+    case (_, bp) => 
+      info(s"Invalid input, o-open, q-quit, n-next ...")
+      bp(())
+  }
+
+  def ask(question:String) = {
+    info(Console.RED, "break", question)
+    scala.io.StdIn.readLine()
+  }
+
+  def breakPoint(msg:String, act:BreakAction):Unit = {
+    logger.closeAllBuffersAndWrite
+    info(Console.RED, "break", msg)
+    val answer = ask(s"Waiting for input ...")
+
+    val actWithDefault:BreakAction = act orElse continue orElse quit orElse invalidInput
+    actWithDefault((answer, { case unit:Unit => breakPoint(msg, actWithDefault) }))
+  }
+
+  /* Snapshot */
+  import pir.codegen._
 
   override def initPass = {
     super.initPass
@@ -27,23 +60,24 @@ trait Debugger extends PIRPass {
     m
   }
 
-  type BreakAction = PartialFunction[(String, Unit => Unit), Unit]
+  /* Place And Route Break Point */
+  import pir.codegen._
+  import prism.mapper.SearchFailure
 
-  val quit:BreakAction = {
-    case ("q", bp) => 
-      info(s"Stop debugging and exiting...")
-      System.exit(-1)
-  }
-
-  val continue:BreakAction = {
-    case ("n", bp) =>
-  }
-
-  val invalidInput:BreakAction = {
-    case (_, bp) => 
-      info(s"Invalid input, o-open, q-quit, n-next ...")
-      bp(())
-  }
+  def breakPoint[M](m:PIRMap)(block: => EOption[M]):EOption[M] = if (PIRConfig.enablePlaceAndRouteBreakPoint) {
+    Try(block) match {
+      case Failure(InvalidMapping(m, e)) => 
+        breakPoint(s"$e", openDot(m, e))
+        throw e
+      case Failure(e) => 
+        breakPoint(s"$e", openDot(m, e))
+        throw e
+      case Success(Left(f)) => 
+        breakPoint(s"$f", openDot(m, f))
+        Left(f)
+      case Success(res) => res
+    }
+  } else block 
 
   def openDot(m:Any, f:Any):BreakAction = {
     case ("o", bp) =>
@@ -61,36 +95,6 @@ trait Debugger extends PIRPass {
       }
       bp(())
   }
-
-  def ask(question:String) = {
-    info(Console.RED, "break", question)
-    scala.io.StdIn.readLine()
-  }
-
-  def breakPoint(msg:String, act:BreakAction):Unit = {
-    logger.closeAllBuffersAndWrite
-    info(Console.RED, "break", msg)
-    val answer = ask(s"Waiting for input ...")
-
-    val actWithDefault:BreakAction = act orElse continue orElse quit orElse invalidInput
-    actWithDefault((answer, { case unit:Unit => breakPoint(msg, actWithDefault) }))
-  }
-
-  def breakPoint[M](m:PIRMap)(block: => EOption[M]):EOption[M] = if (PIRConfig.enablePlaceAndRouteBreakPoint) {
-    Try(block) match {
-      case Failure(InvalidMapping(m, e)) => 
-        breakPoint(s"$e", openDot(m, e))
-        throw e
-      case Failure(e) => 
-        breakPoint(s"$e", openDot(m, e))
-        throw e
-      case Success(Left(f)) => 
-        breakPoint(s"$f", openDot(m, f))
-        Left(f)
-      case Success(res) => res
-    }
-  } else block 
-
 
 }
 
