@@ -1,6 +1,5 @@
 all:
-	sbt compile
-	sbt "; project apps; compile"
+	sbt "; compile; project apps; compile"
 
 doc:
 	sbt doc

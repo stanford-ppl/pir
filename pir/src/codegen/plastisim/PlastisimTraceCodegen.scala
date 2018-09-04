@@ -20,8 +20,6 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
     offsetMap = scala.collection.immutable.ListMap[DRAM, Int]()
   }
 
-  lazy val bytePerWord = designParam.wordWidth / 8
-
   // mutable.ListMap doesn't preserve the order even scaladoc says so
   var offsetMap = scala.collection.immutable.ListMap[DRAM, Int]()
 
@@ -165,12 +163,12 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
         case n:DramController =>
           nodeOf[ProcessDramCommand](n) match {
             case Def(_, ProcessDramDenseLoad(dram, offset, size)) =>
-              emitLambda(s"(0 until $size / $bytePerWord / ${n.par}).foreach", s"i") {
+              emitLambda(s"(0 until $size / ${designParam.bytePerWord} / ${n.par}).foreach", s"i") {
                 genNodes(n)
                 super.visitNode(n, prev)
               }
             case Def(_, ProcessDramDenseStore(dram, offset, size, data)) =>
-              emitLambda(s"(0 until $size / $bytePerWord / ${n.par}).foreach", s"i") {
+              emitLambda(s"(0 until $size / ${designParam.bytePerWord} / ${n.par}).foreach", s"i") {
                 genNodes(n)
                 super.visitNode(n, prev)
               }
@@ -237,7 +235,7 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
       case Def(n, GlobalOutput(data, valid)) =>
         emitln(s"val $n = ${data}")
       case DramAddress(dram) if offsetMap.contains(dram) => 
-        emitln(s"val $n = Some(${offsetMap(dram)} * $bytePerWord)") 
+        emitln(s"val $n = Some(${offsetMap(dram)} * ${designParam.bytePerWord})") 
       case n if isReg(n) & boundOf.contains(n) => 
         emitln(s"val $n = Some(${boundOf(n)})")
       case n if isFIFO(n) & boundOf.contains(n) => 
@@ -287,7 +285,7 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
       case Def(n,ProcessDramDenseLoad(dram, offset, size)) =>
         val par = getParOf(n)
         emitLambda(s"val $n = List.tabulate($par)", s"j") {
-          emitln(s"val byteOffset = $offset.asInstanceOf[Int] / $bytePerWord")
+          emitln(s"val byteOffset = $offset.asInstanceOf[Int] / ${designParam.bytePerWord}")
           emitln(s"val addr = byteOffset + i * $par + j")
           emitln(s"dram(addr)")
         }

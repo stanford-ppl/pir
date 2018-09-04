@@ -92,6 +92,9 @@ trait ContextLinearizer extends PIRTransformer with PIRNodeUtil with Logging wit
     val mems = scala.collection.mutable.ListBuffer[Memory]()
     sorted.sliding(size=2,step=1).foreach { 
       case List(ctx1, ctx2) if isInCtx(ctx1, mem) && isOutCtx(ctx2, mem) => 
+      // Optimization. out to read dependency is captured in accumulation in program. No need to
+      // insert token
+      case List(ctx1, ctx2) if isOutCtx(ctx1, mem) && isInCtx(ctx2, mem) && isAccum(mem) =>
       case List(ctx1, ctx2) =>
         dbgblk(s"Insert Token ${ctx1} -> ${ctx2}") {
           val cu = globalOf(mem).get

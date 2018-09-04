@@ -59,7 +59,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         if (line.contains("Final State")) finalStateOf(node) = line.split("Final State:")(1).trim.split(" ")(0).trim
         checkActive(node).foreach { case (active, expected) =>
           if (active < expected) { 
-            err(s"${quote(node)} count=$expected active=$active", false)
+            //err(s"${quote(node)} count=$expected active=$active", false)
             simulationSucceeded = Some(false)
           }
         }
@@ -108,8 +108,6 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
     }
   }
 
-  lazy val bytePerWord = designParam.wordWidth / 8
-
   def emitNodeSpecs(n:NetworkNode) = {
     val cuP = globalOf(n).get
     cuP match {
@@ -122,7 +120,7 @@ class PlastisimConfigCodegen(implicit compiler: PIR) extends PlastisimCodegen {
         cuP match {
           case cuP:FringeDenseLoad => 
             emitln(s"dram_cmd_tp=dense_load")
-            emitln(s"out_token_size = ${par * bytePerWord}")
+            emitln(s"out_token_size = ${par * designParam.bytePerWord}")
           case cuP:FringeDenseStore => 
             emitln(s"dram_cmd_tp=dense_store")
             emitln(s"in_token_size = ${par * bytePerWord}")

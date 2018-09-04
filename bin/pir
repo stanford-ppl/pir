@@ -17,4 +17,4 @@ fi
 
 sbtArgs=${argsArray[@]:0:$#}
 
-sbt "; project apps; run-main $sbtArgs"
+sbt "; project apps; compile; run-main $sbtArgs"
