@@ -60,12 +60,14 @@ case object BitXor  extends BitOp with Op2
 
 case object MuxOp   extends Op with Op3
 case object Bypass extends Op with Op1
+case object FltPtToFixPt extends Op with Op4
+case object FixPtToFltPt extends Op with Op3
 
 trait Ops {
   val fixOps = List(FixAdd, FixSub, FixMul, FixDiv, FixMin, FixMax, FixLt, FixLeq, FixGt, FixGeq, FixEql, FixNeq, FixMod, FixSra, FixSla, FixUsla, FixNeg, FixRandom, FixUnif, FixAbs)
   val fltOps = List(FltAdd, FltSub, FltMul, FltDiv, FltMin, FltMax, FltLt, FltLeq, FltGt, FltGeq, FltEql, FltNeq, FltExp, FltAbs, FltLog, FltSqr, FltNeg)
   val bitOps = List(BitAnd, BitOr, BitNot, BitXnor, BitXor)
-  val otherOps = List(MuxOp, Bypass)
+  val otherOps = List(MuxOp, Bypass, FltPtToFixPt, FixPtToFltPt)
 
   def allOps = (fixOps ++ fltOps ++ bitOps ++ otherOps).toList
   def compOps = allOps.collect {case op:CompOp => op}
