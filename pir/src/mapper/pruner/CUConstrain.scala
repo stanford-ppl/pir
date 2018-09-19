@@ -59,7 +59,7 @@ class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConst
         AFGCost(isAFG(cuP)),
         MCCost(isDFG(cuP) || isSFG(cuP)),
         SramSizeCost(maxOption(cuP.collectDown[pir.node.SRAM]().map { _.size}).getOrElse(0)),
-        SramCost(cuP.collectDown[pir.node.SRAM]().size),
+        SramCost(cuP.collectDown[pir.node.Memory]().filter(isRemoteMem).size),
         ControlInputCost(ins.filter(n => isBit(n)).size),
         ScalarInputCost(ins.filter(n => isWord(n)).size),
         VectorInputCost(ins.filter(n => isVector(n)).size),
