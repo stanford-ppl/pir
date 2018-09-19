@@ -10,6 +10,16 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
   import pirmeta._
   import spademeta._
 
+  implicit class LongOp(i:Long) {
+    // Round up division
+    def /! (d:Long) = (i.toDouble / d.toDouble).ceil.toLong
+  }
+
+  implicit class IntOp(i:Int) {
+    // Round up division
+    def /! (d:Int) = (i.toFloat / d.toFloat).ceil.toInt
+  }
+
   def minByWithBound[A,B:Ordering](list:Iterable[A], bound:B)(lambda:A => B):B = {
     list.foldLeft[Option[B]](None) { 
       case (Some(`bound`), x) => Some(bound)
@@ -50,8 +60,8 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
         case x:ArgOutController => Some(1)
         case DramController(size, par) => 
           size.map { size =>
-            val wordSize = size / 4
-            wordSize / par
+            val wordSize = size /! 4
+            wordSize /! par
           }
       }
     }
@@ -59,7 +69,7 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
 
   def getCountsByChildren(ctrl:Controller, children:List[Controller]) = {
     assertOptionUnify(children, s"$ctrl count") { c =>
-      zipMap(getCountsOf(c), getItersOf(c), s"$c.count / $c.iter") { case (c,i) => c / i }
+      zipMap(getCountsOf(c), getItersOf(c), s"$c.count / $c.iter") { case (c,i) => c /! i }
     }
   }
 
@@ -106,7 +116,7 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
         case x:ControlNode => 1
         case x:Counter => x.par
         case x:CounterChain => x.counters.map(getParOf).product
-        case Def(n, ReduceOp(op, input)) => getParOf(input) / 2 
+        case Def(n, ReduceOp(op, input)) => getParOf(input) /! 2 
         case n:AccumOp => 1
         case n:ReduceAccumOp => 1
         case n:Container => n.children.map { d => getParOf(d) }.max
@@ -141,9 +151,9 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
           val cstep = getBoundAs[Int](step)
           dbg(s"ctr=${quote(ctr)} cmin=$cmin, cmax=$cmax, cstep=$cstep par=$par")
           zipMap(cmin, cmax, cstep) { case (cmin, cmax, cstep) =>
-            if ((cmax - cmin) % (cstep * par) != 0)
-              warn(s"(max=$cmax - min=$cmin) % (step=$cstep * par=$par) != 0 for ${quote(ctr)}")
-            (cmax - cmin) / (cstep * par)
+            //if ((cmax - cmin) % (cstep * par) != 0)
+              //warn(s"(max=$cmax - min=$cmin) % (step=$cstep * par=$par) != 0 for ${quote(ctr)}")
+            (cmax - cmin) /! (cstep * par)
           }
         case n:ProcessDramCommand => getItersOf(ctrlOf(n))
         case n:DramControllerDone => getItersOf(ctrlOf(n))
@@ -180,7 +190,7 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
       n match {
         case n:ContextEnable => getCountsOf(ctrlOf(n))
         case n:Memory => assertUnify(inAccessesOf(n), s"${inAccessesOf(n)}.count") { a => getCountsOf(a) }.get
-        case n:Primitive => zipMap(getCountsOf(ctxEnOf(n).get), getScaleOf(n), s"${ctxEnOf(n).get}.count / $n.scale") { _ / _ }
+        case n:Primitive => zipMap(getCountsOf(ctxEnOf(n).get), getScaleOf(n), s"${ctxEnOf(n).get}.count / $n.scale") { _ /! _ }
       }
     }
   }

@@ -17,7 +17,7 @@ trait RecursivePartitioner extends GlobalPartioner { self =>
     schedular.traverseScope(cu.children, Set.empty)
   } else super.split(cu, fit)
 
-  val schedular = new PIRTraversal with prism.traversal.BFSTopologicalTraversal {
+  private val schedular = new PIRTraversal with prism.traversal.BFSTopologicalTraversal {
     type T = Set[GlobalContainer]
     def zero = Set.empty
     override lazy val logger = self.logger
@@ -36,7 +36,7 @@ trait RecursivePartitioner extends GlobalPartioner { self =>
     override def visitIn(n:N):List[N] = visitLocalIn(n)
     override def visitOut(n:N):List[N] = visitLocalOut(n)
     override def isDepFree(n:N) = depFunc(n).exists(isVisited)
-    override def visitNode(n:N, prev:T):T = {
+    override def visitNode(n:N, prev:T):T = breakPoint(prev, s"Splitting $splitTarget - fit $n") {
       val newParent = dbgblk(s"visitNode($n)") {
         val depeds = n.depeds
 
@@ -50,7 +50,9 @@ trait RecursivePartitioner extends GlobalPartioner { self =>
         val newParent = candidates.foldLeft[Option[GlobalContainer]](None) {
           case (None, cu) =>
             swapParent(n, cu)
-            if (fit(cu)) { Some(cu) } else {
+            val isFit = fit(cu) 
+            dbg(s"fit($cu) = $isFit")
+            if (isFit) { Some(cu) } else {
               swapParent(n, splitTarget)
               None
             }

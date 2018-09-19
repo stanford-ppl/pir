@@ -7,7 +7,7 @@ import pir.codegen._
 
 import spade.node._
 
-trait GlobalPartioner extends PIRTransformer with CUPruner with Debugger {
+trait GlobalPartioner extends PIRTransformer with CUPruner with Debugger { self =>
   import pirmeta._
 
   override def runPass =  {
@@ -87,7 +87,13 @@ trait GlobalPartioner extends PIRTransformer with CUPruner with Debugger {
         dbgblk(s"split(${quote(key)})") {
           dbg(s"$f")
           val vs = cumap(key)
-          def fit(key:CUMap.K) = vs.exists { v => costConstrains.forall(_.fit(key, v)._1) }
+          def fit(k:CUMap.K) = vs.exists { v => 
+            resetCacheOn {
+              case (kk, _) => kk == k
+              case kk => kk == k
+            }
+            costConstrains.forall{ c => c.fit(k, v)._1 }
+          }
           val ks = split(key, fit _)
           val newCUMap = (cumap - key) ++ (ks -> vs)
           val newSplitMap = splitMap + (key -> ks)
@@ -99,5 +105,25 @@ trait GlobalPartioner extends PIRTransformer with CUPruner with Debugger {
   }
 
   def split(cu:GlobalContainer, fit:CUMap.K => Boolean):Set[GlobalContainer] = throw PIRException(s"Undefined partitioner")
+
+  def breakPoint[T<:Iterable[GlobalContainer]](origPartitions:T, info:String)(newPartitionBlk: => T):T = 
+    if (PIRConfig.enableSplitBreakPoint) {
+    var newPartitions:Option[T] = None
+    val act:BreakAction = {
+      case ("o", bp) =>
+        new PartitalDotCodegen("before.dot", origPartitions).run.open
+        newPartitions = Some(newPartitionBlk)
+        new PartitalDotCodegen("after.dot", newPartitions.get).run.open
+        bp(())
+      case ("s", bp) =>
+        new SimpleIRDotCodegen(s"simple.dot") { override lazy val logger = self.logger }.run.open
+        bp(())
+      case ("t", bp) =>
+        new PIRIRDotCodegen(s"top.dot"){ override lazy val logger = self.logger }.run.open
+        bp(())
+    }
+    breakPoint(info, act)
+    newPartitions.getOrElse(newPartitionBlk)
+  } else newPartitionBlk
 
 }

@@ -44,7 +44,7 @@ trait IgraphPartitioner extends GlobalPartioner { self =>
     partitions.toSet
   } else super.split(cu, fit)
 
-  val schedular = new PIRTraversal with prism.traversal.BFSTopologicalTraversal with prism.traversal.GraphSchedular {
+  private val schedular = new PIRTraversal with prism.traversal.BFSTopologicalTraversal with prism.traversal.GraphSchedular {
     override lazy val logger = self.logger
     val forward = false
     override def visitIn(n:N):List[N] = visitLocalIn(n)
@@ -97,24 +97,5 @@ trait IgraphPartitioner extends GlobalPartioner { self =>
     cu1.children.exists { _.deps.exists { _.isDescendentOf(cu2) } } &&
     cu2.children.exists { _.deps.exists { _.isDescendentOf(cu1) } }
   }
-
-  def breakPoint(origPartitions:List[GlobalContainer], info:String)(newPartitionBlk: => List[GlobalContainer]):List[GlobalContainer] = if (PIRConfig.enableSplitBreakPoint) {
-    var newPartitions:Option[List[GlobalContainer]] = None
-    val act:BreakAction = {
-      case ("o", bp) =>
-        new PartitalDotCodegen("before.dot", origPartitions).run.open
-        newPartitions = Some(newPartitionBlk)
-        new PartitalDotCodegen("after.dot", newPartitions.get).run.open
-        bp(())
-      case ("s", bp) =>
-        new SimpleIRDotCodegen(s"simple.dot") { override lazy val logger = self.logger }.run.open
-        bp(())
-      case ("t", bp) =>
-        new PIRIRDotCodegen(s"top.dot"){ override lazy val logger = self.logger }.run.open
-        bp(())
-    }
-    breakPoint(info, act)
-    newPartitions.getOrElse(newPartitionBlk)
-  } else newPartitionBlk
 
 }
