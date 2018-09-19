@@ -16,7 +16,7 @@ class CUStatistics(implicit compiler:PIR) extends PIRCodegen with JsonCodegen wi
   val fileName = "stat.json"
 
   def isLastRun = runner == compiler.session.runnersOf[CUStatistics].last
-  def postSplitting = compiler.session.hasRunAll[IgraphPartioner]
+  def postSplitting = compiler.session.hasRunAll[GlobalPartioner]
   def postMapping = compiler.session.hasRunAll[CUPlacer]
 
   def sinfo(s:Any) = {

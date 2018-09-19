@@ -11,6 +11,7 @@ trait CUPruner extends PIRPass {
   import pirmeta._
 
   val constrains = ListBuffer[CUConstrain]()
+  def costConstrains = constrains.collect { case c:CUCostConstrain => c }
   if (isStatic(designS) || isDynamic(designS) || isPointToPoint(designS)) {
     constrains += new CUCostConstrain
   }
@@ -34,7 +35,6 @@ trait CUPruner extends PIRPass {
   }
 
   def prune(cumap:CUMap, key:CUMap.K) = {
-    val costConstrains = constrains.collect { case c:CUCostConstrain => c }
     flatFold(costConstrains, cumap) { case (cumap, constrain) => constrain.prune(cumap, key) }
   }
 

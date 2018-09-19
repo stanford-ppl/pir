@@ -27,12 +27,13 @@ trait CUConstrain extends Constrain with PIRNodeUtil with spade.node.SpadeNodeUt
 
 }
 
-class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConstrain[CUCost] with prism.util.Memorization {
-  memorizing = true
+class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConstrain[CUCost] {
 
   def getKeyCost(cuP:K):CUCost = keyCost(cuP)
   def getValueCost(cuS:V):CUCost = valueCost(cuS.param)
-  def fit(key:K, value:V):(Boolean, Boolean) =  memorize("fit", (key,value.param)) { case (key, value) =>
+  override def prune(fg:FG):EOption[FG] = pass.withMemory { super.prune(fg) }
+  def fit(key:K, value:V):(Boolean, Boolean) =  {
+    pass.memorize("fit", (key,value.param)) { case (key, value) =>
     val kc = keyCost(key)
     val vc = valueCost(value)
     dbgblk(s"fits(${quote(key)}, ${quote(value)})") {
@@ -45,10 +46,11 @@ class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConst
       fits
     }
   }
+  }
 
   def inputsP(cuP:K) = cuP.ins.groupBy { _.from.src }.map { case (src, ins) => ins.head.src }
   def outputsP(cuP:K) = cuP.outs.map { _.src }
-  def keyCost(cuP:K) = memorize("keyCost", cuP) { cuP => 
+  def keyCost(cuP:K) = pass.memorize("keyCost", cuP) { cuP => 
     dbgblk(s"keyCost(${quote(cuP)})") {
       val ins = inputsP(cuP)
       val outs = outputsP(cuP)
@@ -97,7 +99,7 @@ class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConst
     case param:CUParam if param.simdParam.nonEmpty => Math.min(topS.minOutputs[Vector](param), param.simdParam.get.numVectorOuts)
     case param => topS.minOutputs[Vector](param)
   }
-  def valueCost(param:Parameter):CUCost = memorize("valueCost", param) { param =>
+  def valueCost(param:Parameter):CUCost = pass.memorize("valueCost", param) { param =>
     dbgblk(s"valueCost(${quote(param)})"){
       CUCost(
         AFGCost(param.isInstanceOf[ArgFringeParam]),

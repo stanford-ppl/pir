@@ -43,7 +43,7 @@ trait PIR extends Compiler with PIRWorld {
   lazy val accessPuller = new AccessPulling()
   lazy val accessLowering = new AccessLowering()
   lazy val bankedAccessMerging = new BankedAccessMerging()
-  lazy val igraphPartioner = new IgraphPartioner()
+  lazy val globalPartitioner = new GlobalPartionerCake()
   lazy val routeThroughEliminator = new RouteThroughElimination()
   lazy val contextInsertion = new ContextInsertion()
   lazy val controlRegInsertion = new ControlRegInsertion()
@@ -97,12 +97,12 @@ trait PIR extends Compiler with PIRWorld {
     addPass(controllerRuntimeAnalyzer).dependsOn(controlPropogator, memoryAnalyzer)
     addPass(cuStats)
 
-    addPass(enableSplitting, igraphPartioner)
+    addPass(enableSplitting, globalPartitioner)
     addPass(enableSplitting && enableDot, new PIRIRDotCodegen(s"top7.dot"))
     addPass(enableSplitting && enableDot, new SimpleIRDotCodegen(s"simple2.dot"))
 
     addPass(enableDot, new ControllerDotCodegen(s"controller1.dot"))
-    addPass(routeThroughEliminator).dependsOn(accessLowering).dependsOn(igraphPartioner)
+    addPass(routeThroughEliminator).dependsOn(accessLowering).dependsOn(globalPartitioner)
     addPass(deadCodeEliminator).dependsOn(routeThroughEliminator)
     addPass(enableDot, new ControllerDotCodegen(s"controller2.dot")).dependsOn(controlPropogator)
     addPass(enableDot, new PIRIRDotCodegen(s"top8.dot"))
@@ -110,7 +110,7 @@ trait PIR extends Compiler with PIRWorld {
     addPass(debug, new PIRPrinter(s"IR2.txt"))
     addPass(irCheck).dependsOn(routeThroughEliminator)
 
-    addPass(genCtrl, contextInsertion).dependsOn(igraphPartioner)
+    addPass(genCtrl, contextInsertion).dependsOn(globalPartitioner)
     addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top9.dot")).dependsOn(contextInsertion)
 
     // Control transformation and analysis
