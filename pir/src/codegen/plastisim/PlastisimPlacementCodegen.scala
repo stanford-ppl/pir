@@ -74,8 +74,10 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
     val routables = routes.map { case (out, in) => routableOf(out).get }
     val src::routers = routables
     assert(routers.forall{_.isInstanceOf[Router]}, s"route contains router but not just routers: $routables")
-    routers.sliding(2, 1).foreach { case List(from, to) =>
-      emitln(s"H ${gout.id} ${addrOf(from).get} ${getDirection(from, to)} 0") // assign all vc to 0
+    if (routers.size >= 2) { // If only 1 router, no need to emit between router direction
+      routers.sliding(2, 1).foreach { case List(from, to) =>
+        emitln(s"H ${gout.id} ${addrOf(from).get} ${getDirection(from, to)} 0") // assign all vc to 0
+      }
     }
     emitln(s"H ${gout.id} ${addrOf(routers.last).get} X 0") // assign all vc to 0
     routes.foreach { hop => countHop("Dyn", gout, hop) }
