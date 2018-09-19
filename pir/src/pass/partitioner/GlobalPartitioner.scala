@@ -7,7 +7,7 @@ import pir.codegen._
 
 import spade.node._
 
-trait GlobalPartioner extends PIRTransformer with CUPruner {
+trait GlobalPartioner extends PIRTransformer with CUPruner with Debugger {
   import pirmeta._
 
   override def runPass =  {
@@ -87,7 +87,8 @@ trait GlobalPartioner extends PIRTransformer with CUPruner {
         dbgblk(s"split(${quote(key)})") {
           dbg(s"$f")
           val vs = cumap(key)
-          val ks = split(key)
+          def fit(key:CUMap.K) = vs.exists { v => costConstrains.forall(_.fit(key, v)._1) }
+          val ks = split(key, fit _)
           val newCUMap = (cumap - key) ++ (ks -> vs)
           val newSplitMap = splitMap + (key -> ks)
           pruneAndSplit(newCUMap, newSplitMap, ks)
@@ -97,6 +98,6 @@ trait GlobalPartioner extends PIRTransformer with CUPruner {
     }
   }
 
-  def split(cu:GlobalContainer):Set[GlobalContainer]
+  def split(cu:GlobalContainer, fit:CUMap.K => Boolean):Set[GlobalContainer] = throw PIRException(s"Undefined partitioner")
 
 }

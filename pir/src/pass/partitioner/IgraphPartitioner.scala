@@ -5,20 +5,18 @@ import pir.node._
 import pir.mapper._
 import pir.codegen._
 
-class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner with Debugger with Logging { self =>
+trait IgraphPartitioner extends GlobalPartioner { self =>
   import pirmeta._
+  import PIRConfig._
 
-  override def initPass = {
-    super.initPass
-  }
-
-  def newIgraphCodegen(cu:GlobalContainer) = PIRConfig.option[String]("splitting-algo") match {
+  def newIgraphCodegen(cu:GlobalContainer) = option[String]("splitting-algo") match {
     case "weighted_igraph" => new IgraphCodegen(cu) with WeightedIgraphCodegen
     case "alias_igraph" => new IgraphCodegen(cu) with AliasIgraphCodegen
     case "alias_weighted_igraph" => new IgraphCodegen(cu) with AliasWeightedIgraphCodegen
   }
 
-  def split(cu:GlobalContainer) = {
+  override def split(cu:GlobalContainer, fit:CUMap.K => Boolean) = 
+  if (option[String]("splitting-algo").contains("igraph")){
     val codegen = newIgraphCodegen(cu)
     codegen.run
     val vertexMap = codegen.getResult // Node -> Partition
@@ -44,10 +42,10 @@ class IgraphPartioner(implicit compiler:PIR) extends GlobalPartioner with Debugg
     }
     removeNode(cu)
     partitions.toSet
-  }
+  } else super.split(cu, fit)
 
   val schedular = new PIRTraversal with prism.traversal.BFSTopologicalTraversal with prism.traversal.GraphSchedular {
-    override lazy val logger = IgraphPartioner.this.logger
+    override lazy val logger = self.logger
     val forward = false
     override def visitIn(n:N):List[N] = visitLocalIn(n)
     override def visitOut(n:N):List[N] = visitLocalOut(n)
