@@ -242,7 +242,16 @@ trait PlastisimUtil extends PIRPass with prism.util.Memorization {
       case topS => None
         mappedTo[Routable](cuP, pmap).map {
           case cuS:MC => 100
-          case cuS:CU => cuS.param.simdParam.map { _.stageParams.size }.getOrElse(1)
+          case cuS:CU => 
+            var stages = cuS.param.simdParam.map { _.stageParams.size }.getOrElse(1)
+            val foldedStage = n.collectPeer[FoldedReduceAccumOp]().size
+            //TODO: this should be the correct equation with struct type
+            //stages = stages - foldedStage + foldedStage * log2(designParam.vec) + 1
+            if (foldedStage != 0) {
+              stages = stages - foldedStage + foldedStage * log2(16) + 1
+              dbg(s"$n foldedStage=$foldedStage, $foldedStage * log2(16) + 1=${foldedStage * log2(16) + 1}")
+            }
+            stages
           case cuS:spade.node.ArgFringe => 1
         }
     }
