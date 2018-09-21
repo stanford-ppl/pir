@@ -13,10 +13,11 @@ class UnrollingTransformer(implicit compiler:PIR) extends PIRTransformer with Si
   }
 
 
+  def foldReduce = PIRConfig.option[Boolean]("folded-redacc")
   def transform(n:N):N = {
     n match {
-      case Def(n:ReduceAccumOp, ReduceAccumOp(op, input, LocalLoad((accum:Reg)::Nil, None))) =>
-        val numReduceStages = (Math.log(getParOf(ctrlOf(n))) / Math.log(2)).toInt
+      case Def(n:ReduceAccumOp, ReduceAccumOp(op, input, LocalLoad((accum:Reg)::Nil, None))) if !foldReduce =>
+        val numReduceStages = log2(getParOf(ctrlOf(n)))
         dbg(s"numReduceStages=$numReduceStages")
         var reduceInput = input
         (0 until numReduceStages).foreach { i =>
@@ -27,6 +28,21 @@ class UnrollingTransformer(implicit compiler:PIR) extends PIRTransformer with Si
         lowerNode(n) {
           withParentCtrl(compiler.top, ctrlOf(n)) { 
             AccumOp(op=op, input=reduceInput, accum.init)
+          }
+        }
+      case Def(n:ReduceAccumOp, ReduceAccumOp(op, input, LocalLoad((accum:Reg)::Nil, None))) =>
+        val wordWidth = designS.param.wordWidth
+        val numLowPrecReduceStage = log2(SINGLE_PRECISION /! wordWidth)
+        dbg(s"numLowPrecReduceStage=$numLowPrecReduceStage")
+        var reduceInput = input
+        (0 until numLowPrecReduceStage).foreach { i =>
+          reduceInput = withParentCtrl(compiler.top, ctrlOf(n)) { 
+            StructReduceOp(op=op, input=reduceInput)
+          }
+        }
+        lowerNode(n) {
+          withParentCtrl(compiler.top, ctrlOf(n)) { 
+            FoldedReduceAccumOp(op=op, input=reduceInput, accum.init)
           }
         }
       case Def(n:ReduceAccumOp, ReduceAccumOp(op, input, accum)) =>

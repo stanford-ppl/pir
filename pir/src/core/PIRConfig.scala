@@ -9,6 +9,7 @@ object PIRConfig extends prism.GlobalConfig {
   register("mapping", default=true, info="Enable mapping")
   register("arch", default="MyDesign", info="Default architecture for mapping")
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
+  register("folded-redacc", default=false, "Fold reduction and accumulate operation into a single stage")
 
   def arch = option[String]("arch")
   def genCtrl = option[Boolean]("ctrl")

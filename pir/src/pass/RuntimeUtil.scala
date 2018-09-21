@@ -4,21 +4,11 @@ package pass
 import prism.util._
 import pir.node._
 
-trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { self:Logging =>
+trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil with MathUtil { self:Logging =>
   val pirmeta:PIRMetadata
   val spademeta:SpadeMetadata
   import pirmeta._
   import spademeta._
-
-  implicit class LongOp(i:Long) {
-    // Round up division
-    def /! (d:Long) = (i.toDouble / d.toDouble).ceil.toLong
-  }
-
-  implicit class IntOp(i:Int) {
-    // Round up division
-    def /! (d:Int) = (i.toFloat / d.toFloat).ceil.toInt
-  }
 
   def minByWithBound[A,B:Ordering](list:Iterable[A], bound:B)(lambda:A => B):B = {
     list.foldLeft[Option[B]](None) { 
@@ -117,8 +107,10 @@ trait RuntimeUtil extends ConstantPropogator with PIRNodeUtil with ScalaUtil { s
         case x:Counter => x.par
         case x:CounterChain => x.counters.map(getParOf).product
         case Def(n, ReduceOp(op, input)) => getParOf(input) /! 2 
+        case Def(n, StructReduceOp(op, input)) => getParOf(input) /! 2 
         case n:AccumOp => 1
         case n:ReduceAccumOp => 1
+        case n:FoldedReduceAccumOp => 1
         case n:Container => n.children.map { d => getParOf(d) }.max
         case x:LocalLoad => getParOf(ctrlOf(x))
         case x:CounterIter if ctrlOf(x).isInnerControl => getParOf(ctrlOf(x))
