@@ -40,6 +40,11 @@ trait PlastisimUtil extends PIRPass with prism.util.Memorization {
 
   lazy val maxDim = math.max(numTotalRows, numTotalCols)
 
+  lazy val pattern = topParam match {
+    case param:StaticGridTopParam => param.centrolPattern
+    case param:DynamicGridTopParam => param.centrolPattern
+  }
+
   def pmap = pirMap.toOption
 
   def srcsOf(n:Link):Map[Memory, Map[NetworkNode, List[LocalInAccess]]] = {

@@ -4,6 +4,7 @@ package codegen
 import pir.node._
 import pir.mapper._
 import spade.node._
+import spade.param._
 import prism.collection.mutable._
 import scala.collection.mutable
 
@@ -166,6 +167,10 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
       None
     } { case (prouteHome:String, psimOut:String) =>
       var command = s"$prouteHome/plastiroute -n $psimOut/node.csv -l $psimOut/link.csv -o $psimOut/final.place"
+      val patternName = pattern match {
+        case _:Checkerboard => "checkerboard"
+        case _:MCMColumnStrip => "mcmcstrip"
+      }
       if (isInitPlacement) command += s" -b $psimOut/init.place"
       command += s" -r $numRows -c $numCols"
       command += s" -g $psimOut/proute.dot"
@@ -176,6 +181,7 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
       command += s" -q${option[String]("proute-q")} "
       command += s" -s${option[String]("proute-seed")} "
       command += s" ${option[String]("proute-opts")}"
+      command += s" -T ${patternName}"
       Some(command)
     }
   }
