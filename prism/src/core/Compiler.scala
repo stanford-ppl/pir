@@ -25,7 +25,9 @@ trait Compiler extends FileManager with ArgLoader {
 
   def reset = { 
     session = null
-    clearLogs(outDir)
+    if (Config.option[Int]("start-runid")==0) {
+      clearLogs(outDir)
+    }
   } 
 
   def handle(e:Exception):Unit
@@ -54,7 +56,8 @@ trait Compiler extends FileManager with ArgLoader {
 
   def loadSession:Unit = {
     loadDesign
-    setSession(loadFromFile[Session](sessionPath))
+    //setSession(loadFromFile[Session](sessionPath))
+    setSession(new Session())
     initSession
   }
 

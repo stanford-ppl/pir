@@ -4,6 +4,7 @@ import scala.collection.mutable
 
 @SerialVersionUID(123L)
 class Session extends Serializable {
+  import Config._
   var restore = false
 
   val runners = mutable.ListBuffer[Runner[_]]()
@@ -27,13 +28,13 @@ class Session extends Serializable {
   def addPass[P<:Pass:ClassTag](pass:P):Runner[_] = addPass(true, pass)
   def addPass[P<:Pass:ClassTag](shouldRun:Boolean, pass:P):Runner[_] = {
     passes.getOrElseUpdate(pass, mutable.ListBuffer[Runner[_]]())
-    val runner = if (restore && !rerunning) {
-      storedRunneres(currInit)
-    } else {
+    //val runner = if (restore && !rerunning) {
+      //storedRunneres(currInit)
+    //} else {
       val runner = Runner[P](this, currInit)
       if (shouldRun) runner.initPending else runner.initDisabled
-      runner
-    }
+      //runner
+    //}
     runners += runner
     runner.setPass(pass)
     passes(pass) += runner
@@ -59,8 +60,10 @@ class Session extends Serializable {
     passes.foreach { case (pass, _) => pass.reset }
     runners.foreach { runner =>
       if (compiler.save && runner.id==savingCheckPoint) compiler.saveDesign
-      currRun = runner
-      runner.run
+      if (runner.id >= option[Int]("start-runid")) {
+        currRun = runner
+        runner.run
+      }
     }
     val succeed = runners.forall { !_.failed }
     if (compiler.save) {

@@ -10,6 +10,7 @@ object Config extends GlobalConfig {
   register("debug", true, "Enable debug")
   register[String]("out", "Output directory for pir compiler.")
   register("verbose", false, "Enter verbose mode")
+  register("start-runid", default=0, "Runner ID to start with")
 
   def relativeOutDir:String = option("out")
   def debug:Boolean = option[Boolean]("debug")

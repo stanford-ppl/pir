@@ -72,7 +72,7 @@ object PIRConfig extends prism.GlobalConfig {
   register("snapint", default=10, info="Placement snapshot interval")
 
   def saveDesign = option[Boolean]("save-pir")
-  def loadDesign = option[Boolean]("load-pir")
+  def loadDesign = if (Config.option[Int]("start-runid") == 0) false else option[Boolean]("load-pir")
   def verbose = Config.option[Boolean]("verbose")
   def debug:Boolean = Config.option[Boolean]("debug")
   def enableSplitBreakPoint = debug && option[Boolean]("bp-split")

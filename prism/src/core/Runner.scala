@@ -37,7 +37,7 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
   def run(implicit compiler:Compiler):Unit = {
     if (!shouldRun) return
     if (hasRun) return
-    dependencies.foreach { dependency =>
+      dependencies.foreach { dependency =>
       if (dependency.shouldRun && !dependency.succeeded) {
         warn(s"$name not run due to dependency ${dependency.pass} not success")
         return
@@ -66,8 +66,10 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
 }
 
 trait RunnerStatus {
+  import Config._
   protected var initStatus:Status = _
   var status:Status = _
+  val id:Int
 
   def rerun:this.type = { status = initStatus; this }
 
@@ -79,6 +81,7 @@ trait RunnerStatus {
   def setRunning = status = Running
 
   def shouldRun = status match {
+    case status if id < option[Int]("start-runid") => false
     case Pending => true
     case Succeeded => true
     case Failed => true

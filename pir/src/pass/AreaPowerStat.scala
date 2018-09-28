@@ -23,6 +23,9 @@ class AreaPowerStat(implicit compiler:PIR) extends PIRCodegen with prism.codegen
   override def finPass = {
     super.finPass
     if (isStatic(designS) || isDynamic(designS)) {
+      psimCycle.foreach { psimCycle =>
+        info(Console.GREEN, s"pir", s"simulation_cycle                     ${psimCycle}")
+      }
       shellProcess("pir", s"python $outputPath", s"${buildPath(dirName, "area_power.log")}") { line =>
         if (printStat && !verbose) {
           if (line.contains("total_area")) info(Console.GREEN, s"pir", line)
@@ -41,6 +44,70 @@ class AreaPowerStat(implicit compiler:PIR) extends PIRCodegen with prism.codegen
   def format(a:Any) = a match {
     case a:String => s""""$a""""
     case a => a.toString
+  }
+
+  def parseCycle = {
+    if (psimCycle.isEmpty) {
+      val log = s"$dirName/psim.log"
+      if (exists(log)) {
+        getLines(log).foreach { line =>
+          if (line.contains("Simulation complete at cycle:")) {
+            psimCycle = Some(line.split("Simulation complete at cycle:")(1).trim.toLong)
+          }
+        }
+      }
+    }
+  }
+
+  def parseMapping = {
+    var active:Map[String, Long] = Map.empty
+    def totalActiveOf(cus:List[GlobalContainer]):Long = cus.map { cuP => 
+      cuP.collectDown[ContextEnable]().map { ctxEn => countOf(ctxEn).get }.max
+    }.sum
+    pirMap.right.foreach { pmap =>
+      val cumap = pmap.cumap
+      if (cumap.usedMap.fmap.map.nonEmpty) {
+        val groups:Map[Parameter, List[GlobalContainer]] = cumap.usedMap.bmap.map.groupBy { case (cuS, cuP) => cuS.param }.map { case (param, groups) =>
+          param -> groups.map { _._2 }.toList
+        }
+        def cusOf[P<:Parameter:ClassTag] = {
+          val param = assertOneOrLess(groups.keys.filter { case param:P => true; case _ => false }, s"param")
+          param.map { param => groups(param) }.getOrElse(Nil)
+        }
+        def activeOf[P<:Parameter:ClassTag]:Long = totalActiveOf(cusOf[P])
+        active += ("pcu" -> activeOf[PCUParam])
+        active += ("pmu" -> activeOf[PMUParam])
+        active += ("dag" -> activeOf[DramAGParam])
+      }
+    }
+    if (active.isEmpty) {
+      val nodeFile = s"$dirName/node.csv"
+      if (exists(nodeFile)) {
+        val idMapping = getLines(nodeFile).flatMap { line =>
+          if (!line.contains("node")) {
+            val List(id, tp) = line.split(",").map(_.toInt).toList
+            Some((id,tp))
+          } else None
+        }.toMap
+        val cus = compiler.top.collectDown[GlobalContainer]()
+        val cuMapping = cus.map { cu =>
+          val tp = idMapping(cu.id)
+          cu -> (tp match {
+            case 0 => "afg"
+            case 1 => "mc"
+            case 2 => "pmu"
+            case 3 => "dag"
+            case 4 => "pcu"
+          })
+        }
+        val tpMapping = cuMapping.groupBy { case (cu, tp) => tp }
+        active = tpMapping.map { case (tp, group) =>
+          val cus = group.map { case (cu, tp) => cu }
+          tp -> totalActiveOf(cus)
+        }
+      }
+    }
+    active
   }
 
   def genScript = {
@@ -67,24 +134,18 @@ class AreaPowerStat(implicit compiler:PIR) extends PIRCodegen with prism.codegen
     List("DynHopsVec", "DynHopsScal", "StatHopsVec", "StatHopsScal").foreach { key =>
       emitln(s"conf['$key']=${totalHopCountOf.get(key).getOrElse(0l)}")
     }
+    parseCycle
     psimCycle.foreach { cycle =>
       emitln(s"conf['cycle']=${cycle}")
-      pirMap.right.foreach { pmap =>
-        val cumap = pmap.cumap
-        val groups:Map[Parameter, List[GlobalContainer]] = cumap.usedMap.bmap.map.groupBy { case (cuS, cuP) => cuS.param }.map { case (param, groups) =>
-          param -> groups.map { _._2 }.toList
-        }
-        def cusOf(param:Parameter) = groups.getOrElse(param, Nil)
-        def totalActiveOf(param:Parameter) = cusOf(param).map { cuP => 
-          cuP.collectDown[ContextEnable]().map { ctxEn => activeOf(ctxEn) }.max
-        }.sum
-        emitln(s"conf['pcu_total_active'] = ${totalActiveOf(pcusS.head.param)}")
-        emitln(s"conf['pmu_total_active'] = ${totalActiveOf(pmusS.head.param)}")
-        emitln(s"conf['dag_total_active'] = ${totalActiveOf(dagsS.head.param)}")
+      val active = parseMapping
+      if (active.nonEmpty) {
+        emitln(s"conf['pcu_total_active'] = ${active.getOrElse("pcu",0l)}")
+        emitln(s"conf['pmu_total_active'] = ${active.getOrElse("pmu",0l)}")
+        emitln(s"conf['dag_total_active'] = ${active.getOrElse("dag",0l)}")
         if (printStat && verbose) {
-          info(s"pcu_total_active = ${totalActiveOf(pcusS.head.param)}")
-          info(s"pmu_total_active = ${totalActiveOf(pmusS.head.param)}")
-          info(s"dag_total_active = ${totalActiveOf(dagsS.head.param)}")
+          info(s"pcu_total_active = ${active.getOrElse("pcu", 0l)}")
+          info(s"pmu_total_active = ${active.getOrElse("pmu", 0l)}")
+          info(s"dag_total_active = ${active.getOrElse("dag", 0l)}")
         }
       }
     }
