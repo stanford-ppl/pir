@@ -1,0 +1,6 @@
+#!/bin/bash
+
+wget -q https://raw.githubusercontent.com/matthewvilim/RouterStudy/master/results/switch28.csv -O data/switch28.csv
+wget -q https://raw.githubusercontent.com/matthewvilim/RouterStudy/master/results/router28.csv -O data/router28.csv
+wget -q https://raw.githubusercontent.com/matthewvilim/RouterStudy/master/results/switch45.csv -O data/switch45.csv
+wget -q https://raw.githubusercontent.com/matthewvilim/RouterStudy/master/results/router45.csv -O data/router45.csv
