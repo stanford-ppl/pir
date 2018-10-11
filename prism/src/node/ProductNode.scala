@@ -1,19 +1,9 @@
 package prism
 package node
 
-abstract class ProductNode[N<:Node[N]](designOpt:Option[Design])(implicit ev:ClassTag[N]) extends Node[N] with Product { self:N =>
-  def this()(implicit design:Design, ev:ClassTag[N]) = this(Some(design))
+trait ProductNode[N<:Node[N]] extends Node[N] with Product { self:N =>
 
-  val id = designOpt match {
-    case Some(design) => design.nextId
-    case None => 0 // overritten later
-  }
-
-  def design = designOpt.get
-  def isStaging = designOpt match {
-    case Some(design) => design.staging
-    case None => true
-  }
+  def isStaging = design.staging
 
   def productName = s"$productPrefix$id(${values.mkString(",")})" 
 
@@ -30,18 +20,12 @@ abstract class ProductNode[N<:Node[N]](designOpt:Option[Design])(implicit ev:Cla
   }
 
   def constructArgs[T](args:List[Any], staging:Boolean)(newInstance: List[Any] => T) = {
-    designOpt match {
-      case Some(design) =>
-        val arguments = args :+ design
-        val prevStaging = design.staging
-        design.staging = staging
-        val newNode = newInstance(arguments)
-        design.staging = prevStaging
-        newNode
-      case None =>
-        val arguments = args
-        newInstance(arguments)
-    }
+    val arguments = args :+ design
+    val prevStaging = design.staging
+    design.staging = staging
+    val newNode = newInstance(arguments)
+    design.staging = prevStaging
+    newNode
   }
 
   def newInstance[T](args:List[Any], staging:Boolean=true):T = {

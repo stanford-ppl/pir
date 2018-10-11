@@ -12,7 +12,7 @@ trait SubGraph[N<:Node[N]] extends Node[N] { self:SubGraph[N] with N =>
     assert(c != this)
     if (_children.contains(c)) return
     _children += c
-    c.setParent(this.asInstanceOf[c.P])
+    c.setParent(this)
   }
 
   def removeChild(c:N):Unit = {
@@ -23,7 +23,7 @@ trait SubGraph[N<:Node[N]] extends Node[N] { self:SubGraph[N] with N =>
 
   def ins = atoms.flatMap { _.ins.filter { _.connected.exists{ !_.src.ancestors.contains(this) } } }
   def outs = atoms.flatMap { _.outs.filter { _.connected.exists{ !_.src.ancestors.contains(this) } } }
-  override def deps:Set[A] = descendents.flatMap{ _.deps.filterNot(descendents.contains).asInstanceOf[Set[A]] }.toSet
-  override def depeds:Set[A] = descendents.flatMap{ _.depeds.filterNot(descendents.contains).asInstanceOf[Set[A]] }.toSet
+  override def deps = descendents.flatMap{ _.deps.filterNot(descendents.contains) }.toSet
+  override def depeds = descendents.flatMap{ _.depeds.filterNot(descendents.contains) }.toSet
 }
 

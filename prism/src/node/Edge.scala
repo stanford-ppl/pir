@@ -3,7 +3,7 @@ package node
 
 import scala.collection.mutable
 
-abstract class Edge[N<:Node[N]:ClassTag]() extends IR {
+abstract class Edge[N<:Node[N]:ClassTag](implicit design:Design) extends IR {
   type A <: Atom[N] with N
   def src:A
 
@@ -32,7 +32,7 @@ abstract class Edge[N<:Node[N]:ClassTag]() extends IR {
   src.addEdge(this)
 }
 
-abstract class DirectedEdge[N<:Node[N]:ClassTag,+TE<:Edge[N]:ClassTag]() extends Edge[N] {
+abstract class DirectedEdge[N<:Node[N]:ClassTag,+TE<:Edge[N]:ClassTag](implicit design:Design) extends Edge[N] {
   type E <: TE
   override def connected:List[E] = super.connected.toList.asInstanceOf[List[E]]
   override def singleConnected:Option[E] = super.singleConnected.asInstanceOf[Option[E]]

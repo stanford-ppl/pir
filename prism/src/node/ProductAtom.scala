@@ -3,9 +3,6 @@ package node
 
 trait ProductAtom[N<:Node[N]] extends ProductNode[N] with Atom[N] { self:N with ProductAtom[N] =>
 
-  //Make sure lazy val is evaluated so in swapOutput the IO patterns are the same
-  //Has to be lazy to avoid null pointer exception during construction in subclasses
-  //
   def newIn:Input[N]
   def newOut:Output[N]
   def out = outs.headOption.getOrElse(newOut)
@@ -34,5 +31,18 @@ trait ProductAtom[N<:Node[N]] extends ProductNode[N] with Atom[N] { self:N with 
     case (f:Iterable[_], x:Output[N]) => x.connected.map{_.src}
     case (f, x:Edge[N]) => x.singleConnected.map{_.src}.getOrElse(null)
     case (f,x) => super.evaluateFields(f,x)
+  }
+}
+
+object Def {
+  def unapply[T:ClassTag](x:T):Option[(T, T)] = {
+    x match {
+      case x:T => 
+        x match {
+          case n:ProductAtom[_] => Some((x, n.newInstance(n.values, staging=false)))
+          case _ => None
+        }
+      case _ => None
+    }
   }
 }

@@ -32,7 +32,7 @@ trait GraphTransformer {
   def swapParent(node:N, newParent:N):Unit = {
     if (newParent.isParentOf(node)) return
     node.parent.foreach { parent => parent.removeChild(node) }
-    node.setParent(newParent.asInstanceOf[node.P])
+    node.setParent(newParent)
   }
 
   def swapOutputs[A1<:A](node:A, from:A1, to:A1) = swapConnections(node, from, to, (n:A1) => n.outs)

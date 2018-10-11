@@ -4,8 +4,8 @@ package node
 import scala.collection.mutable
 
 @SerialVersionUID(123L)
-trait IR extends Serializable { 
-  val id:Int
+abstract class IR(implicit val design:Design) extends Serializable { 
+  val id = design.nextId
 
   override def equals(that: Any) = that match {
     case n: IR => id == n.id

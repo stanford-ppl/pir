@@ -5,17 +5,16 @@ import prism.traversal._
 
 import scala.collection.mutable
 
-abstract class Node[N<:Node[N]:ClassTag] extends IR with GraphCollector[N] { self:N =>
+abstract class Node[N<:Node[N]:ClassTag](implicit design:Design) extends IR with GraphCollector[N] { self:N =>
+
+  //design.updateState(this)
 
   val nct:ClassTag[N] = implicitly[ClassTag[N]]
 
-  type P <: SubGraph[N] with N
-  type A <: Atom[N] with N
-
   // Parent
-  var _parent:Option[P] = None
-  def parent:Option[P] = _parent
-  def setParent(p:P):this.type =  {
+  var _parent:Option[N] = None
+  def parent:Option[N] = _parent
+  def setParent(p:N):this.type =  {
     assert(p != this, s"setting parent of $this to be the same as it self!")
     _parent match {
       case Some(`p`) => this
@@ -36,10 +35,12 @@ abstract class Node[N<:Node[N]:ClassTag] extends IR with GraphCollector[N] { sel
 
   // Children
   def children:List[N]
+  def addChild(c:N):Unit
+  def removeChild(c:N):Unit
   def isChildOf(p:N) = p.children.contains(this)
 
   def siblings:List[N] = parent.map { _.children.filterNot { _ == this} }.getOrElse(Nil)
-  def ancestors:List[P] = parent.toList.flatMap { parent => parent :: parent.ancestors.asInstanceOf[List[P]] }
+  def ancestors:List[N] = parent.toList.flatMap { parent => parent :: parent.ancestors }
   def isAncestorOf(n:N) = n.ancestors.contains(this) 
   // Inclusive
   def ancestorSlice(top:N) = { // from this to top inclusive
@@ -49,21 +50,23 @@ abstract class Node[N<:Node[N]:ClassTag] extends IR with GraphCollector[N] { sel
     chain.slice(0, idx+1)
   }
   def descendents:List[N] = children.flatMap { child => child :: child.descendents }
-  def isDescendentOf(p:P) = p.isAncestorOf(this)
+  def isDescendentOf(p:N) = p.isAncestorOf(this)
 
   def ins:List[Input[N]]
   def outs:List[Output[N]]
   def ios:List[Edge[N]] = ins ++ outs
 
-  def matchLevel(n:N) = (n :: n.ancestors).filter { _.parent == this.parent }.headOption.asInstanceOf[Option[N]] // why is this necessary
-  def deps:Set[A] = {
-    ins.flatMap { _.connected.map { _.src.asInstanceOf[A] } }.toSet
+  def matchLevel(n:N) = (n :: n.ancestors).filter { _.parent == this.parent }.headOption
+
+  def deps:Set[N] = {
+    ins.flatMap { _.connected.map { _.src.asInstanceOf[N] } }.toSet
   }
   def localDeps = deps.flatMap(matchLevel)
   def globalDeps = deps.filter { d => matchLevel(d).isEmpty }
-  def depeds:Set[A] = outs.flatMap { _.connected.map { _.src.asInstanceOf[A] } }.toSet
+  def depeds = outs.flatMap { _.connected.map { _.src } }.toSet
   def localDepeds = depeds.flatMap(matchLevel)
   def globalDepeds = depeds.filter { d => matchLevel(d).isEmpty }
   def neighbors = deps ++ depeds
+
 }
 

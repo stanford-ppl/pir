@@ -4,10 +4,11 @@ package node
 import scala.collection.mutable
 
 trait Atom[N<:Node[N]] extends Node[N] { self:Atom[N] with N =>
-  implicit lazy val atom:this.type = this
 
   def children:List[N] = Nil
   override def descendents:List[N] = Nil
+  def addChild(c:N):Unit = throw new Exception(s"Atom $this cannot add children")
+  def removeChild(c:N):Unit = throw new Exception(s"Atom $this cannot remove children")
 
   private lazy val _ins = mutable.ListBuffer[Input[N]]()
   private lazy val _outs = mutable.ListBuffer[Output[N]]()
