@@ -1,36 +1,15 @@
 package prism
 package codegen
 
-import prism.node._
+import prism.graph._
 
-trait IRPrinter extends Codegen {
+trait IRPrinter extends Pass with DFSTopDownTopologicalTraversal with Codegen {
 
-  type N <: Node[N]
+  type N <: Node[_]
 
   def qdef(n:Any):String
 
   val metadata:Option[Metadata]
-
-  def emitSubGraph(n:SubGraph[N] with N) = {
-    emitBlock(qdef(n)) {
-      emitln(s"parent=${n.parent.map(quote)}")
-      metadata.foreach { _.summary(n).foreach(emitln) }
-      super.visitNode(n)
-    }
-  }
-
-  def emitAtom(n:Atom[N] with N) = {
-    emitBlock(qdef(n.asInstanceOf[N])) {
-      emitln(s"parent=${n.parent.map(quote)}")
-      n.ios.foreach { io =>
-        emitln(s"$io.connected=[${io.connected.mkString(",")}]")
-      }
-      emitln(s"deps=${n.deps.map(quote)}")
-      emitln(s"depeds=${n.depeds.map(quote)}")
-      metadata.foreach { _.summary(n).foreach(emitln) }
-    }
-    super.visitNode(n)
-  }
 
   def emitBlock(ms:String)(block: =>Unit):T ={ 
     super.emitBlock(ms) {
@@ -49,10 +28,20 @@ trait IRPrinter extends Codegen {
   }
 
   override def emitNode(n:N) = {
-    n match {
-      case n:SubGraph[N] => emitSubGraph(n.asInstanceOf[SubGraph[N] with N])
-      case n:Atom[N] => emitAtom(n.asInstanceOf[Atom[N] with N])
+    emitBlock(qdef(n)) {
+      emitln(s"parent=${n.parent.map(quote)}")
+      n.localEdges.foreach { edge =>
+        emitln(s"$edge.connected=[${edge.connected.mkString(",")}]")
+      }
+      emitln(s"deps=${n.deps.map(quote)}")
+      emitln(s"depeds=${n.depeds.map(quote)}")
+      metadata.foreach { _.summary(n).foreach(emitln) }
+      if (n.children.nonEmpty) {
+        emitln(s"children=${n.children.map(quote)}")
+      }
+      if (n.children.nonEmpty) super.visitNode(n)
     }
+    if (n.children.isEmpty) super.visitNode(n)
   }
 
 }

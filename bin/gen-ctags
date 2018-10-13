@@ -5,4 +5,5 @@ ctags --exclude=log --languages=scala,java -f .tags -R \
   pir/apps/src \
   spade/src \
   spade/arch/src \
-  prism/src
+  prism/src \
+  prism/test/src

@@ -1,36 +1,35 @@
 package prism
 package test
 
-import prism.node._
-import prism.traversal._
+import prism.graph._
 
 object DAG1 extends TestDesign { self =>
-  val a = TestAtom().name("a")
-  val b = TestAtom().name("b")
-  val c = TestAtom().name("c")
-  val d = TestAtom(a,b).name("d")
-  val e = TestAtom(d).name("e")
-  val f = TestAtom().name("f")
-  val g = TestAtom(e, c).name("g")
-  val h = TestAtom(f).name("h")
-  val i = TestAtom(g,h).name("i")
-  val j = TestAtom(i).name("j")
-  val k = TestAtom().name("k")
-  val l = TestAtom(k).name("l")
-  val m = TestAtom(j).name("m")
-  val n = TestAtom(m, j).name("n")
-  val g1 = TestSubGraph(a,b,d).name("g1")
-  val g2 = TestSubGraph(c).name("g2")
-  val g3 = TestSubGraph(h,i, j, k, m, l, n).name("g3")
-  val top = TestSubGraph(e, f, g, g1,g2,g3).name("top")
+  val a   = TestPNode("a")
+  val b   = TestPNode("b")
+  val c   = TestPNode("c")
+  val d   = TestPNode("d",a,b)
+  val e   = TestPNode("e",d)
+  val f   = TestPNode("f")
+  val g   = TestPNode("g",e, c)
+  val h   = TestPNode("h",f)
+  val i   = TestPNode("i",g,h)
+  val j   = TestPNode("j",i)
+  val k   = TestPNode("k")
+  val l   = TestPNode("l",k)
+  val m   = TestPNode("m",j)
+  val n   = TestPNode("n",m, j)
+  val g1  = TestPNode("g1").addChild(a,b,d)
+  val g2  = TestPNode("g2").addChild(c)
+  val g3  = TestPNode("g3").addChild(h,i, j, k, m, l, n)
+  val top = TestPNode("top").addChild(e, f, g, g1,g2,g3)
 }
 
 class DAGTraversalTest extends UnitTest with Logging {
   import DAG1._
 
-  type N = TestNode
-
   "DAGGraphTest" should "success" in {
+    new TestIRPrinter(s"IR.txt").run
+    new TestDotCodegen(s"test.dot").run
     assert(i.deps == Set(g, h), i.deps)
     assert(i.globalDeps == Set(g))
     assert(i.localDeps == Set(h))
@@ -39,12 +38,11 @@ class DAGTraversalTest extends UnitTest with Logging {
     assert(g.localDeps == Set(g2, e))
     assert(g1.children.contains(b))
     assert(top.children.contains(g1))
-    new TestDotCodegen(s"test.dot").run
   }
 
   "DAGTestBFS" should "success" in {
-    val traversal = new BFSTraversal with GraphSchedular {
-      type N = TestNode
+    val traversal = new BFSTraversal with Schedular {
+      type N = Node[_]
       def visitFunc(n:N):List[N] = n.localDeps.toList
     }
     var res = traversal.scheduleNode(e)
@@ -54,8 +52,8 @@ class DAGTraversalTest extends UnitTest with Logging {
   }
 
   "DAGTestDFS" should "success" in {
-    val traversal = new DFSTraversal with GraphSchedular {
-      type N = TestNode
+    val traversal = new DFSTraversal with Schedular {
+      type N = Node[_]
       def visitFunc(n:N):List[N] = n.localDeps.toList
     }
     var res = traversal.scheduleNode(e)
@@ -65,8 +63,7 @@ class DAGTraversalTest extends UnitTest with Logging {
   }
 
   "DAGTestChildFirst" should "success" in {
-    val traversal = new ChildFirstTraversal with GraphSchedular {
-      type N = TestNode
+    val traversal = new ChildFirstTraversal with Schedular {
       val top = DAG1.top
       override def visitNode(n:N, prev:T):T = {
         assert(!n.children.exists(prev.contains), s"n=$n prev=$prev")
@@ -80,8 +77,7 @@ class DAGTraversalTest extends UnitTest with Logging {
   }
 
   "DAGTestSiblingFirst" should "success" in {
-    val traversal = new SiblingFirstTraversal with GraphSchedular {
-      type N = TestNode
+    val traversal = new SiblingFirstTraversal with Schedular {
       val top = DAG1.top
       override def visitNode(n:N, prev:T):T = {
         assert(!n.children.exists(prev.contains), s"n=$n prev=$prev")
@@ -98,13 +94,10 @@ class DAGTraversalTest extends UnitTest with Logging {
   }
 
   "DAGTestDFSTDTopo" should "success" in {
-    val traversal = new DFSTopDownTopologicalTraversal with GraphSchedular {
-      type N = TestNode
+    val traversal = new DFSTopDownTopologicalTraversal with Schedular {
       val top = DAG1.top
       implicit val nct:ClassTag[N] = classTag[N]
       val forward = true
-      def visitLocalIn(n:N):List[N] = n.localDeps.toList
-      def visitLocalOut(n:N):List[N] = n.localDepeds.toList
       override def visitNode(n:N, prev:T):T = {
         assert(!n.children.exists(prev.contains), s"n=$n prev=$prev")
         assert(depFunc(n).forall(isVisited))
@@ -118,13 +111,10 @@ class DAGTraversalTest extends UnitTest with Logging {
   }
 
   "DAGTestBUTopo" should "success" in {
-    val traversal = new BottomUpTopologicalTraversal with GraphSchedular with DFSTraversal {
-      type N = TestNode
+    val traversal = new BottomUpTopologicalTraversal with Schedular with DFSTraversal {
       val top = DAG1.top
       implicit val nct:ClassTag[N] = classTag[N]
       val forward = true
-      def visitGlobalIn(n:N):List[N] = n.deps.toList
-      def visitGlobalOut(n:N):List[N] = n.depeds.toList
       override def visitNode(n:N, prev:T):T = {
         assert(depFunc(n).forall(isVisited), s"depFunc()")
         super.visitNode(n, prev)

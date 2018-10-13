@@ -47,7 +47,7 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
     setRunning
 
     pass.withLog(compiler.outDir, logFile, append=false) {
-      pass.prologue(name); tic
+      infor(s"Running ${name} ...")
       Try(pass.run) match {
         case Success(_) if isRunning => setSucceed
         case Success(_) => 
@@ -59,7 +59,7 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
           }
           pass.logger.closeAllBuffersAndWrite
       }
-      pass.epilogue(name, s"${toc("ms")}ms")
+      info(s"Finished ${name} in ${toc("ms")}ms")
     }
   }
 

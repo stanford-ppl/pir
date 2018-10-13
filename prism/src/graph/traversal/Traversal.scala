@@ -1,23 +1,24 @@
 package prism
-package traversal
-
-import prism.node._
+package graph
 
 import scala.collection.mutable
 
-trait UnitTraversal extends GraphTraversal {
+trait UnitTraversal extends Traversal {
   type T = Unit
 
   def zero:T = ()
 
-  override def visitNode(n:N, prev:T):T = visitNode(n)
-  def visitNode(n:N):T = super.visitNode(n, ())
-
   final def traverseNode(n:N):T = traverseNode(n, ()) 
 
+  def visitNode(n:N):T = super.visitNode(n, zero)
+  override def visitNode(n:N, prev:T):T = visitNode(n)
 }
 
-trait GraphTraversal {
+trait GraphTraversal extends Traversal {
+  type N = Node[_]
+}
+
+trait Traversal extends Logging {
   type N
   type T
 
@@ -57,15 +58,9 @@ trait GraphTraversal {
     res
   }
 
-  def dbgs(s:String) = {
-    this match {
-      case self:Logging if self.logger.isOpen => self.dbg(s)
-      case _ =>
-    }
-  }
 }
 
-trait DFSTraversal extends GraphTraversal {
+trait DFSTraversal extends Traversal {
 
   final def traverseNodes(ns: => List[N], zero:T):T = {
     var prev = zero 
@@ -85,7 +80,7 @@ trait DFSTraversal extends GraphTraversal {
 
 }
 
-trait BFSTraversal extends GraphTraversal {
+trait BFSTraversal extends Traversal {
 
   val queue = mutable.Queue[N]()
 
@@ -119,7 +114,6 @@ trait BFSTraversal extends GraphTraversal {
 }
 
 trait TopologicalTraversal extends GraphTraversal with GraphUtil {
-  override type N <:Node[N]
 
   val forward:Boolean
   def visitIn(n:N):List[N] = visitGlobalIn(n)
@@ -165,7 +159,7 @@ trait TopologicalTraversal extends GraphTraversal with GraphUtil {
     }
     breakingPoints = filtering(breakingPoints){ 
       breakingPoints.filter {
-        case n if depedFunc(n).filterNot{_.isInstanceOf[SubGraph[_]]}.isEmpty => false
+        case n if depedFunc(n).filter{_.children.isEmpty}.isEmpty => false
         case _ => true
       }.toList
     }
@@ -177,9 +171,9 @@ trait TopologicalTraversal extends GraphTraversal with GraphUtil {
     val unvisited = nodes.filterNot(isVisited) 
     var depFree = unvisited.filter(isDepFree) 
     if (unvisited.nonEmpty && depFree.isEmpty) {
-      dbgs(s"Loop in Data flow graph.")
+      dbg(s"Loop in Data flow graph.")
       var nexts = selectFrontier(unvisited)
-      dbgs(s"Breaking loop at $nexts")
+      dbg(s"Breaking loop at $nexts")
       nexts
     } else depFree
   }
@@ -193,7 +187,7 @@ trait TopologicalTraversal extends GraphTraversal with GraphUtil {
 trait DFSTopologicalTraversal extends DFSTraversal with TopologicalTraversal
 trait BFSTopologicalTraversal extends BFSTraversal with TopologicalTraversal
 
-trait HierarchicalTraversal extends GraphTraversal {
+trait HierarchicalTraversal extends Traversal {
   def top:N
   def traverseScope(n:N, zero:T):T
   def traverseTop = traverseScope(top, zero)
@@ -201,12 +195,8 @@ trait HierarchicalTraversal extends GraphTraversal {
 
 trait HierarchicalTopologicalTraversal extends TopologicalTraversal with HierarchicalTraversal
 
-trait TopDownTraversal extends HierarchicalTraversal {
-  override type N <:Node[N]
-  def visitFunc(n:N):List[N] = n match {
-    case n:SubGraph[_] => n.children.asInstanceOf[List[N]]
-    case n:Atom[_] => Nil
-  }
+trait TopDownTraversal extends GraphTraversal with HierarchicalTraversal {
+  def visitFunc(n:N):List[N] = n.children
   def traverseScope(n:N, zero:T):T = traverseNode(n, zero)
 }
 trait ChildFirstTraversal extends DFSTraversal with TopDownTraversal {
@@ -223,8 +213,8 @@ trait TopDownTopologicalTraversal extends HierarchicalTopologicalTraversal with 
   override def visitIn(n:N):List[N] = visitLocalIn(n)
   override def visitOut(n:N):List[N] = visitLocalOut(n)
   override def visitFunc(n:N):List[N] = n match {
-    case n:SubGraph[N] => scheduleDepFree(n.children)
-    case _:Atom[_] => visitDepFree(n)
+    case n if n.children.nonEmpty => scheduleDepFree(n.children)
+    case n => visitDepFree(n) // always scheduleDepFree works. But this is faster
   }
 }
 
@@ -241,14 +231,14 @@ trait BottomUpTopologicalTraversal extends HierarchicalTopologicalTraversal {
     breakingPoints = filtering(breakingPoints){ 
       frontier.filter {
         case n if isVisited(n) => false
-        case n:SubGraph[_] => false
+        case n if n.children.nonEmpty => false
         case _ => true
       }.toList
     }
     breakingPoints = filtering(breakingPoints){ 
       breakingPoints.filter {
-        case n:SubGraph[_] => false
-        case n if depedFunc(n).filterNot{_.isInstanceOf[SubGraph[_]]}.isEmpty => false
+        case n if n.children.nonEmpty => false
+        case n if depedFunc(n).filter{_.children.isEmpty}.isEmpty => false
         case _ => true
       }.toList
     }

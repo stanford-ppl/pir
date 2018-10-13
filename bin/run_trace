@@ -1,3 +1,0 @@
-#!/bin/bash
-cd $1
-sbt "run $2/traces"

@@ -1,7 +1,7 @@
 package prism
-package traversal
+package graph
 
-trait GraphSchedular extends GraphTraversal { self =>
+trait Schedular extends Traversal {
   type N
   type T = List[N]
 
@@ -29,7 +29,8 @@ trait GraphSchedular extends GraphTraversal { self =>
   def scheduleScope(n:N):List[N] = {
     resetTraversal
     this match {
-      case self:HierarchicalTraversal => self.traverseScope(n.asInstanceOf[self.N], zero).asInstanceOf[List[N]]
+      case self:HierarchicalTraversal => 
+        self.traverseScope(n.asInstanceOf[self.N], zero.asInstanceOf[List[self.N]]).asInstanceOf[List[N]]
       case _ => throw PIRException(s"cannot scheduleScope(n) on non HierarchicalTraversal $this")
     }
   }
@@ -37,7 +38,8 @@ trait GraphSchedular extends GraphTraversal { self =>
   def scheduleScope(ns:List[N]):List[N] = {
     resetTraversal
     this match {
-      case self:TopologicalTraversal => self.traverseScope(ns.asInstanceOf[List[self.N]], zero).asInstanceOf[List[N]]
+      case self:TopologicalTraversal => 
+        self.traverseScope(ns.asInstanceOf[List[self.N]], zero.asInstanceOf[List[self.N]]).asInstanceOf[List[N]]
       case _ => throw PIRException(s"cannot scheduleScope(ns) on non TopologicalTraversal $this")
     }
   }

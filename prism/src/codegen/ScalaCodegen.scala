@@ -53,10 +53,10 @@ trait ScalaCodegen extends Codegen {
 
   def emitCommentBlock[T](s:String)(block: =>T):T = { emitBSln(s"// $s "); val res = block; emitBE("// "); emitln; res }
 
-  def emitCaseClassInst[N<:ProductNode[N]](n:N) = {
-    val fields = n.fieldNames.zip(n.values).map{ case (name, value) =>
-      s"$name=${quote(value)}"
-    }.mkString(",")
-    emitln(s"val ${quote(n)} = ${n.className}(${fields})")
-  }
+  //def emitCaseClassInst[N<:ProductNode[N]](n:N) = {
+    //val fields = n.fieldNames.zip(n.values).map{ case (name, value) =>
+      //s"$name=${quote(value)}"
+    //}.mkString(",")
+    //emitln(s"val ${quote(n)} = ${n.className}(${fields})")
+  //}
 }

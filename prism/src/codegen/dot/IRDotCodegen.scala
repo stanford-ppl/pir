@@ -1,14 +1,11 @@
 package prism
 package codegen
 
-import prism.node._
-import prism.traversal.GraphUtil
+import prism.graph._
 
 import scala.collection.mutable
 
-trait IRDotCodegen extends Codegen with DotCodegen with GraphUtil {
-
-  type N <: prism.node.Node[N]
+trait IRDotCodegen extends Pass with ChildFirstTraversal with DotCodegen  {
 
   val horizontal:Boolean = false
   val fileName:String
@@ -29,13 +26,20 @@ trait IRDotCodegen extends Codegen with DotCodegen with GraphUtil {
 
   def emitEdges = { nodes.foreach(emitEdge) }
 
-  def shape(attr:DotAttr, n:Any) = attr.shape(box)
+  def shape(attr:DotAttr, n:N) = attr.shape(box)
 
-  def color(attr:DotAttr, n:Any) = attr.fillcolor(white).style(filled)
+  def color(attr:DotAttr, n:N) = {
+    if (n.children.nonEmpty) attr.fillcolor(white).style(dashed)
+    else attr.fillcolor(white).style(filled)
+  }
 
-  def label(attr:DotAttr, n:Any) = attr.label(quote(n))
+  def label(attr:DotAttr, n:N) = {
+    var at = attr
+    if (n.children.nonEmpty) at = at.setGraph.label(quote(n))
+    at.setNode.label(quote(n))
+  }
 
-  def setAttrs(n:Any):DotAttr = {
+  def setAttrs(n:N):DotAttr = {
     var attr = DotAttr()
     attr = shape(attr, n)
     attr = color(attr, n)
@@ -52,26 +56,25 @@ trait IRDotCodegen extends Codegen with DotCodegen with GraphUtil {
     nodes += n
   }
 
-  def emitSingleNode(n:Any):Unit = {
-    emitNode(n,setAttrs(n))
-  }
-
   override def emitNode(n:N) = {
-    n match {
-      case _:Atom[_] => emitSingleNode(n); super.visitNode(n) 
-      case g:SubGraph[_] if g.children.isEmpty => emitSingleNode(n); super.visitNode(n) 
-      case g:SubGraph[_] => emitSubGraph(n) { super.visitNode(n) }
+    if (n.children.isEmpty) {
+      emitSingleNode(n)
+    } else {
+      emitSubGraph(n) { 
+        if (n.localEdges.exists { _.isConnected }) emitSingleNode(n)
+        super.visitNode(n)
+      }
     }
   }
 
   def emitEdge(n:N):Unit = {
-    n.ins.foreach { in =>
+    n.localIns.foreach { in =>
       in.connected.foreach { out => emitEdge(out, in, DotAttr.empty) }
     }
   }
 
-  def emitEdge(from:Output[N], to:Input[N], attr:DotAttr):Unit = {
-    emitEdgeMatched(from.src.asInstanceOf[N], to.src, attr) 
+  def emitEdge(from:E, to:E, attr:DotAttr):Unit = {
+    emitEdgeMatched(from.src, to.src, attr) 
   }
 
   def lift(n:N) = {

@@ -1,11 +1,11 @@
 package prism
 package codegen
 
-import prism.traversal._
+import prism.graph._
 
-trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with UnitTraversal {
+trait Codegen extends Pass with Printer with UnitTraversal {
 
-  val dirName = compiler.outDir
+  lazy val dirName = compiler.outDir
   val fileName:String
   val append = false
 
@@ -18,10 +18,7 @@ trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with U
 
   override def finPass = {
     closeStream
-  }
-
-  override def epilogue(name:String, time:String) = {
-    info(s"Finished ${name} to ${cstr(Console.CYAN,fileName)} in ${time}")
+    info(s"Codegen to ${cstr(Console.CYAN,outputPath)}")
   }
 
   override def quote(n:Any):String = n match {
@@ -44,7 +41,7 @@ trait Codegen extends Pass with prism.codegen.Printer with GraphTraversal with U
 
   def emitNode(n:N):Unit = {
     emitComment(s"TODO: Unmatched Node ${quote(n)}")
-    super.visitNode(n)
+    super.visitNode(n,())
   } 
 
   def emitComment(msg:String):Unit = emitln(s"// $msg")

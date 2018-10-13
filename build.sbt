@@ -1,10 +1,11 @@
+val paradise_version  = "2.1.0"
 
 val bldSettings = Defaults.coreDefaultSettings ++ Seq(
-	organization := "stanford-ppl",
-	publishArtifact in (Compile, packageDoc) := false,
-	scalaVersion := "2.12.5",
-	scalaSource in Compile := baseDirectory(_ / "src").value,
-	scalaSource in Test := baseDirectory(_ / "test").value,
+  organization := "stanford-ppl",
+  publishArtifact in (Compile, packageDoc) := false,
+  scalaVersion := "2.12.5",
+  scalaSource in Compile := baseDirectory(_ / "src").value,
+  scalaSource in Test := baseDirectory(_ / "test").value,
   resourceDirectory in Compile := baseDirectory(_ / "resources").value,
   logBuffered in Test := false,
   libraryDependencies += "org.scala-lang" % "scala-library" % "2.12.5", 
@@ -19,6 +20,8 @@ val bldSettings = Defaults.coreDefaultSettings ++ Seq(
   scalacOptions += "-feature",
   scalacOptions += "-unchecked",
   scalacOptions += "-deprecation",
+  scalacOptions += "-language:experimental.macros", // Globally enable macros
+  scalacOptions += "-language:implicitConversions", // Globally enable implicit conversions
   autoAPIMappings := true,
   scalacOptions in (Compile, doc) ++= Seq(
     "-doc-root-content", 
@@ -30,18 +33,13 @@ val bldSettings = Defaults.coreDefaultSettings ++ Seq(
   ),
   parallelExecution in Test := true,
   cancelable in Global := true,
-  concurrentRestrictions in Global := (Tags.limitAll(1) :: Nil)
-)
-
-lazy val macros = Project("macros", 
-  file("macros/"), 
-  settings = bldSettings
+  concurrentRestrictions in Global := (Tags.limitAll(1) :: Nil),
+  addCompilerPlugin("org.scalamacros" % "paradise" % paradise_version cross CrossVersion.full)
 )
 
 lazy val prism = Project("prism", 
   file("prism/"), 
   settings = bldSettings,
-  //dependencies = Seq(macros % "compile->compile;test->test")
   dependencies = Seq()
 )
 
@@ -88,5 +86,4 @@ addCommandAlias("wip", s"""; project pir; test-only -- -n "WIP"""")
 addCommandAlias("arch", s"""; project arch; test-only -- -n "ARCH"""")
 
 addCommandAlias("prism-test", "; project prism; test")
-addCommandAlias("macros-test", "; project macros; test")
 addCommandAlias("spade-test", "; project spade; test; project arch; test")

@@ -1,6 +1,6 @@
 package prism
 
-import prism.node._
+import prism.graph._
 import prism.util.{FileManager, ArgLoader}
 
 import scala.collection.mutable
