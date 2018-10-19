@@ -1,17 +1,17 @@
 package spade
 package node
-import param._
 
-abstract class SpadeNode(implicit protected val design:SpadeDesign) extends prism.node.Node[SpadeNode] with SpadeCollector { self =>
-  val id = design.nextId
+import prism.graph._
 
-  type N = SpadeNode
-  type P = Module
-  type A = Pin[_]
+trait SpadeNode extends Node[SpadeNode] {
+  val Nct = classTag[SpadeNode]
+  //def qindex = {
+    //import design.spademeta._
+    //s"${nameOf.get(this).getOrElse(className)}${id}${indexOf.get(this).fold("")(indices => s"[${indices.mkString(",")}]")}"
+  //}
 
-  def qindex = {
-    import design.spademeta._
-    s"${nameOf.get(this).getOrElse(className)}${id}${indexOf.get(this).fold("")(indices => s"[${indices.mkString(",")}]")}"
+  def within(scope: => Any)(implicit env:BuildEnvironment) = {
+    env.withParent(this) (scope)
+    this
   }
 }
-

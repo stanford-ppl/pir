@@ -1,0 +1,54 @@
+syntax = "proto2";
+
+import "scalapb/scalapb.proto";
+
+option (scalapb.options) = {
+  package_name:"spade.param3"
+  flat_package:true
+};
+
+message TopParam {
+  option (scalapb.message).extends = "Parameter";
+  required int32 wordWidth = 1 [ default = 32 ];
+  required int32 vecWidth = 2 [ default = 16 ];
+  required int32 clockFrequency = 3 [ default = 1000000000 ];
+  required int32 burstSize = 4 [ default = 512 ];
+  required CentrolPattern centrolPattern = 5;
+}
+
+message CentrolPattern {
+  oneof sealed_value {
+    Checkerboard cb = 1;
+    AsicPattern asic = 2;
+  }
+}
+
+message AsicPattern {
+}
+
+message Checkerboard {
+  required int32 row = 1;
+  required int32 col = 2;
+}
+
+message CUParam {
+  oneof sealed_value {
+    PCUParam pcu = 1;
+    PMUParam pmu = 2;
+    DramAGParam dag = 3;
+  }
+}
+
+message DramAGParam {
+  repeated FifoParam fifoParams = 1;
+}
+message PCUParam {
+  repeated FifoParam fifoParams = 1;
+}
+message PMUParam {
+  repeated FifoParam fifoParams = 1;
+}
+
+message FifoParam {
+}
+

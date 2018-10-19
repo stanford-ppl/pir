@@ -1,0 +1,13 @@
+syntax = "proto3"
+
+message TopParam {
+  required int32 wordWidth = 1
+  required int32 vecWidth = 2
+  required int32 clockFrequency = 3 // in Hz
+  required int32 burstSize = 4// in bit
+  required NetworkParam networkParam = 5
+}
+
+message NetworkParam {
+  string tp = 1
+}

@@ -1,8 +1,8 @@
 package spade
 package param
 
-import SpadeConfig._
 trait DefaultParams {
+
   def defaultTopParam:TopParam = {
     (option[String]("topo") , option[String]("net")) match {
       case ("mesh"  , "static") => StaticGridTopParam()
