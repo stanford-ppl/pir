@@ -3,8 +3,8 @@ package graph
 
 import scala.collection.mutable
 
-abstract class IR(implicit val design:Design) extends Serializable { 
-  val id = design.nextId
+trait IR extends Serializable { 
+  val id:Int = hashCode & 0xfffffff
 
   override def equals(that: Any) = that match {
     case n: IR => id == n.id
@@ -16,7 +16,7 @@ abstract class IR(implicit val design:Design) extends Serializable {
   override def toString = s"${className}$id"
 
   def newInstance[T](args:Seq[Any]):T = {
-    val arguments = args.toList// :+ design
+    val arguments = args.toList
     val constructor = this.getClass.getConstructors()(0) 
     try {
       constructor.newInstance(arguments.map(_.asInstanceOf[Object]):_*).asInstanceOf[T]

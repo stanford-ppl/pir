@@ -5,8 +5,6 @@ import prism.graph._
 
 trait IRPrinter extends Pass with DFSTopDownTopologicalTraversal with Codegen {
 
-  type N <: Node[_]
-
   def qdef(n:Any):String
 
   val metadata:Option[Metadata]

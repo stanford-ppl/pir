@@ -2,9 +2,7 @@ package prism
 
 import scala.collection.mutable
 
-@SerialVersionUID(123L)
-class Session extends Serializable {
-  import Config._
+trait Session { self:Compiler =>
   var restore = false
 
   val runners = mutable.ListBuffer[Runner[_]]()
@@ -12,29 +10,13 @@ class Session extends Serializable {
 
   val passes = mutable.Map[Pass, mutable.ListBuffer[Runner[_]]]()
 
-  var rerunning = false
-
-  var savingCheckPoint = -1
-  def rerun(block: => Unit)(implicit compiler:Compiler):Unit = {
-    val saved = rerunning
-    rerunning = true
-    savingCheckPoint = currInit
-    block
-    rerunning = saved
-  }
-
   var currInit = 0
 
   def addPass[P<:Pass:ClassTag](pass:P):Runner[_] = addPass(true, pass)
   def addPass[P<:Pass:ClassTag](shouldRun:Boolean, pass:P):Runner[_] = {
     passes.getOrElseUpdate(pass, mutable.ListBuffer[Runner[_]]())
-    //val runner = if (restore && !rerunning) {
-      //storedRunneres(currInit)
-    //} else {
-      val runner = Runner[P](this, currInit)
-      if (shouldRun) runner.initPending else runner.initDisabled
-      //runner
-    //}
+    val runner = Runner[P](this, currInit)
+    if (shouldRun) runner.initPending else runner.initDisabled
     runners += runner
     runner.setPass(pass)
     passes(pass) += runner
@@ -42,38 +24,16 @@ class Session extends Serializable {
     runner
   }
 
-  def saveSession(path:String) = {
-    restore = true
-    currInit = 0
-    savingCheckPoint = -1
-    currRun = null
-    runners.foreach { _.clearPass }
-    storedRunneres.clear
-    storedRunneres ++= runners
-    runners.clear
-    passes.clear
-    saveToFile(this, path)
-  }
-
   var currRun:Runner[_] = _
-  def run(implicit compiler:Compiler):Boolean = {
+  def runSession:Boolean = {
     passes.foreach { case (pass, _) => pass.reset }
     runners.foreach { runner =>
-      if (compiler.save && runner.id==savingCheckPoint) compiler.saveDesign
-      if (runner.id >= option[Int]("start-runid")) {
+      if (runner.id >= config.startRunId) {
         currRun = runner
         runner.run
       }
     }
-    val succeed = runners.forall { !_.failed }
-    if (compiler.save) {
-      if (savingCheckPoint == -1) {
-        compiler.saveDesign
-        compiler.loadDesign
-      }
-      saveSession(compiler.sessionPath)
-    }
-    succeed
+    runners.forall { !_.failed }
   }
 
   def hasRun(pass:Pass):Boolean = passes(pass).exists(_.hasRun)

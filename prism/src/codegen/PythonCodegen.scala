@@ -1,7 +1,7 @@
 package prism
 package codegen
 
-import prism.node._
+import prism.graph._
 
 trait PythonCodegen extends Codegen {
   def emitComment(s:Any) = {

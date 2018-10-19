@@ -126,7 +126,8 @@ trait ScalaUtilFunc {
       case (a,b) => (recurse(a), recurse(b))
       case (a,b,c) => (recurse(a), recurse(b), recurse(c))
       case (a,b,c,d) => (recurse(a), recurse(b), recurse(c), recurse(d))
-      case x if base.isDefinedAt(x) => base(x)
+      case x if base.isDefinedAt(x) => 
+        base(x)
       case x => x
     }
     recurse(x)

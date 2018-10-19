@@ -9,7 +9,7 @@ abstract class Pass(implicit val compiler:Compiler) extends Logging with GraphTr
   
   def reset = {}
 
-  def runner = compiler.session.getCurrentRunner(this)
+  def runner = compiler.getCurrentRunner(this)
 
   def initPass:Unit = {}
 

@@ -6,6 +6,7 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
   def pass:Pass = _pass.get
   var name:String = _
   def logFile = s"$name.log"
+  def startRunId:Int = session.asInstanceOf[Compiler].config.startRunId
 
   def setPass(pass:Pass) = {
     pass match {
@@ -66,12 +67,12 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
 }
 
 trait RunnerStatus {
-  import Config._
   protected var initStatus:Status = _
   var status:Status = _
   val id:Int
 
   def rerun:this.type = { status = initStatus; this }
+  def startRunId:Int
 
   def init = status = initStatus
   def initDisabled = { initStatus = Disabled; init }
@@ -81,7 +82,7 @@ trait RunnerStatus {
   def setRunning = status = Running
 
   def shouldRun = status match {
-    case status if id < option[Int]("start-runid") => false
+    case status if id < startRunId => false
     case Pending => true
     case Succeeded => true
     case Failed => true

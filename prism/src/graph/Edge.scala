@@ -38,7 +38,7 @@ trait Edge extends IR {
   src.addEdge(this)
 }
 
-class Input(implicit val src:Node[_], design:Design) extends Edge {
+class Input(implicit val src:Node[_]) extends Edge {
   override def connect(e:Edge):this.type = {
     e match {
       case _:Output => super.connect(e)
@@ -47,7 +47,7 @@ class Input(implicit val src:Node[_], design:Design) extends Edge {
   }
 }
 
-class Output(implicit val src:Node[_], design:Design) extends Edge {
+class Output(implicit val src:Node[_]) extends Edge {
   override def connect(e:Edge):this.type = {
     e match {
       case _:Input => super.connect(e)

@@ -12,7 +12,7 @@ import scala.collection.mutable
  * The constructor argument should not containing connection to other
  * nodes
  * */
-abstract class FieldNode[N:ClassTag](implicit design:Design) extends Node[N] { self:N =>
+abstract class FieldNode[N:ClassTag] extends Node[N] { self:N =>
   val Nct = classTag[N]
   implicit val n:Node[_] = this
 
@@ -32,6 +32,7 @@ trait FieldEdge[T] extends Edge {
   implicit val Fct:ClassTag[T]
   def apply(x:Any) = {
     unpack(x) { 
+      case x:FieldEdge[T] => connect(x)
       case x:FieldNode[_] => 
         this match {
           case edge:Input if x.asOutput.nonEmpty => connect(x.asOutput.get)
@@ -57,10 +58,10 @@ trait FieldEdge[T] extends Edge {
   }
 }
 
-class FieldInput[T:ClassTag](implicit src:Node[_], design:Design) extends Input with FieldEdge[T] {
+class FieldInput[T:ClassTag](implicit src:Node[_]) extends Input with FieldEdge[T] {
   val Fct = classTag[T]
 }
 
-class FieldOutput[T:ClassTag](implicit src:Node[_], design:Design) extends Output with FieldEdge[T] {
+class FieldOutput[T:ClassTag](implicit src:Node[_]) extends Output with FieldEdge[T] {
   val Fct = classTag[T]
 }

@@ -28,5 +28,4 @@ trait PrismAlias extends PrismLocalAlias {
   type Design = prism.graph.Design
   type Pass = prism.Pass
   type Compiler = prism.Compiler
-  val Config = prism.Config
 }

@@ -3,7 +3,7 @@ package graph
 
 import scala.collection.mutable
 
-abstract class Node[N](implicit design:Design) extends IR { self:N =>
+trait Node[N] extends IR { self:N =>
 
   /*  ------- State -------- */
   implicit val Nct:ClassTag[N]
@@ -22,7 +22,7 @@ abstract class Node[N](implicit design:Design) extends IR { self:N =>
           case _:N =>
             _parent = Some(p)
             p.addChild(this)
-          case _ => throw new Exception(s"Cannot set $p to parent of node $this with type $Nct")
+          case _ => 
         }
         this
     }
@@ -86,18 +86,18 @@ abstract class Node[N](implicit design:Design) extends IR { self:N =>
 
   def matchLevel(n:Node[_]) = (n :: n.ancestors).filter { _.parent == this.parent }.headOption
 
-  def deps:Set[Node[_]] = { // Performance optimization
+  def deps:Seq[Node[_]] = { // Performance optimization
     val descendents = this.descendents
     val edges = localEdges.toIterator ++ descendents.toIterator.flatMap { _.localEdges }
     val ins = edges.collect { case i:Input => i }
-    ins.flatMap { _.connected.map { _.src }.filterNot { descendents.contains } }.toSet
+    ins.flatMap { _.connected.map { _.src }.filterNot { descendents.contains } }.toSeq.distinct
   }
 
-  def depeds = {
+  def depeds:Seq[Node[_]] = {
     val descendents = this.descendents
     val edges = localEdges.toIterator ++ descendents.toIterator.flatMap { _.localEdges }
-    val outs = edges.collect { case i:Input => i }
-    outs.flatMap { _.connected.map { _.src }.filterNot { descendents.contains } }.toSet
+    val outs = edges.collect { case i:Output => i }
+    outs.flatMap { _.connected.map { _.src }.filterNot { descendents.contains } }.toSeq.distinct
   }
 
   def localDeps = deps.flatMap(matchLevel)

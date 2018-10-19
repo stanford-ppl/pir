@@ -21,6 +21,7 @@ trait ArgParser {
   val optionMap = mutable.ListMap[String, ArgOption[_]]()
 
   def register[T:ClassTag](key:String, default:Option[T], info:String):Unit = {
+    if (optionMap.contains(key)) throw new Exception(s"$key already registered")
     optionMap += key -> ArgOption(key, default, info)
   }
   def register[T:ClassTag](key:String, default:T, info:String):Unit = register(key, Some(default), info)

@@ -1,5 +1,7 @@
 val paradise_version  = "2.1.0"
 
+lazy val Slow = config("slow").extend(Test)
+
 val bldSettings = Defaults.coreDefaultSettings ++ Seq(
   organization := "stanford-ppl",
   publishArtifact in (Compile, packageDoc) := false,
@@ -13,6 +15,8 @@ val bldSettings = Defaults.coreDefaultSettings ++ Seq(
   libraryDependencies += "org.scala-lang" % "scala-reflect" % "2.12.5",
   libraryDependencies += "org.scalatest" % "scalatest_2.12" % "3.0.5" % "test",
   libraryDependencies += "com.github.pureconfig" %% "pureconfig" % "0.7.0",
+  libraryDependencies += "io.spray" %%  "spray-json" % "1.3.4",
+  /*libraryDependencies += "com.thoughtworks.xstream" % "xstream" % "1.4.3",*/
   //libraryDependencies += "io.suzaku" %% "boopickle" % "1.3.0",
   retrieveManaged := true,
   //javaOptions += "-Xmx1G", // java heap size ignored unless fork in run := true
@@ -22,6 +26,11 @@ val bldSettings = Defaults.coreDefaultSettings ++ Seq(
   scalacOptions += "-deprecation",
   scalacOptions += "-language:experimental.macros", // Globally enable macros
   scalacOptions += "-language:implicitConversions", // Globally enable implicit conversions
+  scalacOptions += "-language:reflectiveCalls",
+  testOptions in Test  += Tests.Argument("-l", "Slow"),
+  testOptions in Slow -= Tests.Argument("-l", "Slow"),
+  testOptions in Slow += Tests.Argument("-n", "Slow"),
+
   autoAPIMappings := true,
   scalacOptions in (Compile, doc) ++= Seq(
     "-doc-root-content", 
@@ -37,35 +46,38 @@ val bldSettings = Defaults.coreDefaultSettings ++ Seq(
   addCompilerPlugin("org.scalamacros" % "paradise" % paradise_version cross CrossVersion.full)
 )
 
-lazy val prism = Project("prism", 
-  file("prism/"), 
-  settings = bldSettings,
-  dependencies = Seq()
-)
+lazy val prism = Project("prism", file("prism/"))
+  .configs(Slow)
+  .settings(
+    bldSettings, 
+    inConfig(Slow)(Defaults.testTasks)
+  )
 
 lazy val spade = Project("spade", 
   file("spade/"), 
   settings = bldSettings,
   dependencies = Seq(prism % "compile->compile;test->test")
+).settings(
+  scalaSource in Compile := baseDirectory(_ / "src/core").value,
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/param2").value,
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node/Factory.scala").value,
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node/SpadeNode.scala").value
 )
-
-lazy val arch:Project = Project("arch", 
-  file("spade/arch"), 
-  settings = bldSettings,
-  dependencies = Seq(spade % "compile->compile;test->test") // Allow ScalaTest of apps accesss ScalaTest of pir
-)
+.settings(
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/param3").value,
+  libraryDependencies += "com.thesamet.scalapb" %% "compilerplugin" % "0.8.1",
+  libraryDependencies += "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
+  libraryDependencies += "com.thesamet.scalapb" %% "scalapb-json4s" % "0.7.0",
+  PB.targets in Compile := Seq(
+    scalapb.gen() -> (sourceManaged in Compile).value
+  ),
+  PB.protoSources in Compile := Seq(baseDirectory(_ / "src/param3/proto/").value)
+ )
 
 lazy val pir = Project("pir", 
   file("pir/"), 
   settings = bldSettings,
-  dependencies = Seq(prism % "compile->compile;test->test", spade % "compile->compile", arch % "compile->compile")
-)
-
-lazy val apps = Project("apps", 
-  file("pir/apps"), 
-  settings = bldSettings, 
- // Allow ScalaTest of apps accesss ScalaTest of pir
-  dependencies = Seq(pir % "compile->compile;test->test", arch % "compile->compile", prism % "test->test")
+  dependencies = Seq(prism % "compile->compile;test->test", spade % "compile->compile")
 )
 
 // sbt command alias
@@ -74,16 +86,9 @@ addCommandAlias("makepir", ";project pir; compile")
 
 addCommandAlias("makeapps", ";project apps; compile")
 
-addCommandAlias("apps", ";project apps; test")
-
 addCommandAlias("pir", "; project prism; test; project apps; run-main")
 //addCommandAlias("pir", "; project apps; run-main")
 
-addCommandAlias("spade", "; project arch; run-main")
+addCommandAlias("spade", "; project spade; run-main")
 
 addCommandAlias("wip", s"""; project pir; test-only -- -n "WIP"""")
-
-addCommandAlias("arch", s"""; project arch; test-only -- -n "ARCH"""")
-
-addCommandAlias("prism-test", "; project prism; test")
-addCommandAlias("spade-test", "; project spade; test; project arch; test")

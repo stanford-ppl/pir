@@ -5,84 +5,56 @@ import prism.util.{FileManager, ArgLoader}
 
 import scala.collection.mutable
 
-trait Compiler extends FileManager with ArgLoader {
+trait Compiler extends FileManager with ArgLoader with Session {
 
   implicit val compiler:this.type = this
 
-  def name = getClass().getSimpleName().replace("$", "")
-  override def toString = name
+  lazy val config = new Config(this)
 
-  lazy val outDir = Config.outDir.getOrElse {
-    val pir_home = Config.PIR_HOME.getOrElse(throw PIRException(s"Please define PIR_HOME or provide output directory with --out"))
-    s"$pir_home${separator}out$separator$name"
-  }
-  lazy val sessionPath = s"${outDir}${separator}${name}.sess"
-  val designPath:String
-
-  var session:Session = _
-
-  def setSession(sess:Session) = session = sess
+  def outDir = config.outDir
 
   def reset = { 
-    session = null
-    if (Config.option[Int]("start-runid")==0) {
+    if (config.startRunId==0) {
       clearLogs(outDir)
     }
   } 
 
   def handle(e:Exception):Unit
 
-  val configs:List[GlobalConfig]
-
   def setArgs(inputArgs: Array[String]):Unit = {
     val args = loadArgs(inputArgs)
     info(s"args=[${args.mkString(", ")}]")
-    if (args.contains("--help")) {
-      configs.foreach(_.printUsage)
+    if (args.contains("--help") || args.size < 1) {
+      config.printUsage
       System.exit(0)
     }
-    configs.foreach(_.setOption(args.toList))
+    args(0) = s"--name=${args(0)}"
+    config.setOption(args.toList)
   }
 
-  type D <: Design
-  var design:D = _
+  //var _design:Option[Design] = _
+  //def design:Design = _design.get
 
-  def load:Boolean
-  def save:Boolean
+  ////TODO: move this into pir
+  //def initDesign = if (config.load) {
+    //try {
+      //_design = Some(loadFromFile[Design](config.checkPointPath))
+    //} catch {
+      //case e@(_:SessionRestoreFailure | _:java.io.InvalidClassException | _:java.io.FileNotFoundException | _:ClassCastException) =>
+        //warn(s"Restore design failed: ${e}")
+      //case e:Throwable => throw e
+    //}
+    //if (_design.isEmpty) {
+      //info("Creating new design")
+      //tic
+      //_design = Some(config)
+      //toc(s"New design")
+    //}
+  //}
 
-  def loadDesign = design = loadFromFile[D](designPath)
-  def newDesign:Unit
-  def saveDesign:Unit = saveToFile(design, designPath)
-
-  def loadSession:Unit = {
-    loadDesign
-    //setSession(loadFromFile[Session](sessionPath))
-    setSession(new Session())
-    initSession
-  }
-
-  def newSession:Unit = {
-    tic
-    newDesign
-    toc("New design","ms")
-    setSession(new Session())
-    initSession
-  }
+  //def saveDesign:Unit = if (config.save) saveToFile(design, config.checkPointPath)
 
   def initSession:Unit = {}
-
-  def startSession = {
-    try {
-      if (load) loadSession else newSession
-    } catch {
-      case e@(_:SessionRestoreFailure | _:java.io.InvalidClassException | _:java.io.FileNotFoundException | _:ClassCastException) if load =>
-        warn(s"Restore session failed: ${e}. Creating a new session ...")
-        newSession
-      case e:Throwable => throw e
-    }
-  }
-
-  final def runSession:Boolean = session.run
 
   def main(args: Array[String]): Unit = {
     var succeed = false
@@ -90,7 +62,7 @@ trait Compiler extends FileManager with ArgLoader {
       setArgs(args)
       reset
       info(s"Output directory set to ${cstr(Console.CYAN,outDir)}")
-      startSession
+      initSession
       succeed = runSession
     } catch { 
       case e:Exception =>

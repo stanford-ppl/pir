@@ -7,4 +7,5 @@ abstract class UnitTest extends FlatSpec with Matchers with
 
 object WIP extends Tag("WIP")
 object ARCH extends Tag("ARCH")
+object Slow extends Tag("Slow")
 

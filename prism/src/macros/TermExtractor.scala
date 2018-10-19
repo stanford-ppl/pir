@@ -1,3 +1,4 @@
+package prism
 package macros
 
 import scala.annotation.{StaticAnnotation, compileTimeOnly}

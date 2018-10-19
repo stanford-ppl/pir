@@ -113,7 +113,7 @@ trait BFSTraversal extends Traversal {
 
 }
 
-trait TopologicalTraversal extends GraphTraversal with GraphUtil {
+trait TopologicalTraversal extends GraphTraversal {
 
   val forward:Boolean
   def visitIn(n:N):List[N] = visitGlobalIn(n)

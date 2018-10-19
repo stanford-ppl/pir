@@ -1,15 +1,29 @@
 package prism
 package graph
 
+import scala.collection.mutable
+
 trait BuildEnvironment extends Logging {
+  implicit val env:BuildEnvironment = this
 
-  //def design:Design
+  def config:Config
 
-  //def withParent[T](p:SubGraph[_])(scope: => T) = dbgblk(s"withParent($p)"){
-    //design.parentStack.push(p)
-    //val res = scope
-    //design.parentStack.pop
-    //res
-  //}
+  def initNode(n:Node[_]) = {
+    initParent(n)
+  }
+
+  val parentStack = mutable.Stack[Node[_]]()
+  def withParent[T](p:Node[_])(scope: => T) = dbgblk(s"withParent($p)"){
+    parentStack.push(p)
+    val res = scope
+    parentStack.pop
+    res
+  }
+
+  def initParent(n:Node[_]) = {
+    parentStack.headOption.foreach { p =>
+      n.setParent(p)
+    }
+  }
 
 }

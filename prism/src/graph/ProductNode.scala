@@ -1,6 +1,8 @@
 package prism
 package graph
 
+import implicits._
+
 import scala.collection.mutable
 
 /*
@@ -9,9 +11,9 @@ import scala.collection.mutable
  * are input nodes. Edges are created while constructing the IR. 
  * While the graph can be mirrored. The connection is not mutable
  * */
-abstract class ProductNode[N:ClassTag](implicit design:Design) extends Node[N] with Product { self:N =>
+trait ProductNode[N] extends Node[N] with Product { self:N =>
   implicit val src = this
-  val Nct = classTag[N]
+  val Nct:ClassTag[N]
 
   def newIn = new Input
   def newOut = new Output
@@ -23,5 +25,20 @@ abstract class ProductNode[N:ClassTag](implicit design:Design) extends Node[N] w
 
   def nfields = efields.map { field =>
     unpack(field) { case x:Edge => x.connected.map { _.src} }
+  }
+
+  def map[T<:N](func:Any => Any) = {
+    val args = productIterator.toList
+    val targs = args.map { arg => func(arg) }
+    val change = args.zip(targs).exists { case (a,t) => a != t }
+    if (change) newInstance[T](targs) else this
+  }
+
+  def mapFields[T>:this.type <: Product:TypeTag](func:(String, Any) => Any) = {
+    val args = productIterator.toList
+    val fields= graph.ProductHelper[T](this).fields
+    val targs = fields.map { case (name, arg) => func(name, arg) }
+    val change = args.zip(targs).exists { case (a,t) => a != t }
+    if (change) newInstance[T](targs) else this
   }
 }

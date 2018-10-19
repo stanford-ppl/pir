@@ -1,7 +1,7 @@
 package prism
 package codegen
 
-import prism.node._
+import prism.graph._
 
 trait ScalaCodegen extends Codegen {
   override def emitComment(s:String) = {

@@ -78,11 +78,11 @@ trait Transformer {
     pairs.foreach { case (aio,bio) => aio.disconnectFrom(bio) }
   }
 
-  def mirror[N<:Node[_]:ClassTag](nodes:Iterable[N]):Iterable[Node[_]] = {
-    classTag[N] match {
-      case ct if ct == classTag[FieldNode[_]] => mirrorField(nodes.asInstanceOf[Iterable[FieldNode[_]]])
-      case ct if ct == classTag[ProductNode[_]] => mirrorProduct(nodes.asInstanceOf[Iterable[ProductNode[_]]])
-      case ct => throw new Exception(s"Don't know thow to mirror node of type $ct")
+  def mirror[N<:Node[_]:TypeTag](nodes:Iterable[N]):Iterable[Node[_]] = {
+    typeOf[N] match {
+      case tt if tt <:< typeOf[FieldNode[_]] => mirrorField(nodes.asInstanceOf[Iterable[FieldNode[_]]])
+      case tt if tt <:< typeOf[ProductNode[_]] => mirrorProduct(nodes.asInstanceOf[Iterable[ProductNode[_]]])
+      case tt => throw new Exception(s"Don't know thow to mirror node of type ${typeOf[N]}")
     }
   }
 
@@ -94,52 +94,63 @@ trait Transformer {
    * */
   def mirrorField(nodes:Iterable[FieldNode[_]]):Iterable[N] = {
     // First pass mirror all nodes and put in a map
-    val nmap:Map[N,N] = nodes.map { n => 
-      val m = n match {
-        case x:Product => n.newInstance[N](x.productIterator.toList :+ n.Nct :+ x.design)
-        case x => n.newInstance[N](Seq(n.Nct, x.design))
-      }
-      n -> m
-    }.toMap
+    val mapping = mutable.Map[N,N]()
+    nodes.foreach { n => mirror(n, mapping) }
+    mapping.values
 
     // Second pass build hiearchy and connection
-    nmap.foreach { case (n,m) =>
+    mapping.foreach { case (n,m) =>
       n.parent.foreach { p => 
-        m.setParent(nmap.getOrElse(p, p))
+        m.setParent(mapping.getOrElse(p, p))
       }
       n.localEdges.zipWithIndex.foreach { case (io, idx) =>
         val mio = m.localEdges(idx)
         io.connected.foreach { c => 
           val cs = c.src
           val cidx = cs.edges.indexOf(c)
-          val mcs = nmap.getOrElse(cs, cs)
+          val mcs = mapping.getOrElse(cs, cs)
           val mc = mcs.edges(cidx)
           mio.connect(mc)
         }
       }
     }
-    nmap.values
+    mapping.values
   }
 
   def mirrorProduct(nodes:Iterable[ProductNode[_]]):Iterable[N] = {
     val mapping = mutable.Map[N,N]()
-    nodes.foreach { n => mirrorProduct(n, mapping) }
+    nodes.foreach { n => mirror(n, mapping) }
     mapping.values
   }
 
-  def mirrorProduct(n:Any, mapping:mutable.Map[N,N]):Any = {
-    n match {
-      case n:Iterable[_] => n.map { n => mirrorProduct(n, mapping) }
-      case n:Option[_] => n.map { n => mirrorProduct(n, mapping) }
-      case (a,b) => (mirrorProduct(a, mapping), mirrorProduct(b, mapping))
-      case (a,b,c) => (mirrorProduct(a, mapping), mirrorProduct(b, mapping), mirrorProduct(c, mapping))
-      case n:ProductNode[_] =>
-        mapping.getOrElseUpdate(n, {
-          val args = n.productIterator.map { arg => mirrorProduct(arg, mapping) }.toList
-          mapping.getOrElseUpdate(n, n.newInstance[N](args :+ n.Nct :+ n.design))
-        })
+  final def mirror[T](n:Any, mapping:mutable.Map[N,N]=mutable.Map.empty):T = {
+    (unpack(n) {
+      case n:Node[_] => mapping.getOrElseUpdate(n, mirrorN(n))
       case n => n
-    }
+    }).asInstanceOf[T]
+  }
+
+  def mirrorN(n:N, mapping:mutable.Map[N,N]=mutable.Map.empty):N = {
+    val margs = newInstanceArgs(n, mapping)
+    mapping.getOrElseUpdate(n, n.newInstance[N](margs))
+  }
+
+  def newInstanceArgs(n:Node[_], mapping:mutable.Map[N,N]):Seq[Any] = n match {
+    case n:FieldNode[_] with Product => n.productIterator.toList
+    case n:Product => n.productIterator.map { arg => mirror[Any](arg, mapping) }.toList
+    case n => Nil
+  }
+
+  def transform[T](x:T):T = {
+    (x match {
+      case x:Iterable[_] => x.map { transform }
+      case x:Option[_] => x.map { transform }
+      case (a,b) => (transform(a), transform(b))
+      case (a,b,c) => (transform(a), transform(b), transform(c))
+      case (a,b,c,d) => (transform(a), transform(b), transform(c), transform(d))
+      case x:ProductNode[_] => x.map(transform)
+      case x => x
+    }).asInstanceOf[T]
   }
 
 }

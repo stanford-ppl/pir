@@ -64,3 +64,17 @@ trait GraphUtil {
   }
 
 }
+
+trait GraphUtilImplicits {
+  implicit class NodeUtil(node:N) {
+    def visitUp:List[N] = graph.visitUp(node)
+    def visitDown:List[N] = graph.visitDown(node)
+    def visitPeer:List[N] = graph.visitPeer(node)
+    def visitLocalIn:List[N] = graph.visitLocalIn(node)
+    def visitLocalOut:List[N] = graph.visitLocalOut(node)
+    def visitLocal:List[N] = graph.visitLocal(node)
+    def visitGlobalIn:List[N] = graph.visitGlobalIn(node)
+    def visitGlobalOut:List[N] = graph.visitGlobalOut(node)
+    def leastCommonAncesstor(n2:N):Option[N] = graph.leastCommonAncesstor(node, n2)
+  }
+}

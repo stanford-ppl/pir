@@ -5,7 +5,7 @@ import java.io.FileOutputStream
 
 trait Logging extends Serializable {
 
-  def debug = Config.debug
+  def debug:Boolean = true
   @transient lazy val logger = new Printer {
     override def emit(s:String):Unit = if (debug && isOpened) { super.emit(s); flush }
     override def emitln(s:String):Unit = if (debug && isOpened) { super.emitln(s); flush }
