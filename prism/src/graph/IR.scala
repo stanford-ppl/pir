@@ -3,8 +3,10 @@ package graph
 
 import scala.collection.mutable
 
-trait IR extends Serializable { 
-  val id:Int = hashCode & 0xfffffff
+trait IR extends Serializable with Metadata { 
+
+  val positiveHashCode = super.hashCode & 0x7FFFFFFF
+  val id:Int = positiveHashCode
 
   override def equals(that: Any) = that match {
     case n: IR => id == n.id

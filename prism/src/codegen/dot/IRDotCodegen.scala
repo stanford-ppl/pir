@@ -8,12 +8,17 @@ import scala.collection.mutable
 trait IRDotCodegen extends Pass with ChildFirstTraversal with DotCodegen  {
 
   val horizontal:Boolean = false
-  val fileName:String
+  def fileName:String
+  def dotFile:String = fileName.replace(".dot", ".html")
+  lazy val dotPath = buildPath(dirName, dotFile)
 
   val nodes = mutable.ListBuffer[N]()
 
+  private var usePos = false
+
   override def initPass = {
     super.initPass
+    usePos = false
     emitBSln("digraph G")
     if (horizontal) emitln(s"rankdir=LR")
   }
@@ -22,9 +27,15 @@ trait IRDotCodegen extends Pass with ChildFirstTraversal with DotCodegen  {
     emitEdges
     emitBEln
     super.finPass
+    val flag = if (usePos) "-Kfdp -n" else ""
+    val command = s"dot $flag -Tsvg -o $dotPath $outputPath"
+    shell(command)
   }
 
-  def emitEdges = { nodes.foreach(emitEdge) }
+  override def codegenInfo = {
+    super.codegenInfo
+    info(s"Generate $dotPath")
+  }
 
   def shape(attr:DotAttr, n:N) = attr.shape(box)
 
@@ -39,11 +50,19 @@ trait IRDotCodegen extends Pass with ChildFirstTraversal with DotCodegen  {
     at.setNode.label(quote(n))
   }
 
+  def pos(attr:DotAttr, n:N) = {
+    n.pos.value.fold(attr) { case (x,y) => 
+      usePos = true
+      attr.pos(x.toInt, y.toInt)
+    }
+  }
+
   def setAttrs(n:N):DotAttr = {
     var attr = DotAttr()
     attr = shape(attr, n)
     attr = color(attr, n)
     attr = label(attr, n)
+    attr = pos(attr, n)
     attr
   }
 
@@ -66,6 +85,8 @@ trait IRDotCodegen extends Pass with ChildFirstTraversal with DotCodegen  {
       }
     }
   }
+
+  def emitEdges = { nodes.foreach(emitEdge) }
 
   def emitEdge(n:N):Unit = {
     n.localIns.foreach { in =>

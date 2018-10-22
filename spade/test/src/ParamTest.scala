@@ -7,6 +7,7 @@ import scalapb.json4s.JsonFormat
 
 class ParamTest extends UnitTest { self =>
 
+  // Param with ScalaPB
   "ParamTest1" should "success" in {
     import spade.param3._
     val topParam = TopParam(
@@ -23,6 +24,7 @@ class ParamTest extends UnitTest { self =>
     //println(topParam.toJsonString)
   }
 
+  // Param with prism Node
   "ParamTest2" should "success" in {
     import spade.param2._
     val topParam = TopParam()
@@ -35,7 +37,7 @@ class ParamTest extends UnitTest { self =>
         ).get(name).asInstanceOf[Option[T]]
     }
     assert(loader.topParam.wordWidth==17)
-    assert(loader.topParam.centrolPattern.asInstanceOf[Checkerboard].cu1.fifoParamOf("vec").get.count==11)
+    assert(loader.topParam.pattern.asInstanceOf[Checkerboard].cu1.fifoParamOf("vec").get.count==11)
   }
 
 }

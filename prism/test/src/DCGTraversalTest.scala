@@ -15,13 +15,14 @@ object DCG1 extends TestDesign {
   val top = TestPNode("top").addChild(g1,g2,f)
   d.newIn.connect(f.out)
   b.newIn.connect(d.out)
+  println(top.Nct)
 }
 
 class DCGTraversalTest extends UnitTest {
   import DCG1._
 
   "DCGGraphTest" should "success" in {
-    //new TestDotCodegen(top, s"test.dot").newRun(0).run
+    TestDotCodegen(s"test.dot", top).run
   }
 
   "DCGTestDFSTDTopo" should "success" in {

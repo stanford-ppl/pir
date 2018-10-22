@@ -8,9 +8,9 @@ abstract class TestDesign extends Design {
   val top:Node[_]
 }
 
-case class TestPNode(name:String, inputs:TestPNode*) extends ProductNode[TestPNode] {
-  override def toString = name
-  val Nct = classTag[TestPNode]
+case class TestPNode(label:String, inputs:TestPNode*) extends ProductNode[TestPNode] {
+  override lazy val Nct = classTag[TestPNode]
+  override def toString = label
 }
 
 /*
@@ -27,22 +27,18 @@ case class Read() extends TestFNode {
 }
 
 abstract class TestCodegen extends Pass()(null) with prism.codegen.Codegen {
-  override lazy val dirName = "out/test"
+  override lazy val dirName = testOut
 }
 
-class TestDotCodegen(val fileName:String)(implicit design:TestDesign) extends TestCodegen with IRDotCodegen {
-  val top = design.top
-}
+case class TestDotCodegen(val fileName:String, val top:Node[_]) extends TestCodegen with IRDotCodegen
 
-class TestIRPrinter(val fileName:String)(implicit design:TestDesign) extends TestCodegen with IRPrinter {
+case class TestIRPrinter(fileName:String, top:Node[_]) extends TestCodegen with IRPrinter {
   val forward = true
-  val metadata = None
   def qdef(n:Any) = s"$n"
-  val top = design.top
 }
 
 trait Parameter extends ProductNode[Parameter] {
-  val Nct = classTag[Parameter]
+  override lazy val Nct = classTag[Parameter]
 }
 
 case class ParamA(a:Int, b:Int) extends Parameter

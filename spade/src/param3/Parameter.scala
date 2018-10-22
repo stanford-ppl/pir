@@ -1,12 +1,11 @@
 package spade
 package param3
 
-import prism._
 import prism.graph._
 import scalapb.json4s.JsonFormat
 
 trait Parameter extends ProductNode[Parameter] {
-  implicit val Nct = classTag[Parameter]
+  override lazy val Nct = classTag[Parameter]
 }
 
 trait ParamImplicit {

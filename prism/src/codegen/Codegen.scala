@@ -6,7 +6,7 @@ import prism.graph._
 trait Codegen extends Pass with Printer with UnitTraversal {
 
   lazy val dirName = compiler.outDir
-  val fileName:String
+  def fileName:String
   val append = false
 
   lazy val outputPath = buildPath(dirName, fileName)
@@ -18,6 +18,10 @@ trait Codegen extends Pass with Printer with UnitTraversal {
 
   override def finPass = {
     closeStream
+    codegenInfo
+  }
+
+  def codegenInfo = {
     info(s"Codegen to ${cstr(Console.CYAN,outputPath)}")
   }
 

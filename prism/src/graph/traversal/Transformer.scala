@@ -132,7 +132,11 @@ trait Transformer {
 
   def mirrorN(n:N, mapping:mutable.Map[N,N]=mutable.Map.empty):N = {
     val margs = newInstanceArgs(n, mapping)
-    mapping.getOrElseUpdate(n, n.newInstance[N](margs))
+    mapping.getOrElseUpdate(n, {
+      val m = n.newInstance[N](margs)
+      n.mirrorMetas(m)
+      m
+    })
   }
 
   def newInstanceArgs(n:Node[_], mapping:mutable.Map[N,N]):Seq[Any] = n match {

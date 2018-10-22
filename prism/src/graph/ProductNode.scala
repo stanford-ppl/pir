@@ -13,7 +13,6 @@ import scala.collection.mutable
  * */
 trait ProductNode[N] extends Node[N] with Product { self:N =>
   implicit val src = this
-  val Nct:ClassTag[N]
 
   def newIn = new Input
   def newOut = new Output

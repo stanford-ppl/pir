@@ -19,10 +19,12 @@ class Config(compiler:Compiler) extends ArgParser {
     s"$pir_home${separator}out$separator$name"
   }
   def name = option[String]("name")
-  def load = option[Boolean]("load")
+  def startRunId = option[Int]("startRunId")
+  def load = startRunId != 0 && option[Boolean]("load")
   def save = option[Boolean]("save")
   def checkPointPath = option[String]("check-point-path")
-  def startRunId = option[Int]("startRunId")
+  def enableCodegen = option[Boolean]("codegen")
+  def verbose = option[Boolean]("verbose")
 
   lazy val PIR_HOME = sys.env.get("PIR_HOME")
   lazy val SPATIAL_HOME = sys.env.get("SPATIAL_HOME")

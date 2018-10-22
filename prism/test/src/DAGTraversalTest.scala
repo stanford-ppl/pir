@@ -28,14 +28,14 @@ class DAGTraversalTest extends UnitTest with Logging {
   import DAG1._
 
   "DAGGraphTest" should "success" in {
-    new TestIRPrinter(s"IR.txt").run
-    new TestDotCodegen(s"test.dot").run
-    assert(i.deps == Set(g, h), i.deps)
-    assert(i.globalDeps == Set(g))
-    assert(i.localDeps == Set(h))
-    assert(g.deps == Set(c, e))
-    assert(g.globalDeps == Set())
-    assert(g.localDeps == Set(g2, e))
+    TestIRPrinter(s"IR.txt", top).run
+    TestDotCodegen(s"test.dot", top).run
+    assert(i.deps.toSet == Set(g, h), i.deps)
+    assert(i.globalDeps.toSet == Set(g))
+    assert(i.localDeps.toSet == Set(h))
+    assert(g.deps.toSet == Set(c, e))
+    assert(g.globalDeps.toSet == Set())
+    assert(g.localDeps.toSet == Set(g2, e))
     assert(g1.children.contains(b))
     assert(top.children.contains(g1))
   }

@@ -11,8 +11,7 @@ case class TopParam(
   vecWidth:Int=16, // word
   clockFrequency:Int=1000000000, //Hz
   pattern:Pattern = Checkerboard()
-) extends Parameter {
-}
+) extends Parameter
 
 trait Pattern extends Parameter
 
@@ -55,9 +54,16 @@ case class ArgFringeParam(
 case class NetworkParam(
   granularity:String,
   topology:String="mesh", // mesh, torus, cmesh, p2p
-  numLinks:Int=2, // Number of links between switches
-  dynamic:Boolean=true // Whether there is a dynamic router
+  staticInput:Int=4, // Number of inputs from switch to node
+  staticOutput:Int=4, // Number of outptus from node to switch
+  switchLink:Int=2, // Number of links between switches
+  isDynamic:Boolean=true, // Whether there is a dynamic router
+  bundleParam:BundleParam=BundleParam()
 ) extends Parameter
+
+case class BundleParam() extends Parameter {
+  lazy val granularity = this.collectOut[NetworkParam]().head.granularity
+}
 
 case class SRAMParam (
   count:Int=1,

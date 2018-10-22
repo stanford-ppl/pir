@@ -22,7 +22,7 @@ trait Edge extends IR {
       e._connected += this
       this
     } else {
-      throw new Exception(s"Cannot connect edge with node type ${src.Nct} from $src to edge with node type ${e.src.Nct}")
+      throw new Exception(s"Cannot connect edge with node type ${src.Nct} from $src to edge with node type ${e.src.Nct} from ${e.src}")
     }
   }
 

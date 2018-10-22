@@ -3,12 +3,13 @@ package graph
 
 import scala.collection.mutable
 
-trait Node[N] extends IR { self:N =>
+trait Node[N] extends IR with NodeMetadata { self:N =>
 
   /*  ------- State -------- */
-  implicit val Nct:ClassTag[N]
+  implicit def Nct:ClassTag[N]
   private var _parent:Option[Node[_]] = None
   private lazy val _children = ListBuffer[Node[_]]()
+  val localEdges = mutable.ListBuffer[Edge]()
 
   // Parent
   def parent:Option[Node[_]] = _parent
@@ -72,7 +73,6 @@ trait Node[N] extends IR { self:N =>
   def descendents:List[Node[_]] = children.flatMap { child => child :: child.descendents }
   def isDescendentOf(p:Node[_]) = p.isAncestorOf(this)
 
-  val localEdges = mutable.ListBuffer[Edge]()
   def addEdge(io:Edge) = {
     localEdges += io
   }
