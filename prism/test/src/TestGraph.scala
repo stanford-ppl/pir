@@ -20,14 +20,6 @@ trait TestFNode extends FieldNode[TestFNode] {
   lazy val Nct = classTag[TestFNode]
 }
 
-case class Read() extends TestFNode {
-  val sram = new FieldInput[Node[_]]
-  val addr = new FieldInput[List[Node[_]]]
-  val ofs = new FieldInput[List[Node[_]]]
-  val ens = new FieldInput[Set[Node[_]]]
-  val out = new FieldOutput[List[Node[_]]]
-}
-
 abstract class TestCodegen extends Pass()(null) with prism.codegen.Codegen {
   override lazy val dirName = testOut
 }

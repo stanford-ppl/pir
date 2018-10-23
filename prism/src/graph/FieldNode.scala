@@ -14,6 +14,7 @@ import scala.collection.mutable
  * */
 trait FieldNode[N] extends Node[N] { self:N =>
   implicit val n:Node[_] = this
+  val idx = new Metadata[Int]("idx")
 
   def asInput:Option[Input] = None
   def asOutput:Option[Output] = None
@@ -22,27 +23,13 @@ trait FieldNode[N] extends Node[N] { self:N =>
 
   def Nss = edges.map { e => e.Ns }
 
-  /*
-   * Field edge provide helper function to connection of the edge with type of T
-   * and read connection of the edge with type of T
-   * */
-  trait FieldEdge[T] extends Edge {
+  trait Field[T] {
     implicit val Ftt:TypeTag[T]
-    def apply(x:Any):self.type = {
-      unpack(x) { 
-        case x:FieldEdge[T] => connect(x)
-        case x:FieldNode[_] => 
-          this match {
-            case edge:Input if x.asOutput.nonEmpty => connect(x.asOutput.get)
-            case edge:Output if x.asInput.nonEmpty => connect(x.asInput.get)
-            case edge => throw new Exception(s"$x cannot be converted to edges")
-          }
-        case x => throw new Exception(s"$x cannot be converted to edges")
-      }
-      self
-    }
+    def apply(xs:Any*):self.type = { xs.foreach(update); self }
+    def update(x:Any):Unit
+    def fieldToNodes:Seq[Node[_]]
     def T:T = {
-      val nodes = Ns
+      val nodes = fieldToNodes
       val t = typeOf[T] match {
         case tp if tp <:< typeOf[List[Node[_]]] => 
           nodes.toList
@@ -56,13 +43,49 @@ trait FieldNode[N] extends Node[N] { self:N =>
       t.asInstanceOf[T]
     }
   }
+
+  /*
+   * Field edge provide helper function to connection of the edge with type of T
+   * and read connection of the edge with type of T
+   * */
+  trait FieldEdge[T] extends Field[T] with Edge {
+    def fieldToNodes:Seq[Node[_]] = Ns
+    def update(x:Any):Unit = {
+      unpack(x) { 
+        case x:Edge => connect(x)
+        case x:FieldNode[_] => 
+          this match {
+            case edge:Input if x.asOutput.nonEmpty => connect(x.asOutput.get)
+            case edge:Output if x.asInput.nonEmpty => connect(x.asInput.get)
+            case edge => throw new Exception(s"$x cannot be converted to edges")
+          }
+        case x => throw new Exception(s"$x cannot be converted to edges")
+      }
+    }
+  }
   
-  class FieldInput[T:TypeTag] extends Input()(self) with FieldEdge[T] {
+  class InputField[T:TypeTag] extends Input()(self) with FieldEdge[T] {
     val Ftt = typeTag[T]
   }
   
-  class FieldOutput[T:TypeTag] extends Output()(self) with FieldEdge[T] {
+  class OutputField[T:TypeTag] extends Output()(self) with FieldEdge[T] {
     val Ftt = typeTag[T]
+  }
+
+  class ChildField[M<:FieldNode[_]:ClassTag, T:TypeTag] extends Output()(self) with Field[T] {
+    val Ftt = typeTag[T]
+    def update(x:Any):Unit = {
+      unpack(x) {
+        case x:M => 
+          x.idx := children.size
+          x.unsetParent
+          addChild(x)
+        case _ =>
+      }
+    }
+    def fieldToNodes:Seq[Node[_]] = {
+      children.collect { case c:M => c }.toSeq.sortBy { _.idx.get }
+    }
   }
   
   //class FieldChild[T:TypeTag](implicit src:Node[_]) extends 

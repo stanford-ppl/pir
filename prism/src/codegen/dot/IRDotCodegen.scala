@@ -5,7 +5,7 @@ import prism.graph._
 
 import scala.collection.mutable
 
-trait IRDotCodegen extends Pass with ChildFirstTraversal with DotCodegen  {
+trait IRDotCodegen extends DotCodegen with ChildFirstTraversal {
 
   val horizontal:Boolean = false
   def fileName:String
@@ -81,7 +81,7 @@ trait IRDotCodegen extends Pass with ChildFirstTraversal with DotCodegen  {
     } else {
       emitSubGraph(n) { 
         if (n.localEdges.exists { _.isConnected }) emitSingleNode(n)
-        super.visitNode(n)
+        visitNode(n)
       }
     }
   }

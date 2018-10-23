@@ -15,19 +15,22 @@ trait MetadataIR extends Serializable { self =>
     }
   }
 
-  case class Metadata[T:ClassTag](name:String) extends Serializable {
-    var value:Option[T] = None
+  case class Metadata[T](name:String, default:Option[T] = None) extends Serializable {
+    var value:Option[T] = default
     metadata += this
 
     override def toString = s"Metadata($name)"
-    def check(v:T) = if (value.nonEmpty) throw PIRException(s"$this already has value $value, but reupdate to $v")
+    def check(v:T) = if (value.nonEmpty && value != default) throw PIRException(s"$this already has value $value, but reupdate to $v")
     def :=(v:T) = { check(v); value = Some(v) }
     def update(v:Any) = :=(v.asInstanceOf[T])
     def apply(value:T):self.type = { :=(value); self }
     def v:Option[T] = value
     def get:T = value.get
-    def reset = value = None
+    def reset = value = default
     def mirror(self:MetadataIR, to:MetadataIR):Option[T] = value
+  }
+  object Metadata {
+    def apply[T](name:String, default:T):Metadata[T] = Metadata[T](name, Some(default))
   }
 }
 

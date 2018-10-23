@@ -10,8 +10,9 @@ trait UnitTraversal extends Traversal {
 
   final def traverseNode(n:N):T = traverseNode(n, ()) 
 
+  override def visitNode(n:N, prev:T) = visitNode(n)
+
   def visitNode(n:N):T = super.visitNode(n, zero)
-  override def visitNode(n:N, prev:T):T = visitNode(n)
 }
 
 trait GraphTraversal extends Traversal {
@@ -199,14 +200,7 @@ trait TopDownTraversal extends GraphTraversal with HierarchicalTraversal {
   def visitFunc(n:N):List[N] = n.children
   def traverseScope(n:N, zero:T):T = traverseNode(n, zero)
 }
-trait ChildFirstTraversal extends DFSTraversal with TopDownTraversal {
-  override def visitNode(n:N, zero:T):T = {
-    assert(!n.children.exists(isVisited), s"children of $n is visited before visit the parent in ChildFirstTraversal. children visited=${n.children.filter(isVisited)}")
-    val res = super.visitNode(n, zero)
-    assert(!n.children.exists(c => !isVisited(c)), s"Not all children of $n is visited after ChildFirstTraversal ${n.children.filterNot(isVisited)}")
-    res
-  }
-}
+trait ChildFirstTraversal extends DFSTraversal with TopDownTraversal
 trait SiblingFirstTraversal extends BFSTraversal with TopDownTraversal
 
 trait TopDownTopologicalTraversal extends HierarchicalTopologicalTraversal with TopDownTraversal {

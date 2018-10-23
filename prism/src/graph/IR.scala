@@ -10,8 +10,6 @@ trait IR extends Serializable with MetadataIR {
   val id:Int = positiveHashCode
 
   /*  ------- Metadata -------- */
-  val name = new Metadata[String]("name")
-
   override def equals(that: Any) = that match {
     case n: IR => id == n.id
     case _ => super.equals(that)

@@ -3,7 +3,7 @@ package codegen
 
 import prism.graph._
 
-trait Codegen extends Pass with Printer with UnitTraversal {
+trait Codegen extends Pass with Printer with DFSTraversal with UnitTraversal {
 
   lazy val dirName = compiler.outDir
   def fileName:String
@@ -41,14 +41,15 @@ trait Codegen extends Pass with Printer with UnitTraversal {
     }
   }
 
-  override def visitNode(n:N, prev:T) = emitNode(n)
+  final override def visitNode(n:N, prev:T) = emitNode(n)
 
   def emitNode(n:N):Unit = {
     emitComment(s"TODO: Unmatched Node ${quote(n)}")
-    super.visitNode(n,())
+    visitNode(n)
   } 
 
   def emitComment(msg:String):Unit = emitln(s"// $msg")
 
   def emitlnc(msg:String, comment:String):Unit = { emit(msg); emitComment(comment) }
 }
+

@@ -93,7 +93,8 @@ trait Transformer {
    * Make a copy of nodes. 
    * Structure the mirrored nodes with identical connection and hiearchy as the original
    * nodes. If part of the connection or hiearchy is not in the mirror list, use the 
-   * original nodes to build the hiearchy and connection.
+   * original nodes to build the hiearchy and connection. Only input connection order
+   * is preserved
    * */
   def mirrorField(nodes:Iterable[FieldNode[_]], mapping:mutable.Map[N,N]) = {
     // First pass mirror all nodes and put in a map
