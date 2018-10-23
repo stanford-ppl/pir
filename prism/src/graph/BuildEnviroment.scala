@@ -18,6 +18,7 @@ trait BuildEnvironment extends Logging {
     parentStack.pop
     res
   }
+  def within[T](p:Node[_])(scope: => T) = withParent(p)(scope)
 
   def initParent(n:Node[_]) = {
     parentStack.headOption.foreach { p =>

@@ -3,28 +3,31 @@ package graph
 
 import scala.collection.mutable
 
-trait Metadata extends Serializable { self =>
+trait MetadataIR extends Serializable { self =>
 
-  val metadata = mutable.Map[ClassTag[_],Any]()
+  val metadata = mutable.ListBuffer[Metadata[_]]()
   
-  def mirrorMetas(to:Metadata) = {
-    metadata.foreach { case (key, value) =>  
-      to.metadata.update(key, key.runtimeClass.newInstance.asInstanceOf[Data[_,_]].mirror(value))
+  def mirrorMetas(to:MetadataIR) = {
+    metadata.zip(to.metadata).foreach { case (frommeta, tometa) =>
+      frommeta.mirror(self, to).foreach { mv =>
+        tometa.update(mv)
+      }
     }
   }
 
-  class Data[D:ClassTag,T:ClassTag] extends Serializable {
-    val name = getClass.getSimpleName
-    val key = classTag[D]
-    def check(value:T) = {
-      if (metadata.contains(key)) throw new Exception(s"Reupdate $key to $value for $self")
-    }
-    def :=(value:T) = { check(value); metadata.update(key, value) }
+  case class Metadata[T:ClassTag](name:String) extends Serializable {
+    var value:Option[T] = None
+    metadata += this
+
+    override def toString = s"Metadata($name)"
+    def check(v:T) = if (value.nonEmpty) throw PIRException(s"$this already has value $value, but reupdate to $v")
+    def :=(v:T) = { check(v); value = Some(v) }
+    def update(v:Any) = :=(v.asInstanceOf[T])
     def apply(value:T):self.type = { :=(value); self }
-    def value:Option[T] = metadata.get(key).asInstanceOf[Option[T]]
+    def v:Option[T] = value
     def get:T = value.get
-    def reset = metadata.remove(key)
-    def mirror(value:Any) = value.asInstanceOf[T]
+    def reset = value = None
+    def mirror(self:MetadataIR, to:MetadataIR):Option[T] = value
   }
 }
 

@@ -78,12 +78,15 @@ trait Transformer {
     pairs.foreach { case (aio,bio) => aio.disconnectFrom(bio) }
   }
 
-  def mirror[N<:Node[_]:TypeTag](nodes:Iterable[N]):Iterable[Node[_]] = {
-    typeOf[N] match {
-      case tt if tt <:< typeOf[FieldNode[_]] => mirrorField(nodes.asInstanceOf[Iterable[FieldNode[_]]])
-      case tt if tt <:< typeOf[ProductNode[_]] => mirrorProduct(nodes.asInstanceOf[Iterable[ProductNode[_]]])
-      case tt => throw new Exception(s"Don't know thow to mirror node of type ${typeOf[N]}")
+  def mirrorAll(nodes:Iterable[N], mapping:mutable.Map[N,N]=mutable.Map.empty):mutable.Map[N,N] = {
+    if (nodes.nonEmpty) {
+      nodes.head match {
+        case node:FieldNode[_] => mirrorField(nodes.asInstanceOf[Iterable[FieldNode[_]]], mapping)
+        case node:ProductNode[_] => mirrorProduct(nodes.asInstanceOf[Iterable[ProductNode[_]]], mapping)
+        case _ => throw new Exception(s"Don't know thow to mirror $nodes")
+      }
     }
+    mapping
   }
 
   /*
@@ -92,19 +95,17 @@ trait Transformer {
    * nodes. If part of the connection or hiearchy is not in the mirror list, use the 
    * original nodes to build the hiearchy and connection.
    * */
-  def mirrorField(nodes:Iterable[FieldNode[_]]):Iterable[N] = {
+  def mirrorField(nodes:Iterable[FieldNode[_]], mapping:mutable.Map[N,N]) = {
     // First pass mirror all nodes and put in a map
-    val mapping = mutable.Map[N,N]()
-    nodes.foreach { n => mirror(n, mapping) }
-    mapping.values
+    nodes.foreach { n => mirror[N](n, mapping) }
 
     // Second pass build hiearchy and connection
     mapping.foreach { case (n,m) =>
       n.parent.foreach { p => 
         m.setParent(mapping.getOrElse(p, p))
       }
-      n.localEdges.zipWithIndex.foreach { case (io, idx) =>
-        val mio = m.localEdges(idx)
+      n.localIns.zipWithIndex.foreach { case (io, idx) =>
+        val mio = m.localIns(idx)
         io.connected.foreach { c => 
           val cs = c.src
           val cidx = cs.edges.indexOf(c)
@@ -114,13 +115,10 @@ trait Transformer {
         }
       }
     }
-    mapping.values
   }
 
-  def mirrorProduct(nodes:Iterable[ProductNode[_]]):Iterable[N] = {
-    val mapping = mutable.Map[N,N]()
+  def mirrorProduct(nodes:Iterable[ProductNode[_]], mapping:mutable.Map[N,N]) = {
     nodes.foreach { n => mirror(n, mapping) }
-    mapping.values
   }
 
   final def mirror[T](n:Any, mapping:mutable.Map[N,N]=mutable.Map.empty):T = {
@@ -140,9 +138,16 @@ trait Transformer {
   }
 
   def newInstanceArgs(n:Node[_], mapping:mutable.Map[N,N]):Seq[Any] = n match {
-    case n:FieldNode[_] with Product => n.productIterator.toList
-    case n:Product => n.productIterator.map { arg => mirror[Any](arg, mapping) }.toList
+    case n:EnvNode[_] with ProductNode[_] => n.productIterator.map { arg => mirror[Any](arg, mapping) }.toList :+ getEnv
+    case n:ProductNode[_] => n.productIterator.map { arg => mirror[Any](arg, mapping) }.toList
+    case n:EnvNode[_] with Product => n.productIterator.toSeq :+ getEnv
+    case n:EnvNode[_] => Seq(getEnv)
     case n => Nil
+  }
+
+  def getEnv = this match {
+    case env:BuildEnvironment => env
+    case _ => throw PIRException(s"Cannot find env")
   }
 
   def transform[T](x:T):T = {

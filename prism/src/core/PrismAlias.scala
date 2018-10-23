@@ -5,6 +5,9 @@ import prism.mapper._
 import prism.enums._
 
 trait PrismLocalAlias extends Misc with MappingUtil with ScalaUtil with FileManager with Serialization {
+  
+  type Env = prism.graph.BuildEnvironment
+
   type PIRException = prism.exceptions.PIRException
   val PIRException = prism.exceptions.PIRException
 

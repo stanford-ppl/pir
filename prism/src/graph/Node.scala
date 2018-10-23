@@ -3,7 +3,7 @@ package graph
 
 import scala.collection.mutable
 
-trait Node[N] extends IR with NodeMetadata { self:N =>
+trait Node[N] extends IR { self:N =>
 
   /*  ------- State -------- */
   implicit def Nct:ClassTag[N]
@@ -11,6 +11,10 @@ trait Node[N] extends IR with NodeMetadata { self:N =>
   private lazy val _children = ListBuffer[Node[_]]()
   val localEdges = mutable.ListBuffer[Edge]()
 
+  /*  ------- Metadata -------- */
+  val pos = new Metadata[(Double,Double)]("pos")
+
+  /*  ------- functions -------- */
   // Parent
   def parent:Option[Node[_]] = _parent
   def setParent(p:Node[_]):this.type =  {

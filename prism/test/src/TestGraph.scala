@@ -16,7 +16,9 @@ case class TestPNode(label:String, inputs:TestPNode*) extends ProductNode[TestPN
 /*
  * Example
  * */
-trait TestFNode extends FieldNode[TestFNode]
+trait TestFNode extends FieldNode[TestFNode] {
+  lazy val Nct = classTag[TestFNode]
+}
 
 case class Read() extends TestFNode {
   val sram = new FieldInput[Node[_]]

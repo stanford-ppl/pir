@@ -34,9 +34,10 @@ trait IRPrinter extends Pass with DFSTopDownTopologicalTraversal with Codegen {
       emitln(s"deps=${n.deps.map(quote)}")
       emitln(s"depeds=${n.depeds.map(quote)}")
       //metadata.foreach { _.summary(n).foreach(emitln) }
-      n.metadata.foreach { case (key, value) =>
-        val name = key.runtimeClass.getSimpleName
-        emitln(s"$name = $value")
+      n.metadata.foreach { metadata =>
+        metadata.v.foreach { v =>
+          emitln(s"${metadata.name} = $v")
+        }
       }
       if (n.children.nonEmpty) {
         emitln(s"children=${n.children.map(quote)}")

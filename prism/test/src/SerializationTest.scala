@@ -11,10 +11,9 @@ import prism._
   //val nameOf = new mutable.OneToOneMap[String, String] with MetadataMap
 //}
 
-case class TestIR() extends Metadata {
+case class TestIR() extends MetadataIR {
 
-  class Name extends Data[Name, String]
-  val name = new Name
+  val name = new Metadata[String]("name")
 }
 
 class SerializationTest extends UnitTest with Serialization {
