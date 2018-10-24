@@ -20,6 +20,7 @@ case class FringeDenseStore(dram:DRAM)(implicit env:Env) extends DRAMFringe {
   val offset = new InputField[Access]
   val size = new InputField[Access]
   val data = new InputField[Access]
+  val valid = new InputField[Access]
   val ack = new OutputField[Access]
 }
 
