@@ -22,7 +22,8 @@ class DCGTraversalTest extends UnitTest {
   import DCG1._
 
   "DCGGraphTest" should "success" in {
-    TestDotCodegen(s"test.dot", top).run
+    new prism.codegen.BasicIRPrinter(testOut, s"IR.txt", top).run
+    new prism.codegen.BasicIRDotGen(testOut, s"test.dot", top).run
   }
 
   "DCGTestDFSTDTopo" should "success" in {

@@ -15,19 +15,29 @@ case class X(name:String)(implicit env:Env) extends EnvNode[TestFNode] with Test
   val cchain = new ChildField[X, List[X]]
 }
 
-class FieldNodeTest extends UnitTest with Env {
+class FieldNodeTest extends UnitTest with TestEnv with Transformer {
+
   "FieldNodeTest1" should "success" in {
     val top = X("top")
-    within(top) {
+    val (a,b,c,d) = within(top) {
       val a = X("a")
       val b = X("b").sram(a.out)
       val c = X("c").out(a.sram)
-      val d = X("d").cchain(a)
-      println(d.parent)
-      println(a.parent)
-      println(top.children)
-      println(d.children)
+      val d = X("d").cchain(a, b)
+      (a,b,c,d)
     }
-    TestDotCodegen("field1.dot", top).run
+    assert(d.parent==Some(top))
+    assert(a.parent==Some(d))
+    assert(a.deps.contains(c))
+    assert(a.depeds.contains(b))
+    new prism.codegen.BasicIRDotGen(testOut, s"field1.dot", top).run
+
+    val mapping = mirrorAll(top+:top.descendents)
+    val mtop = mapping(top)
+    new prism.codegen.BasicIRDotGen(testOut, s"field2.dot", top).run
+    val ma = mapping(a)
+    val mb = mapping(b)
+    val md = mapping(d)
+    assert(md.as[X].cchain.T==List(ma,mb))
   }
 }

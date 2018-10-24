@@ -5,6 +5,8 @@ import prism.graph._
 
 import scala.collection.mutable
 
+class BasicIRDotGen(override val dirName:String, val fileName:String, val top:Node[_]) extends Pass()(null) with IRDotCodegen
+
 trait IRDotCodegen extends DotCodegen with ChildFirstTraversal {
 
   val horizontal:Boolean = false

@@ -3,7 +3,8 @@ val paradise_version  = "2.1.0"
 lazy val Slow = config("slow").extend(Test)
 
 val bldSettings = Defaults.coreDefaultSettings ++ Seq(
-  organization := "stanford-ppl",
+  organization := "edu.stanford.ppl",
+  version := "0.1",
   publishArtifact in (Compile, packageDoc) := false,
   scalaVersion := "2.12.5",
   scalaSource in Compile := baseDirectory(_ / "src").value,
@@ -60,24 +61,32 @@ lazy val spade = Project("spade",
 ).settings(
   scalaSource in Compile := baseDirectory(_ / "src/core").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/param2").value,
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/codegen/dot/NetworkDotCodegen.scala").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node/Factory.scala").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node/SpadeNode.scala").value
 )
-.settings(
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/param3").value,
-  libraryDependencies += "com.thesamet.scalapb" %% "compilerplugin" % "0.8.1",
-  libraryDependencies += "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",
-  libraryDependencies += "com.thesamet.scalapb" %% "scalapb-json4s" % "0.7.0",
-  PB.targets in Compile := Seq(
-    scalapb.gen() -> (sourceManaged in Compile).value
-  ),
-  PB.protoSources in Compile := Seq(baseDirectory(_ / "src/param3/proto/").value)
- )
+/*.settings(*/
+  /*unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/param3").value,*/
+  /*libraryDependencies += "com.thesamet.scalapb" %% "compilerplugin" % "0.8.1",*/
+  /*libraryDependencies += "com.thesamet.scalapb" %% "scalapb-runtime" % scalapb.compiler.Version.scalapbVersion % "protobuf",*/
+  /*libraryDependencies += "com.thesamet.scalapb" %% "scalapb-json4s" % "0.7.0",*/
+  /*PB.targets in Compile := Seq(*/
+    /*scalapb.gen() -> (sourceManaged in Compile).value*/
+  /*),*/
+  /*PB.protoSources in Compile := Seq(baseDirectory(_ / "src/param3/proto/").value)*/
+ /*)*/
 
 lazy val pir = Project("pir", 
   file("pir/"), 
   settings = bldSettings,
   dependencies = Seq(prism % "compile->compile;test->test", spade % "compile->compile")
+).settings(
+  scalaSource in Compile := baseDirectory(_ / "src/core").value,
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node/PIREnv.scala").value,
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node/DRAMFringe.scala").value,
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node/Memory.scala").value,
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node/Access.scala").value,
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node/PIRNode.scala").value
 )
 
 // sbt command alias
@@ -92,3 +101,5 @@ addCommandAlias("pir", "; project prism; test; project apps; run-main")
 addCommandAlias("spade", "; project spade; run-main")
 
 addCommandAlias("wip", s"""; project pir; test-only -- -n "WIP"""")
+
+addCommandAlias("publishAll", "; project prism; publishLocal; project spade; publishLocal; project pir; publishLocal")

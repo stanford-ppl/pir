@@ -55,3 +55,7 @@ trait BuildEnvironment extends Logging {
   }
 
 }
+
+
+abstract class EnvNode[N](implicit env:BuildEnvironment) extends Node[N] { self:N =>
+}

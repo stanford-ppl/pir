@@ -28,8 +28,8 @@ class DAGTraversalTest extends UnitTest with Logging {
   import DAG1._
 
   "DAGGraphTest" should "success" in {
-    TestIRPrinter(s"IR.txt", top).run
-    TestDotCodegen(s"test.dot", top).run
+    new prism.codegen.BasicIRPrinter(testOut, s"IR.txt", top).run
+    new prism.codegen.BasicIRDotGen(testOut, s"test.dot", top).run
     assert(i.deps.toSet == Set(g, h), i.deps)
     assert(i.globalDeps.toSet == Set(g))
     assert(i.localDeps.toSet == Set(h))

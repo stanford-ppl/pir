@@ -20,20 +20,21 @@ trait TestFNode extends FieldNode[TestFNode] {
   lazy val Nct = classTag[TestFNode]
 }
 
-abstract class TestCodegen extends Pass()(null) with prism.codegen.Codegen {
-  override lazy val dirName = testOut
-}
-
-case class TestDotCodegen(val fileName:String, val top:Node[_]) extends TestCodegen with IRDotCodegen
-
-case class TestIRPrinter(fileName:String, top:Node[_]) extends TestCodegen with IRPrinter {
-  val forward = true
-  def qdef(n:Any) = s"$n"
-}
-
 trait Parameter extends ProductNode[Parameter] {
   override lazy val Nct = classTag[Parameter]
 }
 
 case class ParamA(a:Int, b:Int) extends Parameter
 case class ParamB(a:ParamA) extends Parameter
+
+trait TestEnv extends Env {
+  implicit class Parent(val value:Node[_]) extends State[Node[_]] {
+    def initNode(n:Node[_], value:Node[_]) = {
+      n match {
+        case n:Node[_] => n.setParent(value)
+        case _ =>
+      }
+    }
+  }
+
+}

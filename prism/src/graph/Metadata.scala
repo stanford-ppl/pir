@@ -19,7 +19,7 @@ trait MetadataIR extends Serializable { self =>
     var value:Option[T] = default
     metadata += this
 
-    override def toString = s"Metadata($name)"
+    override def toString = s"$self.$name"
     def check(v:T) = if (value.nonEmpty && value != default) throw PIRException(s"$this already has value $value, but reupdate to $v")
     def :=(v:T) = { check(v); value = Some(v) }
     def update(v:Any) = :=(v.asInstanceOf[T])

@@ -17,8 +17,14 @@ trait Factory extends BuildEnvironment with DFSTopologicalTraversal {
   type CUArray = List[List[ListBuffer[SpadeNode]]]
   type ConnectorArray = List[List[_]]
 
-
   def visitNodeAs[M](n:N, prev:T):M = visitNode(n,prev).asInstanceOf[M]
+
+  implicit class Parent(val value:SpadeNode) extends State[SpadeNode] {
+    def initNode(n:Node[_], value:SpadeNode) = {
+      n.setParent(value)
+    }
+  }
+
 }
 
 trait BaseFactory extends Factory with TopFactory with NetworkFactory {
@@ -31,10 +37,11 @@ trait TopFactory extends Factory {
   val scale = 3
   override def visitNode(param:N, prev:T):T = param match {
     case param:TopParam =>
-      new Top(param) within {
+      val top = new Top(param)
+      within(top) {
         super.visitNode(param, None)
-        currentParent
       }
+      top
     case param@AsicPattern() => None
     case param@Checkerboard(row, col, cu1, cu2, fringeParam, networkParams) =>
       val center = List.tabulate(col, row) { case (x,y) =>
@@ -101,12 +108,12 @@ trait NetworkFactory extends Factory {
       val connectors = b.asInstanceOf[ConnectorArray]
       (array, connectors).zipped.foreach { case (col1,col2) =>
         (col1,col2).zipped.foreach { case (cus, connector) =>
-          val connectorBundles = connector.asInstanceOf[SpadeNode] within {
+          val connectorBundles = within(connector.asInstanceOf[SpadeNode]) {
             (new DynamicBundle(param.bundleParam),
             new StaticBundle(param.bundleParam))
           }
           cus.foreach { cu =>
-            cu.asInstanceOf[SpadeNode] within {
+            within(cu.asInstanceOf[SpadeNode]) {
               new DynamicBundle(param.bundleParam)
               new StaticBundle(param.bundleParam)
             }

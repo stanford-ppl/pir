@@ -1,26 +1,18 @@
 package pir
 package node
 
-abstract class PIRNode(implicit override val design:PIRDesign) 
-  extends prism.node.ProductNode[PIRNode] with IR with PIRCollector with pass.BuildEnvironment { self =>
+import prism.graph._
 
-  def designP = design
+abstract class PIRNode(implicit env:BuildEnvironment) extends EnvNode[PIRNode] with FieldNode[PIRNode] { self =>
+  lazy val Nct = classTag[PIRNode]
 
-  lazy val pirmeta = design.pirmeta
+  val name = new Metadata[String]("name")
+  val srcCtx = new Metadata[String]("srcCtx")
 
-  type N = PIRNode
-  type P = Container
-  type A = Primitive
+  val ctrl = new Metadata[ControlTree]("ctrl")
 
-  override def ins:List[Input]
-  override def outs:List[Output]
-  override def ios:List[IO] = ins ++ outs
-
-  if (design.staging) {
-    setCurrentParent(this)
-    setCurrentCtrl(this)
-  }
-
-  def qdef = s"${name.getOrElse(toString)} = ${productName}"
-
+  //def qdef = s"${name.getOrElse(toString)} = ${productName}"
+  //
+  
+  env.initNode(this)
 }

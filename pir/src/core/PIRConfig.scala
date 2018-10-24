@@ -1,6 +1,6 @@
 package pir
 
-object PIRConfig extends prism.GlobalConfig {
+class PIRConfig(compiler:PIR) extends prism.Config(compiler) {
 
   /* ------------------- Compiler --------------------  */
   register("ctrl", default=true, info="Enable control logic generation")
@@ -15,7 +15,6 @@ object PIRConfig extends prism.GlobalConfig {
   def genCtrl = option[Boolean]("ctrl")
   def enableSplitting = option[Boolean]("splitting")
   def enableMapping = option[Boolean]("mapping")
-  def enableCodegen = Config.option[Boolean]("codegen")
   def aggressive_dce = option[Boolean]("ag-dce")
 
   /* ------------------- Plastisim --------------------  */
@@ -61,8 +60,6 @@ object PIRConfig extends prism.GlobalConfig {
   def routingAlgo = option[String]("routing-algo")
 
   /* ------------------- Debugging --------------------  */
-  register("save-pir", default=false, info="Save IR into a file") 
-  register("load-pir", default=false, info="Load IR from a file")
   register("bp-split", default=false, info="Enable break point for splitting")
   register("bp-pr", default=false, info="Enable break point for place and route")
   register("dot", default=true, info="Enable dot codegen")
@@ -71,10 +68,6 @@ object PIRConfig extends prism.GlobalConfig {
   register("snapshot", default=false, info="Enable placement snapshot")
   register("snapint", default=10, info="Placement snapshot interval")
 
-  def saveDesign = option[Boolean]("save-pir")
-  def loadDesign = if (Config.option[Int]("start-runid") == 0) false else option[Boolean]("load-pir")
-  def verbose = Config.option[Boolean]("verbose")
-  def debug:Boolean = Config.option[Boolean]("debug")
   def enableSplitBreakPoint = debug && option[Boolean]("bp-split")
   def enablePlaceAndRouteBreakPoint = debug && option[Boolean]("bp-pr")
   def enableSnapshot = debug && option[Boolean]("snapshot")

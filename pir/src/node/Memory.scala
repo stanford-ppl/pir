@@ -1,84 +1,134 @@
 package pir
 package node
 
-abstract class Memory(implicit design:PIRDesign) extends Primitive 
+import prism.graph._
 
-case class SRAM(size:Int, banking:Banking)(implicit design:PIRDesign) extends Memory
-case class RegFile(size:Int, inits:Option[List[AnyVal]])(implicit design:PIRDesign) extends Memory
-case class LUT(var inits:List[Any], banking:Banking)(implicit design:PIRDesign) extends Memory
-case class FIFO(size:Int)(implicit design:PIRDesign) extends Memory
+abstract class Memory(implicit env:Env) extends PIRNode {
 
-case class Reg(init:Option[AnyVal])(implicit design:PIRDesign) extends Memory
-object Reg {
-  def apply(init:AnyVal)(implicit design:PIRDesign):Reg = Reg(Some(init))
-  def apply()(implicit design:PIRDesign):Reg = Reg(None)
-}
+  /*  ------- Fields -------- */
+  val in = new InputField[List[Access]]
+  val out = new OutputField[List[Access]]
 
-case class ArgIn(init:Option[AnyVal])(implicit design:PIRDesign) extends Memory
-object ArgIn {
-  def apply(init:AnyVal)(implicit design:PIRDesign):ArgIn = ArgIn(Some(init))
-  def apply()(implicit design:PIRDesign):ArgIn = ArgIn(None)
-}
+  /*  ------- Metadata -------- */
+  val inits = Metadata[List[Any]]("inits")
 
-case class ArgOut(init:Option[AnyVal])(implicit design:PIRDesign) extends Memory
-object ArgOut {
-  def apply(init:AnyVal)(implicit design:PIRDesign):ArgOut = ArgOut(Some(init))
-  def apply()(implicit design:PIRDesign):ArgOut = ArgOut(None)
-}
+  val dims = Metadata[List[Int]]("dims", default=List(1))
 
-case class DramAddress(dram:DRAM)(implicit design:PIRDesign) extends Memory
+  val banks = Metadata[List[Int]]("banks")
 
-trait Stream extends Memory {
-  val field:String
-}
-case class StreamIn(field:String)(implicit design:PIRDesign) extends Stream
-case class StreamOut(field:String)(implicit design:PIRDesign) extends Stream
+  val depth = Metadata[Int]("depth", default=1)
 
-case class TokenIn()(implicit design:PIRDesign) extends Memory
-case class TokenOut()(implicit design:PIRDesign) extends Memory
-
-case class RetimingFIFO()(implicit design:PIRDesign) extends Memory
-
-trait MemoryUtil extends AccessUtil {
-  def isFIFO(n:PIRNode) = n match {
-    case n:FIFO => true
-    case n:RetimingFIFO => true
-    case n:StreamIn => true
-    case n:StreamOut => true
-    case _ => false
-  }
-
-  def isReg(n:PIRNode) = n match {
-    case n:Reg => true
-    case n:ArgIn => true
-    case n:DramAddress => true
-    case n:ArgOut => true
-    case n:TokenIn => true
-    case n:TokenOut => true
-    case n => false
-  }
-
-  def isRemoteMem(n:PIRNode) = n match {
-    case (_:SRAM)  => true
-    case n:FIFO if writersOf(n).size > 1 => true
-    case n:RegFile => true
-    case n:LUT => true
-    case _ => false
-  }
-
-  def isLocalMem(n:PIRNode) = !isRemoteMem(n)
-
-  def isControlMem(n:Memory) = n match {
-    case n:TokenIn => true
-    case n:TokenOut => true
-    case StreamIn("ack") => true
-    case _ => false
-  }
-
-  def isBackPressure(n:Primitive) = n match {
-    case n:NotFull => true
-    case n:DataReady => true
-    case _ => false
-  }
+  override def asInput = Some(in)
+  override def asOutput = Some(out)
 
 }
+
+case class Reg()(implicit env:Env) extends Memory
+case class FIFO()(implicit env:Env) extends Memory
+case class SRAM()(implicit env:Env) extends Memory
+case class RegFile()(implicit env:Env) extends Memory
+case class LUT()(implicit env:Env) extends Memory
+
+case class InputBuffer(isFIFO:Boolean=false)(implicit env:Env) extends Memory
+
+case class Top()(implicit env:Env) extends PIRNode
+case class ArgFringe()(implicit env:Env) extends PIRNode
+case class MemoryContext()(implicit env:Env) extends PIRNode
+case class Context()(implicit env:Env) extends PIRNode
+
+trait Def extends PIRNode {
+  val out = new Output
+  override def asOutput:Option[Output] = Some(out)
+}
+
+case class Const(value:Any)(implicit env:Env) extends Def
+case class OpDef(op:String)(implicit env:Env) extends Def {
+  val input = new InputField[List[PIRNode]]
+}
+case class Counter(par:Int)(implicit env:Env) extends PIRNode {
+  /*  ------- Fields -------- */
+  val min = new InputField[PIRNode]
+  val step = new InputField[PIRNode]
+  val max = new InputField[PIRNode]
+
+  val iters = List.fill(par) { new Output }
+  val valids = List.fill(par) { new Output }
+}
+
+case class Controller()(implicit env:Env) extends PIRNode {
+  /*  ------- Fields -------- */
+  val cchain = new ChildField[Counter, List[Counter]]
+  val en = new InputField[Option[PIRNode]]
+  val done = new OutputField[Option[PIRNode]]
+
+  val validEn = new InputField[Set[PIRNode]]
+  val validDone = new OutputField[Option[PIRNode]]
+}
+
+case class ControlTree(schedule:String)(implicit env:Env) extends FieldNode[ControlTree] {
+  lazy val Nct = classTag[ControlTree]
+
+  env.initNode(this)
+}
+
+//case class FIFO()(implicit env:BuildEnvironment) extends Memory
+
+//case class Reg()(implicit env:BuildEnvironment) extends Memory
+//case class ArgIn()(implicit env:BuildEnvironment) extends Memory
+//case class ArgOut()(implicit env:BuildEnvironment) extends Memory
+//case class DramAddress(dram:DRAM)(implicit env:BuildEnvironment) extends Memory
+
+//trait Stream extends Memory {
+  //val field:String
+//}
+//case class StreamIn(field:String)(implicit env:BuildEnvironment) extends Stream
+//case class StreamOut(field:String)(implicit env:BuildEnvironment) extends Stream
+
+//case class TokenIn()(implicit env:BuildEnvironment) extends Memory
+//case class TokenOut()(implicit env:BuildEnvironment) extends Memory
+
+//case class RetimingFIFO()(implicit env:BuildEnvironment) extends Memory
+
+//trait MemoryUtil extends AccessUtil {
+  //def isFIFO(n:PIRNode) = n match {
+    //case n:FIFO => true
+    //case n:RetimingFIFO => true
+    //case n:StreamIn => true
+    //case n:StreamOut => true
+    //case _ => false
+  //}
+
+  //def isReg(n:PIRNode) = n match {
+    //case n:Reg => true
+    //case n:ArgIn => true
+    //case n:DramAddress => true
+    //case n:ArgOut => true
+    //case n:TokenIn => true
+    //case n:TokenOut => true
+    //case n => false
+  //}
+
+  //def isRemoteMem(n:PIRNode) = n match {
+    //case (_:SRAM)  => true
+    //case n:FIFO if writersOf(n).size > 1 => true
+    //case n:RegFile => true
+    //case n:LUT => true
+    //case _ => false
+  //}
+
+  //def isLocalMem(n:PIRNode) = !isRemoteMem(n)
+
+  //def isControlMem(n:Memory) = n match {
+    //case n:TokenIn => true
+    //case n:TokenOut => true
+    //case StreamIn("ack") => true
+    //case _ => false
+  //}
+
+  //def isBackPressure(n:Primitive) = n match {
+    //case n:NotFull => true
+    //case n:DataReady => true
+    //case _ => false
+  //}
+
+//}
