@@ -2,14 +2,14 @@ package pir
 package pass
 
 import pir.node._
+import prism.graph._
+import prism.graph.implicits._
+
 import scala.collection.mutable
 
-class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFSBottomUpTopologicalTraversal with UnitTraversal {
-  import pirmeta._
+class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with Transformer with DFSBottomUpTopologicalTraversal with UnitTraversal {
 
   val forward = false
-
-  def aggressive = PIRConfig.aggressive_dce
 
   val liveMap = mutable.Map[N, Boolean]()
 
@@ -29,8 +29,8 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
   }
 
   override def depFunc(n:N) = n match {
-    case n:Counter => List(cchainOf(n))
-    case n:CounterChain => n.children.flatMap { c => super.depFunc(c) }.toSet.toList
+    case n:Counter => n.parent.toList
+    case n:Controller => n.depeds.toList
     case n => super.depFunc(n)
   }
 
@@ -40,7 +40,7 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     val live = analyzedDepeds.exists { deped => isLive(deped).get }
     if (live) return true
     if (unanalyzedDepeds.isEmpty) return false
-    if (aggressive) {
+    if (config.aggressive_dce) {
       dbg(s"depeds=${depeds.map { deped => (deped, isLive(deped)) }}")
       dbg(s"n=$n unkownDeps=${depFunc(n).filter { deped => isLive(deped).isEmpty }} liveness unknown! be aggressive here")
       //warn(s"n=$n unkownDeps=${depFunc(n).filter { deped => isLive(deped).isEmpty }} liveness unknown! be aggressive here")
@@ -56,10 +56,9 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
   def isLive(n:N):Option[Boolean] = n match {
     case n if liveMap.contains(n) => Some(liveMap(n))
     case n:HostRead => Some(true)
-    case n:ProcessStreamOut => Some(true)
-    case n:ProcessControlToken => Some(true)
-    case n:CounterChain if !compiler.session.hasRunAll[ControlAllocation] => Some(true)
-    case n:TokenInDef if !compiler.session.hasRunAll[ControlAllocation] => Some(true) 
+    //case n:ProcessStreamOut => Some(true)
+    //case n:ProcessControlToken => Some(true)
+    case n:Controller /*if !compiler.session.hasRunAll[ControlAllocation]*/ => Some(true)
     case n => None
   }
 
@@ -69,7 +68,7 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     super.isDepFree(n)
 
   override def selectFrontier(unvisited:List[N]) = {
-    if (aggressive) {
+    if (config.aggressive_dce) {
       dbgblk(s"Aggressive DCE: unvisited all dead") {
         unvisited.foreach { n => 
           liveMap += (n -> false)
@@ -87,33 +86,27 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTransformer with DFS
     Nil
   }
 
-  override def visitNode(n:N):T = /*dbgblk(s"visitNode:${qdef(n)}") */{
-    val live = n match {
-      case n if isLive(n).nonEmpty => isLive(n).get
-      case n => depedsExistsLive(n) 
-    }
+  override def visitNode(n:N):T = /*dbgblk(s"visitNode:${quote(n)}")*/ {
+    val live = isLive(n).getOrElse(depedsExistsLive(n))
     liveMap += (n -> live)
     if (!live) dbg(s"live(${n})=${live}")
     super.visitNode(n)
   }
 
   override def finPass = {
-    val cus = compiler.top.collectDown[GlobalContainer]()
-    cus.foreach { cu =>
-      val mems = cu.collectDown[Memory]()
-      mems.foreach { mem =>
-        mem match {
-          case mem if inAccessesOf(mem).isEmpty =>
-            warn(s"${qtype(mem)} in $cu does not have writer or reseter")
-          case _ =>
-        }
-        mem match {
-          case mem if outAccessesOf(mem).isEmpty =>
-            warn(s"${qtype(mem)} in $cu does not have reader")
-          case _ =>
-        }
-      }
-    }
+    val mems = pirTop.collectDown[Memory]()
+    //mems.foreach { mem =>
+      //mem match {
+        //case mem if inAccessesOf(mem).isEmpty =>
+          //warn(s"${qtype(mem)} in $cu does not have writer or reseter")
+        //case _ =>
+      //}
+      //mem match {
+        //case mem if outAccessesOf(mem).isEmpty =>
+          //warn(s"${qtype(mem)} in $cu does not have reader")
+        //case _ =>
+      //}
+    //}
     super.finPass
   }
 

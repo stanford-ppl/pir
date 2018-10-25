@@ -5,12 +5,17 @@ import scala.collection.mutable
 
 class Config(compiler:Compiler) extends ArgParser {
 
+  def defaultName = compiler.getClass.getSimpleName.replace("$","")
+
   register("codegen", true, "Enable codegen")
   register("debug", true, "Enable debug")
-  register[String]("out", "Output directory for pir compiler.")
+  register[String]("out", "pir/out", "Output directory for pir compiler.")
   register("verbose", false, "Enter verbose mode")
-  register("start-runid", default=0, "Runner ID to start with")
-  register[String]("name", compiler.getClass.getSimpleName.replace("$",""), "name of the application")
+  register("start-id", default=0, "Runner ID to start with")
+  register[String]("name", defaultName, "name of the application")
+  register[String]("check-point-path", "pir/out/checkpoint.pir", "Path for checkpoint")
+  register("load", false, "Load checkpoint")
+  register("save", true, "Save checkpoint")
 
   def relativeOutDir:String = option("out")
   def debug:Boolean = option[Boolean]("debug")
@@ -19,7 +24,7 @@ class Config(compiler:Compiler) extends ArgParser {
     s"$pir_home${separator}out$separator$name"
   }
   def name = option[String]("name")
-  def startRunId = option[Int]("startRunId")
+  def startRunId = option[Int]("start-id")
   def load = startRunId != 0 && option[Boolean]("load")
   def save = option[Boolean]("save")
   def checkPointPath = option[String]("check-point-path")

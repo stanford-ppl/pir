@@ -18,7 +18,7 @@ trait Node[N] extends IR { self:N =>
   // Parent
   def parent:Option[Node[_]] = _parent
   def setParent(p:Node[_]):this.type =  {
-    assert(p != this, s"setting parent of $this to be the same as it self!")
+    assert(p != this, s"setting parent of $this to be the same as it self $p!")
     _parent match {
       case Some(`p`) => this
       case Some(parent) => err(s"Resetting parent of $this from $parent to $p"); this

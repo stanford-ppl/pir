@@ -31,7 +31,14 @@ case class LUT()(implicit env:Env) extends Memory
 
 case class InputBuffer(isFIFO:Boolean=false)(implicit env:Env) extends Memory
 
-case class Top()(implicit env:Env) extends PIRNode
+case class Top()(implicit env:Env) extends PIRNode {
+  val topCtrl = ControlTree("sequenced")
+  val argFringe = ArgFringe().setParent(this)
+  val hostInCtrl = ControlTree("sequenced").setParent(topCtrl)
+  val hostOutCtrl = ControlTree("sequenced").setParent(topCtrl)
+  val hostRead = HostRead().setParent(argFringe).ctrl(hostOutCtrl)
+}
+
 case class ArgFringe()(implicit env:Env) extends PIRNode
 case class MemoryContext()(implicit env:Env) extends PIRNode
 case class Context()(implicit env:Env) extends PIRNode
@@ -43,6 +50,9 @@ trait Def extends PIRNode {
 
 case class Const(value:Any)(implicit env:Env) extends Def
 case class OpDef(op:String)(implicit env:Env) extends Def {
+  val input = new InputField[List[PIRNode]]
+}
+case class HostRead()(implicit env:Env) extends Def {
   val input = new InputField[List[PIRNode]]
 }
 case class Counter(par:Int)(implicit env:Env) extends PIRNode {
@@ -63,12 +73,6 @@ case class Controller()(implicit env:Env) extends PIRNode {
 
   val validEn = new InputField[Set[PIRNode]]
   val validDone = new OutputField[Option[PIRNode]]
-}
-
-case class ControlTree(schedule:String)(implicit env:Env) extends FieldNode[ControlTree] {
-  lazy val Nct = classTag[ControlTree]
-
-  env.initNode(this)
 }
 
 //case class FIFO()(implicit env:BuildEnvironment) extends Memory

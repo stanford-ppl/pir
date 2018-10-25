@@ -25,8 +25,9 @@ class PrefixTraversal[TT](
   override def visitNode(n:N, prev:T):T = prism.dbgblk(logging, s"visitNode($n, depth=${n._2})") {
     val (node, depth) = n
     visited += node
+    val pfx = prefix(node)
     node match {
-      case _ if withinDepth(depth) & prefix(node) => accumulate(prev, node)
+      case _ if withinDepth(depth) & pfx => accumulate(prev, node)
       case _ if withinDepth(depth) => super.visitNode(n, accumulate(prev, node))
       case _ => prev 
     }
@@ -83,7 +84,12 @@ trait CollectorUtil { self =>
 
 
   def accumIn(node:N, prefix:N => Boolean, depth:Int= -1, logger:Option[Logging]=None):List[N] = 
-      accum(node, prefix, visitGlobalIn _, depth, logger)
+      accum(node, prefix, visitLocalIn _, depth, logger)
+
+  def accumTill[M<:N:ClassTag](node:N, visitFunc:N => List[N]=visitLocalIn _, depth:Int= -1, logger:Option[Logging]=None):List[N] = {
+      def prefix(n:N) = n match { case `node` => false; case n:M => true; case _ => false }
+    accum(node, prefix _, visitFunc, depth, logger)
+  }
 
   def canReach(node:N, target:N, visitFunc:N => List[N], depth:Int= -1, logger:Option[Logging]=None):Boolean = 
     dbgblk(logger, s"canReach($target, depth=$depth)"){
@@ -127,6 +133,11 @@ trait CollectorImplicit {
 
   def accumIn(prefix:N => Boolean, depth:Int= -1, logger:Option[Logging]=None):List[N] = 
     graph.accumIn(node, prefix, depth, logger)
+
+  def accumTill[M<:N:ClassTag](visitFunc:N => List[N]=visitLocalIn _, depth:Int= -1, logger:Option[Logging]=None):List[N] = {
+      def prefix(n:N) = n match { case `node` => false; case n:M => true; case _ => false }
+    graph.accumTill(node, visitFunc, depth, logger)
+  }
 
     def canReach(target:N, visitFunc:N => List[N], depth:Int= -1, logger:Option[Logging]=None):Boolean = 
       graph.canReach(node, target, visitFunc, depth, logger)

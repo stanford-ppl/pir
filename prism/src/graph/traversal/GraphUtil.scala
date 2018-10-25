@@ -47,20 +47,20 @@ trait GraphUtil {
     }
   }
 
-  def leastMatchedPeers(ns:Iterable[N], lca:Option[N]):Option[Map[N, N]] = {
-    lca.map { lca =>
-      ns.map { n =>
-        n -> (if (n == lca) n else {
-          val ancestors = n :: n.ancestors
-          val idx = ancestors.indexOf(lca)
-          ancestors(idx-1)
-        })
-      }.toMap
-    }
+  def leastMatchedPeers(ns:Iterable[N], lca:N):Map[N, N] = {
+    ns.map { n =>
+      n -> (if (n == lca) n else {
+        val ancestors = n :: n.ancestors
+        val idx = ancestors.indexOf(lca)
+        ancestors(idx-1)
+      })
+    }.toMap
   }
 
   def leastMatchedPeers(ns:Iterable[N]):Option[Map[N, N]] = {
-    leastMatchedPeers(ns, leastCommonAncesstor(ns))
+    leastCommonAncesstor(ns).map { lca =>
+      leastMatchedPeers(ns, lca)
+    }
   }
 
 }

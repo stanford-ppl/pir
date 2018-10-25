@@ -11,12 +11,8 @@ trait IRDotCodegen extends DotCodegen with ChildFirstTraversal {
 
   val horizontal:Boolean = false
   def fileName:String
-  def dotFile:String = fileName.replace(".dot", ".html")
-  lazy val dotPath = buildPath(dirName, dotFile)
 
   val nodes = mutable.ListBuffer[N]()
-
-  private var usePos = false
 
   override def initPass = {
     super.initPass
@@ -29,9 +25,6 @@ trait IRDotCodegen extends DotCodegen with ChildFirstTraversal {
     emitEdges
     emitBEln
     super.finPass
-    val flag = if (usePos) "-Kfdp -n" else ""
-    val command = s"dot $flag -Tsvg -o $dotPath $outputPath"
-    shell(command)
   }
 
   override def codegenInfo = {

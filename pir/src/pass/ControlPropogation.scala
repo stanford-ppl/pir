@@ -2,32 +2,32 @@ package pir
 package pass
 
 import pir.node._
+import prism.graph._
+import prism.graph.implicits._
 
-class ControlPropogation(implicit compiler:PIR) extends PIRPass with ControllerSiblingFirstTraversal with prism.traversal.UnitTraversal {
-  import pirmeta._
+class ControlPropogation(implicit compiler:PIR) extends PIRPass {
 
-  val forward = false
-
-  def resetController(n:PIRNode, ctrl:Controller):Unit = n match {
-    case n:CounterChain =>
-      dbg(s"setting ${qtype(n)}.ctrl=$ctrl")
-      ctrlOf.removeKey(n)
-      ctrlOf(n) = ctrl
-      n.counters.foreach(c => resetController(c, ctrl))
-    case n:ComputeNode => 
-      dbg(s"setting ${qtype(n)}.ctrl=$ctrl")
-      ctrlOf.removeKey(n)
-      ctrlOf(n) = ctrl
-      //n.deps.foreach(d => resetController(d, ctrl))
-    case n =>
-  }
-
-  override def visitNode(n:N, prev:T):T = {
-    n match {
-      case n:LoopController => resetController(n.cchain, n)
-      case _ =>
+  override def runPass = {
+    pirTop.collectDown[Controller]().foreach { controller =>
+      controller.descendents.foreach { d =>
+        dbgblk(s"descendents=$d") {
+          dbg(s"globalIn = ${visitGlobalIn(d)}")
+          var inputs = d.accumTill[Memory](visitGlobalIn _)
+          inputs = inputs.filterNot { 
+            case mem:Memory => true
+            case n => n.ancestors.exists { _.isInstanceOf[Controller] }
+          }
+          dbg(s"inputs=$inputs")
+          (d :: inputs).foreach { n =>
+            val node = n.as[PIRNode]
+            val ctrl = controller.ctrl.get
+            node.ctrl.reset
+            node.ctrl := ctrl
+            dbg(s"Resetting $node.ctrl = $ctrl")
+          }
+        }
+      }
     }
-    super.visitNode(n, prev)
   }
 
 }

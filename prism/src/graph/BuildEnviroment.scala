@@ -11,13 +11,19 @@ abstract class State[T] {
   def initNodeX(n:Node[_], value:Any):Unit = initNode(n, value.asInstanceOf[T])
 }
 
+class States {
+  var id = -1
+  val stacks = Map[Class[_], Stack[State[_]]]()
+}
+
 trait BuildEnvironment extends Logging {
   implicit val env:BuildEnvironment = this
 
-  var _id = -1
-  def nextId = { _id += 1; _id }
+  val states = new States
+  def stacks = states.stacks
 
-  val stacks = Map[Class[_], Stack[State[_]]]()
+  def nextId = { states.id += 1; states.id }
+  def stackTop[T:ClassTag] = stacks(classTag[T].runtimeClass).headOption.map(_.value)
 
   def within[T](xs:State[_]*)(block: => T):T = {
     xs.foreach(beginState)

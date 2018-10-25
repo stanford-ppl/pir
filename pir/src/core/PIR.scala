@@ -1,23 +1,27 @@
 package pir
 
-//import pir.node._
-//import pir.pass._
+import pir.node._
+import pir.pass._
 //import pir.mapper._
-//import pir.codegen._
+import pir.codegen._
 
-trait PIR extends Compiler {
+trait PIR extends Compiler with PIREnv {
 
   //def top:Top = design.top
   //def pirmeta:PIRMetadata = design.pirmeta
   //def spademeta:SpadeMetadata = arch.design.spademeta
   //def designP:PIRDesign = design
-
+  
+  var _pirTop:Option[Top] = None
+  def pirTop = _pirTop.get
+  
   override val logExtensions = super.logExtensions ++ List(".py", ".cluster")
+  override lazy val config = new PIRConfig(this)
 
   ///* Analysis */
   //lazy val testTraversal = new TestTraversal()
   //lazy val memoryAnalyzer = new MemoryAnalyzer()
-  //lazy val controlPropogator = new ControlPropogation()
+  lazy val controlPropogator = new ControlPropogation()
   //lazy val controllerRuntimeAnalyzer = new ControllerRuntimeAnalyzer()
   //lazy val psimLinkAnalyzer = new PlastisimLinkAnalyzer()
   //lazy val psimCountCheck = new PlastisimCountCheck()
@@ -27,7 +31,7 @@ trait PIR extends Compiler {
   ///* Transformation */
   //lazy val fringeElaboration = new FringeElaboration()
   //lazy val constantExpressionEvaluator = new ConstantExpressionEvaluation()
-  //lazy val deadCodeEliminator = new DeadCodeElimination()
+  lazy val deadCodeEliminator = new DeadCodeElimination()
   //lazy val unrollingTransformer = new UnrollingTransformer()
   //lazy val cuInsertion = new CUInsertion()
   //lazy val accessPuller = new AccessPulling()
@@ -35,7 +39,7 @@ trait PIR extends Compiler {
   //lazy val bankedAccessMerging = new BankedAccessMerging()
   //lazy val globalPartitioner = new GlobalPartionerCake()
   //lazy val routeThroughEliminator = new RouteThroughElimination()
-  //lazy val contextInsertion = new ContextInsertion()
+  lazy val contextInsertion = new ContextInsertion()
   //lazy val controlRegInsertion = new ControlRegInsertion()
   //lazy val controlAllocator = new ControlAllocation()
   //lazy val controlLowering = new ControlLowering()
@@ -55,15 +59,21 @@ trait PIR extends Compiler {
   //lazy val linkCSVCodegen = new LinkCSVCodegen()
   //lazy val areaPowerStat = new AreaPowerStat()
 
-  //override def initSession = {
+  override def initSession = {
+    import config._
 
     //addPass(testTraversal)
 
     //// Data  path transformation and analysis
-    //addPass(controlPropogator)
+    addPass(enableDot, new ControlTreeDotGen(s"ctrl1.dot"))
+    addPass(enableDot, new PIRIRDotGen(s"top1.dot"))
+    addPass(deadCodeEliminator)
+    addPass(controlPropogator)
+    addPass(enableDot, new PIRIRDotGen(s"top2.dot"))
+    addPass(contextInsertion)
+    addPass(enableDot, new PIRIRDotGen(s"top3.dot"))
     //addPass(fringeElaboration).dependsOn(controlPropogator)
     //addPass(enableDot, new PIRIRDotCodegen(s"top1.dot"))
-    //addPass(deadCodeEliminator).dependsOn(fringeElaboration)
     //addPass(constantExpressionEvaluator)
     //addPass(controlPropogator)
     //addPass(irCheck).dependsOn(deadCodeEliminator)
@@ -152,7 +162,7 @@ trait PIR extends Compiler {
     //addPass(areaPowerStat).dependsOn(psimConfigCodegen, cuPlacer)
 
     //}
-  //}
+  }
 
   def handle(e:Exception) = throw e
 

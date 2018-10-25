@@ -3,13 +3,15 @@ package graph
 
 import scala.collection.mutable
 
-trait Transformer {
+trait Transformer extends Logging {
 
   def removeUnusedIOs(node:N) = {
     node.edges.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
   }
 
   def removeNode(node:N) = {
+    dbg(s"Remove $node")
+    node.metadata.foreach{_.reset}
     val neighbors = node.neighbors
     node.edges.foreach { io => 
       val connected = io.connected.map(_.src)
@@ -28,6 +30,7 @@ trait Transformer {
   }
 
   def swapParent(node:N, newParent:N):Unit = {
+    dbg(s"swapParent($node, $newParent)")
     if (newParent.isParentOf(node)) return
     node.parent.foreach { parent => parent.removeChild(node) }
     node.setParent(newParent)

@@ -24,35 +24,12 @@ trait Compiler extends FileManager with ArgLoader with Session {
   def setArgs(inputArgs: Array[String]):Unit = {
     val args = loadArgs(inputArgs)
     info(s"args=[${args.mkString(", ")}]")
-    if (args.contains("--help") || args.size < 1) {
+    if (args.contains("--help")) {
       config.printUsage
       System.exit(0)
     }
-    args(0) = s"--name=${args(0)}"
     config.setOption(args.toList)
   }
-
-  //var _design:Option[Design] = _
-  //def design:Design = _design.get
-
-  ////TODO: move this into pir
-  //def initDesign = if (config.load) {
-    //try {
-      //_design = Some(loadFromFile[Design](config.checkPointPath))
-    //} catch {
-      //case e@(_:SessionRestoreFailure | _:java.io.InvalidClassException | _:java.io.FileNotFoundException | _:ClassCastException) =>
-        //warn(s"Restore design failed: ${e}")
-      //case e:Throwable => throw e
-    //}
-    //if (_design.isEmpty) {
-      //info("Creating new design")
-      //tic
-      //_design = Some(config)
-      //toc(s"New design")
-    //}
-  //}
-
-  //def saveDesign:Unit = if (config.save) saveToFile(design, config.checkPointPath)
 
   def initSession:Unit = {}
 

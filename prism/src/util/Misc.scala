@@ -4,7 +4,11 @@ package util
 import sys.process._
 
 trait Misc {
-  def tic = {
+  def tic(msg:String):Unit = {
+    infor(msg)
+    tic
+  }
+  def tic:Unit = {
     times.push(System.nanoTime())
   }
   def toc(unit:String):Double = {

@@ -5,6 +5,9 @@ import scala.collection.mutable.Map
 
 trait DotCodegen extends Codegen {
 
+  def dotFile:String = fileName.replace(".dot", ".html")
+  lazy val dotPath = buildPath(dirName, dotFile)
+
   val regex = "\\[[0-9]*\\]".r
   def q(s:Any) = regex.replaceAllIn(s.toString, "")
 
@@ -76,6 +79,7 @@ trait DotCodegen extends Codegen {
     def style(ss:Style*) = { amap += "style" -> ss.map(_.field).mkString(","); this }
     def label(s:Any) = { amap += "label" -> s.toString; this }
     def label = { amap.get("label") }
+    def getLabel = label.get
     def dir(s:Direction) = { amap += "dir" -> s.field; this }
     def pos(coord:(Double,Double)) = { amap += "pos" -> s"${coord._1},${coord._2}!"; this }
     def set(header:String, value:String) = { amap += header -> value; this }
@@ -123,8 +127,17 @@ trait DotCodegen extends Codegen {
   
   implicit def field_to_string(f:DotField):String = f.field
 
+  protected var usePos = false
+
+  override def finPass = {
+    super.finPass
+    val flag = if (usePos) "-Kfdp -n" else ""
+    val command = s"dot $flag -Tsvg -o $dotPath $outputPath"
+    shell(command)
+  }
+
   def open = {
-    shell(s"bin/dot ${outputPath} &".replace(".dot", ""))
+    shell(s"open $dotPath")
   }
 }
 

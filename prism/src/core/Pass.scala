@@ -1,7 +1,7 @@
 package prism
 import prism.graph._
 
-abstract class Pass(implicit val compiler:Compiler) extends Logging with GraphTraversal {
+abstract class Pass(implicit val compiler:Compiler) extends Logging {
 
   protected implicit val pass:this.type = this
   def name = this.getClass.getSimpleName
@@ -10,6 +10,7 @@ abstract class Pass(implicit val compiler:Compiler) extends Logging with GraphTr
   def reset = {}
 
   def runner = compiler.getCurrentRunner(this)
+  def config = compiler.config
 
   def initPass:Unit = {}
 
