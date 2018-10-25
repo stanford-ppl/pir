@@ -57,6 +57,9 @@ case class HostRead()(implicit env:Env) extends Def {
   val input = new InputField[List[PIRNode]]
 }
 case class HostWrite()(implicit env:Env) extends Def
+case class CountAck()(implicit env:Env) extends Def {
+  val input = new InputField[List[PIRNode]]
+}
 case class Counter(par:Int)(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
   val min = new InputField[PIRNode]

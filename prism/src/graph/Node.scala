@@ -87,6 +87,13 @@ trait Node[N] extends IR { self:N =>
   def edges = localEdges ++ descendents.flatMap { _.localEdges }
   def ins = edges.collect { case i:Input => i }
   def outs = edges.collect { case i:Output => i }
+  def localDeps:Seq[Node[_]] = { 
+    localIns.flatMap { _.connected.map { _.src} }.toSeq.distinct
+  }
+
+  def localDepeds:Seq[Node[_]] = {
+    localOuts.flatMap { _.connected.map { _.src} }.toSeq.distinct
+  }
 
   def matchLevel(n:Node[_]) = (n :: n.ancestors).filter { _.parent == this.parent }.headOption
 
@@ -104,9 +111,9 @@ trait Node[N] extends IR { self:N =>
     outs.flatMap { _.connected.map { _.src }.filterNot { descendents.contains } }.toSeq.distinct
   }
 
-  def localDeps = deps.flatMap(matchLevel)
+  def siblingDeps = deps.flatMap(matchLevel)
   def globalDeps = deps.filter { d => matchLevel(d).isEmpty }
-  def localDepeds = depeds.flatMap(matchLevel)
+  def siblingDepeds = depeds.flatMap(matchLevel)
   def globalDepeds = depeds.filter { d => matchLevel(d).isEmpty }
   def neighbors = deps ++ depeds
 

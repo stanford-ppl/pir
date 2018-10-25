@@ -36,12 +36,14 @@ trait Transformer extends Logging {
     node.setParent(newParent)
   }
 
-  def swapOutputs(node:N, from:N, to:N) = swapConnections(node, from, to, (n:N) => n.outs)
-  def swapInputs(node:N, from:N, to:N) = swapConnections(node, from, to, (n:N) => n.ins)
+  def swapDep(node:N, depFrom:N, depTo:N) = swapConnections(node, depFrom, depTo, (n:N) => n.localOuts)
+  def swapDeped(node:N, depedFrom:N, depedTo:N) = swapConnections(node, depedFrom, depedTo, (n:N) => n.localIns)
 
   def swapConnections(node:N, from:N, to:N, edges:N => Seq[Edge]) = {
+    dbg(s"swapConnection(node=$node, from=$from, to=$to)")
     assert(edges(from).size == edges(to).size, s"$from and $to have different number of edges from=${edges(from)} to ${edges(to)}")
-    val connected = node.edges.flatMap { io =>
+    dbg(s"from=$from, fromEdges=${edges(from)}, to=$to, toEdges=${edges(to)}")
+    val connected = node.localEdges.flatMap { io =>
       val fromedges = io.connected.filter { _.src == from }
       if (fromedges.nonEmpty) Some((io, fromedges))
       else None
@@ -58,6 +60,7 @@ trait Transformer extends Logging {
   }
 
   def swapConnection(target:Edge, from:Edge, to:Edge):Unit = {
+    dbg(s"swapConnection(target=$target, from=$from, to=$to)")
     assert(target.isConnectedTo(from), s"${target.src}.$target is not connect to ${from.src}.$from")
     target.disconnectFrom(from)
     target.connect(to)
@@ -106,7 +109,10 @@ trait Transformer extends Logging {
     // Second pass build hiearchy and connection
     mapping.foreach { case (n,m) =>
       n.parent.foreach { p => 
-        m.setParent(mapping.getOrElse(p, p))
+        mapping.get(p).foreach { mp =>
+          m.unsetParent
+          m.setParent(mp)
+        }
       }
       n.localIns.zipWithIndex.foreach { case (io, idx) =>
         val mio = m.localIns(idx)

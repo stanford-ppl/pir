@@ -131,13 +131,13 @@ trait CollectorImplicit {
     def accum(prefix:N => Boolean, visitFunc:N => List[N], depth:Int= -1, logger:Option[Logging]=None):List[N] = 
       graph.accum(node, prefix, visitFunc, depth, logger)
 
-  def accumIn(prefix:N => Boolean, depth:Int= -1, logger:Option[Logging]=None):List[N] = 
-    graph.accumIn(node, prefix, depth, logger)
+    def accumIn(prefix:N => Boolean, depth:Int= -1, logger:Option[Logging]=None):List[N] = 
+      graph.accumIn(node, prefix, depth, logger)
 
-  def accumTill[M<:N:ClassTag](visitFunc:N => List[N]=visitLocalIn _, depth:Int= -1, logger:Option[Logging]=None):List[N] = {
+    def accumTill[M<:N:ClassTag](visitFunc:N => List[N]=visitLocalIn _, depth:Int= -1, logger:Option[Logging]=None):List[N] = {
       def prefix(n:N) = n match { case `node` => false; case n:M => true; case _ => false }
-    graph.accumTill(node, visitFunc, depth, logger)
-  }
+      graph.accumTill(node, visitFunc, depth, logger)
+    }
 
     def canReach(target:N, visitFunc:N => List[N], depth:Int= -1, logger:Option[Logging]=None):Boolean = 
       graph.canReach(node, target, visitFunc, depth, logger)
