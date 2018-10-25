@@ -86,12 +86,7 @@ lazy val pir = Project("pir",
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/pass/").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/codegen/dot/PIRIRDotGen.scala").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/codegen/dot/ControllerTreeDotGen.scala").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node/package.scala").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node/PIREnv.scala").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node/DRAMFringe.scala").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node/Memory.scala").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node/Access.scala").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node/PIRNode.scala").value
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node").value
 )
 
 // sbt command alias
