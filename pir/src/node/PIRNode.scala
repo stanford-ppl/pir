@@ -25,6 +25,8 @@ abstract class PIRNode(implicit env:BuildEnvironment) extends EnvNode[PIRNode] w
   env.initNode(this)
 }
 
+trait PIRNodeUtil extends  MemoryUtil 
+
 case class ControlTree(schedule:String)(implicit env:Env) extends EnvNode[ControlTree] with FieldNode[ControlTree] { self =>
   lazy val Nct = classTag[ControlTree]
 

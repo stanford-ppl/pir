@@ -1,10 +1,11 @@
 package pir
 
+import prism.graph._
 import pir.node._
 import pir.util._
 //import pir.mapper._
 
-abstract class PIRPass(implicit override val compiler:PIR) extends Pass with PIREnv with PIRDebugger
+abstract class PIRPass(implicit override val compiler:PIR) extends Pass with PIREnv with PIRDebugger with GraphUtilImplicits with CollectorImplicit
   //with prism.traversal.GraphUtil  
   //with spade.SpadeAlias 
   //with PIRNodeUtil 

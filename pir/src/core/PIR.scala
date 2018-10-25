@@ -29,9 +29,10 @@ trait PIR extends Compiler with PIREnv {
   //lazy val irCheck = new IRCheck()
 
   ///* Transformation */
-  //lazy val fringeElaboration = new FringeElaboration()
   //lazy val constantExpressionEvaluator = new ConstantExpressionEvaluation()
   lazy val deadCodeEliminator = new DeadCodeElimination()
+  lazy val contextInsertion = new ContextInsertion()
+  lazy val depDuplications = new DependencyDuplication()
   //lazy val unrollingTransformer = new UnrollingTransformer()
   //lazy val cuInsertion = new CUInsertion()
   //lazy val accessPuller = new AccessPulling()
@@ -39,7 +40,6 @@ trait PIR extends Compiler with PIREnv {
   //lazy val bankedAccessMerging = new BankedAccessMerging()
   //lazy val globalPartitioner = new GlobalPartionerCake()
   //lazy val routeThroughEliminator = new RouteThroughElimination()
-  lazy val contextInsertion = new ContextInsertion()
   //lazy val controlRegInsertion = new ControlRegInsertion()
   //lazy val controlAllocator = new ControlAllocation()
   //lazy val controlLowering = new ControlLowering()
@@ -72,6 +72,7 @@ trait PIR extends Compiler with PIREnv {
     addPass(enableDot, new PIRIRDotGen(s"top2.dot"))
     addPass(contextInsertion)
     addPass(enableDot, new PIRIRDotGen(s"top3.dot"))
+    addPass(depDuplications)
     //addPass(fringeElaboration).dependsOn(controlPropogator)
     //addPass(enableDot, new PIRIRDotCodegen(s"top1.dot"))
     //addPass(constantExpressionEvaluator)

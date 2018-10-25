@@ -93,7 +93,11 @@ case class Controller()(implicit env:Env) extends PIRNode {
 
 //case class RetimingFIFO()(implicit env:BuildEnvironment) extends Memory
 
-//trait MemoryUtil extends AccessUtil {
+trait MemoryUtil {
+  def isBuffer(n:N) = n match {
+    case n:InputBuffer => true
+    case _ => false
+  }
   //def isFIFO(n:PIRNode) = n match {
     //case n:FIFO => true
     //case n:RetimingFIFO => true
@@ -135,4 +139,4 @@ case class Controller()(implicit env:Env) extends PIRNode {
     //case _ => false
   //}
 
-//}
+}

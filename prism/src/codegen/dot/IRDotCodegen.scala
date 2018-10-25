@@ -35,8 +35,8 @@ trait IRDotCodegen extends DotCodegen with ChildFirstTraversal {
   def shape(attr:DotAttr, n:N) = attr.shape(box)
 
   def color(attr:DotAttr, n:N) = {
-    if (n.children.nonEmpty) attr.fillcolor(white).style(dashed)
-    else attr.fillcolor(white).style(filled)
+    if (n.children.nonEmpty) attr.setNode.fillcolor(white).style(dashed).setGraph.fillcolor(white).style(filled)
+    else attr.setNode.fillcolor(white).style(filled)
   }
 
   def label(attr:DotAttr, n:N) = {

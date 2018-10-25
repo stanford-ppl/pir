@@ -3,7 +3,7 @@ package pass
 
 import pir.node._
 
-class ContextMerging(implicit compiler:PIR) extends PIRTransformer {
+class ContextMerging2(implicit compiler:PIR) extends PIRTransformer {
   import pirmeta._
 
   val forward = false
