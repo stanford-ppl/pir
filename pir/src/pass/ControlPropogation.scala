@@ -3,10 +3,8 @@ package pass
 
 import pir.node._
 import prism.graph._
-import prism.graph.implicits._
 
 class ControlPropogation(implicit compiler:PIR) extends PIRPass {
-
   override def runPass = {
     pirTop.collectDown[Controller]().foreach { controller =>
       controller.descendents.foreach { d =>

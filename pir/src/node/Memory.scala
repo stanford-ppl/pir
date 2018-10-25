@@ -37,6 +37,7 @@ case class Top()(implicit env:Env) extends PIRNode {
   val hostInCtrl = ControlTree("sequenced").setParent(topCtrl)
   val hostOutCtrl = ControlTree("sequenced").setParent(topCtrl)
   val hostRead = HostRead().setParent(argFringe).ctrl(hostOutCtrl)
+  val hostWrite = HostWrite().setParent(argFringe).ctrl(hostInCtrl)
 }
 
 case class ArgFringe()(implicit env:Env) extends PIRNode
@@ -55,6 +56,7 @@ case class OpDef(op:String)(implicit env:Env) extends Def {
 case class HostRead()(implicit env:Env) extends Def {
   val input = new InputField[List[PIRNode]]
 }
+case class HostWrite()(implicit env:Env) extends Def
 case class Counter(par:Int)(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
   val min = new InputField[PIRNode]
@@ -93,10 +95,16 @@ case class Controller()(implicit env:Env) extends PIRNode {
 
 //case class RetimingFIFO()(implicit env:BuildEnvironment) extends Memory
 
-trait MemoryUtil {
-  def isBuffer(n:N) = n match {
-    case n:InputBuffer => true
-    case _ => false
+trait MemoryUtil extends CollectorImplicit {
+
+  implicit class MemUtil(n:Memory) {
+    def isBuffer = n match {
+      case n:InputBuffer => true
+      case _ => false
+    }
+    def inAccess = n.collectIn[Access]()
+    def outAccess = n.collectOut[Access]()
+    def accesses = inAccess ++ outAccess
   }
   //def isFIFO(n:PIRNode) = n match {
     //case n:FIFO => true

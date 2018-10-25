@@ -2,40 +2,34 @@ package pir
 package node
 
 trait Access extends PIRNode {
-  def en:InputField[PIRNode]
+  val en = new InputField[PIRNode]
   def mem:FieldEdge[Memory]
 }
-case class BankedRead()(implicit env:Env) extends Access with Def {
-  val mem = new InputField[Memory]
+trait BanckedAccess extends Access {
   val bank = new InputField[List[PIRNode]]
   val offset = new InputField[List[PIRNode]]
-  val en = new InputField[PIRNode]
 }
-case class BankedWrite()(implicit env:Env) extends Access {
+case class BankedRead()(implicit env:Env) extends BanckedAccess with Def {
+  val mem = new InputField[Memory]
+}
+case class BankedWrite()(implicit env:Env) extends BanckedAccess {
   val mem = new OutputField[Memory]
-  val bank = new InputField[List[PIRNode]]
-  val offset = new InputField[List[PIRNode]]
   val data = new InputField[PIRNode]
-  val en = new InputField[PIRNode]
 }
 case class MemRead()(implicit env:Env) extends Access with Def {
   val mem = new InputField[Memory]
-  val en = new InputField[PIRNode]
 }
 case class MemWrite()(implicit env:Env) extends Access {
   val mem = new OutputField[Memory]
   val data = new InputField[PIRNode]
-  val en = new InputField[PIRNode]
 }
 case class BufferRead()(implicit env:Env) extends Access with Def {
   val mem = new InputField[Memory]
-  val en = new InputField[PIRNode]
   val deq = new InputField[PIRNode]
 }
 case class BufferWrite()(implicit env:Env) extends Access {
   val mem = new OutputField[Memory]
   val data = new InputField[PIRNode]
-  val en = new InputField[PIRNode]
   val enq = new InputField[PIRNode]
 }
 

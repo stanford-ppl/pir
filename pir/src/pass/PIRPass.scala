@@ -5,10 +5,14 @@ import pir.node._
 import pir.util._
 //import pir.mapper._
 
-abstract class PIRPass(implicit override val compiler:PIR) extends Pass with PIREnv with PIRDebugger with GraphUtilImplicits with CollectorImplicit
+abstract class PIRPass(implicit override val compiler:PIR) extends Pass 
+  with PIREnv 
+  with PIRDebugger 
+  with GraphUtilImplicits 
+  with CollectorImplicit
+  with PIRNodeUtil 
   //with prism.traversal.GraphUtil  
   //with spade.SpadeAlias 
-  //with PIRNodeUtil 
   //with RoutingUtil 
   //with RuntimeUtil 
   //with TypeUtil 
