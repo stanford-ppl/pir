@@ -11,11 +11,8 @@ abstract class Memory(implicit env:Env) extends PIRNode {
 
   /*  ------- Metadata -------- */
   val inits = Metadata[List[Any]]("inits")
-
   val dims = Metadata[List[Int]]("dims", default=List(1))
-
   val banks = Metadata[List[Int]]("banks")
-
   val depth = Metadata[Int]("depth", default=1)
 
   override def asInput = Some(in)
@@ -32,10 +29,10 @@ case class LUT()(implicit env:Env) extends Memory
 case class InputBuffer(isFIFO:Boolean=false)(implicit env:Env) extends Memory
 
 case class Top()(implicit env:Env) extends PIRNode {
-  val topCtrl = ControlTree("sequenced")
+  val topCtrl = ControlTree("Pipelined")
   val argFringe = ArgFringe().setParent(this)
-  val hostInCtrl = ControlTree("sequenced").setParent(topCtrl)
-  val hostOutCtrl = ControlTree("sequenced").setParent(topCtrl)
+  val hostInCtrl = ControlTree("Sequenced").setParent(topCtrl)
+  val hostOutCtrl = ControlTree("Sequenced").setParent(topCtrl)
   val hostRead = HostRead().setParent(argFringe).ctrl(hostOutCtrl)
   val hostWrite = HostWrite().setParent(argFringe).ctrl(hostInCtrl)
 }

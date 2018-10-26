@@ -2,7 +2,7 @@ package pir
 package node
 
 trait Access extends PIRNode {
-  val en = new InputField[PIRNode]
+  val en = new InputField[List[PIRNode]]
   def mem:FieldEdge[Memory]
 }
 trait BanckedAccess extends Access {
@@ -25,12 +25,10 @@ case class MemWrite()(implicit env:Env) extends Access {
 }
 case class BufferRead()(implicit env:Env) extends Access with Def {
   val mem = new InputField[Memory]
-  val deq = new InputField[PIRNode]
 }
 case class BufferWrite()(implicit env:Env) extends Access {
   val mem = new OutputField[Memory]
   val data = new InputField[PIRNode]
-  val enq = new InputField[PIRNode]
 }
 
 //object Access {

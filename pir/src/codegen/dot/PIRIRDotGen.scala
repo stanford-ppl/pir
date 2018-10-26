@@ -6,8 +6,7 @@ import prism.codegen._
 
 class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal with IRDotCodegen {
 
-  implicit class StringHelper(label:String) {
-    def append(field:Any):String = label + s"\n$field"
+  implicit class PIRStringHelper(label:String) extends StringHelper(label) {
     def append(field:String, value:Any):String = value match {
       case Const(value) => label + s"\n$field=$value"
       case x:PIRNode => label
@@ -16,6 +15,7 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
       case x => label + s"\n$field=$value"
     }
   }
+
   override def label(attr:DotAttr, n:N) = {
     var label = n match {
       case n:Counter =>

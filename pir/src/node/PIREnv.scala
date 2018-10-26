@@ -17,6 +17,7 @@ trait PIREnv extends Env {
     def initNode(n:Node[_], value:ControlTree) = {
       n match {
         case n:ControlTree => n.setParent(value)
+        case n:Memory => 
         case n:PIRNode => n.ctrl(value)
         case n => 
       }

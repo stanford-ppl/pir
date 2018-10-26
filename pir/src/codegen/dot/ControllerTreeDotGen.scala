@@ -26,32 +26,14 @@ class ControlTreeDotGen(val fileName:String)(implicit compiler:PIR) extends Cont
     //}
   //}
 
-  //override def label(attr:DotAttr, n:Any) = {
-    //var label = quote(n)
-    //n match {
-      //case n:StreamIn => label += s"\n(${n.field})"
-      //case n:StreamOut => label +=s"\n(${n.field})"
-      //case n =>
-    //}
-    //val metas = List(parOf, iterOf, countOf, boundOf, ctrlOf, srcCtxOf)
-    //metas.foreach { meta =>
-      //meta.asK(n).flatMap { k => meta.get(k) }.foreach { v =>
-        //label += s"\n(${meta.name}=$v)"
-      //}
-    //}
-    //n match {
-      //case n:Controller => 
-        //getParOf(n)
-        //label += s"\nlevel=${n.level}"
-        //label += s"\nstyle=${n.style}"
-      //case n:Memory =>
-        //(accessesOf(n)).foreach { access =>
-          //label += s"\n$access"
-          //iterOf.get(access).foreach { m => label += s"\n(iter=$m)" }
-        //}
-    //}
-    //attr.label(label)
-  //}
+  override def label(attr:DotAttr, n:N) = {
+    var label = super.label(attr, n).setNode.getLabel
+    label = label
+    .append("schedule", n.as[ControlTree].schedule)
+    attr.setNode.label(label).setGraph.label(label)
+  }
+
+  //def shape(attr:DotAttr, n:Any) = attr.shape(box)
 
   //override def emitSingleNode(n:N):Unit = {
     //ctrlOf.foreach { 

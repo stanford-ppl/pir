@@ -15,13 +15,20 @@ class DependencyDuplication(implicit compiler:PIR) extends ContextTraversal with
     super.visitNode(n)
   }
 
+  def lift[T<:N:ClassTag](visitFunc:N => List[N])(n:N) = visitFunc(n).map { x =>
+    x.collectUp[T]().headOption.getOrElse(n)
+  }.distinct
+
   def duplicateDependency(ctx:Context):Unit = dbgblk(s"duplicateDependency($ctx)"){
-    val depedCtxs = ctx.accumTill[Memory](visitFunc=visitLocalOut _).filterNot(n => n == ctx || n.isInstanceOf[Memory])
+    var depedCtxs = ctx.accumTill[Memory](visitFunc=lift[Context](visitGlobalOut _))
+    depedCtxs = depedCtxs.filterNot(n => n == ctx || n.isInstanceOf[Memory]).toList
     dbg(s"depedCtxs=$depedCtxs")
     depedCtxs.foreach { depedCtx =>
       duplicateDependency(depedCtx.as[Context])
     }
-    val deps = ctx.accumTill[Memory](visitFunc=visitDeps _).filterNot(n => n == ctx || n.isInstanceOf[Memory])
+    var deps = ctx.accumTill[Memory](visitFunc=lift[Controller](visitGlobalIn _))
+    deps = deps.filterNot(n => n == ctx || n.isInstanceOf[Memory])
+    deps = deps.flatMap { _.descendents }.distinct.toList
     dbg(s"deps=$deps")
     val mapping = within(ctx) { mirrorAll(deps) }
     dbg(s"mapping=$mapping")

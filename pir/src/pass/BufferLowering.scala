@@ -7,17 +7,19 @@ import prism.graph._
 class BufferLowering(implicit compiler:PIR) extends PIRPass {
 
   override def runPass = {
-    pirTop.collectDown[Memory]()
-      .toIterator
-      .filterNot(_.isBuffer)
-      .filterNot { mem =>
-        val inAccess = mem.inAccess
-        val outAccess = mem.outAccess
-        inAccess.size != 1 && outAccess.size != 1 && (inAccess ++ outAccess).exists { _.isInstanceOf[BanckedAccess] }
-      }
-      .foreach { mem =>
-        dbg(s"Lower $mem to InputBuffer")
-      }
+    pirTop.collectDown[Memory]().foreach(lowerMem)
+  }
+
+  def lowerMem(mem:Memory) = {
+    val accesses = mem.accesses
+    val cannotToBuffer = accesses.exists {
+      case mem:BanckedAccess => true
+      case mem:MemRead => mem.en.T.nonEmpty
+      case _ => false
+    }
+    if (!cannotToBuffer) {
+      dbg(s"Lower $mem to InputBuffer")
+    }
   }
 
 }
