@@ -4,15 +4,23 @@ package pass
 import pir.node._
 import prism.graph._
 
-class DependencyDuplication(implicit compiler:PIR) extends PIRPass with Transformer {
+class DependencyDuplication(implicit compiler:PIR) extends ContextTraversal with BFSTraversal with Transformer with UnitTraversal {
   val forward = false
 
-  override def runPass = {
-    val ctxs = pirTop.collectDown[Context]()
-    ctxs.foreach(duplicateDependency)
+  override def visitNode(n:N) = {
+    n match {
+      case n:Context => duplicateDependency(n)
+      case n =>
+    }
+    super.visitNode(n)
   }
 
-  def duplicateDependency(ctx:Context) = dbgblk(s"duplicateDependency($ctx)"){
+  def duplicateDependency(ctx:Context):Unit = dbgblk(s"duplicateDependency($ctx)"){
+    val depedCtxs = ctx.accumTill[Memory](visitFunc=visitLocalOut _).filterNot(n => n == ctx || n.isInstanceOf[Memory])
+    dbg(s"depedCtxs=$depedCtxs")
+    depedCtxs.foreach { depedCtx =>
+      duplicateDependency(depedCtx.as[Context])
+    }
     val deps = ctx.accumTill[Memory](visitFunc=visitDeps _).filterNot(n => n == ctx || n.isInstanceOf[Memory])
     dbg(s"deps=$deps")
     val mapping = within(ctx) { mirrorAll(deps) }
@@ -22,6 +30,10 @@ class DependencyDuplication(implicit compiler:PIR) extends PIRPass with Transfor
         swapDep(n, dep, mdep)
       }
     }
+    ctx.collectDown[Controller]().groupBy { _.ctrl.get }.foreach { case (ctrl, ctrlers) =>
+      dbg(s"ctrl=$ctrl, ctrlers=$ctrlers")
+      assert(ctrlers.size==1, s"More than one controller for $ctrl in $ctx. ctrlers=$ctrlers")
+    }
   }
 
   def visitDeps(n:N):List[N] = visitGlobalIn(n).flatMap {
@@ -30,6 +42,7 @@ class DependencyDuplication(implicit compiler:PIR) extends PIRPass with Transfor
       ctrl::ctrl.descendents
     case x => List(x)
   }.distinct
+
 }
 
 trait ContextTraversal extends PIRTraversal with TopologicalTraversal {

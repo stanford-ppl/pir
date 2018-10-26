@@ -23,12 +23,12 @@ trait GraphUtil {
   /*
    * Visit inputs of a node
    * */
-  def visitLocalIn(n:N):List[N] = n.localDeps.toList
+  def visitLocalIn(n:N):List[N] = n.siblingDeps.toList
 
   /*
    * Visit outputs of a node 
    * */
-  def visitLocalOut(n:N):List[N] = n.localDepeds.toList
+  def visitLocalOut(n:N):List[N] = n.siblingDepeds.toList
 
   def visitLocal(n:N):List[N] = visitLocalIn(n) ++ visitLocalOut(n) 
 
