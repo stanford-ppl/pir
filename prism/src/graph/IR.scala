@@ -21,12 +21,5 @@ trait IR extends Serializable with MetadataIR {
 
   def newInstance[T](args:Seq[Any]):T = this.getClass.newInstanceAs[T](args)
 
-  def as[T] = asInstanceOf[T]
-
-  def to[T:ClassTag]:Option[T] = this match {
-    case x:T => Some(x)
-    case _ => None
-  }
-
 }
 

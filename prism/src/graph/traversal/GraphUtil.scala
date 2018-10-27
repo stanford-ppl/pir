@@ -35,6 +35,23 @@ trait GraphUtil {
   def visitGlobalIn(n:N):List[N] = n.deps.toList
   def visitGlobalOut(n:N):List[N] = n.depeds.toList
 
+  /*
+   * For each node returned by visitFunc, swap node to its ancesstor with type T if it has one.
+   * Otherwise keep the node
+   * */
+  def lift[T<:N:ClassTag](visitFunc:N => List[N])(n:N) = visitFunc(n).map { x =>
+    collectUp[T](x).headOption.getOrElse(x)
+  }.distinct
+
+  /*
+   * For each node returned by visitFunc, include its ancesstor with type T and ancesstor's
+   * descendents if it has one. Otherwise keep the node
+   * */
+  def cover[T<:N:ClassTag](visitFunc:N => List[N])(n:N) = visitFunc(n).flatMap { x =>
+    val xx = collectUp[T](x).headOption.getOrElse(x)
+    xx :: xx.descendents
+  }.distinct
+
   def leastCommonAncesstor(n1:N, n2:N):Option[N] = {
     ((n1 :: n1.ancestors) intersect (n2 :: n2.ancestors)).headOption
   }

@@ -6,7 +6,7 @@ import prism.codegen._
 
 class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal with IRDotCodegen {
 
-  implicit class PIRStringHelper(label:String) extends StringHelper(label) {
+  implicit class PIRStringHelper(label:String) {
     def append(field:String, value:Any):String = value match {
       case Const(value) => label + s"\n$field=$value"
       case x:PIRNode => label
@@ -16,36 +16,19 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     }
   }
 
-  override def label(attr:DotAttr, n:N) = {
-    var label = n match {
-      case n:Counter =>
-        super.label(attr, n).setNode.getLabel
-        .append("min", n.min.T)
-        .append("max", n.max.T)
-        .append("step", n.step.T)
-        .append("par", n.par)
-      case n:OpDef => 
-        super.label(attr, n).setNode.getLabel
-          .append(n.op)
-      //case n:GlobalInput => label += s"\n(from=${n.globalOutput})"
-      //case n:GlobalOutput => 
-        //label += s"\n(to=${n.out.connected.map(_.src).mkString(",\n")})"
-      case n => super.label(attr, n).setNode.getLabel
+  override def quote(n:Any) = {
+    super.quote(n).foldAt(n.as[PIRNode]) { (q, n) =>
+      q.foldAt(n.sname.v) { (q, v) => s"$q[$v]" }
+      .append("name", n.name.v)
+      .append("ctrl", n.ctrl.v)
+    }.foldAt(n.as[Counter]) { (q, n) =>
+      q.append("min", n.min.T)
+      .append("max", n.max.T)
+      .append("step", n.step.T)
+      .append("par", n.par)
+    }.foldAt(n.as[OpDef]) { (q,n) =>
+      s"$q\n${n.op}"
     }
-    label = label
-    .append("name", n.as[PIRNode].name.v)
-    .append("ctrl", n.as[PIRNode].ctrl.v)
-    //n match {
-      //case n:PIRNode => 
-        //val metas = List(ctrlOf, boundOf, parOf, iterOf, countOf, scaleOf, originOf, srcCtxOf, isAccum, antiDepsOf)
-        //metas.foreach { meta =>
-          //meta.asK(n).flatMap { k => meta.get(k) }.foreach { v =>
-            //label += s"\n(${meta.name}=${quote(v)})"
-          //}
-        //}
-      //case _ =>
-    //}
-    attr.setNode.label(label).setGraph.label(label)
   }
 
   //def shape(attr:DotAttr, n:Any) = attr.shape(box)

@@ -133,4 +133,30 @@ trait ScalaUtilFunc {
     recurse(x)
   }
 
+  implicit class AnyUtil(x:Any) {
+    def as[T:ClassTag]:Option[T] = x match {
+      case x:T => Some(x)
+      case _ => None
+    }
+    def to[T]:T = x.asInstanceOf[T]
+  }
+
+  implicit class TUtil[T](x:T) {
+    def foldAt[A](l:scala.collection.GenTraversableOnce[A])(func:(T, A) => T) = l.foldLeft[T](x) { (x, l) => func(x, l) }
+  }
+
+  implicit class LongOp(i:Long) {
+    // Round up division
+    def /! (d:Long) = (i.toDouble / d.toDouble).ceil.toLong
+  }
+
+  implicit class IntOp(i:Int) {
+    // Round up division
+    def /! (d:Int) = (i.toFloat / d.toFloat).ceil.toInt
+  }
+
+  def log2(x:Int) = (Math.log(x) / Math.log(2)).ceil.toInt
+
+  final val SINGLE_PRECISION = 32
+
 }

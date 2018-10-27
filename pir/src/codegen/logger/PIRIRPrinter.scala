@@ -1,10 +1,9 @@
 package pir
 package codegen
 
-class PIRPrinter(val fileName:String)(implicit compiler:PIR) extends PIRCodegen with IRPrinter {
+import prism.codegen._
 
-  lazy val metadata = Some(pirmeta)
-  override def quote(n:Any) = qtype(n) 
-
+class PIRIRPrinter(val fileName:String)(implicit compiler:PIR) extends PIRTraversal with IRPrinter {
+  //override def quote(n:Any) = qtype(n) 
 }
 

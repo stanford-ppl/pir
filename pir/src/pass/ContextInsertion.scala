@@ -18,9 +18,9 @@ class ContextInsertion(implicit compiler:PIR) extends PIRPass with ControlTreeTr
       if (pnodes.nonEmpty) {
         dbg(s"pnodes for $n = $pnodes")
         dbg(s"pnodes, parents for $n = ${pnodes.map{_.parent}}")
-        var lca = leastCommonAncesstor(pnodes).get.as[PIRNode]
+        var lca = leastCommonAncesstor(pnodes).get.to[PIRNode]
         dbg(s"lca=$lca")
-        if (lca.children.isEmpty) lca = lca.parent.get.as[PIRNode]
+        if (lca.children.isEmpty) lca = lca.parent.get.to[PIRNode]
         within(lca) {
           val ctx = Context()
           val ancestorMap = leastMatchedPeers(pnodes, lca)

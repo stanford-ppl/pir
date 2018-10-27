@@ -112,8 +112,4 @@ trait IRDotCodegen extends DotCodegen with ChildFirstTraversal {
     super.emitEdge(from, to, attr) // String, String
   }
 
-  implicit class StringHelper(label:String) {
-    def append(field:Any):String = label + s"\n$field"
-  }
-
 }

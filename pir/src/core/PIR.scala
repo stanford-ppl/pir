@@ -4,6 +4,7 @@ import pir.node._
 import pir.pass._
 //import pir.mapper._
 import pir.codegen._
+import prism.codegen._
 
 trait PIR extends Compiler with PIREnv {
 
@@ -34,6 +35,7 @@ trait PIR extends Compiler with PIREnv {
   lazy val bufferLowering = new BufferLowering()
   lazy val contextInsertion = new ContextInsertion()
   lazy val depDuplications = new DependencyDuplication()
+  lazy val validProp = new ValidConstantPropogation()
   //lazy val unrollingTransformer = new UnrollingTransformer()
   //lazy val cuInsertion = new CUInsertion()
   //lazy val accessPuller = new AccessPulling()
@@ -66,16 +68,23 @@ trait PIR extends Compiler with PIREnv {
     //addPass(testTraversal)
 
     //// Data  path transformation and analysis
+    addPass(new PIRIRPrinter(s"IR1.txt"))
     addPass(enableDot, new ControlTreeDotGen(s"ctrl1.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top1.dot"))
     addPass(deadCodeEliminator)
     addPass(controlPropogator)
-    //addPass(bufferLowering)
     addPass(enableDot, new PIRIRDotGen(s"top2.dot"))
-    addPass(contextInsertion)
+    addPass(validProp)
     addPass(enableDot, new PIRIRDotGen(s"top3.dot"))
-    addPass(depDuplications)
+    addPass(contextInsertion)
     addPass(enableDot, new PIRIRDotGen(s"top4.dot"))
+    //addPass(depDuplications)
+    //addPass(enableDot, new PIRIRDotGen(s"top4.dot"))
+    //addPass(bufferLowering)
+    //addPass(deadCodeEliminator)
+    //addPass(enableDot, new PIRIRDotGen(s"top5.dot"))
+    //addPass(new PIRIRPrinter(s"IR2.txt"))
+
     //addPass(constantExpressionEvaluator)
     //addPass(controlPropogator)
     //addPass(enableDot, new PIRIRDotCodegen(s"top2.dot"))

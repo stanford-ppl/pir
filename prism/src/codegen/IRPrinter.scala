@@ -4,13 +4,12 @@ package codegen
 import prism.graph._
 
 class BasicIRPrinter(override val dirName:String, val fileName:String, val top:Node[_]) extends Pass()(null) with IRPrinter {
-  val forward = true
-  def qdef(n:Any):String = s"$n"
 }
 
 trait IRPrinter extends Pass with DFSTopDownTopologicalTraversal with Codegen {
+  val forward = true
 
-  def qdef(n:Any):String
+  def qdef(n:Any):String = n.toString
 
   //val metadata:Option[Metadata]
 

@@ -12,7 +12,12 @@ abstract class Pass(implicit val compiler:Compiler) extends Logging {
   def runner = compiler.getCurrentRunner(this)
   def config = compiler.config
 
-  def initPass:Unit = {}
+  def initPass:Unit = {
+    this match {
+      case self:Traversal => self.resetTraversal
+      case _ =>
+    }
+  }
 
   def runPass:Unit = {
     this match {

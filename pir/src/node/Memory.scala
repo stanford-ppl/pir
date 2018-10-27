@@ -71,10 +71,10 @@ case class Controller()(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
   val cchain = new ChildField[Counter, List[Counter]]
   val en = new InputField[Option[PIRNode]]
-  val done = new OutputField[Option[PIRNode]]
+  val parentEn = new InputField[Option[PIRNode]]
 
-  val validEn = new InputField[Set[PIRNode]]
-  val validDone = new OutputField[Option[PIRNode]]
+  val valid = new OutputField[List[PIRNode]]
+  val done = new OutputField[Option[PIRNode]]
 }
 
 //case class FIFO()(implicit env:BuildEnvironment) extends Memory
@@ -102,17 +102,16 @@ trait MemoryUtil extends CollectorImplicit {
       case n:InputBuffer => true
       case _ => false
     }
-    def inAccess = n.collectIn[Access]()
-    def outAccess = n.collectOut[Access]()
+    def inAccess = n.collect[Access](visitGlobalIn _)
+    def outAccess = n.collect[Access](visitGlobalOut _)
     def accesses = inAccess ++ outAccess
+
+    def isFIFO = n match {
+      case n:FIFO => true
+      case n:InputBuffer => n.isFIFO
+      case _ => false
+    }
   }
-  //def isFIFO(n:PIRNode) = n match {
-    //case n:FIFO => true
-    //case n:RetimingFIFO => true
-    //case n:StreamIn => true
-    //case n:StreamOut => true
-    //case _ => false
-  //}
 
   //def isReg(n:PIRNode) = n match {
     //case n:Reg => true

@@ -7,9 +7,9 @@ trait MetadataIR extends Serializable { self =>
 
   val metadata = mutable.ListBuffer[Metadata[_]]()
   
-  def mirrorMetas(to:MetadataIR) = {
-    metadata.zip(to.metadata).foreach { case (frommeta, tometa) =>
-      frommeta.mirror(self, to).foreach { mv =>
+  def mirrorMetas(from:MetadataIR) = {
+    metadata.zip(from.metadata).foreach { case (tometa, frommeta) =>
+      frommeta.mirror(from, self).foreach { mv =>
         tometa.update(mv)
       }
     }
@@ -27,8 +27,9 @@ trait MetadataIR extends Serializable { self =>
     def v:Option[T] = value
     def get:T = value.get
     def nonEmpty = v.nonEmpty
+    def isEmpty = v.isEmpty
     def reset = value = default
-    def mirror(self:MetadataIR, to:MetadataIR):Option[T] = value
+    def mirror(from:MetadataIR, to:MetadataIR):Option[T] = value
   }
   object Metadata {
     def apply[T](name:String, default:T):Metadata[T] = Metadata[T](name, Some(default))

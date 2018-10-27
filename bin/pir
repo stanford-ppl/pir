@@ -1,7 +1,0 @@
-#!/bin/bash
-
-app=$1
-
-sbt "; publishAll"
-cd ~/spatial/gen/$app
-sbt "; runMain AccelMain ${@:2}"

@@ -142,7 +142,7 @@ trait Transformer extends Logging {
     val margs = newInstanceArgs(n, mapping)
     mapping.getOrElseUpdate(n, {
       val m = n.newInstance[N](margs)
-      n.mirrorMetas(m)
+      m.mirrorMetas(n)
       m
     })
   }

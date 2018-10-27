@@ -25,12 +25,10 @@ class ControlTreeDotGen(val fileName:String)(implicit compiler:PIR) extends Cont
       //block
     //}
   //}
-
-  override def label(attr:DotAttr, n:N) = {
-    var label = super.label(attr, n).setNode.getLabel
-    label = label
-    .append("schedule", n.as[ControlTree].schedule)
-    attr.setNode.label(label).setGraph.label(label)
+  
+  override def quote(n:Any) = {
+    super.quote(n)
+      .foldAt(n.as[ControlTree]) { (q,n) => s"$q\n${n.schedule}" }
   }
 
   //def shape(attr:DotAttr, n:Any) = attr.shape(box)
