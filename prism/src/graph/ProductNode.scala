@@ -11,7 +11,7 @@ import scala.collection.mutable
  * are input nodes. Edges are created while constructing the IR. 
  * While the graph can be mirrored. The connection is not mutable
  * */
-trait ProductNode[N] extends Node[N] with Product { self:N =>
+trait ProductNode[N] extends Node[N] with DefNode[N] with Product { self:N =>
   implicit val src = this
 
   def newIn = new Input

@@ -54,18 +54,18 @@ class DependencyDuplication(implicit compiler:PIR) extends ContextTraversal with
 
 trait ContextTraversal extends PIRTraversal with TopologicalTraversal {
   override def visitIn(n:N):List[N] = visitGlobalIn(n).map {
-    case x:Memory if !x.isBuffer => x
+    case x:Memory /*if !x.isBuffer*/ => x
     case x:Context => x
     case x => x.collectUp[Context]().head
   }
   override def visitOut(n:N):List[N] = visitGlobalOut(n).map {
-    case x:Memory if !x.isBuffer => x
+    case x:Memory /*if !x.isBuffer*/ => x
     case x:Context => x
     case x => x.collectUp[Context]().head
   }
   override def runPass = {
     val contexts = top.collectDown[Context]()
-    val mems = top.collectDown[Memory]().filterNot(_.isBuffer)
+    val mems = top.collectDown[Memory]()/*.filterNot(_.isBuffer)*/
     traverseScope(contexts ++ mems, zero)
   }
 }

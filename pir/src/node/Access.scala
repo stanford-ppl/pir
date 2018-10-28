@@ -1,34 +1,56 @@
 package pir
 package node
 
+import prism.graph._
+
 trait Access extends PIRNode {
+  val order = Metadata[Int]("order")
+
   val en = new InputField[List[PIRNode]]
   def mem:FieldEdge[Memory]
+}
+trait InAccess extends Access { // Memory as output
+  val mem = new OutputField[Memory]
+}
+trait OutAccess extends Access with Def { // Memory as input
+  val mem = new InputField[Memory]
 }
 trait BanckedAccess extends Access {
   val bank = new InputField[List[PIRNode]]
   val offset = new InputField[List[PIRNode]]
 }
-case class BankedRead()(implicit env:Env) extends BanckedAccess with Def {
-  val mem = new InputField[Memory]
-}
-case class BankedWrite()(implicit env:Env) extends BanckedAccess {
-  val mem = new OutputField[Memory]
+case class BankedRead()(implicit env:Env) extends OutAccess with BanckedAccess
+case class BankedWrite()(implicit env:Env) extends InAccess with BanckedAccess {
   val data = new InputField[PIRNode]
 }
-case class MemRead()(implicit env:Env) extends Access with Def {
-  val mem = new InputField[Memory]
-}
-case class MemWrite()(implicit env:Env) extends Access {
-  val mem = new OutputField[Memory]
+case class MemRead()(implicit env:Env) extends OutAccess
+case class MemWrite()(implicit env:Env) extends InAccess {
   val data = new InputField[PIRNode]
 }
-case class BufferRead()(implicit env:Env) extends Access with Def {
-  val mem = new InputField[Memory]
+
+case class BufferRead(isFIFO:Boolean)(implicit env:Env) extends Def with MemoryNode {
+  val in = new InputField[BufferWrite]
+  val en = new InputField[Option[PIRNode]]
 }
-case class BufferWrite()(implicit env:Env) extends Access {
-  val mem = new OutputField[Memory]
+case class BufferWrite()(implicit env:Env) extends PIRNode {
+  val out = new OutputField[List[BufferRead]]
   val data = new InputField[PIRNode]
+  val en = new InputField[Option[PIRNode]]
+}
+
+trait AccessUtil {
+  implicit class NodeOp(x:N) {
+    def traceTo(y:N):Boolean = x match {
+      case x if x == y => true
+      case x:BufferRead => x.in.T.traceTo(y)
+      case x:BufferWrite => x.data.T.traceTo(y)
+      case x => false
+    }
+  }
+  implicit class EdgeOp(x:Edge) {
+    def traceTo(y:PIRNode):Boolean = 
+      x.connected.exists { _.src.traceTo(y) }
+  }
 }
 
 //object Access {

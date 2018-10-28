@@ -5,7 +5,7 @@ import prism.graph._
 
 import scala.collection.mutable
 
-abstract class PIRNode(implicit env:BuildEnvironment) extends EnvNode[PIRNode] with FieldNode[PIRNode] { self =>
+abstract class PIRNode(implicit env:BuildEnvironment) extends EnvNode[PIRNode] with FieldNode[PIRNode] with DefNode[PIRNode] { self =>
   lazy val Nct = classTag[PIRNode]
 
   val name = new Metadata[String]("name")
@@ -22,11 +22,13 @@ abstract class PIRNode(implicit env:BuildEnvironment) extends EnvNode[PIRNode] w
       super.reset
     }
   }
-  
+
+  override def asOutput = output
+
   env.initNode(this)
 }
 
-trait PIRNodeUtil extends MemoryUtil 
+trait PIRNodeUtil extends MemoryUtil with AccessUtil
 
 case class ControlTree(schedule:String)(implicit env:Env) extends EnvNode[ControlTree] with FieldNode[ControlTree] { self =>
   lazy val Nct = classTag[ControlTree]
@@ -37,4 +39,3 @@ case class ControlTree(schedule:String)(implicit env:Env) extends EnvNode[Contro
 
   env.initNode(this)
 }
-

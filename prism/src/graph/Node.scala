@@ -25,6 +25,7 @@ trait Node[N] extends IR { self:N =>
       case None =>
         p match {
           case _:N =>
+            assert(!this.isAncestorOf(p), s"Setting descendent $p as parent of $this") 
             _parent = Some(p)
             p.addChild(this)
           case _ => 
@@ -32,12 +33,14 @@ trait Node[N] extends IR { self:N =>
         this
     }
   }
-  def unsetParent = {
+  def unsetParent:self.type = {
     parent.foreach { p =>
       _parent = None
       p.removeChild(this)
     }
+    this
   }
+  def resetParent(p:Node[_]):this.type = { unsetParent; setParent(p) }
   def isParentOf(m:Node[_]) = m.parent == Some(this)
 
   // Children
@@ -65,7 +68,9 @@ trait Node[N] extends IR { self:N =>
   def isChildOf(p:Node[_]) = p.children.contains(this)
 
   def siblings:List[Node[_]] = parent.map { _.children.filterNot { _ == this} }.getOrElse(Nil)
-  def ancestors:List[Node[_]] = parent.toList.flatMap { parent => parent :: parent.ancestors }
+  def ancestors:List[Node[_]] = {
+    parent.toList.flatMap { parent => parent :: parent.ancestors }
+  }
   def isAncestorOf(n:Node[_]) = n.ancestors.contains(this) 
   // Inclusive
   def ancestorSlice(top:Node[_]) = { // from this to top inclusive

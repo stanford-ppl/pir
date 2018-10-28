@@ -29,9 +29,10 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with Trans
   }
 
   override def depFunc(n:N) = n match {
-    case n:Counter => n.parent.toList
     case n:Controller => n.depeds.toList
-    case n => super.depFunc(n)
+    case n => 
+      val ctrler = n.collectUp[Controller]().headOption
+      if (ctrler.nonEmpty) List(ctrler.head) else super.depFunc(n)
   }
 
   def depedsExistsLive(n:N):Boolean = {
@@ -56,6 +57,7 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with Trans
   def isLive(n:N):Option[Boolean] = n match {
     case n if liveMap.contains(n) => Some(liveMap(n))
     case n:HostRead => Some(true)
+    case n:HostWrite => Some(true)
     //case n:ProcessStreamOut => Some(true)
     //case n:ProcessControlToken => Some(true)
     case n:Controller /*if !compiler.session.hasRunAll[ControlAllocation]*/ => Some(true)

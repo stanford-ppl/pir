@@ -26,7 +26,7 @@ class ValidConstantPropogation(implicit compiler:PIR) extends PIRPass {
         (0 until 1)
     }
     range.foreach { i =>
-      val edge = counter.valids(i)
+      val edge = counter.valids(i).out
       edge.connected.foreach { c =>
         dbg(s"disconnect valid($i) from ${c.src}.$c")
         edge.disconnectFrom(c)

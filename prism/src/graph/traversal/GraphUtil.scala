@@ -64,7 +64,7 @@ trait GraphUtil {
     }
   }
 
-  def leastMatchedPeers(ns:Iterable[N], lca:N):Map[N, N] = {
+  def leastMatchedPeers(ns:Seq[N], lca:N):Map[N, N] = {
     ns.map { n =>
       n -> (if (n == lca) n else {
         val ancestors = n :: n.ancestors
@@ -74,7 +74,7 @@ trait GraphUtil {
     }.toMap
   }
 
-  def leastMatchedPeers(ns:Iterable[N]):Option[Map[N, N]] = {
+  def leastMatchedPeers(ns:Seq[N]):Option[Map[N, N]] = {
     leastCommonAncesstor(ns).map { lca =>
       leastMatchedPeers(ns, lca)
     }

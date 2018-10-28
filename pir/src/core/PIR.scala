@@ -6,7 +6,7 @@ import pir.pass._
 import pir.codegen._
 import prism.codegen._
 
-trait PIR extends Compiler with PIREnv {
+trait PIR extends Compiler with PIREnv with PIRNodeUtil {
 
   //def top:Top = design.top
   //def pirmeta:PIRMetadata = design.pirmeta
@@ -32,10 +32,11 @@ trait PIR extends Compiler with PIREnv {
   ///* Transformation */
   //lazy val constantExpressionEvaluator = new ConstantExpressionEvaluation()
   lazy val deadCodeEliminator = new DeadCodeElimination()
-  lazy val bufferLowering = new BufferLowering()
+  lazy val memLowering = new MemoryLowering()
   lazy val contextInsertion = new ContextInsertion()
   lazy val depDuplications = new DependencyDuplication()
   lazy val validProp = new ValidConstantPropogation()
+  lazy val bufferInsertion = new BufferInsertion()
   //lazy val unrollingTransformer = new UnrollingTransformer()
   //lazy val cuInsertion = new CUInsertion()
   //lazy val accessPuller = new AccessPulling()
@@ -78,12 +79,15 @@ trait PIR extends Compiler with PIREnv {
     addPass(enableDot, new PIRIRDotGen(s"top3.dot"))
     addPass(contextInsertion)
     addPass(enableDot, new PIRIRDotGen(s"top4.dot"))
+    addPass(bufferInsertion)
+    addPass(enableDot, new PIRIRDotGen(s"top5.dot"))
+    addPass(new PIRIRPrinter(s"IR2.txt"))
+    addPass(memLowering)
+    addPass(enableDot, new PIRIRDotGen(s"top6.dot"))
+    addPass(deadCodeEliminator)
+    addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
+
     //addPass(depDuplications)
-    //addPass(enableDot, new PIRIRDotGen(s"top4.dot"))
-    //addPass(bufferLowering)
-    //addPass(deadCodeEliminator)
-    //addPass(enableDot, new PIRIRDotGen(s"top5.dot"))
-    //addPass(new PIRIRPrinter(s"IR2.txt"))
 
     //addPass(constantExpressionEvaluator)
     //addPass(controlPropogator)

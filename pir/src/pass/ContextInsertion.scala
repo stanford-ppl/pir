@@ -11,24 +11,21 @@ class ContextInsertion(implicit compiler:PIR) extends PIRPass with ControlTreeTr
   override def visitNode(n:N) = n match {
     case n:ControlTree =>
       val pnodes = n.pnodes.get.filterNot {
-        case mem:InputBuffer => false
         case mem:Memory => true
         case _ => false
       }
       if (pnodes.nonEmpty) {
         dbg(s"pnodes for $n = $pnodes")
-        dbg(s"pnodes, parents for $n = ${pnodes.map{_.parent}}")
-        var lca = leastCommonAncesstor(pnodes).get.to[PIRNode]
-        dbg(s"lca=$lca")
-        if (lca.children.isEmpty) lca = lca.parent.get.to[PIRNode]
-        within(lca) {
+        val global = assertOneOrLess(pnodes.flatMap { _.ancestors.collect { case n:GlobalContainer => n } }.distinct, 
+          s"global for $pnodes")
+        val parent = global.getOrElse(pirTop).to[PIRNode]
+        within(parent) {
           val ctx = Context()
-          val ancestorMap = leastMatchedPeers(pnodes, lca)
+          val ancestorMap = leastMatchedPeers(pnodes, parent)
           pnodes.foreach { node =>
             swapParent(ancestorMap(node), ctx)
           }
           dbg(s"ctx=$ctx")
-          //breakPoint(s"pnodes for $n = $pnodes lca=$lca ctx=$ctx")
         }
       }
       super.visitNode(n)

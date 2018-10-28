@@ -7,12 +7,13 @@ trait MetadataIR extends Serializable { self =>
 
   val metadata = mutable.ListBuffer[Metadata[_]]()
   
-  def mirrorMetas(from:MetadataIR) = {
+  def mirrorMetas(from:MetadataIR):self.type = {
     metadata.zip(from.metadata).foreach { case (tometa, frommeta) =>
       frommeta.mirror(from, self).foreach { mv =>
         tometa.update(mv)
       }
     }
+    self
   }
 
   case class Metadata[T](name:String, default:Option[T] = None) extends Serializable {
@@ -20,7 +21,7 @@ trait MetadataIR extends Serializable { self =>
     metadata += this
 
     override def toString = s"$self.$name"
-    def check(v:T) = if (value.nonEmpty && value != default) throw PIRException(s"$this already has value $value, but reupdate to $v")
+    def check(v:T) = if (value.nonEmpty && Some(v) != value && value != default) throw PIRException(s"$this already has value $value, but reupdate to $v")
     def :=(v:T) = { check(v); value = Some(v) }
     def update(v:Any) = :=(v.asInstanceOf[T])
     def apply(value:T):self.type = { :=(value); self }

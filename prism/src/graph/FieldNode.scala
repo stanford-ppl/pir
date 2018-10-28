@@ -78,8 +78,7 @@ trait FieldNode[N] extends Node[N] { self:N =>
       unpack(x) {
         case x:M => 
           x.idx := children.size
-          x.unsetParent
-          addChild(x)
+          x.resetParent(self)
         case _ =>
       }
     }

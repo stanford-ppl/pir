@@ -67,13 +67,23 @@ trait Transformer extends Logging {
   }
 
   def swapConnection(node:N, from:Edge, to:Edge):Unit = {
-    val connected = node.edges.filter { io => io.isConnectedTo(from) }
+    val connected = node.localEdges.filter { io => io.isConnectedTo(from) }
     assert (connected.nonEmpty, s"$node is not connected to ${from.src}.$from")
     connected.foreach { io => swapConnection(io, from, to) }
   }
 
+  def swapConnection(node:N, from:N, to:Edge):Unit = {
+    val connected = node.localEdges.flatMap { nodeEdge => 
+      from.localEdges.filter { fromEdge =>
+        nodeEdge.isConnectedTo(fromEdge)
+      }.map { fromEdge => (nodeEdge, fromEdge) }
+    }
+    assert (connected.nonEmpty, s"$node is not connected to ${from}")
+    connected.foreach { case (nodeEdge, fromEdge) => swapConnection(nodeEdge, fromEdge, to) }
+  }
+
   def areConnected(node1:N, node2:N) = {
-    node1.edges.exists { io1 => node2.edges.exists { io2 => io1.isConnectedTo(io2) } }
+    node1.localEdges.exists { io1 => node2.localEdges.exists { io2 => io1.isConnectedTo(io2) } }
   }
 
   def disconnect(a:N, b:N) = {
