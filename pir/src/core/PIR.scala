@@ -79,7 +79,6 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(enableDot, new PIRIRDotGen(s"top3.dot"))
     addPass(contextInsertion)
     addPass(enableDot, new PIRIRDotGen(s"top4.dot"))
-    //addPass(bufferInsertion)
 
     addPass(memLowering)
     addPass(deadCodeEliminator)
@@ -89,6 +88,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(deadCodeEliminator)
     addPass(enableDot, new PIRIRDotGen(s"top6.dot"))
     addPass(enableDot, new PIRSimpleDotGen[Context](s"simple6.dot"))
+    //addPass(bufferInsertion)
 
     //addPass(constantExpressionEvaluator)
     //addPass(controlPropogator)

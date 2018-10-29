@@ -33,10 +33,10 @@ class MemoryLowering(implicit compiler:PIR) extends MemoryAnalyzer {
         within(memCU) {
           val accessCtx = Context()
           swapParent(access, accessCtx)
-          access match {
-            case access:InAccess => bufferInput(accessCtx)
-            case access:OutAccess => bufferInput(accessCtx) // duplicateInputs(access)
-          }
+          //access match {
+            //case access:InAccess => bufferInput(accessCtx)
+            //case access:OutAccess => bufferInput(accessCtx) // duplicateInputs(access)
+          //}
         }
       }
     }
