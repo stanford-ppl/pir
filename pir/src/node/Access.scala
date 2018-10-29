@@ -6,36 +6,36 @@ import prism.graph._
 trait Access extends PIRNode {
   val order = Metadata[Int]("order")
 
-  val en = new InputField[List[PIRNode]]
+  val en = new InputField[List[PIRNode]]("en")
   def mem:FieldEdge[Memory]
 }
 trait InAccess extends Access { // Memory as output
-  val mem = new OutputField[Memory]
+  val mem = new OutputField[Memory]("mem")
 }
 trait OutAccess extends Access with Def { // Memory as input
-  val mem = new InputField[Memory]
+  val mem = new InputField[Memory]("mem")
 }
 trait BanckedAccess extends Access {
-  val bank = new InputField[List[PIRNode]]
-  val offset = new InputField[List[PIRNode]]
+  val bank = new InputField[List[PIRNode]]("bank")
+  val offset = new InputField[List[PIRNode]]("offset")
 }
 case class BankedRead()(implicit env:Env) extends OutAccess with BanckedAccess
 case class BankedWrite()(implicit env:Env) extends InAccess with BanckedAccess {
-  val data = new InputField[PIRNode]
+  val data = new InputField[PIRNode]("data")
 }
 case class MemRead()(implicit env:Env) extends OutAccess
 case class MemWrite()(implicit env:Env) extends InAccess {
-  val data = new InputField[PIRNode]
+  val data = new InputField[PIRNode]("data")
 }
 
 case class BufferRead(isFIFO:Boolean)(implicit env:Env) extends Def with MemoryNode {
-  val in = new InputField[BufferWrite]
-  val en = new InputField[Option[PIRNode]]
+  val in = new InputField[BufferWrite]("in")
+  val en = new InputField[Option[PIRNode]]("en")
 }
 case class BufferWrite()(implicit env:Env) extends PIRNode {
-  val out = new OutputField[List[BufferRead]]
-  val data = new InputField[PIRNode]
-  val en = new InputField[Option[PIRNode]]
+  val out = new OutputField[List[BufferRead]]("out")
+  val data = new InputField[PIRNode]("data")
+  val en = new InputField[Option[PIRNode]]("en")
 }
 
 trait AccessUtil {

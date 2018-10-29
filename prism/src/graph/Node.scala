@@ -102,19 +102,49 @@ trait Node[N] extends IR { self:N =>
 
   def matchLevel(n:Node[_]) = (n :: n.ancestors).filter { _.parent == this.parent }.headOption
 
-  def deps:Seq[Node[_]] = { // Performance optimization
+  def depsFrom:Map[Node[_], Seq[Node[_]]] = {
     val descendents = this.descendents
     val edges = localEdges.toIterator ++ descendents.toIterator.flatMap { _.localEdges }
     val ins = edges.collect { case i:Input => i }
-    ins.flatMap { _.connected.map { _.src }.filterNot { descendents.contains } }.toSeq.distinct
+    ins.flatMap { in =>
+      in.connected.map { _.src }
+      .filterNot { descendents.contains } 
+      .map { dep => (dep, in.src) } 
+    }.toSeq.groupBy { _._1 }.mapValues { _.map { _._2 } }
   }
 
-  def depeds:Seq[Node[_]] = {
+  def deps:Seq[Node[_]] = depsFrom.keys.toSeq
+  //def deps:Seq[Node[_]] = { // Performance optimization
+    //val descendents = this.descendents
+    //val edges = localEdges.toIterator ++ descendents.toIterator.flatMap { _.localEdges }
+    //val ins = edges.collect { case i:Input => i }
+    //ins.flatMap { in =>
+      //in.connected.map { _.src }
+      //.filterNot { descendents.contains } 
+    //}.toSeq.distinct
+  //}
+
+  def depedsFrom:Map[Node[_], Seq[Node[_]]] = {
     val descendents = this.descendents
     val edges = localEdges.toIterator ++ descendents.toIterator.flatMap { _.localEdges }
     val outs = edges.collect { case i:Output => i }
-    outs.flatMap { _.connected.map { _.src }.filterNot { descendents.contains } }.toSeq.distinct
+    outs.flatMap { out =>
+      out.connected.map { _.src }
+      .filterNot { descendents.contains } 
+      .map { deped => (deped, out.src) } 
+    }.toSeq.groupBy { _._1 }.mapValues { _.map { _._2 } }
   }
+
+  def depeds:Seq[Node[_]] = depedsFrom.keys.toSeq
+  //def depeds:Seq[Node[_]] = {
+    //val descendents = this.descendents
+    //val edges = localEdges.toIterator ++ descendents.toIterator.flatMap { _.localEdges }
+    //val outs = edges.collect { case i:Output => i }
+    //outs.flatMap { out =>
+      //out.connected.map { _.src }
+      //.filterNot { descendents.contains } 
+    //}.toSeq.distinct
+  //}
 
   def siblingDeps = deps.flatMap(matchLevel)
   def globalDeps = deps.filter { d => matchLevel(d).isEmpty }

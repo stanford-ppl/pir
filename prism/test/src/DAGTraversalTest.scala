@@ -29,13 +29,13 @@ class DAGTraversalTest extends UnitTest with Logging {
 
   "DAGGraphTest" should "success" in {
     new prism.codegen.BasicIRPrinter(testOut, s"IR.txt", top).run
-    new prism.codegen.BasicIRDotGen(testOut, s"test.dot", top).run
+    new prism.codegen.BasicIRDotGen(testOut, s"dag1.dot", top).run
     assert(i.deps.toSet == Set(g, h), i.deps)
     assert(i.globalDeps.toSet == Set(g))
-    assert(i.localDeps.toSet == Set(h))
+    assert(i.siblingDeps.toSet == Set(h))
     assert(g.deps.toSet == Set(c, e))
     assert(g.globalDeps.toSet == Set())
-    assert(g.localDeps.toSet == Set(g2, e))
+    assert(g.siblingDeps.toSet == Set(g2, e))
     assert(g1.children.contains(b))
     assert(top.children.contains(g1))
   }
@@ -43,23 +43,23 @@ class DAGTraversalTest extends UnitTest with Logging {
   "DAGTestBFS" should "success" in {
     val traversal = new BFSTraversal with Schedular {
       type N = Node[_]
-      def visitFunc(n:N):List[N] = n.localDeps.toList
+      def visitFunc(n:N):List[N] = visitLocalIn(n)
     }
     var res = traversal.scheduleNode(e)
-    assert(res==List(e, g1))
+    assert(res.toSet==Set(e, g1))
     res = traversal.scheduleNode(g3)
-    assert(res == List(g3, f, g, e, g2, g1))
+    assert(res.toSet == Set(g3, f, g, e, g2, g1))
   }
 
   "DAGTestDFS" should "success" in {
     val traversal = new DFSTraversal with Schedular {
       type N = Node[_]
-      def visitFunc(n:N):List[N] = n.localDeps.toList
+      def visitFunc(n:N):List[N] = visitLocalIn(n)
     }
     var res = traversal.scheduleNode(e)
-    assert(res==List(e, g1))
+    assert(res.toSet==Set(e, g1))
     res = traversal.scheduleNode(g3)
-    assert(res == List(g3, f, g, e, g1, g2))
+    assert(res.toSet == Set(g3, f, g, e, g1, g2))
   }
 
   "DAGTestChildFirst" should "success" in {

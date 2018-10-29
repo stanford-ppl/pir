@@ -15,8 +15,8 @@ trait MemoryNode extends PIRNode {
 abstract class Memory(implicit env:Env) extends MemoryNode with DefNode[PIRNode] {
 
   /*  ------- Fields -------- */
-  val in = new InputField[List[Access]]
-  val out = new OutputField[List[Access]]
+  val in = new InputField[List[Access]]("in")
+  val out = new OutputField[List[Access]]("out")
 
   override def asInput = Some(in)
 }
@@ -44,40 +44,40 @@ case class MemoryContainer()(implicit env:Env) extends GlobalContainer
 case class Context()(implicit env:Env) extends PIRNode
 
 trait Def extends PIRNode with DefNode[PIRNode] {
-  final val out = new OutputField[List[PIRNode]]
+  final val out = new OutputField[List[PIRNode]]("out")
 }
 
 case class Const(value:Any)(implicit env:Env) extends Def
 case class OpDef(op:String)(implicit env:Env) extends Def {
-  val input = new InputField[List[PIRNode]]
+  val input = new InputField[List[PIRNode]]("input")
 }
 case class HostRead()(implicit env:Env) extends Def {
-  val input = new InputField[List[PIRNode]]
+  val input = new InputField[List[PIRNode]]("input")
 }
 case class HostWrite()(implicit env:Env) extends Def
 case class CountAck()(implicit env:Env) extends Def {
-  val input = new InputField[List[PIRNode]]
+  val input = new InputField[List[PIRNode]]("input")
 }
 case class Counter(par:Int)(implicit env:Env) extends Def {
   /*  ------- Fields -------- */
-  val min = new InputField[PIRNode]
-  val step = new InputField[PIRNode]
-  val max = new InputField[PIRNode]
+  val min = new InputField[PIRNode]("min")
+  val step = new InputField[PIRNode]("step")
+  val max = new InputField[PIRNode]("max")
   def iters = this.collectOut[CounterIter]().sortBy { _.i }
   def valids = this.collectOut[CounterValid]().sortBy { _.i }
 }
 
 case class CounterIter(i:Int)(implicit env:Env) extends Def {
-  val counter = new InputField[Counter]
+  val counter = new InputField[Counter]("counter")
 }
 case class CounterValid(i:Int)(implicit env:Env) extends Def {
-  val counter = new InputField[Counter]
+  val counter = new InputField[Counter]("counter")
 }
 
 abstract class Controller(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
-  val en = new InputField[Option[PIRNode]]
-  val parentEn = new InputField[Option[PIRNode]]
+  val en = new InputField[Option[PIRNode]]("en")
+  val parentEn = new InputField[Option[PIRNode]]("parentEn")
 
   val valid = ControllerValid().resetParent(this)
   val done = ControllerDone().resetParent(this)
@@ -88,7 +88,7 @@ case class ControllerValid()(implicit env:Env) extends Def
 case class UnitController()(implicit env:Env) extends Controller
 case class LoopController()(implicit env:Env) extends Controller {
   /*  ------- Fields -------- */
-  val cchain = new ChildField[Counter, List[Counter]]
+  val cchain = new ChildField[Counter, List[Counter]]("cchain")
 }
 case class DramController()(implicit env:Env) extends Controller
 

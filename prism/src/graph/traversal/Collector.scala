@@ -74,7 +74,7 @@ trait CollectorUtil { self =>
     collect[M](node, visitPeer _, depth, logger)
   }
 
-  def accum(node:N, prefix:N => Boolean, visitFunc:N => List[N], depth:Int= -1, logger:Option[Logging]=None):List[N] = 
+  def accum(node:N, prefix:N => Boolean={n:N => false }, visitFunc:N => List[N], depth:Int= -1, logger:Option[Logging]=None):List[N] = 
     dbgblk(logger, s"accum(depth=$depth)"){
       def accumulate(prev:List[N], n:N) = {
         if (!prev.contains(n)) (prev :+ n) else prev
@@ -128,7 +128,7 @@ trait CollectorImplicit {
     def collectPeer[M<:N:ClassTag](depth:Int= -1, logger:Option[Logging]=None):List[M] =
       graph.collectPeer(node, depth, logger)
 
-    def accum(prefix:N => Boolean, visitFunc:N => List[N], depth:Int= -1, logger:Option[Logging]=None):List[N] = 
+    def accum(prefix:N => Boolean={n:N => false } , visitFunc:N => List[N], depth:Int= -1, logger:Option[Logging]=None):List[N] = 
       graph.accum(node, prefix, visitFunc, depth, logger)
 
     def accumIn(prefix:N => Boolean, depth:Int= -1, logger:Option[Logging]=None):List[N] = 

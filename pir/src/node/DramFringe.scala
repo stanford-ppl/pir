@@ -6,28 +6,28 @@ abstract class DRAMFringe(implicit env:Env) extends PIRNode {
 }
 
 case class FringeDenseLoad(dram:DRAM)(implicit env:Env) extends DRAMFringe {
-  val offset = new InputField[Access]
-  val size = new InputField[Access]
-  val data = new OutputField[Access]
+  val offset = new InputField[Access]("offset")
+  val size = new InputField[Access]("size")
+  val data = new OutputField[Access]("data")
 }
 
 case class FringeSparseLoad(dram:DRAM)(implicit env:Env) extends DRAMFringe {
-  val addr = new InputField[Access]
-  val data = new OutputField[Access]
+  val addr = new InputField[Access]("addr")
+  val data = new OutputField[Access]("data")
 }
 
 case class FringeDenseStore(dram:DRAM)(implicit env:Env) extends DRAMFringe {
-  val offset = new InputField[Access]
-  val size = new InputField[Access]
-  val data = new InputField[Access]
-  val valid = new InputField[Access]
-  val ack = new OutputField[Access]
+  val offset = new InputField[Access]("offset")
+  val size = new InputField[Access]("size")
+  val data = new InputField[Access]("data")
+  val valid = new InputField[Access]("valid")
+  val ack = new OutputField[Access]("ack")
 }
 
 case class FringeSparseStore(dram:DRAM)(implicit env:Env) extends DRAMFringe {
-  val addr = new InputField[Access]
-  val data = new InputField[Access]
-  val ack = new OutputField[Access]
+  val addr = new InputField[Access]("addr")
+  val data = new InputField[Access]("data")
+  val ack = new OutputField[Access]("ack")
 }
 
 case class DRAM() extends prism.graph.IR

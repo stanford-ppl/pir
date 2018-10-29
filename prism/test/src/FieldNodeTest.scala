@@ -7,12 +7,13 @@ import prism.codegen._
 case class X(name:String)(implicit env:Env) extends EnvNode[TestFNode] with TestFNode {
 
   override def toString = name
-  val sram = new InputField[X]
-  val addr = new InputField[List[X]]
-  val ofs = new InputField[List[X]]
-  val ens = new InputField[Set[X]]
-  val out = new OutputField[List[X]]
-  val cchain = new ChildField[X, List[X]]
+  val sram = new InputField[X]("sram")
+  val addr = new InputField[List[X]]("addr")
+  val ofs = new InputField[List[X]]("ofs")
+  val ens = new InputField[Set[X]]("ens")
+  val out = new OutputField[List[X]]("out")
+  val cchain = new ChildField[X, List[X]]("cchain")
+  env.initNode(this)
 }
 
 class FieldNodeTest extends UnitTest with TestEnv with Transformer {
@@ -38,6 +39,6 @@ class FieldNodeTest extends UnitTest with TestEnv with Transformer {
     val ma = mapping(a)
     val mb = mapping(b)
     val md = mapping(d)
-    assert(md.as[X].cchain.T==List(ma,mb))
+    assert(md.to[X].cchain.T==List(ma,mb))
   }
 }

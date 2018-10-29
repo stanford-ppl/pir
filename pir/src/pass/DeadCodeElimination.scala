@@ -60,7 +60,7 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with Trans
     case n:HostWrite => Some(true)
     //case n:ProcessStreamOut => Some(true)
     //case n:ProcessControlToken => Some(true)
-    case n:Controller /*if !compiler.session.hasRunAll[ControlAllocation]*/ => Some(true)
+    case n:Controller if !compiler.hasRunAll[DependencyDuplication] => Some(true)
     case n => None
   }
 

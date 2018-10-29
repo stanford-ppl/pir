@@ -15,13 +15,22 @@ class DependencyDuplication(implicit compiler:PIR) extends ContextTraversal with
     super.visitNode(n)
   }
 
+  def bound(visitFunc:N => List[N]):N => List[N] = { n:N =>
+    visitFunc(n).filter{ 
+      case n:Memory => false
+      case n:BufferWrite => false
+      case n:HostWrite => false
+      case _ => true
+    }
+  }
+
   def duplicateDependency(ctx:Context):Unit = dbgblk(s"duplicateDependency($ctx)"){
-    var depedCtxs = ctx.accumTill[Memory](visitFunc=lift[Context](visitGlobalOut _)).collect { case x:Context => x }
-    depedCtxs = depedCtxs.filterNot(n => n == ctx)
+    var depedCtxs = ctx.accum(visitFunc=lift[Context](bound(visitGlobalOut _))).collect { case x:Context => x }
+    depedCtxs = depedCtxs.filterNot(n => n == ctx || isVisited(n) )
     dbg(s"depedCtxs=$depedCtxs")
     depedCtxs.foreach { depedCtx =>duplicateDependency(depedCtx) }
-    var deps = ctx.accumTill[Memory](visitFunc=cover[Controller](visitGlobalIn _))
-    deps = deps.filterNot(n => n == ctx || n.isInstanceOf[Memory])
+    var deps = ctx.accum(visitFunc=cover[Controller](bound(visitGlobalIn _)))
+    deps = deps.filterNot(n => n == ctx)
     dbg(s"deps=$deps")
     val mapping = within(ctx) { mirrorAll(deps) }
     dbg(s"mapping=$mapping")
@@ -54,18 +63,18 @@ class DependencyDuplication(implicit compiler:PIR) extends ContextTraversal with
 
 trait ContextTraversal extends PIRTraversal with TopologicalTraversal {
   override def visitIn(n:N):List[N] = visitGlobalIn(n).map {
-    case x:Memory /*if !x.isBuffer*/ => x
+    case x:Memory => x
     case x:Context => x
     case x => x.collectUp[Context]().head
   }
   override def visitOut(n:N):List[N] = visitGlobalOut(n).map {
-    case x:Memory /*if !x.isBuffer*/ => x
+    case x:Memory => x
     case x:Context => x
     case x => x.collectUp[Context]().head
   }
   override def runPass = {
     val contexts = top.collectDown[Context]()
-    val mems = top.collectDown[Memory]()/*.filterNot(_.isBuffer)*/
+    val mems = top.collectDown[Memory]()
     traverseScope(contexts ++ mems, zero)
   }
 }

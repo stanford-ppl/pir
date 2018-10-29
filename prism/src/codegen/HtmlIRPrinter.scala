@@ -36,12 +36,18 @@ trait HtmlIRPrinter extends IRPrinter with HtmlCodegen {
           text(s"children=${quote(n.children.slice(0,10))} ...")
         else
           text(s"children=${quote(n.children)}")
+        text("deps:")
+        n.depsFrom.foreach { case (dep, from) => 
+          text(s"${quote(dep)}: ${quote(from)}")
+        }
+        text("depeds:")
+        n.depedsFrom.foreach { case (deped, from) => 
+          text(s"${quote(deped)}: ${quote(from)}")
+        }
       }
       n.localEdges.foreach { edge =>
-        emitElem("text", s"${edge}: ${quote(edge.connected)}<br>", "id"->s"$edge")
+        emitElem("text", s"${edge}: ${quote(edge.connected.map{ e => s"${quote(e.src)}.${quote(e)}"})}<br>", "id"->s"$edge")
       }
-      text(s"deps=${quote(n.deps)}")
-      text(s"depeds=${quote(n.depeds)}")
       text(elem("strong", "Metadata"))
       n.metadata.foreach { metadata =>
         metadata.v.foreach { v =>

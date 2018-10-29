@@ -19,7 +19,7 @@ class MemoryLowering(implicit compiler:PIR) extends MemoryAnalyzer {
     cannotToBuffer |= mem.inAccess.size > 1
     if (mem.isFIFO) cannotToBuffer |= mem.outAccess.size > 1
     if (cannotToBuffer) {
-      createMemCtx(mem)
+      //createMemCtx(mem)
     } else {
       lowerToInputBuffer(mem)
     }
@@ -47,15 +47,17 @@ class MemoryLowering(implicit compiler:PIR) extends MemoryAnalyzer {
     mem.outAccess.foreach { outAccess =>
       within(outAccess.parent.get.to[PIRNode]) {
         val inAccess = mem.inAccess.head.to[MemWrite]
-        val (enq, deq) = compEnqDeq(inAccess.ctrl.get, outAccess.ctrl.get, mem.isFIFO)
+        val (enq, deq) = compEnqDeq(inAccess.ctrl.get, outAccess.ctrl.get, mem.isFIFO, inAccess.collectUp[Context]().head, outAccess.collectUp[Context]().head)
         val write = within(inAccess.parent.get.to[PIRNode], inAccess.ctrl.get) {
           BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(enq)
         }
+        dbg(s"create $write.data(${inAccess.data.neighbors}).en($enq)")
         val read = within(outAccess.parent.get.to[PIRNode], outAccess.ctrl.get) {
           BufferRead(mem.isFIFO).in(write.out).mirrorMetas(mem).en(deq)
         }
-        bufferInput(write)
-        bufferInput(read)
+        dbg(s"create $read.in(${write}).en($deq)")
+        //bufferInput(write)
+        //bufferInput(read)
         outAccess.depeds.foreach { deped =>
           swapConnection(deped, outAccess.to[Def].out, read.out)
         }

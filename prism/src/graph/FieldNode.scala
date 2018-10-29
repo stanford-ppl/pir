@@ -23,7 +23,8 @@ trait FieldNode[N] extends Node[N] { self:N =>
 
   def Nss = edges.map { e => e.Ns }
 
-  trait Field[T] {
+  trait Field[T] extends Serializable {
+    val name:String
     implicit val Ftt:TypeTag[T]
     def apply(xs:Any*):self.type = { xs.foreach(update); self }
     def update(x:Any):Unit
@@ -36,9 +37,9 @@ trait FieldNode[N] extends Node[N] { self:N =>
         case tp if tp <:< typeOf[Set[Node[_]]] =>
           nodes.toSet
         case tp if tp <:< typeOf[Option[Node[_]]] => 
-          assertOneOrLess(nodes, s"$this.T=Option[Node[_]]")
+          assertOneOrLess(nodes, s"$self.$this.T=Option[Node[_]]")
         case tp if tp <:< typeOf[Node[_]] =>
-          assertOne(nodes, s"$this.T=Node[_]")
+          assertOne(nodes, s"$self.$this.T=Node[_]")
       }
       t.asInstanceOf[T]
     }
@@ -48,7 +49,7 @@ trait FieldNode[N] extends Node[N] { self:N =>
    * Field edge provide helper function to connection of the edge with type of T
    * and read connection of the edge with type of T
    * */
-  trait FieldEdge[T] extends Field[T] with Edge {
+  trait FieldEdge[T] extends Edge with Field[T] {
     def fieldToNodes:Seq[Node[_]] = Ns
     def update(x:Any):Unit = {
       unpack(x) { 
@@ -64,15 +65,17 @@ trait FieldNode[N] extends Node[N] { self:N =>
     }
   }
   
-  class InputField[T:TypeTag] extends Input()(self) with FieldEdge[T] {
+  class InputField[T:TypeTag](val name:String) extends Input()(self) with FieldEdge[T] {
     val Ftt = typeTag[T]
+    override def toString = s"${super.toString}_$name"
   }
   
-  class OutputField[T:TypeTag] extends Output()(self) with FieldEdge[T] {
+  class OutputField[T:TypeTag](val name:String) extends Output()(self) with FieldEdge[T] {
     val Ftt = typeTag[T]
+    override def toString = s"${super.toString}_$name"
   }
 
-  class ChildField[M<:FieldNode[_]:ClassTag, T:TypeTag] extends Output()(self) with Field[T] {
+  class ChildField[M<:FieldNode[_]:ClassTag, T:TypeTag](val name:String) extends Field[T] {
     val Ftt = typeTag[T]
     def update(x:Any):Unit = {
       unpack(x) {
