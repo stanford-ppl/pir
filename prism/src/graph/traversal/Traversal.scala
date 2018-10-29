@@ -145,24 +145,18 @@ trait TopologicalTraversal extends GraphTraversal {
     depFree
   }
 
-  def filtering(backup:List[N])(filtered: => List[N]) = {
-    val flist = filtered
+  def filtering(backup:List[N])(filtered: List[N] => List[N]) = {
+    val flist = filtered(backup)
     if (flist.isEmpty) backup else flist
   }
 
   def selectFrontier(unvisited:List[N]) = {
     var breakingPoints = unvisited
     breakingPoints = filtering(breakingPoints){ 
-      frontier.filter {
-        case n if isVisited(n) => false
-        case _ => true
-      }.toList
+      _.filter { n => frontier.contains(n) }
     }
     breakingPoints = filtering(breakingPoints){ 
-      breakingPoints.filter {
-        case n if depedFunc(n).filter{_.children.isEmpty}.isEmpty => false
-        case _ => true
-      }.toList
+      _.filter { n => depedFunc(n).filter{_.children.isEmpty}.nonEmpty }
     }
     breakingPoints = List(breakingPoints.map( n => (depFunc(n).size, n) ).minBy(_._1)._2)
     breakingPoints
@@ -223,18 +217,10 @@ trait BottomUpTopologicalTraversal extends HierarchicalTopologicalTraversal {
   override def selectFrontier(unvisited:List[N]) = {
     var breakingPoints = unvisited
     breakingPoints = filtering(breakingPoints){ 
-      frontier.filter {
-        case n if isVisited(n) => false
-        case n if n.children.nonEmpty => false
-        case _ => true
-      }.toList
+      _.filter { n => frontier.contains(n) && n.children.isEmpty }
     }
     breakingPoints = filtering(breakingPoints){ 
-      breakingPoints.filter {
-        case n if n.children.nonEmpty => false
-        case n if depedFunc(n).filter{_.children.isEmpty}.isEmpty => false
-        case _ => true
-      }.toList
+      _.filter { n => n.children.isEmpty && depedFunc(n).filter{_.children.isEmpty}.nonEmpty }
     }
     breakingPoints = List(breakingPoints.map( n => (depFunc(n).size, n) ).minBy(_._1)._2)
     breakingPoints

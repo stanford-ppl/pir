@@ -16,28 +16,25 @@ class BufferInsertion(implicit compiler:PIR) extends PIRTraversal with SiblingFi
 
 trait MemoryAnalyzer extends PIRPass with Transformer {
 
+  def escape(dep:N, scope:N) = dep match {
+    case dep:Memory => false 
+    case dep:BufferWrite => false
+    case dep if dep.isDescendentOf(scope) => false
+    case dep => true
+  }
+
   def bufferInput(ctx:Context):Unit = dbgblk(s"bufferInput($ctx)"){
-    val descendents = ctx.descendents
-    val depDepeds = descendents.flatMap[(N, Seq[N]), Seq[(N, Seq[N])]] { deped =>
-      if (!deped.isInstanceOf[MemoryNode]) {
-        val deps = deped.localDeps.filter { dep => !dep.isInstanceOf[MemoryNode] && !descendents.contains(dep) }
-        if (deps.nonEmpty) Some((deped, deps)) else None
-      } else None
-    }
-    depDepeds.foreach { case (deped, deps) =>
-      dbg(s"deped=$deped, deps=$deps")
-      deps.foreach { dep =>
-        bufferInput(dep.to[PIRNode], deped.to[PIRNode])
+    ctx.descendents.foreach { deped =>
+      deped.localDeps.foreach { dep => 
+        if (escape(dep, ctx)) bufferInput(dep.to[PIRNode], deped.to[PIRNode])
       }
     }
-    //breakPoint(s"bufferInput($ctx)")
   }
 
   def bufferInput(deped:PIRNode):Unit = {
-    if (deped.isInstanceOf[MemoryNode]) return
     val depedCtx = deped.collectUp[Context]().head
     deped.localDeps.foreach { dep =>
-      if (!dep.isInstanceOf[MemoryNode] && !dep.isDescendentOf(depedCtx) ) bufferInput(dep.to[PIRNode], deped)
+      if (escape(dep, depedCtx)) bufferInput(dep.to[PIRNode], deped)
     }
   }
 
