@@ -55,6 +55,9 @@ case class HostRead()(implicit env:Env) extends Def {
   val input = new InputField[List[PIRNode]]("input")
 }
 case class HostWrite()(implicit env:Env) extends Def
+case class TokenRead()(implicit env:Env) extends Def {
+  val input = new InputField[List[BufferRead]]("input")
+}
 case class CountAck()(implicit env:Env) extends Def {
   val input = new InputField[List[PIRNode]]("input")
 }

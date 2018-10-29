@@ -45,9 +45,17 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
       val sorted = accesses.sortBy { _.order.get }
       sorted.sliding(2, 1).foreach {
         case List(a, b) =>
-          val (enq, deq) = compEnqDeq(a.ctrl.get, b.ctrl.get, false, a.ctx.get, b.ctx.get)
-          within(a.ctx.get) {
-            BufferWrite()
+          val actx = a.ctx.get
+          val bctx = b.ctx.get
+          val actrl = a.ctrl.get
+          val bctrl = b.ctrl.get
+          val (enq, deq) = compEnqDeq(actrl, bctrl, false, actx, bctx)
+          val write = within(actx, actrl) {
+            BufferWrite().data(Const(true)).en(enq)
+          }
+          within(bctx, bctrl) {
+            val tr = bctx.collectDown[TokenRead]().headOption.getOrElse(TokenRead())
+            BufferRead(isFIFO = a.ctrl.get==b.ctrl.get).in(write).en(deq).out(tr.input)
           }
         case List(a) =>
       }
