@@ -18,7 +18,7 @@ class ContextInsertion(implicit compiler:PIR) extends PIRPass with ControlTreeTr
         dbg(s"pnodes for $n = $pnodes")
         val global = assertOneOrLess(pnodes.flatMap { _.ancestors.collect { case n:GlobalContainer => n } }.distinct, 
           s"global for $pnodes")
-        val parent = global.getOrElse(pirTop).to[PIRNode]
+        val parent = global.getOrElse(pirTop).as[PIRNode]
         within(parent) {
           val ctx = Context()
           val ancestorMap = leastMatchedPeers(pnodes, parent)

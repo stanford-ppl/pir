@@ -26,7 +26,7 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
   def bufferInput(ctx:Context):Unit = dbgblk(s"bufferInput($ctx)"){
     ctx.descendents.foreach { deped =>
       deped.localDeps.foreach { dep => 
-        if (escape(dep, ctx)) bufferInput(dep.to[PIRNode], deped.to[PIRNode])
+        if (escape(dep, ctx)) bufferInput(dep.as[PIRNode], deped.as[PIRNode])
       }
     }
   }
@@ -34,7 +34,7 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
   def bufferInput(deped:PIRNode):Unit = {
     val depedCtx = deped.collectUp[Context]().head
     deped.localDeps.foreach { dep =>
-      if (escape(dep, depedCtx)) bufferInput(dep.to[PIRNode], deped)
+      if (escape(dep, depedCtx)) bufferInput(dep.as[PIRNode], deped)
     }
   }
 
@@ -64,7 +64,7 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
         read
       }
     }
-    swapConnection(deped, dep.to[PIRNode].output.get, read.out)
+    swapConnection(deped, dep.as[PIRNode].output.get, read.out)
   }
 
   def compEnqDeq(a:ControlTree, b:ControlTree, isFIFO:Boolean, actx:Context, bctx:Context):(PIRNode, PIRNode) = 
@@ -74,7 +74,7 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
     } else if (a.isAncestorOf(b)) {
       val bAncesstors = (b::b.ancestors)
       val idx = bAncesstors.indexOf(a)
-      val ctrl = bAncesstors(idx-1).to[ControlTree]
+      val ctrl = bAncesstors(idx-1).as[ControlTree]
       (ctrlValid(a, actx), ctrlDone(ctrl, bctx))
     } else if (b.isAncestorOf(a)) {
       compEnqDeq(b,a,isFIFO,bctx, actx) 
@@ -84,8 +84,8 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
       val bAncesstors = (b::b.ancestors)
       val aidx = aAncesstors.indexOf(lca)
       val bidx = bAncesstors.indexOf(lca)
-      val actrl = aAncesstors(aidx-1).to[ControlTree]
-      val bctrl = bAncesstors(bidx-1).to[ControlTree]
+      val actrl = aAncesstors(aidx-1).as[ControlTree]
+      val bctrl = bAncesstors(bidx-1).as[ControlTree]
       (ctrlDone(actrl, actx), ctrlDone(bctrl, bctx))
     }
   }

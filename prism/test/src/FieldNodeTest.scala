@@ -39,6 +39,6 @@ class FieldNodeTest extends UnitTest with TestEnv with Transformer {
     val ma = mapping(a)
     val mb = mapping(b)
     val md = mapping(d)
-    assert(md.to[X].cchain.T==List(ma,mb))
+    assert(md.as[X].cchain.T==List(ma,mb))
   }
 }

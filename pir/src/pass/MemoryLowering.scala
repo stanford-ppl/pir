@@ -26,7 +26,7 @@ class MemoryLowering(implicit compiler:PIR) extends MemoryAnalyzer {
   }
 
   def createMemCtx(mem:Memory) = {
-    within(mem.parent.get.to[PIRNode]) {
+    within(mem.parent.get.as[PIRNode]) {
       val memCU = MemoryContainer()
       swapParent(mem, memCU)
       mem.accesses.foreach { access =>
@@ -45,21 +45,21 @@ class MemoryLowering(implicit compiler:PIR) extends MemoryAnalyzer {
   def lowerToInputBuffer(mem:Memory) = {
     dbg(s"Lower $mem to InputBuffer")
     mem.outAccess.foreach { outAccess =>
-      within(outAccess.parent.get.to[PIRNode]) {
-        val inAccess = mem.inAccess.head.to[MemWrite]
+      within(outAccess.parent.get.as[PIRNode]) {
+        val inAccess = mem.inAccess.head.as[MemWrite]
         val (enq, deq) = compEnqDeq(inAccess.ctrl.get, outAccess.ctrl.get, mem.isFIFO, inAccess.collectUp[Context]().head, outAccess.collectUp[Context]().head)
-        val write = within(inAccess.parent.get.to[PIRNode], inAccess.ctrl.get) {
+        val write = within(inAccess.parent.get.as[PIRNode], inAccess.ctrl.get) {
           BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(enq)
         }
         dbg(s"create $write.data(${inAccess.data.neighbors}).en($enq)")
-        val read = within(outAccess.parent.get.to[PIRNode], outAccess.ctrl.get) {
+        val read = within(outAccess.parent.get.as[PIRNode], outAccess.ctrl.get) {
           BufferRead(mem.isFIFO).in(write.out).mirrorMetas(mem).en(deq)
         }
         dbg(s"create $read.in(${write}).en($deq)")
         //bufferInput(write)
         //bufferInput(read)
         outAccess.depeds.foreach { deped =>
-          swapConnection(deped, outAccess.to[Def].out, read.out)
+          swapConnection(deped, outAccess.as[Def].out, read.out)
         }
       }
     }

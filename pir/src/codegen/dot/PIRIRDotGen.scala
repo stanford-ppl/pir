@@ -17,18 +17,18 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
   }
 
   override def quote(n:Any) = {
-    super.quote(n).foldAt(n.as[PIRNode]) { (q, n) =>
+    super.quote(n).foldAt(n.to[PIRNode]) { (q, n) =>
       q.foldAt(n.sname.v) { (q, v) => s"$q[$v]" }
       .append("name", n.name.v)
       .append("ctrl", n.ctrl.v)
-    }.foldAt(n.as[Counter]) { (q, n) =>
+    }.foldAt(n.to[Counter]) { (q, n) =>
       q.append("min", n.min.T)
       .append("max", n.max.T)
       .append("step", n.step.T)
       .append("par", n.par)
-    }.foldAt(n.as[OpDef]) { (q,n) =>
+    }.foldAt(n.to[OpDef]) { (q,n) =>
       s"$q\n${n.op}"
-    }.foldAt(n.as[Context]) { (q,n) =>
+    }.foldAt(n.to[Context]) { (q,n) =>
       s"$q\nctrls:\n${n.collectDown[Controller]().map { _.ctrl.get }.mkString("\n")}"
     }
   }

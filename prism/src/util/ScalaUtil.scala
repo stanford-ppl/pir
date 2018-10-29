@@ -134,11 +134,11 @@ trait ScalaUtilFunc {
   }
 
   implicit class AnyUtil(x:Any) {
-    def as[T:ClassTag]:Option[T] = x match {
+    def to[T:ClassTag]:Option[T] = x match {
       case x:T => Some(x)
       case _ => None
     }
-    def to[T]:T = x.asInstanceOf[T]
+    def as[T]:T = x.asInstanceOf[T]
   }
 
   implicit class TUtil[T](x:T) {

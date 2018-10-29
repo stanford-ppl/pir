@@ -28,7 +28,7 @@ class ControlTreeDotGen(val fileName:String)(implicit compiler:PIR) extends Cont
   
   override def quote(n:Any) = {
     super.quote(n)
-      .foldAt(n.as[ControlTree]) { (q,n) => s"$q\n${n.schedule}" }
+      .foldAt(n.to[ControlTree]) { (q,n) => s"$q\n${n.schedule}" }
   }
 
   //def shape(attr:DotAttr, n:Any) = attr.shape(box)
