@@ -18,20 +18,26 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
 
   def bufferInput(ctx:Context):Unit = dbgblk(s"bufferInput($ctx)"){
     val descendents = ctx.descendents
-    descendents.foreach { deped =>
+    val depDepeds = descendents.flatMap[(N, Seq[N]), Seq[(N, Seq[N])]] { deped =>
       if (!deped.isInstanceOf[MemoryNode]) {
-        if (deped.localDeps.exists { dep => !dep.isInstanceOf[MemoryNode] && !descendents.contains(dep) })
-          bufferInput(deped.to[PIRNode])
+        val deps = deped.localDeps.filter { dep => !dep.isInstanceOf[MemoryNode] && !descendents.contains(dep) }
+        if (deps.nonEmpty) Some((deped, deps)) else None
+      } else None
+    }
+    depDepeds.foreach { case (deped, deps) =>
+      dbg(s"deped=$deped, deps=$deps")
+      deps.foreach { dep =>
+        bufferInput(dep.to[PIRNode], deped.to[PIRNode])
       }
     }
+    //breakPoint(s"bufferInput($ctx)")
   }
 
   def bufferInput(deped:PIRNode):Unit = {
     if (deped.isInstanceOf[MemoryNode]) return
     val depedCtx = deped.collectUp[Context]().head
-    val descendents = depedCtx.descendents
     deped.localDeps.foreach { dep =>
-      if (!dep.isInstanceOf[MemoryNode] && !descendents.contains(dep)) bufferInput(dep.to[PIRNode], deped)
+      if (!dep.isInstanceOf[MemoryNode] && !dep.isDescendentOf(depedCtx) ) bufferInput(dep.to[PIRNode], deped)
     }
   }
 
@@ -45,6 +51,7 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
     }, s"bufferWrite from $dep with en=$enq in $depCtx").getOrElse {
       within(depCtx, dep.ctrl.get) {
         val write = BufferWrite().data(dep).en(enq)
+        dbg(s"create $write")
         bufferInput(write)
         write
       }
@@ -54,7 +61,8 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
       read.en.traceTo(deq)
     }, s"bufferRead from $write with en=$deq in $depedCtx").getOrElse {
       within(depedCtx, deped.ctrl.get) {
-        val read = BufferRead(isFIFO=dep.ctrl.get == deped.ctrl.get).in(write)
+        val read = BufferRead(isFIFO=dep.ctrl.get == deped.ctrl.get).in(write).en(deq)
+        dbg(s"create $read")
         bufferInput(read)
         read
       }
@@ -70,7 +78,7 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
       val bAncesstors = (b::b.ancestors)
       val idx = bAncesstors.indexOf(a)
       val ctrl = bAncesstors(idx-1).to[ControlTree]
-      (ctrlValid(ctrl), ctrlDone(ctrl))
+      (ctrlValid(a), ctrlDone(ctrl))
     } else if (b.isAncestorOf(a)) {
       compEnqDeq(b,a,isFIFO) 
     } else {

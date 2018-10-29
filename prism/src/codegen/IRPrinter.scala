@@ -32,23 +32,32 @@ trait IRPrinter extends Pass with DFSTopDownTopologicalTraversal with Codegen {
   override def emitNode(n:N) = {
     emitBlock(qdef(n)) {
       emitln(s"parent=${n.parent.map(quote)}")
+      //metadata.foreach { _.summary(n).foreach(emitln) }
+      if (n.children.nonEmpty) {
+        if (n.children.size > 10)
+          emitln(s"children=${n.children.slice(0,10).map(quote)} ...")
+        else
+          emitln(s"children=${n.children.map(quote)}")
+      }
       n.localEdges.foreach { edge =>
         emitln(s"$edge.connected=[${edge.connected.mkString(",")}]")
       }
-      emitln(s"deps=${n.deps.map(quote)}")
-      emitln(s"depeds=${n.depeds.map(quote)}")
-      //metadata.foreach { _.summary(n).foreach(emitln) }
+      emitln(s"deps=${n.deps.toList.map(quote)}")
+      emitln(s"depeds=${n.depeds.toList.map(quote)}")
       n.metadata.foreach { metadata =>
         metadata.v.foreach { v =>
           emitln(s"${metadata.name} = $v")
         }
       }
-      if (n.children.nonEmpty) {
-        emitln(s"children=${n.children.map(quote)}")
-      }
-      if (n.children.nonEmpty) super.visitNode(n)
+      if (n.children.nonEmpty) visitNode(n)
     }
-    if (n.children.isEmpty) super.visitNode(n)
+    if (n.children.isEmpty) visitNode(n)
+  }
+
+  override def quote(n:Any) = n match {
+    case n:Iterable[_] => 
+      s"[${n.map(quote).mkString(",")}]"
+    case n => super.quote(n)
   }
 
 }

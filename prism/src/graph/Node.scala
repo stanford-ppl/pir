@@ -71,7 +71,7 @@ trait Node[N] extends IR { self:N =>
   def ancestors:List[Node[_]] = {
     parent.toList.flatMap { parent => parent :: parent.ancestors }
   }
-  def isAncestorOf(n:Node[_]) = n.ancestors.contains(this) 
+  def isAncestorOf(n:Node[_]):Boolean = n.isDescendentOf(this)
   // Inclusive
   def ancestorSlice(top:Node[_]) = { // from this to top inclusive
     val chain = this :: this.ancestors
@@ -80,7 +80,7 @@ trait Node[N] extends IR { self:N =>
     chain.slice(0, idx+1)
   }
   def descendents:List[Node[_]] = children.flatMap { child => child :: child.descendents }
-  def isDescendentOf(p:Node[_]) = p.isAncestorOf(this)
+  def isDescendentOf(n:Node[_]):Boolean = parent.fold(false) { p => p == n || p.isDescendentOf(n) }
 
   def addEdge(io:Edge) = {
     localEdges += io

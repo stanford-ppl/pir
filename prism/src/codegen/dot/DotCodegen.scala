@@ -82,7 +82,8 @@ trait DotCodegen extends Codegen {
     def getLabel = label.get
     def dir(s:Direction) = { amap += "dir" -> s.field; this }
     def pos(coord:(Double,Double)) = { amap += "pos" -> s"${coord._1},${coord._2}!"; this }
-    def set(header:String, value:String) = { amap += header -> value; this }
+    def url(link:String) = { amap += "URL" -> link; this }
+    def attr(header:String, a:Any) = { amap += header -> a.toString; this }
   }
 
   object DotAttr {

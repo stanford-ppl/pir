@@ -31,8 +31,6 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     }
   }
 
-  //def shape(attr:DotAttr, n:Any) = attr.shape(box)
-
   override def color(attr:DotAttr, n:N) = n match {
     case n:BufferRead => attr.fillcolor(gold).style(filled)
     case n:Memory => attr.fillcolor(chartreuse).style(filled)
@@ -49,35 +47,15 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     case n => super.color(attr, n)
   }
 
-  //def usedByCounter(n:PIRNode) = {
-    //n.collect[Primitive](visitFunc=n.visitGlobalOut, depth=2).filter(isCounter).nonEmpty
-  //}
+  val htmlGen = new PIRHtmlIRPrinter(fileName.replace("top", "IR").replace(".dot", ".html"))
 
-  //override def emitNode(n:N) = {
-    //n match {
-      ////case n:Const[_] if usedByCounter(n) => super.visitNode(n)
-      //case n:High =>
-      //case n:Low =>
-      //case n:Primitive => emitSingleNode(n); super.visitNode(n)
-      //case n => super.emitNode(n) 
-    //}
-  //}
+  override def initPass = {
+    htmlGen.run
+    super.initPass
+  }
 
-  //def areLocal(a:N, b:N) = {
-    //val cuA = a.collectUp[GlobalContainer]().headOption
-    //val cuB = b.collectUp[GlobalContainer]().headOption
-    //cuA == cuB
-  //}
-
-  //override def emitEdge(from:N, to:N, attr:DotAttr) = {
-    //(from, to) match {
-      //case (from:ArgInDef, to) if !areLocal(from, to) =>
-      //case (from:TokenInDef, to) if !areLocal(from, to) =>
-      //case (from, to:ArgIn) if !areLocal(from, to) =>
-      //case (from, to:TokenIn) if !areLocal(from, to) =>
-      //case (from:GlobalOutput, to:GlobalInput) =>
-      //case (from, to) => super.emitEdge(from, to, attr)
-    //}
-  //}
+  override def setAttrs(n:N):DotAttr = {
+    super.setAttrs(n).url(htmlGen.fileName + s"#$n")
+  }
 
 }
