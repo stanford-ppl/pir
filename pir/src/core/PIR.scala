@@ -69,7 +69,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     //addPass(testTraversal)
 
     //// Data  path transformation and analysis
-    addPass(enableDot, new ControlTreeDotGen(s"ctrl1.dot"))
+    addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
     addPass(enableDot, new ControlTreeHtmlIRPrinter(s"ctrl.html"))
     addPass(enableDot, new PIRIRDotGen(s"top1.dot"))
     addPass(deadCodeEliminator)

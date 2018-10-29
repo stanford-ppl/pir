@@ -74,10 +74,8 @@ case class CounterValid(i:Int)(implicit env:Env) extends Def {
   val counter = new InputField[Counter]
 }
 
-case class Controller()(implicit env:Env) extends PIRNode {
+abstract class Controller(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
-  val cchain = new ChildField[Counter, List[Counter]]
-
   val en = new InputField[Option[PIRNode]]
   val parentEn = new InputField[Option[PIRNode]]
 
@@ -86,6 +84,13 @@ case class Controller()(implicit env:Env) extends PIRNode {
 }
 case class ControllerDone()(implicit env:Env) extends Def
 case class ControllerValid()(implicit env:Env) extends Def
+
+case class UnitController()(implicit env:Env) extends Controller
+case class LoopController()(implicit env:Env) extends Controller {
+  /*  ------- Fields -------- */
+  val cchain = new ChildField[Counter, List[Counter]]
+}
+case class DramController()(implicit env:Env) extends Controller
 
 //case class FIFO()(implicit env:BuildEnvironment) extends Memory
 
