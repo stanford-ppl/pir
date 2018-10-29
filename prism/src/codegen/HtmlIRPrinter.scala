@@ -38,11 +38,11 @@ trait HtmlIRPrinter extends IRPrinter with HtmlCodegen {
           text(s"children=${quote(n.children)}")
         text("deps:")
         n.depsFrom.foreach { case (dep, from) => 
-          text(s"${quote(dep)}: ${quote(from)}")
+          text(s"${quote(dep)}${dep.parent.fold(""){ p=> s"(parent=$p)"}}: ${quote(from)}")
         }
         text("depeds:")
         n.depedsFrom.foreach { case (deped, from) => 
-          text(s"${quote(deped)}: ${quote(from)}")
+          text(s"${quote(deped)}${deped.parent.fold(""){ p=> s"(parent=$p)"}}: ${quote(from)}")
         }
       }
       n.localEdges.foreach { edge =>

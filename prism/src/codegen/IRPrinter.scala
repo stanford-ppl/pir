@@ -57,6 +57,8 @@ trait IRPrinter extends Pass with DFSTopDownTopologicalTraversal with Codegen {
   override def quote(n:Any) = n match {
     case n:Iterable[_] => 
       s"[${n.map(quote).mkString(",")}]"
+    case Some(n) => 
+      s"Some(${quote(n)})"
     case n => super.quote(n)
   }
 

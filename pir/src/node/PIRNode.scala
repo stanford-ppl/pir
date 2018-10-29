@@ -13,12 +13,11 @@ abstract class PIRNode(implicit env:BuildEnvironment) extends EnvNode[PIRNode] w
   val srcCtx = new Metadata[String]("srcCtx")
 
   val ctrl = new Metadata[ControlTree]("ctrl") {
-    override def :=(v:ControlTree) = { 
-      super.:=(v)
-      v.pnodes(self)
-    }
     override def reset = {
-      value.foreach { v => v.pnodes.get -= self }
+      self match {
+        case _:Controller => value.foreach { v => v.ctrler.reset }
+        case _ =>
+      }
       super.reset
     }
   }
@@ -28,14 +27,17 @@ abstract class PIRNode(implicit env:BuildEnvironment) extends EnvNode[PIRNode] w
   env.initNode(this)
 }
 
-trait PIRNodeUtil extends MemoryUtil with AccessUtil
+trait PIRNodeUtil extends MemoryUtil with AccessUtil {
+  implicit class PIRNodeOp(n:PIRNode) {
+    def ctx = n.collectUp[Context]().headOption
+    def global = n.collectUp[GlobalContainer]().headOption
+  }
+}
 
 case class ControlTree(schedule:String)(implicit env:Env) extends EnvNode[ControlTree] with FieldNode[ControlTree] { self =>
   lazy val Nct = classTag[ControlTree]
 
-  val pnodes = new Metadata[mutable.ListBuffer[PIRNode]]("ctrl", Some(mutable.ListBuffer.empty)) {
-    def apply(value:PIRNode) = { get += value; self }
-  }
+  val ctrler = new Metadata[Controller]("ctrler")
 
   env.initNode(this)
 }

@@ -17,9 +17,12 @@ class DependencyDuplication(implicit compiler:PIR) extends ContextTraversal with
 
   def bound(visitFunc:N => List[N]):N => List[N] = { n:N =>
     visitFunc(n).filter{ 
-      case n:Memory => false
-      case n:BufferWrite => false
-      case n:HostWrite => false
+      case x:Memory => false
+      case x:BufferWrite => false
+      case x:HostWrite => false
+      case x:BufferRead => 
+        val from = x.in.T
+        from != n && !from.isDescendentOf(n)
       case _ => true
     }
   }

@@ -31,8 +31,7 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
 
   def ctrlValid(ctrl:ControlTree, ctx:Context):PIRNode = {
     // Centralized controller
-    assertOne(ctrl.pnodes.get.collect { case ctrl:Controller => ctrl }, 
-      s"controller for $ctrl").valid
+    ctrl.ctrler.get.valid
     // Distributed controller
     //ctx.collectDown[Controller]().filter { _.ctrl.get == ctrl }.headOption.getOrElse {
     //}.valid
@@ -43,8 +42,7 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
     case ctrl if ctrl == pirTop.hostOutCtrl => pirTop.hostOutDone
     case ctrl => 
       // Centralized controller
-      assertOne(ctrl.pnodes.get.collect { case ctrl:Controller => ctrl }, 
-        s"controller for $ctrl").done
+      ctrl.ctrler.get.done
       // Distributed controller
     //ctx.collectDown[Controller]().filter { _.ctrl.get == ctrl }.headOption.getOrElse {
     //}.done

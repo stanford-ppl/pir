@@ -4,7 +4,7 @@ package pass
 import pir.node._
 import prism.graph._
 
-class MemoryLowering(implicit compiler:PIR) extends MemoryAnalyzer {
+class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
 
   override def runPass = {
     pirTop.collectDown[Memory]().foreach(lowerMem)
@@ -19,25 +19,37 @@ class MemoryLowering(implicit compiler:PIR) extends MemoryAnalyzer {
     cannotToBuffer |= mem.inAccess.size > 1
     if (mem.isFIFO) cannotToBuffer |= mem.outAccess.size > 1
     if (cannotToBuffer) {
-      //createMemCtx(mem)
+      createMemCtx(mem)
     } else {
       lowerToInputBuffer(mem)
     }
   }
 
   def createMemCtx(mem:Memory) = {
-    within(mem.parent.get.as[PIRNode]) {
-      val memCU = MemoryContainer()
+    val memCU = within(mem.parent.get.as[PIRNode]) { MemoryContainer() }
+    within(memCU) {
       swapParent(mem, memCU)
-      mem.accesses.foreach { access =>
-        within(memCU) {
-          val accessCtx = Context()
-          swapParent(access, accessCtx)
-          //access match {
-            //case access:InAccess => bufferInput(accessCtx)
-            //case access:OutAccess => bufferInput(accessCtx) // duplicateInputs(access)
-          //}
+      val accesses = mem.accesses
+      accesses.foreach { access =>
+        val accessCtx = Context()
+        swapParent(access, accessCtx)
+        access match {
+          case access:BankedRead => 
+            bufferOutput(access.out)
+          case access:BankedWrite => 
+            bufferInput(access.bank)
+            bufferInput(access.offset)
+            bufferInput(access.data)
         }
+      }
+      val sorted = accesses.sortBy { _.order.get }
+      sorted.sliding(2, 1).foreach {
+        case List(a, b) =>
+          val (enq, deq) = compEnqDeq(a.ctrl.get, b.ctrl.get, false, a.ctx.get, b.ctx.get)
+          within(a.ctx.get) {
+            BufferWrite()
+          }
+        case List(a) =>
       }
     }
   }
@@ -47,7 +59,7 @@ class MemoryLowering(implicit compiler:PIR) extends MemoryAnalyzer {
     mem.outAccess.foreach { outAccess =>
       within(outAccess.parent.get.as[PIRNode]) {
         val inAccess = mem.inAccess.head.as[MemWrite]
-        val (enq, deq) = compEnqDeq(inAccess.ctrl.get, outAccess.ctrl.get, mem.isFIFO, inAccess.collectUp[Context]().head, outAccess.collectUp[Context]().head)
+        val (enq, deq) = compEnqDeq(inAccess.ctrl.get, outAccess.ctrl.get, mem.isFIFO, inAccess.ctx.get, outAccess.ctx.get)
         val write = within(inAccess.parent.get.as[PIRNode], inAccess.ctrl.get) {
           BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(enq)
         }
