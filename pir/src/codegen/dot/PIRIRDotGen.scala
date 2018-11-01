@@ -6,6 +6,8 @@ import prism.codegen._
 
 class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal with IRDotCodegen { self =>
 
+  override def clearGen = {}
+
   implicit class PIRStringHelper(label:String) {
     def append(field:String, value:Any):String = value match {
       case Const(value) => label + s"\n$field=$value"
@@ -51,6 +53,8 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
 
   val htmlGen = new PIRHtmlIRPrinter(fileName.replace(".dot", "_IR.html")) {
     override lazy val logger = self.logger
+    override def dirName = self.dirName
+    override def clearGen = {}
   }
 
   override def initPass = {

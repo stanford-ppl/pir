@@ -11,6 +11,7 @@ abstract class PIRNode(implicit env:BuildEnvironment) extends EnvNode[PIRNode] w
   val name = new Metadata[String]("name")
   val sname = new Metadata[String]("sname")
   val srcCtx = new Metadata[String]("srcCtx")
+  val vec = new Metadata[Int]("vec")
 
   val ctrl = new Metadata[ControlTree]("ctrl") {
     override def reset = {

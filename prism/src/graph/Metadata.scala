@@ -29,6 +29,10 @@ trait MetadataIR extends Serializable { self =>
     def get:T = value.get
     def nonEmpty = v.nonEmpty
     def isEmpty = v.isEmpty
+    def getOrElseUpdate(v: => T):T = {
+      if (value.isEmpty) :=(v)
+      get
+    }
     def reset = value = default
     def mirror(from:MetadataIR, to:MetadataIR):Option[T] = value
   }

@@ -3,6 +3,13 @@ package graph
 
 import scala.collection.mutable
 
+trait Field[T] extends Serializable {
+  val name:String
+  implicit val Ftt:TypeTag[T]
+  def update(x:Any):Unit
+  def fieldToNodes:Seq[Node[_]]
+  def T:T
+}
 /*
  * With field node the edges are declared with FieldEdge
  * The number of edge must be declared in the IR statically. 
@@ -23,7 +30,7 @@ trait FieldNode[N] extends Node[N] { self:N =>
 
   def Nss = edges.map { e => e.Ns }
 
-  trait Field[T] extends Serializable {
+  trait NodeField[T] extends Field[T] {
     val name:String
     implicit val Ftt:TypeTag[T]
     def apply(xs:Any*):self.type = { xs.foreach(update); self }
@@ -49,7 +56,7 @@ trait FieldNode[N] extends Node[N] { self:N =>
    * Field edge provide helper function to connection of the edge with type of T
    * and read connection of the edge with type of T
    * */
-  trait FieldEdge[T] extends Edge with Field[T] {
+  trait FieldEdge[T] extends Edge with NodeField[T] {
     def fieldToNodes:Seq[Node[_]] = Ns
     def update(x:Any):Unit = {
       unpack(x) { 
@@ -75,7 +82,7 @@ trait FieldNode[N] extends Node[N] { self:N =>
     override def toString = s"${super.toString}_$name"
   }
 
-  class ChildField[M<:FieldNode[_]:ClassTag, T:TypeTag](val name:String) extends Field[T] {
+  class ChildField[M<:FieldNode[_]:ClassTag, T:TypeTag](val name:String) extends NodeField[T] {
     val Ftt = typeTag[T]
     def update(x:Any):Unit = {
       unpack(x) {

@@ -6,7 +6,8 @@ import scala.collection.mutable
 case class ArgOption[T:ClassTag](key:String, default:Option[T], info:String) {
   var value:Option[T]=None
   def getValue = value.orElse(default)
-  def updateValue(values:List[String]) = value = Some(parse(values))
+  def updateValue(value:T):Unit = this.value = Some(value)
+  def updateValue(values:List[String]):Unit = updateValue(parse(values))
   def parse[T:ClassTag](values:List[String]):T = {
     (implicitly[ClassTag[T]] match {
       case ct if ct == classTag[Int] => values.head.toInt
@@ -31,11 +32,15 @@ trait ArgParser {
   def getOption[T](key:String) = optionMap(key).getValue.asInstanceOf[Option[T]]
   def option[T](key:String):T = getOption[T](key).get
 
+  def getArgOption[T](key:String) = optionMap.get(key).asInstanceOf[Option[ArgOption[T]]]
+
   def setOption(args:List[String]):Unit = {
     args match {
       case arg::rest if isOption(arg) =>
         val (key, values, remain) = getValues(arg, rest)
-        optionMap.get(key).foreach { option => option.updateValue(values) }
+        optionMap.get(key).foreach { option =>
+          option.updateValue(values)
+        }
         setOption(remain)
       case _::args => setOption(args)
       case Nil => 

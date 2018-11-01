@@ -37,10 +37,7 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
     //}.valid
   }
 
-  def ctrlDone(ctrl:ControlTree, ctx:Context):PIRNode = ctrl match {
-    case ctrl if ctrl == pirTop.hostInCtrl => pirTop.hostInDone
-    case ctrl if ctrl == pirTop.hostOutCtrl => pirTop.hostOutDone
-    case ctrl => 
+  def ctrlDone(ctrl:ControlTree, ctx:Context):PIRNode = {
       // Centralized controller
       ctrl.ctrler.get.done
       // Distributed controller

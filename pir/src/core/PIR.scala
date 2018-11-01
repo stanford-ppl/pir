@@ -54,6 +54,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
   //lazy val cuPlacer = new CUPlacer()
 
   ///* Codegen */
+  lazy val tungstenPIRGen = new TungstenPIRGen()
   //lazy val cuStats = new CUStatistics()
   //lazy val psimConfigCodegen = new PlastisimConfigCodegen()
   //lazy val psimPlacementCodegen = new PlastisimPlacementCodegen()
@@ -89,6 +90,9 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(enableDot, new PIRIRDotGen(s"top6.dot"))
     addPass(enableDot, new PIRSimpleDotGen[Context](s"simple6.dot"))
     //addPass(bufferInsertion)
+    
+
+    addPass(enableCodegen, tungstenPIRGen)
 
     //addPass(constantExpressionEvaluator)
     //addPass(controlPropogator)

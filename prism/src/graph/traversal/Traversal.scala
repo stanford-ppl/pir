@@ -207,7 +207,7 @@ trait TopDownTopologicalTraversal extends HierarchicalTopologicalTraversal with 
 }
 
 trait DFSTopDownTopologicalTraversal extends TopDownTopologicalTraversal with ChildFirstTraversal
-trait BFSTopDownTopDownTopologicalTraversal extends TopDownTopologicalTraversal with SiblingFirstTraversal
+trait BFSTopDownTopologicalTraversal extends TopDownTopologicalTraversal with SiblingFirstTraversal
 
 trait BottomUpTopologicalTraversal extends HierarchicalTopologicalTraversal {
   override def depedFunc(n:N):List[N] = n.parent.toList ++ super.depedFunc(n)

@@ -23,6 +23,11 @@ trait FileManager {
     val logs = getListOfFiles(outDir).filter(isLog)
     logs.foreach(deleteFile)
   }
+
+  def clearDir(outDir:String) = {
+    val logs = getListOfFiles(outDir)
+    logs.foreach(deleteFile)
+  }
   
   def getListOfFiles(dir: String):List[File] = {
     val d = new File(dir)

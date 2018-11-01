@@ -54,6 +54,7 @@ trait PIRApp extends PIR with Logging {
       } catch {
         case e@(_:SessionRestoreFailure | _:java.io.InvalidClassException | _:java.io.FileNotFoundException | _:ClassCastException) =>
           warn(s"Restore design failed: ${e}")
+          config.getArgOption[Int]("start-id").get.updateValue(0)
         case e:Throwable => throw e
       }
     }

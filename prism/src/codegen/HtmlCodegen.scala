@@ -4,6 +4,7 @@ package codegen
 import prism.graph._
 
 trait HtmlCodegen extends Codegen {
+  override def dirName = buildPath(super.dirName, s"html") 
 
   def text(msg:String) = {
     emitElem("text",msg + "<br>")

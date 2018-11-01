@@ -8,7 +8,7 @@ trait MemoryNode extends PIRNode {
   /*  ------- Metadata -------- */
   val inits = Metadata[List[Any]]("inits")
   val dims = Metadata[List[Int]]("dims", default=List(1))
-  val banks = Metadata[List[Int]]("banks")
+  val banks = Metadata[List[Int]]("banks", default=List(1))
   val depth = Metadata[Int]("depth", default=1)
 }
 
@@ -34,8 +34,10 @@ case class Top()(implicit env:Env) extends PIRNode {
   val hostOutCtrl = ControlTree("Sequenced").setParent(topCtrl)
   val hostRead = HostRead().setParent(argFringe).ctrl(hostOutCtrl)
   val hostWrite = HostWrite().setParent(argFringe).ctrl(hostInCtrl)
-  val hostInDone = HostWrite().setParent(argFringe).ctrl(hostInCtrl)
-  val hostOutDone = HostWrite().setParent(argFringe).ctrl(hostOutCtrl)
+  val hostInCtrler = UnitController().setParent(argFringe).ctrl(hostInCtrl)
+  val hostOutCtrler = UnitController().setParent(argFringe).ctrl(hostOutCtrl)
+  hostInCtrl.ctrler(hostInCtrler)
+  hostOutCtrl.ctrler(hostOutCtrler)
 }
 
 trait GlobalContainer extends PIRNode
@@ -70,10 +72,10 @@ case class Counter(par:Int)(implicit env:Env) extends Def {
   def valids = this.collectOut[CounterValid]().sortBy { _.i }
 }
 
-case class CounterIter(i:Int)(implicit env:Env) extends Def {
+case class CounterIter(i:Option[Int])(implicit env:Env) extends Def {
   val counter = new InputField[Counter]("counter")
 }
-case class CounterValid(i:Int)(implicit env:Env) extends Def {
+case class CounterValid(i:Option[Int])(implicit env:Env) extends Def {
   val counter = new InputField[Counter]("counter")
 }
 
@@ -94,24 +96,6 @@ case class LoopController()(implicit env:Env) extends Controller {
   val cchain = new ChildField[Counter, List[Counter]]("cchain")
 }
 case class DramController()(implicit env:Env) extends Controller
-
-//case class FIFO()(implicit env:BuildEnvironment) extends Memory
-
-//case class Reg()(implicit env:BuildEnvironment) extends Memory
-//case class ArgIn()(implicit env:BuildEnvironment) extends Memory
-//case class ArgOut()(implicit env:BuildEnvironment) extends Memory
-//case class DramAddress(dram:DRAM)(implicit env:BuildEnvironment) extends Memory
-
-//trait Stream extends Memory {
-  //val field:String
-//}
-//case class StreamIn(field:String)(implicit env:BuildEnvironment) extends Stream
-//case class StreamOut(field:String)(implicit env:BuildEnvironment) extends Stream
-
-//case class TokenIn()(implicit env:BuildEnvironment) extends Memory
-//case class TokenOut()(implicit env:BuildEnvironment) extends Memory
-
-//case class RetimingFIFO()(implicit env:BuildEnvironment) extends Memory
 
 trait MemoryUtil extends CollectorImplicit {
 

@@ -87,6 +87,7 @@ lazy val pir = Project("pir",
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/codegen/logger/PIRIRPrinter.scala").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/codegen/dot/PIRIRDotGen.scala").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/codegen/dot/ControllerTreeDotGen.scala").value,
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/codegen/tungsten/").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node").value
 )
 

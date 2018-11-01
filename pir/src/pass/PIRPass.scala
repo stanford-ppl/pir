@@ -3,6 +3,7 @@ package pir
 import prism.graph._
 import pir.node._
 import pir.util._
+import pir.pass._
 //import pir.mapper._
 
 abstract class PIRPass(implicit override val compiler:PIR) extends Pass 
@@ -11,10 +12,10 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
   with GraphUtilImplicits 
   with CollectorImplicit
   with PIRNodeUtil 
+  with RuntimeAnalyzer
   //with prism.traversal.GraphUtil  
   //with spade.SpadeAlias 
   //with RoutingUtil 
-  //with RuntimeUtil 
   //with TypeUtil 
   //with MappingUtil
   //with MappingLogger
