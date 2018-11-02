@@ -6,8 +6,6 @@ import prism.graph._
 
 class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
 
-  val tokenBufferDepth = 32
-
   override def runPass = {
     pirTop.collectDown[Memory]().foreach(lowerMem)
   }
@@ -68,19 +66,12 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
     }
   }
 
-  def insertToken(a:Access, b:Access) = {
+  def insertToken(a:Access, b:Access):BufferRead = {
     val actx = a.ctx.get
     val bctx = b.ctx.get
     val actrl = a.ctrl.get
     val bctrl = b.ctrl.get
-    val (enq, deq) = compEnqDeq(actrl, bctrl, false, actx, bctx)
-    val write = within(actx, actrl) {
-      BufferWrite().data(Const(true)).en(enq)
-    }
-    within(bctx, bctrl) {
-      val tr = bctx.collectDown[TokenRead]().headOption.getOrElse(TokenRead())
-      BufferRead(isFIFO = a.ctrl.get==b.ctrl.get).in(write).en(deq).out(tr.input).depth(tokenBufferDepth)
-    }
+    insertToken(actx, bctx, actrl, bctrl)
   }
 
   def lowerToBuffer(mem:Memory) = {

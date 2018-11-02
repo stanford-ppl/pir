@@ -24,7 +24,7 @@ trait TungstenOpGen extends TungstenCodegen {
           n.ctx.get.collectDown[Controller]().filter { _.ctrl.get == n.ctrl.get }, 
           s"$n.ctrler"
         )
-        emitln(s"${enName} &= ${ctrler.valid}")
+        emitln(s"${enName} &= ${ctrler.valid.T};")
       case _ =>
     }
   }
@@ -41,24 +41,52 @@ trait TungstenOpGen extends TungstenCodegen {
     }
   }
 
+  override def visitIn(n:N) = n match {
+    case n:BufferRead => super.visitIn(n).filterNot{_.isInstanceOf[BufferWrite]}
+    case n => super.visitIn(n)
+  }
+
+  override def visitOut(n:N) = n match {
+    case n:BufferWrite => super.visitOut(n).filterNot{_.isInstanceOf[BufferRead]}
+    case n => super.visitOut(n)
+  }
+
   override def emitNode(n:N) = n match {
+    case n:HostInController =>
+      emitEn(n.en)
+      emitEn(n.parentEn)
+      visitNode(n.valid)
+      emitln(s"""float ${n}_done = 1;""")
+      visitNode(n.done)
+
+    case n:HostOutController =>
+      emitEn(n.en)
+      emitEn(n.parentEn)
+      visitNode(n.valid)
+      emitln(s"""float ${n}_done = 1;""")
+      visitNode(n.done)
+
     case n:UnitController =>
       emitEn(n.en)
       emitEn(n.parentEn)
-      emitln(s"""float ${n}_done = ${n}_valid;""")
+      visitNode(n.valid)
+      emitln(s"""float ${n}_done = ${n.valid.T};""")
+      visitNode(n.done)
 
     case n:LoopController =>
       emitEn(n.en)
       emitEn(n.parentEn)
-      visitNode(n)
+      visitNode(n.valid)
       val cchain = n.cchain.T
+      cchain.foreach(visitNode)
+      emitln(s"if (${n}_en) ${cchain.last}->Inc();")
       cchain.sliding(2, 1).foreach {
         case List(outer, inner) =>
           emitln(s"if ($inner->Done()) $outer->Inc();")
         case _ =>
       }
-      emitln(s"if (${n}_en) ${cchain.last}->Inc();")
       emitln(s"""float ${n}_done = (float) ${cchain.head}->Done();""")
+      visitNode(n.done)
 
     case n:ControllerDone =>
       val ctrler = n.collectUp[Controller]().head
@@ -105,7 +133,13 @@ trait TungstenOpGen extends TungstenCodegen {
         emitBlock(s"for (int i = 0; i < ${n.getVec}; i++)") {
           emitln(s"$n.floatVec_[i] = ${quoteRef(data).cast("float")}")
         }
-        emitln(s"pipe_${n}.Push($n)")
+        val (accumReads, otherReads) = n.out.T.partition { _.isPipeReg.get }
+        accumReads.foreach { read =>
+          emitln(s"fifo_$read.Push($n)")
+        }
+        if (otherReads.nonEmpty) {
+          emitln(s"pipe_${n}.Push($n)")
+        }
         emitln(s"")
       }
 

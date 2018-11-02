@@ -6,6 +6,22 @@ import prism.graph._
 
 trait MemoryAnalyzer extends PIRPass with Transformer {
 
+  val tokenBufferDepth = 32 //TODO
+
+  def insertToken(actx:Context, bctx:Context, actrl:ControlTree, bctrl:ControlTree):BufferRead = {
+    val (enq, deq) = compEnqDeq(actrl, bctrl, false, actx, bctx)
+    val write = within(actx, actrl) {
+      BufferWrite().data(Const(true)).en(enq)
+    }
+    dbg(s"add $write")
+    val read = within(bctx, bctrl) {
+      val tr = bctx.collectDown[TokenRead]().headOption.getOrElse(TokenRead())
+      BufferRead(isFIFO = actrl==bctrl).in(write).en(deq).out(tr.input).depth(tokenBufferDepth)
+    }
+    dbg(s"add $read")
+    read
+  }
+
   def compEnqDeq(a:ControlTree, b:ControlTree, isFIFO:Boolean, actx:Context, bctx:Context):(PIRNode, PIRNode) = 
   dbgblk(s"compEnqDeq($a, $b, isFIFO=$isFIFO, actx=$actx, bctx=$bctx)"){
     if (a == b || isFIFO) {
@@ -30,19 +46,25 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
   }
 
   def ctrlValid(ctrl:ControlTree, ctx:Context):PIRNode = {
-    // Centralized controller
-    ctrl.ctrler.get.valid
-    // Distributed controller
-    //ctx.collectDown[Controller]().filter { _.ctrl.get == ctrl }.headOption.getOrElse {
-    //}.valid
+    if (!compiler.hasRun[DependencyDuplication]) {
+      // Centralized controller
+      ctrl.ctrler.get.valid
+    } else {
+      // Distributed controller
+      assertOne(ctx.collectDown[ControllerValid]().filter { _.ctrl.get == ctrl }, 
+        s"ctrlValid with ctrl=$ctrl in $ctx")
+    }
   }
 
   def ctrlDone(ctrl:ControlTree, ctx:Context):PIRNode = {
+    if (!compiler.hasRun[DependencyDuplication]) {
       // Centralized controller
       ctrl.ctrler.get.done
+    } else {
       // Distributed controller
-    //ctx.collectDown[Controller]().filter { _.ctrl.get == ctrl }.headOption.getOrElse {
-    //}.done
+      assertOne(ctx.collectDown[ControllerDone]().filter { _.ctrl.get == ctrl }, 
+        s"ctrlDone with ctrl=$ctrl in $ctx")
+    }
   }
 
 }

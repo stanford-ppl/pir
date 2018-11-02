@@ -29,6 +29,8 @@ case class MemRead()(implicit env:Env) extends ReadAccess
 case class MemWrite()(implicit env:Env) extends WriteAccess
 
 case class BufferRead(isFIFO:Boolean)(implicit env:Env) extends Def with MemoryNode {
+  val isPipeReg = Metadata[Boolean]("isPipeReg", default=false)
+
   val in = new InputField[BufferWrite]("in")
   val en = new InputField[Option[PIRNode]]("en")
   val initToken = Metadata[Boolean]("initToken", default=false)

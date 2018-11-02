@@ -147,12 +147,12 @@ trait ScalaUtilFunc {
 
   implicit class LongOp(i:Long) {
     // Round up division
-    def /! (d:Long) = (i.toDouble / d.toDouble).ceil.toLong
+    def /! (d:Long) = (i + d - 1) / d
   }
 
   implicit class IntOp(i:Int) {
     // Round up division
-    def /! (d:Int) = (i.toFloat / d.toFloat).ceil.toInt
+    def /! (d:Int) = (i + d - 1) / d
   }
 
   def log2(x:Int) = (Math.log(x) / Math.log(2)).ceil.toInt
