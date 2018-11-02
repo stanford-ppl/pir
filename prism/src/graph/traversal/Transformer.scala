@@ -151,7 +151,7 @@ trait Transformer extends Logging {
   def mirrorN(n:N, mapping:mutable.Map[N,N]=mutable.Map.empty):N = {
     val margs = newInstanceArgs(n, mapping)
     mapping.getOrElseUpdate(n, {
-      val m = n.newInstance[N](margs)
+      val m = dbgblk(s"mirrorN($n)") { n.newInstance[N](margs) }
       m.mirrorMetas(n)
       m
     })

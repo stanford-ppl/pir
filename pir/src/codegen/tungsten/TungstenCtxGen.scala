@@ -18,7 +18,11 @@ trait TungstenCtxGen extends TungstenCodegen {
 #include "context.h"
 """)
     val reads = ctx.collectDown[BufferRead]()
-    val writes = ctx.collectDown[BufferWrite]()
+    val writes = ctx.collectDown[BufferWrite]().filter { write =>
+      val writeCtx = write.ctx.get
+      write.out.T.exists { _.ctx.get != writeCtx }
+    }
+    val ctrs = ctx.collectDown[Counter]()
     // Declare externs
     writes.foreach { write =>
       write.out.T.foreach { read =>
@@ -38,13 +42,18 @@ trait TungstenCtxGen extends TungstenCodegen {
     writes.foreach { write =>
       emitln(s"""ValPipeline<Token, $numStages> *pipe_${write} = new ValPipeline<Token, $numStages>("pipe_${write}");""")
     }
+    ctrs.foreach { ctr =>
+      emitln(s"Counter<${ctr.par}> $ctr;")
+    }
     emitln(s"public:")
     emitBlock(s"""explicit $ctx():Context<Token, $numStages>("$ctx")""") {
       reads.foreach { read =>
         emitln(s"""addInput(fifo_${read});""")
+        emitln(s"""addChild(fifo_${read});""")
       }
       writes.foreach { write =>
         emitln(s"""addPipe(pipe_${write});""")
+        emitln(s"""addChild(pipe_${write});""")
         write.out.T.foreach { read =>
           emitln(s"""addSend(${read});""")
         }
@@ -57,16 +66,6 @@ trait TungstenCtxGen extends TungstenCodegen {
     emit(s"""
 };
 """)
-  }
-
-  def declarePipesAndSends(ctx:Context) = {
-  }
-
-  def declareCounters(ctx:Context) = {
-    val ctrs = ctx.collectDown[Counter]()
-    ctrs.foreach { ctr =>
-      emitln(s"Counter<${ctr.par}> $ctr;")
-    }
   }
 
   override def emitNode(n:N) = n match {

@@ -94,4 +94,5 @@ trait GraphUtilImplicits {
     def visitGlobalOut:List[N] = graph.visitGlobalOut(node)
     def leastCommonAncesstor(n2:N):Option[N] = graph.leastCommonAncesstor(node, n2)
   }
+  implicit def field[T](f:Field[T]):T = f.T
 }

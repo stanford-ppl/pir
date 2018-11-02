@@ -36,7 +36,6 @@ class DependencyDuplication(implicit compiler:PIR) extends ContextTraversal with
     deps = deps.filterNot(n => n == ctx)
     dbg(s"deps=$deps")
     val mapping = within(ctx) { mirrorAll(deps) }
-    dbg(s"mapping=$mapping")
     mapping.foreach { case (dep, mdep) =>
       dep.localDepeds.filter { _.isDescendentOf(ctx) }.foreach { n =>
         swapDep(n, dep, mdep)

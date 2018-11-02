@@ -85,7 +85,30 @@ trait PIRApp extends PIR with Logging {
     //new prism.codegen.BasicIRDotGen(".", s"loaded.dot", loaded).run
   //}
   
-  def staging:Top
+  def staging:Top = {
+    val top = Top()
+    within(top) {
+      within(ArgFringe()) {
+        within(top.hostInCtrl) {
+          top.hostInCtrl.ctrler(HostInController().valid(ControllerValid()).done(ControllerDone()))
+          HostWrite()
+        }
+        within(top.hostOutCtrl) {
+          top.hostOutCtrl.ctrler(HostOutController().valid(ControllerValid()).done(ControllerDone()))
+          HostRead()
+
+        }
+      }
+    }
+    beginState(top)
+    beginState(top.topCtrl)
+    staging(top)
+    endState(top)
+    endState(top.topCtrl)
+    top
+  }
+
+  def staging(top:Top):Unit
 
 }
 

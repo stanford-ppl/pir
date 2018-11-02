@@ -26,7 +26,7 @@ trait MetadataIR extends Serializable { self =>
     def update(v:Any) = :=(v.asInstanceOf[T])
     def apply(value:T):self.type = { :=(value); self }
     def v:Option[T] = value
-    def get:T = value.get
+    def get:T = value.getOrElse(throw PIRException(s"$self.$name is empty"))
     def nonEmpty = v.nonEmpty
     def isEmpty = v.isEmpty
     def getOrElseUpdate(v: => T):T = {

@@ -29,19 +29,19 @@ case class LUT()(implicit env:Env) extends Memory
 
 case class Top()(implicit env:Env) extends PIRNode {
   val topCtrl = ControlTree("Pipelined")
-  val argFringe = ArgFringe().setParent(this)
   val hostInCtrl = ControlTree("Sequenced").setParent(topCtrl)
   val hostOutCtrl = ControlTree("Sequenced").setParent(topCtrl)
-  val hostRead = HostRead().setParent(argFringe).ctrl(hostOutCtrl)
-  val hostWrite = HostWrite().setParent(argFringe).ctrl(hostInCtrl)
-  val hostInCtrler = UnitController().setParent(argFringe).ctrl(hostInCtrl)
-  val hostOutCtrler = UnitController().setParent(argFringe).ctrl(hostOutCtrl)
-  hostInCtrl.ctrler(hostInCtrler)
-  hostOutCtrl.ctrler(hostOutCtrler)
+
+  lazy val argFringe = this.collectDown[ArgFringe]().head
+  lazy val hostRead = argFringe.collectDown[HostRead]().head
+  lazy val hostWrite = argFringe.collectDown[HostWrite]().head
 }
 
 trait GlobalContainer extends PIRNode
-case class ArgFringe()(implicit env:Env) extends GlobalContainer
+case class ArgFringe()(implicit env:Env) extends GlobalContainer {
+  val hostInCtrler = new ChildField[HostInController, HostInController]("hostInController")
+  val hostOutCtrler = new ChildField[HostOutController, HostOutController]("hostOutController")
+}
 case class MemoryContainer()(implicit env:Env) extends GlobalContainer
 case class Context()(implicit env:Env) extends PIRNode
 
@@ -84,12 +84,14 @@ abstract class Controller(implicit env:Env) extends PIRNode {
   val en = new InputField[Option[PIRNode]]("en")
   val parentEn = new InputField[Option[PIRNode]]("parentEn")
 
-  val valid = ControllerValid().resetParent(this)
-  val done = ControllerDone().resetParent(this)
+  val valid = new ChildField[ControllerValid, ControllerValid]("cchain")
+  val done = new ChildField[ControllerDone, ControllerDone]("cchain")
 }
 case class ControllerDone()(implicit env:Env) extends Def
 case class ControllerValid()(implicit env:Env) extends Def
 
+case class HostInController()(implicit env:Env) extends Controller
+case class HostOutController()(implicit env:Env) extends Controller
 case class UnitController()(implicit env:Env) extends Controller
 case class LoopController()(implicit env:Env) extends Controller {
   /*  ------- Fields -------- */
