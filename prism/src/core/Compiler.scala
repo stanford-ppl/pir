@@ -31,12 +31,11 @@ trait Compiler extends FileManager with ArgLoader with Session {
     config.setOption(args.toList)
   }
 
-  def initSession:Unit = {}
-
   def main(args: Array[String]): Unit = {
     var succeed = false
     try {
       setArgs(args)
+      loadSession
       reset
       info(s"Output directory set to ${cstr(Console.CYAN,outDir)}")
       initSession
@@ -46,6 +45,5 @@ trait Compiler extends FileManager with ArgLoader with Session {
         err(e, exception=false)
         handle(e)
     }
-    if (!succeed) System.exit(1)
   }
 }

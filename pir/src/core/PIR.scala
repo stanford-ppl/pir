@@ -66,6 +66,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
   //lazy val areaPowerStat = new AreaPowerStat()
 
   override def initSession = {
+    super.initSession
     import config._
 
     //addPass(testTraversal)
@@ -93,7 +94,8 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(enableDot, new PIRSimpleDotGen[Context](s"simple6.dot"))
     //addPass(bufferInsertion)
     
-
+    saveSession
+    
     addPass(enableCodegen, tungstenPIRGen)
 
     //addPass(constantExpressionEvaluator)

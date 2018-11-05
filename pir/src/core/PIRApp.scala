@@ -47,43 +47,20 @@ trait PIRApp extends PIR with Logging {
     //obj.instance.asInstanceOf[Spade]
   //}
   
-  override def initSession:Unit = {
-    if (config.load)  {
-      try {
-        _pirTop = Some(loadFromFile[Top](config.checkPointPath))
-      } catch {
-        case e@(_:SessionRestoreFailure | _:java.io.InvalidClassException | _:java.io.FileNotFoundException | _:ClassCastException) =>
-          warn(s"Restore design failed: ${e}")
-          config.getArgOption[Int]("start-id").get.updateValue(0)
-        case e:Throwable => throw e
-      }
-    }
+  override def loadDesign(loaded:Any) = {
+    _pirTop = Some(loaded.asInstanceOf[Top])
+  }
+
+  override def loadSession = {
+    super.loadSession
     if (_pirTop.isEmpty) {
       tic(s"Creating new design ...")
       _pirTop = Some(staging)
       toc(s"New design", "ms")
     }
-    super.initSession
   }
 
-  override def runSession = {
-    val succeed = super.runSession
-    if (config.save) {
-      saveToFile(pirTop, config.checkPointPath)
-      loadFromFile[Top](config.checkPointPath)
-    }
-    succeed
-  }
-
-  //override def main(args:Array[String]): Unit = {
-    //val (top, topCtrl) = staging
-    //new prism.codegen.BasicIRDotGen(".", s"top.dot", top).run
-    //new prism.codegen.BasicIRDotGen(".", s"ctrl.dot", topCtrl).run
-    //val path = buildPath(config.outDir, "top.pir")
-    //saveToFile(top, path)
-    //val loaded = loadFromFile[Top](path)
-    //new prism.codegen.BasicIRDotGen(".", s"loaded.dot", loaded).run
-  //}
+  override def getDesign = _pirTop.get
   
   def staging:Top = {
     val top = Top()

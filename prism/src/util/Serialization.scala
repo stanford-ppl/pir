@@ -26,4 +26,3 @@ trait Serialization {
   }
 }
 
-trait Serializable extends scala.Serializable

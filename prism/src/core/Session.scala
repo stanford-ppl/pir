@@ -24,6 +24,29 @@ trait Session { self:Compiler =>
     runner
   }
 
+  def loadSession = {
+    val opt = config.getArgOption[Int]("start-id").get 
+    if (config.load)  {
+      try {
+        val (startId, design) = loadFromFile[(Int, Serializable)](config.checkPointPath)
+        loadDesign(design)
+        if (opt.getValue.isEmpty) opt.updateValue(startId+1)
+      } catch {
+        case e@(_:SessionRestoreFailure | _:java.io.InvalidClassException | _:java.io.FileNotFoundException | _:ClassCastException) =>
+          warn(s"Restore design failed: ${e}")
+          opt.updateValue(0)
+        case e:Throwable => throw e
+      }
+    }
+    if (opt.getValue.isEmpty) opt.updateValue(0)
+  }
+
+  def initSession:Unit = {}
+
+  def loadDesign(loaded:Any):Unit = {}
+  def getDesign:Serializable = null
+  def saveSession = addPass(new SaveSession())
+
   var currRun:Runner[_] = _
   def runSession:Boolean = {
     passes.foreach { case (pass, _) => pass.reset }
@@ -60,6 +83,16 @@ trait Session { self:Compiler =>
       runner.setPass(pass)
       runner.initPending
       runner
+    }
+  }
+}
+
+class SaveSession(implicit compiler:Compiler) extends Pass {
+  override def runPass = {
+    if (config.save) {
+      val saved = (runner.id, compiler.getDesign)
+      saveToFile(saved, config.checkPointPath)
+      loadFromFile[(Int, Serializable)](config.checkPointPath)
     }
   }
 }

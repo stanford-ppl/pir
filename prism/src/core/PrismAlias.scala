@@ -18,7 +18,6 @@ trait PrismLocalAlias extends Misc with MappingUtil with ScalaUtil with FileMana
   type MappingFailure = prism.mapper.MappingFailure
 
   //type Metadata = prism.util.Metadata
-  type Serializable = prism.util.Serializable
   val ConsoleLogger=prism.util.ConsoleLogger
 
   type Op = prism.enums.Op

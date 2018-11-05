@@ -4,7 +4,7 @@ package collection1
 import scala.collection.Map
 import scala.collection.Set
 
-abstract class MapType[TK:ClassTag,TV:ClassTag,TVV:ClassTag] extends prism.util.Serializable {
+abstract class MapType[TK:ClassTag,TV:ClassTag,TVV:ClassTag] extends Serializable {
   type K = TK
   type V = TV
   type VV = TVV

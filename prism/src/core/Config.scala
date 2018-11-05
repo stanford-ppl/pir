@@ -11,7 +11,7 @@ class Config(compiler:Compiler) extends ArgParser {
   register("debug", true, "Enable debug")
   register[String]("out", "pir/out", "Output directory for pir compiler.")
   register("verbose", false, "Enter verbose mode")
-  register("start-id", default=0, "Runner ID to start with")
+  register[Int]("start-id", "Runner ID to start with")
   register[String]("name", defaultName, "name of the application")
   register[String]("check-point-path", "pir/out/checkpoint.pir", "Path for checkpoint")
   register("load", false, "Load checkpoint")
@@ -25,7 +25,7 @@ class Config(compiler:Compiler) extends ArgParser {
   }
   def name = option[String]("name")
   def startRunId = option[Int]("start-id")
-  def load = startRunId != 0 && option[Boolean]("load")
+  def load = getOption[Int]("start-id").fold(true) { _ != 0 } && option[Boolean]("load")
   def save = option[Boolean]("save")
   def checkPointPath = option[String]("check-point-path")
   def enableCodegen = option[Boolean]("codegen")
