@@ -5,8 +5,10 @@ import prism.graph._
 
 trait Access extends PIRNode {
   val order = Metadata[Int]("order")
+  val port = Metadata[Option[Int]]("port")
 
   val en = new InputField[List[PIRNode]]("en")
+  val done = new InputField[PIRNode]("done")
   def mem:FieldEdge[Memory]
 }
 trait BanckedAccess extends Access {
@@ -32,13 +34,13 @@ case class BufferRead(isFIFO:Boolean)(implicit env:Env) extends Def with MemoryN
   val isPipeReg = Metadata[Boolean]("isPipeReg", default=false)
 
   val in = new InputField[BufferWrite]("in")
-  val en = new InputField[Option[PIRNode]]("en")
+  val done = new InputField[PIRNode]("done")
   val initToken = Metadata[Boolean]("initToken", default=false)
 }
 case class BufferWrite()(implicit env:Env) extends PIRNode {
   val out = new OutputField[List[BufferRead]]("out")
   val data = new InputField[PIRNode]("data")
-  val en = new InputField[Option[PIRNode]]("en")
+  val done = new InputField[PIRNode]("done")
 }
 
 trait AccessUtil {
@@ -49,7 +51,15 @@ trait AccessUtil {
       case x:BufferWrite => x.data.T.traceTo(y)
       case x => false
     }
-  }
+    def isInAccess:Boolean = x match {
+      case x:InAccess => true
+      case x => false
+    }
+    def isOutAccess:Boolean = x match {
+      case x:OutAccess => true
+      case x => false
+    }
+  } 
   implicit class EdgeOp(x:Edge) {
     def traceTo(y:PIRNode):Boolean = 
       x.connected.exists { _.src.traceTo(y) }

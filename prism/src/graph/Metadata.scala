@@ -29,6 +29,7 @@ trait MetadataIR extends Serializable { self =>
     def get:T = value.getOrElse(throw PIRException(s"$self.$name is empty"))
     def nonEmpty = v.nonEmpty
     def isEmpty = v.isEmpty
+    def map[A](func:T => A):Option[A] = value.map(func)
     def getOrElseUpdate(v: => T):T = {
       if (value.isEmpty) :=(v)
       get

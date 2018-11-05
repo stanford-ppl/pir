@@ -10,7 +10,7 @@ trait Logging extends Serializable {
     override def emit(s:String):Unit = if (debug && isOpened) { super.emit(s); flush }
     override def emitln(s:String):Unit = if (debug && isOpened) { super.emitln(s); flush }
 
-    override def emitBlock[T](bs:Option[String], b:Option[Braces], es:Option[()=>String])(block: =>T):T = if (debug && isOpened) { 
+    override def emitBlock[T](bs:Option[String], b:Option[Braces], es:Option[String])(block: =>T):T = if (debug && isOpened) { 
       emitBSln(bs, b, None)
       val res = block
       val resHeader = s"result${bs.fold("") { bs => s" [$bs]"}} ="
@@ -26,7 +26,7 @@ trait Logging extends Serializable {
           res.foreach { res => dbg(s" - ${quote(res)}") }
         case res => dbg(resHeader + s" ${quote(res)}")
       }
-      emitBEln(None, b, es.map(es => es()))
+      emitBEln(None, b, es)
       res
     } else block
   }

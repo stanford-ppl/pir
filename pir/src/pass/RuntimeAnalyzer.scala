@@ -9,6 +9,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
 
   implicit class PIRNodeRuntimeOp(n:PIRNode) {
     def getVec:Int = n.vec.getOrElseUpdate(compVec(n))
+    def getCtrl:ControlTree = n.ctrl.get
   }
   def compVec(n:PIRNode):Int = dbgblk(s"compVec($n)"){
     n match {

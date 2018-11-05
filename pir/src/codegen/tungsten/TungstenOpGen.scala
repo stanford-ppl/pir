@@ -6,79 +6,36 @@ import prism.graph._
 import prism.codegen._
 import scala.collection.mutable
 
-trait TungstenOpGen extends TungstenCodegen {
-
-  def quoteRef(n:PIRNode) = {
-    if (n.getVec > 1) s"${n}[i]" else s"${n}"
-  }
-
-
-  def emitEn(en:Input with Field[_]):Unit = {
-    val src = en.src
-    val ens = en.neighbors
-    val enName = s"${src}_${en.name}"
-    emitln(s"float $enName = ${ens.map { _.toString}.foldLeft("1"){ case (prev,b) => s"$prev & $b" }};")
-    en.src match {
-      case n:BufferWrite =>
-        val ctrler = assertOne(
-          n.ctx.get.collectDown[Controller]().filter { _.ctrl.get == n.ctrl.get }, 
-          s"$n.ctrler"
-        )
-        emitln(s"${enName} &= ${ctrler.valid.T};")
-      case _ =>
-    }
-  }
-
-  def emitVec(n:PIRNode)(rhs:Any) = {
-    val vec = n.getVec
-    if (vec > 1) {
-      emitln(s"float $n[${vec}] = {};")
-      emitBlock(s"for (int i = 0; i < ${vec}; i++)") {
-        emitln(s"$n[i] = ${rhs}")
-      }
-    } else {
-      emitln(s"float ${n} = ${rhs}")
-    }
-  }
-
-  override def visitIn(n:N) = n match {
-    case n:BufferRead => super.visitIn(n).filterNot{_.isInstanceOf[BufferWrite]}
-    case n => super.visitIn(n)
-  }
-
-  override def visitOut(n:N) = n match {
-    case n:BufferWrite => super.visitOut(n).filterNot{_.isInstanceOf[BufferRead]}
-    case n => super.visitOut(n)
-  }
+trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
   override def emitNode(n:N) = n match {
     case n:HostInController =>
       emitEn(n.en)
       emitEn(n.parentEn)
-      visitNode(n.valid)
+      emitNode(n.valid)
       emitln(s"""float ${n}_done = 1;""")
-      visitNode(n.done)
+      emitNode(n.done)
 
     case n:HostOutController =>
       emitEn(n.en)
       emitEn(n.parentEn)
-      visitNode(n.valid)
+      emitNode(n.valid)
       emitln(s"""float ${n}_done = 1;""")
-      visitNode(n.done)
+      emitNode(n.done)
 
     case n:UnitController =>
       emitEn(n.en)
       emitEn(n.parentEn)
-      visitNode(n.valid)
+      emitNode(n.valid)
       emitln(s"""float ${n}_done = ${n.valid.T};""")
-      visitNode(n.done)
+      emitNode(n.done)
 
     case n:LoopController =>
       emitEn(n.en)
       emitEn(n.parentEn)
-      visitNode(n.valid)
+      emitNode(n.valid)
       val cchain = n.cchain.T
-      cchain.foreach(visitNode)
+      cchain.foreach(emitNode)
       emitln(s"if (${n}_en) ${cchain.last}->Inc();")
       cchain.sliding(2, 1).foreach {
         case List(outer, inner) =>
@@ -86,7 +43,7 @@ trait TungstenOpGen extends TungstenCodegen {
         case _ =>
       }
       emitln(s"""float ${n}_done = (float) ${cchain.head}->Done();""")
-      visitNode(n.done)
+      emitNode(n.done.T)
 
     case n:ControllerDone =>
       val ctrler = n.collectUp[Controller]().head
@@ -94,9 +51,12 @@ trait TungstenOpGen extends TungstenCodegen {
 
     case n:ControllerValid =>
       val ctrler = n.collectUp[Controller]().head
-      emitln(s"float $n = ${ctrler}_en & ${ctrler}_parentEn;'")
+      emitln(s"float $n = ${ctrler}_en & ${ctrler}_parentEn;")
 
     case n:Counter =>
+      genFields {
+        emitln(s"Counter<${n.par}> $n;")
+      }
       emitln(s"$n->min=${n.min.T};")
       emitln(s"$n->step=${n.step.T};")
       emitln(s"$n->max=${n.max.T};")
@@ -120,29 +80,6 @@ trait TungstenOpGen extends TungstenCodegen {
     case n@Const(v) =>
       emitln(s"float $n = (float) $v;")
 
-    case n:BufferRead =>
-      emitVec(n)(s"fifo_${n}->Read()${if (n.getVec==0) "[0]" else ""};")
-      emitEn(n.en)
-      emitln(s"if (${n}_en) $n->Pop();")
-
-    case n:BufferWrite =>
-      val data = n.data.T
-      emitEn(n.en)
-      emitBlock(s"if (${n}_en)") {
-        emitln(s"Token ${n} = Token();")
-        emitBlock(s"for (int i = 0; i < ${n.getVec}; i++)") {
-          emitln(s"$n.floatVec_[i] = ${quoteRef(data).cast("float")}")
-        }
-        val (accumReads, otherReads) = n.out.T.partition { _.isPipeReg.get }
-        accumReads.foreach { read =>
-          emitln(s"fifo_$read.Push($n)")
-        }
-        if (otherReads.nonEmpty) {
-          emitln(s"pipe_${n}.Push($n)")
-        }
-        emitln(s"")
-      }
-
     case n@OpDef("RegAccumFMA") =>
       val inputs = n.input.T
       var instr = ""
@@ -158,4 +95,5 @@ trait TungstenOpGen extends TungstenCodegen {
 
     case n => super.emitNode(n)
   }
+
 }

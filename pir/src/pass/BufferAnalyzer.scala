@@ -48,22 +48,22 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     val (enq, deq) = compEnqDeq(dep.ctrl.get, deped.ctrl.get, false, depCtx, depedCtx)
     val write = assertOneOrLess(depCtx.collectDown[BufferWrite]().filter { write =>
       write.data.traceTo(dep) &&
-      write.en.traceTo(enq)
-    }, s"bufferWrite from $dep with en=$enq in $depCtx").getOrElse {
+      write.done.traceTo(enq)
+    }, s"bufferWrite from $dep with done=$enq in $depCtx").getOrElse {
       within(depCtx, dep.ctrl.get) {
-        val write = BufferWrite().data(dep).en(enq)
-        dbg(s"create $write.data($dep).en($enq)")
+        val write = BufferWrite().data(dep).done(enq)
+        dbg(s"create $write.data($dep).done($enq)")
         //bufferInput(write)
         write
       }
     }
     val read = assertOneOrLess(depedCtx.collectDown[BufferRead]().filter { read =>
       read.in.traceTo(write) &&
-      read.en.traceTo(deq)
-    }, s"bufferRead from $write with en=$deq in $depedCtx").getOrElse {
+      read.done.traceTo(deq)
+    }, s"bufferRead from $write with done=$deq in $depedCtx").getOrElse {
       within(depedCtx, deped.ctrl.get) {
-        val read = BufferRead(isFIFO=dep.ctrl.get == deped.ctrl.get).in(write).en(deq)
-        dbg(s"create $read.in($write).en($deq)")
+        val read = BufferRead(isFIFO=dep.ctrl.get == deped.ctrl.get).in(write).done(deq)
+        dbg(s"create $read.in($write).done($deq)")
         //bufferInput(read)
         read
       }

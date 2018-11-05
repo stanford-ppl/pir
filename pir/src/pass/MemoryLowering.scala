@@ -16,6 +16,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
       dbg(s"access=$access order=${access.order.v}")
     }
     var cannotToBuffer = accesses.exists { _.isInstanceOf[BanckedAccess] }
+    cannotToBuffer &= accesses.exists { _.en.T.nonEmpty }
     cannotToBuffer |= mem.inAccess.size > 1
     if (mem.isFIFO) cannotToBuffer |= mem.outAccess.size > 1
     if (cannotToBuffer) {
@@ -44,21 +45,52 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
         }
       }
       // Insert token between accesses based on program order
-      val sorted = accesses.sortBy { _.order.get }
-      sorted.sliding(2, 1).foreach {
-        case List(a, b) => insertToken(a,b)
-        case List(a) =>
-      }
+      //val sorted = accesses.sortBy { _.order.get }
+      //sorted.sliding(2, 1).foreach {
+        //case List(a, b) => insertToken(a,b)
+        //case List(a) =>
+      //}
       // Insert token for loop carried dependency
-      val lcaCtrl = leastCommonAncesstor(accesses.map(_.ctrl.get)).get
-      (lcaCtrl::lcaCtrl.descendents).foreach { ctrl =>
-        if (ctrl.as[ControlTree].ctrler.get.isInstanceOf[LoopController]) {
-          val accesses = sorted.filter { a => a.ctrl.get.isDescendentOf(ctrl) || a.ctrl == ctrl }
-          if (accesses.nonEmpty) {
-            dbg(s"$ctrl accesses = ${accesses}")
-            zipOption(accesses.head.to[ReadAccess], accesses.last.to[WriteAccess]).foreach { case (r, w) =>
-              val token = insertToken(w, r)
-              token.initToken := true
+      //val lcaCtrl = leastCommonAncesstor(accesses.map(_.ctrl.get)).get
+      //(lcaCtrl::lcaCtrl.descendents).foreach { ctrl =>
+        //if (ctrl.as[ControlTree].ctrler.get.isInstanceOf[LoopController]) {
+          //val accesses = sorted.filter { a => a.ctrl.get.isDescendentOf(ctrl) || a.ctrl == ctrl }
+          //if (accesses.nonEmpty) {
+            //dbg(s"$ctrl accesses = ${accesses}")
+            //zipOption(accesses.head.to[ReadAccess], accesses.last.to[WriteAccess]).foreach { case (r, w) =>
+              //val token = insertToken(w, r)
+              //token.initToken := true
+            //}
+          //}
+        //}
+      //}
+      sequencedScheduleBarrierInsertion(mem)
+    }
+  }
+
+    // Insert token for sequencial control dependency
+  def sequencedScheduleBarrierInsertion(mem:Memory) = {
+    val ctrls = mem.accesses.flatMap { a => a.getCtrl :: a.getCtrl.ancestors }.distinct.asInstanceOf[Seq[ControlTree]]
+    ctrls.foreach { ctrl =>
+      if (ctrl.schedule == "Sequenced") {
+        val accesses = ctrl.children.flatMap { c => 
+          val childCtrl = c.as[ControlTree]
+          val childAccesses = mem.accesses.filter { a => 
+            a.getCtrl.isDescendentOf(childCtrl) || a.getCtrl == childCtrl
+          }
+          if (childAccesses.nonEmpty) Some((childCtrl, childAccesses)) else None
+        }
+        if (accesses.nonEmpty) {
+          dbgblk(s"Insert token for sequenced schedule of $ctrl") {
+            accesses.sliding(2, 1).foreach{
+              case List((fromCtrl, from), (toCtrl, to)) =>
+                from.foreach { fromAccess =>
+                  to.foreach { toAccess =>
+                    dbg(s"Insert token between $fromAccess ($fromCtrl) and $toAccess ($toCtrl)")
+                    insertToken(fromAccess.ctx.get, toAccess.ctx.get, fromCtrl, toCtrl).depth(1)
+                  }
+                }
+              case _ =>
             }
           }
         }
@@ -66,12 +98,39 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
     }
   }
 
-  def insertToken(a:Access, b:Access):BufferRead = {
-    val actx = a.ctx.get
-    val bctx = b.ctx.get
-    val actrl = a.ctrl.get
-    val bctrl = b.ctrl.get
-    insertToken(actx, bctx, actrl, bctrl)
+  def multiBufferBarrierInsertion(mem:Memory):Unit = {
+    if (mem.depth.get == 1) return
+    val accesses = mem.accesses.filter { _.port.nonEmpty }
+    val ctrlMap = leastMatchedPeers(accesses.map { _.getCtrl} ).get
+    // Connect access.done
+    accesses.foreach { access =>
+      val ctrl = ctrlMap(access.getCtrl).as[ControlTree]
+      access.done(ctrlDone(ctrl, access.ctx.get))
+    }
+    val portMap = mem.accesses.groupBy { access =>
+      access.port.v.get
+    }
+    val portIds = portMap.keys.toList.sorted
+    portIds.sliding(2,1).foreach {
+      case List(fromid, toid) =>
+        portMap(fromid).foreach { fromAccess =>
+          portMap(toid).foreach { toAccess =>
+            dbg(s"Insert token for multibuffer between $fromAccess and $toAccess")
+            val buffer = insertToken(
+              fromAccess.ctx.get, 
+              toAccess.ctx.get, 
+              ctrlMap(fromAccess.getCtrl).as[ControlTree], 
+              ctrlMap(toAccess.getCtrl).as[ControlTree]
+            )
+            //if (fromAccess.isInAccess == toAccess.isInAccess) { // Single buffer token
+              //buffer.depth(1)
+            //} else { // Double buffer token
+              buffer.depth(2)
+            //}
+          }
+        }
+      case _ =>
+    }
   }
 
   def lowerToBuffer(mem:Memory) = {
@@ -81,13 +140,13 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
         val inAccess = mem.inAccess.head.as[MemWrite]
         val (enq, deq) = compEnqDeq(inAccess.ctrl.get, outAccess.ctrl.get, mem.isFIFO, inAccess.ctx.get, outAccess.ctx.get)
         val write = within(inAccess.parent.get.as[PIRNode], inAccess.ctrl.get) {
-          BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(enq)
+          BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).done(enq)
         }
-        dbg(s"create $write.data(${inAccess.data.neighbors}).en($enq)")
+        dbg(s"create $write.data(${inAccess.data.neighbors}).done($enq)")
         val read = within(outAccess.parent.get.as[PIRNode], outAccess.ctrl.get) {
-          BufferRead(mem.isFIFO).in(write.out).mirrorMetas(mem).en(deq)
+          BufferRead(mem.isFIFO).in(write.out).mirrorMetas(mem).done(deq)
         }
-        dbg(s"create $read.in(${write}).en($deq)")
+        dbg(s"create $read.in(${write}).done($deq)")
         if (inAccess.order.get < outAccess.order.get ) read.initToken := true
         outAccess.depeds.foreach { deped =>
           swapConnection(deped, outAccess.as[Def].out, read.out)
