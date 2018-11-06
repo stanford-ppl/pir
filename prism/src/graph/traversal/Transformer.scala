@@ -87,11 +87,19 @@ trait Transformer extends Logging {
   }
 
   def disconnect(a:N, b:N) = {
-    val pairs = a.edges.flatMap { aio => 
+    dbg(s"disconnect($a, $b)")
+    val pairs = a.localEdges.flatMap { aio => 
       aio.connected.filter{ _.src == b }.map { bio => (aio, bio) }
     }
     assert(pairs.nonEmpty, s"$a is not connected to $b, a.connected=${a.deps++a.depeds}")
     pairs.foreach { case (aio,bio) => aio.disconnectFrom(bio) }
+  }
+
+  def disconnect(a:Edge, b:N) = {
+    dbg(s"disconnect($a, $b)")
+    val bios = a.connected.filter { _.src == b }
+    assert(bios.nonEmpty, s"$a is not connected to $b, a.connected=${a.neighbors}")
+    bios.foreach { bio => a.disconnectFrom(bio) }
   }
 
   def mirrorAll(nodes:Iterable[N], mapping:mutable.Map[N,N]=mutable.Map.empty):mutable.Map[N,N] = {
@@ -128,9 +136,9 @@ trait Transformer extends Logging {
         val mio = m.localIns(idx)
         io.connected.foreach { c => 
           val cs = c.src
-          val cidx = cs.edges.indexOf(c)
+          val cidx = cs.localEdges.indexOf(c)
           val mcs = mapping.getOrElse(cs, cs)
-          val mc = mcs.edges(cidx)
+          val mc = mcs.localEdges(cidx)
           mio.connect(mc)
         }
       }

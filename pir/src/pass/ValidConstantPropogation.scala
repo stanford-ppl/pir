@@ -4,11 +4,18 @@ package pass
 import pir.node._
 import prism.graph._
 
-class ValidConstantPropogation(implicit compiler:PIR) extends PIRPass {
+class ValidConstantPropogation(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with Transformer {
 
-  override def runPass = {
-    val ctrs = pirTop.collectDown[Counter]()
-    ctrs.foreach(propogate)
+  override def visitNode(n:N) = {
+    n match {
+      case n:Counter => propogate(n)
+      case n => 
+        val ens = n.localIns.filter { in => 
+          in.asInstanceOf[Field[_]].name == "en"
+        }
+        ens.foreach { propogateEn }
+    }
+    super.visitNode(n)
   }
 
   def propogate(counter:Counter) = dbgblk(s"propogate($counter)"){
@@ -32,7 +39,11 @@ class ValidConstantPropogation(implicit compiler:PIR) extends PIRPass {
         edge.disconnectFrom(c)
       }
     }
+  }
 
+  def propogateEn(en:Input) = {
+    val constEns = en.neighbors.filter { case Const(true) => true; case _ => false }
+    constEns.foreach { constEn => disconnect(en, constEn) }
   }
 
 }

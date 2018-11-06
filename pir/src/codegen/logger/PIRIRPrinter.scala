@@ -4,9 +4,7 @@ package codegen
 import pir.node._
 import prism.codegen._
 
-class PIRIRPrinter(val fileName:String)(implicit compiler:PIR) extends PIRTraversal with IRPrinter {
-  override def qdef(n:N) = s"${quote(n)}(${n.as[Product].productIterator.map(quote).mkString(",")})"
-}
+class PIRIRPrinter(val fileName:String)(implicit compiler:PIR) extends PIRTraversal with IRPrinter
 class PIRHtmlIRPrinter(fileName:String)(implicit compiler:PIR) extends PIRIRPrinter(fileName) with HtmlIRPrinter {
   override def quote(n:Any) = n match {
     case n:ControlTree =>
@@ -14,6 +12,4 @@ class PIRHtmlIRPrinter(fileName:String)(implicit compiler:PIR) extends PIRIRPrin
     case n => super.quote(n)
   }
 }
-class ControlTreeHtmlIRPrinter(val fileName:String)(implicit compiler:PIR) extends ControlTreeTraversal with HtmlIRPrinter {
-  override def qdef(n:N) = s"${quote(n)}(${n.to[ControlTree].productIterator.map(quote).mkString(",")})"
-}
+class ControlTreeHtmlIRPrinter(val fileName:String)(implicit compiler:PIR) extends ControlTreeTraversal with HtmlIRPrinter

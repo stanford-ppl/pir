@@ -43,6 +43,7 @@ trait PIRApp extends PIR with Logging {
         }
       }
       argOuts.clear
+      dramAddrs.clear
       toc(s"New design", "ms")
     }
   }
@@ -52,6 +53,7 @@ trait PIRApp extends PIR with Logging {
   /* Helper function during staging graph */
 
   val argOuts = scala.collection.mutable.ListBuffer[Reg]()
+  val dramAddrs = scala.collection.mutable.Map[DRAM, Reg]()
 
   implicit class NodeHelper[T](x:T) {
     def sctx(c:String):T = x.to[PIRNode].fold(x) { xx => xx.srcCtx(c); x }
@@ -72,17 +74,20 @@ trait PIRApp extends PIR with Logging {
   }
 
   def dramAddress(dram:DRAM) = {
-    val mem = Reg()
-    within(pirTop.argFringe, pirTop.hostInCtrl) {
-      MemWrite().setMem(mem).data(DRAMAddr(dram)) // DRAMDef
-    }
+    val mem = dramAddrs.getOrElseUpdate(dram, {
+      val mem = Reg()
+      within(pirTop.argFringe, pirTop.hostInCtrl) {
+        MemWrite().setMem(mem).data(DRAMAddr(dram).name(dram.sid)) // DRAMDef
+      }
+      mem
+    })
     MemRead().setMem(mem)
   }
   
   def argIn(name:String) = {
     val mem = Reg().name(name)
     within(pirTop.argFringe, pirTop.hostInCtrl) {
-      MemWrite().setMem(mem).data(HostWrite(name))
+      MemWrite().setMem(mem).data(HostWrite(name).name(name))
     }
     mem
   }

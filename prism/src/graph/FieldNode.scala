@@ -5,7 +5,7 @@ import scala.collection.mutable
 
 trait Field[T] extends Serializable {
   val name:String
-  implicit val Ftt:TypeTag[T]
+  implicit val Ttt:TypeTag[T]
   def update(x:Any):Unit
   def fieldToNodes:Seq[Node[_]]
   def T:T
@@ -32,7 +32,8 @@ trait FieldNode[N] extends Node[N] { self:N =>
 
   trait NodeField[T] extends Field[T] {
     val name:String
-    implicit val Ftt:TypeTag[T]
+    implicit val Ttt:TypeTag[T]
+    implicit val Tct:ClassTag[T]
     def apply(xs:Any*):self.type = { xs.foreach(update); self }
     def update(x:Any):Unit
     def fieldToNodes:Seq[Node[_]]
@@ -48,7 +49,9 @@ trait FieldNode[N] extends Node[N] { self:N =>
         case tp if tp <:< typeOf[Node[_]] =>
           assertOne(nodes, s"$self.$this.T=Node[_]")
       }
-      t.asInstanceOf[T]
+      t.to[T].getOrElse {
+        throw PIRException(s"$self.$this cannot be evaluated to ${Tct}")
+      }
     }
   }
 
@@ -72,18 +75,21 @@ trait FieldNode[N] extends Node[N] { self:N =>
     }
   }
   
-  class InputField[T:TypeTag](val name:String) extends Input()(self) with FieldEdge[T] {
-    val Ftt = typeTag[T]
+  class InputField[T:TypeTag:ClassTag](val name:String) extends Input()(self) with FieldEdge[T] {
+    val Ttt = typeTag[T]
+    val Tct = classTag[T]
     override def toString = s"${super.toString}_$name"
   }
   
-  class OutputField[T:TypeTag](val name:String) extends Output()(self) with FieldEdge[T] {
-    val Ftt = typeTag[T]
+  class OutputField[T:TypeTag:ClassTag](val name:String) extends Output()(self) with FieldEdge[T] {
+    val Ttt = typeTag[T]
+    val Tct = classTag[T]
     override def toString = s"${super.toString}_$name"
   }
 
-  class ChildField[M<:FieldNode[_]:ClassTag, T:TypeTag](val name:String) extends NodeField[T] {
-    val Ftt = typeTag[T]
+  class ChildField[M<:FieldNode[_]:ClassTag, T:TypeTag:ClassTag](val name:String) extends NodeField[T] {
+    val Ttt = typeTag[T]
+    val Tct = classTag[T]
     def update(x:Any):Unit = {
       unpack(x) {
         case x:M => 
