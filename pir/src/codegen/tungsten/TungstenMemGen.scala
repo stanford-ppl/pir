@@ -24,24 +24,15 @@ trait TungstenMemGen extends TungstenCodegen {
       val data = n.data.T
       val reads = n.out.T
       val send = s"fifo_$n"
-      val pipe = s"pipe_$n"
       genTop {
         emitln(s"""FIFO<Token, 4> $send("$send");""")
       }
       genTopEnd {
         val bcArgs = reads.map { read => s"ctx_${read.ctx.get}->fifo_${read}" }
-        emitln(s"Broadcast<Token> bc_$n(${send.&}, {${bcArgs.mkString(",")}})")
+        emitln(s"Broadcast<Token> bc_$n(${send.&}, {${bcArgs.mkString(",")}});")
         dutArgs += s"bc_$n"
       }
-      genFields {
-        emitln(s"""ValPipeline<Token, $numStages> *$pipe = new ValPipeline<Token, $numStages>("$pipe");""")
-      }
       addEscapeVar(s"CheckSend<Token>", s"$send")
-      genInits {
-        emitln(s"""addPipe($pipe);""")
-        emitln(s"""addChild($pipe);""")
-        emitln(s"""addSend($send);""")
-      }
       data match {
         case data:BankedRead =>
           genPush {
@@ -50,17 +41,26 @@ trait TungstenMemGen extends TungstenCodegen {
               emitBlock(s"for (int i = 0; i < ${n.getVec}; i++)") {
                 emitln(s"$n.floatVec_[i] = ${data}->ReadData()[i];")
               }
-              emitln(s"pipe_${n}.Push(${n}_respond);")
+              emitln(s"$send.Push(${n}_respond);")
             }
           }
 
         case data =>
+          val pipe = s"pipe_$n"
+          genFields {
+            emitln(s"""ValPipeline<Token, $numStages> *$pipe = new ValPipeline<Token, $numStages>("$pipe");""")
+          }
+          genInits {
+            emitln(s"""addPipe($pipe);""")
+            emitln(s"""addChild($pipe);""")
+            emitln(s"""addSend($send);""")
+          }
           emitIf(s"${n.done.T}") {
             emitln(s"Token ${n} = Token();")
             emitBlock(s"for (int i = 0; i < ${n.getVec}; i++)") {
               emitln(s"$n.floatVec_[i] = ${quoteRef(data).cast("float")};")
             }
-            emitln(s"pipe_${n}.Push($n);")
+            emitln(s"$pipe.Push($n);")
           }
       }
 

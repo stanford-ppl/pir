@@ -30,7 +30,7 @@ trait TungstenTopGen extends TungstenCodegen {
 
   override def finPass = {
     getBuffer("top_end").foreach { _.flushTo(sw) }
-    emitln(s"Module DUT({${dutArgs.map(_.&).mkString(",")}})")
+    emitln(s"Module DUT({${dutArgs.map(_.&).mkString(",")}});")
     emitln(
 """
 #endif // TEST_PCU_ACC_H_
