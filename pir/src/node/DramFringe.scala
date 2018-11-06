@@ -30,7 +30,7 @@ case class FringeSparseStore(dram:DRAM)(implicit env:Env) extends DRAMFringe {
   val ack = new OutputField[Access]("ack")
 }
 
-case class DRAM(name:String) extends prism.graph.IR
+case class DRAM(sid:String) extends prism.graph.IR
 
 //case class CountAck(ack:Def)(implicit env:Env) extends ControlNode
 

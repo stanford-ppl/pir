@@ -32,12 +32,9 @@ case class LUT()(implicit env:Env) extends Memory
 
 case class Top()(implicit env:Env) extends PIRNode {
   val topCtrl = ControlTree("Pipelined")
-  val hostInCtrl = ControlTree("Sequenced").setParent(topCtrl)
-  val hostOutCtrl = ControlTree("Sequenced").setParent(topCtrl)
-
-  lazy val argFringe = this.collectDown[ArgFringe]().head
-  lazy val hostRead = argFringe.collectDown[HostRead]().head
-  lazy val hostWrite = argFringe.collectDown[HostWrite]().head
+  var hostInCtrl:ControlTree = _
+  var hostOutCtrl:ControlTree = _
+  var argFringe:ArgFringe = _
 }
 
 trait GlobalContainer extends PIRNode
@@ -61,10 +58,11 @@ case class RegAccumOp(op:String)(implicit env:Env) extends Def {
   val en = new InputField[Set[PIRNode]]("en")
   val first = new InputField[PIRNode]("first")
 }
-case class HostRead()(implicit env:Env) extends Def {
-  val input = new InputField[List[PIRNode]]("input")
+case class HostRead(sid:String)(implicit env:Env) extends Def {
+  val input = new InputField[PIRNode]("input")
 }
-case class HostWrite()(implicit env:Env) extends Def
+case class HostWrite(sid:String)(implicit env:Env) extends Def
+case class DRAMAddr(dram:DRAM)(implicit env:Env) extends Def
 case class TokenRead()(implicit env:Env) extends Def {
   val input = new InputField[List[BufferRead]]("input")
 }

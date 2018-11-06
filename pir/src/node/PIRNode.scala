@@ -17,6 +17,10 @@ abstract class PIRNode(implicit env:BuildEnvironment) extends EnvNode[PIRNode] w
   }
 
   val ctrl = new Metadata[ControlTree]("ctrl") {
+    override def apply(value:ControlTree) = self match {
+      case self:GlobalContainer => getSelf
+      case self => super.apply(value)
+    }
     override def reset = {
       self match {
         case _:Controller => value.foreach { v => v.ctrler.reset }

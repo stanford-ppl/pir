@@ -16,7 +16,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
       dbg(s"access=$access order=${access.order.v}")
     }
     var cannotToBuffer = accesses.exists { _.isInstanceOf[BanckedAccess] }
-    cannotToBuffer |= accesses.exists { _.en.T.nonEmpty }
+    cannotToBuffer |= mem.inAccess.exists { _.en.T.nonEmpty }
     cannotToBuffer |= mem.inAccess.size > 1
     if (mem.isFIFO) cannotToBuffer |= mem.outAccess.size > 1
     if (cannotToBuffer) {
@@ -43,6 +43,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
             bufferInput(access.bank)
             bufferInput(access.offset)
             bufferInput(access.data)
+          case _ =>
         }
       }
       // Insert token between accesses based on program order

@@ -45,5 +45,6 @@ trait Compiler extends FileManager with ArgLoader with Session {
         err(e, exception=false)
         handle(e)
     }
+    if (!succeed) err(s"Compilation failed", false)
   }
 }

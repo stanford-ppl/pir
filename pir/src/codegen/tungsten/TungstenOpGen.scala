@@ -111,6 +111,18 @@ trait TungstenOpGen extends TungstenCodegen {
       }
 
     case n:TokenRead =>
+      emitln(s"// TokenRead $n")
+
+    case n:HostRead =>
+      emitln(s"""std::ofstream stream_$n("${n.sid}.txt");""")
+      emitln(s"""stream_$n << ${n.input.T};""")
+      emitln(s"""stream_$n.close();""")
+
+    case n:HostWrite =>
+      emitln(s"float $n;")
+      emitln(s"""std::ifstream stream_$n("${n.sid}.txt");""")
+      emitln(s"""stream_$n >> $n;""")
+      emitln(s"""stream_$n.close();""")
 
     case n => super.emitNode(n)
   }

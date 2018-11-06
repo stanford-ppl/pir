@@ -12,6 +12,7 @@ trait MetadataIR extends Serializable { self =>
     metadata += name -> this
 
     override def toString = s"$self.$name"
+    def getSelf:self.type = self
     def apply(value:T):self.type = { :=(value); self }
     def get:T = value.getOrElse(throw PIRException(s"$self.$name is empty"))
   }

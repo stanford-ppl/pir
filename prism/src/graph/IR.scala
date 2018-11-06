@@ -22,4 +22,3 @@ trait IR extends Serializable with MetadataIR {
   def newInstance[T](args:Seq[Any]):T = this.getClass.newInstanceAs[T](args)
 
 }
-
