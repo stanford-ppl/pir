@@ -18,8 +18,6 @@ trait TungstenTopGen extends TungstenCodegen {
 #include "module.h"
 #include "state.h"
 #include "token.h"
-
-#include "pcu_acc.h"
 """)
 
   }
@@ -31,7 +29,8 @@ trait TungstenTopGen extends TungstenCodegen {
   }
 
   override def finPass = {
-    emitln(s"Module DUT(${top.collectDown[Context]().map { ctx => s"ctx_${ctx}".&}.mkString(",")})")
+    getBuffer("top_end").foreach { _.flushTo(sw) }
+    emitln(s"Module DUT({${dutArgs.map(_.&).mkString(",")}})")
     emitln(
 """
 #endif // TEST_PCU_ACC_H_

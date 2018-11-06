@@ -12,7 +12,7 @@ trait Node[N] extends IR { self:N =>
   val localEdges = mutable.ListBuffer[Edge]()
 
   /*  ------- Metadata -------- */
-  val pos = new Metadata[(Double,Double)]("pos")
+  val pos = Metadata[(Double,Double)]("pos")
 
   /*  ------- functions -------- */
   // Parent

@@ -21,7 +21,7 @@ trait Field[T] extends Serializable {
  * */
 trait FieldNode[N] extends Node[N] { self:N =>
   implicit val n:Node[_] = this
-  val idx = new Metadata[Int]("idx")
+  val idx = Metadata[Int]("idx")
 
   def asInput:Option[Input] = None
   def asOutput:Option[Output] = None
@@ -41,7 +41,7 @@ trait FieldNode[N] extends Node[N] { self:N =>
       val t = typeOf[T] match {
         case tp if tp <:< typeOf[List[Node[_]]] => 
           nodes.toList
-        case tp if tp <:< typeOf[Set[Node[_]]] =>
+        case tp if tp <:< typeOf[Set[_]] =>
           nodes.toSet
         case tp if tp <:< typeOf[Option[Node[_]]] => 
           assertOneOrLess(nodes, s"$self.$this.T=Option[Node[_]]")

@@ -11,7 +11,7 @@ trait Transformer extends Logging {
 
   def removeNode(node:N) = {
     dbg(s"Remove $node")
-    node.metadata.foreach{_.reset}
+    node.metadata.values.foreach{_.reset}
     val neighbors = node.neighbors
     node.edges.foreach { io => 
       val connected = io.connected.map(_.src)

@@ -10,6 +10,9 @@ trait MemoryNode extends PIRNode {
   val dims = Metadata[List[Int]]("dims", default=List(1))
   val banks = Metadata[List[Int]]("banks", default=List(1))
   val depth = Metadata[Int]("depth", default=1)
+  def getBanks = banks.get
+  def getDepth = depth.get
+  def bankDims = getBanks.size
 }
 
 abstract class Memory(implicit env:Env) extends MemoryNode with DefNode[PIRNode] {
@@ -52,6 +55,11 @@ trait Def extends PIRNode with DefNode[PIRNode] {
 case class Const(value:Any)(implicit env:Env) extends Def
 case class OpDef(op:String)(implicit env:Env) extends Def {
   val input = new InputField[List[PIRNode]]("input")
+}
+case class RegAccumOp(op:String)(implicit env:Env) extends Def {
+  val in = new InputField[PIRNode]("input")
+  val en = new InputField[Set[PIRNode]]("en")
+  val first = new InputField[PIRNode]("first")
 }
 case class HostRead()(implicit env:Env) extends Def {
   val input = new InputField[List[PIRNode]]("input")

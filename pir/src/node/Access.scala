@@ -8,12 +8,13 @@ trait Access extends PIRNode {
   val port = Metadata[Option[Int]]("port")
 
   val en = new InputField[List[PIRNode]]("en")
-  val done = new InputField[PIRNode]("done")
+  val done = new InputField[Option[PIRNode]]("done")
   def mem:FieldEdge[Memory]
+  def isBroadcast = port.get.isEmpty
 }
 trait BanckedAccess extends Access {
   val bank = new InputField[List[PIRNode]]("bank")
-  val offset = new InputField[List[PIRNode]]("offset")
+  val offset = new InputField[PIRNode]("offset")
 }
 trait InAccess extends Access { // Memory as output
   val mem = new OutputField[Memory]("mem")
@@ -31,7 +32,7 @@ case class MemRead()(implicit env:Env) extends ReadAccess
 case class MemWrite()(implicit env:Env) extends WriteAccess
 
 case class BufferRead(isFIFO:Boolean)(implicit env:Env) extends Def with MemoryNode {
-  val isPipeReg = Metadata[Boolean]("isPipeReg", default=false)
+  //val isPipeReg = Metadata[Boolean]("isPipeReg", default=false)
 
   val in = new InputField[BufferWrite]("in")
   val done = new InputField[PIRNode]("done")

@@ -30,6 +30,8 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
       .append("par", n.par)
     }.foldAt(n.to[OpDef]) { (q,n) =>
       s"$q\n${n.op}"
+    }.foldAt(n.to[MemoryNode]) { (q,n) =>
+      q.append("banks", n.banks.get)
     }.foldAt(n.to[Context]) { (q,n) =>
       s"$q\nctrls:\n${n.collectDown[Controller]().map { _.ctrl.get }.mkString("\n")}"
     }

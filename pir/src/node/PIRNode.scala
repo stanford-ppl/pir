@@ -9,9 +9,12 @@ abstract class PIRNode(implicit env:BuildEnvironment) extends EnvNode[PIRNode] w
   lazy val Nct = classTag[PIRNode]
 
   val name = new Metadata[String]("name")
-  val sname = new Metadata[String]("sname")
-  val srcCtx = new Metadata[String]("srcCtx")
-  val vec = new Metadata[Int]("vec")
+  val sname = new Metadata[String]("sname") {
+    override def check(v:String) = {}
+  }
+  val srcCtx = new Metadata[String]("srcCtx") {
+    override def check(v:String) = {}
+  }
 
   val ctrl = new Metadata[ControlTree]("ctrl") {
     override def reset = {

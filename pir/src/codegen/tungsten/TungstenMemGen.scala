@@ -6,58 +6,147 @@ import prism.graph._
 import prism.codegen._
 import scala.collection.mutable
 
-trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
+trait TungstenMemGen extends TungstenCodegen {
 
   override def emitNode(n:N) = n match {
     case n:BufferRead =>
       genFields {
         val depth = n.depth.get
-        emitln(s"""FIFO<Token, $depth> fifo_${n} = new FIFO<Token, $depth>("$n")""")
+        emitln(s"""FIFO<Token, $depth> *fifo_${n} = new FIFO<Token, $depth>("$n")""")
       }
       genInits {
         emitln(s"""addInput(fifo_$n);""")
         emitln(s"""addChild(fifo_$n);""")
       }
-      emitVec(n)(s"fifo_${n}->Pop(${n.done.T})${if (n.getVec==0) "[0]" else ""};")
+      emitVec(n)(s"fifo_${n}->Pop(${n.done.T})${if (n.getVec==1) "[0]" else "[i]"};")
 
     case n:BufferWrite =>
       val data = n.data.T
-      genExtern {
-        n.out.T.foreach { read =>
-          emitln(s"extern CheckedSend<Token>* $read;")
-        }
+      val reads = n.out.T
+      val send = s"fifo_$n"
+      val pipe = s"pipe_$n"
+      genTop {
+        emitln(s"""FIFO<Token, 4> $send("$send");""")
+      }
+      genTopEnd {
+        val bcArgs = reads.map { read => s"ctx_${read.ctx.get}->fifo_${read}" }
+        emitln(s"Broadcast<Token> bc_$n(${send.&}, {${bcArgs.mkString(",")}})")
+        dutArgs += s"bc_$n"
       }
       genFields {
-        emitln(s"""ValPipeline<Token, $numStages> *pipe_${n} = new ValPipeline<Token, $numStages>("pipe_${n}");""")
+        emitln(s"""ValPipeline<Token, $numStages> *$pipe = new ValPipeline<Token, $numStages>("$pipe");""")
       }
+      addEscapeVar(s"CheckSend<Token>", s"$send")
       genInits {
-        emitln(s"""addPipe(pipe_${n});""")
-        emitln(s"""addChild(pipe_${n});""")
-        n.out.T.foreach { read =>
-          emitln(s"""addSend(${read});""")
-        }
+        emitln(s"""addPipe($pipe);""")
+        emitln(s"""addChild($pipe);""")
+        emitln(s"""addSend($send);""")
+      }
+      data match {
+        case data:BankedRead =>
+          genPush {
+            emitIf(s"${data}->Valid()") {
+              emitln(s"Token ${n}_respond = Token();")
+              emitBlock(s"for (int i = 0; i < ${n.getVec}; i++)") {
+                emitln(s"$n.floatVec_[i] = ${data}->ReadData()[i];")
+              }
+              emitln(s"pipe_${n}.Push(${n}_respond);")
+            }
+          }
+
+        case data =>
+          emitIf(s"${n.done.T}") {
+            emitln(s"Token ${n} = Token();")
+            emitBlock(s"for (int i = 0; i < ${n.getVec}; i++)") {
+              emitln(s"$n.floatVec_[i] = ${quoteRef(data).cast("float")};")
+            }
+            emitln(s"pipe_${n}.Push($n);")
+          }
       }
 
-      emitBlock(s"if (${n.done.T})") {
-        emitln(s"Token ${n} = Token();")
-        emitBlock(s"for (int i = 0; i < ${n.getVec}; i++)") {
-          emitln(s"$n.floatVec_[i] = ${quoteRef(data).cast("float")}")
-        }
-        val (accumReads, otherReads) = n.out.T.partition { _.isPipeReg.get }
-        accumReads.foreach { read =>
-          emitln(s"fifo_$read.Push($n)")
-        }
-        if (otherReads.nonEmpty) {
-          emitln(s"pipe_${n}.Push($n)")
-        }
-      }
+    case n:SRAM =>
+      val banks = n.banks.get
+      emitln(s"""${tpOf(n)} $n("$n", {${banks.mkString(",")}});""")
+
+    case n:LUT =>
+      val banks = n.banks.get
+      emitln(s"""${tpOf(n)} $n("$n", {${banks.mkString(",")}});""")
 
     case n:BankedRead =>
+      val mem = n.mem.T
+      val reader = s"reader_${n}"
+      addEscapeVar(tpOf(n), reader)
+      genTop {
+        emitln(s"""${tpOf(n)} $reader("$n", ${n.isBroadcast});""")
+        emitln(s"$mem.addReader($reader);")
+      }
+      emitBankOffset(n)
+      emitln(s"${n}->SetupRead(&${n}_bank, &${n}_offset, (bool) ${n.done.T.getOrElse(false)});")
+
     case n:BankedWrite =>
+      val mem = n.mem.T
+      addEscapeVar(n)
+      genTop {
+        emitln(s"""${tpOf(n)} $n("$n", ${n.isBroadcast});""")
+        emitln(s"$mem.addWriter($n);")
+      }
+      emitBankOffset(n)
+      emitln(s"${n}->Write(&${n}_bank, &${n}_offset, &${n.data.T}, (bool) ${n.done.T.getOrElse(false)});")
+
+    case n:Reg =>
+      emitln(s"""${tpOf(n)} $n("$n")""")
+
     case n:MemRead =>
+      val mem = n.mem.T
+      val reader = s"reader_${n}"
+      addEscapeVar(tpOf(n), reader)
+      genTop {
+        emitln(s"""${tpOf(n)} $reader("$n", ${n.isBroadcast});""")
+        emitln(s"$mem.addReader($reader);")
+      }
+      emitln(s"float ${n} = $reader->Read((bool) ${n.done.T.getOrElse(false)});")
+
     case n:MemWrite =>
+      val mem = n.mem.T
+      addEscapeVar(n)
+      genTop {
+        emitln(s"""${tpOf(n)} $n("$n", ${n.isBroadcast});""")
+        emitln(s"$mem.addWriter($n);")
+      }
+      emitln(s"${n}->Write((bool) ${n.done.T.getOrElse(false)});")
 
     case n => super.emitNode(n)
+  }
+
+  def emitBankOffset(n:BanckedAccess) = {
+    val mem = n.mem.T
+    val vec = n.getVec
+    emitln(s"std::array<std::array<size_t, ${mem.bankDims}>,$vec> ${n}_bank;")
+    emitBlock(s"for (int i = 0; i < $vec; i++)") {
+      n.bank.T.zipWithIndex.foreach { case (bank, i) =>
+        emitln(s"${n}_bank[i][$i] = (size_t) ${quoteRef(bank)};")
+      }
+    }
+    emitln(s"std::array<size_t,$vec> ${n}_offset;")
+    emitBlock(s"for (int i = 0; i < $vec; i++)") {
+      emitln(s"${n}_offset[i] = (size_t) ${quoteRef(n.offset.T)};")
+    }
+  }
+
+  override def tpOf(n:PIRNode):String = n match {
+    case n:SRAM =>
+      val numBanks = n.getBanks.product
+      s"BufferedBankedSRAM<float, ${n.getDepth}, ${n.bankDims}, ${numBanks}>"
+    case n:LUT =>
+      val numBanks = n.getBanks.product
+      s"BufferedBankedSRAM<float, ${n.getDepth}, ${n.bankDims}, ${numBanks}>"
+    case n:BankedRead =>
+      s"BankedBufferedReader<float, ${n.getVec}>"
+    case n:BankedWrite =>
+      s"BankedBufferedWriter<float, ${n.getVec}>"
+    case n:Reg =>
+      s"BufferedReg<float, ${n.getDepth}>"
+    case n => super.tpOf(n)
   }
 
 }

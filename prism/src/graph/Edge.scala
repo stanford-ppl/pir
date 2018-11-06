@@ -25,7 +25,7 @@ trait Edge extends IR {
       throw new Exception(s"Cannot connect edge with node type ${src.Nct} from $src to edge with node type ${e.src.Nct} from ${e.src}")
     }
   }
-  def neighbors = connected.map(_.src)
+  def neighbors = connected.map(_.src).distinct
 
   def disconnectFrom(e:Edge):Unit = {
     assert(this.isConnectedTo(e), s"$this is not connected to $e. this.connected=$connected")

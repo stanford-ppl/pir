@@ -6,48 +6,48 @@ import java.io._
 import scala.collection.mutable.Stack
 import scala.collection.mutable
 
-trait StreamWriter {
-  def outputStream:OutputStream
-  lazy val writer = new PrintWriter(outputStream)
-  def print(s:String) = { writer.print(s) }
-  def println(s:String) = { writer.println(s) }
-  def flush = writer.flush
-  def close = writer.close
-  def getPath:String
-  var level = 0
-  var listing = false
-}
-case class StdoutWriter() extends StreamWriter {
-  val outputStream = System.out
-  override def print(s:String) = { super.print(s); writer.flush }
-  override def println(s:String) = { super.println(s); writer.flush }
-  override def close = {} // Cannot close stdout
-  def getPath = s"console"
-}
-case class ByteWriter(name:Option[String]=None) extends StreamWriter {
-  override lazy val outputStream:ByteArrayOutputStream = new ByteArrayOutputStream()
-  def getPath = "byteStream"
-  def flushTo(toStream:StreamWriter) = {
-    toStream.flush
-    toStream.outputStream.write(outputStream.toByteArray())
-    toStream.flush
-    outputStream.reset
-  }
-}
-case class FileWriter(filePath:String, append:Boolean) extends StreamWriter {
-  override lazy val outputStream:FileOutputStream = {
-    mkdir(dirName(filePath))
-    new FileOutputStream(new File(filePath), append)
-  }
-  var written = false
-  override def print(s:String) = { written = true; super.print(s) }
-  override def println(s:String) = { written = true; super.println(s) }
-  override def flush = if (written) super.flush
-  override def close = if (written) super.close 
-  def getPath = filePath
-}
-
 trait Printer extends FormatPrinter {
+
+  trait StreamWriter {
+    def outputStream:OutputStream
+    lazy val writer = new PrintWriter(outputStream)
+    def print(s:String) = { writer.print(s) }
+    def println(s:String) = { writer.println(s) }
+    def flush = writer.flush
+    def close = writer.close
+    def getPath:String
+    var level = 0
+    var listing = false
+  }
+  case class StdoutWriter() extends StreamWriter {
+    val outputStream = System.out
+    override def print(s:String) = { super.print(s); writer.flush }
+    override def println(s:String) = { super.println(s); writer.flush }
+    override def close = {} // Cannot close stdout
+    def getPath = s"console"
+  }
+  case class ByteWriter(name:Option[String]=None) extends StreamWriter {
+    override lazy val outputStream:ByteArrayOutputStream = new ByteArrayOutputStream()
+    def getPath = "byteStream"
+    def flushTo(toStream:StreamWriter) = {
+      toStream.flush
+      toStream.outputStream.write(outputStream.toByteArray())
+      toStream.flush
+      outputStream.reset
+    }
+  }
+  case class FileWriter(filePath:String, append:Boolean) extends StreamWriter {
+    override lazy val outputStream:FileOutputStream = {
+      mkdir(dirName(filePath))
+      new FileOutputStream(new File(filePath), append)
+    }
+    var written = false
+    override def print(s:String) = { written = true; super.print(s) }
+    override def println(s:String) = { written = true; super.println(s) }
+    override def flush = if (written) super.flush
+    override def close = if (written) super.close 
+    def getPath = filePath
+  }
 
   val streamStack = Stack[StreamWriter]()
 
@@ -113,7 +113,10 @@ trait Printer extends FormatPrinter {
     }
   }
 
-  def closeAll:Unit = while (isOpen) closeStream
+  def closeAll:Unit = {
+    while (isOpen) closeStream
+    streamMap.values.foreach { _.close }
+  }
 
   def inBuffer = {
     streamStack.headOption.fold(false) {
@@ -142,8 +145,11 @@ trait Printer extends FormatPrinter {
   }
 
   val streamMap = mutable.Map[String, StreamWriter]()
+  def startStream[T](name:String, newStream: => StreamWriter):StreamWriter = {
+    open(streamMap.getOrElseUpdate(name, newStream))
+  }
   def enterStream[T](name:String, newStream: => StreamWriter)(block: => T) = {
-    val stream = open(streamMap.getOrElseUpdate(name, newStream))
+    val stream = startStream(name, newStream)
     val res = try {
       block
     } catch {
@@ -154,11 +160,18 @@ trait Printer extends FormatPrinter {
     popStream
     res
   }
-
   def enterBuffer[T](name:String)(block: => T) = {
     enterStream(name, ByteWriter(Some(name)))(block)
   }
+  def enterFile[T](dirName:String, fileName:String, append:Boolean=false)(block: => T):T = {
+    val path = buildPath(dirName, fileName)
+    enterFile(path, append)(block)
+  }
+  def enterFile[T](path:String, append:Boolean)(block: => T):T = {
+    enterStream(path, FileWriter(path, append))(block)
+  }
 
-  def getBuffer(name:String) = streamMap.get(name).asInstanceOf[Option[ByteWriter]]
+  def getStream(name:String) = streamMap.get(name)
+  def getBuffer(name:String) = getStream(name).asInstanceOf[Option[ByteWriter]]
 
 }

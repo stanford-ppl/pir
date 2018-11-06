@@ -20,29 +20,30 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     }
   }
 
-  def bufferInput(deped:PIRNode):Unit = {
+  def bufferInput(deped:PIRNode):Seq[BufferRead] = {
     val depedCtx = deped.ctx.get
-    deped.localDeps.foreach { dep =>
-      if (escape(dep, depedCtx)) bufferInput(dep.as[PIRNode], deped)
+    deped.localDeps.flatMap { dep =>
+      if (escape(dep, depedCtx)) Some(bufferInput(dep.as[PIRNode], deped))
+      else None
     }
   }
 
-  def bufferInput(in:Input):Unit = {
+  def bufferInput(in:Input):Seq[BufferRead] = {
     val deped = in.src.as[PIRNode]
-    assertOneOrLess(in.neighbors, s"$deped.$in.neighbors").foreach { dep =>
+    in.neighbors.map { dep =>
       bufferInput(dep.as[PIRNode], deped)
     }
   }
 
-  def bufferOutput(out:Output):Unit = {
+  def bufferOutput(out:Output):Seq[BufferRead] = {
     val dep = out.src.as[PIRNode]
     val depeds = out.neighbors
-    depeds.foreach { deped =>
+    depeds.map { deped =>
       bufferInput(dep, deped.as[PIRNode])
     }
   }
 
-  private def bufferInput(dep:PIRNode, deped:PIRNode):Unit = dbgblk(s"bufferInput(dep=$dep, deped=$deped)"){
+  private def bufferInput(dep:PIRNode, deped:PIRNode):BufferRead = dbgblk(s"bufferInput(dep=$dep, deped=$deped)"){
     val depCtx = dep.ctx.get
     val depedCtx = deped.ctx.get
     val (enq, deq) = compEnqDeq(dep.ctrl.get, deped.ctrl.get, false, depCtx, depedCtx)
@@ -62,13 +63,14 @@ trait BufferAnalyzer extends MemoryAnalyzer {
       read.done.traceTo(deq)
     }, s"bufferRead from $write with done=$deq in $depedCtx").getOrElse {
       within(depedCtx, deped.ctrl.get) {
-        val read = BufferRead(isFIFO=dep.ctrl.get == deped.ctrl.get).in(write).done(deq)
+        val read = BufferRead(isFIFO=dep.ctrl.get == deped.ctrl.get).in(write).done(deq).banks(List(dep.getVec))
         dbg(s"create $read.in($write).done($deq)")
         //bufferInput(read)
         read
       }
     }
     swapConnection(deped, dep.as[PIRNode].output.get, read.out)
+    read
   }
 }
 

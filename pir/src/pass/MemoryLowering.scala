@@ -16,7 +16,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
       dbg(s"access=$access order=${access.order.v}")
     }
     var cannotToBuffer = accesses.exists { _.isInstanceOf[BanckedAccess] }
-    cannotToBuffer &= accesses.exists { _.en.T.nonEmpty }
+    cannotToBuffer |= accesses.exists { _.en.T.nonEmpty }
     cannotToBuffer |= mem.inAccess.size > 1
     if (mem.isFIFO) cannotToBuffer |= mem.outAccess.size > 1
     if (cannotToBuffer) {
@@ -33,6 +33,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
       swapParent(mem, memCU)
       val accesses = mem.accesses
       accesses.foreach { access =>
+        access.getVec
         val accessCtx = Context()
         swapParent(access, accessCtx)
         access match {
@@ -144,7 +145,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
         }
         dbg(s"create $write.data(${inAccess.data.neighbors}).done($enq)")
         val read = within(outAccess.parent.get.as[PIRNode], outAccess.ctrl.get) {
-          BufferRead(mem.isFIFO).in(write.out).mirrorMetas(mem).done(deq)
+          BufferRead(mem.isFIFO).in(write.out).mirrorMetas(mem).mirrorMetas(outAccess).done(deq)
         }
         dbg(s"create $read.in(${write}).done($deq)")
         if (inAccess.order.get < outAccess.order.get ) read.initToken := true

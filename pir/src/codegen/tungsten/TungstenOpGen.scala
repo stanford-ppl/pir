@@ -6,7 +6,7 @@ import prism.graph._
 import prism.codegen._
 import scala.collection.mutable
 
-trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
+trait TungstenOpGen extends TungstenCodegen {
 
   override def emitNode(n:N) = n match {
     case n:HostInController =>
@@ -43,7 +43,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
         case _ =>
       }
       emitln(s"""float ${n}_done = (float) ${cchain.head}->Done();""")
-      emitNode(n.done.T)
+      visitNode(n)
 
     case n:ControllerDone =>
       val ctrler = n.collectUp[Controller]().head
@@ -55,7 +55,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:Counter =>
       genFields {
-        emitln(s"Counter<${n.par}> $n;")
+        emitln(s"""Counter<${n.par}> *$n = new Counter<${n.par}>("$n");""")
       }
       emitln(s"$n->min=${n.min.T};")
       emitln(s"$n->step=${n.step.T};")
@@ -63,7 +63,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
     case n@CounterIter(None) =>
       val ctr = n.counter.T
-      emitln(s"std::vector<float>* $n = (float) $ctr->iters;")
+      emitln(s"std::array<float> $n = (float) $ctr->iters;")
 
     case n@CounterIter(Some(i)) =>
       val ctr = n.counter.T
@@ -71,7 +71,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
     case n@CounterValid(None) =>
       val ctr = n.counter.T
-      emitln(s"std::vector<float>* $n = (float) $ctr->valids;")
+      emitln(s"std::array<float> $n = (float) $ctr->valids;")
 
     case n@CounterValid(Some(i)) =>
       val ctr = n.counter.T
@@ -80,18 +80,37 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
     case n@Const(v) =>
       emitln(s"float $n = (float) $v;")
 
-    case n@OpDef("RegAccumFMA") =>
-      val inputs = n.input.T
-      var instr = ""
-      instr = inputs(0).cast("float[]")
-      instr = inputs.tail.map { _.cast("float") }.mkString(",")
-      emitln(s"float $n = RegAccumFMA($instr);")
+    case n@RegAccumOp(op) =>
+      emitEn(n.en)
+      val accum = s"accum_${n}"
+      emitln(s"float $n;")
+      genFields {
+        emitln(s"float $accum = 0;")
+      }
+      val accumOp = op match {
+        case "AccumAdd" => s"FixAdd"
+        case "AccumMul" => s"FixMul"
+      }
+      val firstVec = n.first.T.getVec
+      emitIfElse(s"${n.first.T}${if (firstVec > 1) "[0]" else ""}") {
+        emitln(s"$n = ${n.in.T.cast("float")};")
+      } {
+        emitIf(s"${n}_en") {
+          val in = n.in.T
+          emitBlock(s"for (int i = 0; i < ${in.getVec}; i++)") {
+            emitln(s"$accum = $accumOp($accum, ${quoteRef(in).cast("float")})")
+          }
+        }
+        emitln(s"$n = $accum;")
+      }
 
     case n:OpDef =>
       val inputs = n.input.T
       emitVec(n) {
         s"${n.op}(${inputs.map(in => s"${quoteRef(in).cast("float")}").mkString(",")});" 
       }
+
+    case n:TokenRead =>
 
     case n => super.emitNode(n)
   }

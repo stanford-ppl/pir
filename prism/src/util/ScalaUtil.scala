@@ -155,6 +155,10 @@ trait ScalaUtilFunc {
     def /! (d:Int) = (i + d - 1) / d
   }
 
+  implicit class IterUtil[T:Ordering](x:Iterable[T]) {
+    def maxOption:Option[T] = if (x.isEmpty) None else Some(x.max)
+  }
+
   def log2(x:Int) = (Math.log(x) / Math.log(2)).ceil.toInt
 
   final val SINGLE_PRECISION = 32

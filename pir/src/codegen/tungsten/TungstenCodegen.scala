@@ -78,4 +78,32 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     }
   }
 
+  val numStages = 6
+
+  val ctxArgs = mutable.Set[(String, String)]()
+  val dutArgs = mutable.ListBuffer[String]()
+
+  final protected def genTop(block: => Unit) = enterFile(outputPath, false)(block)
+
+  final protected def genTopEnd(block: => Unit) = enterBuffer("top_end")(block)
+
+  final protected def genFields(block: => Unit) = enterBuffer("fields"){ incLevel(1); block; decLevel(1) }
+
+  final protected def genInits(block: => Unit) = enterBuffer("inits") { incLevel(2); block; decLevel(2) }
+
+  final protected def genCompute(block: => Unit) = enterBuffer("computes") { incLevel(2); block; decLevel(2) }
+
+  final protected def genPush(block: => Unit) = enterBuffer("push") { incLevel(2); block; decLevel(2) }
+
+  final protected def addEscapeVar(tp:String, name:String):Unit = {
+    ctxArgs += ((tp, name))
+  }
+
+  final protected def addEscapeVar(n:PIRNode):Unit = {
+    addEscapeVar(tpOf(n), s"$n")
+  }
+
+  def tpOf(n:PIRNode):String = throw PIRException(s"Don't know tpOf($n)")
+
+
 }

@@ -16,11 +16,11 @@ trait Codegen extends Pass with Printer with DFSTraversal with UnitTraversal {
   override def initPass = {
     super.initPass
     clearGen
-    openFile(dirName, fileName, append=append)
+    startStream(outputPath, FileWriter(outputPath, false))
   }
 
   override def finPass = {
-    closeStream
+    closeAll
     codegenInfo
   }
 
@@ -39,7 +39,7 @@ trait Codegen extends Pass with Printer with DFSTraversal with UnitTraversal {
       super.run
     } catch {
       case e:Exception =>
-        closeStream
+        closeAll
         throw e
     }
   }

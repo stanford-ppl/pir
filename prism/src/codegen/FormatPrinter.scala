@@ -5,7 +5,7 @@ import java.nio.file._
 import java.io._
 import scala.collection.mutable.Stack
 
-trait FormatPrinter {
+trait FormatPrinter { self:Printer =>
   def sw:StreamWriter
   val tab = "  "
   def incLevel:Unit = { sw.level += 1 }

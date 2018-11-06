@@ -49,7 +49,7 @@ trait HtmlIRPrinter extends IRPrinter with HtmlCodegen {
         emitElem("text", s"${edge}: ${quote(edge.connected.map{ e => s"${quote(e.src)}.${quote(e)}"})}<br>", "id"->s"$edge")
       }
       text(elem("strong", "Metadata"))
-      n.metadata.foreach { metadata =>
+      n.metadata.values.foreach { metadata =>
         metadata.v.foreach { v =>
           text(s"${metadata.name} = ${quote(v)}")
         }
