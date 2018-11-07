@@ -16,7 +16,7 @@ trait TungstenDRAMGen extends TungstenCodegen {
       }
       genInits {
         emitln(s"""$n = new DRAMDenseLoad<${data.getVec}>("$n", "${n.dram.sid}.txt", fifo_$size, fifo_$offset, fifo_$data);""")
-        emitln(s"addChild($n);")
+        emitln(s"AddChild($n);")
       }
 
     case n:FringeDenseStore =>
@@ -30,7 +30,7 @@ trait TungstenDRAMGen extends TungstenCodegen {
       }
       genInits {
         emitln(s"""$n = new DRAMDenseStore<${data.getVec}>("$n", "${n.dram.sid}.txt", fifo_$size, fifo_$offset, fifo_$data, fifo_$valid, fifo_$ack);""")
-        emitln(s"addChild($n);")
+        emitln(s"AddChild($n);")
       }
 
     case n:FringeSparseLoad =>
@@ -41,7 +41,7 @@ trait TungstenDRAMGen extends TungstenCodegen {
       }
       genInits {
         emitln(s"""$n = new DRAMSparseStore("$n", "${n.dram.sid}.txt", fifo_$addr, fifo_$data);""")
-        emitln(s"addChild($n);")
+        emitln(s"AddChild($n);")
       }
 
     case n:FringeSparseStore =>
@@ -53,7 +53,7 @@ trait TungstenDRAMGen extends TungstenCodegen {
       }
       genInits {
         emitln(s"""$n = new DRAMSparseStore("$n", "${n.dram.sid}.txt", fifo_$addr, fifo_$data, fifo_$ack);""")
-        emitln(s"addChild($n);")
+        emitln(s"AddChild($n);")
       }
 
     case n => super.emitNode(n)

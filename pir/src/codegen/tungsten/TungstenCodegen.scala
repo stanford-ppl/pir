@@ -58,11 +58,13 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     val src = en.src
     val ens = en.neighbors
     val enName = s"${src}_${en.name}"
-    emitln(s"float $enName = ${ens.map { _.toString}.foldLeft("1"){ case (prev,b) => s"$prev & $b" }};")
+    emitln(s"bool $enName = ${ens.map { _.toString}.foldLeft("true"){ case (prev,b) => s"$prev & $b" }};")
     en.src match {
       case n:BufferWrite =>
         emitln(s"${enName} &= ${n.ctx.get.ctrler(n.getCtrl).valid.T};")
       case n:InAccess =>
+        emitln(s"${enName} &= ${n.ctx.get.ctrler(n.getCtrl).valid.T};")
+      case n:RegAccumOp =>
         emitln(s"${enName} &= ${n.ctx.get.ctrler(n.getCtrl).valid.T};")
       case _ =>
     }
@@ -106,6 +108,4 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   }
 
   def tpOf(n:PIRNode):String = throw PIRException(s"Don't know tpOf($n)")
-
-
 }

@@ -16,11 +16,14 @@ trait TungstenMemGen extends TungstenCodegen {
       }
       genInits {
         emitln(s"""addInput(fifo_$n);""")
-        emitln(s"""addChild(fifo_$n);""")
+        emitln(s"""AddChild(fifo_$n);""")
       }
       val readByFringe = n.out.T.exists { _.isInstanceOf[DRAMFringe] }
       if (!readByFringe) {
-        emitVec(n)(s"fifo_${n}->Pop(${n.done.T})${if (n.getVec==1) "[0]" else "[i]"};")
+        emitVec(n)(s"fifo_${n}->Read().floatVec_${if (n.getVec==1) "[0]" else "[i]"};")
+        emitIf(s"${n.done.T}") {
+          emitln(s"fifo_$n->Pop();")
+        }
       }
 
     case n:BufferWrite =>
@@ -32,10 +35,10 @@ trait TungstenMemGen extends TungstenCodegen {
       }
       genTopEnd {
         val bcArgs = reads.map { read => s"ctx_${read.ctx.get}->fifo_${read}" }
-        emitln(s"Broadcast<Token> bc_$n(${send.&}, {${bcArgs.mkString(",")}});")
+        emitln(s"""Broadcast<Token> bc_$n("bc_$n", ${send.&}, ${quote(bcArgs)});""")
         dutArgs += s"bc_$n"
       }
-      addEscapeVar(s"CheckSend<Token>", s"$send")
+      addEscapeVar(s"CheckedSend<Token>", s"$send")
       data match {
         case data:DRAMFringe =>
         case data:BankedRead =>
@@ -45,7 +48,7 @@ trait TungstenMemGen extends TungstenCodegen {
               emitBlock(s"for (int i = 0; i < ${n.getVec}; i++)") {
                 emitln(s"$n.floatVec_[i] = ${data}->ReadData()[i];")
               }
-              emitln(s"$send.Push(${n}_respond);")
+              emitln(s"$send->Push(${n}_respond);")
             }
           }
 
@@ -55,16 +58,15 @@ trait TungstenMemGen extends TungstenCodegen {
             emitln(s"""ValPipeline<Token, $numStages> *$pipe = new ValPipeline<Token, $numStages>("$pipe");""")
           }
           genInits {
-            emitln(s"""addPipe($pipe);""")
-            emitln(s"""addChild($pipe);""")
-            emitln(s"""addSend($send);""")
+            emitln(s"""AddChild($pipe);""")
+            emitln(s"""addSend($send, $pipe);""")
           }
           emitIf(s"${n.done.T}") {
             emitln(s"Token ${n} = Token();")
             emitBlock(s"for (int i = 0; i < ${n.getVec}; i++)") {
               emitln(s"$n.floatVec_[i] = ${quoteRef(data).cast("float")};")
             }
-            emitln(s"$pipe.Push($n);")
+            emitln(s"$pipe->Push($n);")
           }
       }
 

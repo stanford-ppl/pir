@@ -3,7 +3,7 @@ package util
 
 import sys.process._
 
-trait Misc /*extends prism.codegen.Logging*/ {
+trait Misc {
   def tic(msg:String):Unit = {
     infor(msg)
     tic

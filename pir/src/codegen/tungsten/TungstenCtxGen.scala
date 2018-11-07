@@ -13,11 +13,11 @@ trait TungstenCtxGen extends TungstenCodegen {
       genCompute {
         visitNode(ctx)
       }
-      emitln(s"""#ifndef PCU_ACC_H_""")
-      emitln(s"""#define PCU_ACC_H_""")
       emitln(s"""#include "context.h"""")
+      emitln(s"""#include "math.h"""")
+      emitln(s"""#include "counter.h"""")
 
-      emitBlock(s"""class $ctx: public Context<Token, $numStages>""") {
+      emitBlock(s"""class $ctx: public Context<$numStages>""") {
         emitln(s"public:")
         getBuffer("fields").foreach { _.flushTo(sw) }
         ctxArgs.foreach { case (tp, field) =>
@@ -25,9 +25,9 @@ trait TungstenCtxGen extends TungstenCodegen {
         }
 
         emitln(s"public:")
-        emitBlock(s"""explicit $ctx(std::initializer_list<Module*> modules):Context<Token, $numStages>("$ctx")""") {
+        emitBlock(s"""explicit $ctx(std::initializer_list<Module*> modules):Context<$numStages>("$ctx")""") {
           ctxArgs.zipWithIndex.foreach { case ((tp, field), i) =>
-            emitln(s"$field = ($tp*) modules[$i];")
+            emitln(s"$field = dynamic_cast<$tp*> (modules.begin()[$i]);")
           }
           getBuffer("inits").foreach { _.flushTo(sw) }
         }

@@ -51,6 +51,8 @@ trait Codegen extends Pass with Printer with DFSTraversal with UnitTraversal {
     visitNode(n)
   } 
 
+  def emitVisitNode(n:N):Unit = { emitNode(n); visited += n }
+
   def emitComment(msg:String):Unit = emitln(s"// $msg")
 
   def emitlnc(msg:String, comment:String):Unit = { emit(msg); emitComment(comment) }

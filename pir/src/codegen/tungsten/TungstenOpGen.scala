@@ -12,46 +12,47 @@ trait TungstenOpGen extends TungstenCodegen {
     case n:HostInController =>
       emitEn(n.en)
       emitEn(n.parentEn)
-      emitNode(n.valid)
-      emitln(s"""float ${n}_done = 1;""")
-      emitNode(n.done)
+      emitVisitNode(n.valid)
+      emitln(s"""bool ${n}_done = 1;""")
+      emitVisitNode(n.done)
 
     case n:HostOutController =>
       emitEn(n.en)
       emitEn(n.parentEn)
-      emitNode(n.valid)
-      emitln(s"""float ${n}_done = 1;""")
-      emitNode(n.done)
+      emitVisitNode(n.valid)
+      emitln(s"""bool ${n}_done = 1;""")
+      emitVisitNode(n.done)
 
     case n:UnitController =>
       emitEn(n.en)
       emitEn(n.parentEn)
-      emitNode(n.valid)
-      emitln(s"""float ${n}_done = ${n.valid.T};""")
-      emitNode(n.done)
+      emitVisitNode(n.valid)
+      emitln(s"""bool ${n}_done = ${n.valid.T};""")
+      emitVisitNode(n.done)
 
     case n:LoopController =>
       emitEn(n.en)
       emitEn(n.parentEn)
-      emitNode(n.valid)
+      emitVisitNode(n.valid)
       val cchain = n.cchain.T
-      cchain.foreach(emitNode)
+      cchain.foreach(emitVisitNode)
+      visited ++= cchain
       emitln(s"if (${n}_en) ${cchain.last}->Inc();")
       cchain.sliding(2, 1).foreach {
         case List(outer, inner) =>
           emitln(s"if ($inner->Done()) $outer->Inc();")
         case _ =>
       }
-      emitln(s"""float ${n}_done = (float) ${cchain.head}->Done();""")
+      emitln(s"""bool ${n}_done = (bool) ${cchain.head}->Done();""")
       visitNode(n)
 
     case n:ControllerDone =>
       val ctrler = n.collectUp[Controller]().head
-      emitln(s"float $n = ${ctrler}_done;")
+      emitln(s"bool $n = ${ctrler}_done;")
 
     case n:ControllerValid =>
       val ctrler = n.collectUp[Controller]().head
-      emitln(s"float $n = ${ctrler}_en & ${ctrler}_parentEn;")
+      emitln(s"bool $n = ${ctrler}_en & ${ctrler}_parentEn;")
 
     case n:Counter =>
       genFields {
@@ -63,19 +64,19 @@ trait TungstenOpGen extends TungstenCodegen {
 
     case n@CounterIter(None) =>
       val ctr = n.counter.T
-      emitln(s"std::array<float> $n = (float) $ctr->iters;")
+      emitln(s"std::array<int, ${ctr.getVec}> $n = $ctr->iters();")
 
     case n@CounterIter(Some(i)) =>
       val ctr = n.counter.T
-      emitln(s"float $n = (float) $ctr->iters[$i];")
+      emitln(s"int $n = $ctr->iters()[$i];")
 
     case n@CounterValid(None) =>
       val ctr = n.counter.T
-      emitln(s"std::array<float> $n = (float) $ctr->valids;")
+      emitln(s"std::array<int, ${ctr.getVec}> $n = $ctr->valids();")
 
     case n@CounterValid(Some(i)) =>
       val ctr = n.counter.T
-      emitln(s"float $n = (float) $ctr->valids[$i];")
+      emitln(s"bool $n = $ctr->valids()[$i];")
 
     case n@Const(v) =>
       emitln(s"float $n = (float) $v;")
@@ -91,17 +92,13 @@ trait TungstenOpGen extends TungstenCodegen {
         case "AccumAdd" => s"FixAdd"
         case "AccumMul" => s"FixMul"
       }
+      val in = n.in.T
+      emitBlock(s"for (int i = 0; i < ${in.getVec}; i++)") {
+        emitln(s"$n = $accumOp($n, ${quoteRef(in).cast("float")})")
+      }
       val firstVec = n.first.T.getVec
-      emitIfElse(s"${n.first.T}${if (firstVec > 1) "[0]" else ""}") {
-        emitln(s"$n = ${n.in.T.cast("float")};")
-      } {
-        emitIf(s"${n}_en") {
-          val in = n.in.T
-          emitBlock(s"for (int i = 0; i < ${in.getVec}; i++)") {
-            emitln(s"$accum = $accumOp($accum, ${quoteRef(in).cast("float")})")
-          }
-        }
-        emitln(s"$n = $accum;")
+      emitIf(s"!${n.first.T}${if (firstVec > 1) "[0]" else ""} & ${n}_en") {
+        emitln(s"$n = $accumOp($n, $accum)")
       }
 
     case n:OpDef =>
@@ -121,6 +118,12 @@ trait TungstenOpGen extends TungstenCodegen {
     case n:HostWrite =>
       emitln(s"float $n;")
       emitln(s"""std::ifstream stream_$n("${n.sid}.txt");""")
+      emitln(s"""stream_$n >> $n;""")
+      emitln(s"""stream_$n.close();""")
+
+    case n:DRAMAddr =>
+      emitln(s"long $n;")
+      emitln(s"""std::ifstream stream_$n("${n.dram.sid}_addr.txt");""")
       emitln(s"""stream_$n >> $n;""")
       emitln(s"""stream_$n.close();""")
 

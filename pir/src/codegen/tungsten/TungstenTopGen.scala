@@ -12,8 +12,6 @@ trait TungstenTopGen extends TungstenCodegen {
     super.initPass
     emitln(
 """
-#ifndef TEST_PCU_ACC_H_
-#define TEST_PCU_ACC_H_
 #include "example.h"
 #include "module.h"
 #include "state.h"
@@ -31,10 +29,6 @@ trait TungstenTopGen extends TungstenCodegen {
   override def finPass = {
     getBuffer("top_end").foreach { _.flushTo(sw) }
     emitln(s"Module DUT({${dutArgs.map(_.&).mkString(",")}});")
-    emitln(
-"""
-#endif // TEST_PCU_ACC_H_
-""")
     super.finPass
   }
 
