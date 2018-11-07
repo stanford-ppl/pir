@@ -37,10 +37,10 @@ trait TungstenDRAMGen extends TungstenCodegen {
       val addr = n.addr.T
       val data = n.data.T
       genFields {
-        emitln(s"""DRAMSparseStore *$n;""")
+        emitln(s"""DRAMSparseStore<${data.getVec}> *$n;""")
       }
       genInits {
-        emitln(s"""$n = new DRAMSparseStore("$n", "${n.dram.sid}.txt", fifo_$addr, fifo_$data);""")
+        emitln(s"""$n = new DRAMSparseStore<${data.getVec}>("$n", "${n.dram.sid}.txt", fifo_$addr, fifo_$data);""")
         emitln(s"AddChild($n);")
       }
 
@@ -49,10 +49,10 @@ trait TungstenDRAMGen extends TungstenCodegen {
       val data = n.data.T
       val ack = n.ack.T
       genFields {
-        emitln(s"""DRAMSparseStore *$n;""")
+        emitln(s"""DRAMSparseStore<${data.getVec}> *$n;""")
       }
       genInits {
-        emitln(s"""$n = new DRAMSparseStore("$n", "${n.dram.sid}.txt", fifo_$addr, fifo_$data, fifo_$ack);""")
+        emitln(s"""$n = new DRAMSparseStore<${data.getVec}>("$n", "${n.dram.sid}.txt", fifo_$addr, fifo_$data, fifo_$ack);""")
         emitln(s"AddChild($n);")
       }
 

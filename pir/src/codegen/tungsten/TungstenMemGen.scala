@@ -144,15 +144,15 @@ trait TungstenMemGen extends TungstenCodegen {
   def emitBankOffset(n:BanckedAccess) = {
     val mem = n.mem.T
     val vec = n.getVec
-    emitln(s"std::array<std::array<size_t, ${mem.bankDims}>,$vec> ${n}_bank;")
+    emitln(s"std::array<std::array<int, ${mem.bankDims}>,$vec> ${n}_bank;")
     emitBlock(s"for (int i = 0; i < $vec; i++)") {
       n.bank.T.zipWithIndex.foreach { case (bank, i) =>
-        emitln(s"${n}_bank[i][$i] = (size_t) ${quoteRef(bank)};")
+        emitln(s"${n}_bank[i][$i] = (int) ${quoteRef(bank)};")
       }
     }
-    emitln(s"std::array<size_t,$vec> ${n}_offset;")
+    emitln(s"std::array<int,$vec> ${n}_offset;")
     emitBlock(s"for (int i = 0; i < $vec; i++)") {
-      emitln(s"${n}_offset[i] = (size_t) ${quoteRef(n.offset.T)};")
+      emitln(s"${n}_offset[i] = (int) ${quoteRef(n.offset.T)};")
     }
   }
 
@@ -164,9 +164,9 @@ trait TungstenMemGen extends TungstenCodegen {
       val numBanks = n.getBanks.product
       s"BufferedBankedSRAM<float, ${n.getDepth}, ${n.bankDims}, ${numBanks}>"
     case n:BankedRead =>
-      s"BankedBufferedReader<float, ${n.getVec}>"
+      s"BufferedBankedReader<float, ${n.getDepth}, ${n.bankDims}, ${n.getVec}>"
     case n:BankedWrite =>
-      s"BankedBufferedWriter<float, ${n.getVec}>"
+      s"BufferedBankedWriter<float, ${n.getDepth}, ${n.bankDims}, ${n.getVec}>"
     case n:Reg =>
       s"BufferedReg<float, ${n.getDepth}>"
     case n => super.tpOf(n)
