@@ -39,6 +39,7 @@ trait PIRNodeUtil extends MemoryUtil with AccessUtil {
   implicit class PIRNodeOp(n:PIRNode) {
     def ctx = n.collectUp[Context]().headOption
     def global = n.collectUp[GlobalContainer]().headOption
+    def isUnder[T:ClassTag] = n.ancestors.exists { _.to[T].nonEmpty }
   }
 }
 

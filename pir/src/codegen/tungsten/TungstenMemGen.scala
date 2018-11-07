@@ -12,13 +12,16 @@ trait TungstenMemGen extends TungstenCodegen {
     case n:BufferRead =>
       genFields {
         val depth = n.depth.get
-        emitln(s"""FIFO<Token, $depth> *fifo_${n} = new FIFO<Token, $depth>("$n")""")
+        emitln(s"""FIFO<Token, $depth> *fifo_${n} = new FIFO<Token, $depth>("$n");""")
       }
       genInits {
         emitln(s"""addInput(fifo_$n);""")
         emitln(s"""addChild(fifo_$n);""")
       }
-      emitVec(n)(s"fifo_${n}->Pop(${n.done.T})${if (n.getVec==1) "[0]" else "[i]"};")
+      val readByFringe = n.out.T.exists { _.isInstanceOf[DRAMFringe] }
+      if (!readByFringe) {
+        emitVec(n)(s"fifo_${n}->Pop(${n.done.T})${if (n.getVec==1) "[0]" else "[i]"};")
+      }
 
     case n:BufferWrite =>
       val data = n.data.T
@@ -34,6 +37,7 @@ trait TungstenMemGen extends TungstenCodegen {
       }
       addEscapeVar(s"CheckSend<Token>", s"$send")
       data match {
+        case data:DRAMFringe =>
         case data:BankedRead =>
           genPush {
             emitIf(s"${data}->Valid()") {
@@ -66,11 +70,25 @@ trait TungstenMemGen extends TungstenCodegen {
 
     case n:SRAM =>
       val banks = n.banks.get
-      emitln(s"""${tpOf(n)} $n("$n", {${banks.mkString(",")}});""")
+      val bankIds = banks.foldLeft[List[List[Int]]](Nil) { case (prev, nbank) =>
+        if (prev.isEmpty) (0 until nbank).map { id => List(id) }.toList
+        else prev.flatMap { ids => (0 until nbank).map { id => ids :+ id } }
+      }
+      emitln(s"""${tpOf(n)} $n("$n", ${quote(bankIds)});""")
+      n.inAccess.foreach { inAccess =>
+        emitln(s"$n.addWriter($inAccess);")
+      }
 
     case n:LUT =>
       val banks = n.banks.get
-      emitln(s"""${tpOf(n)} $n("$n", {${banks.mkString(",")}});""")
+      val bankIds = banks.foldLeft[List[List[Int]]](Nil) { case (prev, nbank) =>
+        if (prev.isEmpty) (0 until nbank).map { id => List(id) }.toList
+        else prev.flatMap { ids => (0 until nbank).map { id => ids :+ id } }
+      }
+      emitln(s"""${tpOf(n)} $n("$n", ${quote(bankIds)});""")
+      n.inAccess.foreach { inAccess =>
+        emitln(s"$n.addWriter($inAccess);")
+      }
 
     case n:BankedRead =>
       val mem = n.mem.T
@@ -88,13 +106,16 @@ trait TungstenMemGen extends TungstenCodegen {
       addEscapeVar(n)
       genTop {
         emitln(s"""${tpOf(n)} $n("$n", ${n.isBroadcast});""")
-        emitln(s"$mem.addWriter($n);")
+        //emitln(s"$mem.addWriter($n);")
       }
       emitBankOffset(n)
       emitln(s"${n}->Write(&${n}_bank, &${n}_offset, &${n.data.T}, (bool) ${n.done.T.getOrElse(false)});")
 
     case n:Reg =>
       emitln(s"""${tpOf(n)} $n("$n")""")
+      n.inAccess.foreach { inAccess =>
+        emitln(s"$n.addWriter($inAccess);")
+      }
 
     case n:MemRead =>
       val mem = n.mem.T
@@ -111,7 +132,7 @@ trait TungstenMemGen extends TungstenCodegen {
       addEscapeVar(n)
       genTop {
         emitln(s"""${tpOf(n)} $n("$n", ${n.isBroadcast});""")
-        emitln(s"$mem.addWriter($n);")
+        //emitln(s"$mem.addWriter($n);")
       }
       emitln(s"${n}->Write((bool) ${n.done.T.getOrElse(false)});")
 

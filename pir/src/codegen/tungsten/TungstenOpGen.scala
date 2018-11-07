@@ -67,7 +67,7 @@ trait TungstenOpGen extends TungstenCodegen {
 
     case n@CounterIter(Some(i)) =>
       val ctr = n.counter.T
-      emitln(s"float $n = (float) $ctr->iters($i);")
+      emitln(s"float $n = (float) $ctr->iters[$i];")
 
     case n@CounterValid(None) =>
       val ctr = n.counter.T
@@ -75,7 +75,7 @@ trait TungstenOpGen extends TungstenCodegen {
 
     case n@CounterValid(Some(i)) =>
       val ctr = n.counter.T
-      emitln(s"float $n = (float) $ctr->valids($i);")
+      emitln(s"float $n = (float) $ctr->valids[$i];")
 
     case n@Const(v) =>
       emitln(s"float $n = (float) $v;")

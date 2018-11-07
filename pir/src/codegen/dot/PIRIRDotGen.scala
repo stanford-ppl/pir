@@ -33,7 +33,7 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     }.foldAt(n.to[MemoryNode]) { (q,n) =>
       q.append("banks", n.banks.get)
     }.foldAt(n.to[Context]) { (q,n) =>
-      s"$q\nctrls:\n${n.collectDown[Controller]().map { _.ctrl.get }.mkString("\n")}"
+      s"$q\nctrls:\n${n.collectDown[Controller]().map { _.ctrl.get }.sortBy { _.ancestors.size }.mkString("\n")}"
     }
   }
 
@@ -46,7 +46,7 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     case n:Context => attr.setGraph.fillcolor(palevioletred).style(filled).setNode.fillcolor(palevioletred).style(filled)
     case n:Counter => attr.fillcolor(indianred).style(filled)
     //case n:CUContainer => attr.fillcolor(deepskyblue).style(filled)
-    case n:DRAMFringe => attr.fillcolor("lightseagreen").style(filled)
+    case n:DRAMFringe => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
     //case n:StreamFringe => attr.fillcolor("lightseagreen").style(filled)
 
     case n:OpDef => attr.fillcolor("mediumorchid1").style(filled)

@@ -103,13 +103,12 @@ case class LoopController()(implicit env:Env) extends Controller {
   /*  ------- Fields -------- */
   val cchain = new ChildField[Counter, List[Counter]]("cchain")
 }
-case class DramController()(implicit env:Env) extends Controller
 
 trait MemoryUtil extends CollectorImplicit {
 
   implicit class MemUtil(n:Memory) {
-    def inAccess = n.collect[Access](visitGlobalIn _)
-    def outAccess = n.collect[Access](visitGlobalOut _)
+    def inAccess = n.collect[InAccess](visitGlobalIn _)
+    def outAccess = n.collect[OutAccess](visitGlobalOut _)
     def accesses = inAccess ++ outAccess
 
     def isFIFO = n match {

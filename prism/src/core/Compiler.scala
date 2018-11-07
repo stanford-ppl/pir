@@ -5,7 +5,7 @@ import prism.util.{FileManager, ArgLoader}
 
 import scala.collection.mutable
 
-trait Compiler extends FileManager with ArgLoader with Session {
+trait Compiler extends FileManager with ArgLoader with Session with Logging {
 
   implicit val compiler:this.type = this
 
@@ -33,18 +33,34 @@ trait Compiler extends FileManager with ArgLoader with Session {
 
   def main(args: Array[String]): Unit = {
     var succeed = false
-    try {
-      setArgs(args)
-      loadSession
-      reset
-      info(s"Output directory set to ${cstr(Console.CYAN,outDir)}")
-      initSession
-      succeed = runSession
-    } catch { 
-      case e:Exception =>
-        err(e, exception=false)
-        handle(e)
+    withLog(outDir, s"compiler.log") {
+      try {
+        setArgs(args)
+        loadSession
+        reset
+        info(s"Output directory set to ${cstr(Console.CYAN,outDir)}")
+        initSession
+        succeed = runSession
+      } catch { 
+        case e:Exception =>
+          err(e, exception=false)
+          handle(e)
+      }
     }
-    if (!succeed) err(s"Compilation failed", false)
+    if (!succeed) {
+      err(s"Compilation failed", false)
+      System.exit(-1)
+    }
   }
+
+  def show(msg:String, show:Boolean=config.verbose) = {
+    if (show) print(msg)
+    dbg(msg)
+  }
+
+  def showln(msg:String, show:Boolean=config.verbose) = {
+    if (show) println(msg)
+    dbg(msg)
+  }
+
 }

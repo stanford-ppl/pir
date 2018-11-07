@@ -9,6 +9,7 @@ import scala.collection.mutable
 class TungstenPIRGen(implicit design:PIR) extends TungstenCodegen 
   with TungstenTopGen 
   with TungstenCtxGen 
+  with TungstenDRAMGen 
   with TungstenOpGen
   with TungstenMemGen
 
@@ -46,6 +47,7 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
         s"$ctx.ctrler with ($ctrl)"
       )
     }
+    def dramFringe:Option[DRAMFringe] = assertOneOrLess(ctx.children.collect{ case fringe:DRAMFringe => fringe }, s"fringe in $ctx")
   }
 
   def quoteRef(n:PIRNode) = {
