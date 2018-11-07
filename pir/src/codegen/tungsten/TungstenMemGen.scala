@@ -164,9 +164,9 @@ trait TungstenMemGen extends TungstenCodegen {
       val numBanks = n.getBanks.product
       s"BufferedBankedSRAM<float, ${n.getDepth}, ${n.bankDims}, ${numBanks}>"
     case n:BankedRead =>
-      s"BufferedBankedReader<float, ${n.getDepth}, ${n.bankDims}, ${n.getVec}>"
+      s"BufferedBankedReader<float, ${n.mem.T.getDepth}, ${n.mem.T.bankDims}, ${n.getVec}>"
     case n:BankedWrite =>
-      s"BufferedBankedWriter<float, ${n.getDepth}, ${n.bankDims}, ${n.getVec}>"
+      s"BufferedBankedWriter<float, ${n.mem.T.getDepth}, ${n.mem.T.bankDims}, ${n.getVec}>"
     case n:Reg =>
       s"BufferedReg<float, ${n.getDepth}>"
     case n => super.tpOf(n)
