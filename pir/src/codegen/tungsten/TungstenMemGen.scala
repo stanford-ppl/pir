@@ -113,8 +113,31 @@ trait TungstenMemGen extends TungstenCodegen {
       emitBankOffset(n)
       emitln(s"${n}->Write(&${n}_bank, &${n}_offset, &${n.data.T}, (bool) ${n.done.T.getOrElse(false)});")
 
+    case n:FIFO => 
+      emitln(s"""${tpOf(n)} $n("$n");""")
+
+    case n:MemRead if n.mem.T.isFIFO =>
+      val mem = n.mem.T
+      addEscapeVar(mem)
+      emitEn(n.en)
+      emitln(s"float $n = 0;")
+      emitIf(s"${n}_en"){
+        emitln(s"${n} = $mem->Read();")
+        emitIf(n.done.T) {
+          emitln(s"${mem}.Pop();")
+        }
+      }
+
+    case n:MemWrite if n.mem.T.isFIFO =>
+      val mem = n.mem.T
+      addEscapeVar(mem)
+      emitEn(n.en)
+      emitIf(s"${n}_en && ${n.done.T}"){
+        emitln(s"$mem->Push(${n.data.T});")
+      }
+
     case n:Reg =>
-      emitln(s"""${tpOf(n)} $n("$n")""")
+      emitln(s"""${tpOf(n)} $n("$n");""")
       n.inAccess.foreach { inAccess =>
         emitln(s"$n.addWriter($inAccess);")
       }
@@ -122,12 +145,13 @@ trait TungstenMemGen extends TungstenCodegen {
     case n:MemRead =>
       val mem = n.mem.T
       val reader = s"reader_${n}"
-      addEscapeVar(tpOf(n), reader)
+      addEscapeVar(n)
       genTop {
         emitln(s"""${tpOf(n)} $reader("$n", ${n.isBroadcast});""")
         emitln(s"$mem.addReader($reader);")
       }
-      emitln(s"float ${n} = $reader->Read((bool) ${n.done.T.getOrElse(false)});")
+      emitEn(n.en)
+      emitln(s"${n}->Read((bool) ${n.done.T.getOrElse(false)}, ${n}_en);")
 
     case n:MemWrite =>
       val mem = n.mem.T
@@ -136,7 +160,8 @@ trait TungstenMemGen extends TungstenCodegen {
         emitln(s"""${tpOf(n)} $n("$n", ${n.isBroadcast});""")
         //emitln(s"$mem.addWriter($n);")
       }
-      emitln(s"${n}->Write((bool) ${n.done.T.getOrElse(false)});")
+      emitEn(n.en)
+      emitln(s"${n}->Write(&${n}_bank, &${n}_offset, &${n.data.T}, (bool) ${n.done.T.getOrElse(false)}, ${n}_en);")
 
     case n => super.emitNode(n)
   }
@@ -157,6 +182,8 @@ trait TungstenMemGen extends TungstenCodegen {
   }
 
   override def tpOf(n:PIRNode):String = n match {
+    case n:FIFO =>
+      s"FIFO<float, ${n.getDepth}>"
     case n:SRAM =>
       val numBanks = n.getBanks.product
       s"BufferedBankedSRAM<float, ${n.getDepth}, ${n.bankDims}, ${numBanks}>"
@@ -169,6 +196,10 @@ trait TungstenMemGen extends TungstenCodegen {
       s"BufferedBankedWriter<float, ${n.mem.T.getDepth}, ${n.mem.T.bankDims}, ${n.getVec}>"
     case n:Reg =>
       s"BufferedReg<float, ${n.getDepth}>"
+    case n:MemWrite if !n.mem.T.isFIFO =>
+      s"BufferedWriter<float, ${n.mem.T.getDepth}>"
+    case n:MemRead if !n.mem.T.isFIFO =>
+      s"BufferedReader<float, ${n.mem.T.getDepth}>"
     case n => super.tpOf(n)
   }
 

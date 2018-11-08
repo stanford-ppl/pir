@@ -60,9 +60,9 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     val enName = s"${src}_${en.name}"
     emitln(s"bool $enName = ${ens.map { _.toString}.foldLeft("true"){ case (prev,b) => s"$prev & $b" }};")
     en.src match {
-      case n:BufferWrite =>
+      case n:BufferWrite if n.getCtrl.schedule != "Streaming" =>
         emitln(s"${enName} &= ${n.ctx.get.ctrler(n.getCtrl).valid.T};")
-      case n:InAccess =>
+      case n:InAccess if n.getCtrl.schedule != "Streaming" =>
         emitln(s"${enName} &= ${n.ctx.get.ctrler(n.getCtrl).valid.T};")
       case n:RegAccumOp =>
         emitln(s"${enName} &= ${n.ctx.get.ctrler(n.getCtrl).valid.T};")
