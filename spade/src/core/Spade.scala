@@ -1,19 +1,21 @@
 package spade
 
-//import spade.node._
 import spade.param2._
 import spade.node._
-//import spade.codegen._
+import spade.codegen._
 
 import java.io._
 
-trait Spade extends Compiler with BaseFactory {
+trait Spade extends Compiler with BaseFactory with DefaultParamLoader {
 
   override lazy val config:SpadeConfig = new SpadeConfig(this)
 
   def handle(e:Exception):Unit = throw e
 
-  //lazy val spadeTop = Factory.create[Top](topParam)
+  var _spadeTop:Option[Top] = None
+  def spadeTop = _spadeTop.get
+
+  def getOpt[T](name:String):Option[T] = config.getOption[T](name)
 
   /* Analysis */
   //TODO: Area model
@@ -28,7 +30,7 @@ trait Spade extends Compiler with BaseFactory {
   /* Debug */
   //lazy val spadePrinter = new SpadePrinter()
 
-  //override def initSession = {
+  override def initSession = {
     //val sess = session
     //import sess._
 
@@ -38,7 +40,7 @@ trait Spade extends Compiler with BaseFactory {
     //// Debug
     ////addPass(new SpadeIRPrinter(s"spade.txt"))
     //addPass(new ParamIRPrinter(s"param.txt"))
-    //addPass(new NetworkDotCodegen[Bit](s"control.dot"))
+    addPass(new NetworkDotCodegen(s"net.dot", spadeTop))
     //addPass(new NetworkDotCodegen[Word](s"scalar.dot"))
     //addPass(new NetworkDotCodegen[Vector](s"vector.dot"))
     ////addPass(new SpadeIRDotCodegen[PCU](s"pcu.dot"))
@@ -51,6 +53,14 @@ trait Spade extends Compiler with BaseFactory {
     //addPass(paramScalaCodegen)
     ////addPass(spadeNetworkCodegen)
     ////addPass(spadeParamCodegen)
-  //}
+  }
+  
+  override def loadSession:Unit = {
+    super.loadSession
+    if (_states.isEmpty) createNewState
+    _spadeTop = Some(create[Top](topParam))
+  }
 
 }
+
+object Plasticine extends Spade

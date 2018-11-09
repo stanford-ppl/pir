@@ -1,9 +1,7 @@
 package spade
 
-class SpadeConfig(compiler:Spade) extends prism.Config(compiler) {
+class SpadeConfig(compiler:Compiler) extends prism.Config(compiler) {
 
-  register("save-spade", default=false, info="Save IR into a file")
-  register("load-spade", default=false, info="Load IR from a file")
   register("simulate", false, info="Enable simulation")
   register("waveform", true, info="Enable waveform")
   register("time-out", 100, info="Simulation time out after X cycles")
@@ -17,6 +15,7 @@ class SpadeConfig(compiler:Spade) extends prism.Config(compiler) {
   def printStat = option[Boolean]("stat")
   
   /* ------------------ Architecture parameters ---------------- */
+  register[Int]("clock", default=1e9.toInt, info="Clock Frequency")
   register[Int]("word", default=32, info="Word width")
   register[Int]("vec", default=16, info="Vector width of SIMD lanes and vector network")
   register[Int]("pmu-sram-size", default=64*1024, info="SRAM capacity in PMU in word.")
@@ -34,12 +33,17 @@ class SpadeConfig(compiler:Spade) extends prism.Config(compiler) {
   register[Int]("vfifo", default=4, info="Number of vector FIFO within Terminal")
   register[Int]("vlink", default=2, info="Number of vector link between switches")
   register[Int]("slink", default=4, info="Number of scalar link between switches")
+  register[Int]("pcu-stage", default=6, info="Number of stages in pcu")
   register[Int]("pcu-vfifo", info="Number of vector fifo in pcu")
   register[Int]("pcu-sfifo", info="Number of scalar fifo in pcu")
   register[Int]("pcu-cfifo", info="Number of scalar fifo in pcu")
+  register[Int]("pmu-stage", default=4, info="Number of stages in pmu")
   register[Int]("pmu-vfifo", info="Number of vector fifo in pmu")
   register[Int]("pmu-sfifo", info="Number of scalar fifo in pmu")
   register[Int]("pmu-cfifo", info="Number of scalar fifo in pmu")
+  register[Int]("dag-vfifo", info="Number of vector fifo in dag")
+  register[Int]("dag-sfifo", info="Number of scalar fifo in dag")
+  register[Int]("dag-cfifo", info="Number of scalar fifo in dag")
   register[Int]("vc", default=4, info="Number of virtual classes per network")
   register[String]("link-prop", default="db", info="[db-double buffered, cd-credit based]")
   register[Int]("flit-width", default=512, info="Flit width for dynamic network")

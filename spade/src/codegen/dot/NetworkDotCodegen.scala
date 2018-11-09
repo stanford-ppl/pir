@@ -5,9 +5,7 @@ import spade.node._
 import spade.param2._ 
 import prism.codegen._
 
-class NetworkDotCodegen(val fileName:String, val top:Top)(implicit compiler:Spade) extends IRDotCodegen {
-
-  //def this(fileName:String)(implicit compiler:Spade) = this(fileName)
+class NetworkDotCodegen(val fileName:String, val top:Top)(implicit compiler:Compiler) extends IRDotCodegen {
 
   override def label(attr:DotAttr, n:N) = {
     var label = quote(n)
@@ -52,10 +50,6 @@ class NetworkDotCodegen(val fileName:String, val top:Top)(implicit compiler:Spad
       //case _ => 
     //}
   //}
-
-  override def open = {
-    shell(s"bin/dot -c ${outputPath} &".replace(".dot", ""))
-  }
 
   //override def quote(n:Any):String = n match {
     //case n:SpadeNode => n.qindex

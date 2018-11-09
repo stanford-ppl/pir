@@ -100,7 +100,7 @@ addCommandAlias("makeapps", ";project apps; compile")
 addCommandAlias("pir", "; project prism; test; project apps; run-main")
 //addCommandAlias("pir", "; project apps; run-main")
 
-addCommandAlias("spade", "; project spade; run-main")
+addCommandAlias("spade", "; project spade; runMain spade.Plasticine --out=out/plasticine")
 
 addCommandAlias("wip", s"""; project pir; test-only -- -n "WIP"""")
 

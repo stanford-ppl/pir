@@ -5,6 +5,8 @@ import prism.graph._
 
 class PIRStates extends States {
   var pirTop:Top = _
+  var spadeTop:spade.node.Top = _
+  var spadeParam:spade.param2.TopParam = _
 }
 trait PIREnv extends Env {
 
@@ -12,6 +14,8 @@ trait PIREnv extends Env {
   override def states:PIRStates = super.states.asInstanceOf[PIRStates]
 
   def pirTop = states.pirTop
+  def spadeTop = states.spadeTop
+  def spadeParam = states.spadeParam
 
   implicit class PIRParent(val value:PIRNode) extends State[PIRNode] {
     def initNode(n:Node[_], value:PIRNode) = {

@@ -6,19 +6,17 @@ import pir.pass._
 import pir.codegen._
 import prism.codegen._
 
-trait PIR extends Compiler with PIREnv with PIRNodeUtil {
+import spade.node._
+import spade.param2._
+import spade.codegen._
 
-  //def top:Top = design.top
-  //def pirmeta:PIRMetadata = design.pirmeta
-  //def spademeta:SpadeMetadata = arch.design.spademeta
-  //def designP:PIRDesign = design
-  
+trait PIR extends Compiler with PIREnv with PIRNodeUtil with BaseFactory with DefaultParamLoader {
+
   override val logExtensions = super.logExtensions ++ List(".py", ".cluster")
   override lazy val config = new PIRConfig(this)
+  def getOpt[T](name:String):Option[T] = config.getOption[T](name)
 
   ///* Analysis */
-  //lazy val testTraversal = new TestTraversal()
-  //lazy val memoryAnalyzer = new MemoryAnalyzer()
   lazy val controlPropogator = new ControlPropogation()
   //lazy val controllerRuntimeAnalyzer = new ControllerRuntimeAnalyzer()
   //lazy val psimLinkAnalyzer = new PlastisimLinkAnalyzer()
@@ -91,12 +89,13 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(enableDot, new PIRSimpleDotGen[Context](s"simple6.dot"))
     //addPass(bufferInsertion)
     
-    saveSession
-    
     addPass(globalInsertion)
     addPass(enableDot, new PIRSimpleDotGen[Context](s"simple7.dot"))
 
+    saveSession
+    
     addPass(enableTungsten, tungstenPIRGen)
+    addPass(new NetworkDotCodegen(s"net.dot", spadeTop))
 
     //addPass(constantExpressionEvaluator)
     //addPass(controlPropogator)

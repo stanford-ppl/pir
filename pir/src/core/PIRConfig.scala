@@ -1,6 +1,6 @@
 package pir
 
-class PIRConfig(compiler:PIR) extends prism.Config(compiler) {
+class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
 
   /* ------------------- Compiler --------------------  */
   register("ctrl", default=true, info="Enable control logic generation")
@@ -67,8 +67,6 @@ class PIRConfig(compiler:PIR) extends prism.Config(compiler) {
   register("bp-split", default=false, info="Enable break point for splitting")
   register("bp-pr", default=false, info="Enable break point for place and route")
   register("dot", default=false, info="Enable dot codegen")
-  register("open", default=false, info="Open dot graph after codegen")
-  register("stat", default=false, info="Printing CU statistics")
   register("snapshot", default=false, info="Enable placement snapshot")
   register("snapint", default=10, info="Placement snapshot interval")
 
@@ -76,6 +74,4 @@ class PIRConfig(compiler:PIR) extends prism.Config(compiler) {
   def enablePlaceAndRouteBreakPoint = debug && option[Boolean]("bp-pr")
   def enableSnapshot = debug && option[Boolean]("snapshot")
   def enableDot:Boolean = debug && enableCodegen && option[Boolean]("dot")
-  def openDot:Boolean = enableDot && option[Boolean]("open")
-  def printStat = option[Boolean]("stat")
 }
