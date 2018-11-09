@@ -7,6 +7,21 @@ import scala.collection.mutable
 
 trait RuntimeAnalyzer { self:PIRPass =>
 
+  implicit class CtxUtil(ctx:Context) {
+    def reads:Seq[BufferRead] = ctx.collectDown[BufferRead]()
+    def writes:Seq[BufferWrite] = ctx.collectDown[BufferWrite]().filter { write =>
+      val writeCtx = write.ctx.get
+      write.out.T.exists { _.ctx.get != writeCtx }
+    }
+    def ctrs:Seq[Counter] = ctx.collectDown[Counter]()
+    def ctrler(ctrl:ControlTree) = {
+      assertOne(
+        ctx.collectDown[Controller]().filter { _.ctrl.get == ctrl }, 
+        s"$ctx.ctrler with ($ctrl)"
+      )
+    }
+    def dramCommands:Option[DRAMCommand] = assertOneOrLess(ctx.children.collect{ case fringe:DRAMCommand => fringe }, s"fringe in $ctx")
+  }
   implicit class PIRNodeRuntimeOp(n:PIRNode) {
     def getVec:Int = n.getMeta[Int]("vec").getOrElseUpdate(compVec(n))
     def getCtrl:ControlTree = n.ctrl.get

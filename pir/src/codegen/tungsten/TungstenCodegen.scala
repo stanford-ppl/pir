@@ -34,22 +34,6 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     case n => super.visitOut(n)
   }
 
-  implicit class CtxUtil(ctx:Context) {
-    def reads:Seq[BufferRead] = ctx.collectDown[BufferRead]()
-    def writes:Seq[BufferWrite] = ctx.collectDown[BufferWrite]().filter { write =>
-      val writeCtx = write.ctx.get
-      write.out.T.exists { _.ctx.get != writeCtx }
-    }
-    def ctrs:Seq[Counter] = ctx.collectDown[Counter]()
-    def ctrler(ctrl:ControlTree) = {
-      assertOne(
-        ctx.collectDown[Controller]().filter { _.ctrl.get == ctrl }, 
-        s"$ctx.ctrler with ($ctrl)"
-      )
-    }
-    def dramFringe:Option[DRAMFringe] = assertOneOrLess(ctx.children.collect{ case fringe:DRAMFringe => fringe }, s"fringe in $ctx")
-  }
-
   def quoteRef(n:PIRNode) = {
     if (n.getVec > 1) s"${n}[i]" else s"${n}"
   }

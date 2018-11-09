@@ -43,6 +43,8 @@ case class ArgFringe()(implicit env:Env) extends GlobalContainer {
   val hostOutCtrler = new ChildField[HostOutController, HostOutController]("hostOutController")
 }
 case class MemoryContainer()(implicit env:Env) extends GlobalContainer
+case class CUContainer()(implicit env:Env) extends GlobalContainer
+case class DRAMFringe()(implicit env:Env) extends GlobalContainer
 case class Context()(implicit env:Env) extends PIRNode
 
 trait Def extends PIRNode with DefNode[PIRNode] {
@@ -76,6 +78,7 @@ case class Counter(par:Int)(implicit env:Env) extends Def {
   val max = new InputField[PIRNode]("max")
   def iters = this.collectOut[CounterIter]().sortBy { _.i }
   def valids = this.collectOut[CounterValid]().sortBy { _.i }
+  def isInner = iters.forall { _.i.isEmpty } && iters.size == 1
 }
 
 case class CounterIter(i:Option[Int])(implicit env:Env) extends Def {

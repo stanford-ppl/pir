@@ -13,9 +13,6 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
   //def spademeta:SpadeMetadata = arch.design.spademeta
   //def designP:PIRDesign = design
   
-  var _pirTop:Option[Top] = None
-  def pirTop = _pirTop.get
-  
   override val logExtensions = super.logExtensions ++ List(".py", ".cluster")
   override lazy val config = new PIRConfig(this)
 
@@ -38,6 +35,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
   lazy val depDuplications = new DependencyDuplication()
   lazy val validProp = new ValidConstantPropogation()
   lazy val bufferInsertion = new BufferInsertion()
+  lazy val globalInsertion = new GlobalInsertion()
   //lazy val unrollingTransformer = new UnrollingTransformer()
   //lazy val cuInsertion = new CUInsertion()
   //lazy val accessPuller = new AccessPulling()
@@ -86,7 +84,6 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(memLowering)
     addPass(deadCodeEliminator)
     addPass(enableDot, new PIRIRDotGen(s"top5.dot"))
-    addPass(enableDot, new PIRSimpleDotGen[Context](s"simple5.dot"))
     addPass(depDuplications)
     addPass(deadCodeEliminator)
     addPass(contextAnalyzer)
@@ -96,7 +93,10 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     
     saveSession
     
-    addPass(enableCodegen, tungstenPIRGen)
+    addPass(globalInsertion)
+    addPass(enableDot, new PIRSimpleDotGen[Context](s"simple7.dot"))
+
+    addPass(enableTungsten, tungstenPIRGen)
 
     //addPass(constantExpressionEvaluator)
     //addPass(controlPropogator)

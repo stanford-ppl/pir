@@ -29,6 +29,10 @@ class PIRConfig(compiler:PIR) extends prism.Config(compiler) {
   def runPlastisim = option[Boolean]("run-psim") && genPlastisim
   def enableTrace = genPlastisim && option[Boolean]("trace")
 
+  /* ------------------- Tungsten --------------------  */
+  register("tungsten", default=true, info="Enable tungsten codegen")
+  def enableTungsten = enableCodegen && option[Boolean]("tungsten")
+
   /* ------------------- Routing --------------------  */
   register("routing-algo", default="dor", info="If net=[dynamic] - [dor, planed, proute]. Option ignored for other network. dor - dimention order routing. planed - arbitrary source routing, proute - use plastiroute for place and route. If proute is chosen plastiroute will be launched from pir if $PLASTIROUTE_HOME is set") 
   register("routing-cost", default="H-hop", info="Routing cost [hop, balanced, H-hop, H-balanced]. hop - use hop count only for cost in search, balanced - use traffic load + hop count as cost, H-hop: use Manhattan distance as heurisc cost and use hop count for cost. H-balanced: use Manhattan distance as heurisc cost and use hop count and traffic load for cost.") 
@@ -62,7 +66,7 @@ class PIRConfig(compiler:PIR) extends prism.Config(compiler) {
   /* ------------------- Debugging --------------------  */
   register("bp-split", default=false, info="Enable break point for splitting")
   register("bp-pr", default=false, info="Enable break point for place and route")
-  register("dot", default=true, info="Enable dot codegen")
+  register("dot", default=false, info="Enable dot codegen")
   register("open", default=false, info="Open dot graph after codegen")
   register("stat", default=false, info="Printing CU statistics")
   register("snapshot", default=false, info="Enable placement snapshot")
@@ -71,7 +75,7 @@ class PIRConfig(compiler:PIR) extends prism.Config(compiler) {
   def enableSplitBreakPoint = debug && option[Boolean]("bp-split")
   def enablePlaceAndRouteBreakPoint = debug && option[Boolean]("bp-pr")
   def enableSnapshot = debug && option[Boolean]("snapshot")
-  def enableDot:Boolean = enableCodegen && option[Boolean]("dot")
+  def enableDot:Boolean = debug && enableCodegen && option[Boolean]("dot")
   def openDot:Boolean = enableDot && option[Boolean]("open")
   def printStat = option[Boolean]("stat")
 }

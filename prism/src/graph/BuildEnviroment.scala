@@ -4,14 +4,14 @@ package graph
 import scala.collection.mutable._
 
 
-abstract class State[T] {
+abstract class State[T] extends Serializable {
   def value:T
   val key = this.getClass
   def initNode(n:Node[_], value:T):Unit
   def initNodeX(n:Node[_], value:Any):Unit = initNode(n, value.asInstanceOf[T])
 }
 
-class States {
+class States extends Serializable {
   var id = -1
   val stacks = Map[Class[_], Stack[State[_]]]()
 }
@@ -19,7 +19,14 @@ class States {
 trait BuildEnvironment extends Logging {
   implicit val env:BuildEnvironment = this
 
-  val states = new States
+  var _states:Option[States] = None
+  def newStates:States = new States
+  def createNewState = {
+    info(s"Creating new states ...")
+    val s = newStates
+    _states = Some(s)
+  }
+  def states:States = _states.get
   def stacks = states.stacks
 
   def nextId = { states.id += 1; states.id }

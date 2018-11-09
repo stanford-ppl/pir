@@ -21,8 +21,7 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
   //with MappingLogger
   {
 
-  override val states = compiler.states
-  def pirTop = compiler.pirTop
+  override def states = compiler.states
   override def config:PIRConfig = compiler.config
 
   //def qdef(n:Any) = n match {

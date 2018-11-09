@@ -1,22 +1,22 @@
 package pir
 package node
 
-abstract class DRAMFringe(implicit env:Env) extends PIRNode {
+abstract class DRAMCommand(implicit env:Env) extends PIRNode {
   def dram:DRAM
 }
 
-case class FringeDenseLoad(dram:DRAM)(implicit env:Env) extends DRAMFringe {
+case class FringeDenseLoad(dram:DRAM)(implicit env:Env) extends DRAMCommand {
   val offset = new InputField[BufferRead]("offset")
   val size = new InputField[BufferRead]("size")
   val data = new OutputField[BufferWrite]("data")
 }
 
-case class FringeSparseLoad(dram:DRAM)(implicit env:Env) extends DRAMFringe {
+case class FringeSparseLoad(dram:DRAM)(implicit env:Env) extends DRAMCommand {
   val addr = new InputField[BufferRead]("addr")
   val data = new OutputField[BufferWrite]("data")
 }
 
-case class FringeDenseStore(dram:DRAM)(implicit env:Env) extends DRAMFringe {
+case class FringeDenseStore(dram:DRAM)(implicit env:Env) extends DRAMCommand {
   val offset = new InputField[BufferRead]("offset")
   val size = new InputField[BufferRead]("size")
   val data = new InputField[BufferRead]("data")
@@ -24,7 +24,7 @@ case class FringeDenseStore(dram:DRAM)(implicit env:Env) extends DRAMFringe {
   val ack = new OutputField[BufferWrite]("ack")
 }
 
-case class FringeSparseStore(dram:DRAM)(implicit env:Env) extends DRAMFringe {
+case class FringeSparseStore(dram:DRAM)(implicit env:Env) extends DRAMCommand {
   val addr = new InputField[BufferRead]("addr")
   val data = new InputField[BufferRead]("data")
   val ack = new OutputField[BufferWrite]("ack")

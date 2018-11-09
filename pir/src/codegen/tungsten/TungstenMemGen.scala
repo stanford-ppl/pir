@@ -18,7 +18,7 @@ trait TungstenMemGen extends TungstenCodegen {
         emitln(s"""addInput(fifo_$n);""")
         emitln(s"""AddChild(fifo_$n);""")
       }
-      val readByFringe = n.out.T.exists { _.isInstanceOf[DRAMFringe] }
+      val readByFringe = n.out.T.exists { _.isInstanceOf[DRAMCommand] }
       if (!readByFringe) {
         emitVec(n)(s"fifo_${n}->Read().floatVec_${if (n.getVec==1) "[0]" else "[i]"};")
         emitIf(s"${n.done.T}") {
@@ -40,7 +40,7 @@ trait TungstenMemGen extends TungstenCodegen {
       }
       addEscapeVar(s"CheckedSend<Token>", s"$send")
       data match {
-        case data:DRAMFringe =>
+        case data:DRAMCommand =>
         case data:BankedRead =>
           genPush {
             emitIf(s"${data}->Valid()") {

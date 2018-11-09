@@ -2,7 +2,7 @@ package prism
 package util
 
 trait ArgLoader extends FileManager {
-  val configPath =".prismrc"
+  val configPath =s"${sys.env("HOME")}${separator}.pirconf"
   def loadArgs(inputArgs:Array[String]) = {
     if (exists(configPath)) {
       var lines = getLines(configPath).toArray

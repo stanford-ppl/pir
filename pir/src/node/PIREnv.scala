@@ -3,7 +3,16 @@ package node
 
 import prism.graph._
 
+class PIRStates extends States {
+  var pirTop:Top = _
+}
 trait PIREnv extends Env {
+
+  override def newStates = new PIRStates
+  override def states:PIRStates = super.states.asInstanceOf[PIRStates]
+
+  def pirTop = states.pirTop
+
   implicit class PIRParent(val value:PIRNode) extends State[PIRNode] {
     def initNode(n:Node[_], value:PIRNode) = {
       n match {
@@ -12,7 +21,7 @@ trait PIREnv extends Env {
       }
     }
   }
-
+  
   implicit class Ctrl(val value:ControlTree) extends State[ControlTree] {
     def initNode(n:Node[_], value:ControlTree) = {
       n match {

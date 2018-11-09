@@ -14,19 +14,22 @@ trait PIRApp extends PIR with Logging {
     //obj.instance.asInstanceOf[Spade]
   //}
   
-  override def getDesign = _pirTop.get
+  override def getDesign = {
+    states
+  }
   
   override def loadDesign(loaded:Any) = {
-    _pirTop = Some(loaded.asInstanceOf[Top])
+    _states = Some(loaded.asInstanceOf[States])
   }
 
   override def loadSession:Unit = {
     super.loadSession
-    if (_pirTop.isEmpty) {
-      tic(s"Creating new design ...")
+    if (_states.isEmpty) {
+      createNewState
+      tic
       val top = Top()
+      states.pirTop = top
       import top._
-      _pirTop = Some(top)
       within(top, topCtrl) {
         top.hostInCtrl = ControlTree("Sequenced")
         top.argFringe = ArgFringe()

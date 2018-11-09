@@ -25,11 +25,14 @@ class ValidConstantPropogation(implicit compiler:PIR) extends PIRTraversal with 
     val par = counter.par
     val range = (min, step, max) match {
       case (Const(min:Int), Const(step:Int), Const(max:Int)) =>
-        dbg(s"Constant loop bounds min=$min, step=$step, max=$max, par=$par")
-        val bound = ((max - min) /! step) % par
+        var bound = ((max - min) /! step) % par
+        if (bound == 0) {
+          if (counter.isInner) bound = 1 else bound = par
+        }
+        dbg(s"Constant loop bounds min=$min, step=$step, max=$max, par=$par (0 until $bound)")
         (0 until bound)
       case _ =>
-        dbg(s"None constant loop bounds min=$min, step=$step, max=$max, par=$par")
+        dbg(s"None constant loop bounds min=$min, step=$step, max=$max, par=$par (0 until 1)")
         (0 until 1)
     }
     range.foreach { i =>
