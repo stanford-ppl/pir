@@ -18,6 +18,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with BaseFactory with De
 
   ///* Analysis */
   lazy val controlPropogator = new ControlPropogation()
+  lazy val plastisimAnalyzer = new PlastisimAnalyzer()
   //lazy val controllerRuntimeAnalyzer = new ControllerRuntimeAnalyzer()
   //lazy val psimLinkAnalyzer = new PlastisimLinkAnalyzer()
   //lazy val psimCountCheck = new PlastisimCountCheck()
@@ -90,25 +91,15 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with BaseFactory with De
     //addPass(bufferInsertion)
     
     addPass(globalInsertion)
-    addPass(enableDot, new PIRSimpleDotGen[Context](s"simple7.dot"))
 
     saveSession
     
+    addPass(plastisimAnalyzer)
+    addPass(enableDot, new PIRSimpleDotGen[Context](s"simple7.dot"))
+    addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
+
     addPass(enableTungsten, tungstenPIRGen)
     addPass(new NetworkDotCodegen(s"net.dot", spadeTop))
-
-    //addPass(constantExpressionEvaluator)
-    //addPass(controlPropogator)
-    //addPass(enableDot, new PIRIRDotCodegen(s"top2.dot"))
-    //addPass(unrollingTransformer).dependsOn(controlPropogator)
-    //addPass(enableDot, new PIRIRDotCodegen(s"top3.dot"))
-    //addPass(cuInsertion)
-    //addPass(accessPuller).dependsOn(cuInsertion)
-    //addPass(deadCodeEliminator)
-    //addPass(enableDot, new PIRIRDotCodegen(s"top4.dot"))
-    //addPass(enableDot, new SimpleIRDotCodegen(s"simple1.dot"))
-    //addPass(accessLowering).dependsOn(controlPropogator, accessPuller, deadCodeEliminator)
-    //addPass(enableDot, new PIRIRDotCodegen(s"top5.dot"))
 
     //addPass(bankedAccessMerging).dependsOn(controlPropogator, accessPuller, deadCodeEliminator)
     //addPass(enableDot, new PIRIRDotCodegen(s"top6.dot"))

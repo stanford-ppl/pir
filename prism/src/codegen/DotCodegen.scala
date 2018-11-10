@@ -4,6 +4,8 @@ package codegen
 import scala.collection.mutable.Map
 
 trait DotCodegen extends Codegen {
+  override def clearGen = {}
+
   override def dirName = buildPath(super.dirName, s"dot") 
 
   def dotFile:String = fileName.replace(".dot", ".html")

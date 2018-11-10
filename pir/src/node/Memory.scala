@@ -79,6 +79,8 @@ case class Counter(par:Int)(implicit env:Env) extends Def {
   def iters = this.collectOut[CounterIter]().sortBy { _.i }
   def valids = this.collectOut[CounterValid]().sortBy { _.i }
   def isInner = iters.forall { _.i.isEmpty } && iters.size == 1
+
+  def ctrler = this.collectUp[Controller]().head
 }
 
 case class CounterIter(i:Option[Int])(implicit env:Env) extends Def {
@@ -93,11 +95,15 @@ abstract class Controller(implicit env:Env) extends PIRNode {
   val en = new InputField[Option[PIRNode]]("en")
   val parentEn = new InputField[Option[PIRNode]]("parentEn")
 
-  val valid = new ChildField[ControllerValid, ControllerValid]("cchain")
+  val valid = new ChildField[ControllerValid, ControllerValid]("valid")
   val done = new ChildField[ControllerDone, ControllerDone]("cchain")
 }
-case class ControllerDone()(implicit env:Env) extends Def
-case class ControllerValid()(implicit env:Env) extends Def
+case class ControllerDone()(implicit env:Env) extends Def {
+  def ctrler = this.collectUp[Controller]().head
+}
+case class ControllerValid()(implicit env:Env) extends Def {
+  def ctrler = this.collectUp[Controller]().head
+}
 
 case class HostInController()(implicit env:Env) extends Controller
 case class HostOutController()(implicit env:Env) extends Controller

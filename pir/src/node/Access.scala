@@ -39,6 +39,8 @@ case class BufferRead(isFIFO:Boolean)(implicit env:Env) extends Def with MemoryN
 case class BufferWrite()(implicit env:Env) extends PIRNode {
   val out = new OutputField[List[BufferRead]]("out")
   val data = new InputField[PIRNode]("data")
+  // En is anded with done. But done is branch independent
+  val en = new InputField[List[PIRNode]]("en")
   val done = new InputField[PIRNode]("done")
 }
 

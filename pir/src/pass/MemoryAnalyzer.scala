@@ -46,18 +46,13 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
   }
 
   def ctrlValid(ctrl:ControlTree, ctx:Context):PIRNode = {
-    ctrl.schedule match {
-      case "Streaming" =>
-        within(ctx, ctrl) { Const(true) }
-      case _ =>
-        if (!compiler.hasRun[DependencyDuplication]) {
-          // Centralized controller
-          ctrl.ctrler.get.valid
-        } else {
-          // Distributed controller
-          assertOne(ctx.collectDown[ControllerValid]().filter { _.ctrl.get == ctrl }, 
-            s"ctrlValid with ctrl=$ctrl in $ctx")
-        }
+    if (!compiler.hasRun[DependencyDuplication]) {
+      // Centralized controller
+      ctrl.ctrler.get.valid
+    } else {
+      // Distributed controller
+      assertOne(ctx.collectDown[ControllerValid]().filter { _.ctrl.get == ctrl }, 
+        s"ctrlValid with ctrl=$ctrl in $ctx")
     }
   }
 

@@ -3,6 +3,7 @@ package node
 
 abstract class DRAMCommand(implicit env:Env) extends PIRNode {
   def dram:DRAM
+  val respondValid = new OutputField[List[BufferRead]]("respondValid")
 }
 
 case class FringeDenseLoad(dram:DRAM)(implicit env:Env) extends DRAMCommand {
