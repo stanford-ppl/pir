@@ -65,6 +65,10 @@ trait RuntimeAnalyzer { self:PIRPass =>
         val size = n.size.T.getBound
         val dataPar = n.data.T.getVec
         size.map { size => size /! (bytePerWord * dataPar) }
+      case n:FringeDenseStore =>
+        val size = n.size.T.getBound
+        val dataPar = n.data.T.getVec
+        size.map { size => size /! (bytePerWord * dataPar) }
       case n => None
     }
   }
@@ -73,13 +77,16 @@ trait RuntimeAnalyzer { self:PIRPass =>
     n match {
       case n:BufferRead =>
         n.out.T match {
-          case List(out:FringeDenseLoad) =>
-            zipMap(n.done.T.getScale, out.getIter) { _ * _ }
+          case List(dram:FringeDenseLoad) => dram.getIter
+          case List(dram:FringeDenseStore) if n.out.isConnectedTo(dram.data) | n.out.isConnectedTo(dram.valid) => Some(1l)
+          case List(dram:FringeDenseStore) if n.out.isConnectedTo(dram.size) | n.out.isConnectedTo(dram.offset) =>
+            dram.getIter
           case _ => n.done.T.getScale
         }
       case n:BufferWrite =>
         n.data.T match {
           case data:FringeDenseLoad => Some(1l)
+          case data:FringeDenseStore => data.getIter // ack
           case data =>  n.done.T.getScale
         }
       case n:ControllerDone =>
@@ -91,7 +98,6 @@ trait RuntimeAnalyzer { self:PIRPass =>
         assertUnify(children, s"$n.valid.scale") { child =>
           zipMap(child.valid.T.getScale, child.getIter) { _ * _ }
         }.getOrElse(Some(1l))
-      case Const(true) => Some(1l)
       case n => throw PIRException(s"Don't know how to compute scale of $n")
     }
   }
@@ -101,9 +107,9 @@ trait RuntimeAnalyzer { self:PIRPass =>
       case n:Context if n.collectDown[HostInController]().nonEmpty => Some(1l)
       case n:Context =>
         val reads = n.reads.filterNot { _.isLocal }
-        assertUnify(reads, s"reads=$reads, read.count * read.scale") { read => 
+        assertOptionUnify(reads, s"$n.reads=$reads, read.count * read.scale") { read => 
           zipMap(read.getCount, read.getScale) { _ * _ }
-        }.get
+        }
       case n:BufferRead =>
         n.in.T.getCount
       case n:BufferWrite =>

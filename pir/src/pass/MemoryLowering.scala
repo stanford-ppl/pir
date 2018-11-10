@@ -172,13 +172,9 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
     mem.outAccess.foreach { outAccess =>
       within(outAccess.parent.get.as[PIRNode]) {
         val inAccess = mem.inAccess.head.as[MemWrite]
-        var (enq, deq) = compEnqDeq(inAccess.ctrl.get, outAccess.ctrl.get, mem.isFIFO, inAccess.ctx.get, outAccess.ctx.get)
+        val (enq, deq) = compEnqDeq(inAccess.ctrl.get, outAccess.ctrl.get, mem.isFIFO, inAccess.ctx.get, outAccess.ctx.get)
         val write = within(inAccess.parent.get.as[PIRNode], inAccess.ctrl.get) {
-          BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(inAccess.en.T)
-        }
-        inAccess.data.T match {
-          case data:DRAMCommand => write.done(data.respondValid)
-          case data => write.done(enq)
+          BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(inAccess.en.T).done(enq)
         }
         dbg(s"create $write.data(${inAccess.data.neighbors}).done(${write.done.T})")
         val read = within(outAccess.parent.get.as[PIRNode], outAccess.ctrl.get) {

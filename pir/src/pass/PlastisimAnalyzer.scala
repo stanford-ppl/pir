@@ -11,7 +11,13 @@ class PlastisimAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFS
 
   override def visitNode(n:N) = {
     n match {
-      case n:Context => n.getCount
+      case n:Context => 
+        val count = n.getCount
+        count.foreach { count =>
+          if (n.collectDown[HostOutController]().nonEmpty) {
+            count == 1
+          }
+        }
       case n =>
     }
     super.visitNode(n)
