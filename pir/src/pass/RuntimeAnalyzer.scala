@@ -69,6 +69,8 @@ trait RuntimeAnalyzer { self:PIRPass =>
         val size = n.size.T.getBound
         val dataPar = n.data.T.getVec
         size.map { size => size /! (bytePerWord * dataPar) }
+      case n:FringeSparseLoad => Some(1l)
+      case n:FringeSparseStore => Some(1l)
       case n => None
     }
   }
@@ -81,12 +83,16 @@ trait RuntimeAnalyzer { self:PIRPass =>
           case List(dram:FringeDenseStore) if n.out.isConnectedTo(dram.data) | n.out.isConnectedTo(dram.valid) => Some(1l)
           case List(dram:FringeDenseStore) if n.out.isConnectedTo(dram.size) | n.out.isConnectedTo(dram.offset) =>
             dram.getIter
+          case List(dram:FringeSparseLoad) => Some(1l)
+          case List(dram:FringeSparseStore) => Some(1l)
           case _ => n.done.T.getScale
         }
       case n:BufferWrite =>
         n.data.T match {
           case data:FringeDenseLoad => Some(1l)
           case data:FringeDenseStore => data.getIter // ack
+          case data:FringeSparseLoad => Some(1l)
+          case data:FringeSparseStore => Some(1l)
           case data =>  n.done.T.getScale
         }
       case n:ControllerDone =>
