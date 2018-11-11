@@ -87,7 +87,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with BaseFactory with De
     addPass(deadCodeEliminator)
     addPass(contextAnalyzer)
     addPass(enableDot, new PIRIRDotGen(s"top6.dot"))
-    addPass(enableDot, new PIRSimpleDotGen[Context](s"simple6.dot"))
+    addPass(enableDot, new PIRCtxDotGen(s"simple6.dot"))
     //addPass(bufferInsertion)
     
     addPass(globalInsertion)
@@ -95,7 +95,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with BaseFactory with De
     saveSession
     
     addPass(plastisimAnalyzer)
-    addPass(enableDot, new PIRSimpleDotGen[Context](s"simple7.dot"))
+    addPass(enableDot, new PIRCtxDotGen(s"simple7.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
 
     addPass(enableTungsten, tungstenPIRGen)

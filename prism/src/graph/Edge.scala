@@ -26,6 +26,7 @@ trait Edge extends IR {
     }
   }
   def neighbors = connected.map(_.src).distinct
+  def isConnectedTo(n:Node[_]) = neighbors.contains(n)
 
   def disconnectFrom(e:Edge):Unit = {
     assert(this.isConnectedTo(e), s"$this is not connected to $e. this.connected=$connected")
@@ -33,8 +34,6 @@ trait Edge extends IR {
     if (e.isConnectedTo(this)) e.disconnectFrom(this)
   }
   def disconnect = connected.foreach(disconnectFrom)
-
-  def Ns:List[Node[_]] = connected.map(_.src).toList
 
   src.addEdge(this)
 }

@@ -46,32 +46,28 @@ trait BufferAnalyzer extends MemoryAnalyzer {
   private def bufferInput(dep:PIRNode, deped:PIRNode):BufferRead = dbgblk(s"bufferInput(dep=$dep, deped=$deped)"){
     val depCtx = dep.ctx.get
     val depedCtx = deped.ctx.get
-    val (enq, deq) = compEnqDeq(dep.ctrl.get, deped.ctrl.get, false, depCtx, depedCtx)
-    val write = assertOneOrLess(depCtx.collectDown[BufferWrite]().filter { write =>
-      write.data.traceTo(dep) &&
-      write.done.traceTo(enq)
-    }, s"bufferWrite from $dep with done=$enq in $depCtx").getOrElse {
-      within(depCtx, dep.ctrl.get) {
-        val write = BufferWrite().data(dep).done(enq)
-        dbg(s"create $write.data($dep).done($enq)")
-        //bufferInput(write)
-        write
+    val isFIFO = dep.getCtrl == deped.getCtrl
+    val (enq, deq) = compEnqDeq(dep.getCtrl, deped.getCtrl, isFIFO, depCtx, depedCtx)
+    val write = within(depCtx, dep.getCtrl) {
+      allocate[BufferWrite] { write => 
+        write.data.traceTo(dep) &&
+        write.done.traceTo(enq)
+      } {
+        BufferWrite().data(dep).done(enq)
       }
     }
-    val read = assertOneOrLess(depedCtx.collectDown[BufferRead]().filter { read =>
-      read.in.traceTo(write) &&
-      read.done.traceTo(deq)
-    }, s"bufferRead from $write with done=$deq in $depedCtx").getOrElse {
-      within(depedCtx, deped.ctrl.get) {
-        val read = BufferRead(isFIFO=dep.ctrl.get == deped.ctrl.get).in(write).done(deq).banks(List(dep.getVec))
-        dbg(s"create $read.in($write).done($deq)")
-        //bufferInput(read)
-        read
+    val read = within(depedCtx, deped.getCtrl) {
+      allocate[BufferRead] { read => 
+        read.in.traceTo(write) &&
+        read.done.traceTo(deq)
+      } {
+        BufferRead(isFIFO).in(write).done(deq).banks(List(dep.getVec))
       }
     }
     swapConnection(deped, dep.as[PIRNode].output.get, read.out)
     read
   }
+
 }
 
 class BufferInsertion(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with BufferAnalyzer {

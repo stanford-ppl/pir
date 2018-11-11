@@ -79,10 +79,6 @@ trait ScalaUtilFunc {
     (a,b,c).zipped.map { case (a,b,c) => lambda(a,b,c) }.headOption
   }
 
-  def maxOption[T:Ordering](list:Iterable[T]) = {
-    if (list.isEmpty) None else Some(list.max)
-  }
-
   def reverseMap[K,V](map:scala.collection.Map[K,V]):Map[V,Set[K]] = {
     map.groupBy(_._2).mapValues(_.keys.toSet)
   }
@@ -155,8 +151,12 @@ trait ScalaUtilFunc {
     def /! (d:Int) = (i + d - 1) / d
   }
 
-  implicit class IterUtil[T:Ordering](x:Iterable[T]) {
+  implicit class OrderedIterUtil[T:Ordering](x:Iterable[T]) {
     def maxOption:Option[T] = if (x.isEmpty) None else Some(x.max)
+  }
+  implicit class IterUtil[T](x:Iterable[T]) {
+    def maxOptionBy[O:Ordering](func:T => O):Option[T] = 
+      if (x.isEmpty) None else Some(x.maxBy(func))
   }
 
   def log2(x:Int) = (Math.log(x) / Math.log(2)).ceil.toInt

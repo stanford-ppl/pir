@@ -23,7 +23,8 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
       .append("ctrl", n.ctrl.v)
       .append("count", n.count.v.flatten)
       .append("scale", n.scale.v.flatten)
-      .append("iter", n.iter.v.flatten)
+      .append("iter", n.iter.v.flatten) +
+      n.srcCtx.v.fold("") { sc => s"\n$sc" }
     }.foldAt(n.to[Counter]) { (q, n) =>
       q.append("min", n.min.T)
       .append("max", n.max.T)
@@ -31,15 +32,20 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
       .append("par", n.par)
     }.foldAt(n.to[OpDef]) { (q,n) =>
       s"$q\n${n.op}"
+    }.foldAt(n.to[Access]) { (q,n) =>
+      q.append("port", n.port.v)
+      .append("muxPort", n.muxPort.v)
     }.foldAt(n.to[MemoryNode]) { (q,n) =>
       q.append("banks", n.banks.get)
+      .append("depth", n.depth.get)
     }.foldAt(n.to[Context]) { (q,n) =>
-      s"$q\nctrls:\n${n.collectDown[Controller]().map { _.ctrl.get }.sortBy { _.ancestors.size }.mkString("\n")}"
+      val ctrl = n.collectDown[Controller]().map { _.ctrl.get }.maxOptionBy { _.ancestors.size }
+      ctrl.fold(q) { ctrl => s"$q\n${ctrl}" }
     }
   }
 
   override def color(attr:DotAttr, n:N) = n match {
-    case n:LocalInAccess => attr.fillcolor(gold).style(filled)
+    case n:LocalOutAccess => attr.fillcolor(gold).style(filled)
     case n:Memory => attr.fillcolor(chartreuse).style(filled)
     //case n:ContextEnable => attr.fillcolor(orange).style(filled)
     //case n:ContextEnableOut => attr.fillcolor(orange).style(filled)
@@ -72,9 +78,17 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
 
 }
 
-class PIRSimpleDotGen[A:ClassTag](fileName:String)(implicit design:PIR) extends PIRIRDotGen(fileName) {
+class PIRCtxDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fileName) {
   override def emitNode(n:N) = n match {
-    case _:A => emitSingleNode(n)
+    case _:Context => emitSingleNode(n)
     case n => super.emitNode(n)
   }
+  override def quote(n:Any) = {
+    super.quote(n).foldAt(n.to[Context]) { (q,n) =>
+      val accesses = n.collectDown[Access]()
+      val astr = accesses.map(quote)
+      if (astr.nonEmpty) s"$q\n${astr.mkString("\n")}" else q
+    }
+  }
+
 }

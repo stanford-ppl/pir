@@ -58,6 +58,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
       multiBufferBarrierInsertion(mem)
       fifoBarrierInsertion(mem)
       //enforceProgramOrder(mem)
+      enforceDataDependency(mem)
     }
   }
 
@@ -104,7 +105,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
         access.done(ctrlDone(ctrl, access.ctx.get))
       }
       val portMap = mem.accesses.groupBy { access =>
-        access.port.v.get
+        access.port.v.get.get
       }
       val portIds = portMap.keys.toList.sorted
       portIds.sliding(2,1).foreach {
@@ -118,14 +119,37 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
                 ctrlMap(fromAccess.getCtrl).as[ControlTree], 
                 ctrlMap(toAccess.getCtrl).as[ControlTree]
               )
-              //if (fromAccess.isInAccess == toAccess.isInAccess) { // Single buffer token
-                //buffer.depth(1)
-              //} else { // Double buffer token
-                buffer.depth(2)
-              //}
+              val depth = toid - fromid + 1
+              dbg(s"bufferDepth = $depth")
+              buffer.depth(depth)
             }
           }
         case _ =>
+      }
+    }
+  }
+
+  def enforceDataDependency(mem:Memory):Unit = {
+    val accesses = mem.accesses.filter { _.port.nonEmpty }
+    accesses.groupBy { _.port.get }.foreach { case (port, accesses) =>
+      val (inAccesses, outAccesses) =  accesses.partition { _.isInstanceOf[InAccess] }
+      inAccesses.foreach { inAccess =>
+        outAccesses.foreach { outAccess =>
+          dbg(s"Insert token for data dependency between $inAccess and $outAccess")
+          val buffer = insertToken(
+            inAccess.ctx.get, 
+            outAccess.ctx.get, 
+            inAccess.getCtrl.as[ControlTree], 
+            outAccess.getCtrl.as[ControlTree]
+          )
+          if (buffer.depth.isEmpty) {
+            buffer.depth(1)
+          }
+          if (inAccess.order.get > outAccess.order.get) {
+            dbg(s"Loop carried dependency between $inAccess and $outAccess")
+            buffer.initToken(true)
+          }
+        }
       }
     }
   }

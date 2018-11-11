@@ -113,7 +113,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
     n match {
       case n:Context if n.collectDown[HostInController]().nonEmpty => Some(1l)
       case n:Context =>
-        val reads = n.reads.filterNot { _.isLocal }
+        val reads = n.reads.filterNot { read => read.isLocal || read.initToken.get }
         assertOptionUnify(reads, s"$n.reads=$reads, read.count * read.scale") { read => 
           zipMap(read.getCount, read.getScale) { _ * _ }
         }

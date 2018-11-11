@@ -12,18 +12,22 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
     dbgblk(s"InsertToken(actx=$actx, bctx=$bctx, actrl=$actrl, bctrl=$bctrl)") {
       val (enq, deq) = compEnqDeq(actrl, bctrl, false, actx, bctx)
       val write = within(actx, actrl) {
-        TokenWrite().done(enq)
+        allocate[TokenWrite](_.done.evalTo(enq)) {
+          TokenWrite().done(enq)
+        }
       }
       dbg(s"add $write")
       within(bctx, bctrl) {
-        TokenRead().in(write).done(deq)
+        allocate[TokenRead](read => read.in.evalTo(write) && read.done.evalTo(deq)) {
+          TokenRead().in(write).done(deq)
+        }
       }
     }
   }
 
   def compEnqDeq(a:ControlTree, b:ControlTree, isFIFO:Boolean, actx:Context, bctx:Context):(PIRNode, PIRNode) = 
   dbgblk(s"compEnqDeq($a, $b, isFIFO=$isFIFO, actx=$actx, bctx=$bctx)"){
-    if (a == b || isFIFO) {
+    if (isFIFO) {
       (ctrlValid(a, actx), ctrlValid(b, bctx))
     } else if (a.isAncestorOf(b)) {
       val bAncesstors = (b::b.ancestors)
@@ -32,6 +36,8 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
       (ctrlValid(a, actx), ctrlDone(ctrl, bctx))
     } else if (b.isAncestorOf(a)) {
       compEnqDeq(b,a,isFIFO,bctx, actx) 
+    } else if (a == b) {
+      (ctrlDone(a, actx), ctrlDone(b, bctx))
     } else {
       val lca = leastCommonAncesstor(a,b).get
       val aAncesstors = (a::a.ancestors)
@@ -71,4 +77,16 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
     }
   }
 
+  def allocate[T<:PIRNode:ClassTag:TypeTag](
+    filter:T => Boolean = (n:T) => true
+  )(newNode: => T):T = {
+    val ct = implicitly[ClassTag[T]]
+    val container = stackTop[PIRParent].getOrElse(throw PIRException(s"allocate[$ct] outside PIRParent env")).as[PIRNode]
+    val nodes = container.collectDown[T]().filter(filter)
+    assertOneOrLess(nodes, s"$ct under $container").getOrElse {
+      val node = within(container) { newNode }
+      dbg(s"allocate[$ct](container=$container) = ${quote(node)}")
+      node
+    }
+  }
 }

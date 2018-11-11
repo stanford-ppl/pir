@@ -28,8 +28,6 @@ trait FieldNode[N] extends Node[N] { self:N =>
 
   def Ts = edges.map { e => e.asInstanceOf[FieldEdge[_]].T }
 
-  def Nss = edges.map { e => e.Ns }
-
   trait NodeField[T] extends Field[T] {
     val name:String
     implicit val Ttt:TypeTag[T]
@@ -53,6 +51,7 @@ trait FieldNode[N] extends Node[N] { self:N =>
         throw PIRException(s"$self.$this=$t cannot be evaluated to ${Tct}")
       }
     }
+    def evalTo(n:N) = fieldToNodes.contains(n)
   }
 
   /*
@@ -60,7 +59,7 @@ trait FieldNode[N] extends Node[N] { self:N =>
    * and read connection of the edge with type of T
    * */
   trait FieldEdge[T] extends Edge with NodeField[T] {
-    def fieldToNodes:Seq[Node[_]] = Ns
+    def fieldToNodes:Seq[Node[_]] = neighbors
     def update(x:Any):Unit = {
       unpack(x) { 
         case x:Edge => connect(x)

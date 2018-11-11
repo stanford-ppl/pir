@@ -6,6 +6,7 @@ import prism.graph._
 trait Access extends PIRNode {
   val order = Metadata[Int]("order")
   val port = Metadata[Option[Int]]("port")
+  val muxPort = Metadata[Int]("muxPort")
 
   val en = new InputField[List[PIRNode]]("en")
   val done = new InputField[Option[PIRNode]]("done")
