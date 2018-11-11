@@ -8,8 +8,8 @@ import scala.collection.mutable
 trait RuntimeAnalyzer { self:PIRPass =>
 
   implicit class CtxUtil(ctx:Context) {
-    def reads:Seq[BufferRead] = ctx.collectDown[BufferRead]()
-    def writes:Seq[BufferWrite] = ctx.collectDown[BufferWrite]().filter { write =>
+    def reads:Seq[LocalOutAccess] = ctx.collectDown[LocalOutAccess]()
+    def writes:Seq[LocalInAccess] = ctx.collectDown[LocalInAccess]().filter { write =>
       val writeCtx = write.ctx.get
       write.out.T.exists { _.ctx.get != writeCtx }
     }
@@ -32,7 +32,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
     def getCount:Option[Long] = n.count.getOrElseUpdate(compCount(n))
   }
 
-  implicit class AccessRuntimeOp(n:BufferRead) {
+  implicit class AccessRuntimeOp(n:LocalOutAccess) {
     def isLocal = n.in.T.parent == n.parent
   }
 
@@ -77,7 +77,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
 
   def compScale(n:PIRNode):Option[Long] = dbgblk(s"compScale($n)"){
     n match {
-      case n:BufferRead =>
+      case n:LocalOutAccess =>
         n.out.T match {
           case List(dram:FringeDenseLoad) => dram.getIter
           case List(dram:FringeDenseStore) if n.out.isConnectedTo(dram.data) | n.out.isConnectedTo(dram.valid) => Some(1l)
@@ -95,6 +95,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
           case data:FringeSparseStore => Some(1l)
           case data =>  n.done.T.getScale
         }
+      case n:TokenWrite => n.done.T.getScale
       case n:ControllerDone =>
         val ctrler = n.ctrler
         zipMap(ctrler.getIter, ctrler.valid.T.getScale) { _*_ }
@@ -116,9 +117,9 @@ trait RuntimeAnalyzer { self:PIRPass =>
         assertOptionUnify(reads, s"$n.reads=$reads, read.count * read.scale") { read => 
           zipMap(read.getCount, read.getScale) { _ * _ }
         }
-      case n:BufferRead =>
+      case n:LocalOutAccess =>
         n.in.T.getCount
-      case n:BufferWrite =>
+      case n:LocalInAccess =>
         zipMap(n.ctx.get.getCount, n.getScale) { _ /! _ }
       case n => throw PIRException(s"Don't know how to compute count of $n")
     }
@@ -135,8 +136,8 @@ trait RuntimeAnalyzer { self:PIRPass =>
       case n:ControllerValid => 1
       case n:ControllerDone => 1
       case n:Counter => n.par
-      case n:BufferRead => assertOne(n.banks.get, s"$n.banks")
-      case n:BufferWrite => assertUnify(n.out.T, s"$n.out.T") { _.getVec }.get
+      case n:LocalOutAccess => assertOne(n.banks.get, s"$n.banks")
+      case n:LocalInAccess => assertUnify(n.out.T, s"$n.out.T") { _.getVec }.get
       case n:BanckedAccess =>
         val bank = n.bank.T
         val offset = n.offset.T

@@ -8,16 +8,15 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
 
   val tokenBufferDepth = 32 //TODO
 
-  def insertToken(actx:Context, bctx:Context, actrl:ControlTree, bctrl:ControlTree):BufferRead = {
+  def insertToken(actx:Context, bctx:Context, actrl:ControlTree, bctrl:ControlTree):TokenRead = {
     dbgblk(s"InsertToken(actx=$actx, bctx=$bctx, actrl=$actrl, bctrl=$bctrl)") {
       val (enq, deq) = compEnqDeq(actrl, bctrl, false, actx, bctx)
       val write = within(actx, actrl) {
-        BufferWrite().data(enq).done(enq)
+        TokenWrite().done(enq)
       }
       dbg(s"add $write")
       within(bctx, bctrl) {
-        val tr = bctx.collectDown[TokenRead]().headOption.getOrElse(TokenRead())
-        BufferRead(isFIFO = actrl==bctrl).in(write).done(deq).out(tr.input)
+        TokenRead().in(write).done(deq)
       }
     }
   }

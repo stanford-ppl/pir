@@ -39,7 +39,7 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
   }
 
   override def color(attr:DotAttr, n:N) = n match {
-    case n:BufferRead => attr.fillcolor(gold).style(filled)
+    case n:LocalInAccess => attr.fillcolor(gold).style(filled)
     case n:Memory => attr.fillcolor(chartreuse).style(filled)
     //case n:ContextEnable => attr.fillcolor(orange).style(filled)
     //case n:ContextEnableOut => attr.fillcolor(orange).style(filled)

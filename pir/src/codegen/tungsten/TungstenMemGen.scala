@@ -9,7 +9,7 @@ import scala.collection.mutable
 trait TungstenMemGen extends TungstenCodegen {
 
   override def emitNode(n:N) = n match {
-    case n:BufferRead =>
+    case n:LocalOutAccess =>
       genFields {
         val depth = n.depth.get
         emitln(s"""FIFO<Token, $depth> *fifo_${n} = new FIFO<Token, $depth>("$n");""")
@@ -26,8 +26,11 @@ trait TungstenMemGen extends TungstenCodegen {
         }
       }
 
-    case n:BufferWrite =>
-      val data = n.data.T
+    case n:LocalInAccess =>
+      val data = n match {
+        case n:BufferWrite => n.data.T
+        case n:TokenWrite => n.done.T
+      }
       val reads = n.out.T
       val send = s"fifo_$n"
       genTop {

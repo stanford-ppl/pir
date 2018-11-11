@@ -31,18 +31,24 @@ case class BankedWrite()(implicit env:Env) extends WriteAccess with BanckedAcces
 case class MemRead()(implicit env:Env) extends ReadAccess
 case class MemWrite()(implicit env:Env) extends WriteAccess
 
-case class BufferRead(isFIFO:Boolean)(implicit env:Env) extends Def with MemoryNode {
-  val in = new InputField[BufferWrite]("in")
+trait LocalAccess extends PIRNode {
   val done = new InputField[PIRNode]("done")
+}
+trait LocalInAccess extends LocalAccess {
+  val out = new OutputField[List[LocalOutAccess]]("out")
+}
+trait LocalOutAccess extends LocalAccess with Def with MemoryNode {
+  val in = new InputField[LocalInAccess]("in")
   val initToken = Metadata[Boolean]("initToken", default=false)
 }
-case class BufferWrite()(implicit env:Env) extends PIRNode {
-  val out = new OutputField[List[BufferRead]]("out")
+case class BufferWrite()(implicit env:Env) extends LocalInAccess {
   val data = new InputField[PIRNode]("data")
   // En is anded with done. But done is branch independent
   val en = new InputField[List[PIRNode]]("en")
-  val done = new InputField[PIRNode]("done")
 }
+case class BufferRead(isFIFO:Boolean)(implicit env:Env) extends LocalOutAccess
+case class TokenWrite()(implicit env:Env) extends LocalInAccess
+case class TokenRead()(implicit env:Env) extends LocalOutAccess
 
 trait AccessUtil {
   implicit class NodeOp(x:N) {
