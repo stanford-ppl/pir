@@ -35,6 +35,8 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     }.foldAt(n.to[Access]) { (q,n) =>
       q.append("port", n.port.v)
       .append("muxPort", n.muxPort.v)
+    }.foldAt(n.to[LocalOutAccess]) { (q,n) =>
+      if (n.initToken.get) { s"$q\ninitToken" } else q
     }.foldAt(n.to[MemoryNode]) { (q,n) =>
       q.append("banks", n.banks.get)
       .append("depth", n.depth.get)

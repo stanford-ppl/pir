@@ -53,6 +53,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with BaseFactory with De
 
   ///* Codegen */
   lazy val tungstenPIRGen = new TungstenPIRGen()
+  lazy val psimConfigGen = new PlastisimConfigGen()
   //lazy val cuStats = new CUStatistics()
   //lazy val psimConfigCodegen = new PlastisimConfigCodegen()
   //lazy val psimPlacementCodegen = new PlastisimPlacementCodegen()
@@ -98,8 +99,9 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with BaseFactory with De
     addPass(enableDot, new PIRCtxDotGen(s"simple7.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
 
-    addPass(enableTungsten, tungstenPIRGen)
     addPass(new NetworkDotCodegen(s"net.dot", spadeTop))
+    addPass(genTungsten, tungstenPIRGen)
+    addPass(genPsim, psimConfigGen)
 
     //addPass(bankedAccessMerging).dependsOn(controlPropogator, accessPuller, deadCodeEliminator)
     //addPass(enableDot, new PIRIRDotCodegen(s"top6.dot"))

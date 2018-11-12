@@ -51,7 +51,7 @@ case class BufferRead(isFIFO:Boolean)(implicit env:Env) extends LocalOutAccess
 case class TokenWrite()(implicit env:Env) extends LocalInAccess
 case class TokenRead()(implicit env:Env) extends LocalOutAccess
 
-trait AccessUtil {
+trait AccessUtil { self:PIRNodeUtil =>
   implicit class NodeOp(x:N) {
     def traceTo(y:N):Boolean = x match {
       case x if x == y => true
@@ -71,6 +71,20 @@ trait AccessUtil {
   implicit class EdgeOp(x:Edge) {
     def traceTo(y:PIRNode):Boolean = 
       x.connected.exists { _.src.traceTo(y) }
+  }
+  implicit class LocalAccessOp(n:LocalAccess) {
+    def isLocal = n match {
+      case n:LocalOutAccess => n.in.T.parent == n.parent
+      case n:LocalInAccess => 
+        val parent = n.parent
+        n.out.T.forall { _.parent == parent }
+    }
+    def isGlobal = n match {
+      case n:LocalOutAccess => n.in.T.global == n.global
+      case n:LocalInAccess => 
+        val global = n.global
+        n.out.T.forall { _.global == global }
+    }
   }
 }
 

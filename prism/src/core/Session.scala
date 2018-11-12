@@ -56,7 +56,12 @@ trait Session { self:Compiler =>
         runner.run
       }
     }
-    runners.forall { !_.failed }
+    val failed = runners.filter { _.failed }
+    if (failed.nonEmpty) {
+      err(s"Failed passes:", false)
+      failed.foreach { r => err(r.name, false)}
+    }
+    failed.isEmpty
   }
 
   def hasRun(pass:Pass):Boolean = passes(pass).exists(_.hasRun)

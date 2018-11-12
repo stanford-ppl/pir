@@ -32,10 +32,6 @@ trait RuntimeAnalyzer { self:PIRPass =>
     def getCount:Option[Long] = n.count.getOrElseUpdate(compCount(n))
   }
 
-  implicit class AccessRuntimeOp(n:LocalOutAccess) {
-    def isLocal = n.in.T.parent == n.parent
-  }
-
   //TODO
   def constProp(n:PIRNode):Option[Any] = dbgblk(s"constProp($n)"){
     n match {

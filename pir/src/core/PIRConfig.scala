@@ -12,7 +12,6 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("folded-redacc", default=false, "Fold reduction and accumulate operation into a single stage")
 
   def arch = option[String]("arch")
-  def genCtrl = option[Boolean]("ctrl")
   def enableSplitting = option[Boolean]("splitting")
   def enableMapping = option[Boolean]("mapping")
   def aggressive_dce = option[Boolean]("ag-dce")
@@ -25,13 +24,13 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register[Int]("psim-q", default=1, info="VC slowdown parameter")
   register("trace", default=false, info="Enable trace generation for simulation")
 
-  def genPlastisim = option[Boolean]("psim") && genCtrl && enableCodegen
-  def runPlastisim = option[Boolean]("run-psim") && genPlastisim
-  def enableTrace = genPlastisim && option[Boolean]("trace")
+  def genPsim = option[Boolean]("psim") && enableCodegen
+  def runPsim = option[Boolean]("run-psim") && genPsim
+  def enableTrace = genPsim && option[Boolean]("trace")
 
   /* ------------------- Tungsten --------------------  */
   register("tungsten", default=true, info="Enable tungsten codegen")
-  def enableTungsten = enableCodegen && option[Boolean]("tungsten")
+  def genTungsten = enableCodegen && option[Boolean]("tungsten")
 
   /* ------------------- Routing --------------------  */
   register("routing-algo", default="dor", info="If net=[dynamic] - [dor, planed, proute]. Option ignored for other network. dor - dimention order routing. planed - arbitrary source routing, proute - use plastiroute for place and route. If proute is chosen plastiroute will be launched from pir if $PLASTIROUTE_HOME is set") 

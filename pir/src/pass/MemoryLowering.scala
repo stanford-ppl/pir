@@ -113,15 +113,15 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
           portMap(fromid).foreach { fromAccess =>
             portMap(toid).foreach { toAccess =>
               dbg(s"Insert token for multibuffer between $fromAccess and $toAccess")
-              val buffer = insertToken(
+              val token = insertToken(
                 fromAccess.ctx.get, 
                 toAccess.ctx.get, 
                 ctrlMap(fromAccess.getCtrl).as[ControlTree], 
                 ctrlMap(toAccess.getCtrl).as[ControlTree]
               )
               val depth = toid - fromid + 1
-              dbg(s"bufferDepth = $depth")
-              buffer.depth(depth)
+              dbg(s"$token.depth = $depth")
+              token.depth(depth)
             }
           }
         case _ =>
@@ -129,25 +129,25 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
     }
   }
 
-  def enforceDataDependency(mem:Memory):Unit = {
+  def enforceDataDependency(mem:Memory):Unit = dbgblk(s"enforceDataDependency($mem)"){
     val accesses = mem.accesses.filter { _.port.nonEmpty }
     accesses.groupBy { _.port.get }.foreach { case (port, accesses) =>
       val (inAccesses, outAccesses) =  accesses.partition { _.isInstanceOf[InAccess] }
       inAccesses.foreach { inAccess =>
         outAccesses.foreach { outAccess =>
           dbg(s"Insert token for data dependency between $inAccess and $outAccess")
-          val buffer = insertToken(
+          val token = insertToken(
             inAccess.ctx.get, 
             outAccess.ctx.get, 
             inAccess.getCtrl.as[ControlTree], 
             outAccess.getCtrl.as[ControlTree]
           )
-          if (buffer.depth.isEmpty) {
-            buffer.depth(1)
+          if (token.depth.isEmpty) {
+            token.depth(1)
           }
           if (inAccess.order.get > outAccess.order.get) {
-            dbg(s"Loop carried dependency between $inAccess and $outAccess")
-            buffer.initToken(true)
+            dbg(s"$token.initToken = true")
+            token.initToken := true
           }
         }
       }
@@ -183,6 +183,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
             dbg(s"$ctrl accesses = ${accesses}")
             zipOption(accesses.head.to[ReadAccess], accesses.last.to[WriteAccess]).foreach { case (r, w) =>
               val token = insertToken(w.ctx.get, r.ctx.get, w.getCtrl, r.getCtrl)
+              dbg(s"$token.initToken = true")
               token.initToken := true
             }
           }
@@ -205,7 +206,10 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
           BufferRead(mem.isFIFO).in(write.out).mirrorMetas(mem).mirrorMetas(outAccess).done(deq)
         }
         dbg(s"create $read.in(${write}).done($deq)")
-        if (inAccess.order.get < outAccess.order.get ) read.initToken := true
+        if (inAccess.order.get > outAccess.order.get ) {
+          dbg(s"$read.initToken = true")
+          read.initToken := true
+        }
         outAccess.depeds.foreach { deped =>
           swapConnection(deped, outAccess.as[Def].out, read.out)
         }
