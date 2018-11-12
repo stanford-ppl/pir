@@ -12,6 +12,7 @@ class FactoryTest extends UnitTest with BaseFactory with Logging { self =>
 
   "FactoryTest" should "success" in {
     withLog(testOut, "create.log") {
+      createNewState
       val topParam = TopParam()
       val top = create[Top](topParam)
       val path = s"$testOut/top_saved"

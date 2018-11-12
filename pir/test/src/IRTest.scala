@@ -8,13 +8,11 @@ import prism.util._
 import prism.test._
 
 class IRTest extends UnitTest with Serialization with TestEnv with Transformer {
+  createNewState
 
   "PIRTest" should "success" in {
     val top = Top()
     within(top) {
-      val mem = InputBuffer(false)
-      BufferRead().mem(mem)
-      BufferWrite().mem(mem)
       val sram = SRAM()
       val sramRead = BankedRead().mem(sram).bank(Nil)
       val sramWrite = BankedWrite().mem(sram)

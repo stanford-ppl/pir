@@ -19,6 +19,7 @@ case class X(name:String)(implicit env:Env) extends EnvNode[TestFNode] with Test
 class FieldNodeTest extends UnitTest with TestEnv with Transformer {
 
   "FieldNodeTest1" should "success" in {
+    createNewState
     val top = X("top")
     val (a,b,c,d) = within(top) {
       val a = X("a")
