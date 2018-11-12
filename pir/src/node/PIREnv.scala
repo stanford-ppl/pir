@@ -2,20 +2,26 @@ package pir
 package node
 
 import prism.graph._
+import spade.node._
+import spade.param2._
 
 class PIRStates extends States {
   var pirTop:Top = _
-  var spadeTop:spade.node.Top = _
-  var spadeParam:spade.param2.TopParam = _
+  var simulationCycle:Option[Long] = None
 }
-trait PIREnv extends Env {
+trait PIREnv extends Env with DefaultParamLoader { self =>
 
   override def newStates = new PIRStates
   override def states:PIRStates = super.states.asInstanceOf[PIRStates]
 
   def pirTop = states.pirTop
-  def spadeTop = states.spadeTop
-  def spadeParam = states.spadeParam
+  def config:PIRConfig
+  def getOpt[T](name:String):Option[T] = config.getOption[T](name)
+  lazy val factory = new BaseFactory {
+    override def states = self.states
+  }
+  lazy val spadeParam = topParam
+  lazy val spadeTop = factory.create[spade.node.Top](topParam)
 
   implicit class PIRParent(val value:PIRNode) extends State[PIRNode] {
     def initNode(n:Node[_], value:PIRNode) = {

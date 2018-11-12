@@ -6,27 +6,22 @@ import pir.pass._
 import pir.codegen._
 import prism.codegen._
 
-import spade.node._
-import spade.param2._
 import spade.codegen._
 
-trait PIR extends Compiler with PIREnv with PIRNodeUtil with BaseFactory with DefaultParamLoader {
+trait PIR extends Compiler with PIREnv with PIRNodeUtil {
 
   override val logExtensions = super.logExtensions ++ List(".py", ".cluster")
   override lazy val config = new PIRConfig(this)
-  def getOpt[T](name:String):Option[T] = config.getOption[T](name)
 
   ///* Analysis */
   lazy val controlPropogator = new ControlPropogation()
-  lazy val plastisimAnalyzer = new PlastisimAnalyzer()
-  //lazy val controllerRuntimeAnalyzer = new ControllerRuntimeAnalyzer()
+  lazy val psimAnalyzer = new PlastisimAnalyzer()
   //lazy val psimLinkAnalyzer = new PlastisimLinkAnalyzer()
   //lazy val psimCountCheck = new PlastisimCountCheck()
   //lazy val psimVCAllocator = new PlastisimVCAllocation()
   //lazy val irCheck = new IRCheck()
 
   ///* Transformation */
-  //lazy val constantExpressionEvaluator = new ConstantExpressionEvaluation()
   lazy val deadCodeEliminator = new DeadCodeElimination()
   lazy val memLowering = new MemoryLowering()
   lazy val contextAnalyzer = new ContextAnalyzer()
@@ -35,11 +30,6 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with BaseFactory with De
   lazy val validProp = new ValidConstantPropogation()
   lazy val bufferInsertion = new BufferInsertion()
   lazy val globalInsertion = new GlobalInsertion()
-  //lazy val unrollingTransformer = new UnrollingTransformer()
-  //lazy val cuInsertion = new CUInsertion()
-  //lazy val accessPuller = new AccessPulling()
-  //lazy val accessLowering = new AccessLowering()
-  //lazy val bankedAccessMerging = new BankedAccessMerging()
   //lazy val globalPartitioner = new GlobalPartionerCake()
   //lazy val routeThroughEliminator = new RouteThroughElimination()
   //lazy val controlRegInsertion = new ControlRegInsertion()
@@ -51,7 +41,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with BaseFactory with De
   //lazy val cuPruning = new CUPruning()
   //lazy val cuPlacer = new CUPlacer()
 
-  ///* Codegen */
+  /* Codegen */
   lazy val tungstenPIRGen = new TungstenPIRGen()
   lazy val psimConfigGen = new PlastisimConfigGen()
   //lazy val cuStats = new CUStatistics()
@@ -62,6 +52,9 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with BaseFactory with De
   //lazy val terminalCSVCodegen = new TerminalCSVCodegen()
   //lazy val linkCSVCodegen = new LinkCSVCodegen()
   //lazy val areaPowerStat = new AreaPowerStat()
+  
+  /* Simulation */
+  lazy val psimRunner = new PlastisimRunner()
 
   override def initSession = {
     super.initSession
@@ -81,10 +74,10 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with BaseFactory with De
     addPass(contextInsertion)
     addPass(enableDot, new PIRIRDotGen(s"top4.dot"))
 
-    addPass(memLowering)
+    addPass(memLowering).dependsOn(contextInsertion)
     addPass(deadCodeEliminator)
     addPass(enableDot, new PIRIRDotGen(s"top5.dot"))
-    addPass(depDuplications)
+    addPass(depDuplications).dependsOn(memLowering)
     addPass(deadCodeEliminator)
     addPass(contextAnalyzer)
     addPass(enableDot, new PIRIRDotGen(s"top6.dot"))
@@ -92,21 +85,18 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with BaseFactory with De
     //addPass(bufferInsertion)
     
     addPass(globalInsertion)
+    addPass(psimAnalyzer)
 
     saveSession
     
-    addPass(plastisimAnalyzer)
     addPass(enableDot, new PIRCtxDotGen(s"simple7.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
-
     addPass(new NetworkDotCodegen(s"net.dot", spadeTop))
-    addPass(genTungsten, tungstenPIRGen)
-    addPass(genPsim, psimConfigGen)
 
-    //addPass(bankedAccessMerging).dependsOn(controlPropogator, accessPuller, deadCodeEliminator)
-    //addPass(enableDot, new PIRIRDotCodegen(s"top6.dot"))
-    //addPass(memoryAnalyzer)
-    //addPass(controllerRuntimeAnalyzer).dependsOn(controlPropogator, memoryAnalyzer)
+    addPass(genTungsten, tungstenPIRGen)
+    addPass(genPsim, psimConfigGen).dependsOn(psimAnalyzer)
+    addPass(genPsim && runPsim, psimRunner).dependsOn(psimConfigGen)
+
     //addPass(cuStats)
 
     //addPass(enableSplitting, globalPartitioner)
@@ -114,7 +104,6 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with BaseFactory with De
     //addPass(enableSplitting && enableDot, new SimpleIRDotCodegen(s"simple2.dot"))
 
     //addPass(enableDot, new ControllerDotCodegen(s"controller1.dot"))
-    //addPass(routeThroughEliminator).dependsOn(accessLowering).dependsOn(globalPartitioner)
     //addPass(deadCodeEliminator).dependsOn(routeThroughEliminator)
     //addPass(enableDot, new ControllerDotCodegen(s"controller2.dot")).dependsOn(controlPropogator)
     //addPass(enableDot, new PIRIRDotCodegen(s"top8.dot"))

@@ -58,6 +58,7 @@ case class NetworkParam(
   staticOutput:Int=4, // Number of outptus from node to switch
   switchLink:Int=2, // Number of links between switches
   isDynamic:Boolean=true, // Whether there is a dynamic router
+  numVC:Int = 4,
   bundleParam:BundleParam=BundleParam()
 ) extends Parameter
 

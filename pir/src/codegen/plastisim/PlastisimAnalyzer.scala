@@ -1,7 +1,8 @@
 package pir
-package pass
+package codegen
 
 import pir.node._
+import pir.pass._
 import prism.graph._
 import scala.collection.mutable
 

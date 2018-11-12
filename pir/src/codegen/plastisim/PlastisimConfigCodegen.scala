@@ -2,18 +2,14 @@ package pir
 package codegen
 
 import pir.node._
-import pir.pass._
 import prism.graph._
+import spade.param2._
 
-class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codegen with ChildFirstTraversal {
+class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codegen with ChildFirstTraversal with PlastisimUtil {
 
-  override def dirName = buildPath(super.dirName, s"../plastisim") 
-  val fileName = s"psim.conf"
+  override def dirName = psimOut
+  val fileName = configName
   val forward = true
-
-  def emitNodeBlock(n:Any)(block: => Unit) = dbgblk(s"emitNodeBlock($n)") {
-    emitBlock(s"$n", b=NoneBraces)(block)
-  }
 
   override def emitNode(n:N) = {
     n match {
@@ -30,6 +26,43 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codeg
         n.writes.foreach(emitLink)
       case _ => visitNode(n)
     }
+  }
+
+  override def runPass = {
+    super.runPass
+    emitNetwork
+    emitMemoryController
+  }
+
+  def emitNetwork = {
+    if (!noPlaceAndRoute) {
+      spadeParam.pattern match {
+        case pattern:Checkerboard =>
+          val maxDim = Math.max(pattern.row, pattern.col)
+          val networkParam = pattern.networkParams.filter { _.granularity == "vec" }.head
+          val numVC = networkParam.numVC
+          val topo = networkParam.topology
+          emitNodeBlock(s"net vecnet") {
+            emitln(s"cf = $PLASTISIM_HOME/configs/${topo}_generic.cfg")
+            emitln(s"dim[0] = $maxDim")
+            emitln(s"dim[1] = $maxDim")
+            emitln(s"num_classes = ${numVC}")
+          }
+      }
+    }
+  }
+
+  def emitMemoryController = {
+    if (config.enableTrace) {
+      emitNodeBlock(s"mc DRAM") {
+        emitln(s"memfile = $PLASTISIM_HOME/configs/DDR3_micron_64M_8B_x4_sg15.ini")
+        emitln(s"sysfile = $PLASTISIM_HOME/configs/system.ini")
+      }
+    }
+  }
+
+  def emitNodeBlock(n:Any)(block: => Unit) = dbgblk(s"emitNodeBlock($n)") {
+    emitBlock(s"$n", b=NoneBraces)(block)
   }
 
   def emitNodeSpecs(n:Context) = {
@@ -69,20 +102,39 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codeg
         //emitln(s"lat = ${latencyOf(n).get}")
         emitln(s"lat = 6")
     //}
-    //TODO
-    //startAtToken(n).foreach { token => emitln(s"start_at_tokens = $token") }
-    //stopAfterToken(n).foreach { token => emitln(s"stop_after_tokens = $token") }
-    n.count.v.fold {
+    emitStartToken(n)
+    emitStopToken(n)
+    n.getCount.fold {
       emitln(s"# count not exists")
     } { c =>
       emitln(s"count = $c")
     }
   }
 
+  def emitStartToken(n:Context) = {
+    val isHostIn = n.collectDown[HostInController]().nonEmpty
+    if (isHostIn) {
+      emitln(s"start_at_tokens = 1")
+    } else {
+      val reads = n.reads.filter { read => !read.isLocal && read.initToken.get }
+      if (reads.nonEmpty) {
+        val token = assertUnify(reads, s"$n.start_at_token"){ _.constScale }.get
+        emitln(s"start_at_tokens = $token")
+      }
+    }
+  }
+
+  def emitStopToken(n:Context) = {
+    val isHostOut = n.collectDown[HostOutController]().nonEmpty
+    if (isHostOut) {
+      emitln(s"stop_after_tokens = 1")
+    }
+  }
+
   def emitInLinks(n:Context) = dbgblk(s"emitInLinks($n)") {
     n.reads.filterNot(_.isLocal).zipWithIndex.foreach { case (read, idx) =>
       emitln(s"link_in[$idx] = ${read.in.T}")
-      emitln(s"scale_in[$idx] = ${read.scale.get.getOrElse(throw PIRException(s"${read}.scale not statically known"))}")
+      emitln(s"scale_in[$idx] = ${read.constScale}")
       emitln(s"buffer[$idx] = ${read.depth.get}")
     }
   }
@@ -90,7 +142,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codeg
   def emitOutLinks(n:Context) = dbgblk(s"emitOutLinks($n)") {
     n.writes.filterNot(_.isLocal).zipWithIndex.foreach { case (write, idx) =>
       emitln(s"link_out[$idx] = $write")
-      emitln(s"scale_out[$idx] = ${write.scale.get.getOrElse(throw PIRException(s"${write}.scale not statically known"))}")
+      emitln(s"scale_out[$idx] = ${write.constScale}")
     }
   }
 
@@ -98,7 +150,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codeg
     val src = n.ctx.get
     val dsts = n.out.T.map { _.ctx.get }
     val isGlobal = n.isGlobal
-    val linkstr = if (isGlobal) "net" else ""
+    val linkstr = if (!isGlobal || noPlaceAndRoute) "" else "net"
 
     emitNodeBlock(s"${linkstr}link ${quote(n)}") {
       val tp = if (n.getVec > 1) "vec" else "scal"
@@ -112,7 +164,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codeg
       } { c =>
         emitln(s"count = $c")
       }
-      if (!isGlobal || spadeParam.isAsic || spadeParam.isP2P) {
+      if (!isGlobal || noPlaceAndRoute) {
         dsts.zipWithIndex.foreach { case (dst, dstIdx) =>
           emitln(s"lat[0, $dstIdx] = 1")
         }

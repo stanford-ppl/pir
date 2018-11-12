@@ -29,8 +29,6 @@ trait PIRApp extends PIR with Logging {
       tic
       val top = Top()
       states.pirTop = top
-      states.spadeParam = topParam
-      states.spadeTop = create[spade.node.Top](topParam)
       import top._
       within(top, topCtrl) {
         top.hostInCtrl = ControlTree("Sequenced")

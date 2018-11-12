@@ -22,9 +22,8 @@ trait DefaultParamLoader extends Transformer {
         case ("wordWidth", arg) => getOptOrElse("word",arg)
         case ("vecWidth", arg) => getOptOrElse("vec", arg)
         case ("clockFrequency", arg) => getOptOrElse("clock", arg)
-        case ("isAsic", arg) if optIs("net","asic") => true
-        case ("isAsic", arg) if getOpt[Boolean]("net").nonEmpty => false
-        case ("centrolPattern", arg) if optIs("pattern","checkerboard") => transform(Checkerboard())
+        case ("pattern", arg) if optIs("net","asic") => transform(AsicPattern())
+        case ("pattern", arg) if optIs("pattern","checkerboard") => transform(Checkerboard())
         case (_, arg) => transform(arg)
       }
 
