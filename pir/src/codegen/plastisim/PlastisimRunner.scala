@@ -15,11 +15,12 @@ class PlastisimRunner(implicit compiler: PIR) extends PlastisimUtil {
       command += s" -p $psimOut/final.place"
     }
     command += config.getOption[Long]("psim-timeout").fold("") { t => s" -c $t" }
-    command += (config.option[String]("link-prop") match {
+    val networkParam = spadeParam.networkParams.filter { _.granularity == "vec" }.head
+    command += (networkParam.linkProp match {
       case "db" => s" -l B"
       case "cd" => s" -l C"
     })
-    command += s" -w ${config.option[String]("flit-width")}" 
+    command += s" -w ${networkParam.flitWidth}" 
     command += s" -q${config.option[Int]("psim-q")}" 
     if (config.runPsim) {
       shellProcess(s"psim", command, log)(processOutput)
@@ -48,7 +49,7 @@ class PlastisimRunner(implicit compiler: PIR) extends PlastisimUtil {
       info(Console.RED, s"psim", line)
       simulationSucceeded = Some(false)
     }
-    if (line.contains("Total Active")) {
+    //if (line.contains("Total Active")) {
       //val node = line.split(":")(0).trim
       //nameMap.get(node).foreach { node =>
         //activeOf(node) = line.split("Total Active:")(1).trim.split(" ")(0).trim.toLong
@@ -63,7 +64,7 @@ class PlastisimRunner(implicit compiler: PIR) extends PlastisimUtil {
           //}
         //}
       //}
-    }
+    //}
   }
 
 }

@@ -27,6 +27,13 @@ trait DefaultParamLoader extends Transformer {
         case (_, arg) => transform(arg)
       }
 
+    case n:NetworkParam =>
+      n.mapFields[NetworkParam] {
+        case ("linkProp", arg) => getOptOrElse("link-prop", arg)
+        case ("flitWidth", arg) => getOptOrElse("flit-width", arg)
+        case (_, arg) => transform(arg)
+      }
+
     case n:PCUParam =>
       n.mapFields[PCUParam] {
         case ("numStage", arg) => getOptOrElse("pcu-stage", arg)

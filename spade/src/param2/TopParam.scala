@@ -59,6 +59,8 @@ case class NetworkParam(
   switchLink:Int=2, // Number of links between switches
   isDynamic:Boolean=true, // Whether there is a dynamic router
   numVC:Int = 4,
+  linkProp:String="db", // Static link property. "db" - double buffer, "cd" - credit based
+  flitWidth:Int=512, // Flitwidth for dynamic network
   bundleParam:BundleParam=BundleParam()
 ) extends Parameter
 
