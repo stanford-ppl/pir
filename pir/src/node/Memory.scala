@@ -113,9 +113,9 @@ case class LoopController()(implicit env:Env) extends Controller {
 trait MemoryUtil extends CollectorImplicit {
 
   implicit class MemUtil(n:Memory) {
-    def inAccess = n.collect[InAccess](visitGlobalIn _)
-    def outAccess = n.collect[OutAccess](visitGlobalOut _)
-    def accesses = inAccess ++ outAccess
+    def inAccesses = n.collect[InAccess](visitGlobalIn _)
+    def outAccesses = n.collect[OutAccess](visitGlobalOut _)
+    def accesses = inAccesses ++ outAccesses
 
     def isFIFO = n match {
       case n:FIFO => true

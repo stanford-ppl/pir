@@ -80,7 +80,7 @@ trait TungstenMemGen extends TungstenCodegen {
         else prev.flatMap { ids => (0 until nbank).map { id => ids :+ id } }
       }
       emitln(s"""${tpOf(n)} $n("$n", ${quote(bankIds)});""")
-      n.inAccess.foreach { inAccess =>
+      n.inAccesses.foreach { inAccess =>
         emitln(s"$n.addWriter($inAccess);")
       }
 
@@ -91,7 +91,7 @@ trait TungstenMemGen extends TungstenCodegen {
         else prev.flatMap { ids => (0 until nbank).map { id => ids :+ id } }
       }
       emitln(s"""${tpOf(n)} $n("$n", ${quote(bankIds)});""")
-      n.inAccess.foreach { inAccess =>
+      n.inAccesses.foreach { inAccess =>
         emitln(s"$n.addWriter($inAccess);")
       }
 
@@ -141,7 +141,7 @@ trait TungstenMemGen extends TungstenCodegen {
 
     case n:Reg =>
       emitln(s"""${tpOf(n)} $n("$n");""")
-      n.inAccess.foreach { inAccess =>
+      n.inAccesses.foreach { inAccess =>
         emitln(s"$n.addWriter($inAccess);")
       }
 

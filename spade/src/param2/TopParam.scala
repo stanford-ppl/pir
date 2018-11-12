@@ -15,7 +15,9 @@ case class TopParam(
 
 trait Pattern extends Parameter
 
-case class AsicPattern() extends Pattern
+case class AsicPattern(
+  networkParam:NetworkParam=NetworkParam("vec", isDynamic=false)
+) extends Pattern
 
 case class Checkerboard(
   row:Int=8,

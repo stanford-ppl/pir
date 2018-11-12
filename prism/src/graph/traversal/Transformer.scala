@@ -60,7 +60,7 @@ trait Transformer extends Logging {
   }
 
   def swapConnection(target:Edge, from:Edge, to:Edge):Unit = {
-    dbg(s"swapConnection(target=$target, from=$from, to=$to)")
+    dbg(s"swapConnection(target=${target.src}.$target, from=$from, to=$to)")
     assert(target.isConnectedTo(from), s"${target.src}.$target is not connect to ${from.src}.$from")
     target.disconnectFrom(from)
     target.connect(to)

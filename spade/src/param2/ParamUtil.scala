@@ -16,6 +16,7 @@ trait ParamUtil {
     def networkParams:List[NetworkParam] = p match {
       case p:TopParam => p.pattern.networkParams
       case p:Checkerboard => p.networkParams
+      case p:AsicPattern => List(p.networkParam)
       case _ => Nil
     }
   }

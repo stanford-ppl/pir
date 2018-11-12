@@ -42,7 +42,7 @@ trait TopFactory extends Factory {
         super.visitNode(param, None)
       }
       top
-    case param@AsicPattern() => None
+    case param:AsicPattern => None
     case param@Checkerboard(row, col, cu1, cu2, fringeParam, networkParams) =>
       val center = List.tabulate(col, row) { case (x,y) =>
         ListBuffer(visitNodeAs[CU](param.cuAt(x,y), None))

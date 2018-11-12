@@ -17,9 +17,9 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
     }
     var cannotToBuffer = accesses.exists { _.isInstanceOf[BanckedAccess] }
     // If read access is branch dependent, the ctx cannot block on the input for its activation
-    cannotToBuffer |= mem.outAccess.exists { _.en.T.nonEmpty }
-    cannotToBuffer |= mem.inAccess.size > 1
-    if (mem.isFIFO) cannotToBuffer |= mem.outAccess.size > 1
+    cannotToBuffer |= mem.outAccesses.exists { _.en.T.nonEmpty }
+    cannotToBuffer |= mem.inAccesses.size > 1
+    if (mem.isFIFO) cannotToBuffer |= mem.outAccesses.size > 1
     if (cannotToBuffer) {
       createMemCtx(mem)
     } else {
@@ -157,10 +157,8 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
   def fifoBarrierInsertion(mem:Memory):Unit = {
     if (!mem.isFIFO) return
     dbgblk(s"fifoBarrierInsertion($mem)") {
-      assert(mem.inAccess.size==1, s"$mem.inAccess")
-      assert(mem.outAccess.size==1, s"$mem.outAccess")
-      val w = mem.inAccess.head
-      val r = mem.outAccess.head
+      val w = assertOne(mem.inAccesses, s"$mem.inAccesses")
+      val r = assertOne(mem.outAccesses, s"$mem.outAccesses")
       insertToken(w.ctx.get,r.ctx.get,w.getCtrl, r.getCtrl)
     }
   }
@@ -194,9 +192,9 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
 
   def lowerToBuffer(mem:Memory) = {
     dbg(s"Lower $mem to InputBuffer")
-    mem.outAccess.foreach { outAccess =>
+    mem.outAccesses.foreach { outAccess =>
       within(outAccess.parent.get.as[PIRNode]) {
-        val inAccess = mem.inAccess.head.as[MemWrite]
+        val inAccess = mem.inAccesses.head.as[MemWrite]
         val (enq, deq) = compEnqDeq(inAccess.ctrl.get, outAccess.ctrl.get, mem.isFIFO, inAccess.ctx.get, outAccess.ctx.get)
         val write = within(inAccess.parent.get.as[PIRNode], inAccess.ctrl.get) {
           allocate[BufferWrite]{ write => 
