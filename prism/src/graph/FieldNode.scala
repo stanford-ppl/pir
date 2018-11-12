@@ -51,7 +51,8 @@ trait FieldNode[N] extends Node[N] { self:N =>
         throw PIRException(s"$self.$this=$t cannot be evaluated to ${Tct}")
       }
     }
-    def evalTo(n:N) = fieldToNodes.contains(n)
+    def evalTo(n:Any) = fieldToNodes.contains(n)
+    def evalTo(n:List[Any]) = n.forall { n => fieldToNodes.contains(n) }
   }
 
   /*

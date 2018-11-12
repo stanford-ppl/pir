@@ -27,6 +27,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codeg
           emitInLinks(n)
           emitOutLinks(n)
         }
+        n.writes.foreach(emitLink)
       case _ => visitNode(n)
     }
   }
@@ -90,7 +91,6 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codeg
     n.writes.filterNot(_.isLocal).zipWithIndex.foreach { case (write, idx) =>
       emitln(s"link_out[$idx] = $write")
       emitln(s"scale_out[$idx] = ${write.scale.get.getOrElse(throw PIRException(s"${write}.scale not statically known"))}")
-      emitLink(write)
     }
   }
 
