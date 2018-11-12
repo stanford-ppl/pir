@@ -85,7 +85,8 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     //addPass(bufferInsertion)
     
     addPass(globalInsertion)
-    addPass(psimAnalyzer)
+    addPass(genPsim, psimAnalyzer)
+    addPass(genPsim, psimAnalyzer)
 
     saveSession
     

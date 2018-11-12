@@ -109,14 +109,14 @@ trait RuntimeAnalyzer { self:PIRPass =>
     n match {
       case n:Context if n.collectDown[HostInController]().nonEmpty => Some(1l)
       case n:Context =>
-        val reads = n.reads.filterNot { read => read.isLocal || read.initToken.get }
+        val reads = n.reads.filterNot { read => read.isLocal }
         assertOptionUnify(reads, s"$n.reads=$reads, read.count * read.scale") { read => 
           zipMap(read.getCount, read.getScale) { _ * _ }
         }
       case n:LocalOutAccess =>
         n.in.T.getCount
       case n:LocalInAccess =>
-        zipMap(n.ctx.get.getCount, n.getScale) { _ /! _ }
+        zipMap(n.ctx.get.count.v.flatten, n.getScale) { _ /! _ }
       case n => throw PIRException(s"Don't know how to compute count of $n")
     }
   }
