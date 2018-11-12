@@ -23,6 +23,10 @@ trait Session { self:Compiler =>
     currInit += 1
     runner
   }
+  def addPass(name:String)(lambda: Runner[_] => Unit):Runner[_] = addPass(QuickPass(name, lambda))
+  case class QuickPass(override val name:String, lambda: Runner[_] => Unit) extends Pass {
+    override def runPass = lambda(runner)
+  }
 
   def loadSession = {
     val opt = config.getArgOption[Int]("start-id").get 
@@ -45,7 +49,13 @@ trait Session { self:Compiler =>
 
   def loadDesign(loaded:Any):Unit = {}
   def getDesign:Serializable = null
-  def saveSession = addPass(new SaveSession())
+  def saveSession = addPass("SaveSession"){runner =>
+    if (config.save) {
+      val saved = (runner.id, compiler.getDesign)
+      saveToFile(saved, config.checkPointPath)
+      loadFromFile[(Int, Serializable)](config.checkPointPath)
+    }
+  }
 
   var currRun:Runner[_] = _
   def runSession:Boolean = {
@@ -90,14 +100,6 @@ trait Session { self:Compiler =>
       runner
     }
   }
+
 }
 
-class SaveSession(implicit compiler:Compiler) extends Pass {
-  override def runPass = {
-    if (config.save) {
-      val saved = (runner.id, compiler.getDesign)
-      saveToFile(saved, config.checkPointPath)
-      loadFromFile[(Int, Serializable)](config.checkPointPath)
-    }
-  }
-}

@@ -8,7 +8,7 @@ import scala.collection.mutable
 
 trait DefaultParamLoader extends Transformer {
 
-  lazy val topParam:TopParam = transform(TopParam())
+  def loadParam:TopParam = transform(TopParam())
 
   def getOpt[T](name:String):Option[T]
 

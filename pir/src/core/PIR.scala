@@ -7,11 +7,14 @@ import pir.codegen._
 import prism.codegen._
 
 import spade.codegen._
+import spade.param2._
+import spade.node._
 
-trait PIR extends Compiler with PIREnv with PIRNodeUtil {
+trait PIR extends Compiler with PIREnv with PIRNodeUtil with DefaultParamLoader with BaseFactory {
 
   override val logExtensions = super.logExtensions ++ List(".py", ".cluster")
   override lazy val config = new PIRConfig(this)
+  def getOpt[T](name:String):Option[T] = config.getOption[T](name)
 
   ///* Analysis */
   lazy val controlPropogator = new ControlPropogation()
@@ -62,9 +65,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     super.initSession
     import config._
 
-    //addPass(testTraversal)
-
-    //// Data  path transformation and analysis
+    // ------- Analysis and Transformations --------
     addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
     addPass(enableDot, new ControlTreeHtmlIRPrinter(s"ctrl.html"))
     addPass(enableDot, new PIRIRDotGen(s"top1.dot"))
@@ -92,6 +93,14 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(genPsim, psimAnalyzer) // Need to run twice to account for cycle in data flow graph
 
     saveSession
+
+    addPass("LoadArch") { runner =>
+      states.spadeParam = loadParam
+      states.spadeTop = create[spade.node.Top](states.spadeParam)
+    }
+
+    // ------- Pruning and Partitioning  --------
+    // ------- Mapping  --------
 
     addPass(enableDot, new PIRCtxDotGen(s"simple7.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))

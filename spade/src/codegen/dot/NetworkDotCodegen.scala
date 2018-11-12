@@ -5,7 +5,9 @@ import spade.node._
 import spade.param2._ 
 import prism.codegen._
 
-class NetworkDotCodegen(val fileName:String, val top:Top)(implicit compiler:Compiler) extends IRDotCodegen {
+class NetworkDotCodegen(val fileName:String, topFunc: => Top)(implicit compiler:Compiler) extends IRDotCodegen {
+
+  lazy val top = topFunc
 
   override def label(attr:DotAttr, n:N) = {
     var label = quote(n)

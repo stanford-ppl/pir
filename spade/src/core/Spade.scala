@@ -58,7 +58,7 @@ trait Spade extends Compiler with BaseFactory with DefaultParamLoader {
   override def loadSession:Unit = {
     super.loadSession
     if (_states.isEmpty) createNewState
-    _spadeTop = Some(create[Top](topParam))
+    _spadeTop = Some(create[Top](loadParam))
   }
 
 }

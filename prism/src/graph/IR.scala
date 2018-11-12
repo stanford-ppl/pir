@@ -19,6 +19,4 @@ trait IR extends Serializable with MetadataIR {
 
   override def toString = s"${className}$id"
 
-  def newInstance[T](args:Seq[Any]):T = this.getClass.newInstanceAs[T](args)
-
 }

@@ -82,9 +82,10 @@ lazy val pir = Project("pir",
   dependencies = Seq(prism % "compile->compile;test->test", spade % "compile->compile")
 ).settings(
   scalaSource in Compile := baseDirectory(_ / "src/core").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/util/PIRDebugger.scala").value,
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/util/").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/pass/").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/codegen/").value,
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node").value
 )
 

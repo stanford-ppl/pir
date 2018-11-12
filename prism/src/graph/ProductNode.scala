@@ -30,7 +30,7 @@ trait ProductNode[N] extends Node[N] with DefNode[N] with Product { self:N =>
     val args = productIterator.toList
     val targs = args.map { arg => func(arg) }
     val change = args.zip(targs).exists { case (a,t) => a != t }
-    if (change) newInstance[T](targs) else this
+    if (change) this.newInstance[T](targs) else this
   }
 
   def mapFields[T>:this.type <: Product:TypeTag](func:(String, Any) => Any) = {
@@ -38,6 +38,6 @@ trait ProductNode[N] extends Node[N] with DefNode[N] with Product { self:N =>
     val fields= graph.ProductHelper[T](this).fields
     val targs = fields.map { case (name, arg) => func(name, arg) }
     val change = args.zip(targs).exists { case (a,t) => a != t }
-    if (change) newInstance[T](targs) else this
+    if (change) this.newInstance[T](targs) else this
   }
 }
