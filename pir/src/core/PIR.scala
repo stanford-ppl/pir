@@ -45,6 +45,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
   /* Codegen */
   lazy val tungstenPIRGen = new TungstenPIRGen()
   lazy val psimConfigGen = new PlastisimConfigGen()
+  lazy val prouteLinkGen = new PlastirouteLinkGen()
   //lazy val cuStats = new CUStatistics()
   //lazy val psimConfigCodegen = new PlastisimConfigCodegen()
   //lazy val psimPlacementCodegen = new PlastisimPlacementCodegen()
@@ -85,19 +86,19 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(contextAnalyzer)
     addPass(enableDot, new PIRIRDotGen(s"top6.dot"))
     addPass(enableDot, new PIRCtxDotGen(s"simple6.dot"))
-    //addPass(bufferInsertion)
     
-    saveSession
-
     addPass(globalInsertion)
     addPass(genPsim, psimAnalyzer)
     addPass(genPsim, psimAnalyzer) // Need to run twice to account for cycle in data flow graph
+
+    saveSession
 
     addPass(enableDot, new PIRCtxDotGen(s"simple7.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
     addPass(new NetworkDotCodegen(s"net.dot", spadeTop))
 
     addPass(genTungsten, tungstenPIRGen)
+    addPass(genPsim, prouteLinkGen).dependsOn(psimAnalyzer)
     addPass(genPsim, psimConfigGen).dependsOn(psimAnalyzer)
     addPass(genPsim && runPsim, psimRunner).dependsOn(psimConfigGen)
 

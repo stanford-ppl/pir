@@ -11,6 +11,8 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codeg
   val fileName = configName
   val forward = true
 
+  override def clearGen = {}
+
   override def emitNode(n:N) = {
     n match {
       case n:Context =>
@@ -150,7 +152,8 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codeg
     val src = n.ctx.get
     val dsts = n.outAccesses.map { _.ctx.get }
     val isGlobal = n.isGlobal
-    val linkstr = if (!isGlobal || noPlaceAndRoute) "" else "net"
+    val isLocalLink = !isGlobal || noPlaceAndRoute
+    val linkstr = if (isLocalLink) "" else "net"
 
     emitNodeBlock(s"${linkstr}link ${quote(n)}") {
       val tp = if (n.getVec > 1) "vec" else "scal"
@@ -164,13 +167,13 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codeg
       } { c =>
         emitln(s"count = $c")
       }
-      if (!isGlobal || noPlaceAndRoute) {
+      if (isLocalLink) {
         dsts.zipWithIndex.foreach { case (dst, dstIdx) =>
           emitln(s"lat[0, $dstIdx] = 1")
         }
       } else {
         emitln(s"net = vecnet")
-        val vc_id = n.gout.id
+        val vc_id = n.gout.get.id
         emitln(s"vc_id = $vc_id")
         val sid = src.global.get.id
         emitln(s"src_id[0] = $sid")

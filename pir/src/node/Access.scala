@@ -70,19 +70,19 @@ trait AccessUtil { self:PIRNodeUtil =>
         n.out.T.forall { _.parent == parent }
     }
     def isGlobal = n match {
-      case n:LocalOutAccess => n.in.T.global == n.global
+      case n:LocalOutAccess => n.in.T.global != n.global
       case n:LocalInAccess => 
         val global = n.global
-        n.out.T.forall { _.global == global }
+        n.out.T.exists { _.global != global }
     }
   }
   implicit class LocalInAccessOp(n:LocalInAccess) {
     def outAccesses:List[LocalOutAccess] = n.collect[LocalOutAccess](visitGlobalOut _)
-    def gout = assertOne(n.out.T, s"$n.gout").asInstanceOf[GlobalOutput]
+    def gout:Option[GlobalOutput] = assertOneOrLess(n.out.T.collect { case gout:GlobalOutput => gout }, s"$n.gout")
   }
   implicit class LocalOutAccessOp(n:LocalOutAccess) {
     def inAccess:LocalInAccess = assertOne(n.collect[LocalInAccess](visitGlobalIn _), s"$this.inAccess")
-    def gin:GlobalInput = n.in.T.as[GlobalInput]
+    def gin:Option[GlobalInput] = n.in.T.to[GlobalInput]
   }
 }
 
