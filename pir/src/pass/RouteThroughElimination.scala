@@ -39,8 +39,8 @@ class RouteThroughElimination(implicit compiler:PIR) extends PIRTraversal with T
     case n:BufferWrite if memLowerHasRun => 
       n.data.T match {
         case data:BufferRead if data.done.evalTo(n.done.T) =>
-          val dataWrite:LocalInAccess = data.in.T
-          val nOut = n.out.T
+          val dataWrite = data.inAccess
+          val nOut = n.outAccesses
           disconnect(dataWrite.out, data)
           nOut.foreach { nOut => disconnect(n.out, nOut) }
           dataWrite.out(nOut.map { _.in })

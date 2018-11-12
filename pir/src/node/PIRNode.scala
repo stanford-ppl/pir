@@ -52,6 +52,16 @@ trait PIRNodeUtil extends MemoryUtil with AccessUtil {
     def ctx = n.collectUp[Context]().headOption
     def global = n.collectUp[GlobalContainer]().headOption
     def isUnder[T:ClassTag] = n.ancestors.exists { _.to[T].nonEmpty }
+    def traceTo(y:N):Boolean = n match {
+      case n if n == y => true
+      case n:BufferRead => n.in.T.traceTo(y)
+      case n:BufferWrite => n.data.T.traceTo(y)
+      case n => false
+    }
+  }
+  implicit class EdgeOp(n:Edge) {
+    def traceTo(y:PIRNode):Boolean = 
+      n.connected.exists { _.src.as[PIRNode].traceTo(y) }
   }
 }
 

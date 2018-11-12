@@ -60,26 +60,52 @@ trait Transformer extends Logging {
   }
 
   def swapConnection(target:Edge, from:Edge, to:Edge):Unit = {
-    dbg(s"swapConnection(target=${target.src}.$target, from=$from, to=$to)")
+    dbg(s"swapConnection(target=${target.src}.$target, from=${from.src}.$from, to=${to.src}.$to)")
     assert(target.isConnectedTo(from), s"${target.src}.$target is not connect to ${from.src}.$from")
     target.disconnectFrom(from)
     target.connect(to)
   }
 
+  /*
+   * Find node's connection to from and swap it to to
+   * */
   def swapConnection(node:N, from:Edge, to:Edge):Unit = {
     val connected = node.localEdges.filter { io => io.isConnectedTo(from) }
     assert (connected.nonEmpty, s"$node is not connected to ${from.src}.$from")
     connected.foreach { io => swapConnection(io, from, to) }
   }
 
+  /*
+   * Find node's connection to edges of from and swap them to to
+   * */
   def swapConnection(node:N, from:N, to:Edge):Unit = {
+    dbg(s"swapConnection(node=${node}, from=$from, to=${to.src}.$to)")
     val connected = node.localEdges.flatMap { nodeEdge => 
       from.localEdges.filter { fromEdge =>
         nodeEdge.isConnectedTo(fromEdge)
       }.map { fromEdge => (nodeEdge, fromEdge) }
     }
-    assert (connected.nonEmpty, s"$node is not connected to ${from}")
+    assert (connected.nonEmpty, s"$node is not connected to $from")
     connected.foreach { case (nodeEdge, fromEdge) => swapConnection(nodeEdge, fromEdge, to) }
+  }
+
+  /*
+   * Find connection between n1 and n2, and insert new connection such that
+   * n1.old connection -> e1 and n2.old conection -> e2
+   * */
+  def insertConnection(n1:N, n2:N, e1:Edge, e2:Edge) = {
+    dbg(s"insertConnection($n1, $n2, ${e1.src}.${e1}, ${e2.src}.${e2})")
+    val connected = n1.localEdges.flatMap { n1e => 
+      n2.localEdges.filter { n2e =>
+        n1e.isConnectedTo(n2e)
+      }.map { n2e => (n1e, n2e) }
+    }
+    assert (connected.nonEmpty, s"$n1 is not connected to $n2")
+    connected.foreach { case (n1e, n2e) =>
+      n1e.disconnectFrom(n2e)
+      n1e.connect(e1)
+      n2e.connect(e2)
+    }
   }
 
   def areConnected(node1:N, node2:N) = {

@@ -31,7 +31,7 @@ trait TungstenMemGen extends TungstenCodegen {
         case n:BufferWrite => n.data.T
         case n:TokenWrite => n.done.T
       }
-      val reads = n.out.T
+      val reads = n.out.T //TODO Consider GlobalOutput
       val send = s"fifo_$n"
       genTop {
         emitln(s"""FIFO<Token, 4> $send("$send");""")

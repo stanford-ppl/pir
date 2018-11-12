@@ -116,7 +116,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codeg
     if (isHostIn) {
       emitln(s"start_at_tokens = 1")
     } else {
-      val reads = n.reads.filter { read => !read.isLocal && read.initToken.get }
+      val reads = n.reads.filter { read => read.initToken.get }
       if (reads.nonEmpty) {
         val token = assertUnify(reads, s"$n.start_at_token"){ _.constScale }.get
         emitln(s"start_at_tokens = $token")
@@ -132,15 +132,15 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codeg
   }
 
   def emitInLinks(n:Context) = dbgblk(s"emitInLinks($n)") {
-    n.reads.filterNot(_.isLocal).zipWithIndex.foreach { case (read, idx) =>
-      emitln(s"link_in[$idx] = ${read.in.T}")
+    n.reads.zipWithIndex.foreach { case (read, idx) =>
+      emitln(s"link_in[$idx] = ${read.inAccess}")
       emitln(s"scale_in[$idx] = ${read.constScale}")
       emitln(s"buffer[$idx] = ${read.depth.get}")
     }
   }
 
   def emitOutLinks(n:Context) = dbgblk(s"emitOutLinks($n)") {
-    n.writes.filterNot(_.isLocal).zipWithIndex.foreach { case (write, idx) =>
+    n.writes.zipWithIndex.foreach { case (write, idx) =>
       emitln(s"link_out[$idx] = $write")
       emitln(s"scale_out[$idx] = ${write.constScale}")
     }
@@ -148,7 +148,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codeg
 
   def emitLink(n:LocalInAccess) = {
     val src = n.ctx.get
-    val dsts = n.out.T.map { _.ctx.get }
+    val dsts = n.outAccesses.map { _.ctx.get }
     val isGlobal = n.isGlobal
     val linkstr = if (!isGlobal || noPlaceAndRoute) "" else "net"
 
@@ -170,16 +170,14 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codeg
         }
       } else {
         emitln(s"net = vecnet")
-        //val vc_id = goutOf(n).get.id
-        //emitln(s"vc_id = $vc_id")
-        //val sids = srcs.map(src => globalOf(src).get.id)
-        //val dids = dsts.map(dst => globalOf(dst).get.id)
-        //sids.zipWithIndex.foreach { case (sid, idx) =>
-          //emitln(s"src_id[$idx] = $sid")
-        //}
-        //dids.zipWithIndex.foreach { case (did, idx) =>
-          //emitln(s"dst_id[$idx] = $did")
-        //}
+        val vc_id = n.gout.id
+        emitln(s"vc_id = $vc_id")
+        val sid = src.global.get.id
+        emitln(s"src_id[0] = $sid")
+        dsts.zipWithIndex.foreach { case (dst, idx) =>
+          val did = dst.global.get.id
+          emitln(s"dst_id[$idx] = $did")
+        }
       }
     }
   }

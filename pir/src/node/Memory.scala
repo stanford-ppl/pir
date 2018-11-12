@@ -45,6 +45,19 @@ case class ArgFringe()(implicit env:Env) extends GlobalContainer {
 case class MemoryContainer()(implicit env:Env) extends GlobalContainer
 case class CUContainer()(implicit env:Env) extends GlobalContainer
 case class DRAMFringe()(implicit env:Env) extends GlobalContainer
+
+trait GlobalIO extends PIRNode
+case class GlobalInput()(implicit env:Env) extends GlobalIO {
+  override def className = "gi"
+  val in = new InputField[GlobalOutput]("in")
+  val out = new OutputField[List[LocalOutAccess]]("outs")
+}
+case class GlobalOutput()(implicit env:Env) extends GlobalIO {
+  override def className = "go"
+  val in = new InputField[LocalInAccess]("in")
+  val out = new OutputField[List[GlobalInput]]("in")
+}
+
 case class Context()(implicit env:Env) extends PIRNode
 
 trait Def extends PIRNode with DefNode[PIRNode] {

@@ -20,4 +20,27 @@ class GlobalInsertion(implicit compiler:PIR) extends PIRTraversal with SiblingFi
     case _ => super.visitNode(n)
   }
 
+  def insertGlobalIO(global:GlobalContainer) = {
+    within(global) {
+      global.depsFrom.foreach { case (dep, depFroms) =>
+        val gin = GlobalInput()
+        depFroms.foreach { depFrom =>
+          insertConnection(dep, depFrom, gin.in, gin.out)
+        }
+      }
+      global.depedsTo.foreach { case (depedFrom, depeds) =>
+        val gout = GlobalOutput()
+        depeds.foreach { deped =>
+          insertConnection(depedFrom, deped, gout.in, gout.out)
+        }
+      }
+    }
+  }
+
+  override def finPass = {
+    val globals = pirTop.collectDown[GlobalContainer]()
+    globals.foreach(insertGlobalIO)
+    super.finPass
+  }
+
 }

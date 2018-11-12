@@ -8,11 +8,8 @@ import scala.collection.mutable
 trait RuntimeAnalyzer { self:PIRPass =>
 
   implicit class CtxUtil(ctx:Context) {
-    def reads:Seq[LocalOutAccess] = ctx.collectDown[LocalOutAccess]()
-    def writes:Seq[LocalInAccess] = ctx.collectDown[LocalInAccess]().filter { write =>
-      val writeCtx = write.ctx.get
-      write.out.T.exists { _.ctx.get != writeCtx }
-    }
+    def reads:Seq[LocalOutAccess] = ctx.collectDown[LocalOutAccess]().filterNot { _.isLocal }
+    def writes:Seq[LocalInAccess] = ctx.collectDown[LocalInAccess]().filterNot { _.isLocal }
     def ctrs:Seq[Counter] = ctx.collectDown[Counter]()
     def ctrler(ctrl:ControlTree) = {
       assertOne(
@@ -38,6 +35,8 @@ trait RuntimeAnalyzer { self:PIRPass =>
       case Const(v) => Some(v)
       case n:BufferRead => n.in.T.getBound
       case n:BufferWrite => n.data.T.getBound
+      case n:GlobalInput => n.in.T.getBound
+      case n:GlobalOutput => n.in.T.getBound
       case n => None
     }
   }
@@ -109,7 +108,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
     n match {
       case n:Context if n.collectDown[HostInController]().nonEmpty => Some(1l)
       case n:Context =>
-        val reads = n.reads.filterNot { read => read.isLocal }
+        val reads = n.reads
         assertOptionUnify(reads, s"$n.reads=$reads, read.count * read.scale") { read => 
           zipMap(read.getCount, read.getScale) { _ * _ }
         }
@@ -117,6 +116,10 @@ trait RuntimeAnalyzer { self:PIRPass =>
         n.in.T.getCount
       case n:LocalInAccess =>
         zipMap(n.ctx.get.count.v.flatten, n.getScale) { _ /! _ }
+      case n:GlobalInput =>
+        n.in.T.getCount
+      case n:GlobalOutput =>
+        n.in.T.getCount
       case n => throw PIRException(s"Don't know how to compute count of $n")
     }
   }
@@ -134,6 +137,8 @@ trait RuntimeAnalyzer { self:PIRPass =>
       case n:Counter => n.par
       case n:LocalOutAccess => assertOne(n.banks.get, s"$n.banks")
       case n:LocalInAccess => assertUnify(n.out.T, s"$n.out.T") { _.getVec }.get
+      case n:GlobalOutput => assertUnify(n.out.T, s"$n.out.T") { _.getVec }.get
+      case n:GlobalInput => assertUnify(n.out.T, s"$n.out.T") { _.getVec }.get
       case n:BanckedAccess =>
         val bank = n.bank.T
         val offset = n.offset.T

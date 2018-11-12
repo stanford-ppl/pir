@@ -87,12 +87,12 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(enableDot, new PIRCtxDotGen(s"simple6.dot"))
     //addPass(bufferInsertion)
     
+    saveSession
+
     addPass(globalInsertion)
     addPass(genPsim, psimAnalyzer)
-    addPass(genPsim, psimAnalyzer)
+    addPass(genPsim, psimAnalyzer) // Need to run twice to account for cycle in data flow graph
 
-    saveSession
-    
     addPass(enableDot, new PIRCtxDotGen(s"simple7.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
     addPass(new NetworkDotCodegen(s"net.dot", spadeTop))

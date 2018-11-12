@@ -36,10 +36,10 @@ trait LocalAccess extends PIRNode {
   val done = new InputField[PIRNode]("done")
 }
 trait LocalInAccess extends LocalAccess {
-  val out = new OutputField[List[LocalOutAccess]]("out")
+  val out = new OutputField[List[PIRNode]]("out")
 }
 trait LocalOutAccess extends LocalAccess with Def with MemoryNode {
-  val in = new InputField[LocalInAccess]("in")
+  val in = new InputField[PIRNode]("in")
   val initToken = Metadata[Boolean]("initToken", default=false)
 }
 case class BufferWrite()(implicit env:Env) extends LocalInAccess {
@@ -52,13 +52,7 @@ case class TokenWrite()(implicit env:Env) extends LocalInAccess
 case class TokenRead()(implicit env:Env) extends LocalOutAccess
 
 trait AccessUtil { self:PIRNodeUtil =>
-  implicit class NodeOp(x:N) {
-    def traceTo(y:N):Boolean = x match {
-      case x if x == y => true
-      case x:BufferRead => x.in.T.traceTo(y)
-      case x:BufferWrite => x.data.T.traceTo(y)
-      case x => false
-    }
+  implicit class AccessOp(x:N) {
     def isInAccess:Boolean = x match {
       case x:InAccess => true
       case x => false
@@ -68,10 +62,6 @@ trait AccessUtil { self:PIRNodeUtil =>
       case x => false
     }
   } 
-  implicit class EdgeOp(x:Edge) {
-    def traceTo(y:PIRNode):Boolean = 
-      x.connected.exists { _.src.traceTo(y) }
-  }
   implicit class LocalAccessOp(n:LocalAccess) {
     def isLocal = n match {
       case n:LocalOutAccess => n.in.T.parent == n.parent
@@ -85,6 +75,14 @@ trait AccessUtil { self:PIRNodeUtil =>
         val global = n.global
         n.out.T.forall { _.global == global }
     }
+  }
+  implicit class LocalInAccessOp(n:LocalInAccess) {
+    def outAccesses:List[LocalOutAccess] = n.collect[LocalOutAccess](visitGlobalOut _)
+    def gout = assertOne(n.out.T, s"$n.gout").asInstanceOf[GlobalOutput]
+  }
+  implicit class LocalOutAccessOp(n:LocalOutAccess) {
+    def inAccess:LocalInAccess = assertOne(n.collect[LocalInAccess](visitGlobalIn _), s"$this.inAccess")
+    def gin:GlobalInput = n.in.T.as[GlobalInput]
   }
 }
 
