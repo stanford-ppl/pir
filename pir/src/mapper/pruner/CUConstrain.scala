@@ -3,28 +3,13 @@ package mapper
 
 import pir.node._
 import pir.pass._
-import spade.param._
+import spade.param2._
 
-trait CUConstrain extends Constrain with PIRNodeUtil with spade.node.SpadeNodeUtil with TypeUtil {
+trait CUConstrain extends Constrain with PIRNodeUtil {
   type K = CUMap.K
   type V = CUMap.V
   type FG = CUMap
   val fgct:ClassTag[FG] = classTag[FG]
-
-  val pirmeta = pass.pirmeta
-  val spademeta = pass.spademeta
-
-  override def quote(n:Any) = n match {
-    case n:GlobalContainer => s"$n[${cuType(n).get}]"
-    case n:Iterable[_] => n.map(quote).toString
-    case n => super.quote(n)
-  }
-
-  def qdef(n:Any) = n match {
-    case n:PNode => n.qdef
-    case n => s"$n"
-  }
-
 }
 
 class CUCostConstrain(implicit pass:CUPruner) extends CUConstrain with CostConstrain[CUCost] {

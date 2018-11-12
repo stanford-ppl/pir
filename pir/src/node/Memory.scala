@@ -125,13 +125,20 @@ case class LoopController()(implicit env:Env) extends Controller {
 
 trait MemoryUtil extends CollectorImplicit {
 
-  implicit class MemUtil(n:Memory) {
+  implicit class MemOp(n:Memory) {
     def inAccesses = n.collect[InAccess](visitGlobalIn _)
     def outAccesses = n.collect[OutAccess](visitGlobalOut _)
     def accesses = inAccesses ++ outAccesses
 
     def isFIFO = n match {
       case n:FIFO => true
+      case _ => false
+    }
+  }
+
+  implicit class GlobalOp(n:GlobalContainer) {
+    def isArgFringe = n match {
+      case n:ArgFringe => true
       case _ => false
     }
   }

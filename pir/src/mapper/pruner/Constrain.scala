@@ -13,7 +13,7 @@ abstract class Constrain(implicit val pass:PIRPass) extends Logging with Mapping
   override def toString = this.getClass.getSimpleName.replace("$","")
   override def quote(n:Any) = pass.quote(n)
   def prune(fg:FG):EOption[FG]
-  def prune(pmap:PIRMap):EOption[PIRMap] = {
-    pmap.flatMap[FG](field => prune(field))
+  def prune(tmap:TopMap):EOption[TopMap] = {
+    tmap.flatMap[FG](field => prune(field))
   }
 }

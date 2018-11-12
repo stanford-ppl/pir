@@ -4,12 +4,14 @@ package node
 import prism.graph._
 import spade.node._
 import spade.param2._
+import pir.mapper._
 
 class PIRStates extends States {
   var pirTop:pir.node.Top = _
   var spadeTop:spade.node.Top = _
   var spadeParam:spade.param2.TopParam = _
   var simulationCycle:Option[Long] = None
+  var topMap:TopMap = _
 }
 trait PIREnv extends Env { self =>
 
@@ -19,6 +21,7 @@ trait PIREnv extends Env { self =>
   def pirTop = states.pirTop
   def spadeParam = states.spadeParam
   def spadeTop = states.spadeTop
+  def topMap = states.topMap
 
   implicit class PIRParent(val value:PIRNode) extends State[PIRNode] {
     def initNode(n:Node[_], value:PIRNode) = {
