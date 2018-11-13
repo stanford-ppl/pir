@@ -68,42 +68,42 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codeg
   }
 
   def emitNodeSpecs(n:Context) = {
-    //n.global.get match {
-      //case cuP:DRAMFringe if isDenseFringe(cuP) & enableTrace =>
-        //val offset = cuP.collectDown[StreamOut]().filter { _.field == "offset" }.head
-        //val size = cuP.collectDown[StreamOut]().filter { _.field == "size" }.head
-        //emitln(s"offset_trace = traces/${readersOf(offset).head}.trace")
-        //emitln(s"size_trace = traces/${readersOf(size).head}.trace")
-        //val par = ctrlOf(ctxEnOf(cuP).get).asInstanceOf[DramController].par
-        //cuP match {
-          //case cuP:FringeDenseLoad => 
-            //emitln(s"dram_cmd_tp=dense_load")
-            //emitln(s"out_token_size = ${par * designParam.bytePerWord}")
-          //case cuP:FringeDenseStore => 
-            //emitln(s"dram_cmd_tp=dense_store")
-            //emitln(s"in_token_size = ${par * designParam.bytePerWord}")
-        //}
-        //emitln(s"controller=DRAM")
-      //case cuP:DRAMFringe if isSparseFringe(cuP) & enableTrace =>
-        //val addr = cuP.collectDown[StreamOut]().filter { _.field == "addr" }.head
-        //val par = getParOf(writersOf(addr).head)
-        //emitln(s"offset_trace = traces/${readersOf(addr).head}.trace")
-        //emitln(s"size_trace = ${par * designParam.bytePerWord}") // burst size (byte)
-        //emitln(s"burst_size = ${designParam.bytePerWord}")
-        //cuP match {
-          //case cuP:FringeSparseLoad => 
-            //emitln(s"dram_cmd_tp=dense_load")
-            //emitln(s"out_token_size = ${par * designParam.bytePerWord}")
-          //case cuP:FringeSparseStore => 
-            //emitln(s"dram_cmd_tp=dense_store")
-            //emitln(s"in_token_size = ${par * designParam.bytePerWord}")
-        //}
-        //emitln(s"controller=DRAM")
-        ////TODO: for scatther this is not called addr
-      //case cuP =>
-        //emitln(s"lat = ${latencyOf(n).get}")
-        emitln(s"lat = 6")
-    //}
+    n.collectDown[DRAMCommand]().headOption.flatMap { command =>
+      if (config.enableTrace) Some(command) else None
+    }.fold{
+      emitln(s"lat = 6") //TODO
+    } {
+      case command:FringeDenseLoad =>
+        val par = command.data.T.getVec
+        emitln(s"size_trace = ${buildPath(traceRelativePath, s"${command}_size.trace")}")
+        emitln(s"offset_trace = ${buildPath(traceRelativePath, s"${command}_offset.trace")}")
+        emitln(s"dram_cmd_tp=dense_load")
+        emitln(s"out_token_size = ${par * spadeParam.bytePerWord}")
+        emitln(s"controller=DRAM")
+      case command:FringeDenseStore =>
+        val par = command.data.T.getVec
+        emitln(s"size_trace = ${buildPath(traceRelativePath, s"${command}_size.trace")}")
+        emitln(s"offset_trace = ${buildPath(traceRelativePath, s"${command}_offset.trace")}")
+        emitln(s"dram_cmd_tp=dense_store")
+        emitln(s"in_token_size = ${par * spadeParam.bytePerWord}")
+        emitln(s"controller=DRAM")
+      case command:FringeSparseLoad =>
+        val par = command.data.T.getVec
+        emitln(s"size_trace = ${par * spadeParam.bytePerWord}")
+        emitln(s"offset_trace = ${buildPath(traceRelativePath, s"${command}_addr.trace")}")
+        emitln(s"dram_cmd_tp=dense_load")
+        emitln(s"out_token_size = ${par * spadeParam.bytePerWord}")
+        emitln(s"controller=DRAM")
+        emitln(s"burst_size = ${spadeParam.bytePerWord}")
+      case command:FringeSparseStore =>
+        val par = command.data.T.getVec
+        emitln(s"size_trace = ${par * spadeParam.bytePerWord}")
+        emitln(s"offset_trace = ${buildPath(traceRelativePath, s"${command}_addr.trace")}")
+        emitln(s"dram_cmd_tp=dense_store")
+        emitln(s"in_token_size = ${par * spadeParam.bytePerWord}")
+        emitln(s"controller=DRAM")
+        emitln(s"burst_size = ${spadeParam.bytePerWord}")
+    }
     emitStartToken(n)
     emitStopToken(n)
     n.getCount.fold {

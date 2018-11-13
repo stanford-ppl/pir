@@ -90,16 +90,16 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with DefaultParamLoader 
     addPass(enableDot, new PIRIRDotGen(s"top6.dot"))
     addPass(enableDot, new PIRCtxDotGen(s"simple6.dot"))
     
-    addPass(globalInsertion)
-    addPass(genPsim, psimAnalyzer)
-    addPass(genPsim, psimAnalyzer) // Need to run twice to account for cycle in data flow graph
-
     saveSession
 
     addPass("LoadArch") { runner =>
       states.spadeParam = loadParam
       states.spadeTop = create[spade.node.Top](states.spadeParam)
     }
+
+    addPass(globalInsertion)
+    addPass(genPsim, psimAnalyzer) // Depends on LoadArch
+    addPass(genPsim, psimAnalyzer) // Need to run twice to account for cycle in data flow graph
 
     // ------- Pruning and Partitioning  --------
     // ------- Mapping  --------

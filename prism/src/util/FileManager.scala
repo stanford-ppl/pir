@@ -102,7 +102,7 @@ trait FileManager {
     dirName
   }
 
-  def buildPath(dirName:String, fileName:String) = s"${dirName}${separator}${fileName}"
+  def buildPath(dirs:String*) = dirs.mkString(separator)
 
   def dirName(fullPath:String) = fullPath.split(separator).dropRight(1).mkString(separator)
 

@@ -11,7 +11,9 @@ case class TopParam(
   vecWidth:Int=16, // word
   clockFrequency:Int=1000000000, //Hz
   pattern:Pattern = Checkerboard()
-) extends Parameter
+) extends Parameter {
+  def bytePerWord = wordWidth / 8
+}
 
 trait Pattern extends Parameter
 

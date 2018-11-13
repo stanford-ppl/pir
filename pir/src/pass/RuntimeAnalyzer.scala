@@ -41,8 +41,6 @@ trait RuntimeAnalyzer { self:PIRPass =>
     }
   }
 
-  val bytePerWord = 4
-
   def compIter(n:PIRNode):Option[Long] = dbgblk(s"compIter($n)"){
     n match {
       case n:Counter => 
@@ -59,11 +57,11 @@ trait RuntimeAnalyzer { self:PIRPass =>
       case n:FringeDenseLoad =>
         val size = n.size.T.getBound
         val dataPar = n.data.T.getVec
-        size.map { size => size /! (bytePerWord * dataPar) }
+        size.map { size => size /! (spadeParam.bytePerWord * dataPar) }
       case n:FringeDenseStore =>
         val size = n.size.T.getBound
         val dataPar = n.data.T.getVec
-        size.map { size => size /! (bytePerWord * dataPar) }
+        size.map { size => size /! (spadeParam.bytePerWord * dataPar) }
       case n:FringeSparseLoad => Some(1l)
       case n:FringeSparseStore => Some(1l)
       case n => None
