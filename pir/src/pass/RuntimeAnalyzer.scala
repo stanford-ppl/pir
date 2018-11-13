@@ -104,18 +104,21 @@ trait RuntimeAnalyzer { self:PIRPass =>
     }
   }
 
+  def accountForCycle = true
+
   def compCount(n:PIRNode):Option[Long] = dbgblk(s"compCount($n)"){
     n match {
       case n:Context if n.collectDown[HostInController]().nonEmpty => Some(1l)
       case n:Context =>
-        val reads = n.reads
+        var (readsWithInits, reads) = n.reads.partition { _.initToken.get }
+        if (accountForCycle) reads = reads ++ readsWithInits
         assertOptionUnify(reads, s"$n.reads=$reads, read.count * read.scale") { read => 
           zipMap(read.getCount, read.getScale) { _ * _ }
         }
       case n:LocalOutAccess =>
         n.in.T.getCount
       case n:LocalInAccess =>
-        zipMap(n.ctx.get.count.v.flatten, n.getScale) { _ /! _ }
+        zipMap(n.ctx.get.getCount, n.getScale) { _ /! _ }
       case n:GlobalInput =>
         n.in.T.getCount
       case n:GlobalOutput =>

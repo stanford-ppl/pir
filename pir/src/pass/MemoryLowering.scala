@@ -39,8 +39,10 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
         swapParent(access, accessCtx)
         access match {
           case access:BankedRead => 
+            flattenBankAddr(access)
             bufferOutput(access.out)
           case access:BankedWrite => 
+            flattenBankAddr(access)
             //bufferInput(access.bank)
             //bufferInput(access.offset)
             bufferInput(access.data)
@@ -59,6 +61,24 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
       fifoBarrierInsertion(mem)
       //enforceProgramOrder(mem)
       enforceDataDependency(mem)
+    }
+  }
+
+  def flattenBankAddr(access:BanckedAccess):Unit = {
+    if (access.bank.T.size == 1) return
+    val mem = access.mem.T
+    within(access.parent.get.as[PIRNode]) {
+      def flattenND(inds:List[Edge], dims:List[Int]):Edge = {
+        if (inds.size==1) return inds.head
+        assert(inds.size == dims.size, s"flattenND inds=$inds dims=$dims have different size")
+        val i::irest = inds
+        val d::drest = dims
+        OpDef("FixFMA").input(i,Const(drest.product), flattenND(irest, drest)).out
+      }
+      val fbank = flattenND(access.bank.connected.toList, mem.banks.get)
+      dbg(s"flattenBankAddr ${access.bank.T} => $fbank")
+      access.bank.disconnect
+      access.bank(fbank)
     }
   }
 
