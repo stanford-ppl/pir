@@ -35,6 +35,7 @@ class PlastisimAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFS
             count == 1
           }
         }
+        n.collectDown[LocalAccess]().foreach(_.getScale)
       case n =>
     }
     super.visitNode(n)
