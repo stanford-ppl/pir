@@ -298,10 +298,7 @@ class PlastisimTraceCodegen(implicit compiler:PIR) extends PlastisimCodegen with
 
   def emitMain = {
     emitln(s"import scala.collection.mutable ")
-    emitln(s"import java.io._ ")
     emitBlock(s"object tracer") {
-      emitln(s"val pws = mutable.Map[String, PrintWriter]()")
-      emitBlock(s"def main(args:Array[String]) = ") {
         genDRAM
         controllerTraversal.traverseTop
         emitln(s"pws.foreach(_._2.close)")

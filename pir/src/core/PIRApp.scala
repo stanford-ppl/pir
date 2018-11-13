@@ -80,7 +80,8 @@ trait PIRApp extends PIR with Logging {
     val mem = dramAddrs.getOrElseUpdate(dram, {
       val mem = Reg()
       within(pirTop.argFringe, pirTop.hostInCtrl) {
-        MemWrite().setMem(mem).data(DRAMAddr(dram).name(dram.sid)) // DRAMDef
+        val dramAddr = DRAMAddr(dram).name(dram.sid)
+        MemWrite().setMem(mem).data(dramAddr) // DRAMDef
       }
       mem
     })

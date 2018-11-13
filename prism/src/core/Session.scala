@@ -61,7 +61,7 @@ trait Session { self:Compiler =>
   def runSession:Boolean = {
     passes.foreach { case (pass, _) => pass.reset }
     runners.foreach { runner =>
-      if (runner.id >= config.startRunId) {
+      if (runner.id >= config.startRunId && config.endRunId.fold(true) { runner.id < _ }) {
         currRun = runner
         runner.run
       }

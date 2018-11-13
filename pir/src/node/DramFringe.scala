@@ -7,31 +7,33 @@ abstract class DRAMCommand(implicit env:Env) extends PIRNode {
 }
 
 case class FringeDenseLoad(dram:DRAM)(implicit env:Env) extends DRAMCommand {
-  val offset = new InputField[BufferRead]("offset")
-  val size = new InputField[BufferRead]("size")
-  val data = new OutputField[BufferWrite]("data")
+  val offset = new InputField[PIRNode]("offset")
+  val size = new InputField[PIRNode]("size")
+  val data = new OutputField[PIRNode]("data")
 }
 
 case class FringeSparseLoad(dram:DRAM)(implicit env:Env) extends DRAMCommand {
-  val addr = new InputField[BufferRead]("addr")
-  val data = new OutputField[BufferWrite]("data")
+  val addr = new InputField[PIRNode]("addr")
+  val data = new OutputField[PIRNode]("data")
 }
 
 case class FringeDenseStore(dram:DRAM)(implicit env:Env) extends DRAMCommand {
-  val offset = new InputField[BufferRead]("offset")
-  val size = new InputField[BufferRead]("size")
-  val data = new InputField[BufferRead]("data")
-  val valid = new InputField[BufferRead]("valid")
-  val ack = new OutputField[BufferWrite]("ack")
+  val offset = new InputField[PIRNode]("offset")
+  val size = new InputField[PIRNode]("size")
+  val data = new InputField[PIRNode]("data")
+  val valid = new InputField[PIRNode]("valid")
+  val ack = new OutputField[PIRNode]("ack")
 }
 
 case class FringeSparseStore(dram:DRAM)(implicit env:Env) extends DRAMCommand {
-  val addr = new InputField[BufferRead]("addr")
-  val data = new InputField[BufferRead]("data")
-  val ack = new OutputField[BufferWrite]("ack")
+  val addr = new InputField[PIRNode]("addr")
+  val data = new InputField[PIRNode]("data")
+  val ack = new OutputField[PIRNode]("ack")
 }
 
-case class DRAM(sid:String) extends prism.graph.IR
+case class DRAM(sid:String) extends prism.graph.IR {
+  val dims = Metadata[List[Int]]("dims")
+}
 
 //case class CountAck(ack:Def)(implicit env:Env) extends ControlNode
 

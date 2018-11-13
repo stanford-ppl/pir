@@ -40,6 +40,12 @@ trait ScalaCodegen extends Codegen {
     emitBlock(s=s, ss=Some(ss), es=Some(es))(block)
   }
 
+  def emitForLoop(min:Any, max:Any, step:Any, i:Any)(block: => Unit) = {
+    emitBlock(s=s"($min until $max by $step).foreach", ss=Some(s"$i")) {
+      block
+    }
+  }
+
   def emitBlock[T](s:String, ss:Option[String]=None, es:Option[String]=None, b:Braces=CurlyBraces)(block: =>T):T = { 
     emitBS(s, b)
     ss.foreach { ss => write(s" $ss =>") }

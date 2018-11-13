@@ -174,6 +174,10 @@ trait ScalaUtilFunc {
     def /! (d:Int) = (i + d - 1) / d
   }
 
+  implicit class Tuple2Util[A,B](tuple:(A,B)) {
+    def map2[C](func:B => C) = (tuple._1, func(tuple._2))
+  }
+
   implicit class OrderedIterUtil[T:Ordering](x:Iterable[T]) {
     def maxOption:Option[T] = if (x.isEmpty) None else Some(x.max)
   }

@@ -11,6 +11,8 @@ trait PlastisimUtil extends PIRPass {
   lazy val configPath = buildPath(psimOut, configName)
   lazy val prouteName = "final.proute"
   lazy val proutePath = buildPath(psimOut, prouteName)
+  lazy val traceName = "gen_trace.scala"
+  lazy val tracePath = buildPath(psimOut, s"trace")
 
   lazy val PLASTISIM_HOME = sys.env.get("PLASTISIM_HOME").getOrElse(throw PIRException(s"PLASTISIM_HOME is not set"))
   lazy val PLASTIROUTE_HOME = sys.env.get("PLASTIROUTE_HOME").getOrElse(throw PIRException(s"PLASTIROUTE_HOME is not set"))
