@@ -84,7 +84,7 @@ class DRAMTraceCodegen(implicit compiler:PIR) extends ProgramOrderTraversal with
   override def finPass = {
     super.finPass
     val log = s"$dirName/trace.log"
-    val exitCode = shell("trace", s"scala ${outputPath}", log)
+    val exitCode = shell("trace", s"bash run_trace.sh", log)
     if (exitCode != 0) {
       fail(s"fail to generate trace")
     }
@@ -184,7 +184,6 @@ class DRAMTraceCodegen(implicit compiler:PIR) extends ProgramOrderTraversal with
     emitln(s"object tracer {")
     incLevel 
     emitln(s"val pws = mutable.Map[String, PrintWriter]()")
-    emitln(s"""val path = "${tracePath}"""")
     emitln(s"def main(args:Array[String]) = {")
     incLevel 
   }
@@ -198,7 +197,7 @@ class DRAMTraceCodegen(implicit compiler:PIR) extends ProgramOrderTraversal with
       emitln(s"""case node => getWriter(fileName).write(node.toString + "\\n")""")
     }
     emitBlock(s"def getWriter(fileName:String) = ") {
-      emitln(s"pws.getOrElseUpdate(fileName, new PrintWriter(new File(path + File.separator + fileName)))")
+      emitln(s"pws.getOrElseUpdate(fileName, new PrintWriter(new File(fileName)))")
     }
     emitln(helperFunctions)
     decLevel 
