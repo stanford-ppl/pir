@@ -161,6 +161,6 @@ object ManyToOneFactorGraph {
   )
 }
 
-case class InvalidFactorGraph[K,FG<:FactorGraphLike[K,_,FG]](@transient fg:FG, k:K) extends MappingFailure {
+case class InvalidFactorGraph[K,V,S<:FG[K,V,S]](@transient fg:FG[K,V,S], k:K) extends MappingFailure {
   val msg = s"InvalidFactorGraph ${fg.getClass.getSimpleName} at key=$k"
 }

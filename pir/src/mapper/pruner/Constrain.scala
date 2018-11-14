@@ -5,15 +5,11 @@ import prism.collection.immutable._
 import prism.util.Memorization
 
 abstract class Constrain(implicit val pass:PIRPass) extends Logging with MappingLogger {
-  type K
-  type V
-  type FG <: FactorGraphLike[K,V,FG]
-  implicit def fgct:ClassTag[FG]
   override lazy val logger = pass.logger
   override def toString = this.getClass.getSimpleName.replace("$","")
   override def quote(n:Any) = pass.quote(n)
-  def prune(fg:FG):EOption[FG]
+  def prune(fg:Any):EOption[Any]
   def prune(tmap:TopMap):EOption[TopMap] = {
-    tmap.flatMap[FG](field => prune(field))
+    tmap.flatMapAll(field => prune(field))
   }
 }

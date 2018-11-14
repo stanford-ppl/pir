@@ -5,40 +5,55 @@ import pir.node._
 import pir.pass._
 import prism.collection.immutable._
 
-trait Cost[C] extends Ordered[C] {
-  type K
-  def compareAsC(x:Any) = compare(x.asInstanceOf[C])
-  def fit(key:K,x:Any):(Boolean, Boolean) // (fit, splittable)
+abstract class Cost[C:ClassTag] extends Product { self:C =>
+  def - (x:C):C with Cost[C]
+  def + (x:C):C with Cost[C]
+  def add (x:Any):C with Cost[C] = this + x.as[C]
+  def diff (x:Any):C with Cost[C] = this - x.as[C]
+  def nonEmpty:Boolean
 }
-trait CostConstrain[C<:Cost[C]] extends Constrain {
-  def getKeyCost(cuP:K):C
-  def getValueCost(cuS:V):C
+trait PrefixCost[C<:PrefixCost[C]] extends Cost[C] { self:C =>
+  val prefix:Boolean
+  def - (x:C) = this.newInstance[C](Seq(prefix != x.as[C].prefix))
+  def + (x:C) = this.newInstance[C](Seq(prefix || x.prefix))
+  def nonEmpty:Boolean = prefix
+}
+trait QuantityCost[C<:QuantityCost[C]] extends Cost[C] { self:C =>
+  val quantity:Int
+  def - (x:C) = this.newInstance[C](Seq(quantity - x.as[C].quantity))
+  def + (x:C) = this.newInstance[C](Seq(quantity + x.quantity))
+  def nonEmpty:Boolean = quantity > 0
+}
+trait MaxCost[C<:MaxCost[C]] extends Cost[C] { self:C =>
+  val quantity:Int
+  def - (x:C) = this.newInstance[C](Seq(quantity - x.as[C].quantity))
+  def + (x:C) = this.newInstance[C](Seq(Math.max(quantity, x.quantity)))
+  def nonEmpty:Boolean = quantity > 0
+}
+trait SetCost[T,C<:SetCost[T,C]] extends Cost[C] { self:C =>
+  val set:Set[T]
+  def - (x:C) = this.newInstance[C](Seq(set diff x.as[C].set))
+  def + (x:C) = this.newInstance[C](Seq(set ++ x.set))
+  def nonEmpty:Boolean = set.nonEmpty
+}
 
-  def fit(key:K, value:V):(Boolean, Boolean) // (fit, splitable)
-  def prune(fg:FG, key:K):EOption[FG] = {
-    val values:Set[(V, Boolean, Boolean)] = fg.freeValues(key).map { value =>
-      val (fits, splitable) = fit(key, value)
-      (value, fits, splitable)
-    }
-    val (fits, nonFits) = values.partition { _._2 }
-    if (fits.isEmpty) { // not fit
-      val (splitables, nonSplitables) = nonFits.partition { _._3 }
-      val nonSplitableValues = nonSplitables.map { _._1 }
-      val kcost = getKeyCost(key)
-      dbg(s"${quote(key)} not fit. Cost:${kcost}")
-      fg.filterNotAt(key) { v => nonSplitableValues.contains(v) } match {
-        case Left(InvalidFactorGraph(fg:FG, key)) => 
-          dbg(s"nonSplitableValues:${nonSplitableValues.map(quote)}")
-          Left(CostConstrainFailure(fg , key, kcost, false))
-        case Right(fg) => Left(CostConstrainFailure(fg , key, kcost, splitables.nonEmpty))
-      }
-    } else {
-      val nonFitValues = nonFits.map { _._1 }
-      fg.filterNotAt(key) { v => nonFitValues.contains(v) }
-    }
+trait CostConstrain[C<:Cost[C]] extends FactorConstrain {
+  def getCost(n:Any):C
+  //def fit(key:Any, value:Any):(Boolean, Boolean) // (fit, splitable)
+  def prune[K,V,S<:FG[K,V,S]](fg:S):EOption[S] = {
+    flatFold[K,S](fg.freeKeys, fg) { case (fg, key) => prune[K,V,S](fg, key) }
   }
-  def prune(fg:FG):EOption[FG] = {
-    flatFold(fg.freeKeys, fg) { case (fg, key) => prune(fg, key) }
+  def prune[K,V,S<:FG[K,V,S]](fg:S, key:K):EOption[S] = {
+    val keyCost = getCost(key)
+    val values = fg.freeValues(key).toIterator
+    val diff = values.map { value => (value, keyCost - getCost(value)) }
+    val (fits, notFits) = diff.partition { _._2.nonEmpty }
+    if (fits.toSeq.isEmpty) {
+      Left(CostConstrainFailure[K,V,S,C](fg, key, keyCost, notFits.toSeq))
+    } else {
+      Right(fg)
+    }
   }
 }
-case class CostConstrainFailure[FG<:FactorGraphLike[_,_,FG]](@transient fg:FG, key:Any, keyCost:Cost[_], isSplittable:Boolean) extends MappingFailure
+case class CostConstrainFailure[K,V,S<:FG[K,V,S],C<:Cost[C]](fg:S, key:Any, keyCost:C, notFits:Seq[(V,C)]) extends MappingFailure
+

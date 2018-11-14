@@ -65,10 +65,17 @@ trait PIRNodeUtil extends MemoryUtil with AccessUtil {
   }
 }
 
-case class ControlTree(schedule:String)(implicit env:Env) extends EnvNode[ControlTree] with FieldNode[ControlTree] { self =>
+case class ControlTree(schedule:String)(implicit env:Env) extends EnvNode[ControlTree] with FieldNode[ControlTree] with Ordered[ControlTree] { self =>
   lazy val Nct = classTag[ControlTree]
 
   val ctrler = new Metadata[Controller]("ctrler")
+
+  def compare(that:ControlTree) = {
+    if (this == that) 0
+    else if (this.isAncestorOf(that)) 1
+    else if (that.isAncestorOf(this)) -1
+    else throw PIRException(s"Cannot compare $this with $that")
+  }
 
   env.initNode(this)
 }

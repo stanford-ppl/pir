@@ -2,7 +2,7 @@ package prism
 
 import prism.util._
 import prism.mapper._
-import prism.enums._
+import prism.collection.immutable._
 
 trait PrismLocalAlias extends Misc with MappingUtil with ScalaUtil with FileManager with Serialization {
   
@@ -20,10 +20,9 @@ trait PrismLocalAlias extends Misc with MappingUtil with ScalaUtil with FileMana
   //type Metadata = prism.util.Metadata
   val ConsoleLogger=prism.util.ConsoleLogger
 
-  type Op = prism.enums.Op
-
   type N = prism.graph.Node[_]
   type E = prism.graph.Edge
+  type FG[K,V,S<:FactorGraphLike[K,V,S]] = FactorGraphLike[K,V,S]
 }
 
 trait PrismAlias extends PrismLocalAlias {

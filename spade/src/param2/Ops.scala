@@ -1,67 +1,67 @@
-package prism
-package enums
+package spade
+package param2
 
-sealed trait Op extends Enum
+import prism.util._
 
-sealed trait Op1 extends Op
-sealed trait Op2 extends Op
-sealed trait Op3 extends Op
-sealed trait Op4 extends Op
+sealed trait Opcode extends Enum
 
-sealed trait CompOp extends Op
+sealed trait Op1 extends Opcode
+sealed trait Op2 extends Opcode
+sealed trait Op3 extends Opcode
+sealed trait Op4 extends Opcode
 
-sealed trait FixOp extends Op
-case object FixAdd extends FixOp             with Op2
-case object FixSub extends FixOp             with Op2
-case object FixMul extends FixOp             with Op2
-case object FixDiv extends FixOp             with Op2
-case object FixMin extends FixOp             with Op2
-case object FixMax extends FixOp             with Op2
-case object FixLt  extends FixOp with CompOp with Op2
-case object FixLeq extends FixOp with CompOp with Op2
-case object FixGt  extends FixOp with CompOp with Op2
-case object FixGeq extends FixOp with CompOp with Op2
-case object FixEql extends FixOp with CompOp with Op2
-case object FixNeq extends FixOp with CompOp with Op2
-case object FixMod extends FixOp             with Op2
-case object FixSra extends FixOp             with Op2
-case object FixSla extends FixOp             with Op2
-case object FixUsla extends FixOp            with Op2
-case object FixNeg extends FixOp             with Op1
-case object FixRandom extends FixOp          with Op1
-case object FixUnif extends FixOp            with Op1
-case object FixAbs extends FixOp             with Op1
+sealed trait FixOp extends Opcode
+case object FixAdd extends FixOp        with Op2
+case object FixSub extends FixOp        with Op2
+case object FixMul extends FixOp        with Op2
+case object FixDiv extends FixOp        with Op2
+case object FixMin extends FixOp        with Op2
+case object FixMax extends FixOp        with Op2
+case object FixLt  extends FixOp        with Op2
+case object FixLeq extends FixOp        with Op2
+case object FixGt  extends FixOp        with Op2
+case object FixGeq extends FixOp        with Op2
+case object FixEql extends FixOp        with Op2
+case object FixNeq extends FixOp        with Op2
+case object FixMod extends FixOp        with Op2
+case object FixSra extends FixOp        with Op2
+case object FixSla extends FixOp        with Op2
+case object FixUsla extends FixOp       with Op2
+case object FixNeg extends FixOp        with Op1
+case object FixRandom extends FixOp     with Op1
+case object FixUnif extends FixOp       with Op1
+case object FixAbs extends FixOp        with Op1
 
-sealed trait FltOp extends Op
-case object FltAdd extends FltOp             with Op2
-case object FltSub extends FltOp             with Op2
-case object FltMul extends FltOp             with Op2
-case object FltDiv extends FltOp             with Op2
-case object FltMin extends FltOp             with Op2
-case object FltMax extends FltOp             with Op2
-case object FltLt  extends FltOp with CompOp with Op2
-case object FltLeq extends FltOp with CompOp with Op2
-case object FltGt  extends FltOp with CompOp with Op2
-case object FltGeq extends FltOp with CompOp with Op2
-case object FltEql extends FltOp with CompOp with Op2
-case object FltNeq extends FltOp with CompOp with Op2
-case object FltExp extends FltOp             with Op1
-case object FltAbs extends FltOp             with Op1
-case object FltLog extends FltOp             with Op1
-case object FltSqr extends FltOp             with Op1
-case object FltNeg extends FltOp             with Op1
+sealed trait FltOp extends Opcode
+case object FltAdd extends FltOp        with Op2
+case object FltSub extends FltOp        with Op2
+case object FltMul extends FltOp        with Op2
+case object FltDiv extends FltOp        with Op2
+case object FltMin extends FltOp        with Op2
+case object FltMax extends FltOp        with Op2
+case object FltLt  extends FltOp        with Op2
+case object FltLeq extends FltOp        with Op2
+case object FltGt  extends FltOp        with Op2
+case object FltGeq extends FltOp        with Op2
+case object FltEql extends FltOp        with Op2
+case object FltNeq extends FltOp        with Op2
+case object FltExp extends FltOp        with Op1
+case object FltAbs extends FltOp        with Op1
+case object FltLog extends FltOp        with Op1
+case object FltSqr extends FltOp        with Op1
+case object FltNeg extends FltOp        with Op1
 
-sealed trait BitOp  extends Op
-case object BitAnd  extends BitOp with Op2
-case object BitOr   extends BitOp with Op2
-case object BitNot  extends BitOp with Op1
-case object BitXnor extends BitOp with Op2
-case object BitXor  extends BitOp with Op2
+sealed trait BitOp  extends Opcode
+case object BitAnd  extends BitOp       with Op2
+case object BitOr   extends BitOp       with Op2
+case object BitNot  extends BitOp       with Op1
+case object BitXnor extends BitOp       with Op2
+case object BitXor  extends BitOp       with Op2
 
-case object MuxOp   extends Op with Op3
-case object Bypass extends Op with Op1
-case object FltPtToFixPt extends Op with Op4
-case object FixPtToFltPt extends Op with Op3
+case object MuxOp   extends Opcode      with Op3
+case object Bypass extends Opcode       with Op1
+case object FltPtToFixPt extends Opcode with Op4
+case object FixPtToFltPt extends Opcode with Op3
 
 trait Ops {
   val fixOps = List(FixAdd, FixSub, FixMul, FixDiv, FixMin, FixMax, FixLt, FixLeq, FixGt, FixGeq, FixEql, FixNeq, FixMod, FixSra, FixSla, FixUsla, FixNeg, FixRandom, FixUnif, FixAbs)
@@ -69,10 +69,7 @@ trait Ops {
   val bitOps = List(BitAnd, BitOr, BitNot, BitXnor, BitXor)
   val otherOps = List(MuxOp, Bypass, FltPtToFixPt, FixPtToFltPt)
 
-  def allOps = (fixOps ++ fltOps ++ bitOps ++ otherOps).toList
-  def compOps = allOps.collect {case op:CompOp => op}
-  def fixCompOps = fixOps.collect {case op:CompOp => op}
-  def fltCompOps = fltOps.collect {case op:CompOp => op}
+  val allOps = (fixOps ++ fltOps ++ bitOps ++ otherOps).toList
 
   object ToInt {
     def unapply(x:Any):Option[Int] = x match {
@@ -96,7 +93,7 @@ trait Ops {
     }
   }
 
-  def eval(op:Op, ins:List[Any]):Any = {
+  def eval(op:Opcode, ins:List[Any]):Any = {
     (op, ins) match {
       case (FixAdd   , ToInt(a)::ToInt(b)::_)     => (a + b)
       case (FixSub   , ToInt(a)::ToInt(b)::_)     => (a - b)

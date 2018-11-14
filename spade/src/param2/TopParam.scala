@@ -74,9 +74,11 @@ case class BundleParam() extends Parameter {
 
 case class SRAMParam (
   count:Int=1,
-  depth:Int=4
+  size:Int= 256 * 1024 // in Byte
 ) extends Parameter {
-  lazy val bank:Int = this.collectUp[TopParam]().head.vecWidth
+  lazy val topParam = this.collectUp[TopParam]().head
+  lazy val bank:Int = topParam.vecWidth
+  lazy val sizeInWord = size / topParam.bytePerWord
 }
 
 case class FIFOParam( 
@@ -91,6 +93,10 @@ sealed trait CUParam extends Parameter {
   val numCounters:Int
   val numStage:Int
   val numReg:Int
+  val numVin:Int
+  val numVout:Int
+  val numSin:Int
+  val numSout:Int
   lazy val numLane:Int = this.collectUp[TopParam]().head.vecWidth
   def fifoParamOf(granularity:String):Option[FIFOParam] = 
     assertOneOrLess(fifoParams.filter { _.granularity == granularity }, 
@@ -107,6 +113,10 @@ case class DramAGParam(
   numCounters:Int=16,
   numStage:Int=6,
   numReg:Int=16,
+  numSin:Int=4,
+  numSout:Int=4,
+  numVin:Int=4,
+  numVout:Int=4,
 ) extends CUParam {
   override lazy val numLane:Int = 1
   val sramParam = SRAMParam(count=0)
@@ -120,6 +130,10 @@ case class PCUParam(
   numCounters:Int=16,
   numStage:Int=6,
   numReg:Int=16,
+  numSin:Int=4,
+  numSout:Int=4,
+  numVin:Int=4,
+  numVout:Int=4,
 ) extends CUParam {
   val sramParam = SRAMParam(count=0)
 }
@@ -132,6 +146,10 @@ case class PMUParam(
   numCounters:Int=16,
   numStage:Int=6,
   numReg:Int=16,
-  sramParam:SRAMParam=SRAMParam(count=1)
+  sramParam:SRAMParam=SRAMParam(count=1),
+  numSin:Int=4,
+  numSout:Int=4,
+  numVin:Int=4,
+  numVout:Int=4,
 ) extends CUParam
 

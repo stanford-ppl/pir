@@ -3,11 +3,11 @@ package mapper
 
 import prism.collection.immutable._
 
-trait ArcConsistencyConstrain extends Constrain {
-  def prune(fg:FG):EOption[FG] = {
-    flatFold(fg.freeKeys,fg) { case (fg, k) => ac3[K,V,FG](fg, k) }
+trait ArcConsistencyConstrain extends FactorConstrain {
+  def prune[K,V,S<:FG[K,V,S]](fg:S) = {
+    flatFold(fg.freeKeys,fg) { case (fg, k) => ac3[K,V,S](fg, k) }
   }
-  def ac3[K,V,FG<:FactorGraphLike[K,V,FG]](fg:FG, k:K):EOption[FG] = {
+  def ac3[K,V,S<:FG[K,V,S]](fg:S, k:K):EOption[S] = {
     flatFold(fg(k),fg) { case (fg, v) =>
       val neighbors = fg.freeKeys(v).filterNot { _ == k }
       val nfg = fg.set(k,v)
@@ -15,7 +15,7 @@ trait ArcConsistencyConstrain extends Constrain {
         case Left(_) => fg - (k,v)
         case Right(nfg) =>
           flatFold(neighbors, fg) { case (fg, neighbor) => 
-            if (ac3[K,V,FG](nfg, neighbor).isLeft) fg - (k,v) else Right(fg)
+            if (ac3[K,V,S](nfg, neighbor).isLeft) fg - (k,v) else Right(fg)
           }
       }
     }

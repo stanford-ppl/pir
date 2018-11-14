@@ -184,6 +184,8 @@ trait ScalaUtilFunc {
   implicit class IterUtil[T](x:Iterable[T]) {
     def maxOptionBy[O:Ordering](func:T => O):Option[T] = 
       if (x.isEmpty) None else Some(x.maxBy(func))
+    def minOptionBy[O:Ordering](func:T => O):Option[T] = 
+      if (x.isEmpty) None else Some(x.minBy(func))
   }
 
   def log2(x:Int) = (Math.log(x) / Math.log(2)).ceil.toInt

@@ -42,7 +42,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with DefaultParamLoader 
   //lazy val localMemDuplication = new LocalMemDuplication()
 
   ///* Mapping */
-  //lazy val cuPruning = new CUPruning()
+  lazy val cuPruning = new CUPruning()
   //lazy val cuPlacer = new CUPlacer()
 
   /* Codegen */
@@ -103,6 +103,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with DefaultParamLoader 
 
     // ------- Pruning and Partitioning  --------
     // ------- Mapping  --------
+    addPass(enableMapping, cuPruning)
 
     addPass(enableDot, new PIRCtxDotGen(s"simple7.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))

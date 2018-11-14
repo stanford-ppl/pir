@@ -7,7 +7,7 @@ trait Memorization extends Logging {
   type Cache[I,O] = prism.util.Cache[I,O]
   val Cache = prism.util.Cache
 
-  var memorizing = false
+  var memorizing = true
 
   val caches = mutable.Map[String,Cache[_,_]]()
   def resetCache(input:Any) = caches.values.foreach(_.resetCache(input)) 

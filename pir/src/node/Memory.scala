@@ -13,6 +13,9 @@ trait MemoryNode extends PIRNode {
   def getBanks = banks.get
   def getDepth = depth.get
   def bankDims = getBanks.size
+  def nBanks = banks.get.product
+  def size = dims.get.product
+  def bankSize = size /! nBanks
 }
 
 abstract class Memory(implicit env:Env) extends MemoryNode with DefNode[PIRNode] {
