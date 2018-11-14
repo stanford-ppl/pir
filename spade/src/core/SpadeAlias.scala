@@ -1,6 +1,6 @@
 package spade
 
-import spade.param2._
+import spade.param._
 
 trait SpadeLocalAlias extends ParamUtil {
   //type SpadeMapLike = spade.config.SpadeMapLike

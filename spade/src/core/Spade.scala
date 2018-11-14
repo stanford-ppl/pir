@@ -1,6 +1,6 @@
 package spade
 
-import spade.param2._
+import spade.param._
 import spade.node._
 import spade.codegen._
 

@@ -3,7 +3,7 @@ package codegen
 
 import pir.node._
 import prism.graph._
-import spade.param2._
+import spade.param._
 
 class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codegen with ChildFirstTraversal with PlastisimUtil {
 

@@ -3,13 +3,13 @@ package node
 
 import prism.graph._
 import spade.node._
-import spade.param2._
+import spade.param._
 import pir.mapper._
 
 class PIRStates extends States {
   var pirTop:pir.node.Top = _
   var spadeTop:spade.node.Top = _
-  var spadeParam:spade.param2.TopParam = _
+  var spadeParam:spade.param.TopParam = _
   var simulationCycle:Option[Long] = None
   var topMap:TopMap = _
 }

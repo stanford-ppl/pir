@@ -1,7 +1,7 @@
 package spade
 package node
 
-import spade.param2._
+import spade.param._
 
 import prism.graph._
 

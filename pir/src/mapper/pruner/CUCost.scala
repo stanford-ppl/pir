@@ -3,7 +3,7 @@ package mapper
 
 import pir.node._
 import pir.pass._
-import spade.param2._
+import spade.param._
 import prism.collection.immutable._
 import prism.util._
 import prism.mapper._

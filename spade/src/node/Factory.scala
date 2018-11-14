@@ -3,7 +3,7 @@ package node
 
 import prism.graph._
 
-import param2._
+import param._
 
 trait Factory extends BuildEnvironment with DFSTopologicalTraversal {
 

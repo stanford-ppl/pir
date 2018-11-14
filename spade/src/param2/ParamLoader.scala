@@ -1,5 +1,5 @@
 package spade
-package param2
+package param
 
 import prism._
 import prism.graph._

@@ -2,7 +2,7 @@ package spade
 package codegen
 
 import spade.node._ 
-import spade.param2._ 
+import spade.param._ 
 import prism.codegen._
 
 class NetworkDotCodegen(val fileName:String, topFunc: => Top)(implicit compiler:Compiler) extends IRDotCodegen {

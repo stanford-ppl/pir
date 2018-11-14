@@ -7,7 +7,7 @@ import pir.codegen._
 import prism.codegen._
 
 import spade.codegen._
-import spade.param2._
+import spade.param._
 import spade.node._
 
 trait PIR extends Compiler with PIREnv with PIRNodeUtil with DefaultParamLoader with BaseFactory {

@@ -1,5 +1,5 @@
 package spade
-package param2
+package param
 
 import prism.graph._
 import prism.graph.implicits._

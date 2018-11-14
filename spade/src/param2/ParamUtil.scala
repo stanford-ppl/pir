@@ -1,5 +1,5 @@
 package spade
-package param2
+package param
 
 trait ParamUtil {
   implicit class ParamOp(p:Parameter) {
