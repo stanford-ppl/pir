@@ -4,9 +4,9 @@ package mapper
 import prism.collection.immutable._
 
 trait FactorConstrain extends Constrain {
-  def prune(field:Any):EOption[Any] = {
+  def prune[T](field:T):EOption[T] = {
     field match {
-      case field:FG[_,_,_] => prune(field)
+      case field:FG[_,_,_] => prune(field).asInstanceOf[EOption[T]]
       case field => Right(field)
     }
   }

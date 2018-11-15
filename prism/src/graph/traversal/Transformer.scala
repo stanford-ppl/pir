@@ -6,26 +6,20 @@ import scala.collection.mutable
 trait Transformer extends Logging {
 
   def removeUnusedIOs(node:N) = {
-    node.edges.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
+    node.localEdges.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
   }
 
   def removeNode(node:N) = {
     dbg(s"Remove $node")
     node.metadata.values.foreach{_.reset}
-    val neighbors = node.neighbors
-    node.edges.foreach { io => 
+    node.localEdges.foreach { io => 
       val connected = io.connected.map(_.src)
       io.disconnect
-      connected.foreach(removeUnusedIOs)
     }
     node.parent.foreach { parent =>
       parent.removeChild(node)
       node.unsetParent
       assert(!parent.children.contains(node), s"$parent still contains $node after removeNode")
-    }
-    neighbors.foreach { nb =>
-      assert(!nb.neighbors.contains(node), 
-        s"neighbor=$nb's neighbors still contains $node after removeNode $node")
     }
   }
 
@@ -204,6 +198,41 @@ trait Transformer extends Logging {
     case _ => throw PIRException(s"Cannot find env")
   }
 
+  implicit class ProductNodeOp[N](x:ProductNode[N]) {
+    def map[T:ClassTag](func:Any => Any) = {
+      x match {
+        case x:T =>
+          val args = x.productIterator.toList
+          val targs = args.map { arg => func(arg) }
+          val change = args.zip(targs).exists { case (a,t) => a != t }
+          if (change) {
+            removeNode(x)
+            val nn = x.newInstance[T](targs) 
+            dbg(s"Create $nn")
+            nn
+          } else x
+        case x => x
+      }
+    }
+
+    def mapFields[T<:Product:TypeTag:ClassTag](func:(String, Any) => Any) = {
+      x match {
+        case x:T =>
+          val args = x.productIterator.toList
+          val fields = x.fields
+          val targs = fields.map { case (name, arg) => func(name, arg) }
+          val change = args.zip(targs).exists { case (a,t) => a != t }
+          if (change) {
+            removeNode(x)
+            val nn = x.newInstance[T](targs) 
+            dbg(s"Create $nn")
+            nn
+          } else x
+        case x => x
+      }
+    }
+  }
+
   def transform[T](x:T):T = {
     (x match {
       case x:Iterable[_] => x.map { transform }
@@ -211,7 +240,7 @@ trait Transformer extends Logging {
       case (a,b) => (transform(a), transform(b))
       case (a,b,c) => (transform(a), transform(b), transform(c))
       case (a,b,c,d) => (transform(a), transform(b), transform(c), transform(d))
-      case x:ProductNode[_] => x.map(transform)
+      case x:ProductNode[_] => x.map[ProductNode[_]](transform)
       case x => x
     }).asInstanceOf[T]
   }

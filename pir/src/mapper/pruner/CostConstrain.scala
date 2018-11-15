@@ -37,7 +37,7 @@ trait SetCost[T,C<:SetCost[T,C]] extends Cost[C] { self:C =>
   def nonEmpty:Boolean = set.nonEmpty
 }
 
-trait CostConstrain[C<:Cost[C]] extends FactorConstrain {
+trait CostConstrain[C<:Cost[C]] extends Constrain with FactorConstrain {
   def getCost(n:Any):C
   //def fit(key:Any, value:Any):(Boolean, Boolean) // (fit, splitable)
   def prune[K,V,S<:FG[K,V,S]](fg:S):EOption[S] = {

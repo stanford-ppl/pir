@@ -18,26 +18,18 @@ trait ProductNode[N] extends Node[N] with DefNode[N] with Product { self:N =>
   def newOut = new Output
   val out = newOut
 
-  val efields = productIterator.map { field => 
-    unpack(field) { case x:ProductNode[_] => newIn.connect(x.out) }
-  }.toList
+  private val efields = mutable.ListBuffer[Input]()
+  productIterator.foreach { field => 
+    unpack(field) { case x:ProductNode[_] => connectField(x) }
+  }
 
-  def nfields = efields.map { field =>
+  def connectField[T<:ProductNode[_]](x:T) = { efields += newIn.connect(x.out); x }
+
+  def nfields = efields.toList.map { field =>
     unpack(field) { case x:Edge => x.connected.map { _.src} }
   }
 
-  def map[T<:N](func:Any => Any) = {
-    val args = productIterator.toList
-    val targs = args.map { arg => func(arg) }
-    val change = args.zip(targs).exists { case (a,t) => a != t }
-    if (change) this.newInstance[T](targs) else this
-  }
+  def trace[T<:Node[_]:ClassTag]:T = assertOne(this.collect[T](visitGlobalOut _), 
+    s"$this.trace[${classTag[T]}]")
 
-  def mapFields[T>:this.type <: Product:TypeTag](func:(String, Any) => Any) = {
-    val args = productIterator.toList
-    val fields= graph.ProductHelper[T](this).fields
-    val targs = fields.map { case (name, arg) => func(name, arg) }
-    val change = args.zip(targs).exists { case (a,t) => a != t }
-    if (change) this.newInstance[T](targs) else this
-  }
 }

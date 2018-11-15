@@ -69,6 +69,7 @@ case class ControlTree(schedule:String)(implicit env:Env) extends EnvNode[Contro
   lazy val Nct = classTag[ControlTree]
 
   val ctrler = new Metadata[Controller]("ctrler")
+  val par = new Metadata[Int]("par")
 
   def compare(that:ControlTree) = {
     if (this == that) 0

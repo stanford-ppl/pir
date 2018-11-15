@@ -1,8 +1,9 @@
 package spade
 
+import spade.node._
 import spade.param._
 
-trait SpadeLocalAlias extends ParamUtil {
+trait SpadeLocalAlias extends ParamUtil with SpadeNodeUtil {
   //type SpadeMapLike = spade.config.SpadeMapLike
 }
 

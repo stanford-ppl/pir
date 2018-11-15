@@ -2,19 +2,15 @@ package pir
 
 import pir.node._
 import pir.pass._
-//import pir.mapper._
 import pir.codegen._
 import prism.codegen._
 
 import spade.codegen._
-import spade.param._
-import spade.node._
 
-trait PIR extends Compiler with PIREnv with PIRNodeUtil with DefaultParamLoader with BaseFactory {
+trait PIR extends Compiler with PIREnv with PIRNodeUtil {
 
   override val logExtensions = super.logExtensions ++ List(".py", ".cluster")
   override lazy val config = new PIRConfig(this)
-  def getOpt[T](name:String):Option[T] = config.getOption[T](name)
 
   ///* Analysis */
   lazy val controlPropogator = new ControlPropogation()
@@ -22,7 +18,6 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with DefaultParamLoader 
   //lazy val psimLinkAnalyzer = new PlastisimLinkAnalyzer()
   //lazy val psimCountCheck = new PlastisimCountCheck()
   //lazy val psimVCAllocator = new PlastisimVCAllocation()
-  //lazy val irCheck = new IRCheck()
 
   ///* Transformation */
   lazy val deadCodeEliminator = new DeadCodeElimination()
@@ -42,6 +37,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with DefaultParamLoader 
   //lazy val localMemDuplication = new LocalMemDuplication()
 
   ///* Mapping */
+  lazy val initializer = new TargetInitializer()
   lazy val cuPruning = new CUPruning()
   //lazy val cuPlacer = new CUPlacer()
 
@@ -89,15 +85,12 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with DefaultParamLoader 
     addPass(contextAnalyzer)
     addPass(enableDot, new PIRIRDotGen(s"top6.dot"))
     addPass(enableDot, new PIRCtxDotGen(s"simple6.dot"))
+    addPass(globalInsertion)
     
     saveSession
 
-    addPass("LoadArch") { runner =>
-      states.spadeParam = loadParam
-      states.spadeTop = create[spade.node.Top](states.spadeParam)
-    }
+    addPass(initializer)
 
-    addPass(globalInsertion)
     addPass(genPsim, psimAnalyzer) // Depends on LoadArch
     addPass(genPsim, psimAnalyzer) // Need to run twice to account for cycle in data flow graph
 
@@ -108,6 +101,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil with DefaultParamLoader 
     addPass(enableDot, new PIRCtxDotGen(s"simple7.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
     addPass(new NetworkDotCodegen(s"net.dot", spadeTop))
+    addPass(new ParamHtmlIRPrinter(s"param.html", spadeParam))
 
     addPass(genTungsten, tungstenPIRGen)
     addPass(genPsim, prouteLinkGen).dependsOn(psimAnalyzer)

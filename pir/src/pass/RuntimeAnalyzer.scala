@@ -22,11 +22,13 @@ trait RuntimeAnalyzer { self:PIRPass =>
 
   implicit class PIRNodeRuntimeOp(n:PIRNode) {
     def getCtrl:ControlTree = n.ctrl.get
-    def getVec:Int = n.getMeta[Int]("vec").getOrElseUpdate(compVec(n))
     def getBound:Option[Int] = n.getMeta[Option[Int]]("bound").getOrElseUpdate(constProp(n).as[Option[Int]])
     def getScale:Option[Long] = n.scale.getOrElseUpdate(compScale(n))
     def getIter:Option[Long] = n.iter.getOrElseUpdate(compIter(n))
     def getCount:Option[Long] = n.count.getOrElseUpdate(compCount(n))
+  }
+  implicit class NodeRuntimeOp(n:N) {
+    def getVec:Int = n.getMeta[Int]("vec").getOrElseUpdate(compVec(n))
   }
 
   //TODO
@@ -125,34 +127,19 @@ trait RuntimeAnalyzer { self:PIRPass =>
     }
   }
 
-  def compVec(n:PIRNode):Int = dbgblk(s"compVec($n)"){
+  def compVec(n:N):Int = dbgblk(s"compVec($n)"){
     n match {
       case n:Const => 1
       case n:CounterIter if n.i.nonEmpty => 1
       case n:CounterValid if n.i.nonEmpty => 1
       case n:RegAccumOp => 1
-      case n:LoopController if n.ctrl.get.children.isEmpty => n.cchain.T.last.getVec
-      case n:Controller => 1
       case n:ControllerValid => 1
       case n:ControllerDone => 1
-      case n:Counter => n.par
-      case n:LocalOutAccess => assertOne(n.banks.get, s"$n.banks")
-      case n:LocalInAccess => assertUnify(n.out.T, s"$n.out.T") { _.getVec }.get
-      case n:GlobalOutput => assertUnify(n.out.T, s"$n.out.T") { _.getVec }.get
+      case n:GlobalOutput => n.in.T.getVec
       case n:GlobalInput => assertUnify(n.out.T, s"$n.out.T") { _.getVec }.get
-      case n:BanckedAccess =>
-        val bank = n.bank.T
-        val offset = n.offset.T
-        (bank :+ offset).map { _.getVec }.max
-      case n:Access =>
-        val mem = n.mem.T
-        assertOne(mem.banks.get, s"$n's mem $mem bank dimension")
-      case n:PIRNode => 
-        val ctrler = assertOne(
-          n.ctx.get.collectDown[Controller]().filter { _.ctrl.get == n.ctrl.get }, 
-          s"$n.ctrler"
-        )
-        ctrler.getVec
+      case n:PIRNode => n.ctrl.get.getVec
+      case n:ControlTree =>
+        if (n.children.isEmpty) n.par.get else 1
     }
   }
 

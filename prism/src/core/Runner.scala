@@ -48,7 +48,7 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
     setRunning
 
     pass.withLog(compiler.outDir, logFile, append=false) {
-      tic(s"Running ${name} ...")
+      tic(s"Running ${cstr(Console.CYAN, name)} ...")
       Try(pass.run) match {
         case Success(_) if isRunning => setSucceed
         case Success(_) => 
@@ -60,7 +60,7 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
           }
           pass.logger.closeAllBuffersAndWrite
       }
-      info(s"Finished ${name} in ${toc("ms")}ms")
+      info(s"Finished ${cstr(Console.CYAN, name)} in ${toc("ms")}ms")
     }
   }
 

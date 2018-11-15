@@ -11,9 +11,6 @@ trait CUPruner extends PIRPass with prism.util.Memorization {
 
   val constrains = ListBuffer[CUConstrain]()
   def costConstrains = constrains.collect { case c:CUCostConstrain => c }
-  if (!spadeParam.isAsic) {
-    constrains += new CUCostConstrain
-  }
 
   def initCUMap:EOption[TopMap] = dbgblk(s"initCUMap") {
     pirMap.map { _.set[CUMap] { 

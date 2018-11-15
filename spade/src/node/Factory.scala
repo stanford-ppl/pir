@@ -5,7 +5,7 @@ import prism.graph._
 
 import param._
 
-trait Factory extends BuildEnvironment with DFSTopologicalTraversal {
+trait Factory extends Env with DFSTopologicalTraversal {
 
   type T = Any 
   def zero = None
@@ -124,12 +124,3 @@ trait NetworkFactory extends Factory {
     case param => super.visitNode(param, prev)
   }
 }
-
-case class Top(param:TopParam)(implicit env:BuildEnvironment) extends SpadeNode
-trait Routable extends SpadeNode
-case class CU(param:CUParam)(implicit env:BuildEnvironment) extends Routable
-case class ArgFringe(param:ArgFringeParam)(implicit env:BuildEnvironment) extends Routable
-case class MC(param:MCParam)(implicit env:BuildEnvironment) extends Routable
-case class Connector()(implicit env:BuildEnvironment) extends Routable
-case class StaticBundle(param:BundleParam)(implicit env:BuildEnvironment) extends Routable
-case class DynamicBundle(param:BundleParam)(implicit env:BuildEnvironment) extends Routable

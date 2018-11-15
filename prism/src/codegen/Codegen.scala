@@ -8,6 +8,8 @@ trait Codegen extends Pass with Printer with DFSTraversal with UnitTraversal {
   def dirName = compiler.outDir
   def fileName:String
   val append = false
+  def codegenPostfix = fileName
+  override def name = s"${super.name} $codegenPostfix"
 
   lazy val outputPath = buildPath(dirName, fileName)
 
@@ -20,12 +22,8 @@ trait Codegen extends Pass with Printer with DFSTraversal with UnitTraversal {
   }
 
   override def finPass = {
+    super.finPass
     closeAll
-    codegenInfo
-  }
-
-  def codegenInfo = {
-    info(s"Codegen to ${cstr(Console.CYAN,outputPath)}")
   }
 
   override def quote(n:Any):String = n match {

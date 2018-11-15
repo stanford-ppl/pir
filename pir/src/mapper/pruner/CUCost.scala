@@ -101,34 +101,50 @@ trait CostUtil extends RuntimeAnalyzer with Memorization { self:PIRPass =>
           )
           .foldAt(inner) { case (cost, inner) => cost accum LaneCost(inner.getVec) }
         case x:CUParam =>
+          val isDAG:Boolean = x.to[DramAGParam].map { _ => true }.getOrElse {
+            val pattern = x.collectOut[Pattern]()
+            val hasDAG = pattern.exists { _.isInstanceOf[DramAGParam] }
+            !hasDAG
+          }
           CUCost(
+            isDAG=DAGCost(isDAG),
             sram=SRAMCost(x.sramParam.count),
             sramSize=SRAMSizeCost(x.sramParam.sizeInWord),
             sramBank=SRAMBankCost(x.sramParam.bank),
+            vfifo=VectorFIFOCost(x.fifoParamOf("vec").fold(0){_.count}),
+            sfifo=ScalarFIFOCost(x.fifoParamOf("word").fold(0){_.count}),
             vin=VectorInputCost(x.numVin),
             vout=VectorOutputCost(x.numVout),
             sin=ScalarInputCost(x.numSin),
             sout=ScalarOutputCost(x.numSout),
             lane=LaneCost(x.numLane),
             stage=StageCost(x.numStage),
+            op=OpCost(x.ops),
+          )
+        case x:MCParam =>
+          CUCost(
+            isMC=MCCost(true)
+          )
+        case x:ArgFringeParam =>
+          CUCost(
+            isAFG=AFGCost(true)
           )
       }
     }
   }
 
   implicit class CostOp(x:Any) {
-    def getCost:Cost[_] = self.getCost(x)
+    def getCost:Cost[_] = x match {
+      case x:CUMap.V => self.getCost(x.params.get)
+      case x => self.getCost(x)
+    }
   }
 
   class CUCostConstrain extends CostConstrain[CUCost] {
-    def getCost(x:Any) = x match {
-      case x:CUMap.K => getCost(x)
-      case x:CUMap.V => getCost(x.params.get)
-      case x => throw PIRException(s"Don't know how to compute cost of $x")
-    }
-    override def prune(field:Any):EOption[Any] = {
+    def getCost(x:Any) = x.getCost.as[CUCost]
+    override def prune[T](field:T):EOption[T] = {
       field match {
-        case field:CUMap => prune(field)
+        case field:CUMap => prune(field).as[EOption[T]]
         case field => Right(field)
       }
     }

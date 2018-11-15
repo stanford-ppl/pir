@@ -16,14 +16,18 @@ trait DefaultParamLoader extends Transformer {
 
   def optIs[T](name:String, value:T) = getOpt[T](name).fold(false) { _ == value }
 
-  override def transform[T](n:T):T = (n match {
+  override def transform[T](n:T):T = dbgblk(s"transform($n)") { (n match {
     case n:TopParam =>
       n.mapFields[TopParam] {
         case ("wordWidth", arg) => getOptOrElse("word",arg)
         case ("vecWidth", arg) => getOptOrElse("vec", arg)
         case ("clockFrequency", arg) => getOptOrElse("clock", arg)
         case ("pattern", arg) if optIs("net","asic") => transform(AsicPattern())
-        case ("pattern", arg) if optIs("pattern","checkerboard") => transform(Checkerboard())
+        case ("pattern", arg) if optIs("pattern","checkerboard") => 
+          val cb = Checkerboard()
+          dbg(s"$arg ${arg.asInstanceOf[Checkerboard].cu1}")
+          dbg(s"cb=$cb ${cb.cu1} ")
+          transform(cb)
         case (_, arg) => transform(arg)
       }
 
@@ -59,6 +63,6 @@ trait DefaultParamLoader extends Transformer {
         case (_,arg) => transform(arg)
       }
     case n => super.transform[T](n)
-  }).asInstanceOf[T]
+  }).asInstanceOf[T] }
 
 }

@@ -15,7 +15,9 @@ case class TopParam(
   def bytePerWord = wordWidth / 8
 }
 
-trait Pattern extends Parameter
+trait Pattern extends Parameter {
+  def cuParams = this.collectIn[CUParam]()
+}
 
 case class AsicPattern(
   networkParam:NetworkParam=NetworkParam("vec", isDynamic=false)
@@ -41,7 +43,7 @@ case class FringeParam(
   argFringeParam:ArgFringeParam=ArgFringeParam(),
   shareNode:Boolean=true
 ) extends Parameter {
-  lazy val topParam = this.collectOut[TopParam]().head
+  lazy val topParam = trace[TopParam]
   def burstSizeWord = burstSize / topParam.wordWidth
   def burstSizeByte = burstSize / 8 
   def bytePerWord = topParam.wordWidth / 8
@@ -69,14 +71,14 @@ case class NetworkParam(
 ) extends Parameter
 
 case class BundleParam() extends Parameter {
-  lazy val granularity = this.collectOut[NetworkParam]().head.granularity
+  lazy val granularity = trace[NetworkParam]
 }
 
 case class SRAMParam (
   count:Int=1,
   size:Int= 256 * 1024 // in Byte
 ) extends Parameter {
-  lazy val topParam = this.collectUp[TopParam]().head
+  lazy val topParam = trace[TopParam]
   lazy val bank:Int = topParam.vecWidth
   lazy val sizeInWord = size / topParam.bytePerWord
 }
@@ -92,13 +94,13 @@ sealed trait CUParam extends Parameter {
   val fifoParams:List[FIFOParam]
   val numCounters:Int
   val numStage:Int
-  val ops:List[Opcode]
+  val ops:Set[Opcode]
   val numReg:Int
   val numVin:Int
   val numVout:Int
   val numSin:Int
   val numSout:Int
-  lazy val numLane:Int = this.collectUp[TopParam]().head.vecWidth
+  lazy val numLane:Int = trace[TopParam].vecWidth
   def fifoParamOf(granularity:String):Option[FIFOParam] = 
     assertOneOrLess(fifoParams.filter { _.granularity == granularity }, 
       s"$this fifoParam at $granularity")
@@ -113,7 +115,7 @@ case class DramAGParam(
   ),
   numCounters:Int=16,
   numStage:Int=6,
-  ops:List[Opcode]=noFltOps,
+  ops:Set[Opcode]=noFltOps,
   numReg:Int=16,
   numSin:Int=4,
   numSout:Int=4,
@@ -121,7 +123,7 @@ case class DramAGParam(
   numVout:Int=4,
 ) extends CUParam {
   override lazy val numLane:Int = 1
-  val sramParam = SRAMParam(count=0)
+  val sramParam = connectField(SRAMParam(count=0))
 }
 case class PCUParam(
   fifoParams:List[FIFOParam]=List(
@@ -131,14 +133,14 @@ case class PCUParam(
   ),
   numCounters:Int=16,
   numStage:Int=6,
-  ops:List[Opcode]=allOps,
+  ops:Set[Opcode]=allOps,
   numReg:Int=16,
   numSin:Int=4,
   numSout:Int=4,
   numVin:Int=4,
   numVout:Int=4,
 ) extends CUParam {
-  val sramParam = SRAMParam(count=0)
+  val sramParam = connectField(SRAMParam(count=0))
 }
 case class PMUParam(
   fifoParams:List[FIFOParam]=List(
@@ -148,7 +150,7 @@ case class PMUParam(
   ),
   numCounters:Int=16,
   numStage:Int=6,
-  ops:List[Opcode]=noFltOps,
+  ops:Set[Opcode]=noFltOps,
   numReg:Int=16,
   sramParam:SRAMParam=SRAMParam(count=1),
   numSin:Int=4,

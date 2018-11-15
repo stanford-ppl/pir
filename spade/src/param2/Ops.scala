@@ -67,14 +67,14 @@ case object FixToFlt extends Opcode with Op3
 case object FixToFix extends Opcode with Op3
 
 trait Ops {
-  val fixOps = List(FixAdd, FixSub, FixMul, FixDiv, FixMin, FixMax, FixLt, FixLeq, FixGt, FixGeq, FixEql, FixNeq, FixMod, FixSRA, FixSLA, FixUsla, FixNeg, FixRandom, FixUnif, FixAbs, FixFMA, FixAnd)
-  val fltOps = List(FltAdd, FltSub, FltMul, FltDiv, FltMin, FltMax, FltLt, FltLeq, FltGt, FltGeq, FltEql, FltNeq, FltExp, FltAbs, FltLog, FltSqr, FltNeg)
-  val bitOps = List(BitAnd, BitOr, BitNot, BitXnor, BitXor)
-  val otherOps = List(Mux, FixToFlt, FltToFix)
+  val fixOps:Set[Opcode] = Set(FixAdd, FixSub, FixMul, FixDiv, FixMin, FixMax, FixLt, FixLeq, FixGt, FixGeq, FixEql, FixNeq, FixMod, FixSRA, FixSLA, FixUsla, FixNeg, FixRandom, FixUnif, FixAbs, FixFMA, FixAnd)
+  val fltOps:Set[Opcode] = Set(FltAdd, FltSub, FltMul, FltDiv, FltMin, FltMax, FltLt, FltLeq, FltGt, FltGeq, FltEql, FltNeq, FltExp, FltAbs, FltLog, FltSqr, FltNeg)
+  val bitOps:Set[Opcode] = Set(BitAnd, BitOr, BitNot, BitXnor, BitXor)
+  val otherOps:Set[Opcode] = Set(Mux, FixToFlt, FltToFix)
 
-  val noFltOps = fixOps ++ bitOps ++ otherOps
+  val noFltOps:Set[Opcode] = fixOps ++ bitOps ++ otherOps
 
-  val allOps = fixOps ++ fltOps ++ bitOps ++ otherOps
+  val allOps:Set[Opcode] = fixOps ++ fltOps ++ bitOps ++ otherOps
 
   object ToInt {
     def unapply(x:Any):Option[Int] = x match {

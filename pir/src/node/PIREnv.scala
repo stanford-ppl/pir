@@ -11,7 +11,7 @@ class PIRStates extends States {
   var spadeTop:spade.node.Top = _
   var spadeParam:spade.param.TopParam = _
   var simulationCycle:Option[Long] = None
-  var topMap:TopMap = _
+  var topMap:EOption[TopMap] = _
 }
 trait PIREnv extends Env { self =>
 
@@ -22,6 +22,7 @@ trait PIREnv extends Env { self =>
   def spadeParam = states.spadeParam
   def spadeTop = states.spadeTop
   def topMap = states.topMap
+  def topMap_=(tmap:EOption[TopMap])= states.topMap_=(tmap)
 
   implicit class PIRParent(val value:PIRNode) extends State[PIRNode] {
     def initNode(n:Node[_], value:PIRNode) = {

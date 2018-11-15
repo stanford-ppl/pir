@@ -11,6 +11,7 @@ trait IRDotCodegen extends DotCodegen with ChildFirstTraversal {
 
   val horizontal:Boolean = false
   def fileName:String
+  override def codegenPostfix = dotFile
 
   val nodes = mutable.ListBuffer[N]()
 
@@ -25,11 +26,6 @@ trait IRDotCodegen extends DotCodegen with ChildFirstTraversal {
     emitEdges
     emitBEln
     super.finPass
-  }
-
-  override def codegenInfo = {
-    super.codegenInfo
-    info(s"Generate $dotPath")
   }
 
   def shape(attr:DotAttr, n:N) = attr.shape(box)
