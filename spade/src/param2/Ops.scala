@@ -24,9 +24,10 @@ case object FixGeq extends FixOp        with Op2
 case object FixEql extends FixOp        with Op2
 case object FixNeq extends FixOp        with Op2
 case object FixMod extends FixOp        with Op2
-case object FixSra extends FixOp        with Op2
-case object FixSla extends FixOp        with Op2
+case object FixSRA extends FixOp        with Op2
+case object FixSLA extends FixOp        with Op2
 case object FixUsla extends FixOp       with Op2
+case object FixAnd extends FixOp        with Op2
 case object FixNeg extends FixOp        with Op1
 case object FixRandom extends FixOp     with Op1
 case object FixUnif extends FixOp       with Op1
@@ -36,6 +37,7 @@ sealed trait FltOp extends Opcode
 case object FltAdd extends FltOp        with Op2
 case object FltSub extends FltOp        with Op2
 case object FltMul extends FltOp        with Op2
+case object FixFMA extends FltOp        with Op2
 case object FltDiv extends FltOp        with Op2
 case object FltMin extends FltOp        with Op2
 case object FltMax extends FltOp        with Op2
@@ -58,18 +60,21 @@ case object BitNot  extends BitOp       with Op1
 case object BitXnor extends BitOp       with Op2
 case object BitXor  extends BitOp       with Op2
 
-case object MuxOp   extends Opcode      with Op3
-case object Bypass extends Opcode       with Op1
-case object FltPtToFixPt extends Opcode with Op4
-case object FixPtToFltPt extends Opcode with Op3
+case object Mux   extends Opcode      with Op3
+case object FltToFix extends Opcode with Op4
+case object FltToFlt extends Opcode with Op4
+case object FixToFlt extends Opcode with Op3
+case object FixToFix extends Opcode with Op3
 
 trait Ops {
-  val fixOps = List(FixAdd, FixSub, FixMul, FixDiv, FixMin, FixMax, FixLt, FixLeq, FixGt, FixGeq, FixEql, FixNeq, FixMod, FixSra, FixSla, FixUsla, FixNeg, FixRandom, FixUnif, FixAbs)
+  val fixOps = List(FixAdd, FixSub, FixMul, FixDiv, FixMin, FixMax, FixLt, FixLeq, FixGt, FixGeq, FixEql, FixNeq, FixMod, FixSRA, FixSLA, FixUsla, FixNeg, FixRandom, FixUnif, FixAbs, FixFMA, FixAnd)
   val fltOps = List(FltAdd, FltSub, FltMul, FltDiv, FltMin, FltMax, FltLt, FltLeq, FltGt, FltGeq, FltEql, FltNeq, FltExp, FltAbs, FltLog, FltSqr, FltNeg)
   val bitOps = List(BitAnd, BitOr, BitNot, BitXnor, BitXor)
-  val otherOps = List(MuxOp, Bypass, FltPtToFixPt, FixPtToFltPt)
+  val otherOps = List(Mux, FixToFlt, FltToFix)
 
-  val allOps = (fixOps ++ fltOps ++ bitOps ++ otherOps).toList
+  val noFltOps = fixOps ++ bitOps ++ otherOps
+
+  val allOps = fixOps ++ fltOps ++ bitOps ++ otherOps
 
   object ToInt {
     def unapply(x:Any):Option[Int] = x match {
@@ -108,8 +113,8 @@ trait Ops {
       case (FixEql   , ToInt(a)::ToInt(b)::_)     => (a == b)
       case (FixNeq   , ToInt(a)::ToInt(b)::_)     => (a != b)
       case (FixMod   , ToInt(a)::ToInt(b)::_)     => (a % b)
-      case (FixSra   , ToInt(a)::ToInt(b)::_)     => (a >> b)
-      case (FixSla   , ToInt(a)::ToInt(b)::_)     => (a << b)
+      case (FixSRA   , ToInt(a)::ToInt(b)::_)     => (a >> b)
+      case (FixSLA   , ToInt(a)::ToInt(b)::_)     => (a << b)
       case (FixUsla  , ToInt(a)::ToInt(b)::_)     => (a << b)
       case (FixNeg   , ToInt(a)::_)               => (-a)
       case (FixRandom, ToInt(a)::_)               => (0) //TODO
@@ -139,9 +144,8 @@ trait Ops {
       case (BitXnor  , ToBool(a)::ToBool(b)::_)   => (a == b)
       case (BitXor   , ToBool(a)::ToBool(b)::_)   => (a != b)
 
-      case (Bypass   , a::_)                      => a
-      case (MuxOp    , ToBool(true)::a::b::_)     => a
-      case (MuxOp    , ToBool(false)::a::b::_)    => b
+      case (Mux    , ToBool(true)::a::b::_)     => a
+      case (Mux    , ToBool(false)::a::b::_)    => b
 
       case (op, ins) => throw PIRException(s"Don't know how to evaluate $op ins=$ins")
     }

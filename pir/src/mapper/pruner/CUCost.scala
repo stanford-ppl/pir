@@ -1,4 +1,5 @@
 package pir
+
 package mapper
 
 import pir.node._
@@ -57,7 +58,7 @@ case class ScalarOutputCost(quantity:Int=0) extends QuantityCost[ScalarOutputCos
 case class VectorOutputCost(quantity:Int=0) extends QuantityCost[VectorOutputCost]
 case class StageCost(quantity:Int=0) extends QuantityCost[StageCost]
 case class LaneCost(quantity:Int=1) extends MaxCost[LaneCost]
-case class OpCost(set:Set[String]=Set.empty) extends SetCost[String,OpCost]
+case class OpCost(set:Set[Opcode]=Set.empty) extends SetCost[Opcode,OpCost]
 
 trait CostUtil extends RuntimeAnalyzer with Memorization { self:PIRPass =>
   def getCost(x:Any):Cost[_] = memorize("getCost", x) { x => 
@@ -92,11 +93,12 @@ trait CostUtil extends RuntimeAnalyzer with Memorization { self:PIRPass =>
           val (vfifos, sfifos) = fifos.partition { _.getVec > 1 }
           val ops = x.collectDown[OpDef]()
           val inner = x.collectDown[Controller]().minOptionBy { _.ctrl.get }
-          CUCost()
-          .accum(VectorFIFOCost(vfifos.size))
-          .accum(ScalarFIFOCost(sfifos.size))
-          .accum(StageCost(ops.size))
-          .accum(OpCost(ops.map { _.op }.toSet))
+          CUCost(
+            vfifo=VectorFIFOCost(vfifos.size),
+            sfifo=ScalarFIFOCost(sfifos.size),
+            stage=StageCost(ops.size),
+            op=OpCost(ops.map { _.op }.toSet),
+          )
           .foldAt(inner) { case (cost, inner) => cost accum LaneCost(inner.getVec) }
         case x:CUParam =>
           CUCost(

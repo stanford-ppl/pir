@@ -3,6 +3,7 @@ package pass
 
 import pir.node._
 import prism.graph._
+import spade.param._
 
 class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
 
@@ -73,7 +74,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
         assert(inds.size == dims.size, s"flattenND inds=$inds dims=$dims have different size")
         val i::irest = inds
         val d::drest = dims
-        OpDef("FixFMA").input(i,Const(drest.product), flattenND(irest, drest)).out
+        OpDef(FixFMA).input(i,Const(drest.product), flattenND(irest, drest)).out
       }
       val fbank = flattenND(access.bank.connected.toList, mem.banks.get)
       dbg(s"flattenBankAddr ${access.bank.T} => $fbank")

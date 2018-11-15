@@ -1,6 +1,7 @@
 package pir
 package node
 
+import spade.param._
 import prism.graph._
 import prism.graph.implicits._
 
@@ -68,7 +69,7 @@ trait Def extends PIRNode with DefNode[PIRNode] {
 }
 
 case class Const(value:Any)(implicit env:Env) extends Def
-case class OpDef(op:String)(implicit env:Env) extends Def {
+case class OpDef(op:Opcode)(implicit env:Env) extends Def {
   val input = new InputField[List[PIRNode]]("input")
 }
 case class RegAccumOp(op:String)(implicit env:Env) extends Def {
