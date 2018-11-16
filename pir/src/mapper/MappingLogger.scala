@@ -67,9 +67,11 @@ trait MappingLogger extends Logging {
   }
 
   override def quote(x:Any) = x match {
-    case x:Set[_] if x.nonEmpty & x.head.isInstanceOf[Routable] =>
-      val params = x.flatMap { _.asInstanceOf[Routable].params }
-      s"[${params.mkString(",")}] (${x.size})"
+    case x:Set[_] if x.nonEmpty =>
+      if (x.head.isInstanceOf[Routable]) {
+        val params = x.flatMap { _.asInstanceOf[Routable].params }
+        s"[${params.mkString(",")}] (${x.size})"
+      } else super.quote(x)
     case x:Routable =>
       s"$x(${x.params.get})"
     case _ => super.quote(x)

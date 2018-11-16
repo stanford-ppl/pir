@@ -101,8 +101,9 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
 
     addPass(enableDot, new PIRCtxDotGen(s"simple7.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
-    addPass(new NetworkDotCodegen(s"net.dot", spadeTop))
-    addPass(new ParamHtmlIRPrinter(s"param.html", spadeParam))
+    addPass(enableDot, new NetworkDotCodegen(s"net.dot", spadeTop))
+    addPass(enableDot, new ParamHtmlIRPrinter(s"param.html", spadeParam))
+    addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
 
     addPass(genTungsten, tungstenPIRGen)
     addPass(genPsim, prouteLinkGen).dependsOn(psimAnalyzer)

@@ -58,11 +58,11 @@ trait RuntimeAnalyzer { self:PIRPass =>
       case n:Controller => Some(1l)
       case n:FringeDenseLoad =>
         val size = n.size.T.getBound
-        val dataPar = n.data.T.getVec
+        val dataPar = n.data.T.getVec //TODO:
         size.map { size => size /! (spadeParam.bytePerWord * dataPar) }
       case n:FringeDenseStore =>
         val size = n.size.T.getBound
-        val dataPar = n.data.T.getVec
+        val dataPar = n.data.T.getVec //TODO
         size.map { size => size /! (spadeParam.bytePerWord * dataPar) }
       case n:FringeSparseLoad => Some(1l)
       case n:FringeSparseStore => Some(1l)
@@ -137,7 +137,15 @@ trait RuntimeAnalyzer { self:PIRPass =>
       case n:ControllerDone => 1
       case n:GlobalOutput => n.in.T.getVec
       case n:GlobalInput => assertUnify(n.out.T, s"$n.out.T") { _.getVec }.get
-      case n:PIRNode => n.ctrl.get.getVec
+      case n:BufferWrite if n.getCtrl.schedule=="Streaming" =>
+        assertUnify(n.outAccesses, s"$n.outAccesses.bank") { _.banks.get.head }.get
+      case n:MemWrite if n.getCtrl.schedule=="Streaming" =>
+        n.mem.banks.get.head
+      case n:BufferRead if n.getCtrl.schedule=="Streaming" =>
+        n.banks.get.head
+      case n:MemRead if n.getCtrl.schedule=="Streaming" =>
+        n.mem.banks.get.head
+      case n:PIRNode => n.getCtrl.getVec
       case n:ControlTree =>
         if (n.children.isEmpty) n.par.get else 1
     }
