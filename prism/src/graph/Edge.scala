@@ -45,6 +45,15 @@ class Input(implicit val src:Node[_]) extends Edge {
       case e => throw new Exception(s"$this cannot connect non output to input")
     }
   }
+  def swapConnection(from:Output, to:Output) = {
+    _connected.transform {
+      case `from` =>
+        to._connected += this
+        from._connected -= this
+        to
+      case from => from
+    }
+  }
 }
 
 class Output(implicit val src:Node[_]) extends Edge {

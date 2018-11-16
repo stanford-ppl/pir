@@ -64,7 +64,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
         BufferRead(isFIFO).in(write).done(deq).banks(List(dep.getVec))
       }
     }
-    swapConnection(deped, dep.as[PIRNode].output.get, read.out)
+    swapInput(deped, dep.as[PIRNode].output.get, read.out)
     read
   }
 
