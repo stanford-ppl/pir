@@ -115,11 +115,11 @@ trait Ops extends Enumeration {
   val Mux = new Opcode with Op3
   val OneHotMux = new Opcode with Op2
 
-  val allOps = values
+  val allOps:Set[Opcode] = values.toSet[Value].map[Opcode, Set[Opcode]]{ _.asInstanceOf[Opcode] }
   val fixOps = allOps.collect { case op:FixOp => op }
   val fltOps = allOps.collect { case op:FltOp => op }
   val bitOps = allOps.collect { case op:BitOp => op }
-  val noFltOps = allOps.filterNot { fltOps.contains }
+  val noFltOps = allOps.filterNot { case op:FltOp => false; case _ => true }
 }
 
 //trait Ops {

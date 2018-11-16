@@ -4,7 +4,9 @@ package mapper
 import prism.mapper._
 import prism.collection.immutable._
 
-trait MappingLogger { self:Logging =>
+import spade.node._
+
+trait MappingLogger extends Logging {
 
   def log[T](pred:Boolean, x:T):T = {
     if (pred) logging(x) else x
@@ -36,7 +38,7 @@ trait MappingLogger { self:Logging =>
   }
 
   def logging(x:TopMap):Unit = {
-    dbgblk(s"pmap") {
+    dbgblk(s"tmap") {
       x.productIterator.foreach { field => logging(field) }
     }
   }
@@ -62,6 +64,15 @@ trait MappingLogger { self:Logging =>
         dbg(s"${quote(k)} -> ${quote(v)}")
       }
     }
+  }
+
+  override def quote(x:Any) = x match {
+    case x:Set[_] if x.nonEmpty & x.head.isInstanceOf[Routable] =>
+      val params = x.flatMap { _.asInstanceOf[Routable].params }
+      s"[${params.mkString(",")}] (${x.size})"
+    case x:Routable =>
+      s"$x(${x.params.get})"
+    case _ => super.quote(x)
   }
 
 }

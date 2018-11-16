@@ -145,9 +145,17 @@ trait ScalaUtilFunc {
         constructor.newInstance(args.map(_.asInstanceOf[Object]):_*).asInstanceOf[T]
       } catch {
         case e:java.lang.IllegalArgumentException =>
-          err(s"Error during newInstance of node $this", exception=false)
-          err(s"Expected type: ${constructor.getParameterTypes().mkString(",")}", exception=false)
-          err(s"Got type: ${args.map(_.getClass).mkString(",")}", exception=false)
+          err(s"Error during newInstance of node $cl", exception=false)
+          val expected = constructor.getParameterTypes()
+          val got = args.map(_.getClass)
+          err(s"Expected (${expected.size}):", exception=false)
+          expected.foreach { e =>
+            err(s"$e", exception=false)
+          }
+          err(s"Got (${got.size}):", exception=false)
+          got.foreach { e =>
+            err(s"$e", exception=false)
+          }
           throw e
         case e:java.lang.reflect.InvocationTargetException =>
           err(s"InvocationTargetException during newInstance of node $this", exception=false)

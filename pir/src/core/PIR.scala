@@ -40,6 +40,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
   lazy val initializer = new TargetInitializer()
   //lazy val cuPruning = new CUPruning()
   //lazy val cuPlacer = new CUPlacer()
+  lazy val hardPruner = new HardConstrainPruner()
 
   /* Codegen */
   lazy val tungstenPIRGen = new TungstenPIRGen()
@@ -67,7 +68,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(enableDot, new ControlTreeHtmlIRPrinter(s"ctrl.html"))
     addPass(enableDot, new PIRIRDotGen(s"top1.dot"))
     addPass(deadCodeEliminator)
-    addPass(genPsim, dramTraceGen)
+    addPass(enableTrace && genPsim, dramTraceGen)
     addPass(controlPropogator)
     addPass(enableDot, new PIRIRDotGen(s"top2.dot"))
     addPass(validProp)
@@ -96,7 +97,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
 
     // ------- Pruning and Partitioning  --------
     // ------- Mapping  --------
-    //addPass(enableMapping, cuPruning)
+    addPass(enableMapping, hardPruner)
 
     addPass(enableDot, new PIRCtxDotGen(s"simple7.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))

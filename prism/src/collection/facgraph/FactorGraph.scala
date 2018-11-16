@@ -15,25 +15,30 @@ trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] { self:S =>
   val weights:W
   /* ---------- freeMap ---------- */
   def freeKeys = freeMap.keys
-  def freeValues = freeMap.values
-  def freeValues(k:K) = freeMap.fmap(k)
-  def freeKeys(v:V) = freeMap.bmap(v)
+  def freeValues = freeMap.bmap.keys
+  def freeValuesOf(k:K) = freeMap.fmap(k)
+  def freeKeysOf(v:V) = freeMap.bmap(v)
   def filter(lambda:(K,V) => Boolean):EOption[S] = {
     def notLambda(k:K, v:V) = !lambda(k,v)
     filterNot(notLambda _)
   }
   def filterAt(k:K)(lambda:V => Boolean):EOption[S] = {
     def notLambda(v:V) = !lambda(v)
-    filterNotAt(k)(notLambda)
+    filterNotAtKey(k)(notLambda)
   }
   def filterNot(lambda:(K,V) => Boolean):EOption[S] = {
     flatFold(freeMap.keys,this) { case (prev, k) =>
-      prev.filterNotAt(k)(lambda(k, _))
+      prev.filterNotAtKey(k)(lambda(k, _))
     }
   }
-  def filterNotAt(k:K)(lambda:V => Boolean):EOption[S] = {
+  def filterNotAtKey(k:K)(lambda:V => Boolean):EOption[S] = {
     val vv = freeMap.fmap(k).filter { v => lambda(v) }
     newInstance(freeMap -- (k,vv), weights, usedMap).check(k)
+  }
+  def filterNotAtValue(v:V)(lambda:K => Boolean):EOption[S] = {
+    val kk = freeMap.bmap(v).filter { k => lambda(k) }
+    val nm = newInstance(freeMap -- (kk,v), weights, usedMap)
+    flatFold(kk, nm) { case (nm, k) => nm.check(k) }
   }
   def ++ (pairs:(Any,Any)):S = newInstance(freeMap ++ pairs, weights, usedMap)
   def - (pair:(K,V)):EOption[S] = newInstance(freeMap - pair, weights, usedMap).check(pair._1)
@@ -64,7 +69,7 @@ trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] { self:S =>
     }
     newInstance(nfm, nws, usedMap).check(k)
   }
-  def freeWeightedValues(k:K) = freeValues(k).map { v => (v, weight(k,v)) }
+  def freeWeightedValues(k:K) = freeValuesOf(k).map { v => (v, weight(k,v)) }
   /* ------------------------------- */
   def keys = (freeKeys ++ mappedKeys).toSet
   def values = (freeValues ++ mappedValues).toSet

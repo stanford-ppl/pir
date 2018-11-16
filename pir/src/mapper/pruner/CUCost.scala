@@ -140,13 +140,13 @@ trait CostUtil extends RuntimeAnalyzer with Memorization { self:PIRPass =>
     }
   }
 
-  class CUCostConstrain extends CostConstrain[CUCost] {
-    def getCost(x:Any) = x.getCost.as[CUCost]
-    override def prune[T](field:T):EOption[T] = {
-      field match {
-        case field:CUMap => prune(field).as[EOption[T]]
-        case field => Right(field)
-      }
-    }
-  }
+  //class CUCostConstrain extends CostConstrain[CUCost] {
+    //def getCost(x:Any) = x.getCost.as[CUCost]
+    //override def prune[T](field:T):EOption[T] = {
+      //field match {
+        //case field:CUMap => prune(field).as[EOption[T]]
+        //case field => Right(field)
+      //}
+    //}
+  //}
 }

@@ -43,7 +43,7 @@ trait CaseTuple[S<:CaseTuple[S]] { self:Product =>
         }
       case (Left(e), field) => Left(e)
     }
-    args.map { args => this.newInstance(args) }
+    args.map { args => this.newInstance[S](args) }
   }
 }
 
