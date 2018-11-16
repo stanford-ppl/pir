@@ -210,7 +210,7 @@ class MapTest extends UnitTest with Serialization {
     fg = fg ++ (Set(1,2,3) -> Set("a","b","c"))
     fg = fg.set(1,"a").right.get
     assert(fg(1) == Set("a"))
-    assert(fg.freeValues(2) == Set("a","b","c"))
+    assert(fg.freeValuesOf(2) == Set("a","b","c"))
   }
 
 }

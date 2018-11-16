@@ -16,21 +16,14 @@ case class TestIR() extends MetadataIR {
   val name = new Metadata[String]("name")
 }
 
+object aa extends Serializable
+
 class SerializationTest extends UnitTest with Serialization {
   "TestMapSerialization" should "success" in {
     var map = new mutable.OneToOneMap[Int,String]()
     saveToFile(map, s"$testOut/saved")
     loadFromFile[Serializable]("out/test/saved")
   }
-
-  //"TestMetadataSerialization" should "success" in {
-    //val meta = new TestMetadata
-    //meta.nameOf("x") = "X"
-    //val path = s"$testOut/saved2"
-    //saveToFile(meta, path)
-    //val loaded = loadFromFile[TestMetadata](path)
-    //assert(loaded.nameOf.map == meta.nameOf.map)
-  //}
 
   "IRMetadataSerialization" should "success" in {
     val node = TestIR()
@@ -41,6 +34,13 @@ class SerializationTest extends UnitTest with Serialization {
     saveToFile(n, path)
     val loaded = loadFromFile[TestIR](path)
     assert(loaded.name.get=="myName")
+  }
+
+  "Random" should "success" in {
+    val path = s"$testOut/saved4"
+    saveToFile(aa, path)
+    val loaded = loadFromFile[Any](path)
+    assert(loaded == aa)
   }
 
 }
