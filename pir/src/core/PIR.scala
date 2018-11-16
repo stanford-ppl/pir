@@ -38,7 +38,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
 
   ///* Mapping */
   lazy val initializer = new TargetInitializer()
-  lazy val cuPruning = new CUPruning()
+  //lazy val cuPruning = new CUPruning()
   //lazy val cuPlacer = new CUPlacer()
 
   /* Codegen */
@@ -96,7 +96,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
 
     // ------- Pruning and Partitioning  --------
     // ------- Mapping  --------
-    addPass(enableMapping, cuPruning)
+    //addPass(enableMapping, cuPruning)
 
     addPass(enableDot, new PIRCtxDotGen(s"simple7.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
