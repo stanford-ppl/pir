@@ -9,134 +9,141 @@ import prism.collection.immutable._
 import prism.util._
 import prism.mapper._
 
-case class CUCost(
-  isAFG:AFGCost=AFGCost(),
-  isMC:MCCost=MCCost(),
-  isDAG:DAGCost=DAGCost(),
-  sram:SRAMCost=SRAMCost(),
-  sramBank:SRAMBankCost=SRAMBankCost(),
-  sramSize:SRAMSizeCost=SRAMSizeCost(),
-  sfifo:ScalarFIFOCost=ScalarFIFOCost(),
-  vfifo:VectorFIFOCost=VectorFIFOCost(),
-  sin:ScalarInputCost=ScalarInputCost(),
-  sout:ScalarOutputCost=ScalarOutputCost(),
-  vin:VectorInputCost=VectorInputCost(),
-  vout:VectorOutputCost=VectorOutputCost(),
-  stage:StageCost=StageCost(),
-  lane:LaneCost=LaneCost(),
-  op:OpCost=OpCost()
-) extends Cost[CUCost] with CaseTuple[CUCost] {
-  type K = CUMap.K
-  override def toString = s"CUCost(${overcosts.mkString(",")})"
-  def costs = productIterator.toSeq.as[Seq[Cost[_]]]
-  def overcosts = costs.filter { _.nonEmpty }
-  def - (x:CUCost):CUCost = {
-    val diffs = costs.zip(x.costs).map { case (c, tc) => c diff tc }
-    this.newInstance[CUCost](diffs)
-  }
-  def + (x:CUCost):CUCost = {
-    val sum = costs.zip(x.costs).map { case (c, tc) => (c add tc) }
-    this.newInstance[CUCost](sum)
-  }
-  def accum[F<:Cost[F]:ClassTag](x:F) = map[F] { _ + x }
-  def nonEmpty:Boolean = costs.nonEmpty
-}
+//case class CUCost(
+  //isAFG:AFGCost=AFGCost(),
+  //isMC:MCCost=MCCost(),
+  //isDAG:DAGCost=DAGCost(),
+  //sram:SRAMCost=SRAMCost(),
+  //sramBank:SRAMBankCost=SRAMBankCost(),
+  //sramSize:SRAMSizeCost=SRAMSizeCost(),
+  //sfifo:ScalarFIFOCost=ScalarFIFOCost(),
+  //vfifo:VectorFIFOCost=VectorFIFOCost(),
+  //sin:ScalarInputCost=ScalarInputCost(),
+  //sout:ScalarOutputCost=ScalarOutputCost(),
+  //vin:VectorInputCost=VectorInputCost(),
+  //vout:VectorOutputCost=VectorOutputCost(),
+  //stage:StageCost=StageCost(),
+  //lane:LaneCost=LaneCost(),
+  //op:OpCost=OpCost()
+//) extends Cost[CUCost] with CaseTuple[CUCost] {
+  //type K = CUMap.K
+  //override def toString = s"CUCost(${overcosts.mkString(",")})"
+  //def costs = productIterator.toSeq.as[Seq[Cost[_]]]
+  ////def overcosts = costs.filter { _.nonEmpty }
+  //def - (x:CUCost):CUCost = {
+    //val diffs = costs.zip(x.costs).map { case (c, tc) => c diff tc }
+    //this.newInstance[CUCost](diffs)
+  //}
+  //def + (x:CUCost):CUCost = {
+    //val sum = costs.zip(x.costs).map { case (c, tc) => (c add tc) }
+    //this.newInstance[CUCost](sum)
+  //}
+  //def accum[F<:Cost[F]:ClassTag](x:F) = map[F] { _ + x }
+  ////def nonEmpty:Boolean = costs.nonEmpty
+//}
 
 case class AFGCost(prefix:Boolean=false) extends PrefixCost[AFGCost]
 case class DAGCost(prefix:Boolean=false) extends PrefixCost[DAGCost]
 case class MCCost(prefix:Boolean=false) extends PrefixCost[MCCost]
-case class SRAMCost(quantity:Int=0) extends QuantityCost[SRAMCost]
-case class SRAMBankCost(quantity:Int=0) extends QuantityCost[SRAMBankCost]
-case class SRAMSizeCost(quantity:Int=0) extends QuantityCost[SRAMSizeCost]
-//case class ControlInputCost(quantity:Int) extends QuantityCost[ControlInputCost]
-case class ScalarFIFOCost(quantity:Int=0) extends QuantityCost[ScalarFIFOCost]
-case class VectorFIFOCost(quantity:Int=0) extends QuantityCost[VectorFIFOCost]
-case class ScalarInputCost(quantity:Int=0) extends QuantityCost[ScalarInputCost]
-case class VectorInputCost(quantity:Int=0) extends QuantityCost[VectorInputCost]
-//case class ControlOutputCost(quantity:Int) extends QuantityCost[ControlOutputCost]
-case class ScalarOutputCost(quantity:Int=0) extends QuantityCost[ScalarOutputCost]
-case class VectorOutputCost(quantity:Int=0) extends QuantityCost[VectorOutputCost]
+case class SRAMCost(count:Int=0, bank:Int=0, size:Int=0) extends QuantityCost[SRAMCost]
+case class FIFOCost(sfifo:Int=0, vfifo:Int=0) extends QuantityCost[FIFOCost]
+case class InputCost(sin:Int=0, vin:Int=0) extends QuantityCost[InputCost]
+case class OutputCost(sout:Int=0, vout:Int=0) extends QuantityCost[OutputCost]
 case class StageCost(quantity:Int=0) extends QuantityCost[StageCost]
 case class LaneCost(quantity:Int=1) extends MaxCost[LaneCost]
 case class OpCost(set:Set[Opcode]=Set.empty) extends SetCost[Opcode,OpCost]
 
 trait CostUtil extends RuntimeAnalyzer with Memorization { self:PIRPass =>
-  def getCost(x:Any):Cost[_] = memorize("getCost", x) { x => 
-    dbgblk(s"getCost($x)"){
-      x match {
-        case x:GlobalContainer => 
-          val ctxs = x.collectDown[Context]()
-          val srams = x.collectDown[SRAM]()
-          val sramSize = srams.map { sram => sram.depth.get * sram.size }.maxOption
-          val nBanks = srams.map { _.nBanks }.maxOption
-          val fifos = x.collectDown[FIFO]()
-          val (vfifos, sfifos) = fifos.partition { _.getVec > 1 }
-          val gins = x.collectDown[GlobalInput]()
-          val gouts = x.collectDown[GlobalOutput]()
-          val (vins, sins) = gins.partition { _.getVec > 1 }
-          val (vouts, souts) = gouts.partition { _.getVec > 1 }
-          ctxs.map { _.getCost.as[CUCost] }.fold(CUCost()) { _ + _ }
-          .foldAt(x.to[ArgFringe]) { case (cost, afg) => cost accum AFGCost(true) }
-          .foldAt(x.to[DRAMFringe]) { case (cost, afg) => cost accum MCCost(true) }
-          .accum(DAGCost(x.siblingDepeds.exists{_.isInstanceOf[DRAMFringe]}))
-          .accum(SRAMCost(srams.size))
-          .foldAt(sramSize) { case (cost, size) => cost accum SRAMSizeCost(size) }
-          .foldAt(nBanks) { case (cost, nb) => cost accum SRAMBankCost(nb) }
-          .accum(VectorFIFOCost(vfifos.size))
-          .accum(ScalarFIFOCost(sfifos.size))
-          .accum(VectorInputCost(vins.size))
-          .accum(VectorOutputCost(vouts.size))
-          .accum(ScalarInputCost(sins.size))
-          .accum(ScalarOutputCost(souts.size))
-        case x:Context =>
-          val fifos = x.collectDown[BufferRead]()
-          val (vfifos, sfifos) = fifos.partition { _.getVec > 1 }
-          val ops = x.collectDown[OpDef]()
-          val inner = x.collectDown[Controller]().minOptionBy { _.ctrl.get }
-          CUCost(
-            vfifo=VectorFIFOCost(vfifos.size),
-            sfifo=ScalarFIFOCost(sfifos.size),
-            stage=StageCost(ops.size),
-            op=OpCost(ops.map { _.op }.toSet),
-          )
-          .foldAt(inner) { case (cost, inner) => cost accum LaneCost(inner.getVec) }
-        case x:CUParam =>
-          val isDAG:Boolean = x.to[DramAGParam].map { _ => true }.getOrElse {
-            val pattern = x.collectOut[Pattern]()
-            val hasDAG = pattern.exists { _.isInstanceOf[DramAGParam] }
-            !hasDAG
-          }
-          CUCost(
-            isDAG=DAGCost(isDAG),
-            sram=SRAMCost(x.sramParam.count),
-            sramSize=SRAMSizeCost(x.sramParam.sizeInWord),
-            sramBank=SRAMBankCost(x.sramParam.bank),
-            vfifo=VectorFIFOCost(x.fifoParamOf("vec").fold(0){_.count}),
-            sfifo=ScalarFIFOCost(x.fifoParamOf("word").fold(0){_.count}),
-            vin=VectorInputCost(x.numVin),
-            vout=VectorOutputCost(x.numVout),
-            sin=ScalarInputCost(x.numSin),
-            sout=ScalarOutputCost(x.numSout),
-            lane=LaneCost(x.numLane),
-            stage=StageCost(x.numStage),
-            op=OpCost(x.ops),
-          )
-        case x:MCParam =>
-          CUCost(
-            isMC=MCCost(true)
-          )
-        case x:ArgFringeParam =>
-          CUCost(
-            isAFG=AFGCost(true)
-          )
-      }
+  implicit class CostOp(x:Any) {
+    def getCost[C<:Cost[C]:ClassTag]:C = x match {
+      case x:CUMap.V => self.getCost(x.params.get, classTag[C]).as[C]
+      case x => self.getCost(x, classTag[C]).as[C]
     }
   }
 
-  implicit class CostOp(x:Any) {
-    def getCost:Cost[_] = x match {
-      case x:CUMap.V => self.getCost(x.params.get)
-      case x => self.getCost(x)
+  private def getCost(x:Any, ct:ClassTag[_]) = memorize("getCost", (x, ct)) { case (x, ct) =>
+    def switch[C<:Cost[C]:ClassTag](cfunc:Any => C) = if (ct == classTag[C]) Some(cfunc(x)) else None
+    switch[AFGCost] {
+      case n:GlobalContainer => AFGCost(n.isInstanceOf[ArgFringe])
+      case n:Parameter => AFGCost(n.isInstanceOf[ArgFringeParam])
+    } orElse switch[DAGCost] {
+      case n:GlobalContainer => DAGCost(n.siblingDepeds.exists{_.isInstanceOf[DRAMFringe]})
+      case n:Parameter => 
+        val isDAG:Boolean = n.to[DramAGParam].map { _ => true }.getOrElse {
+          val pattern = n.collectOut[Pattern]().head
+          val hasDAG = pattern.cuParams.exists { _.isInstanceOf[DramAGParam] }
+          n.to[CUParam].fold (false) { _ => !hasDAG }
+        }
+        DAGCost(isDAG)
+    } orElse switch[MCCost] {
+      case n:GlobalContainer => MCCost(n.isInstanceOf[DRAMFringe])
+      case n:Parameter => MCCost(n.isInstanceOf[MCParam])
+    } orElse switch[SRAMCost] {
+      case n:GlobalContainer =>
+        val srams = n.collectDown[SRAM]()
+        val sramSize = srams.map { sram => sram.depth.get * sram.size }.maxOption.getOrElse(0)
+        val nBanks = srams.map { _.nBanks }.maxOption.getOrElse(0)
+        SRAMCost(srams.size, nBanks, sramSize)
+      case n:CUParam => SRAMCost(n.sramParam.count, n.sramParam.bank, n.sramParam.sizeInWord)
+      case n => SRAMCost(0,0,0)
+    } orElse switch[FIFOCost] {
+      case n:GlobalContainer => 
+        val fifos = n.collectDown[FIFO]()
+        val (vfifos, sfifos) = fifos.partition { _.getVec > 1 }
+        val ctxs = n.collectDown[Context]()
+        val fcost = FIFOCost(sfifos.size, vfifos.size)
+        ctxs.map { _.getCost[FIFOCost] }.fold(fcost) { _ + _ }
+      case n:Context =>
+        val fifos = n.collectDown[BufferRead]()
+        val (vfifos, sfifos) = fifos.partition { _.getVec > 1 }
+        FIFOCost(sfifos.size, vfifos.size)
+      case n:CUParam =>
+        FIFOCost(n.fifoParamOf("word").fold(0){_.count}, n.fifoParamOf("vec").fold(0){_.count})
+      case n:Parameter => FIFOCost(0,0)
+    } orElse switch[InputCost] {
+      case n:GlobalContainer => 
+        val gins = n.collectDown[GlobalInput]()
+        val (vins, sins) = gins.partition { _.getVec > 1 }
+        InputCost(sins.size, vins.size)
+      case n:CUParam => InputCost(n.numSin, n.numVin)
+      case n:Parameter => InputCost(100,100)
+    } orElse switch[OutputCost] {
+      case n:GlobalContainer => 
+        val outs = n.collectDown[GlobalOutput]()
+        val (vouts, souts) = outs.partition { _.getVec > 1 }
+        OutputCost(souts.size, vouts.size)
+      case n:CUParam => OutputCost(n.numSout, n.numVout)
+      case n:Parameter => OutputCost(100,100)
+    } orElse switch[StageCost] {
+      case n:GlobalContainer => 
+        val ctxs = n.collectDown[Context]()
+        ctxs.map { _.getCost[StageCost] }.reduce { _ + _ }
+      case n:Context =>
+        val ops = n.collectDown[OpDef]()
+        StageCost(ops.size)
+      case n:CUParam => 
+        StageCost(n.numStage)
+      case n:Parameter => StageCost(0)
+    } orElse switch[LaneCost] {
+      case n:GlobalContainer => 
+        val ctxs = n.collectDown[Context]()
+        ctxs.map { _.getCost[LaneCost] }.reduce { _ + _ }
+      case n:Context =>
+        val inner = n.collectDown[Controller]().minOptionBy { _.ctrl.get }
+        LaneCost(inner.map { _.getVec }.getOrElse(1))
+      case n:CUParam => LaneCost(n.numLane)
+      case n:Parameter => LaneCost(1)
+    } orElse switch[OpCost] {
+      case n:GlobalContainer => 
+        val ctxs = n.collectDown[Context]()
+        ctxs.map { _.getCost[OpCost] }.reduce { _ + _ }
+      case n:Context =>
+        val ops = n.collectDown[OpDef]()
+        OpCost(ops.map { _.op }.toSet)
+      case n:CUParam => OpCost(n.ops)
+      case n:Parameter => OpCost(Set.empty)
+    } getOrElse {
+      throw PIRException(s"Don't know how to compute $ct of $x")
     }
   }
 
