@@ -3,6 +3,7 @@ package pir
 import pir.node._
 import pir.pass._
 import pir.codegen._
+import pir.mapper._
 import prism.codegen._
 
 import spade.codegen._
@@ -41,6 +42,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
   //lazy val cuPruning = new CUPruning()
   //lazy val cuPlacer = new CUPlacer()
   lazy val hardPruner = new HardConstrainPruner()
+  lazy val placerAndRouter = new PlaceAndRoute()
 
   /* Codegen */
   lazy val tungstenPIRGen = new TungstenPIRGen()
@@ -98,10 +100,11 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     // ------- Pruning and Partitioning  --------
     // ------- Mapping  --------
     addPass(enableMapping, hardPruner)
+    addPass(enableMapping, placerAndRouter)
 
     addPass(enableDot, new PIRCtxDotGen(s"simple7.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
-    addPass(enableDot, new NetworkDotCodegen(s"net.dot", spadeTop))
+    addPass(enableDot, new PIRNetworkDotGen(s"net.dot"))
     addPass(enableDot, new ParamHtmlIRPrinter(s"param.html", spadeParam))
     addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
 

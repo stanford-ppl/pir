@@ -44,8 +44,9 @@ case class Cache[I,O](memorization:Memorization, name:String, lambda:I => O) {
     if (memorization.memorizing) {
       memory.getOrElseUpdate(input, updateFunc) 
     } else {
-      resetCache(input)
-      updateFunc
+      val res = updateFunc
+      memory += input -> res
+      res
     }
   }
   def resetCache(input:Any) = memory -= input

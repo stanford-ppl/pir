@@ -24,16 +24,6 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
   override def states = compiler.states
   override def config:PIRConfig = compiler.config
 
-  //def qdef(n:Any) = n match {
-    //case n:PIRNode => n.qdef
-    //case n => s"$n"
-  //}
-
-  //def qtype(n:Any) = n match {
-    //case n:IR => n.qtype
-    //case n => s"$n"
-  //}
-  
 }
 trait PIRTraversal extends PIRPass {
   def top = compiler.pirTop

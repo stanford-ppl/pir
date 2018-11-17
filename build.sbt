@@ -94,7 +94,8 @@ lazy val pir = Project("pir",
   /*unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/ArcConsistencyConstrain.scala").value,*/
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/CostConstrain.scala").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/CUCost.scala").value,
-  /*unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/CUConstrain.scala").value,*/
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/Mapper.scala").value,
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/placeAndRoute/").value,
   /*unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/CUPruner.scala").value,*/
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node").value
 )

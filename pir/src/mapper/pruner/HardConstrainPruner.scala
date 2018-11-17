@@ -9,7 +9,7 @@ import spade.param._
 class HardConstrainPruner(implicit compiler:PIR) extends ConstrainPruner with CostUtil {
 
   override def prune[T](x:T):EOption[T] = super.prune[T](x).flatMap {
-    case x:CUMap =>
+    case x:CUMap if !spadeParam.isAsic =>
       flatFold(x.freeKeys, x) { case (x, k) =>
         x.filterNotAtKey(k) { v => 
           (k.getCost[AFGCost] hardNotFit v.getCost[AFGCost]) ||

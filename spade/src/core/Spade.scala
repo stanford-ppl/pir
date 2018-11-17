@@ -40,7 +40,7 @@ trait Spade extends Compiler with BaseFactory with DefaultParamLoader {
     //// Debug
     ////addPass(new SpadeIRPrinter(s"spade.txt"))
     //addPass(new ParamIRPrinter(s"param.txt"))
-    addPass(new NetworkDotCodegen(s"net.dot", spadeTop))
+    addPass(new SpadeNetworkDotGen(s"net.dot"))
     //addPass(new NetworkDotCodegen[Word](s"scalar.dot"))
     //addPass(new NetworkDotCodegen[Vector](s"vector.dot"))
     ////addPass(new SpadeIRDotCodegen[PCU](s"pcu.dot"))
