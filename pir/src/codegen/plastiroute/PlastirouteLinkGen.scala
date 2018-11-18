@@ -6,9 +6,8 @@ import pir.pass._
 import prism.graph._
 import prism.codegen._
 
-class PlastirouteLinkGen(implicit compiler: PIR) extends PIRTraversal with CSVCodegen with ChildFirstTraversal with PlastisimUtil {
-  override def dirName = psimOut
-  override def fileName = prouteName
+class PlastirouteLinkGen(implicit compiler: PIR) extends PlastisimCodegen with CSVCodegen {
+  override def fileName = prouteLinkName
 
   override def emitNode(n:N) = n match {
     case n:GlobalOutput =>

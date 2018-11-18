@@ -1,4 +1,5 @@
 val paradise_version  = "2.1.0"
+val scala_version = "2.12.7"
 
 lazy val Slow = config("slow").extend(Test)
 
@@ -6,14 +7,12 @@ val bldSettings = Defaults.coreDefaultSettings ++ Seq(
   organization := "edu.stanford.ppl",
   version := "0.1",
   publishArtifact in (Compile, packageDoc) := false,
-  scalaVersion := "2.12.5",
+  scalaVersion := scala_version,
   scalaSource in Compile := baseDirectory(_ / "src").value,
   scalaSource in Test := baseDirectory(_ / "test").value,
   resourceDirectory in Compile := baseDirectory(_ / "resources").value,
   logBuffered in Test := false,
-  libraryDependencies += "org.scala-lang" % "scala-library" % "2.12.5", 
-  libraryDependencies += "org.scala-lang" % "scala-compiler" % "2.12.5",
-  libraryDependencies += "org.scala-lang" % "scala-reflect" % "2.12.5",
+  libraryDependencies += "org.scala-lang" % "scala-reflect" % scala_version,
   libraryDependencies += "org.scalatest" % "scalatest_2.12" % "3.0.5" % "test",
   libraryDependencies += "com.github.pureconfig" %% "pureconfig" % "0.7.0",
   libraryDependencies += "io.spray" %%  "spray-json" % "1.3.4",
@@ -38,7 +37,6 @@ val bldSettings = Defaults.coreDefaultSettings ++ Seq(
     baseDirectory.value+"/root-doc.txt",
     "-diagrams",
     "-diagrams-debug",
-    //"-diagrams-dot-timeout", "20", "-diagrams-debug",
     "-doc-title", name.value
   ),
   parallelExecution in Test := true,
@@ -61,7 +59,7 @@ lazy val spade = Project("spade",
 ).settings(
   scalaSource in Compile := baseDirectory(_ / "src/core").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/param2").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/codegen/dot/NetworkDotCodegen.scala").value,
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/codegen/dot/NetworkDotGen.scala").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/codegen/ParamIRPrinter.scala").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node").value
 )
@@ -94,6 +92,7 @@ lazy val pir = Project("pir",
   /*unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/ArcConsistencyConstrain.scala").value,*/
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/CostConstrain.scala").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/CUCost.scala").value,
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/DAGPruner.scala").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/Mapper.scala").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/placeAndRoute/").value,
   /*unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/CUPruner.scala").value,*/
@@ -102,15 +101,8 @@ lazy val pir = Project("pir",
 
 // sbt command alias
 addCommandAlias("make", "compile")
-addCommandAlias("makepir", ";project pir; compile")
-
-addCommandAlias("makeapps", ";project apps; compile")
-
 addCommandAlias("pir", "; project prism; test; project apps; run-main")
-//addCommandAlias("pir", "; project apps; run-main")
 
 addCommandAlias("spade", "; project spade; runMain spade.Plasticine --out=out/plasticine")
-
-addCommandAlias("wip", s"""; project pir; test-only -- -n "WIP"""")
 
 addCommandAlias("publishAll", "; project prism; publishLocal; project spade; publishLocal; project pir; publishLocal")

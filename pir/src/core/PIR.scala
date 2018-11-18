@@ -42,12 +42,14 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
   //lazy val cuPruning = new CUPruning()
   //lazy val cuPlacer = new CUPlacer()
   lazy val hardPruner = new HardConstrainPruner()
+  lazy val dagPruner = new DAGPruner()
   lazy val placerAndRouter = new PlaceAndRoute()
 
   /* Codegen */
   lazy val tungstenPIRGen = new TungstenPIRGen()
   lazy val psimConfigGen = new PlastisimConfigGen()
   lazy val prouteLinkGen = new PlastirouteLinkGen()
+  lazy val prouteNodeGen = new PlastirouteNodeGen()
   lazy val dramTraceGen = new DRAMTraceCodegen()
   //lazy val cuStats = new CUStatistics()
   //lazy val psimConfigCodegen = new PlastisimConfigCodegen()
@@ -93,14 +95,8 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     saveSession
 
     addPass(initializer)
-
-    addPass(genPsim, psimAnalyzer) // Depends on LoadArch
-    addPass(genPsim, psimAnalyzer) // Need to run twice to account for cycle in data flow graph
-
-    // ------- Pruning and Partitioning  --------
-    // ------- Mapping  --------
-    addPass(enableMapping, hardPruner)
-    addPass(enableMapping, placerAndRouter)
+    addPass(genPsim, psimAnalyzer).dependsOn(initializer)
+    addPass(genPsim, psimAnalyzer).dependsOn(initializer) // Need to run twice to account for cycle in data flow graph
 
     addPass(enableDot, new PIRCtxDotGen(s"simple7.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
@@ -108,67 +104,19 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(enableDot, new ParamHtmlIRPrinter(s"param.html", spadeParam))
     addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
 
+    // ------- Mapping  --------
+    addPass(enableMapping, hardPruner)
+    addPass(enableMapping, dagPruner)
+    addPass(enableMapping, placerAndRouter)
+
+    // ------- Codegen  --------
     addPass(genTungsten, tungstenPIRGen)
     addPass(genPsim, prouteLinkGen).dependsOn(psimAnalyzer)
+    addPass(genPsim, prouteNodeGen).dependsOn(psimAnalyzer)
     addPass(genPsim, psimConfigGen).dependsOn(psimAnalyzer)
     addPass(genPsim && runPsim, psimRunner).dependsOn(psimConfigGen)
 
     //addPass(cuStats)
-
-    //addPass(enableSplitting, globalPartitioner)
-    //addPass(enableSplitting && enableDot, new PIRIRDotCodegen(s"top7.dot"))
-    //addPass(enableSplitting && enableDot, new SimpleIRDotCodegen(s"simple2.dot"))
-
-    //addPass(enableDot, new ControllerDotCodegen(s"controller1.dot"))
-    //addPass(deadCodeEliminator).dependsOn(routeThroughEliminator)
-    //addPass(enableDot, new ControllerDotCodegen(s"controller2.dot")).dependsOn(controlPropogator)
-    //addPass(enableDot, new PIRIRDotCodegen(s"top8.dot"))
-    //addPass(enableDot, new SimpleIRDotCodegen(s"simple3.dot")).dependsOn(routeThroughEliminator)
-    //addPass(debug, new PIRPrinter(s"IR2.txt"))
-    //addPass(irCheck).dependsOn(routeThroughEliminator)
-
-    //addPass(genCtrl, contextInsertion).dependsOn(globalPartitioner)
-    //addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top9.dot")).dependsOn(contextInsertion)
-
-    //// Control transformation and analysis
-    ////addPass(genCtrl, localMemDuplication)
-    //addPass(genCtrl, memoryAnalyzer).dependsOn(contextInsertion)
-    //addPass(genCtrl, controlAllocator).dependsOn(contextInsertion)  // set accessDoneOf, duplicateCounterChain for accessDoneOf
-    //addPass(genCtrl, controlRegInsertion).dependsOn(controlAllocator) // insert reg for no forward depended contextEn
-    //addPass(genCtrl, memoryAnalyzer).dependsOn(controlRegInsertion)
-    //addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top10.dot"))
-    //addPass(genCtrl, controlAllocator).dependsOn(memoryAnalyzer) // set accessDoneOf, duplicateCounterChain for accessDoneOf
-    //addPass(genCtrl, deadCodeEliminator) // Remove redundant counterChains
-    //addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top11.dot"))
-    //addPass(genCtrl, controlLowering).dependsOn(controlAllocator) // Lower ContextEnableOut to ConectEnable
-    //addPass(genCtrl && enableDot, new PIRIRDotCodegen(s"top12.dot"))
-    //addPass(genCtrl, irCheck)
-
-    //addPass(enableDot, new ControllerPrinter(s"controller.txt"))
-    //addPass(cuStats)
-    //addPass(enableTrace, psimTraceCodegen).dependsOn(controlLowering)
-    //addPass(psimLinkAnalyzer).dependsOn(controlLowering)
-    //addPass(psimCountCheck).dependsOn(psimLinkAnalyzer)
-
-    //session.rerun {
-
-    //// Simulation analyzer
-    //addPass(psimDotCodegen).dependsOn(psimLinkAnalyzer)
-    //addPass(new ControllerDotCodegen(s"controller.dot"))
-    //addPass(new PIRIRDotCodegen(s"top.dot"))
-    //addPass(new SimpleIRDotCodegen(s"simple.dot"))
-    //addPass(debug, new PIRPrinter(s"IR.txt"))
-
-    //// Mapping
-    ////addPass(genPlastisim, psimVCAllocator).dependsOn(psimLinkAnalyzer)
-    //addPass(cuPruning)
-    //addPass(enableMapping, cuPlacer).dependsOn(cuPruning)
-
-    //// Post-enableMapping analysis
-    //addPass(cuStats).dependsOn(cuPlacer)
-    //addPass(enableMapping, new PIRNetworkDotCodegen[Bit](s"control.dot")).dependsOn(cuPlacer)
-    //addPass(enableMapping, new PIRNetworkDotCodegen[Word](s"scalar.dot")).dependsOn(cuPlacer)
-    //addPass(enableMapping, new PIRNetworkDotCodegen[Vector](s"vector.dot")).dependsOn(cuPlacer)
 
     //// Codegen
     //addPass(genPlastisim, terminalCSVCodegen).dependsOn(cuPlacer)

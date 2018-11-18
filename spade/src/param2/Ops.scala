@@ -4,7 +4,7 @@ package param
 import prism.util._
 
 trait Ops extends Enumeration {
-  sealed class Opcode extends Val
+  sealed trait Opcode extends Val
   sealed trait Op1 extends Opcode
   sealed trait Op2 extends Opcode
   sealed trait Op3 extends Opcode
@@ -12,6 +12,7 @@ trait Ops extends Enumeration {
   sealed class FixOp extends Opcode
   sealed class FltOp extends Opcode
   sealed class BitOp  extends Opcode
+  sealed class OtherOp  extends Opcode
 
   val FixInv       = new FixOp with Op1
   val FixNeg       = new FixOp with Op1
@@ -112,14 +113,14 @@ trait Ops extends Enumeration {
   val Xnor      = new BitOp with Op2
   val BitRandom = new BitOp with Op1
 
-  val Mux = new Opcode with Op3
-  val OneHotMux = new Opcode with Op2
+  val Mux       = new OtherOp with Op3
+  val OneHotMux = new OtherOp with Op2
 
   val allOps:Set[Opcode] = values.toSet[Value].map[Opcode, Set[Opcode]]{ _.asInstanceOf[Opcode] }
   val fixOps = allOps.collect { case op:FixOp => op }
   val fltOps = allOps.collect { case op:FltOp => op }
   val bitOps = allOps.collect { case op:BitOp => op }
-  val noFltOps = allOps.filterNot { case op:FltOp => false; case _ => true }
+  val noFltOps = allOps.filterNot { case op:FltOp => true; case _ => false }
 }
 
 //trait Ops {

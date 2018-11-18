@@ -20,7 +20,7 @@ trait Pattern extends Parameter {
 }
 
 case class AsicPattern(
-  networkParam:NetworkParam=NetworkParam("vec", isDynamic=false)
+  networkParam:NetworkParam=NetworkParam("vec", hasDynamic=false)
 ) extends Pattern
 
 case class Checkerboard(
@@ -63,7 +63,7 @@ case class NetworkParam(
   staticInput:Int=4, // Number of inputs from switch to node
   staticOutput:Int=4, // Number of outptus from node to switch
   switchLink:Int=2, // Number of links between switches
-  isDynamic:Boolean=true, // Whether there is a dynamic router
+  hasDynamic:Boolean=true, // Whether there is a dynamic router
   numVC:Int = 4,
   linkProp:String="db", // Static link property. "db" - double buffer, "cd" - credit based
   flitWidth:Int=512, // Flitwidth for dynamic network

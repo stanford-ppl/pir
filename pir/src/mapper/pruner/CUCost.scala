@@ -9,41 +9,7 @@ import prism.collection.immutable._
 import prism.util._
 import prism.mapper._
 
-//case class CUCost(
-  //isAFG:AFGCost=AFGCost(),
-  //isMC:MCCost=MCCost(),
-  //isDAG:DAGCost=DAGCost(),
-  //sram:SRAMCost=SRAMCost(),
-  //sramBank:SRAMBankCost=SRAMBankCost(),
-  //sramSize:SRAMSizeCost=SRAMSizeCost(),
-  //sfifo:ScalarFIFOCost=ScalarFIFOCost(),
-  //vfifo:VectorFIFOCost=VectorFIFOCost(),
-  //sin:ScalarInputCost=ScalarInputCost(),
-  //sout:ScalarOutputCost=ScalarOutputCost(),
-  //vin:VectorInputCost=VectorInputCost(),
-  //vout:VectorOutputCost=VectorOutputCost(),
-  //stage:StageCost=StageCost(),
-  //lane:LaneCost=LaneCost(),
-  //op:OpCost=OpCost()
-//) extends Cost[CUCost] with CaseTuple[CUCost] {
-  //type K = CUMap.K
-  //override def toString = s"CUCost(${overcosts.mkString(",")})"
-  //def costs = productIterator.toSeq.as[Seq[Cost[_]]]
-  ////def overcosts = costs.filter { _.nonEmpty }
-  //def - (x:CUCost):CUCost = {
-    //val diffs = costs.zip(x.costs).map { case (c, tc) => c diff tc }
-    //this.newInstance[CUCost](diffs)
-  //}
-  //def + (x:CUCost):CUCost = {
-    //val sum = costs.zip(x.costs).map { case (c, tc) => (c add tc) }
-    //this.newInstance[CUCost](sum)
-  //}
-  //def accum[F<:Cost[F]:ClassTag](x:F) = map[F] { _ + x }
-  ////def nonEmpty:Boolean = costs.nonEmpty
-//}
-
 case class AFGCost(prefix:Boolean=false) extends PrefixCost[AFGCost]
-case class DAGCost(prefix:Boolean=false) extends PrefixCost[DAGCost]
 case class MCCost(prefix:Boolean=false) extends PrefixCost[MCCost]
 case class SRAMCost(count:Int=0, bank:Int=0, size:Int=0) extends QuantityCost[SRAMCost]
 case class FIFOCost(sfifo:Int=0, vfifo:Int=0) extends QuantityCost[FIFOCost]
@@ -53,7 +19,7 @@ case class StageCost(quantity:Int=0) extends QuantityCost[StageCost]
 case class LaneCost(quantity:Int=1) extends MaxCost[LaneCost]
 case class OpCost(set:Set[Opcode]=Set.empty) extends SetCost[Opcode,OpCost]
 
-trait CostUtil extends RuntimeAnalyzer with Memorization { self:PIRPass =>
+trait CUCostUtil extends CostUtil with RuntimeAnalyzer with Memorization { self:PIRPass =>
   implicit class CostOp(x:Any) {
     def getCost[C<:Cost[C]:ClassTag]:C = x match {
       case x:CUMap.V => self.getCost(x.params.get, classTag[C]).as[C]
@@ -66,15 +32,6 @@ trait CostUtil extends RuntimeAnalyzer with Memorization { self:PIRPass =>
     switch[AFGCost] {
       case n:GlobalContainer => AFGCost(n.isInstanceOf[ArgFringe])
       case n:Parameter => AFGCost(n.isInstanceOf[ArgFringeParam])
-    } orElse switch[DAGCost] {
-      case n:GlobalContainer => DAGCost(n.siblingDepeds.exists{_.isInstanceOf[DRAMFringe]})
-      case n:Parameter => 
-        val isDAG:Boolean = n.to[DramAGParam].map { _ => true }.getOrElse {
-          val pattern = n.collectOut[Pattern]().head
-          val hasDAG = pattern.cuParams.exists { _.isInstanceOf[DramAGParam] }
-          n.to[CUParam].fold (false) { _ => !hasDAG }
-        }
-        DAGCost(isDAG)
     } orElse switch[MCCost] {
       case n:GlobalContainer => MCCost(n.isInstanceOf[DRAMFringe])
       case n:Parameter => MCCost(n.isInstanceOf[MCParam])
@@ -147,13 +104,4 @@ trait CostUtil extends RuntimeAnalyzer with Memorization { self:PIRPass =>
     }
   }
 
-  //class CUCostConstrain extends CostConstrain[CUCost] {
-    //def getCost(x:Any) = x.getCost.as[CUCost]
-    //override def prune[T](field:T):EOption[T] = {
-      //field match {
-        //case field:CUMap => prune(field).as[EOption[T]]
-        //case field => Right(field)
-      //}
-    //}
-  //}
 }

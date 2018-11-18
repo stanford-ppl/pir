@@ -34,23 +34,16 @@ trait SetCost[T,C<:SetCost[T,C]] extends Cost[C] { self:C =>
   def + (x:C) = this.newInstance[C](Seq(set ++ x.set))
 }
 
-//trait CostConstrain[C<:Cost[C]] extends Constrain with FactorConstrain {
-  //def getCost(n:Any):C
-  ////def fit(key:Any, value:Any):(Boolean, Boolean) // (fit, splitable)
-  //def prune[K,V,S<:FG[K,V,S]](fg:S):EOption[S] = {
-    //flatFold[K,S](fg.freeKeys, fg) { case (fg, key) => prune[K,V,S](fg, key) }
-  //}
-  //def prune[K,V,S<:FG[K,V,S]](fg:S, key:K):EOption[S] = {
-    //val keyCost = getCost(key)
-    //val values = fg.freeValues(key).toIterator
-    //val diff = values.map { value => (value, keyCost - getCost(value)) }
-    //val (fits, notFits) = diff.partition { _._2.nonEmpty }
-    //if (fits.toSeq.isEmpty) {
-      //Left(CostConstrainFailure[K,V,S,C](fg, key, keyCost, notFits.toSeq))
-    //} else {
-      //Right(fg)
-    //}
-  //}
-//}
-//case class CostConstrainFailure[K,V,S<:FG[K,V,S],C<:Cost[C]](fg:S, key:Any, keyCost:C, notFits:Seq[(V,C)]) extends MappingFailure
-
+trait CostUtil {
+  def notFit(kc:Cost[_], vc:Cost[_]) = (kc, vc) match {
+    case (kc:QuantityCost[_], vc:QuantityCost[_]) =>
+      (kc.quantities, vc.quantities).zipped.exists { case (kq, vq) => kq > vq }
+    case (kc:MaxCost[_], vc:MaxCost[_]) =>
+      kc.quantity > vc.quantity
+    case (kc:PrefixCost[_], vc:PrefixCost[_]) =>
+      kc.prefix != vc.prefix
+    case (kc:SetCost[_,_], vc:SetCost[_,_]) =>
+      kc.set.exists { k => !vc.set.contains(k) }
+    case _ => throw PIRException(s"Don't know how to compare $kc with $vc")
+  }
+}

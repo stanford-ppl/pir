@@ -70,10 +70,8 @@ trait AccessUtil { self:PIRNodeUtil =>
         n.out.T.forall { _.parent == parent }
     }
     def isGlobal = n match {
-      case n:LocalOutAccess => n.in.T.global != n.global
-      case n:LocalInAccess => 
-        val global = n.global
-        n.out.T.exists { _.global != global }
+      case n:LocalOutAccess => n.in.T.isInstanceOf[GlobalInput]
+      case n:LocalInAccess => n.out.T.exists { _.isInstanceOf[GlobalOutput] }
     }
   }
   implicit class LocalInAccessOp(n:LocalInAccess) {

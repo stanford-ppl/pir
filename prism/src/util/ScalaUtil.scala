@@ -195,6 +195,9 @@ trait ScalaUtilFunc {
     def minOptionBy[O:Ordering](func:T => O):Option[T] = 
       if (x.isEmpty) None else Some(x.minBy(func))
   }
+  implicit class SetUtil[T](s:Set[T]) {
+    def contains(x:Any) = s.contains(x.asInstanceOf[T])
+  }
 
   def log2(x:Int) = (Math.log(x) / Math.log(2)).ceil.toInt
 

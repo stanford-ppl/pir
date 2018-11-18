@@ -101,8 +101,6 @@ class PlastisimPlacementCodegen(implicit compiler: PIR) extends PlastisimCodegen
       getCommand.foreach { command =>
         val statKeys = List("DynHopsVec", "DynHopsScal", "StatHopsVec", "StatHopsScal")
         if (option[Boolean]("rerun-proute")) {
-          dbg(s"Run command:")
-          dbg(command)
           deleteFile(summaryPath.get)
           deleteFile(log)
           val exitCode = shellProcess("proute", command, log) { line =>

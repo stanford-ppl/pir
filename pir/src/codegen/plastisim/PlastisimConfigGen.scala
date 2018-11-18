@@ -5,13 +5,10 @@ import pir.node._
 import prism.graph._
 import spade.param._
 
-class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codegen with ChildFirstTraversal with PlastisimUtil {
+class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with PIRTraversal {
 
-  override def dirName = psimOut
   val fileName = configName
   val forward = true
-
-  override def clearGen = {}
 
   override def emitNode(n:N) = {
     n match {
@@ -40,7 +37,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PIRTraversal with Codeg
     if (!noPlaceAndRoute) {
       spadeParam.pattern match {
         case pattern:Checkerboard =>
-          val maxDim = Math.max(pattern.row, pattern.col)
+          val maxDim = Math.max(pattern.row, pattern.col + 2)
           val networkParam = pattern.networkParams.filter { _.granularity == "vec" }.head
           val numVC = networkParam.numVC
           val topo = networkParam.topology

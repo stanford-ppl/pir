@@ -41,7 +41,9 @@ case class Top()(implicit env:Env) extends PIRNode {
   var argFringe:ArgFringe = _
 }
 
-trait GlobalContainer extends PIRNode
+trait GlobalContainer extends PIRNode {
+  val isDAG = Metadata[Boolean]("isDAG", default=false)
+}
 case class ArgFringe()(implicit env:Env) extends GlobalContainer {
   val hostInCtrler = new ChildField[HostInController, HostInController]("hostInController")
   val hostOutCtrler = new ChildField[HostOutController, HostOutController]("hostOutController")

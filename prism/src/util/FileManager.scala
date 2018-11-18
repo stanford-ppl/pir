@@ -41,8 +41,8 @@ trait FileManager {
   def deleteFile(file: File): Unit = {
     if (file.isDirectory) {
       Option(file.listFiles).map(_.toList).getOrElse(Nil).foreach(deleteFile(_))
-    }
-    file.delete
+      file.delete
+    } else file.delete
   }
 
   def deleteFile(path: String): Unit = {
