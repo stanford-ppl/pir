@@ -109,7 +109,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     // ------- Mapping  --------
     addPass(enableMapping, hardPruner)
     //addPass(enableMapping, pmuPruner).dependsOn(hardPruner)
-    addPass(enableMapping, dagPruner).dependsOn(pmuPruner)
+    addPass(enableMapping, dagPruner).dependsOn(hardPruner)//.dependsOn(pmuPruner)
     addPass(enableMapping, matchPruner).dependsOn(dagPruner)
     addPass(enableMapping, placerAndRouter).dependsOn(matchPruner)
 
