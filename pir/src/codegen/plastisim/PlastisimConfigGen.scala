@@ -42,7 +42,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
           val numVC = networkParam.numVC
           val topo = networkParam.topology
           emitNodeBlock(s"net vecnet") {
-            emitln(s"cf = $PLASTISIM_HOME/configs/${topo}_generic.cfg")
+            emitln(s"cfg = $PLASTISIM_HOME/configs/${topo}_generic.cfg")
             emitln(s"dim[0] = $maxDim")
             emitln(s"dim[1] = $maxDim")
             emitln(s"num_classes = ${numVC}")
