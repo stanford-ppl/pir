@@ -26,6 +26,7 @@ abstract class Memory(implicit env:Env) extends MemoryNode with DefNode[PIRNode]
   val out = new OutputField[List[Access]]("out")
 
   override def asInput = Some(in)
+  override def asOutput = Some(out)
 }
 
 case class Reg()(implicit env:Env) extends Memory
@@ -68,6 +69,7 @@ case class Context()(implicit env:Env) extends PIRNode
 
 trait Def extends PIRNode with DefNode[PIRNode] {
   final val out = new OutputField[List[PIRNode]]("out")
+  override def asOutput = Some(out)
 }
 
 case class Const(value:Any)(implicit env:Env) extends Def

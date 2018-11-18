@@ -7,8 +7,7 @@ import scala.collection.mutable
 
 abstract class PIRNode(implicit env:BuildEnvironment) 
   extends EnvNode[PIRNode] 
-  with FieldNode[PIRNode] 
-  with DefNode[PIRNode] { self =>
+  with FieldNode[PIRNode] { self =>
   lazy val Nct = classTag[PIRNode]
 
   val name = new Metadata[String]("name")
@@ -41,8 +40,6 @@ abstract class PIRNode(implicit env:BuildEnvironment)
   val count = new Metadata[Option[Long]]("count")
   // Iter is how many iteration a node run between enabled and done. Independent of what it stacks on
   val iter = new Metadata[Option[Long]]("iter")
-
-  override def asOutput = output
 
   env.initNode(this)
 }
