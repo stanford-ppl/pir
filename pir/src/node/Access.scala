@@ -37,6 +37,7 @@ trait LocalAccess extends PIRNode {
 }
 trait LocalInAccess extends LocalAccess {
   val out = new OutputField[List[PIRNode]]("out")
+  override def asOutput = Some(out)
 }
 trait LocalOutAccess extends LocalAccess with Def with MemoryNode {
   val in = new InputField[PIRNode]("in")

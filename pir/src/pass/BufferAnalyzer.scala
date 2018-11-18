@@ -48,6 +48,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     val depedCtx = deped.ctx.get
     val isFIFO = dep.getCtrl == deped.getCtrl
     val (enq, deq) = compEnqDeq(dep.getCtrl, deped.getCtrl, isFIFO, depCtx, depedCtx)
+    val depOut = assertOne(dep.localOuts, s"$dep.localOuts") // HACK: This should be foreach dep.localOuts
     val write = within(depCtx, dep.getCtrl) {
       allocate[BufferWrite] { write => 
         write.data.traceTo(dep) &&
@@ -64,7 +65,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
         BufferRead(isFIFO).in(write).done(deq).banks(List(dep.getVec))
       }
     }
-    swapInput(deped, dep.as[PIRNode].output.get, read.out)
+    swapInput(deped, depOut, read.out)
     read
   }
 
