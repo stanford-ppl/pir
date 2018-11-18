@@ -35,10 +35,7 @@ case class MemWrite()(implicit env:Env) extends WriteAccess
 trait LocalAccess extends PIRNode {
   val done = new InputField[PIRNode]("done")
 }
-trait LocalInAccess extends LocalAccess {
-  val out = new OutputField[List[PIRNode]]("out")
-  override def asOutput = Some(out)
-}
+trait LocalInAccess extends LocalAccess with Def
 trait LocalOutAccess extends LocalAccess with Def with MemoryNode {
   val in = new InputField[PIRNode]("in")
   val initToken = Metadata[Boolean]("initToken", default=false)
