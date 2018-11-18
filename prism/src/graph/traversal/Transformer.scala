@@ -79,8 +79,8 @@ trait Transformer extends Logging {
     assert (connected.nonEmpty, s"$n1 is not connected to $n2")
     connected.foreach { case (n1e, n2e) =>
       n1e.disconnectFrom(n2e)
-      n1e.connect(e1)
-      n2e.connect(e2)
+      if (!n1e.isConnectedTo(e1)) n1e.connect(e1)
+      if (!n2e.isConnectedTo(e2)) n2e.connect(e2)
     }
   }
 
