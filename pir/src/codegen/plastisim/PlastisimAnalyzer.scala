@@ -14,15 +14,16 @@ class PlastisimAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFS
 
   override def runPass = {
     if (accountForCycle) {
-      pirTop.descendents.foreach  { d =>
+      val resets = pirTop.descendents.flatMap { d =>
         val n = d.as[PIRNode]
         val count = n.count
         if (count.v.nonEmpty && count.get == None) {
           dbg(s"Reset Count for $n...")
           count.reset
-          n.getCount
-        }
+          Some(n)
+        } else None
       }
+      resets.foreach { _.getCount }
     } else super.runPass
   }
 
