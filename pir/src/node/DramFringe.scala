@@ -34,39 +34,3 @@ case class FringeSparseStore(dram:DRAM)(implicit env:Env) extends DRAMSparseComm
 case class DRAM(sid:String) extends prism.graph.IR {
   val dims = Metadata[List[Int]]("dims")
 }
-
-//case class CountAck(ack:Def)(implicit env:Env) extends ControlNode
-
-//trait ProcessDramCommand extends Def
-//case class ProcessDramDenseLoad(dram:DRAM, offset:LocalLoad, size:LocalLoad)(implicit env:Env) extends ProcessDramCommand
-//case class ProcessDramDenseStore(dram:DRAM, offset:LocalLoad, size:LocalLoad, data:LocalLoad)(implicit env:Env) extends ProcessDramCommand
-//case class ProcessDramSparseLoad(dram:DRAM, addr:LocalLoad)(implicit env:Env) extends ProcessDramCommand
-//case class ProcessDramSparseStore(dram:DRAM, addr:LocalLoad, data:LocalLoad)(implicit env:Env) extends ProcessDramCommand
-
-//case class DramControllerDone(en:ControlNode)(implicit env:Env) extends ControlNode
-
-//trait DramFringeUtil {
-  //def isLoadFringe(n:GlobalContainer) = n match {
-    //case n:FringeDenseLoad => true
-    //case n:FringeSparseLoad => true
-    //case n => false
-  //}
-
-  //def isStoreFringe(n:GlobalContainer) = n match {
-    //case n:FringeDenseStore => true
-    //case n:FringeSparseStore => true
-    //case n => false
-  //}
-
-  //def isDenseFringe(n:GlobalContainer) = n match {
-    //case n:FringeDenseLoad => true
-    //case n:FringeDenseStore => true
-    //case n => false
-  //}
-
-  //def isSparseFringe(n:GlobalContainer) = n match {
-    //case n:FringeSparseLoad => true
-    //case n:FringeSparseStore => true
-    //case n => false
-  //}
-//}
