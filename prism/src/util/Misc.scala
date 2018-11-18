@@ -76,11 +76,49 @@ trait Misc {
     logger.foreach { _.dbg(msg) }
   }
 
-  def shell(command:String):Int = shell(None, command, None, None)
-  def shell(header:String, command:String, logFile:String):Int = shell(Some(header), command, Some(logFile), None)
-  def shellProcess(header:String, command:String, logFile:String)(processLambda:String => Unit):Int = shell(Some(header), command, Some(logFile), Some(processLambda))
+  def shell(command:String):Int = shell(command=command, header=None)
 
-  def shell(header:Option[String], command:String, logPath:Option[String], processLambda:Option[String => Unit]):Int = {
+  def shell(
+    header:String, 
+    command:String, 
+    logPath:String
+  ):Int = shell(
+    command=command, 
+    header=Some(header), 
+    logPath=Some(logPath)
+  )
+
+  def shellProcess(
+    header:String, 
+    command:String, 
+    logPath:String
+  )(processLambda:String => Unit):Int = shell(
+    command=command, 
+    header=Some(header), 
+    logPath=Some(logPath), 
+    processLambda=Some(processLambda)
+  )
+
+  def shellProcess(
+    header:String, 
+    command:String, 
+    cwd:String,
+    logPath:String
+  )(processLambda:String => Unit):Int = shell(
+    command=command, 
+    header=Some(header), 
+    cwd=Some(cwd),
+    logPath=Some(logPath), 
+    processLambda=Some(processLambda)
+  )
+
+  def shell(
+    command:String, 
+    header:Option[String]=None, 
+    cwd:Option[String]=None, 
+    logPath:Option[String]=None, 
+    processLambda:Option[String => Unit]=None
+  ):Int = {
     info(Console.YELLOW, header.getOrElse("command"), command)
 
     logPath.foreach { path => 
@@ -88,7 +126,8 @@ trait Misc {
     }
     val printer = new Printer {}
     val logFile = logPath.map { path => printer.openFile(path, false) }
-    val exitCode = command ! ProcessLogger (
+    val cwdFile = cwd.map { path => new java.io.File(path) }
+    val exitCode = sys.process.Process(command, cwdFile) ! ProcessLogger (
       { line => 
         logFile.foreach { l => l.println(line); l.flush }
         processLambda.foreach { _(line) }
