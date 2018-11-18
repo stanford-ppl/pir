@@ -33,12 +33,13 @@ class PlastisimRunner(implicit compiler: PIR) extends PlastisimUtil with Printer
       command += s" -s${config.option[String]("proute-seed")} "
       command += s" ${config.option[String]("proute-opts")}"
       withOpen(psimOut, s"proute.sh", false) {
+        emitln(s"cd $psimOut")
         emitln(command)
       }
       if (config.runPsim) {
         deleteFile(summaryPath)
         deleteFile(prouteLog)
-        val exitCode = shellProcess("proute", s"bash proute.sh", prouteLog) { line =>
+        val exitCode = shellProcess("proute", s"bash ${buildPath(psimOut, s"proute.sh")}", prouteLog) { line =>
           if (line.contains("Used") && line.contains("VCs.")) {
             info(Console.GREEN, s"proute", line)
           }
@@ -64,10 +65,11 @@ class PlastisimRunner(implicit compiler: PIR) extends PlastisimUtil with Printer
     command += s" -w ${networkParam.flitWidth}" 
     command += s" -q${config.option[Int]("psim-q")}" 
     withOpen(psimOut, s"psim.sh", false) {
+      emitln(s"cd $psimOut")
       emitln(command)
     }
     if (config.runPsim) {
-      shellProcess(s"psim", s"bash psim.sh", psimLog)(processOutput)
+      shellProcess(s"psim", s"bash ${buildPath(psimOut,"psim.sh")}", psimLog)(processOutput)
       if (!simulationSucceeded.getOrElse(false)) fail(s"Plastisim failed. details in $psimLog")
     }
   }
