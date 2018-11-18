@@ -83,20 +83,7 @@ lazy val pir = Project("pir",
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/util/").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/pass/").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/codegen/").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/TopMap.scala").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/MappingLogger.scala").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/ConstrainPruner.scala").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/HardConstrainPruner.scala").value,
-  /*unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/FactorConstrain.scala").value,*/
-  /*unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/MatchingConstrain.scala").value,*/
-  /*unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/ArcConsistencyConstrain.scala").value,*/
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/CostConstrain.scala").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/CUCost.scala").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/DAGPruner.scala").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/PMUPruner.scala").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/Mapper.scala").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/placeAndRoute/").value,
-  /*unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/pruner/CUPruner.scala").value,*/
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node").value
 )
 

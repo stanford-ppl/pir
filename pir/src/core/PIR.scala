@@ -44,6 +44,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
   lazy val hardPruner = new HardConstrainPruner()
   lazy val dagPruner = new DAGPruner()
   lazy val pmuPruner = new PMUPruner()
+  lazy val matchPruner = new MatchPruner()
   lazy val placerAndRouter = new PlaceAndRoute()
 
   /* Codegen */
@@ -109,8 +110,11 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(enableMapping, hardPruner)
     addPass(enableMapping, pmuPruner)
     addPass(enableMapping, dagPruner)
+    addPass(enableMapping, matchPruner)
     addPass(enableMapping, placerAndRouter)
 
+    //addPass(cuStats)
+    
     // ------- Codegen  --------
     addPass(genTungsten, tungstenPIRGen)
     addPass(genPsim, prouteLinkGen).dependsOn(psimAnalyzer)
@@ -118,19 +122,8 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(genPsim, psimConfigGen).dependsOn(psimAnalyzer)
     addPass(genPsim && runPsim, psimRunner).dependsOn(psimConfigGen)
 
-    //addPass(cuStats)
-
-    //// Codegen
-    //addPass(genPlastisim, terminalCSVCodegen).dependsOn(cuPlacer)
-    //addPass(genPlastisim, linkCSVCodegen).dependsOn(terminalCSVCodegen, psimLinkAnalyzer)
-    //addPass(genPlastisim && enableMapping, psimPlacementCodegen).dependsOn(cuPlacer,linkCSVCodegen)
-    //addPass(genPlastisim, psimDotCodegen).dependsOn(psimLinkAnalyzer)
-    //addPass(genPlastisim && enableMapping, psimConfigCodegen).dependsOn(cuPlacer, psimPlacementCodegen, psimTraceCodegen)
-    //addPass(runPlastisim, psimDotCodegen)
-
     //addPass(areaPowerStat).dependsOn(psimConfigCodegen, cuPlacer)
 
-    //}
   }
 
   def handle(e:Exception) = throw e
