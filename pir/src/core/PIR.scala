@@ -43,6 +43,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
   //lazy val cuPlacer = new CUPlacer()
   lazy val hardPruner = new HardConstrainPruner()
   lazy val dagPruner = new DAGPruner()
+  lazy val pmuPruner = new PMUPruner()
   lazy val placerAndRouter = new PlaceAndRoute()
 
   /* Codegen */
@@ -106,6 +107,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
 
     // ------- Mapping  --------
     addPass(enableMapping, hardPruner)
+    addPass(enableMapping, pmuPruner)
     addPass(enableMapping, dagPruner)
     addPass(enableMapping, placerAndRouter)
 

@@ -33,15 +33,14 @@ trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] { self:S =>
   }
   def filterNotAtKey(k:K)(lambda:V => Boolean):EOption[S] = {
     val vv = freeMap.fmap(k).filter { v => lambda(v) }
-    newInstance(freeMap -- (k,vv), weights, usedMap).check(k)
+    newInstanceWith(freeMap -- (k,vv), weights, usedMap, Set(k))
   }
   def filterNotAtValue(v:V)(lambda:K => Boolean):EOption[S] = {
     val kk = freeMap.bmap(v).filter { k => lambda(k) }
-    val nm = newInstance(freeMap -- (kk,v), weights, usedMap)
-    flatFold(kk, nm) { case (nm, k) => nm.check(k) }
+    newInstanceWith(freeMap -- (kk,v), weights, usedMap, kk)
   }
   def ++ (pairs:(Any,Any)):S = newInstance(freeMap ++ pairs, weights, usedMap)
-  def - (pair:(K,V)):EOption[S] = newInstance(freeMap - pair, weights, usedMap).check(pair._1)
+  def - (pair:(K,V)):EOption[S] = newInstanceWith(freeMap - pair, weights, usedMap, Set(pair._1))
   def - (x:Any):S = newInstance(freeMap - x, weights, usedMap)
 
   /* ---------- usedMap ---------- */
@@ -67,7 +66,7 @@ trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] { self:S =>
       case (weights, (v, None)) => weights
       case (weights, (v, Some(w))) => weights + (((k,v), w))
     }
-    newInstance(nfm, nws, usedMap).check(k)
+    newInstanceWith(nfm, nws, usedMap, Set(k))
   }
   def freeWeightedValues(k:K) = freeValuesOf(k).map { v => (v, weight(k,v)) }
   /* ------------------------------- */
@@ -82,7 +81,12 @@ trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] { self:S =>
       case l if l == List(classOf[FM], classOf[W], usedMap.getClass) => constructor.newInstance(freeMap, weights, usedMap)
     }).asInstanceOf[S]
   }
-  protected def check(k:K):EOption[S] = if (freeMap.fmap(k).isEmpty) Left(InvalidFactorGraph(this, k)) else Right(this)
+  protected def newInstanceWith(fm:FM, w:W, um:M, kk:Set[K]):EOption[S] = {
+    val nfg = newInstance(fm, w, um)
+    flatFold(kk, nfg) { case (nfg, k) => 
+      if (nfg.freeMap.fmap(k).isEmpty) Left(InvalidFactorGraph(this, k)) else Right(nfg)
+    }
+  }
 }
 
 trait OneToOneFactorGraphLike[K,V,S<:OneToOneFactorGraphLike[K,V,S]] extends FactorGraphLike[K,V,S] { self:S =>
@@ -92,8 +96,7 @@ trait OneToOneFactorGraphLike[K,V,S<:OneToOneFactorGraphLike[K,V,S]] extends Fac
     assert(freeMap.fmap.get(k).fold(false) { vv => vv.contains(v) })
     val vv = freeMap.fmap(k)
     val kk = freeMap.bmap(v)
-    val nfg = newInstance(freeMap - k - v, weights, usedMap + ((k,v)))
-    flatFold(kk - k, nfg) { case (nfg, k) => nfg.check(k) }
+    newInstanceWith(freeMap - k - v, weights, usedMap + ((k,v)), kk-k)
   }
   def apply(x:K):Set[V] = x match {
     case x:K if isMapped(x) => Set(usedMap.fmap(x))
@@ -119,8 +122,7 @@ trait OneToManyFactorGraphLike[K,V,S<:OneToManyFactorGraphLike[K,V,S]] extends F
     if (usedMap.get(k).fold(false) { _.contains(v) }) return Right(this)
     assert(freeMap.fmap.get(k).fold(false) { vv => vv.contains(v) })
     val kk = freeMap.bmap(v) - k
-    val nfg = newInstance(freeMap - v, weights, usedMap + ((k,v)))
-    flatFold(kk, nfg) { case (nfg, k) => nfg.check(k) }
+    newInstanceWith(freeMap - v, weights, usedMap + ((k,v)), kk)
   }
   def apply(x:K):Set[V] = x match {
     case x:K if isMapped(x) => usedMap.fmap(x) ++ freeMap(x)
@@ -166,6 +168,6 @@ object ManyToOneFactorGraph {
   )
 }
 
-case class InvalidFactorGraph[K,V,S<:FG[K,V,S]](@transient fg:FG[K,V,S], k:K) extends MappingFailure {
+case class InvalidFactorGraph[K,S<:FG[K,_,S]](@transient fg:S, k:K) extends MappingFailure {
   val msg = s"InvalidFactorGraph ${fg.getClass.getSimpleName} at key=$k"
 }
