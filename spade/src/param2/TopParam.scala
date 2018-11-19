@@ -87,7 +87,9 @@ case class FIFOParam(
   granularity:String,
   count:Int,
   depth:Int=16
-) extends Parameter
+) extends Parameter {
+  lazy val cuParam = trace[CUParam]
+}
 
 sealed trait CUParam extends Parameter {
   val sramParam:SRAMParam

@@ -185,11 +185,11 @@ trait Transformer extends Logging {
   }
 
   implicit class ProductNodeOp[N](x:ProductNode[N]) {
-    def map[T:ClassTag](func:Any => Any) = {
+    def map[T:ClassTag](func:(T, Any) => Any) = {
       x match {
         case x:T =>
           val args = x.productIterator.toList
-          val targs = args.map { arg => func(arg) }
+          val targs = args.map { arg => func(x, arg) }
           val change = args.zip(targs).exists { case (a,t) => a != t }
           if (change) {
             removeNode(x)
@@ -201,20 +201,20 @@ trait Transformer extends Logging {
       }
     }
 
-    def mapFields[T<:Product:TypeTag:ClassTag](func:(String, Any) => Any) = {
+    def mapFields[T<:Product with N:TypeTag:ClassTag](func:(String, T, Any) => Any):N = {
       x match {
         case x:T =>
           val args = x.productIterator.toList
           val fields = x.fields
-          val targs = fields.map { case (name, arg) => func(name, arg) }
+          val targs = fields.map { case (name, arg) => func(name, x, arg) }
           val change = args.zip(targs).exists { case (a,t) => a != t }
           if (change) {
             removeNode(x)
             val nn = x.newInstance[T](targs) 
             dbg(s"Create $nn")
             nn
-          } else x
-        case x => x
+          } else x.asInstanceOf[N]
+        case x => x.asInstanceOf[N]
       }
     }
   }
@@ -226,7 +226,7 @@ trait Transformer extends Logging {
       case (a,b) => (transform(a), transform(b))
       case (a,b,c) => (transform(a), transform(b), transform(c))
       case (a,b,c,d) => (transform(a), transform(b), transform(c), transform(d))
-      case x:ProductNode[_] => x.map[ProductNode[_]](transform)
+      case x:ProductNode[_] => x.map[ProductNode[_]] { case (x, arg) => transform(arg) }
       case x => x
     }).asInstanceOf[T]
   }

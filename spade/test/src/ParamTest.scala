@@ -3,6 +3,9 @@ package spade.test
 import prism.test._
 import prism.graph._
 import prism.graph.implicits._
+import prism.util._
+
+import spade.codegen._
 
 class ParamTest extends UnitTest { self =>
 
@@ -26,8 +29,9 @@ class ParamTest extends UnitTest { self =>
 
   // Param with prism Node
   "ParamTest2" should "success" in {
-    import spade.param2._
+    import spade.param._
     val loader = new DefaultParamLoader {
+      //override lazy val logger = ConsoleLogger.logger
       def getOpt[T](name:String):Option[T] = 
         Map(
           "word"->17,
@@ -36,6 +40,9 @@ class ParamTest extends UnitTest { self =>
         ).get(name).asInstanceOf[Option[T]]
     }
     val topParam = loader.loadParam
+    new ParamHtmlIRPrinter(s"param.html", topParam)(null) {
+      override def dirName = testOut
+    }.run
     assert(topParam.wordWidth==17)
     assert(topParam.pattern.asInstanceOf[Checkerboard].cu1.fifoParamOf("vec").get.count==11)
   }

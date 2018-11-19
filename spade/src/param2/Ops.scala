@@ -116,7 +116,8 @@ trait Ops extends Enumeration {
   val Mux       = new OtherOp with Op3
   val OneHotMux = new OtherOp with Op2
 
-  val allOps:Set[Opcode] = values.toSet[Value].map[Opcode, Set[Opcode]]{ _.asInstanceOf[Opcode] }
+  // Not sure why a val here will fail serialzation test
+  def allOps:Set[Opcode] = values.toSet[Value].collect { case op:Opcode => op }
   val fixOps = allOps.collect { case op:FixOp => op }
   val fltOps = allOps.collect { case op:FltOp => op }
   val bitOps = allOps.collect { case op:BitOp => op }

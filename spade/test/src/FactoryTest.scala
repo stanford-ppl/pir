@@ -2,7 +2,7 @@ package spade
 package test
 
 import spade.node._
-import spade.param2._
+import spade.param._
 import spade.codegen._
 
 import prism.test._
@@ -18,10 +18,13 @@ class FactoryTest extends UnitTest with BaseFactory with Logging { self =>
       val path = s"$testOut/top_saved"
       saveToFile(top, path)
       val loaded = loadFromFile[Top](path)
-      val dot = new NetworkDotCodegen("top.dot", loaded)(null) {
-        override lazy val dirName = testOut
-      }
-      dot.run
+      //implicit val compiler:Compiler = null
+      //val dot = new NetworkDotGen {
+        //val fileName = "top.dot"
+        //val top = loaded
+        //override lazy val dirName = testOut
+      //}
+      //dot.run
     }
   }
 
