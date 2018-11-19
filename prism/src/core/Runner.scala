@@ -26,7 +26,8 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
   val dependencies = ListBuffer[Runner[_]]()
   def dependsOn(deps:Pass*):this.type = {
     deps.foreach { dep =>
-      dependencies += session.passes(dep).last //TODO: If dependency is not added, session.passes does not contain dep yet.
+      val runners = session.passes(dep).filterNot { _ == this }
+      dependencies += runners.last
     }
     this
   }
@@ -40,7 +41,7 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
     if (hasRun) return
       dependencies.foreach { dependency =>
       if (dependency.shouldRun && !dependency.succeeded) {
-        warn(s"$name not run due to dependency ${dependency.pass} not success")
+        //warn(s"$name not run due to dependency ${dependency.pass} not success")
         return
       }
     }

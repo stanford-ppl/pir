@@ -64,29 +64,29 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
         globals
       case k:Context =>
         val scope = k.children.filter { include }
-        val sctx = SplitContext(scope.asInstanceOf[List[PIRNode]])
-        val res = split(sctx, vcost).asInstanceOf[List[SplitContext]]
-        dbg(s"splits=${res.size}")
+        val part = Partition(scope.asInstanceOf[List[PIRNode]])
+        val parts = split(part, vcost).asInstanceOf[List[Partition]]
+        dbg(s"partitions=${parts.size}")
         val ctxs = within(k.global.get) {
-          res.map { case sctx@SplitContext(scope) =>
+          parts.map { case part@Partition(scope) =>
             val ctx = Context()
-            dbg(s"Create $ctx for $sctx")
+            dbg(s"Create $ctx for $part")
             scope.foreach { n => swapParent(n, ctx) }
-            removeCache(sctx)
             ctx
           }
         }
          // need to run in two pass to avoid duplicated allocation
-        ctxs.foreach { ctx => dupDeps(k, ctx) }
+        (ctxs,parts).zipped.foreach { case (ctx,part) => dupDeps(k, ctx, part.getCost[InputCost]) }
         ctxs.foreach { ctx => bufferInput(ctx) }
+        (part::parts).foreach { removeCache }
         (k::k.descendents).foreach { removeNode }
         ctxs
-      case k:SplitContext =>
+      case k:Partition =>
         if (!notFit(kcost, vcost)) List(k)
         else {
           val nodes = schedular.scheduleScope(k.scope).asInstanceOf[List[PIRNode]]
           val (head, tail) = nodes.splitAt(nodes.size/2)
-          split(SplitContext(head), vcost) ++ split(SplitContext(tail),vcost)
+          split(Partition(head), vcost) ++ split(Partition(tail),vcost)
         }
     }
   }
@@ -118,10 +118,19 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
       underScope :: underScope.descendents
   }).distinct
 
-  def dupDeps(from:Context, to:Context) = dbgblk(s"dupDeps($from, $to)") {
+  def dupDeps(from:Context, to:Context, incost:InputCost) = dbgblk(s"dupDeps($from, $to)") {
     var deps = to.accum(visitFunc=visitIn(from) _)
     deps = deps.filterNot { _ == to }
     deps ++= from.collectDown[TokenRead]()
+    val noInput = (incost.sin + incost.vin) == 0
+    if (noInput) {
+      val ins = from.collectDown[LocalOutAccess]()
+      val (vins, sins) = ins.partition { _.getVec > 0 }
+      val in = sins.headOption.getOrElse(vins.head)
+      dbg(s"$to has no input. mirror one input from $from $in")
+      deps ++= in.accum(visitFunc=visitIn(from) _)
+    }
+    deps = deps.distinct
     dbg(s"deps=$deps")
     val mapping = within(to) { mirrorAll(deps) }
     to.descendents.foreach { x =>
@@ -139,7 +148,7 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
         val ins = x.collectDown[LocalOutAccess]()
         val (vins, sins) = ins.partition { _.getVec > 1 }
         InputCost(sins.size, vins.size)
-      case x: SplitContext => 
+      case x: Partition => 
         val deps = x.deps.filter { d =>
           include(d) || d.isInstanceOf[LocalOutAccess]
         }.distinct.toList
@@ -152,22 +161,22 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
         val outs = x.collectDown[LocalInAccess]()
         val (vouts, souts) = outs.partition { _.getVec > 1 }
         OutputCost(souts.size, vouts.size)
-      case x: SplitContext => 
+      case x: Partition => 
         val depedFroms = x.depedsTo.keys.toSeq
         dbg(s"depedFroms=${depedFroms.toList}")
         val outs = depedFroms
         val (vouts, souts) = outs.partition { _.getVec > 1 }
         OutputCost(souts.size, vouts.size)
     } orElse switch[StageCost](x,ct) { 
-      case x: SplitContext => 
+      case x: Partition => 
         StageCost(x.scope.collect{ case op:OpNode => op }.size)
     } getOrElse super.compCost(x, ct)
   }
 
 }
 
-case class SplitContext(scope:List[PIRNode]) extends {
-  override def toString = s"SplitContext${hashCode}"
+case class Partition(scope:List[PIRNode]) extends {
+  override def toString = s"Partition${hashCode}"
   def deps:Seq[Node[_]] = {
     val descendents = scope.flatMap { n => n :: n.descendents }
     val edges = descendents.toIterator.flatMap { _.localEdges }

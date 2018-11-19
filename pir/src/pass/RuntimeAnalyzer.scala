@@ -112,7 +112,10 @@ trait RuntimeAnalyzer { self:PIRPass =>
       case n:Context if n.collectDown[HostInController]().nonEmpty => Some(1l)
       case n:Context =>
         var (readsWithInits, reads) = n.reads.partition { _.initToken.get }
-        if (accountForCycle) reads = reads ++ readsWithInits
+        if (accountForCycle) {
+          reads = reads ++ readsWithInits
+          if (reads.isEmpty) err(s"$n has no read inputs!")
+        }
         assertOptionUnify(reads, s"$n.reads=$reads, read.count * read.scale") { read => 
           zipMap(read.getCount, read.getScale) { _ * _ }
         }

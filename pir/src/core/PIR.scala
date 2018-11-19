@@ -112,7 +112,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(enableMapping, placerAndRouter).dependsOn(matchPruner)
 
     addPass(genPsim, psimAnalyzer).dependsOn(matchPruner)
-    addPass(genPsim, psimAnalyzer).dependsOn(matchPruner) // Need to run twice to account for cycle in data flow graph
+    addPass(genPsim, psimAnalyzer).dependsOn(psimAnalyzer) // Need to run twice to account for cycle in data flow graph
     addPass(enableDot, new PIRCtxDotGen(s"simple8.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top8.dot"))
     addPass(enableDot, new PIRNetworkDotGen(s"net.dot"))
