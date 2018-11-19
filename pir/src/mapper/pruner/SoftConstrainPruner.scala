@@ -6,7 +6,7 @@ import prism.graph._
 import spade.param._
 import prism.collection.immutable._
 
-class SoftConstrainPruner(implicit compiler:PIR) extends ConstrainPruner with CUCostUtil with DFSPartitioner {
+class SoftConstrainPruner(implicit compiler:PIR) extends ConstrainPruner with CUCostUtil with ComputePartitioner {
 
   override def prune[T](x:T):EOption[T] = super.prune[T](x).flatMap {
     case x:CUMap if !spadeParam.isAsic =>

@@ -2,6 +2,7 @@ package pir
 package pass
 
 import pir.node._
+import pir.mapper._
 import prism.graph._
 
 trait MemoryAnalyzer extends PIRPass with Transformer {
@@ -27,8 +28,8 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
 
   def compEnqDeq(a:ControlTree, b:ControlTree, isFIFO:Boolean, actx:Context, bctx:Context):(PIRNode, PIRNode) = 
   dbgblk(s"compEnqDeq($a, $b, isFIFO=$isFIFO, actx=$actx, bctx=$bctx)"){
-    if (isFIFO && a == b) {
-      val enq = within(actx, a) { allocate[High]() { High() } } 
+    if (isFIFO && a == b && this.isInstanceOf[ComputePartitioner]) {
+      val enq = within(actx, a) { allocate[High]() { High() } }
       val deq = within(bctx, b) { allocate[High]() { High() } }
       (enq, deq)
     } else if (isFIFO) {

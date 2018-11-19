@@ -6,7 +6,7 @@ import pir.pass._
 import prism.graph._
 import prism.collection.immutable._
 
-trait DFSPartitioner extends Partitioner with BufferAnalyzer {
+trait ComputePartitioner extends Partitioner with BufferAnalyzer {
 
   def getCosts(k:Any, x:Any) = {
     k match {
@@ -119,10 +119,11 @@ trait DFSPartitioner extends Partitioner with BufferAnalyzer {
   }).distinct
 
   def dupDeps(from:Context, to:Context) = dbgblk(s"dupDeps($from, $to)") {
-    var deps = to.accum(visitFunc=visitIn(from) _)
-    deps = deps.filterNot { _ == to }
-    deps ++= from.collectDown[TokenRead]()
-    dbg(s"deps=$deps")
+    //var deps = to.accum(visitFunc=visitIn(from) _)
+    //deps = deps.filterNot { _ == to }
+    //deps ++= from.collectDown[TokenRead]()
+    //dbg(s"deps=$deps")
+    val deps = from.descendents
     val mapping = within(to) { mirrorAll(deps) }
     to.descendents.foreach { x =>
       x.localDeps.foreach { dep =>

@@ -160,7 +160,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
       dsts.zipWithIndex.foreach { case (dst,idx) =>
         emitln(s"dst[$idx] = ${quote(dst)}")
       }
-      n.getCount.fold {
+      n.count.v.fold {
         emitln(s"# count doen't exist")
       } { c =>
         emitln(s"count = $c")
