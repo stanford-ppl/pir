@@ -76,10 +76,9 @@ trait DFSPartitioner extends Partitioner with BufferAnalyzer {
             ctx
           }
         }
-        ctxs.foreach { ctx =>
-          dupDeps(k, ctx)
-          bufferInput(ctx)
-        }
+         // need to run in two pass to avoid duplicated allocation
+        ctxs.foreach { ctx => dupDeps(k, ctx) }
+        ctxs.foreach { ctx => bufferInput(ctx) }
         (k::k.descendents).foreach { removeNode }
         ctxs
       case k:SplitContext =>

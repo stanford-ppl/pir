@@ -100,7 +100,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
         assertUnify(children, s"$n.valid.scale") { child =>
           zipMap(child.valid.T.getScale, child.getIter) { _ * _ }
         }.getOrElse(Some(1l))
-      case Const(true) => Some(1l)
+      case _:High => Some(1l)
       case n => throw PIRException(s"Don't know how to compute scale of $n")
     }
   }
