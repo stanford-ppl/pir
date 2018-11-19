@@ -31,6 +31,7 @@ trait DefaultParamLoader extends Transformer {
         case ("col", x, arg) => getOptOrElse("col", arg)
         case (_, x, arg) => transform(arg)
       }.mapFields[NetworkParam] {
+        case ("topology", x, arg) if optIs("net","p2p") => "p2p"
         case ("linkProp", x, arg) => getOptOrElse("link-prop", arg)
         case ("flitWidth", x, arg) => getOptOrElse("flit-width", arg)
         case (_, x, arg) => transform(arg)
@@ -49,13 +50,11 @@ trait DefaultParamLoader extends Transformer {
     }
   }
   def cuTp(n:FIFOParam):String = {
-    val tp = n.cuParam match {
+    n.cuParam match {
       case _:PCUParam => "pcu"
       case _:PMUParam => "pmu"
       case _:DramAGParam => "dag"
     }
-    println(n, tp)
-    tp
   }
     
 }

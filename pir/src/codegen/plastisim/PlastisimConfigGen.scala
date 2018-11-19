@@ -68,7 +68,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
     n.collectDown[DRAMCommand]().headOption.flatMap { command =>
       if (config.enableTrace) Some(command) else None
     }.fold{
-      emitln(s"lat = 6") //TODO
+      emitln(s"lat = ${getLatency(n)}")
     } {
       case command:FringeDenseLoad =>
         val par = command.data.T.getVec
@@ -110,6 +110,22 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
     }
   }
 
+  def paramOf(n:Context):Parameter = {
+    val global = n.global.get
+    topMap.right.get.cumap.usedMap(global).params.get
+  }
+
+  def getLatency(n:Context) = {
+    n.global.get match {
+      case g:ArgFringe => 1
+      case g:DRAMFringe => 100
+      case g:GlobalContainer if spadeParam.isAsic =>
+        Math.max(n.collectDown[OpNode]().size, 1)
+      case g:GlobalContainer =>
+        paramOf(n).as[CUParam].numStage
+    }
+  }
+
   def emitStartToken(n:Context) = {
     val isHostIn = n.collectDown[HostInController]().nonEmpty
     if (isHostIn) {
@@ -130,11 +146,23 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
     }
   }
 
+  def getBufferSize(n:Context, read:LocalOutAccess) = {
+    if (spadeParam.isAsic || spadeParam.isP2P) 100
+    else {
+      val tp = if (read.getVec > 1) "vec" else "word"
+      paramOf(n) match {
+        case param:CUParam => param.fifoParamOf(tp).get.depth
+        case param:ArgFringeParam => 1
+        case param:MCParam => 10
+      }
+    }
+  }
+
   def emitInLinks(n:Context) = dbgblk(s"emitInLinks($n)") {
     n.reads.zipWithIndex.foreach { case (read, idx) =>
       emitln(s"link_in[$idx] = ${read.inAccess}")
       emitln(s"scale_in[$idx] = ${read.constScale}")
-      emitln(s"buffer[$idx] = ${read.depth.get}")
+      emitln(s"buffer[$idx] = ${getBufferSize(n, read)}")
     }
   }
 

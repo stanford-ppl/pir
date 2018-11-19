@@ -119,11 +119,10 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
   }).distinct
 
   def dupDeps(from:Context, to:Context) = dbgblk(s"dupDeps($from, $to)") {
-    //var deps = to.accum(visitFunc=visitIn(from) _)
-    //deps = deps.filterNot { _ == to }
-    //deps ++= from.collectDown[TokenRead]()
-    //dbg(s"deps=$deps")
-    val deps = from.descendents
+    var deps = to.accum(visitFunc=visitIn(from) _)
+    deps = deps.filterNot { _ == to }
+    deps ++= from.collectDown[TokenRead]()
+    dbg(s"deps=$deps")
     val mapping = within(to) { mirrorAll(deps) }
     to.descendents.foreach { x =>
       x.localDeps.foreach { dep =>

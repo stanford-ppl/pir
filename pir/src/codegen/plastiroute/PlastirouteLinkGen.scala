@@ -9,6 +9,10 @@ import prism.codegen._
 class PlastirouteLinkGen(implicit compiler: PIR) extends PlastisimCodegen with CSVCodegen {
   override def fileName = prouteLinkName
 
+  override def runPass = {
+    if (!noPlaceAndRoute) super.runPass
+  }
+
   override def emitNode(n:N) = n match {
     case n:GlobalOutput =>
       val row = newRow
