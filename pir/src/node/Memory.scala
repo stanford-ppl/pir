@@ -50,7 +50,7 @@ case class ArgFringe()(implicit env:Env) extends GlobalContainer {
   val hostOutCtrler = new ChildField[HostOutController, HostOutController]("hostOutController")
 }
 case class MemoryContainer()(implicit env:Env) extends GlobalContainer
-case class CUContainer()(implicit env:Env) extends GlobalContainer
+case class ComputeContainer()(implicit env:Env) extends GlobalContainer
 case class DRAMFringe()(implicit env:Env) extends GlobalContainer
 
 trait GlobalIO extends PIRNode
@@ -73,10 +73,11 @@ trait Def extends PIRNode with DefNode[PIRNode] {
 }
 
 case class Const(value:Any)(implicit env:Env) extends Def
-case class OpDef(op:Opcode)(implicit env:Env) extends Def {
+trait OpNode extends Def
+case class OpDef(op:Opcode)(implicit env:Env) extends OpNode {
   val input = new InputField[List[PIRNode]]("input")
 }
-case class RegAccumOp(op:String)(implicit env:Env) extends Def {
+case class RegAccumOp(op:String)(implicit env:Env) extends OpNode {
   val in = new InputField[PIRNode]("input")
   val en = new InputField[Set[PIRNode]]("en")
   val first = new InputField[PIRNode]("first")

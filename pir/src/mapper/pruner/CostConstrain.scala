@@ -35,7 +35,9 @@ trait SetCost[T,C<:SetCost[T,C]] extends Cost[C] { self:C =>
 }
 
 trait CostUtil {
-  def notFit(kc:Cost[_], vc:Cost[_]) = (kc, vc) match {
+  def notFit(kc:Any, vc:Any):Boolean = (kc, vc) match {
+    case (kc:List[_], vc:List[_]) =>
+      (kc, vc).zipped.exists { case (kc, vc) => notFit(kc, vc) }
     case (kc:QuantityCost[_], vc:QuantityCost[_]) =>
       (kc.quantities, vc.quantities).zipped.exists { case (kq, vq) => kq > vq }
     case (kc:MaxCost[_], vc:MaxCost[_]) =>

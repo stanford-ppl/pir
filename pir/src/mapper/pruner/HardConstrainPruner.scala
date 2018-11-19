@@ -13,10 +13,7 @@ class HardConstrainPruner(implicit compiler:PIR) extends ConstrainPruner with CU
     case x:CUMap if !spadeParam.isAsic =>
       flatFold(x.freeKeys, x) { case (x, k) =>
         val kc = getCosts(k)
-        x.filterNotAtKey(k) { v => 
-          val vc = getCosts(v)
-          (kc, vc).zipped.exists { case (kc, vc) => notFit(kc, vc) }
-        }
+        x.filterNotAtKey(k) { v => notFit(kc, getCosts(v)) }
       }.asInstanceOf[EOption[T]]
     case x => super.prune(x)
   }
@@ -30,7 +27,7 @@ class HardConstrainPruner(implicit compiler:PIR) extends ConstrainPruner with CU
     Nil
   }
 
-  override def notFit(kc:Cost[_], vc:Cost[_]) = {
+  override def notFit(kc:Any, vc:Any) = {
     (kc, vc) match {
       case (kc:QuantityCost[_], vc:QuantityCost[_]) =>
         (kc.quantities, vc.quantities).zipped.exists { case (kq, vq) => kq > 0 && vq == 0 }

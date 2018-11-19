@@ -27,7 +27,15 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
 
   def compEnqDeq(a:ControlTree, b:ControlTree, isFIFO:Boolean, actx:Context, bctx:Context):(PIRNode, PIRNode) = 
   dbgblk(s"compEnqDeq($a, $b, isFIFO=$isFIFO, actx=$actx, bctx=$bctx)"){
-    if (isFIFO) {
+    if (isFIFO && a == b) {
+      val enq = within(actx, a) { 
+        allocate[Const] { _.value == true } { Const(true) }
+      }
+      val deq = within(bctx, b) { 
+        allocate[Const] { _.value == true } { Const(true) }
+      }
+      (enq, deq)
+    } else if (isFIFO) {
       (ctrlValid(a, actx), ctrlValid(b, bctx))
     } else if (a.isAncestorOf(b)) {
       val bAncesstors = (b::b.ancestors)
@@ -53,8 +61,10 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
   def ctrlValid(ctrl:ControlTree, ctx:Context):PIRNode = {
     ctrl.schedule match {
       case "Streaming" =>
-        within(ctx, ctrl) { Const(true) }
-      case _ =>
+        within(ctx, ctrl) { 
+          allocate[Const] { _.value == true } { Const(true) }
+        }
+    case _ =>
         if (!compiler.hasRun[DependencyDuplication]) {
           // Centralized controller
           ctrl.ctrler.get.valid

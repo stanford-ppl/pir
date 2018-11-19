@@ -145,9 +145,10 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
     }
   }
 
-  def emitLink(n:LocalInAccess) = {
+  def emitLink(n:LocalInAccess) = dbgblk(s"emitLink($n)"){
     val src = n.ctx.get
     val dsts = n.outAccesses.map { _.ctx.get }
+    dbg(s"src=$src dsts=$dsts")
     val isGlobal = n.isGlobal
     val isLocalLink = !isGlobal || noPlaceAndRoute
     val linkstr = if (isLocalLink) "" else "net"

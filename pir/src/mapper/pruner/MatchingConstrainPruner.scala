@@ -13,7 +13,7 @@ trait MatchingConstrainPruner extends ConstrainPruner {
       dbg(s"keys=${quote(ks)}")
       dbg(s"values=${quote(vs)}")
     }
-    if (fit) Right(fg) else Left(MatchConstrainFailure[K,S](fg, ks.toSet))
+    if (fit) Right(fg) else Left(MatchConstrainFailure[K,V,S](fg, ks, vs))
   }
 
   def prune[K,V,S<:FG[K,V,S]](x:S):EOption[S] = {
@@ -29,6 +29,6 @@ trait MatchingConstrainPruner extends ConstrainPruner {
   }
   
 }
-case class MatchConstrainFailure[K,S<:FG[K,_,S]](fg:S, keys:Set[K]) extends MappingFailure {
-  override def toString = s"MatchConstrainFailure(${fg.getClass.getSimpleName}, $keys)"
+case class MatchConstrainFailure[K,V,S<:FG[K,V,S]](fg:S, keys:Set[K], values:Set[V]) extends MappingFailure {
+  override def toString = s"MatchConstrainFailure(${fg.getClass.getSimpleName}, ${keys.size}, ${values.size})"
 }

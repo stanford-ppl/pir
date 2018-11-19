@@ -87,6 +87,9 @@ trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] { self:S =>
       if (nfg.freeMap.fmap(k).isEmpty) Left(InvalidFactorGraph(this, k)) else Right(nfg)
     }
   }
+  def mapFreeMap(func:FM => FM):S = {
+    newInstance(func(freeMap), weights, usedMap)
+  }
 }
 
 trait OneToOneFactorGraphLike[K,V,S<:OneToOneFactorGraphLike[K,V,S]] extends FactorGraphLike[K,V,S] { self:S =>

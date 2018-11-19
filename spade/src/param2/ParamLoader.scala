@@ -25,9 +25,14 @@ trait DefaultParamLoader extends Transformer {
         case ("pattern", arg) if optIs("net","asic") => transform(AsicPattern())
         case ("pattern", arg) if optIs("pattern","checkerboard") => 
           val cb = Checkerboard()
-          dbg(s"$arg ${arg.asInstanceOf[Checkerboard].cu1}")
-          dbg(s"cb=$cb ${cb.cu1} ")
           transform(cb)
+        case (_, arg) => transform(arg)
+      }
+
+    case n:Checkerboard =>
+      n.mapFields[Checkerboard] {
+        case ("row", arg) => getOptOrElse("row", arg)
+        case ("col", arg) => getOptOrElse("col", arg)
         case (_, arg) => transform(arg)
       }
 

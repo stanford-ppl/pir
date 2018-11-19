@@ -32,6 +32,8 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
       .append("par", n.par)
     }.foldAt(n.to[OpDef]) { (q,n) =>
       s"$q\n${n.op}"
+    }.foldAt(n.to[Const]) { (q,n) =>
+      s"$q\n${n.value}"
     }.foldAt(n.to[Access]) { (q,n) =>
       q.append("port", n.port.v)
     }.foldAt(n.to[LocalOutAccess]) { (q,n) =>
@@ -58,7 +60,7 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     case n:DRAMFringe => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
     //case n:StreamFringe => attr.fillcolor("lightseagreen").style(filled)
 
-    case n:OpDef => attr.fillcolor("mediumorchid1").style(filled)
+    case n:OpNode => attr.fillcolor("mediumorchid1").style(filled)
     case n => super.color(attr, n)
   }
 

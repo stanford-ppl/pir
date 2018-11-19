@@ -19,7 +19,7 @@ case class StageCost(quantity:Int=0) extends QuantityCost[StageCost]
 case class LaneCost(quantity:Int=1) extends MaxCost[LaneCost]
 case class OpCost(set:Set[Opcode]=Set.empty) extends SetCost[Opcode,OpCost]
 
-trait CUCostUtil extends CostUtil with RuntimeAnalyzer with Memorization { self:PIRPass =>
+trait CUCostUtil extends PIRPass with CostUtil with RuntimeAnalyzer with Memorization { self =>
   implicit class CostOp(x:Any) {
     def getCost[C<:Cost[C]:ClassTag]:C = x match {
       case x:CUMap.V => self.getCost(x.params.get, classTag[C]).as[C]
@@ -27,15 +27,18 @@ trait CUCostUtil extends CostUtil with RuntimeAnalyzer with Memorization { self:
     }
   }
 
-  private def getCost(x:Any, ct:ClassTag[_]) = memorize("getCost", (x, ct)) { case (x, ct) =>
-    def switch[C<:Cost[C]:ClassTag](cfunc:Any => C) = if (ct == classTag[C]) Some(cfunc(x)) else None
-    switch[AFGCost] {
+  private def getCost(x:Any, ct:ClassTag[_]) = memorize("getCost", (x, ct)) { case (x, ct) => compCost(x, ct) }
+
+  protected def switch[C<:Cost[C]:ClassTag](x:Any, ct:ClassTag[_])(cfunc:PartialFunction[Any, C]) = if (ct == classTag[C] && cfunc.isDefinedAt(x)) Some(cfunc(x)) else None
+
+  protected def compCost(x:Any, ct:ClassTag[_]) = {
+    switch[AFGCost](x,ct) {
       case n:GlobalContainer => AFGCost(n.isInstanceOf[ArgFringe])
       case n:Parameter => AFGCost(n.isInstanceOf[ArgFringeParam])
-    } orElse switch[MCCost] {
+    } orElse switch[MCCost](x,ct) {
       case n:GlobalContainer => MCCost(n.isInstanceOf[DRAMFringe])
       case n:Parameter => MCCost(n.isInstanceOf[MCParam])
-    } orElse switch[SRAMCost] {
+    } orElse switch[SRAMCost](x,ct) {
       case n:GlobalContainer =>
         val srams = n.collectDown[SRAM]()
         val sramSize = srams.map { sram => sram.depth.get * sram.size }.maxOption.getOrElse(0)
@@ -43,7 +46,7 @@ trait CUCostUtil extends CostUtil with RuntimeAnalyzer with Memorization { self:
         SRAMCost(srams.size, nBanks, sramSize)
       case n:CUParam => SRAMCost(n.sramParam.count, n.sramParam.bank, n.sramParam.sizeInWord)
       case n => SRAMCost(0,0,0)
-    } orElse switch[FIFOCost] {
+    } orElse switch[FIFOCost](x,ct) {
       case n:GlobalContainer => 
         val fifos = n.collectDown[FIFO]()
         val (vfifos, sfifos) = fifos.partition { _.getVec > 1 }
@@ -57,31 +60,31 @@ trait CUCostUtil extends CostUtil with RuntimeAnalyzer with Memorization { self:
       case n:CUParam =>
         FIFOCost(n.fifoParamOf("word").fold(0){_.count}, n.fifoParamOf("vec").fold(0){_.count})
       case n:Parameter => FIFOCost(0,0)
-    } orElse switch[InputCost] {
+    } orElse switch[InputCost](x,ct) {
       case n:GlobalContainer => 
         val gins = n.collectDown[GlobalInput]()
         val (vins, sins) = gins.partition { _.getVec > 1 }
         InputCost(sins.size, vins.size)
       case n:CUParam => InputCost(n.numSin, n.numVin)
       case n:Parameter => InputCost(100,100)
-    } orElse switch[OutputCost] {
+    } orElse switch[OutputCost](x,ct) {
       case n:GlobalContainer => 
         val outs = n.collectDown[GlobalOutput]()
         val (vouts, souts) = outs.partition { _.getVec > 1 }
         OutputCost(souts.size, vouts.size)
       case n:CUParam => OutputCost(n.numSout, n.numVout)
       case n:Parameter => OutputCost(100,100)
-    } orElse switch[StageCost] {
+    } orElse switch[StageCost](x,ct) {
       case n:GlobalContainer => 
         val ctxs = n.collectDown[Context]()
         ctxs.map { _.getCost[StageCost] }.reduce { _ + _ }
       case n:Context =>
-        val ops = n.collectDown[OpDef]()
+        val ops = n.collectDown[OpNode]()
         StageCost(ops.size)
       case n:CUParam => 
         StageCost(n.numStage)
       case n:Parameter => StageCost(0)
-    } orElse switch[LaneCost] {
+    } orElse switch[LaneCost](x,ct) {
       case n:GlobalContainer => 
         val ctxs = n.collectDown[Context]()
         ctxs.map { _.getCost[LaneCost] }.reduce { _ + _ }
@@ -90,7 +93,7 @@ trait CUCostUtil extends CostUtil with RuntimeAnalyzer with Memorization { self:
         LaneCost(inner.map { _.getVec }.getOrElse(1))
       case n:CUParam => LaneCost(n.numLane)
       case n:Parameter => LaneCost(1)
-    } orElse switch[OpCost] {
+    } orElse switch[OpCost](x,ct) {
       case n:GlobalContainer => 
         val ctxs = n.collectDown[Context]()
         ctxs.map { _.getCost[OpCost] }.reduce { _ + _ }

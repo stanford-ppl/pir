@@ -36,7 +36,7 @@ trait Transformer extends Logging {
     assert(from.localOuts.size == to.localOuts.size, 
       s"$from and $to have different number of localOuts from=${from.localOuts} to ${to.localOuts}")
     (from.localOuts, to.localOuts).zipped.foreach { case (from, to) =>
-      swapInput(node, from, to)
+      if (from.neighbors.contains(node)) swapInput(node, from, to)
     }
   }
 

@@ -9,11 +9,17 @@ trait PIRDebugger extends Debugger {
 
   implicit def compiler:PIR
 
-  override def action:BreakAction = openPIRDot orElse super.action
+  override def action:BreakAction = openPIRDot orElse openPIRCtxDot orElse super.action
 
-  def openPIRDot:BreakAction = { case ("op", state, callBack) =>
+  def openPIRDot:BreakAction = { case ("pdot", state, callBack) =>
     info(s"Open PIRIRDotGen")
-    val dotGen = new PIRIRDotGen(s"top_bp.dot").run.open
+    new PIRIRDotGen(s"top_bp.dot").run.open
+    callBack()
+  }
+
+  def openPIRCtxDot:BreakAction = { case ("ctx", state, callBack) =>
+    info(s"Open PIRCtxDotGen")
+    new PIRCtxDotGen(s"top_ctx.dot").run.open
     callBack()
   }
 

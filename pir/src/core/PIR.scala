@@ -42,6 +42,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
   //lazy val cuPruning = new CUPruning()
   //lazy val cuPlacer = new CUPlacer()
   lazy val hardPruner = new HardConstrainPruner()
+  lazy val softPruner = new SoftConstrainPruner()
   lazy val dagPruner = new DAGPruner()
   lazy val pmuPruner = new PMUPruner()
   lazy val matchPruner = new MatchPruner()
@@ -97,22 +98,24 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     saveSession
 
     addPass(initializer)
-    addPass(genPsim, psimAnalyzer).dependsOn(initializer)
-    addPass(genPsim, psimAnalyzer).dependsOn(initializer) // Need to run twice to account for cycle in data flow graph
-
+    addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
+    addPass(config.debug, new ParamHtmlIRPrinter(s"param.html", spadeParam))
     addPass(enableDot, new PIRCtxDotGen(s"simple7.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
-    addPass(enableDot, new PIRNetworkDotGen(s"net.dot"))
-    addPass(enableDot, new ParamHtmlIRPrinter(s"param.html", spadeParam))
-    addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
 
     // ------- Mapping  --------
     addPass(enableMapping, hardPruner)
     //addPass(enableMapping, pmuPruner).dependsOn(hardPruner)
-    addPass(enableMapping, dagPruner).dependsOn(hardPruner)//.dependsOn(pmuPruner)
+    addPass(enableMapping, softPruner).dependsOn(hardPruner)
+    addPass(enableMapping, dagPruner).dependsOn(softPruner)//.dependsOn(pmuPruner)
     addPass(enableMapping, matchPruner).dependsOn(dagPruner)
     addPass(enableMapping, placerAndRouter).dependsOn(matchPruner)
 
+    addPass(genPsim, psimAnalyzer).dependsOn(initializer)
+    addPass(genPsim, psimAnalyzer).dependsOn(initializer) // Need to run twice to account for cycle in data flow graph
+    addPass(enableDot, new PIRCtxDotGen(s"simple8.dot"))
+    addPass(enableDot, new PIRIRDotGen(s"top8.dot"))
+    addPass(enableDot, new PIRNetworkDotGen(s"net.dot"))
     //addPass(cuStats)
     
     // ------- Codegen  --------

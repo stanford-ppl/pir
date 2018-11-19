@@ -8,6 +8,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
   def escape(dep:N, scope:N) = dep match {
     case dep:Memory => false 
     case dep:BufferWrite => false
+    case dep:GlobalInput => false
     case dep if dep.isDescendentOf(scope) => false
     case dep => true
   }
@@ -68,6 +69,52 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     swapInput(deped, depOut, read.out)
     read
   }
+
+  def insertGlobalInput(
+    global:GlobalContainer,
+    dep:N, 
+    depFroms:Seq[N]
+  ):GlobalInput = dbgblk(s"insertGlobalInput($dep, $depFroms)"){
+    dep match {
+      case dep:GlobalInput if dep.isDescendentOf(global) => dep
+      case dep:GlobalInput => 
+        depFroms.foreach { deped =>
+          swapInput(deped, dep.out, dep.in.T.out)
+        }
+        insertGlobalInput(global, dep.in.T, depFroms)
+      case dep =>
+        val gin = GlobalInput()
+        depFroms.foreach { depFrom =>
+          insertConnection(dep, depFrom, gin.in, gin.out)
+        }
+        gin
+    }
+  }
+
+  def insertGlobalOutput(
+    global:GlobalContainer,
+    depedFrom:N, 
+    depeds:Seq[N]
+  ):GlobalOutput = dbgblk(s"insertGlobalOutput($depedFrom, $depeds)"){
+    depedFrom match {
+      case depedFrom:GlobalOutput if depedFrom.isDescendentOf(global) => depedFrom
+      case depedFrom:GlobalOutput => throw PIRException(s"impossible case insertGlobalOutput")
+      case depedFrom =>
+        val gout = GlobalOutput()
+        depeds.foreach { deped =>
+          insertConnection(depedFrom, deped, gout.in, gout.out)
+        }
+        gout
+    }
+  }
+
+  def insertGlobalIO(global:GlobalContainer) = {
+    within(global) {
+      global.depsFrom.foreach { case (dep, depFroms) => insertGlobalInput(global, dep, depFroms) }
+      global.depedsTo.foreach { case (depedFrom, depeds) => insertGlobalOutput(global, depedFrom, depeds) }
+    }
+  }
+
 
 }
 
