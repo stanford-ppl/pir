@@ -9,6 +9,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     case dep:Memory => false 
     case dep:BufferWrite => false
     case dep:GlobalInput => false
+    case dep:GlobalOutput => false
     case dep if dep.isDescendentOf(scope) => false
     case dep => true
   }
