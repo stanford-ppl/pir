@@ -237,7 +237,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
           read.initToken := true
         }
         outAccess.depeds.foreach { deped =>
-          swapInput(deped, outAccess.as[Def].out, read.out)
+          swapInput(deped, outAccess.out, read.out)
         }
       }
     }

@@ -30,6 +30,25 @@ trait PMUPartitioner extends Partitioner {
   def bankSplit(x:CUMap, k:CUMap.K, kbanks:Int, vbanks:Int) = dbgblk(s"bankSplit($k)"){
     val numCU = vbanks /! kbanks
     dbg(s"Split $k into $numCU cus")
+    val nodes = k::k.descendents
+    val mappings = List.fill(numCU) { within(pirTop) { mirrorAll(nodes) } }
+    val gouts = k.collectDown[GlobalOutput]()
+    gouts.foreach { gout =>
+      val mgouts = mappings.map { _(gout) }
+      gout.out.T.map { gin =>
+        gin.out.T.map { read =>
+          within(read.parent.get.as[PIRNode], read.ctrl.get) {
+            val mreads = mgouts.map { mgout =>
+              val mread = mirror[LocalOutAccess](read)
+              mread.in.disconnect
+              mread.in(mgout)
+              mread
+            }
+            dbg(s"add mreads=$mreads")
+          }
+        }
+      }
+    }
     Left(SRAMBankNotFit(k, kbanks))
   }
 

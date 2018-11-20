@@ -14,60 +14,60 @@ trait BufferAnalyzer extends MemoryAnalyzer {
   }
 
   def bufferInput(ctx:Context):Unit = dbgblk(s"bufferInput($ctx)"){
-    ctx.descendents.foreach { deped =>
-      deped.localDeps.foreach { dep => 
-        if (escape(dep, ctx)) bufferInput(dep.as[PIRNode], deped.as[PIRNode])
-      }
-    }
+    ctx.descendents.foreach { deped => bufferInput(deped.as[PIRNode]) }
   }
 
   def bufferInput(deped:PIRNode):Seq[BufferRead] = {
-    val depedCtx = deped.ctx.get
-    deped.localDeps.flatMap { dep =>
-      if (escape(dep, depedCtx)) Some(bufferInput(dep.as[PIRNode], deped))
-      else None
-    }
+    deped.localIns.flatMap { in => bufferInput(in) }
   }
 
   def bufferInput(in:Input):Seq[BufferRead] = {
     val deped = in.src.as[PIRNode]
-    in.neighbors.map { dep =>
-      bufferInput(dep.as[PIRNode], deped)
+    deped.localIns.flatMap { in =>
+      in.connected.flatMap { out =>
+        bufferInput(out.as[Output], deped.as[PIRNode])
+      }
     }
   }
 
   def bufferOutput(out:Output):Seq[BufferRead] = {
     val dep = out.src.as[PIRNode]
-    val depeds = out.neighbors
-    depeds.map { deped =>
-      bufferInput(dep, deped.as[PIRNode])
+    dep.localOuts.flatMap { out => 
+      out.connected.flatMap { in => 
+        bufferInput(out, in.src.as[PIRNode]) 
+      } 
     }
   }
 
-  private def bufferInput(dep:PIRNode, deped:PIRNode):BufferRead = dbgblk(s"bufferInput(dep=$dep, deped=$deped)"){
-    val depCtx = dep.ctx.get
+  private def bufferInput(depOut:Output, deped:PIRNode):Option[BufferRead] = {
+    val dep = depOut.src.as[PIRNode]
     val depedCtx = deped.ctx.get
-    val isFIFO = dep.getCtrl == deped.getCtrl
-    val (enq, deq) = compEnqDeq(dep.getCtrl, deped.getCtrl, isFIFO, depCtx, depedCtx)
-    val depOut = assertOne(dep.localOuts, s"$dep.localOuts") // HACK: This should be foreach dep.localOuts
-    val write = within(depCtx, dep.getCtrl) {
-      allocate[BufferWrite] { write => 
-        write.data.traceTo(dep) &&
-        write.done.traceTo(enq)
-      } {
-        BufferWrite().data(dep).done(enq)
+    if (escape(dep, depedCtx)) {
+      val read = dbgblk(s"bufferInput(depOut=$dep.${depOut}, deped=$deped)") {
+        val depCtx = dep.ctx.get
+        val isFIFO = dep.getCtrl == deped.getCtrl
+        val (enq, deq) = compEnqDeq(dep.getCtrl, deped.getCtrl, isFIFO, depCtx, depedCtx)
+        val write = within(depCtx, dep.getCtrl) {
+          allocate[BufferWrite] { write => 
+            write.data.traceInTo(depOut) &&
+            write.done.traceInTo(enq)
+          } {
+            BufferWrite().data(dep).done(enq)
+          }
+        }
+        val read = within(depedCtx, deped.getCtrl) {
+          allocate[BufferRead] { read => 
+            read.in.traceInTo(write.out) &&
+            read.done.traceInTo(deq)
+          } {
+            BufferRead(isFIFO).in(write).done(deq).banks(List(dep.getVec))
+          }
+        }
+        swapInput(deped, depOut, read.out)
+        read
       }
-    }
-    val read = within(depedCtx, deped.getCtrl) {
-      allocate[BufferRead] { read => 
-        read.in.traceTo(write) &&
-        read.done.traceTo(deq)
-      } {
-        BufferRead(isFIFO).in(write).done(deq).banks(List(dep.getVec))
-      }
-    }
-    swapInput(deped, depOut, read.out)
-    read
+      Some(read)
+    } else None
   }
 
   def insertGlobalInput(
