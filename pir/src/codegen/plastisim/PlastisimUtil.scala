@@ -36,5 +36,4 @@ trait PlastisimUtil extends PIRPass {
 
 trait PlastisimCodegen extends PlastisimUtil with Codegen with PIRTraversal with ChildFirstTraversal {
   override def dirName = psimOut
-  override def clearGen = {}
 }

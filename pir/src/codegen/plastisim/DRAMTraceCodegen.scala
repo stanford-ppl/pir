@@ -51,6 +51,7 @@ class DRAMTraceCodegen(implicit compiler:PIR) extends ProgramOrderTraversal with
 
   override def initPass = {
     super.initPass
+    clearDir(tracePath)
     offsetMap = scala.collection.immutable.ListMap[DRAM, Int]()
     tracked.clear
     pirTop.collectDown[DRAMCommand]().foreach { fringe =>

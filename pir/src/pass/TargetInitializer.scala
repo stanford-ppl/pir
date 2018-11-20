@@ -18,7 +18,7 @@ class TargetInitializer(implicit compiler:PIR) extends PIRPass with DefaultParam
     compiler.states.spadeTop = create[spade.node.Top](spadeParam)
 
     val pnodes = pirTop.collectDown[CUMap.K]()
-    val snodes = spadeTop.collectDown[CUMap.V]().filterNot { _.isConnector }
+    val snodes = spadeTop.cus
     val tmap = TopMap(CUMap() ++ (pnodes.toSet -> snodes.toSet))
     compiler.states.topMap = Right(tmap)
   }

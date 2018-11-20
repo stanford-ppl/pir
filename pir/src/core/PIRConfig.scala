@@ -10,11 +10,13 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("arch", default="MyDesign", info="Default architecture for mapping")
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
   register("folded-redacc", default=false, "Fold reduction and accumulate operation into a single stage")
+  register("stat", default=false, info="Printing statistics")
 
   def arch = option[String]("arch")
   def enableSplitting = option[Boolean]("splitting")
   def enableMapping = option[Boolean]("mapping")
   def aggressive_dce = option[Boolean]("ag-dce")
+  def printStat = option[Boolean]("stat")
 
   /* ------------------- Plastisim --------------------  */
   register("psim", default=true, info="Enable code generations for plastisim")

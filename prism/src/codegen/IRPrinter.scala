@@ -7,7 +7,6 @@ class BasicIRPrinter(override val dirName:String, val fileName:String, val top:N
 }
 
 trait IRPrinter extends Pass with DFSTopDownTopologicalTraversal with Codegen {
-  override def clearGen = {}
 
   val forward = true
 

@@ -6,13 +6,11 @@ class SpadeConfig(compiler:Compiler) extends prism.Config(compiler) {
   register("waveform", true, info="Enable waveform")
   register("time-out", 100, info="Simulation time out after X cycles")
   register("open", default=false, info="Open dot graph after codegen")
-  register("stat", default=false, info="Printing statistics")
 
   def simulate:Boolean = option[Boolean]("simulate")
   def waveform:Boolean = option[Boolean]("waveform")
   def simulationTimeOut:Int = option[Int]("time-out")
   def openDot = option[Boolean]("open")
-  def printStat = option[Boolean]("stat")
   
   /* ------------------ Architecture parameters ---------------- */
   register[Int]("clock", default=1e9.toInt, info="Clock Frequency")

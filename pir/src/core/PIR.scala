@@ -13,14 +13,8 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
   override val logExtensions = super.logExtensions ++ List(".py", ".cluster")
   override lazy val config = new PIRConfig(this)
 
-  ///* Analysis */
-  lazy val controlPropogator = new ControlPropogation()
-  lazy val psimAnalyzer = new PlastisimAnalyzer()
-  //lazy val psimLinkAnalyzer = new PlastisimLinkAnalyzer()
-  //lazy val psimCountCheck = new PlastisimCountCheck()
-  //lazy val psimVCAllocator = new PlastisimVCAllocation()
+  /* Analysis and Transformations*/
 
-  ///* Transformation */
   lazy val deadCodeEliminator = new DeadCodeElimination()
   lazy val memLowering = new MemoryLowering()
   lazy val contextAnalyzer = new ContextAnalyzer()
@@ -30,17 +24,11 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
   lazy val bufferInsertion = new BufferInsertion()
   lazy val globalInsertion = new GlobalInsertion()
   lazy val routeThroughEliminator = new RouteThroughElimination()
-  //lazy val globalPartitioner = new GlobalPartionerCake()
-  //lazy val routeThroughEliminator = new RouteThroughElimination()
-  //lazy val controlRegInsertion = new ControlRegInsertion()
-  //lazy val controlAllocator = new ControlAllocation()
-  //lazy val controlLowering = new ControlLowering()
-  //lazy val localMemDuplication = new LocalMemDuplication()
+  lazy val controlPropogator = new ControlPropogation()
+  lazy val psimAnalyzer = new PlastisimAnalyzer()
 
-  ///* Mapping */
+  /* Mapping */
   lazy val initializer = new TargetInitializer()
-  //lazy val cuPruning = new CUPruning()
-  //lazy val cuPlacer = new CUPlacer()
   lazy val hardPruner = new HardConstrainPruner()
   lazy val softPruner = new SoftConstrainPruner()
   lazy val dagPruner = new DAGPruner()
@@ -55,13 +43,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
   lazy val prouteLinkGen = new PlastirouteLinkGen()
   lazy val prouteNodeGen = new PlastirouteNodeGen()
   lazy val dramTraceGen = new DRAMTraceCodegen()
-  //lazy val cuStats = new CUStatistics()
-  //lazy val psimConfigCodegen = new PlastisimConfigCodegen()
-  //lazy val psimPlacementCodegen = new PlastisimPlacementCodegen()
-  //lazy val psimTraceCodegen = new PlastisimTraceCodegen()
-  //lazy val psimDotCodegen = new PlastisimDotCodegen(s"psim.dot")
-  //lazy val terminalCSVCodegen = new TerminalCSVCodegen()
-  //lazy val linkCSVCodegen = new LinkCSVCodegen()
+  lazy val report = new ResourceReport()
   //lazy val areaPowerStat = new AreaPowerStat()
   
   /* Simulation */
@@ -117,13 +99,13 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(enableDot, new PIRCtxDotGen(s"simple8.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top8.dot"))
     addPass(enableDot, new PIRNetworkDotGen(s"net.dot"))
-    //addPass(cuStats)
+    addPass(report).dependsOn(placerAndRouter)
     
     // ------- Codegen  --------
     addPass(genTungsten, tungstenPIRGen).dependsOn(psimAnalyzer)
     addPass(genPsim, prouteLinkGen).dependsOn(psimAnalyzer)
     addPass(genPsim, prouteNodeGen).dependsOn(placerAndRouter, psimAnalyzer)
-    addPass(genPsim, psimConfigGen).dependsOn(psimAnalyzer) ==>
+    addPass(genPsim, psimConfigGen).dependsOn(psimAnalyzer, prouteLinkGen) ==>
     addPass(genPsim && runPsim, psimRunner)
 
     //addPass(areaPowerStat).dependsOn(psimConfigCodegen, cuPlacer)

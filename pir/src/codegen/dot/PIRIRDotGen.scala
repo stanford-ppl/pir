@@ -67,7 +67,6 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
   val htmlGen = new PIRHtmlIRPrinter(fileName.replace(".dot", "_IR.html")) {
     override lazy val logger = self.logger
     override def dirName = self.dirName
-    override def clearGen = {}
   }
 
   override def initPass = {
