@@ -4,7 +4,7 @@ package pass
 import pir.node._
 import prism.graph._
 
-class DependencyDuplication(implicit compiler:PIR) extends PIRPass with Transformer {
+class DependencyDuplication(implicit compiler:PIR) extends PIRPass with Transformer with BufferAnalyzer {
 
   override def runPass = {
     val ctxs = pirTop.collectDown[Context]()
@@ -14,21 +14,8 @@ class DependencyDuplication(implicit compiler:PIR) extends PIRPass with Transfor
     ctxs.foreach { check }
   }
 
-  def bound(visitFunc:N => List[N]):N => List[N] = { n:N =>
-    visitFunc(n).filter{ 
-      case x:Memory => false
-      case x:HostWrite => false
-      case x:LocalInAccess => false
-      case x:LocalOutAccess => 
-        val from = x.in.T
-        from != n && !from.isDescendentOf(n)
-      case _ => true
-    }
-  }
-
   def dupDeps(ctx:Context) = dbgblk(s"dupDeps($ctx)") {
-    var deps = ctx.accum(visitFunc=cover[Controller](bound(visitGlobalIn _)), logger=Some(this))
-    deps = deps.filterNot(n => n == ctx)
+    val deps = getDeps(ctx)
     within(ctx) { mirrorAll(deps).toMap }
   }
 

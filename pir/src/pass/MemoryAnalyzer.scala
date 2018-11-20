@@ -41,7 +41,7 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
       val ctrl = bAncesstors(idx-1).as[ControlTree]
       (ctrlValid(a, actx), ctrlDone(ctrl, bctx))
     } else if (b.isAncestorOf(a)) {
-      compEnqDeq(b,a,isFIFO,bctx, actx) 
+      compEnqDeq(b,a,isFIFO,bctx,actx).swap
     } else if (a == b) {
       (ctrlDone(a, actx), ctrlDone(b, bctx))
     } else {
@@ -57,7 +57,7 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
   }
 
   def ctrlValid(ctrl:ControlTree, ctx:Context):PIRNode = {
-    ctrl.schedule match {
+    ctrl.schedule match { //TODO: This is a problem
       case "Streaming" =>
         within(ctx, ctrl) { allocate[High]() { High() } }
       case _ =>

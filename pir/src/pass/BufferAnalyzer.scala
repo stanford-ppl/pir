@@ -128,6 +128,26 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     insertGlobalOutput(global)
   }
 
+  def bound(visitFunc:N => List[N]):N => List[N] = { n:N =>
+    visitFunc(n).filter{ 
+      case x:Memory => false
+      case x:HostWrite => false
+      case x:LocalInAccess => false
+      case x:LocalOutAccess => 
+        val from = x.in.T
+        from != n && !from.isDescendentOf(n)
+      case x:GlobalInput => false
+      case x:GlobalOutput => false
+      case _ => true
+    }
+  }
+
+  def getDeps(x:PIRNode, visitFunc:N => List[N] = visitGlobalIn _) = dbgblk(s"getDeps($x)"){
+    var deps = x.accum(visitFunc=cover[Controller](bound(visitFunc)))
+    deps = deps.filterNot(_ == x)
+    deps
+  }
+
 
 }
 
