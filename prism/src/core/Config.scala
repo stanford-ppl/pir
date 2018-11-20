@@ -8,7 +8,7 @@ class Config(compiler:Compiler) extends ArgParser {
   def defaultName = compiler.getClass.getSimpleName.replace("$","")
 
   register("codegen", true, "Enable codegen")
-  register("debug", true, "Enable debug")
+  register("debug", false, "Enable debug")
   register[String]("out", "pir/out", "Output directory for pir compiler.")
   register("verbose", false, "Enter verbose mode")
   register[Int]("start-id", "Runner ID to start with")

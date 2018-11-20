@@ -11,6 +11,7 @@ abstract class Pass(implicit val compiler:Compiler) extends Logging {
 
   def runner = compiler.getCurrentRunner(this)
   def config = compiler.config
+  override def debug = config.debug
 
   def initPass:Unit = {
     this match {

@@ -5,17 +5,17 @@ import scala.collection.mutable
 trait Session { self:Compiler =>
   var restore = false
 
-  val runners = mutable.ListBuffer[Runner[_]]()
-  val storedRunneres = mutable.ListBuffer[Runner[_]]()
+  val runners = mutable.ListBuffer[Runner]()
+  val storedRunneres = mutable.ListBuffer[Runner]()
 
-  val passes = mutable.Map[Pass, mutable.ListBuffer[Runner[_]]]()
+  val passes = mutable.Map[Pass, mutable.ListBuffer[Runner]]()
 
   var currInit = 0
 
-  def addPass[P<:Pass:ClassTag](pass:P):Runner[_] = addPass(true, pass)
-  def addPass[P<:Pass:ClassTag](shouldRun:Boolean, pass:P):Runner[_] = {
-    passes.getOrElseUpdate(pass, mutable.ListBuffer[Runner[_]]())
-    val runner = Runner[P](this, currInit)
+  def addPass[P<:Pass:ClassTag](pass:P):Runner = addPass(true, pass)
+  def addPass[P<:Pass:ClassTag](shouldRun:Boolean, pass:P):Runner = {
+    passes.getOrElseUpdate(pass, mutable.ListBuffer[Runner]())
+    val runner = Runner(this, currInit)
     if (shouldRun) runner.initPending else runner.initDisabled
     runners += runner
     runner.setPass(pass)
@@ -23,9 +23,16 @@ trait Session { self:Compiler =>
     currInit += 1
     runner
   }
-  def addPass(name:String)(lambda: Runner[_] => Unit):Runner[_] = addPass(QuickPass(name, lambda))
-  case class QuickPass(override val name:String, lambda: Runner[_] => Unit) extends Pass {
+  def addPass(name:String)(lambda: Runner => Unit):Runner = addPass(QuickPass(name, lambda))
+  case class QuickPass(override val name:String, lambda: Runner => Unit) extends Pass {
     override def runPass = lambda(runner)
+  }
+
+  implicit class RunnerOp(runner:Runner) {
+    def ==> (next:Runner) = {
+      next.dependsOn(runner)
+      next
+    }
   }
 
   def loadSession = {
@@ -57,7 +64,7 @@ trait Session { self:Compiler =>
     }
   }
 
-  var currRun:Runner[_] = _
+  var currRun:Runner = _
   def runSession:Boolean = {
     passes.foreach { case (pass, _) => pass.reset }
     runners.foreach { runner =>
@@ -95,7 +102,7 @@ trait Session { self:Compiler =>
   def getCurrentRunner(pass:Pass) = {
     val runner = if (!passes.contains(pass)) None else passes(pass).filter { _.isRunning }.headOption
     runner.getOrElse {
-      val runner = Runner[pass.type](this, 999)
+      val runner = Runner(this, 999)
       runner.setPass(pass)
       runner.initPending
       runner

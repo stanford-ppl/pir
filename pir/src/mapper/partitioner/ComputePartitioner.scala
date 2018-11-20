@@ -98,19 +98,6 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
     case n => false
   }
 
-  override def removeNode(n:N) = {
-    super.removeNode(n)
-    removeCache(n)
-  }
-
-  def removeCache(n:Any) = {
-    resetCacheOn {
-      case `n` => true
-      case (`n`, _) => true
-      case _ => false
-    }
-  }
-
   def visitIn(scope:Context)(n:N):List[N] = (visitGlobalIn(n).flatMap {
     case x if !x.isDescendentOf(scope) => None
     case x => 

@@ -1,18 +1,14 @@
 package prism
 
-case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializable with RunnerStatus {
-  val pct = implicitly[ClassTag[P]]
-  var _pass:Option[P] = None
+case class Runner(session:Session, id:Int) extends Serializable with RunnerStatus {
+  var _pass:Option[Pass] = None
   def pass:Pass = _pass.get
   var name:String = _
   def logFile = s"$name.log"
   def startRunId:Int = session.asInstanceOf[Compiler].config.startRunId
 
   def setPass(pass:Pass) = {
-    pass match {
-      case pass:P => this._pass = Some(pass)
-      case _ => throw SessionRestoreFailure(s"Restored Runner[${pct}] cannot load $pass") 
-    }
+    this._pass = Some(pass)
     this.name = s"${"%02d".format(id)}-$pass"
     dependencies.clear
     this
@@ -23,16 +19,21 @@ case class Runner[P<:Pass:ClassTag](session:Session, id:Int) extends Serializabl
     dependencies.clear
   }
 
-  val dependencies = ListBuffer[Runner[_]]()
+  val dependencies = ListBuffer[Runner]()
+  def dependsOn(dep:Runner):this.type = {
+    dependencies += dep
+    this
+  }
   def dependsOn(deps:Pass*):this.type = {
-    deps.foreach { dep =>
+    val runners = deps.map { dep =>
       val runners = session.passes(dep).filterNot { _ == this }
-      dependencies += runners.last
+      runners.last
     }
+    runners.foreach { dependsOn }
     this
   }
 
-  def prevRuns:Iterable[Runner[_]] = {
+  def prevRuns:Iterable[Runner] = {
     session.runners.slice(0, id)
   }
 

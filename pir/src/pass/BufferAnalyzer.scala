@@ -78,19 +78,23 @@ trait BufferAnalyzer extends MemoryAnalyzer {
   def insertGlobalInput(
     global:GlobalContainer,
     out:Output, 
-    ins:Seq[Input]
-  ):GlobalInput = dbgblk(s"insertGlobalInput(${out.src}.${out}, $ins)"){
-    out.src match {
-      case dep:GlobalInput if dep.isDescendentOf(global) => dep
-      case dep:GlobalInput => 
-        ins.foreach { in => in.swapConnection(out, dep.in.T.out) }
-        insertGlobalInput(global, dep.in.T.out, ins)
-      case dep =>
-        val gin = within(global) { 
-          allocate[GlobalInput] { _.in.isConnectedTo(out) } { GlobalInput().in(out) } 
-        }
-        ins.foreach { _.swapConnection(out, gin.out) }
-        gin
+    inputs:Seq[Input]
+  ):Unit = {
+    val ins = inputs.filterNot { _.src.isInstanceOf[GlobalInput] }
+    if (ins.isEmpty) return
+    dbgblk(s"insertGlobalInput($global, ${out.src}.${out}, $ins)"){
+      out.src match {
+        case dep:GlobalInput if dep.isDescendentOf(global) => dep
+        case dep:GlobalInput => 
+          ins.foreach { in => in.swapConnection(out, dep.in.T.out) }
+          insertGlobalInput(global, dep.in.T.out, ins)
+        case dep =>
+          val gin = within(global) { 
+            allocate[GlobalInput] { _.in.isConnectedTo(out) } { GlobalInput().in(out) } 
+          }
+          ins.foreach { _.swapConnection(out, gin.out) }
+          gin
+      }
     }
   }
 
@@ -106,7 +110,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     global:GlobalContainer,
     out:Output, 
     ins:Seq[Input]
-  ):GlobalOutput = dbgblk(s"insertGlobalOutput(${out.src}.${out}, $ins)"){
+  ):GlobalOutput = dbgblk(s"insertGlobalOutput($global, ${out.src}.${out}, $ins)"){
     out.src match {
       case depedFrom:GlobalOutput if depedFrom.isDescendentOf(global) => depedFrom
       case depedFrom:GlobalOutput => throw PIRException(s"impossible case insertGlobalOutput")

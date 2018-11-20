@@ -62,7 +62,7 @@ case class GlobalInput()(implicit env:Env) extends GlobalIO {
 case class GlobalOutput()(implicit env:Env) extends GlobalIO {
   override def className = "go"
   val in = new InputField[LocalInAccess]("in")
-  val out = new OutputField[List[GlobalInput]]("in")
+  val out = new OutputField[List[GlobalInput]]("outs")
 }
 
 case class Context()(implicit env:Env) extends PIRNode

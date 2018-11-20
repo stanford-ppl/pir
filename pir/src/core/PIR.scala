@@ -44,7 +44,8 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
   lazy val hardPruner = new HardConstrainPruner()
   lazy val softPruner = new SoftConstrainPruner()
   lazy val dagPruner = new DAGPruner()
-  lazy val pmuPruner = new PMUPruner()
+  lazy val sramBankPruner = new SRAMBankPruner()
+  lazy val sramCapPruner = new SRAMCapacityPruner()
   lazy val matchPruner = new MatchPruner()
   lazy val placerAndRouter = new PlaceAndRoute()
 
@@ -78,19 +79,19 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(enableTrace && genPsim, dramTraceGen)
     addPass(controlPropogator)
     addPass(enableDot, new PIRIRDotGen(s"top2.dot"))
-    addPass(validProp)
-    addPass(routeThroughEliminator).dependsOn(validProp)
+    addPass(validProp) ==>
+    addPass(routeThroughEliminator)
     addPass(enableDot, new PIRIRDotGen(s"top3.dot"))
     addPass(contextInsertion).dependsOn(routeThroughEliminator)
     addPass(enableDot, new PIRIRDotGen(s"top4.dot"))
 
-    addPass(memLowering).dependsOn(contextInsertion)
+    addPass(memLowering).dependsOn(contextInsertion) ==>
     addPass(deadCodeEliminator)
     addPass(enableDot, new PIRIRDotGen(s"top5.dot"))
-    addPass(depDuplications).dependsOn(memLowering)
-    addPass(routeThroughEliminator).dependsOn(memLowering)
-    addPass(deadCodeEliminator).dependsOn(routeThroughEliminator)
-    addPass(contextAnalyzer).dependsOn(deadCodeEliminator)
+    addPass(depDuplications).dependsOn(deadCodeEliminator)
+    addPass(routeThroughEliminator) ==>
+    addPass(deadCodeEliminator) ==>
+    addPass(contextAnalyzer) ==>
     addPass(enableDot, new PIRIRDotGen(s"top6.dot"))
     addPass(enableDot, new PIRCtxDotGen(s"simple6.dot"))
     addPass(globalInsertion).dependsOn(contextAnalyzer)
@@ -104,26 +105,26 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
 
     // ------- Mapping  --------
-    addPass(enableMapping, hardPruner).dependsOn(globalInsertion)
-    addPass(enableMapping, pmuPruner).dependsOn(hardPruner)
-    addPass(enableMapping, softPruner).dependsOn(pmuPruner)
-    addPass(enableMapping, dagPruner).dependsOn(softPruner)
-    addPass(enableMapping, matchPruner).dependsOn(dagPruner)
-    addPass(enableMapping, placerAndRouter).dependsOn(matchPruner)
-
-    addPass(genPsim, psimAnalyzer).dependsOn(globalInsertion)
-    addPass(genPsim, psimAnalyzer).dependsOn(psimAnalyzer) // Need to run twice to account for cycle in data flow graph
+    addPass(enableMapping, hardPruner).dependsOn(globalInsertion) ==>
+    addPass(enableMapping, sramBankPruner) ==>
+    addPass(enableMapping, sramCapPruner) ==>
+    addPass(enableMapping, softPruner) ==>
+    addPass(enableMapping, dagPruner) ==>
+    addPass(enableMapping, matchPruner) ==>
+    addPass(enableMapping, placerAndRouter) ==>
+    addPass(genPsim, psimAnalyzer) ==>
+    addPass(genPsim, psimAnalyzer) // Need to run twice to account for cycle in data flow graph
     addPass(enableDot, new PIRCtxDotGen(s"simple8.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top8.dot"))
     addPass(enableDot, new PIRNetworkDotGen(s"net.dot"))
     //addPass(cuStats)
     
     // ------- Codegen  --------
-    addPass(genTungsten, tungstenPIRGen)
+    addPass(genTungsten, tungstenPIRGen).dependsOn(psimAnalyzer)
     addPass(genPsim, prouteLinkGen).dependsOn(psimAnalyzer)
-    addPass(genPsim && enableMapping, prouteNodeGen).dependsOn(psimAnalyzer)
-    addPass(genPsim && enableMapping, psimConfigGen).dependsOn(psimAnalyzer)
-    addPass(genPsim && runPsim, psimRunner).dependsOn(psimConfigGen)
+    addPass(genPsim, prouteNodeGen).dependsOn(placerAndRouter, psimAnalyzer)
+    addPass(genPsim, psimConfigGen).dependsOn(psimAnalyzer) ==>
+    addPass(genPsim && runPsim, psimRunner)
 
     //addPass(areaPowerStat).dependsOn(psimConfigCodegen, cuPlacer)
 
