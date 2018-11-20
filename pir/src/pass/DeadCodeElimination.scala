@@ -97,21 +97,4 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with Trans
     super.visitNode(n)
   }
 
-  override def finPass = {
-    val mems = pirTop.collectDown[Memory]()
-    //mems.foreach { mem =>
-      //mem match {
-        //case mem if inAccessesOf(mem).isEmpty =>
-          //warn(s"${qtype(mem)} in $cu does not have writer or reseter")
-        //case _ =>
-      //}
-      //mem match {
-        //case mem if outAccessesOf(mem).isEmpty =>
-          //warn(s"${qtype(mem)} in $cu does not have reader")
-        //case _ =>
-      //}
-    //}
-    super.finPass
-  }
-
 }

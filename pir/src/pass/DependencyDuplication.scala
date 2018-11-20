@@ -4,15 +4,14 @@ package pass
 import pir.node._
 import prism.graph._
 
-class DependencyDuplication(implicit compiler:PIR) extends ContextTraversal with BFSTraversal with Transformer with UnitTraversal {
-  val forward = false
+class DependencyDuplication(implicit compiler:PIR) extends PIRPass with Transformer {
 
-  override def visitNode(n:N) = {
-    n match {
-      case n:Context => duplicateDependency(n)
-      case n =>
-    }
-    super.visitNode(n)
+  override def runPass = {
+    val ctxs = pirTop.collectDown[Context]()
+    // Compute and mirror in two passes to avoid duplication in mirroring
+    val mappings = ctxs.map { ctx => (ctx, dupDeps(ctx)) }
+    mappings.foreach { case (ctx, mapping) => swapDeps(ctx, mapping) }
+    ctxs.foreach { check }
   }
 
   def bound(visitFunc:N => List[N]):N => List[N] = { n:N =>
@@ -27,15 +26,13 @@ class DependencyDuplication(implicit compiler:PIR) extends ContextTraversal with
     }
   }
 
-  def duplicateDependency(ctx:Context):Unit = dbgblk(s"duplicateDependency($ctx)"){
-    var depedCtxs = ctx.accum(visitFunc=lift[Context](bound(visitGlobalOut _))).collect { case x:Context => x }
-    depedCtxs = depedCtxs.filterNot(n => n == ctx || isVisited(n) )
-    dbg(s"depedCtxs=$depedCtxs")
-    depedCtxs.foreach { depedCtx =>duplicateDependency(depedCtx) }
-    var deps = ctx.accum(visitFunc=cover[Controller](bound(visitGlobalIn _)))
+  def dupDeps(ctx:Context) = dbgblk(s"dupDeps($ctx)") {
+    var deps = ctx.accum(visitFunc=cover[Controller](bound(visitGlobalIn _)), logger=Some(this))
     deps = deps.filterNot(n => n == ctx)
-    dbg(s"deps=$deps")
-    val mapping = within(ctx) { mirrorAll(deps) }
+    within(ctx) { mirrorAll(deps).toMap }
+  }
+
+  def swapDeps(ctx:Context, mapping:Map[N,N]) = dbgblk(s"swapDeps($ctx)"){
     mapping.foreach { case (dep, mdep) =>
       dep.localDepeds.filter { _.isDescendentOf(ctx) }.foreach { n =>
         swapDep(n, dep, mdep)
@@ -45,20 +42,11 @@ class DependencyDuplication(implicit compiler:PIR) extends ContextTraversal with
 
   def check(ctx:Context) = {
     ctx.collectDown[Controller]().groupBy { _.ctrl.get }.foreach { case (ctrl, ctrlers) =>
-      dbg(s"ctrl=$ctrl, ctrlers=$ctrlers")
       assert(ctrlers.size==1, s"More than one controller for $ctrl in $ctx. ctrlers=$ctrlers")
     }
-
-    val nonMemNeighbors = ctx.neighbors.filterNot { _.isInstanceOf[Memory] }
-    assert(nonMemNeighbors.nonEmpty, 
+    val nonMemNeighbors = ctx.neighbors.filterNot { n => n.isInstanceOf[Memory] || n.isInstanceOf[LocalAccess] }
+    assert(nonMemNeighbors.isEmpty, 
       s"$ctx has non Memory neighbors after DependencyDuplication = $nonMemNeighbors")
   }
-
-  def visitDeps(n:N):List[N] = visitGlobalIn(n).flatMap {
-    case counter:Counter => 
-      val ctrl = counter.collectUp[Controller]().head
-      ctrl::ctrl.descendents
-    case x => List(x)
-  }.distinct
 
 }

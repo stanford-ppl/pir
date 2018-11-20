@@ -89,11 +89,11 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(enableDot, new PIRIRDotGen(s"top5.dot"))
     addPass(depDuplications).dependsOn(memLowering)
     addPass(routeThroughEliminator).dependsOn(memLowering)
-    addPass(deadCodeEliminator)
-    addPass(contextAnalyzer)
+    addPass(deadCodeEliminator).dependsOn(routeThroughEliminator)
+    addPass(contextAnalyzer).dependsOn(deadCodeEliminator)
     addPass(enableDot, new PIRIRDotGen(s"top6.dot"))
     addPass(enableDot, new PIRCtxDotGen(s"simple6.dot"))
-    addPass(globalInsertion)
+    addPass(globalInsertion).dependsOn(contextAnalyzer)
     
     saveSession
 
@@ -104,14 +104,14 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
 
     // ------- Mapping  --------
-    addPass(enableMapping, hardPruner)
+    addPass(enableMapping, hardPruner).dependsOn(globalInsertion)
     addPass(enableMapping, pmuPruner).dependsOn(hardPruner)
     addPass(enableMapping, softPruner).dependsOn(pmuPruner)
     addPass(enableMapping, dagPruner).dependsOn(softPruner)
     addPass(enableMapping, matchPruner).dependsOn(dagPruner)
     addPass(enableMapping, placerAndRouter).dependsOn(matchPruner)
 
-    addPass(genPsim, psimAnalyzer).dependsOn(matchPruner)
+    addPass(genPsim, psimAnalyzer).dependsOn(globalInsertion)
     addPass(genPsim, psimAnalyzer).dependsOn(psimAnalyzer) // Need to run twice to account for cycle in data flow graph
     addPass(enableDot, new PIRCtxDotGen(s"simple8.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top8.dot"))
@@ -121,8 +121,8 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     // ------- Codegen  --------
     addPass(genTungsten, tungstenPIRGen)
     addPass(genPsim, prouteLinkGen).dependsOn(psimAnalyzer)
-    addPass(genPsim, prouteNodeGen).dependsOn(psimAnalyzer)
-    addPass(genPsim, psimConfigGen).dependsOn(psimAnalyzer)
+    addPass(genPsim && enableMapping, prouteNodeGen).dependsOn(psimAnalyzer)
+    addPass(genPsim && enableMapping, psimConfigGen).dependsOn(psimAnalyzer)
     addPass(genPsim && runPsim, psimRunner).dependsOn(psimConfigGen)
 
     //addPass(areaPowerStat).dependsOn(psimConfigCodegen, cuPlacer)
