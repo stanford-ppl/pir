@@ -51,7 +51,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
             write.data.traceInTo(depOut) &&
             write.done.traceInTo(enq)
           } {
-            BufferWrite().data(dep).done(enq)
+            BufferWrite().data(depOut).done(enq)
           }
         }
         val read = within(depedCtx, deped.getCtrl) {
@@ -59,7 +59,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
             read.in.traceInTo(write.out) &&
             read.done.traceInTo(deq)
           } {
-            BufferRead(isFIFO).in(write).done(deq).banks(List(dep.getVec))
+            BufferRead(isFIFO).in(write.out).done(deq).banks(List(dep.getVec))
           }
         }
         swapInput(deped, depOut, read.out)
@@ -69,49 +69,59 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     } else None
   }
 
+  def insertGlobalInput(global:GlobalContainer):Unit = {
+    within(global) {
+      global.depsFrom.foreach { case (out, ins) => insertGlobalInput(global, out, ins) }
+    }
+  }
+
   def insertGlobalInput(
     global:GlobalContainer,
-    dep:N, 
-    depFroms:Seq[N]
-  ):GlobalInput = dbgblk(s"insertGlobalInput($dep, $depFroms)"){
-    dep match {
+    out:Output, 
+    ins:Seq[Input]
+  ):GlobalInput = dbgblk(s"insertGlobalInput(${out.src}.${out}, $ins)"){
+    out.src match {
       case dep:GlobalInput if dep.isDescendentOf(global) => dep
       case dep:GlobalInput => 
-        depFroms.foreach { deped =>
-          swapInput(deped, dep.out, dep.in.T.out)
-        }
-        insertGlobalInput(global, dep.in.T, depFroms)
+        ins.foreach { in => in.swapConnection(out, dep.in.T.out) }
+        insertGlobalInput(global, dep.in.T.out, ins)
       case dep =>
-        val gin = GlobalInput()
-        depFroms.foreach { depFrom =>
-          insertConnection(dep, depFrom, gin.in, gin.out)
+        val gin = within(global) { 
+          allocate[GlobalInput] { _.in.isConnectedTo(out) } { GlobalInput().in(out) } 
         }
+        ins.foreach { _.swapConnection(out, gin.out) }
         gin
+    }
+  }
+
+  def insertGlobalOutput(global:GlobalContainer):Unit = {
+    within(global) {
+      global.depedsTo.foreach { case (out, ins) => 
+        insertGlobalOutput(global, out, ins)
+      }
     }
   }
 
   def insertGlobalOutput(
     global:GlobalContainer,
-    depedFrom:N, 
-    depeds:Seq[N]
-  ):GlobalOutput = dbgblk(s"insertGlobalOutput($depedFrom, $depeds)"){
-    depedFrom match {
+    out:Output, 
+    ins:Seq[Input]
+  ):GlobalOutput = dbgblk(s"insertGlobalOutput(${out.src}.${out}, $ins)"){
+    out.src match {
       case depedFrom:GlobalOutput if depedFrom.isDescendentOf(global) => depedFrom
       case depedFrom:GlobalOutput => throw PIRException(s"impossible case insertGlobalOutput")
       case depedFrom =>
-        val gout = GlobalOutput()
-        depeds.foreach { deped =>
-          insertConnection(depedFrom, deped, gout.in, gout.out)
+        val gout = within(global) { 
+          allocate[GlobalOutput]{ _.in.isConnectedTo(out) } { GlobalOutput().in(out) }
         }
+        ins.foreach { _.swapConnection(out, gout.out) }
         gout
     }
   }
 
   def insertGlobalIO(global:GlobalContainer) = {
-    within(global) {
-      global.depsFrom.foreach { case (dep, depFroms) => insertGlobalInput(global, dep, depFroms) }
-      global.depedsTo.foreach { case (depedFrom, depeds) => insertGlobalOutput(global, depedFrom, depeds) }
-    }
+    insertGlobalInput(global)
+    insertGlobalOutput(global)
   }
 
 

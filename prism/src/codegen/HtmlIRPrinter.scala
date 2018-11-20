@@ -37,12 +37,14 @@ trait HtmlIRPrinter extends IRPrinter with HtmlCodegen {
         else
           text(s"children=${quote(n.children)}")
         text("deps:")
-        n.depsFrom.foreach { case (dep, from) => 
-          text(s"${quote(dep)}${dep.parent.fold(""){ p=> s"(parent=${quote(p)})"}}: ${quote(from)}")
+        n.depsFrom.foreach { case (out, ins) => 
+          val dep = out.src
+          val depParent = dep.parent.fold(""){ p=> s"(${quote(p)})"}
+          text(s"${quote(dep)}.${quote(out)}$depParent: ${ins.map { in => s"${quote(in.src)}.${quote(in)}"}}")
         }
         text("depeds:")
-        n.depedsFrom.foreach { case (deped, from) => 
-          text(s"${quote(deped)}${deped.parent.fold(""){ p=> s"(parent=${quote(p)})"}}: ${quote(from)}")
+        n.depedsTo.foreach { case (out, ins) => 
+          text(s"${quote(out)}: ${ins.map { in => s"${in.src}.${in}${in.src.parent.fold("") { p => s"(${quote(p)})" }}" }}")
         }
       }
       n.localEdges.foreach { edge =>

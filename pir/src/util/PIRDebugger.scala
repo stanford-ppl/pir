@@ -11,7 +11,7 @@ trait PIRDebugger extends Debugger {
 
   override def action:BreakAction = openPIRDot orElse openPIRCtxDot orElse super.action
 
-  def openPIRDot:BreakAction = { case ("pdot", state, callBack) =>
+  def openPIRDot:BreakAction = { case ("top", state, callBack) =>
     info(s"Open PIRIRDotGen")
     new PIRIRDotGen(s"top_bp.dot").run.open
     callBack()
