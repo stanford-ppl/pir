@@ -44,6 +44,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
   lazy val prouteNodeGen = new PlastirouteNodeGen()
   lazy val dramTraceGen = new DRAMTraceCodegen()
   lazy val report = new ResourceReport()
+  lazy val igraphGen = new IgraphCodegen()
   //lazy val areaPowerStat = new AreaPowerStat()
   
   /* Simulation */
@@ -102,6 +103,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(report).dependsOn(placerAndRouter)
     
     // ------- Codegen  --------
+    addPass(igraphGen).dependsOn(psimAnalyzer)
     addPass(genTungsten, tungstenPIRGen).dependsOn(psimAnalyzer)
     addPass(genPsim, prouteLinkGen).dependsOn(psimAnalyzer)
     addPass(genPsim, prouteNodeGen).dependsOn(placerAndRouter, psimAnalyzer)
