@@ -42,7 +42,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
           val numVC = networkParam.numVC
           val topo = networkParam.topology
           emitNodeBlock(s"net vecnet") {
-            emitln(s"cfg = $PLASTISIM_HOME/configs/${topo}_generic.cfg")
+            emitln(s"cfg = ${config.psimHome}/configs/${topo}_generic.cfg")
             emitln(s"dim[0] = $maxDim")
             emitln(s"dim[1] = $maxDim")
             emitln(s"num_classes = ${numVC}")
@@ -54,8 +54,8 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
   def emitMemoryController = {
     if (config.enableTrace) {
       emitNodeBlock(s"mc DRAM") {
-        emitln(s"memfile = $PLASTISIM_HOME/configs/DDR3_micron_64M_8B_x4_sg15.ini")
-        emitln(s"sysfile = $PLASTISIM_HOME/configs/system.ini")
+        emitln(s"memfile = ${config.psimHome}/configs/DDR3_micron_64M_8B_x4_sg15.ini")
+        emitln(s"sysfile = ${config.psimHome}/configs/system.ini")
       }
     }
   }
