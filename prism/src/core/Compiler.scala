@@ -49,6 +49,7 @@ trait Compiler extends FileManager with ArgLoader with Session with Logging {
           info(s"Compilation succeed in ${toc("s")}s")
         case Success(false) =>
           err(s"Compilation failed in ${toc("s")}s", false)
+          System.exit(-1)
         case Failure(e) =>
           err(s"Compilation failed in ${toc("s")}s", false)
           throw e

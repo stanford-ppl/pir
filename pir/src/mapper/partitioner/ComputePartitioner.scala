@@ -109,6 +109,11 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
     var deps = to.accum(visitFunc=visitIn(from) _)
     deps = deps.filterNot { _ == to }
     deps ++= from.collectDown[TokenRead]()
+    val ctrlers = from.collectDown[Controller]().flatMap { c => 
+      c::c.descendents++c.accum(visitFunc=visitIn(from) _)
+    }
+    deps ++= ctrlers
+    dbg(s"ctrlers=$ctrlers")
     val noInput = (incost.sin + incost.vin) == 0
     if (noInput) {
       val ins = from.collectDown[LocalOutAccess]()
