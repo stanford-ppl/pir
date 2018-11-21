@@ -14,8 +14,7 @@ class MatchPruner(implicit compiler:PIR) extends MatchingConstrainPruner {
       case e@MatchConstrainFailure(fg:CUMap, ks:Set[_], vs:Set[_]) =>
         runner.setFailed
         val params = vs.map { _.asInstanceOf[CUMap.V].params.get }
-        err(s"Not enough resource of type ${params.mkString(",")}", exception=false)
-        err(s"Required ${ks.size}. Possesed ${vs.size}", exception=false)
+        err(s"Not enough resource of type ${params.mkString(",")} Required ${ks.size}. Possesed ${vs.size}", exception=false)
       case _ => super.fail(f)
     }
   }
