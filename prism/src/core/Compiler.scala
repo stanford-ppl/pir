@@ -19,7 +19,7 @@ trait Compiler extends FileManager with ArgLoader with Session with Logging {
     }
   } 
 
-  def handle(e:Exception):Unit
+  def handle(e:Throwable):Try[Boolean]
 
   def setArgs(inputArgs: Array[String]):Unit = {
     val args = loadArgs(inputArgs)
@@ -32,24 +32,27 @@ trait Compiler extends FileManager with ArgLoader with Session with Logging {
   }
 
   def main(args: Array[String]): Unit = {
-    var succeed = false
     withLog(outDir, s"compiler.log") {
-      try {
+      tic
+      Try {
         setArgs(args)
         loadSession
         reset
         info(s"Output directory set to ${cstr(Console.CYAN,outDir)}")
         initSession
-        succeed = runSession
-      } catch { 
-        case e:Exception =>
-          err(e, exception=false)
-          handle(e)
+        runSession
+      }.recoverWith { case e:Throwable =>
+        err(e, exception=false)
+        handle(e)
+      } match {
+        case Success(true) =>
+          info(s"Compilation succeed in ${toc("s")}s")
+        case Success(false) =>
+          err(s"Compilation failed in ${toc("s")}s", false)
+        case Failure(e) =>
+          err(s"Compilation failed in ${toc("s")}s", false)
+          throw e
       }
-    }
-    if (!succeed) {
-      err(s"Compilation failed", false)
-      System.exit(-1)
     }
   }
 

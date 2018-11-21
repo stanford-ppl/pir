@@ -10,7 +10,7 @@ trait Spade extends Compiler with BaseFactory with DefaultParamLoader {
 
   override lazy val config:SpadeConfig = new SpadeConfig(this)
 
-  def handle(e:Exception):Unit = throw e
+  def handle(e:Throwable):Try[Boolean] = Failure(e)
 
   var _spadeTop:Option[Top] = None
   def spadeTop = _spadeTop.get

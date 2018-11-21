@@ -114,6 +114,6 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
 
   }
 
-  def handle(e:Exception) = throw e
+  def handle(e:Throwable):Try[Boolean] = Failure(e)
 
 }
