@@ -36,6 +36,7 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
         dbg(s"Recover $k")
         dbg(s"value cost=$vcost")
         val ks = split(k, vcost).toSet
+        info(s"Split $k into ${ks.size} CUs")
         Right(fg.mapFreeMap { _ - k ++ (ks, vs) })
       case x => super.recover(x)
     }

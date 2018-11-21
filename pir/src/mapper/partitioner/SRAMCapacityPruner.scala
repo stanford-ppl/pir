@@ -28,6 +28,7 @@ class SRAMCapacityPruner(implicit compiler:PIR) extends ConstrainPruner with Mem
         if (kcost.size > vcost.size){ 
           val numCU = kcost.size /! vcost.size
           val mks = split(fg, k, numCU).toSet
+          info(s"Split $k into ${numCU} CUs")
           mks.foreach { mk =>
             mk.children.collect { case m:SRAM => m }.foreach { m =>
               m.dims.reset
