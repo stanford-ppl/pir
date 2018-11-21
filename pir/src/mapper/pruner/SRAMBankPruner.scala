@@ -52,7 +52,9 @@ class SRAMBankPruner(implicit compiler:PIR) extends ConstrainPruner with Partiti
     mks.foreach { mk =>
       mk.children.collect { case m:SRAM => m }.foreach { m =>
         m.banks.reset
+        m.dims.reset
         m.banks := List(vbanks)
+        m.dims := List(m.size / numCU)
       }
     }
     mks.foreach { nk =>
