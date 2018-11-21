@@ -142,10 +142,23 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     }
   }
 
-  def getDeps(x:PIRNode, visitFunc:N => List[N] = visitGlobalIn _) = dbgblk(s"getDeps($x)"){
+  def getDeps(
+    x:PIRNode, 
+    visitFunc:N => List[N] = visitGlobalIn _
+  ):Seq[PIRNode] = dbgblk(s"getDeps($x)"){
     var deps = x.accum(visitFunc=cover[Controller](bound(visitFunc)))
     deps = deps.filterNot(_ == x)
-    deps
+    if (compiler.hasRun[DependencyDuplication]) {
+      val ctrlers = deps.collect { case ctrler:Controller => ctrler }
+      val leaf = assertOneOrLess(ctrlers.flatMap { _.leaves }.distinct, 
+        s"leaf of ${ctrlers}")
+      dbg(s"leaf=$leaf")
+      leaf.foreach { leaf =>
+        deps ++= getDeps(x, visitFunc)
+        deps = deps.distinct
+      }
+    }
+    deps.as[List[PIRNode]]
   }
 
 

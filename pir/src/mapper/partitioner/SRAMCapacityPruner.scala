@@ -6,7 +6,7 @@ import prism.graph._
 import spade.param._
 import prism.collection.immutable._
 
-class SRAMCapacityPruner(implicit compiler:PIR) extends ConstrainPruner with Partitioner {
+class SRAMCapacityPruner(implicit compiler:PIR) extends ConstrainPruner with MemoryPartitioner {
 
   override def prune[T](x:T):EOption[T] = super.prune[T](x).flatMap {
     case x:CUMap if !spadeParam.isAsic =>
@@ -26,8 +26,16 @@ class SRAMCapacityPruner(implicit compiler:PIR) extends ConstrainPruner with Par
         dbg(s"kcost: $kcost")
         dbg(s"vcost=$vcost")
         if (kcost.size > vcost.size){ 
-          capacitySplit(fg, k, kcost.size, vcost.size)
-          Left(SRAMCapacityNotFit(k, kcost.size))
+          val numCU = kcost.size /! vcost.size
+          val mks = split(fg, k, numCU).toSet
+          mks.foreach { mk =>
+            mk.children.collect { case m:SRAM => m }.foreach { m =>
+              m.dims.reset
+              m.dims := List(m.size / numCU)
+            }
+          }
+          //TODO: Also need to fixes up the bank addr calculation
+          Right(fg.mapFreeMap { _ - k ++ (mks, vs) })
         } else {
           super.recover(x)
         }
