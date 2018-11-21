@@ -107,7 +107,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(genTungsten, tungstenPIRGen).dependsOn(psimAnalyzer)
     addPass(genPsim, prouteLinkGen).dependsOn(psimAnalyzer)
     addPass(genPsim, prouteNodeGen).dependsOn(placerAndRouter, psimAnalyzer)
-    addPass(genPsim, psimConfigGen).dependsOn(psimAnalyzer, prouteLinkGen) ==>
+    addPass(genPsim, psimConfigGen).dependsOn(placerAndRouter, psimAnalyzer, prouteLinkGen) ==>
     addPass(genPsim && runPsim, psimRunner)
 
     //addPass(areaPowerStat).dependsOn(psimConfigCodegen, cuPlacer)
