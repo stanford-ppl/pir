@@ -14,7 +14,7 @@ class PlastisimRunner(implicit compiler: PIR) extends PlastisimUtil with Printer
 
   def runProute = {
     if (!noPlaceAndRoute) {
-      var command = s"$PLASTIROUTE_HOME/plastiroute -n $prouteNodeName -l $prouteLinkName -o $prouteName"
+      var command = s"${config.prouteHome}/plastiroute -n $prouteNodeName -l $prouteLinkName -o $prouteName"
       spadeParam.pattern match {
         case p:Checkerboard => 
           command += s" -r ${p.row} -c ${p.col}"
@@ -51,7 +51,7 @@ class PlastisimRunner(implicit compiler: PIR) extends PlastisimUtil with Printer
   }
 
   def runPsim = {
-    var command = s"$PLASTISIM_HOME/plastisim -f $configName"
+    var command = s"${config.psimHome}/plastisim -f $configName"
     if (!noPlaceAndRoute) {
       command += s" -p $prouteName"
     }
