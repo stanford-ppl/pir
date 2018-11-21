@@ -39,7 +39,8 @@ trait Printer extends FormatPrinter {
   case class FileWriter(filePath:String, append:Boolean) extends StreamWriter {
     override lazy val outputStream:FileOutputStream = {
       mkdir(dirName(filePath))
-      new FileOutputStream(new File(filePath), append)
+      val file = new File(filePath)
+      new FileOutputStream(file, append)
     }
     var written = false
     override def print(s:String) = { written = true; super.print(s) }

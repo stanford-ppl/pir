@@ -60,6 +60,7 @@ case class Runner(session:Session, id:Int) extends Serializable with RunnerStatu
           pass.dbgblk(s"$e") {
             e.getStackTrace.foreach(pass.dbg)
           }
+          e.printStackTrace
           pass.logger.closeAllBuffersAndWrite
       }
       info(s"Finished ${cstr(Console.CYAN, name)} in ${toc("ms")}ms")
