@@ -78,5 +78,5 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def enableSplitBreakPoint = debug && option[Boolean]("bp-split")
   def enablePlaceAndRouteBreakPoint = debug && option[Boolean]("bp-pr")
   def enableSnapshot = debug && option[Boolean]("snapshot")
-  def enableDot:Boolean = debug && enableCodegen && option[Boolean]("dot")
+  def enableDot:Boolean = enableCodegen && option[Boolean]("dot")
 }
