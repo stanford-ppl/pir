@@ -36,7 +36,7 @@ class ResourceReport(implicit design:PIR) extends PIRTraversal with CSVCodegen w
       row(s"Used") = used.size
       row(s"Total") = cus.size
       row(s"Usage") = usage
-      sinfo(s"${quote(param)}: ${usage} %")
+      sinfo(s"${quote(param)} Usage: ${usage} %")
     }
   }
 

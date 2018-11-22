@@ -154,8 +154,10 @@ trait BufferAnalyzer extends MemoryAnalyzer {
         s"leaf of ${ctrlers}")
       dbg(s"leaf=$leaf")
       leaf.foreach { leaf =>
-        deps ++= getDeps(x, visitFunc)
-        deps = deps.distinct
+        if (leaf != x) {
+          deps ++= leaf +: (leaf.descendents++getDeps(leaf, visitFunc))
+          deps = deps.distinct
+        }
       }
     }
     deps.as[List[PIRNode]]

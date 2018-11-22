@@ -20,10 +20,11 @@ trait Logging extends Serializable {
           //dbg(resHeader + s" ${res.map(quote)}")
         case res:Iterable[_] =>
           dbg(resHeader)
-          res.foreach { res => dbg(s" - ${quote(res)}") }
-        case res:Iterator[_] =>
-          dbg(resHeader)
-          res.foreach { res => dbg(s" - ${quote(res)}") }
+          if (res.size < 4) {
+            res.foreach { res => dbg(s" - ${quote(res)}") }
+          } else {
+            s"size=${res.size} [${res.mkString(",")}]"
+          }
         case res => dbg(resHeader + s" ${quote(res)}")
       }
       emitBEln(None, b, es)

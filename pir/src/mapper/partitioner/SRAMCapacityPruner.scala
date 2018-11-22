@@ -27,8 +27,11 @@ class SRAMCapacityPruner(implicit compiler:PIR) extends ConstrainPruner with Mem
         dbg(s"vcost=$vcost")
         if (kcost.size > vcost.size){ 
           val numCU = kcost.size /! vcost.size
+          val sram = assertOne(k.children.collect { case sram:SRAM => sram }, s"SRAM in $k")
+          var sraminfo = sram.srcCtx.v.fold("") { sc => s"$sc" }
+          sraminfo += sram.name.v.fold("") { n => s": $n" }
           val mks = split(fg, k, numCU).toSet
-          info(s"Split $k into ${numCU} CUs")
+          info(s"Split $k into ${numCU} CUs $sraminfo kcost=${sram.size} vcost=${vcost.size}")
           mks.foreach { mk =>
             mk.children.collect { case m:SRAM => m }.foreach { m =>
               m.dims.reset

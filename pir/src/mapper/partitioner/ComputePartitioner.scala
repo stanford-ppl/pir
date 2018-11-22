@@ -99,12 +99,12 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
     case n => false
   }
 
-  //def visitIn(scope:Context)(n:N):List[N] = (visitGlobalIn(n).flatMap {
-    //case x if !x.isDescendentOf(scope) => None
-    //case x => 
-      //val underScope = (x::x.ancestors).filter { _.parent.fold(false) { _ == scope } }.head
-      //underScope :: underScope.descendents
-  //}).distinct
+  def visitIn(scope:Context)(n:N):List[N] = (visitGlobalIn(n).flatMap {
+    case x if !x.isDescendentOf(scope) => None
+    case x => 
+      val underScope = (x::x.ancestors).filter { _.parent.fold(false) { _ == scope } }.head
+      underScope :: underScope.descendents
+  }).distinct
 
   def dupDeps(from:Context, to:Context, incost:InputCost) = dbgblk(s"dupDeps($from, $to)") {
     //var deps = to.accum(visitFunc=visitIn(from) _)
@@ -115,7 +115,7 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
     //}
     //deps ++= ctrlers
     //dbg(s"ctrlers=$ctrlers")
-    var deps = getDeps(to)
+    var deps = getDeps(to, visitIn(from))
     val noInput = (incost.sin + incost.vin) == 0
     if (noInput) {
       val ins = from.collectDown[LocalOutAccess]()
@@ -123,10 +123,9 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
       val in = sins.headOption.getOrElse(vins.head)
       dbg(s"$to has no input. mirror one input from $from $in")
       //deps ++= in.accum(visitFunc=visitIn(from) _)
-      deps ++= in+:getDeps(in)
+      deps ++= in+:getDeps(in, visitIn(from))
     }
     deps = deps.distinct
-    dbg(s"deps=$deps")
     val mapping = within(to) { mirrorAll(deps) }
     to.descendents.foreach { x =>
       x.localDeps.foreach { dep =>
