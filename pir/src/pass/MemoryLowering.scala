@@ -71,12 +71,16 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
     within(access.parent.get.as[PIRNode]) {
       def flattenND(inds:List[Edge], dims:List[Int]):Edge = {
         if (inds.size==1) return inds.head
-        assert(inds.size == dims.size, s"flattenND inds=$inds dims=$dims have different size")
+        assert(inds.size == dims.size, s"flattenND inds=$inds dims=$dims have different size for access=$access")
         val i::irest = inds
         val d::drest = dims
         OpDef(FixFMA).input(i,Const(drest.product), flattenND(irest, drest)).out
       }
-      val fbank = flattenND(access.bank.connected.toList, mem.banks.get)
+      val dims = mem match {
+        case mem:SRAM => mem.banks.get
+        case mem:LUT => mem.dims.get
+      }
+      val fbank = flattenND(access.bank.connected.toList, dims)
       dbg(s"flattenBankAddr ${access.bank.T} => $fbank")
       access.bank.disconnect
       access.bank(fbank)

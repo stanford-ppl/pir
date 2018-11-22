@@ -95,7 +95,8 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(enableMapping, dagPruner) ==>
     addPass(enableMapping, matchPruner) ==>
     addPass(enableMapping, placerAndRouter) ==>
-    addPass(genPsim, psimAnalyzer) ==>
+    addPass(enableDot, new PIRCtxDotGen(s"simple8.dot"))
+    addPass(genPsim, psimAnalyzer).dependsOn(placerAndRouter)
     addPass(genPsim, psimAnalyzer) // Need to run twice to account for cycle in data flow graph
     addPass(enableDot, new PIRCtxDotGen(s"simple8.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top8.dot"))

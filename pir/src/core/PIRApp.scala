@@ -41,7 +41,7 @@ trait PIRApp extends PIR with Logging {
         within(argFringe, hostOutCtrl) {
           top.hostOutCtrl.ctrler(HostOutController().valid(ControllerValid()).done(ControllerDone()))
           argOuts.foreach { mem =>
-            HostRead(mem.name.get).input(MemRead().setMem(mem))
+            HostRead(mem.name.v.getOrElse(mem.sname.get)).input(MemRead().setMem(mem))
           }
         }
       }
