@@ -39,6 +39,7 @@ val bldSettings = Defaults.coreDefaultSettings ++ Seq(
     "-diagrams-debug",
     "-doc-title", name.value
   ),
+  isSnapshot := true,
   parallelExecution in Test := true,
   cancelable in Global := true,
   concurrentRestrictions in Global := (Tags.limitAll(1) :: Nil),
