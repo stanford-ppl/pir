@@ -23,6 +23,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register[String]("proute_home", default=sys.env.get("PLASTIROUTE_HOME"), info="Plastiroute Home")
   register("psim", default=true, info="Enable code generations for plastisim")
   register("run-psim", default=false, info="Launch Plastisim simulation")
+  register[String]("load-psim", info="Path to load psim log")
   register[Long]("psim-timeout", info="Maximum time out for psim")
   register[String]("psim-out", info="Directory to copy psim files over")
   register[Int]("psim-q", default=1, info="VC slowdown parameter")
@@ -30,6 +31,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
 
   def genPsim = option[Boolean]("psim") && enableCodegen
   def runPsim = option[Boolean]("run-psim") && genPsim
+  def loadPsim = getOption[String]("load-psim")
   def enableTrace = genPsim && option[Boolean]("trace")
   def psimHome = getOption[String]("psim_home").getOrElse(throw PIRException(s"PLASTISIM_HOME is not set"))
   def prouteHome = getOption[String]("proute_home").getOrElse(throw PIRException(s"PLASTIROUTE_HOME is not set"))

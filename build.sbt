@@ -95,3 +95,4 @@ addCommandAlias("pir", "; project prism; test; project apps; run-main")
 addCommandAlias("spade", "; project spade; runMain spade.Plasticine --out=out/plasticine")
 
 addCommandAlias("publishAll", "; project prism; publishLocal; project spade; publishLocal; project pir; publishLocal")
+addCommandAlias("psh", "; project pir; runMain pir.PIRShell")
