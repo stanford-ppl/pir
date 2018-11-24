@@ -66,14 +66,18 @@ class PlastisimRunner(implicit compiler: PIR) extends PlastisimUtil with Printer
     withOpen(psimOut, s"psim.sh", false) {
       emitln(command)
     }
+    val nameMap = pirTop.collectDown[Context]().map { ctx => 
+      (s"$ctx".replace("Context","C"), ctx)
+    }.toMap
     if (config.runPsim) {
-      shellProcess(s"psim", s"bash psim.sh", psimOut, psimLog)(processOutput)
+      shellProcess(s"psim", s"bash psim.sh", psimOut, psimLog)(processOutput(nameMap) _)
       if (!simulationSucceeded.getOrElse(false)) fail(s"Plastisim failed. details in $psimLog")
     }
   }
 
   var simulationSucceeded:Option[Boolean] = None
-  def processOutput(line:String) = {
+
+  def processOutput(nameMap:Map[String, Context])(line:String) = {
     if (line.contains("Total DRAM")) {
       info(Console.GREEN, s"psim", line)
     }
@@ -90,22 +94,22 @@ class PlastisimRunner(implicit compiler: PIR) extends PlastisimUtil with Printer
       info(Console.RED, s"psim", line)
       simulationSucceeded = Some(false)
     }
-    //if (line.contains("Total Active")) {
-      //val node = line.split(":")(0).trim
-      //nameMap.get(node).foreach { node =>
-        //activeOf(node) = line.split("Total Active:")(1).trim.split(" ")(0).trim.toLong
+    if (line.contains("Total Active")) {
+      val ctx = line.split(":")(0).trim
+      nameMap.get(ctx).foreach { ctx =>
+        ctx.active := line.split("Total Active:")(1).trim.split(" ")(0).trim.toLong
         //activeRateOf(node) = line.split("Active:")(1).trim.split(" ")(0).trim.toFloat
         //stallRateOf(node) = line.split("Stalled:")(1).trim.split(" ")(0).trim.toFloat
         //starveRateOf(node) = line.split("Starved:")(1).trim.split(" ")(0).trim.toFloat
-        //if (line.contains("Final State")) finalStateOf(node) = line.split("Final State:")(1).trim.split(" ")(0).trim
+        if (line.contains("Final State")) ctx.state := line.split("Final State:")(1).trim.split(" ")(0).trim
         //checkActive(node).foreach { case (active, expected) =>
           //if (active < expected) { 
             ////err(s"${quote(node)} count=$expected active=$active", false)
             //simulationSucceeded = Some(false)
           //}
         //}
-      //}
-    //}
+      }
+    }
   }
 
 }

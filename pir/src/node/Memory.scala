@@ -65,7 +65,10 @@ case class GlobalOutput()(implicit env:Env) extends GlobalIO {
   val out = new OutputField[List[GlobalInput]]("outs")
 }
 
-case class Context()(implicit env:Env) extends PIRNode
+case class Context()(implicit env:Env) extends PIRNode {
+  val active = new Metadata[Long]("active")
+  val state = new Metadata[String]("state")
+}
 
 trait Def extends PIRNode with DefNode[PIRNode] {
   final val out = new OutputField[List[PIRNode]]("out")

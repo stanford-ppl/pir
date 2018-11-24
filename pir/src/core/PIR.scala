@@ -26,6 +26,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
   lazy val routeThroughEliminator = new RouteThroughElimination()
   lazy val controlPropogator = new ControlPropogation()
   lazy val psimAnalyzer = new PlastisimAnalyzer()
+  lazy val ctxMerging = new ContextMerging()
 
   /* Mapping */
   lazy val initializer = new TargetInitializer()
@@ -79,7 +80,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(enableDot, new PIRCtxDotGen(s"simple6.dot"))
     addPass(globalInsertion).dependsOn(contextAnalyzer)
     
-    saveSession
+    saveSession("pir/out/pir.ckpt")
 
     addPass(initializer)
     addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
@@ -96,12 +97,14 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(enableMapping, matchPruner) ==>
     addPass(enableMapping, placerAndRouter) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple8.dot"))
-    addPass(genPsim, psimAnalyzer).dependsOn(placerAndRouter)
-    addPass(genPsim, psimAnalyzer) // Need to run twice to account for cycle in data flow graph
-    addPass(enableDot, new PIRCtxDotGen(s"simple8.dot"))
-    addPass(enableDot, new PIRIRDotGen(s"top8.dot"))
+    addPass(genPsim, psimAnalyzer).dependsOn(placerAndRouter) ==>
+    addPass(genPsim, psimAnalyzer) ==> // Need to run twice to account for cycle in data flow graph
+    saveSession("pir/out/pir1.ckpt")
+    addPass(genPsim, ctxMerging)
+    addPass(enableDot, new PIRCtxDotGen(s"simple9.dot"))
+    addPass(enableDot, new PIRIRDotGen(s"top9.dot"))
     addPass(enableDot, new PIRNetworkDotGen(s"net.dot"))
-    addPass(enableMapping,report).dependsOn(placerAndRouter)
+    addPass(enableMapping,report).dependsOn(ctxMerging)
     
     // ------- Codegen  --------
     addPass(igraphGen).dependsOn(psimAnalyzer)
@@ -110,6 +113,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(genPsim, prouteNodeGen).dependsOn(placerAndRouter, psimAnalyzer)
     addPass(genPsim, psimConfigGen).dependsOn(placerAndRouter, psimAnalyzer, prouteLinkGen) ==>
     addPass(genPsim && runPsim, psimRunner)
+    addPass(enableDot, new PIRCtxDotGen(s"simple9.dot"))
 
     //addPass(areaPowerStat).dependsOn(psimConfigCodegen, cuPlacer)
 
