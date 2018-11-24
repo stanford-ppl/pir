@@ -41,7 +41,7 @@ case class Runner(session:Session, id:Int) extends Serializable with RunnerStatu
     if (!shouldRun) return
     if (hasRun) return
       dependencies.foreach { dependency =>
-      if (dependency.shouldRun && !dependency.succeeded) {
+      if (/*dependency.shouldRun && */!dependency.succeeded) {
         //warn(s"$name not run due to dependency ${dependency.pass} not success")
         return
       }
