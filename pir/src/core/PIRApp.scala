@@ -49,7 +49,6 @@ trait PIRApp extends PIR with Logging {
   lazy val psimRunner = new PlastisimRunner()
 
   override def initSession = {
-    super.initSession
     import config._
 
     // ------- Analysis and Transformations --------
@@ -66,6 +65,7 @@ trait PIRApp extends PIR with Logging {
     addPass(contextInsertion).dependsOn(routeThroughEliminator)
     addPass(enableDot, new PIRIRDotGen(s"top4.dot"))
 
+    saveSession("pir/out/pir3.ckpt")
     addPass(memLowering).dependsOn(contextInsertion) ==>
     addPass(deadCodeEliminator)
     addPass(enableDot, new PIRIRDotGen(s"top5.dot"))

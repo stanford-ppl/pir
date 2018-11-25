@@ -19,8 +19,8 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def printStat = option[Boolean]("stat")
 
   /* ------------------- Plastisim --------------------  */
-  register[String]("psim_home", default=sys.env.get("PLASTISIM_HOME"), info="Plastisim Home")
-  register[String]("proute_home", default=sys.env.get("PLASTIROUTE_HOME"), info="Plastiroute Home")
+  register[String]("psim-home", default=sys.env.get("PLASTISIM_HOME"), info="Plastisim Home")
+  register[String]("proute-home", default=sys.env.get("PLASTIROUTE_HOME"), info="Plastiroute Home")
   register("psim", default=true, info="Enable code generations for plastisim")
   register("run-psim", default=false, info="Launch Plastisim simulation")
   register[String]("load-psim", info="Path to load psim log")
@@ -33,8 +33,11 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def runPsim = option[Boolean]("run-psim") && genPsim
   def loadPsim = getOption[String]("load-psim")
   def enableTrace = genPsim && option[Boolean]("trace")
-  def psimHome = getOption[String]("psim_home").getOrElse(throw PIRException(s"PLASTISIM_HOME is not set"))
-  def prouteHome = getOption[String]("proute_home").getOrElse(throw PIRException(s"PLASTIROUTE_HOME is not set"))
+  def psimHome = getOption[String]("psim-home").getOrElse(throw PIRException(s"PLASTISIM_HOME is not set"))
+  def prouteHome = getOption[String]("proute-home").getOrElse(throw PIRException(s"PLASTIROUTE_HOME is not set"))
+  def psimOut = getOption[String]("psim-out").getOrElse {
+    buildPath(outDir, s"../plastisim")
+  }
 
   /* ------------------- Tungsten --------------------  */
   register("tungsten", default=true, info="Enable tungsten codegen")

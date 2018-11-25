@@ -6,7 +6,7 @@ import pir.pass._
 import prism.graph._
 
 trait PlastisimUtil extends PIRPass {
-  lazy val psimOut = buildPath(compiler.outDir, s"../plastisim") 
+  lazy val psimOut = config.psimOut
   lazy val configName = "psim.conf"
   lazy val configPath = buildPath(psimOut, configName)
   lazy val prouteName = "final.place"

@@ -5,6 +5,8 @@ import scala.collection.mutable
 
 class Config(compiler:Compiler) extends ArgParser {
 
+  var cwd: String = new java.io.File(".").getAbsolutePath
+
   def defaultName = compiler.getClass.getSimpleName.replace("$","")
 
   register("codegen", true, "Enable codegen")
