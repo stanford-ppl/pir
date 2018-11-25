@@ -61,8 +61,9 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
           val (shared, notshared) = groups.partition { group =>
             assertUnify(group, s"share concurrency with $access") { a => 
               val lca = leastCommonAncesstor(a.getCtrl, access.getCtrl).get.as[ControlTree]
-              lca.schedule == "ForkJoin" || lca.schedule == "Pipelined"
+              lca.schedule == "ForkJoin" || (a.getCtrl == access.getCtrl && lca.schedule == "Pipeline")
               // Inaccesses/Outaccesses who are concurrently operating on the same buffer port must be banked
+              // Can only coalesce accesses with the same count
             }.get
           }
           dbg(s"access=$access shared=$shared")
@@ -166,12 +167,13 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
         (bankWrite, ofsWrite, dataWrite)
       }
       within(newAccessCtx, mergeCtrl) {
-        val vec = assertUnify(writes, s"bankAccess.vec") { _._5 }.get
+        //val vec = write.map { _.vec }.sum
         val bankRead = BufferRead(isFIFO=true).in(bank.out).done(deq)
         val ofsRead = BufferRead(isFIFO=true).in(ofs.out).done(deq)
         //TODO: handle enables
+        //TODO: handle vec
         data.fold[Unit]{
-          val newRead = BankedRead().bank(bankRead.out).offset(ofsRead.out).vec(vec).mem(mem).mirrorMetas(headAccess)
+          val newRead = BankedRead().bank(bankRead.out).offset(ofsRead.out)/*.vec(vec)*/.mem(mem).mirrorMetas(headAccess)
           accesses.foreach { case read:BankedRead =>
             read.out.connected.foreach{ in => 
               dbg(s"${in.src}.$in.swapInput($read.out, $newRead.out)")
@@ -181,7 +183,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
           bufferOutput(newRead.out)
         } { data => 
           val dataRead = BufferRead(isFIFO=true).in(data.out).done(deq)
-          BankedWrite().bank(bankRead.out).offset(ofsRead.out).data(dataRead.out).vec(vec).mem(mem).mirrorMetas(headAccess)
+          BankedWrite().bank(bankRead.out).offset(ofsRead.out).data(dataRead.out)/*.vec(vec)*/.mem(mem).mirrorMetas(headAccess)
         }
         accesses.foreach { removeNode }
       }
