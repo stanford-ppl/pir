@@ -59,9 +59,10 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
         val head::rest = accesses
         rest.foldLeft(List(Set(head))) { case (groups, access) =>
           val (shared, notshared) = groups.partition { group =>
-            assertUnify(group, s"share concurrency with $access") { a => 
+            assertUnify(group, s"share concurrency with $access(${access.getCtrl}) ${group.map { a => s"$a(${a.getCtrl})" }}") { a => 
               val lca = leastCommonAncesstor(a.getCtrl, access.getCtrl).get.as[ControlTree]
-              lca.schedule == "ForkJoin" || (a.getCtrl == access.getCtrl && lca.schedule == "Pipeline")
+              dbg(s"lca=$lca ${lca.schedule}")
+              lca.schedule == "ForkJoin" || (a.getCtrl == access.getCtrl && lca.schedule == "Pipelined")
               // Inaccesses/Outaccesses who are concurrently operating on the same buffer port must be banked
               // Can only coalesce accesses with the same count
             }.get
