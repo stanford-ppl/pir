@@ -77,14 +77,25 @@ trait Def extends PIRNode with DefNode[PIRNode] {
 
 case class Const(value:Any)(implicit env:Env) extends Def
 case class High()(implicit env:Env) extends Def
-trait OpNode extends Def
-case class OpDef(op:Opcode)(implicit env:Env) extends OpNode {
+trait OpNode extends PIRNode
+case class OpDef(op:Opcode)(implicit env:Env) extends OpNode with Def {
   val input = new InputField[List[PIRNode]]("input")
 }
-case class RegAccumOp(op:String)(implicit env:Env) extends OpNode {
+case class RegAccumOp(op:String)(implicit env:Env) extends OpNode with Def {
   val in = new InputField[PIRNode]("input")
   val en = new InputField[Set[PIRNode]]("en")
   val first = new InputField[PIRNode]("first")
+}
+case class BankCoalesce()(implicit env:Env) extends OpNode {
+  val in1 = new InputField[PIRNode]("in1")
+  val in2 = new InputField[PIRNode]("in2")
+  val out = new OutputField[List[PIRNode]]("out")
+  val select = new OutputField[List[PIRNode]]("select")
+}
+case class SelectCoalesce()(implicit env:Env) extends OpNode with Def {
+  val in1 = new InputField[PIRNode]("in1")
+  val in2 = new InputField[PIRNode]("in2")
+  val select = new InputField[PIRNode]("select")
 }
 case class HostRead(sid:String)(implicit env:Env) extends Def {
   val input = new InputField[PIRNode]("input")

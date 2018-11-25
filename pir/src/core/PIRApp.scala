@@ -64,12 +64,10 @@ trait PIRApp extends PIR with Logging {
     addPass(enableDot, new PIRIRDotGen(s"top3.dot"))
     addPass(contextInsertion).dependsOn(routeThroughEliminator)
     addPass(enableDot, new PIRIRDotGen(s"top4.dot"))
-
-    saveSession("pir/out/pir3.ckpt")
     addPass(memLowering).dependsOn(contextInsertion) ==>
-    addPass(deadCodeEliminator)
     addPass(enableDot, new PIRIRDotGen(s"top5.dot"))
-    addPass(depDuplications).dependsOn(deadCodeEliminator)
+    addPass(enableDot, new PIRCtxDotGen(s"simple5.dot"))
+    addPass(depDuplications).dependsOn(memLowering)
     addPass(routeThroughEliminator) ==>
     addPass(deadCodeEliminator) ==>
     addPass(contextAnalyzer) ==>

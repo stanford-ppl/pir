@@ -79,6 +79,14 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     case n => super.color(attr, n)
   }
 
+  override def emitEdge(from:E, to:E, attr:DotAttr):Unit = {
+    val newAttr = from.src match {
+      case from:GlobalOutput if from.vec.v.fold(false) { _ > 1 } => attr.setEdge.style(bold)
+      case _ =>  attr
+    }
+    super.emitEdge(from, to, newAttr)
+  }
+
   val htmlGen = new PIRHtmlIRPrinter(fileName.replace(".dot", "_IR.html")) {
     override lazy val logger = self.logger
     override def dirName = self.dirName
