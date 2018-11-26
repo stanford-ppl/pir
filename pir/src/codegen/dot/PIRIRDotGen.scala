@@ -41,6 +41,10 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     }.foldAt(n.to[MemoryNode]) { (q,n) =>
       q.append("banks", n.banks.get)
       .append("depth", n.depth.get)
+    }.foldAt(n.to[GlobalOutput]) { (q,n) =>
+      s"${q}\nto:\n${n.out.T.mkString("\n")}"
+    }.foldAt(n.to[GlobalInput]) { (q,n) =>
+      s"${q}\nfrom:\n${n.in.T}"
     }.foldAt(n.to[Context]) { (q,n) =>
       val ctrl = n.collectDown[Controller]().map { _.ctrl.get }.maxOptionBy { _.ancestors.size }
       ctrl.fold(q) { ctrl => s"$q\n${ctrl}" }

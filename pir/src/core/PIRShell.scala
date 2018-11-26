@@ -59,7 +59,7 @@ object PIRShell extends PIRApp with Logging {
     //addPass(enableDot, new PIRCtxDotGen(s"simple1.dot"))
 
     // ------- Analysis and Transformations --------
-    addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
+    //addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
     //addPass(enableDot, new PIRIRDotGen(s"top.dot"))
     //addPass(new PIRCtxDotGen(s"simple.dot"))
     //addPass(genPsim, ctxMerging)
@@ -72,8 +72,8 @@ object PIRShell extends PIRApp with Logging {
     //addPass(genPsim, prouteNodeGen)
     //addPass(genPsim, psimConfigGen)
     //addPass(runPsim, psimRunner)
-    //addPass(psimParser)
-    //addPass(new PIRCtxDotGen(s"simple2.dot"))
+    addPass(psimParser)
+    addPass(new PIRCtxDotGen(s"simple1.dot"))
     //addPass(enableDot, new PIRIRDotGen(s"top.dot"))
 
     //addPass(areaPowerStat).dependsOn(psimConfigCodegen, cuPlacer)
