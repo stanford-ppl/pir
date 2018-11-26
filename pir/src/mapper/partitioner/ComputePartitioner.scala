@@ -86,6 +86,8 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
         if (!notFit(kcost, vcost)) List(k)
         else {
           val nodes = schedular.scheduleScope(k.scope).asInstanceOf[List[PIRNode]]
+          dbg(s"schedule:")
+          nodes.foreach { n => dbg(s"$n") }
           val (head, tail) = nodes.splitAt(nodes.size/2)
           split(Partition(head), vcost) ++ split(Partition(tail),vcost)
         }
