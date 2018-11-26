@@ -15,8 +15,10 @@ class PlastirouteLinkGen(implicit compiler: PIR) extends PlastisimCodegen with C
 
   override def emitNode(n:N) = n match {
     case n:GlobalOutput =>
+      val ctx = n.in.T.ctx.get
       val row = newRow
       row("link") = n.id
+      row("ctx") = ctx.id
       row("src") = n.global.get.id
       row("tp") = if (n.getVec == 1) 1 else 2 // 1 for scalar, 2 for vector
       row("count") = n.constCount
