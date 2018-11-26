@@ -93,15 +93,14 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, placerAndRouter) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple8.dot"))
     addPass(genPsim, psimAnalyzer).dependsOn(placerAndRouter) ==>
-    addPass(genPsim, psimAnalyzer) ==> // Need to run twice to account for cycle in data flow graph
-    saveSession("pir/out/pir1.ckpt")
-    addPass(genPsim, ctxMerging)
+    addPass(genPsim, psimAnalyzer) //==> // Need to run twice to account for cycle in data flow graph
+    //addPass(genPsim, ctxMerging)
 
-    saveSession("pir/out/pir2.ckpt")
     addPass(enableDot, new PIRCtxDotGen(s"simple9.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top9.dot"))
     //addPass(enableDot, new PIRNetworkDotGen(s"net.dot"))
-    addPass(enableMapping,report).dependsOn(ctxMerging)
+    addPass(enableMapping,report)//.dependsOn(ctxMerging)
+    saveSession("pir/out/pir1.ckpt")
     
     // ------- Codegen  --------
     addPass(igraphGen).dependsOn(psimAnalyzer)
