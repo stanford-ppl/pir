@@ -21,6 +21,12 @@ class PlastisimAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFS
           dbg(s"Reset Count for $n...")
           count.reset
           Some(n)
+        } else if (n.count.isEmpty) {
+          n match {
+            case n:GlobalIO => Some(n)
+            case n:LocalAccess => Some(n)
+            case n => None
+          }
         } else None
       }
       resets.foreach { _.getCount }
