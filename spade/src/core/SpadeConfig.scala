@@ -17,7 +17,7 @@ class SpadeConfig(compiler:Compiler) extends prism.Config(compiler) {
   register[Int]("word", default=32, info="Word width")
   register[Int]("vec", default=16, info="Vector width of SIMD lanes and vector network")
   register[Int]("pmu-sram-size", default=64*1024, info="SRAM capacity in PMU in word.")
-  register[String]("net", default="static", info="Network type [dynamic, static, asic, p2p]")
+  register[String]("net", default="hybrid", info="Network type [dynamic, static, hybrid, asic, p2p]")
   register[String]("topo", default="mesh", info="Network topology [mesh, torus, cmesh]")
   register[Int]("row", info="number of rows in network")
   register[Int]("col", info="number of columns in network")

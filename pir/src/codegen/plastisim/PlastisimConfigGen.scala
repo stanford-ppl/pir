@@ -103,7 +103,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
     }
     emitStartToken(n)
     emitStopToken(n)
-    n.getCount.fold {
+    n.count.v.flatten.fold {
       emitln(s"# count not exists")
     } { c =>
       emitln(s"count = $c")
@@ -188,7 +188,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
       dsts.zipWithIndex.foreach { case (dst,idx) =>
         emitln(s"dst[$idx] = ${quote(dst)}")
       }
-      n.count.v.fold {
+      n.count.v.flatten.fold {
         emitln(s"# count doen't exist")
       } { c =>
         emitln(s"count = $c")
