@@ -151,7 +151,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
     else {
       val tp = if (read.getVec > 1) "vec" else "word"
       paramOf(n) match {
-        case param:CUParam => param.fifoParamOf(tp).get.depth
+        case param:CUParam => config.option[Int]("pcu-vfifo")//param.fifoParamOf(tp).get.depth
         case param:ArgFringeParam => 100
         case param:MCParam => 100
       }
