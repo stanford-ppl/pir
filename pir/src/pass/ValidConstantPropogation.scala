@@ -23,6 +23,7 @@ class ValidConstantPropogation(implicit compiler:PIR) extends PIRTraversal with 
     val step = counter.step.T
     val max = counter.max.T
     val par = counter.par
+    dbg(s"isInner=${counter.isInner}")
     val range = (min, step, max) match {
       case (Const(min:Int), Const(step:Int), Const(max:Int)) if config.forceAlign =>
         val bound = if (counter.isInner) 1 else par
@@ -31,6 +32,9 @@ class ValidConstantPropogation(implicit compiler:PIR) extends PIRTraversal with 
         var bound = ((max - min) /! step) % par
         if (bound == 0) {
           if (counter.isInner) bound = 1 else bound = par
+        }
+        if (bound > counter.valids.size) {
+          bound = 0 // vectorized valid. Cannot eliminate
         }
         dbg(s"Constant loop bounds min=$min, step=$step, max=$max, par=$par (0 until $bound)")
         (0 until bound)
