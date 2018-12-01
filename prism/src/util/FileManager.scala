@@ -14,8 +14,7 @@ trait FileManager {
   def isLog(file:File):Boolean = isLog(file.getName())
   def isLog(fileName:String):Boolean = {
     fileName match {
-      //case fileName if fileName.endsWith(".log") & fileName.contains("-") =>
-        //fileName.split("-")(0).forall { _.isDigit }
+      case fileName if fileName == "compiler.log" => false
       case fileName => logExtensions.exists { ext => fileName.endsWith(ext) }
     }
   }

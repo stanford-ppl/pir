@@ -10,7 +10,8 @@ case class TopParam(
   wordWidth:Int=32, // bit
   vecWidth:Int=16, // word
   clockFrequency:Int=1000000000, //Hz
-  pattern:Pattern = Checkerboard()
+  pattern:Pattern = Checkerboard(),
+  scheduled:Boolean=false,
 ) extends Parameter {
   def bytePerWord = wordWidth / 8
 }
@@ -20,7 +21,7 @@ trait Pattern extends Parameter {
 }
 
 case class AsicPattern(
-  networkParam:NetworkParam=NetworkParam("vec", hasDynamic=false)
+  networkParam:NetworkParam=NetworkParam("vec")
 ) extends Pattern
 
 case class Checkerboard(
@@ -29,7 +30,7 @@ case class Checkerboard(
   cu1:CUParam=PCUParam(),
   cu2:CUParam=PMUParam(),
   fringeParam:FringeParam=FringeParam(),
-  networkParams:List[NetworkParam]=List(NetworkParam("bit"), NetworkParam("word"), NetworkParam("vec"))
+  networkParams:List[NetworkParam]=List(NetworkParam("bit"), NetworkParam("word"), NetworkParam("vec", numVC=4))
 ) extends Pattern {
   def cuAt(i:Int, j:Int) = {
     if ((i+j) % 2 == 0) cu1 else cu2
@@ -63,8 +64,7 @@ case class NetworkParam(
   staticInput:Int=4, // Number of inputs from switch to node
   staticOutput:Int=4, // Number of outptus from node to switch
   switchLink:Int=2, // Number of links between switches
-  hasDynamic:Boolean=true, // Whether there is a dynamic router
-  numVC:Int = 4,
+  numVC:Int = 0, // if vc is zero, it's pure static network
   linkProp:String="db", // Static link property. "db" - double buffer, "cd" - credit based
   flitWidth:Int=512, // Flitwidth for dynamic network
   bundleParam:BundleParam=BundleParam()

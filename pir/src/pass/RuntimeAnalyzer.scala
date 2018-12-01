@@ -18,6 +18,14 @@ trait RuntimeAnalyzer { self:PIRPass =>
       )
     }
     def dramCommands:Option[DRAMCommand] = assertOneOrLess(ctx.children.collect{ case fringe:DRAMCommand => fringe }, s"fringe in $ctx")
+    def activeRate(n:Float) = ctx.getMeta[Float]("activeRate").update(n)
+    def activeRate = ctx.getMeta[Float]("activeRate").v
+    def stallRate(n:Float) = ctx.getMeta[Float]("stallRate").update(n)
+    def stallRate = ctx.getMeta[Float]("stallRate").v
+    def starveRate(n:Float) = ctx.getMeta[Float]("starveRate").update(n)
+    def starveRate = ctx.getMeta[Float]("starveRate").v
+    def scheduleFactor = ctx.getMeta[Int]("scheduleFactor").v
+    def getScheduleFactor = ctx.getMeta[Int]("scheduleFactor").getOrElseUpdate(compScheduleFactor(ctx))
   }
 
   implicit class PIRNodeRuntimeOp(n:PIRNode) {
@@ -74,20 +82,20 @@ trait RuntimeAnalyzer { self:PIRPass =>
     n match {
       case n:LocalOutAccess =>
         n.out.T match {
-          case List(dram:FringeDenseLoad) => dram.getIter
-          case List(dram:FringeDenseStore) if n.out.isConnectedTo(dram.data) | n.out.isConnectedTo(dram.valid) => Some(1l)
+          case List(dram:FringeDenseLoad) => dram.getIter.map { _ * n.ctx.get.getScheduleFactor }
+          case List(dram:FringeDenseStore) if n.out.isConnectedTo(dram.data) | n.out.isConnectedTo(dram.valid) => Some(n.ctx.get.getScheduleFactor)
           case List(dram:FringeDenseStore) if n.out.isConnectedTo(dram.size) | n.out.isConnectedTo(dram.offset) =>
-            dram.getIter
-          case List(dram:FringeSparseLoad) => Some(1l)
-          case List(dram:FringeSparseStore) => Some(1l)
+            dram.getIter.map { _ * n.ctx.get.getScheduleFactor }
+          case List(dram:FringeSparseLoad) => Some(n.ctx.get.getScheduleFactor)
+          case List(dram:FringeSparseStore) => Some(n.ctx.get.getScheduleFactor)
           case _ => n.done.T.getScale
         }
       case n:BufferWrite =>
         n.data.T match {
-          case data:FringeDenseLoad => Some(1l)
-          case data:FringeDenseStore => data.getIter // ack
-          case data:FringeSparseLoad => Some(1l)
-          case data:FringeSparseStore => Some(1l)
+          case data:FringeDenseLoad => Some(n.ctx.get.getScheduleFactor)
+          case data:FringeDenseStore => data.getIter.map { _ * n.ctx.get.getScheduleFactor } // ack
+          case data:FringeSparseLoad => Some(n.ctx.get.getScheduleFactor)
+          case data:FringeSparseStore => Some(n.ctx.get.getScheduleFactor)
           case data =>  n.done.T.getScale
         }
       case n:TokenWrite => n.done.T.getScale
@@ -99,9 +107,17 @@ trait RuntimeAnalyzer { self:PIRPass =>
         val children = ctrler.valid.T.out.connected.filter { _.asInstanceOf[Field[_]].name == "parentEn" }.map { _.src.as[Controller] }
         assertUnify(children, s"$n.valid.scale") { child =>
           zipMap(child.valid.T.getScale, child.getIter) { _ * _ }
-        }.getOrElse(Some(1l))
-      case _:High => Some(1l)
+        }.getOrElse(Some(n.ctx.get.getScheduleFactor))
+      case _:High => Some(n.ctx.get.getScheduleFactor)
       case n => throw PIRException(s"Don't know how to compute scale of $n")
+    }
+  }
+
+  def compScheduleFactor(n:Context):Int = dbgblk(s"compScheduleFactor($n)"){
+    if (spadeParam.scheduled) {
+      Math.max(n.collectDown[OpNode]().size,1)
+    } else {
+      1
     }
   }
 

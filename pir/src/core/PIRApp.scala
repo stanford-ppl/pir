@@ -79,7 +79,7 @@ trait PIRApp extends PIR with Logging {
 
     addPass(initializer)
     addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
-    addPass(config.debug, new ParamHtmlIRPrinter(s"param.html", spadeParam))
+    addPass(new ParamHtmlIRPrinter(s"param.html", spadeParam))
     addPass(enableDot, new PIRCtxDotGen(s"simple7.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
 

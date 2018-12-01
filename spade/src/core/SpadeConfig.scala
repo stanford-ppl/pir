@@ -31,7 +31,7 @@ class SpadeConfig(compiler:Compiler) extends prism.Config(compiler) {
   register[Int]("vfifo", default=4, info="Number of vector FIFO within Terminal")
   register[Int]("vlink", default=2, info="Number of vector link between switches")
   register[Int]("slink", default=4, info="Number of scalar link between switches")
-  register[Int]("pcu-stage", default=6, info="Number of stages in pcu")
+  register[Int]("stage", default=6, info="Number of stages in pcu")
   register[Int]("pcu-vfifo", info="Number of vector fifo in pcu")
   register[Int]("pcu-sfifo", info="Number of scalar fifo in pcu")
   register[Int]("pcu-cfifo", info="Number of scalar fifo in pcu")
@@ -43,6 +43,7 @@ class SpadeConfig(compiler:Compiler) extends prism.Config(compiler) {
   register[Int]("dag-sfifo", info="Number of scalar fifo in dag")
   register[Int]("dag-cfifo", info="Number of scalar fifo in dag")
   register[Int]("vc", default=4, info="Number of virtual classes per network")
+  register[Boolean]("scheduled", default=false, info="Wether stage is time multiplex or pipelined")
   register[String]("link-prop", default="db", info="[db-double buffered, cd-credit based]")
   register[Int]("flit-width", default=512, info="Flit width for dynamic network")
 

@@ -40,7 +40,7 @@ class PlastisimLogParser(implicit compiler: PIR) extends PIRPass with PlastisimU
       val ctx = line.split(":")(0).trim
       nameMap.get(ctx).foreach { ctx =>
         ctx.active := line.split("Total Active:")(1).trim.split(" ")(0).trim.toLong
-        //activeRateOf(node) = line.split("Active:")(1).trim.split(" ")(0).trim.toFloat
+        ctx.activeRate(line.split("Active:")(1).trim.split(" ")(0).trim.toFloat)
         //stallRateOf(node) = line.split("Stalled:")(1).trim.split(" ")(0).trim.toFloat
         //starveRateOf(node) = line.split("Starved:")(1).trim.split(" ")(0).trim.toFloat
         if (line.contains("Final State:")) ctx.state := line.split("Final State:")(1).trim.split(" ")(0).trim

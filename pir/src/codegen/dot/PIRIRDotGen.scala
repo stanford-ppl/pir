@@ -48,8 +48,10 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     }.foldAt(n.to[Context]) { (q,n) =>
       val ctrl = n.collectDown[Controller]().map { _.ctrl.get }.maxOptionBy { _.ancestors.size }
       ctrl.fold(q) { ctrl => s"$q\n${ctrl}" }
+      .append("sf", n.scheduleFactor)
       .append("active", n.active.v)
       .append("state", n.state.v)
+      .append("activeRate", n.activeRate)
     }
   }
 
@@ -69,7 +71,10 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
           else if (state == "STALL") "goldenrod1"
           else "palevioletred1"
         } else {
-          "palevioletred1"
+          val G = Math.round((1 - n.activeRate.get / 100) * (255 - 50) + 50).toInt
+          var HG = G.toHexString
+          while (HG.size < 2) HG = "0" + HG
+          s"#00${HG}00"
         }
       }
       attr.setGraph.fillcolor(color).style(filled).setNode.fillcolor(color).style(filled)

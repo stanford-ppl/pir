@@ -32,10 +32,10 @@ trait Compiler extends FileManager with ArgLoader with Session with Logging {
   }
 
   def main(args: Array[String]): Unit = {
+    setArgs(args)
     withLog(outDir, s"compiler.log") {
       tic
       Try {
-        setArgs(args)
         loadSession
         reset
         info(s"Output directory set to ${cstr(Console.CYAN,outDir)}")

@@ -46,14 +46,12 @@ trait Printer extends FormatPrinter {
     override def print(s:String) = { written = true; super.print(s) }
     override def println(s:String) = { written = true; super.println(s) }
     override def flush = if (written) super.flush
-    override def close = if (written) super.close 
+    override def close = if (written) super.close
     def getPath = filePath
   }
 
   val streamStack = Stack[StreamWriter]()
 
-  def isOpened = streamStack.nonEmpty
-  
   def sw:StreamWriter = { streamStack.headOption.getOrElse(throw new Exception(s"No Stream defined for $this")) }
 
   def openBuffer(name:Option[String]=None) = {
