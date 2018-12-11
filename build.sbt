@@ -53,11 +53,10 @@ lazy val prism = Project("prism", file("prism/"))
     inConfig(Slow)(Defaults.testTasks)
   )
 
-lazy val spade = Project("spade", 
-  file("spade/"), 
-  settings = bldSettings,
-  dependencies = Seq(prism % "compile->compile;test->test")
-).settings(
+lazy val spade = Project("spade", file("spade/"))
+.dependsOn(prism % "compile->compile;test->test")
+.settings(bldSettings)
+.settings(
   scalaSource in Compile := baseDirectory(_ / "src/core").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/param2").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/codegen/dot/NetworkDotGen.scala").value,
@@ -75,11 +74,10 @@ lazy val spade = Project("spade",
   /*PB.protoSources in Compile := Seq(baseDirectory(_ / "src/param3/proto/").value)*/
  /*)*/
 
-lazy val pir = Project("pir", 
-  file("pir/"), 
-  settings = bldSettings,
-  dependencies = Seq(prism % "compile->compile;test->test", spade % "compile->compile")
-).settings(
+lazy val pir = Project("pir", file("pir/"))
+.dependsOn(prism % "compile->compile;test->test")
+.dependsOn(spade % "compile->compile")
+.settings(bldSettings).settings(
   scalaSource in Compile := baseDirectory(_ / "src/core").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/util/").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/pass/").value,
