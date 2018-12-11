@@ -100,7 +100,7 @@ trait PIR extends Compiler with PIREnv with PIRNodeUtil {
     addPass(enableDot, new PIRCtxDotGen(s"simple8.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top8.dot"))
     addPass(enableDot, new PIRNetworkDotGen(s"net.dot"))
-    addPass(report).dependsOn(placerAndRouter)
+    addPass(enableMapping, report).dependsOn(placerAndRouter)
     
     // ------- Codegen  --------
     addPass(igraphGen).dependsOn(psimAnalyzer)
