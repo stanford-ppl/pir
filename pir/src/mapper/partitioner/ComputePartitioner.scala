@@ -36,6 +36,7 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
         dbg(s"Recover $k")
         dbg(s"value cost=$vcost")
         val ks = split(k, vcost).toSet
+        info(s"Split $k into ${ks.size} CUs")
         Right(fg.mapFreeMap { _ - k ++ (ks, vs) })
       case x => super.recover(x)
     }
@@ -85,6 +86,8 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
         if (!notFit(kcost, vcost)) List(k)
         else {
           val nodes = schedular.scheduleScope(k.scope).asInstanceOf[List[PIRNode]]
+          //dbg(s"schedule:")
+          //nodes.foreach { n => dbg(s"$n") }
           val (head, tail) = nodes.splitAt(nodes.size/2)
           split(Partition(head), vcost) ++ split(Partition(tail),vcost)
         }
@@ -106,19 +109,16 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
   }).distinct
 
   def dupDeps(from:Context, to:Context, incost:InputCost) = dbgblk(s"dupDeps($from, $to)") {
-    var deps = to.accum(visitFunc=visitIn(from) _)
-    deps = deps.filterNot { _ == to }
-    deps ++= from.collectDown[TokenRead]()
+    var deps = getDeps(to, visitIn(from))
     val noInput = (incost.sin + incost.vin) == 0
     if (noInput) {
       val ins = from.collectDown[LocalOutAccess]()
       val (vins, sins) = ins.partition { _.getVec > 0 }
       val in = sins.headOption.getOrElse(vins.head)
       dbg(s"$to has no input. mirror one input from $from $in")
-      deps ++= in.accum(visitFunc=visitIn(from) _)
+      deps ++= in+:getDeps(in, visitIn(from))
     }
     deps = deps.distinct
-    dbg(s"deps=$deps")
     val mapping = within(to) { mirrorAll(deps) }
     to.descendents.foreach { x =>
       x.localDeps.foreach { dep =>
@@ -129,12 +129,31 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
     }
   }
 
+  def scheduleBy(s:Int, v:Int, numOp: => Int) = dbgblk(s"scheduleBy($s, $v, $numOp)") {
+    if (spadeParam.scheduled) {
+      val factor = spadeParam.vecNetParam.fold { 1 } { vecNet =>
+        if (vecNet.numVC > 0) { // dynamic network
+          Math.max(numOp, 1)
+        } else 1
+      }
+      (s /! factor, v /! factor)
+    } else {
+      (s,v)
+    }
+  }
+
   override protected def compCost(x:Any, ct:ClassTag[_]) = {
     switch[InputCost](x,ct) { 
+      case x: GlobalContainer =>
+        val ins = x.collectDown[GlobalInput]()
+        val (vins, sins) = ins.partition { _.getVec > 1 }
+        val (nsin, nvin) = scheduleBy(sins.size, vins.size, x.collectDown[Context]().map { _.collectDown[OpNode]().size }.min)
+        InputCost(nsin, nvin)
       case x: Context => 
         val ins = x.collectDown[LocalOutAccess]()
         val (vins, sins) = ins.partition { _.getVec > 1 }
-        InputCost(sins.size, vins.size)
+        val (nsin, nvin) = scheduleBy(sins.size, vins.size, x.collectDown[OpNode]().size)
+        InputCost(nsin, nvin)
       case x: Partition => 
         val deps = x.deps.filter { d =>
           include(d) || d.isInstanceOf[LocalOutAccess]
@@ -142,18 +161,26 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
         dbg(s"deps=$deps")
         val ins = deps
         val (vins, sins) = ins.partition { _.getVec > 1 }
-        InputCost(sins.size, vins.size)
+        val (nsin, nvin) = scheduleBy(sins.size, vins.size, x.scope.size)
+        InputCost(nsin, nvin)
     } orElse switch[OutputCost](x,ct) { 
+      case x: GlobalContainer => 
+        val outs = x.collectDown[LocalInAccess]()
+        val (vouts, souts) = outs.partition { _.getVec > 1 }
+        val (nsout, nvout) = scheduleBy(souts.size, vouts.size, x.collectDown[Context]().map { _.collectDown[OpNode]().size }.min)
+        OutputCost(nsout, nvout)
       case x: Context => 
         val outs = x.collectDown[LocalInAccess]()
         val (vouts, souts) = outs.partition { _.getVec > 1 }
-        OutputCost(souts.size, vouts.size)
+        val (nsout, nvout) = scheduleBy(souts.size, vouts.size, x.collectDown[OpNode]().size)
+        OutputCost(nsout, nvout)
       case x: Partition => 
         val depedFroms = x.depedsTo.keys.toSeq
         dbg(s"depedFroms=${depedFroms.toList}")
         val outs = depedFroms
         val (vouts, souts) = outs.partition { _.getVec > 1 }
-        OutputCost(souts.size, vouts.size)
+        val (nsout, nvout) = scheduleBy(souts.size, vouts.size, x.scope.size)
+        OutputCost(nsout, nvout)
     } orElse switch[StageCost](x,ct) { 
       case x: Partition => 
         StageCost(x.scope.collect{ case op:OpNode => op }.size)

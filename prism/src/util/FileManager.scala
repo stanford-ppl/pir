@@ -2,6 +2,7 @@ package prism
 package util
 
 import java.io.{Console => _, _}
+import java.nio.file.Files
 import scala.io._
 
 trait FileManager { 
@@ -13,8 +14,7 @@ trait FileManager {
   def isLog(file:File):Boolean = isLog(file.getName())
   def isLog(fileName:String):Boolean = {
     fileName match {
-      //case fileName if fileName.endsWith(".log") & fileName.contains("-") =>
-        //fileName.split("-")(0).forall { _.isDigit }
+      case fileName if fileName == "compiler.log" => false
       case fileName => logExtensions.exists { ext => fileName.endsWith(ext) }
     }
   }
@@ -93,13 +93,12 @@ trait FileManager {
     }
   }
 
-  def mkdir(dirName:String):String = {
+  def mkdir(dirName:String):Unit = {
     val dir = new File(dirName)
     if (!dir.exists()) {
-      info(cstr(Console.YELLOW, s"creating output directory: ${cstr(Console.CYAN,dirName)}"))
-      dir.mkdirs();
+      Files.createDirectories(dir.toPath())
+      info(cstr(Console.YELLOW, s"created output directory: ${cstr(Console.CYAN,dirName)}"))
     }
-    dirName
   }
 
   def buildPath(dirs:String*) = dirs.mkString(separator)

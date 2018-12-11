@@ -103,7 +103,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
     }
     emitStartToken(n)
     emitStopToken(n)
-    n.getCount.fold {
+    n.count.v.flatten.fold {
       emitln(s"# count not exists")
     } { c =>
       emitln(s"count = $c")
@@ -122,7 +122,8 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
       case g:GlobalContainer if spadeParam.isAsic =>
         Math.max(n.collectDown[OpNode]().size, 1)
       case g:GlobalContainer =>
-        paramOf(n).as[CUParam].numStage
+        val cuParam = paramOf(n).as[CUParam]
+        if (cuParam.trace[TopParam].scheduled) 1 else cuParam.numStage
     }
   }
 
@@ -152,8 +153,8 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
       val tp = if (read.getVec > 1) "vec" else "word"
       paramOf(n) match {
         case param:CUParam => param.fifoParamOf(tp).get.depth
-        case param:ArgFringeParam => 1
-        case param:MCParam => 10
+        case param:ArgFringeParam => 100
+        case param:MCParam => 100
       }
     }
   }
@@ -188,7 +189,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
       dsts.zipWithIndex.foreach { case (dst,idx) =>
         emitln(s"dst[$idx] = ${quote(dst)}")
       }
-      n.count.v.fold {
+      n.count.v.flatten.fold {
         emitln(s"# count doen't exist")
       } { c =>
         emitln(s"count = $c")

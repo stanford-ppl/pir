@@ -39,6 +39,7 @@ val bldSettings = Defaults.coreDefaultSettings ++ Seq(
     "-diagrams-debug",
     "-doc-title", name.value
   ),
+  isSnapshot := true,
   parallelExecution in Test := true,
   cancelable in Global := true,
   concurrentRestrictions in Global := (Tags.limitAll(1) :: Nil),
@@ -94,3 +95,4 @@ addCommandAlias("pir", "; project prism; test; project apps; run-main")
 addCommandAlias("spade", "; project spade; runMain spade.Plasticine --out=out/plasticine")
 
 addCommandAlias("publishAll", "; project prism; publishLocal; project spade; publishLocal; project pir; publishLocal")
+addCommandAlias("psh", "; project pir; runMain pir.PIRShell")

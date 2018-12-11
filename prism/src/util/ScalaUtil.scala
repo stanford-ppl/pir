@@ -21,6 +21,7 @@ trait ScalaAlias {
   type ListBuffer[T] = scala.collection.mutable.ListBuffer[T]
   val ListBuffer = scala.collection.mutable.ListBuffer
 
+  type Try[U] = scala.util.Try[U]
   val Try = scala.util.Try
   val Success = scala.util.Success
   val Failure = scala.util.Failure

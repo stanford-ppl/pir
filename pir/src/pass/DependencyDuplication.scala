@@ -25,6 +25,7 @@ class DependencyDuplication(implicit compiler:PIR) extends PIRPass with Transfor
         swapDep(n, dep, mdep)
       }
     }
+    //breakPoint(s"swapDep($ctx)", None)
   }
 
   def check(ctx:Context) = {

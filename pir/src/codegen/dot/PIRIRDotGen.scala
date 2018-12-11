@@ -41,9 +41,17 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     }.foldAt(n.to[MemoryNode]) { (q,n) =>
       q.append("banks", n.banks.get)
       .append("depth", n.depth.get)
+    }.foldAt(n.to[GlobalOutput]) { (q,n) =>
+      s"${q}\nto:\n${n.out.T.mkString("\n")}"
+    }.foldAt(n.to[GlobalInput]) { (q,n) =>
+      s"${q}\nfrom:\n${n.in.T}"
     }.foldAt(n.to[Context]) { (q,n) =>
       val ctrl = n.collectDown[Controller]().map { _.ctrl.get }.maxOptionBy { _.ancestors.size }
       ctrl.fold(q) { ctrl => s"$q\n${ctrl}" }
+      .append("sf", n.scheduleFactor)
+      .append("active", n.active.v)
+      .append("state", n.state.v)
+      .append("activeRate", n.activeRate)
     }
   }
 
@@ -53,7 +61,23 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     //case n:ContextEnable => attr.fillcolor(orange).style(filled)
     //case n:ContextEnableOut => attr.fillcolor(orange).style(filled)
 
-    case n:Context => attr.setGraph.fillcolor(palevioletred).style(filled).setNode.fillcolor(palevioletred).style(filled)
+    case n:Context => 
+      val color = zipOption(n.active.v, n.state.v).fold {
+        "palevioletred1"
+      } { case (active, state) =>
+        val expected = n.count.get.get
+        if (active < expected) {
+          if (state == "STARVE") "firebrick1"
+          else if (state == "STALL") "goldenrod1"
+          else "palevioletred1"
+        } else {
+          val G = Math.round((1 - n.activeRate.get / 100) * (255 - 50) + 50).toInt
+          var HG = G.toHexString
+          while (HG.size < 2) HG = "0" + HG
+          s"#00${HG}00"
+        }
+      }
+      attr.setGraph.fillcolor(color).style(filled).setNode.fillcolor(color).style(filled)
     case n:Counter => attr.fillcolor(indianred).style(filled)
     //case n:CUContainer => attr.fillcolor(deepskyblue).style(filled)
     case n:DRAMCommand => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
@@ -62,6 +86,14 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
 
     case n:OpNode => attr.fillcolor("mediumorchid1").style(filled)
     case n => super.color(attr, n)
+  }
+
+  override def emitEdge(from:E, to:E, attr:DotAttr):Unit = {
+    val newAttr = from.src match {
+      case from:GlobalOutput if from.vec.v.fold(false) { _ > 1 } => attr.setEdge.style(bold)
+      case _ =>  attr
+    }
+    super.emitEdge(from, to, newAttr)
   }
 
   val htmlGen = new PIRHtmlIRPrinter(fileName.replace(".dot", "_IR.html")) {

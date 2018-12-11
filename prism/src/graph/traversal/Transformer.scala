@@ -184,38 +184,31 @@ trait Transformer extends Logging {
     case _ => throw PIRException(s"Cannot find env")
   }
 
-  implicit class ProductNodeOp[N](x:ProductNode[N]) {
-    def map[T:ClassTag](func:(T, Any) => Any) = {
-      x match {
-        case x:T =>
-          val args = x.productIterator.toList
-          val targs = args.map { arg => func(x, arg) }
-          val change = args.zip(targs).exists { case (a,t) => a != t }
-          if (change) {
-            removeNode(x)
-            val nn = x.newInstance[T](targs) 
-            dbg(s"Create $nn")
-            nn
-          } else x
-        case x => x
-      }
+  implicit class ProductOp[T<:N with Product](x:T) {
+    def mapFields(func:(T, Any) => Any):T = {
+      val args = x.productIterator.toList
+      dbg(s"$x, args=$args")
+      val targs = args.map { arg => func(x, arg) }
+      val change = args.zip(targs).exists { case (a,t) => a != t }
+      if (change) {
+        removeNode(x)
+        val nn = x.newInstance[T](targs) 
+        dbg(s"Create $nn")
+        nn
+      } else x
     }
 
-    def mapFields[T<:Product with N:TypeTag:ClassTag](func:(String, T, Any) => Any):N = {
-      x match {
-        case x:T =>
-          val args = x.productIterator.toList
-          val fields = x.fields
-          val targs = fields.map { case (name, arg) => func(name, x, arg) }
-          val change = args.zip(targs).exists { case (a,t) => a != t }
-          if (change) {
-            removeNode(x)
-            val nn = x.newInstance[T](targs) 
-            dbg(s"Create $nn")
-            nn
-          } else x.asInstanceOf[N]
-        case x => x.asInstanceOf[N]
-      }
+    def mapFieldWithName(func:(String, T, Any) => Any)(implicit tg:TypeTag[T]):T = {
+      val args = x.productIterator.toList
+      val fields = x.fields
+      val targs = fields.map { case (name, arg) => func(name, x, arg) }
+      val change = args.zip(targs).exists { case (a,t) => a != t }
+      if (change) {
+        removeNode(x)
+        val nn = x.newInstance[T](targs) 
+        dbg(s"Create $nn")
+        nn
+      } else x
     }
   }
 
@@ -226,7 +219,7 @@ trait Transformer extends Logging {
       case (a,b) => (transform(a), transform(b))
       case (a,b,c) => (transform(a), transform(b), transform(c))
       case (a,b,c,d) => (transform(a), transform(b), transform(c), transform(d))
-      case x:ProductNode[_] => x.map[ProductNode[_]] { case (x, arg) => transform(arg) }
+      case x:N with Product => x.mapFields { case (x, arg) => transform(arg) }
       case x => x
     }).asInstanceOf[T]
   }

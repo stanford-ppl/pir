@@ -19,5 +19,8 @@ trait ParamUtil {
       case p:AsicPattern => List(p.networkParam)
       case _ => Nil
     }
+    def vecNetParam:Option[NetworkParam] = {
+      p.networkParams.filter { _.granularity == "vec" }.headOption
+    }
   }
 }

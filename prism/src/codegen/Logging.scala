@@ -7,10 +7,10 @@ trait Logging extends Serializable {
 
   def debug:Boolean = true
   @transient lazy val logger = new Printer {
-    override def emit(s:String):Unit = if (debug && isOpened) { super.emit(s); flush }
-    override def emitln(s:String):Unit = if (debug && isOpened) { super.emitln(s); flush }
+    override def emit(s:String):Unit = if (debug && isOpen) { super.emit(s); flush }
+    override def emitln(s:String):Unit = if (debug && isOpen) { super.emitln(s); flush }
 
-    override def emitBlock[T](bs:Option[String], b:Option[Braces], es:Option[String])(block: =>T):T = if (debug && isOpened) { 
+    override def emitBlock[T](bs:Option[String], b:Option[Braces], es:Option[String])(block: =>T):T = if (debug && isOpen) { 
       emitBSln(bs, b, None)
       val res = block
       val resHeader = s"result${bs.fold("") { bs => s" [$bs]"}} ="
@@ -20,10 +20,11 @@ trait Logging extends Serializable {
           //dbg(resHeader + s" ${res.map(quote)}")
         case res:Iterable[_] =>
           dbg(resHeader)
-          res.foreach { res => dbg(s" - ${quote(res)}") }
-        case res:Iterator[_] =>
-          dbg(resHeader)
-          res.foreach { res => dbg(s" - ${quote(res)}") }
+          if (res.size < 4) {
+            res.foreach { res => dbg(s" - ${quote(res)}") }
+          } else {
+            s"size=${res.size} [${res.mkString(",")}]"
+          }
         case res => dbg(resHeader + s" ${quote(res)}")
       }
       emitBEln(None, b, es)

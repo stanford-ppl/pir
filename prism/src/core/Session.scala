@@ -56,11 +56,11 @@ trait Session { self:Compiler =>
 
   def loadDesign(loaded:Any):Unit = {}
   def getDesign:Serializable = null
-  def saveSession = addPass("SaveSession"){runner =>
+  def saveSession(path:String) = addPass("SaveSession"){runner =>
     if (config.save) {
       val saved = (runner.id, compiler.getDesign)
-      saveToFile(saved, config.checkPointPath)
-      loadFromFile[(Int, Serializable)](config.checkPointPath)
+      saveToFile(saved, path)
+      loadFromFile[(Int, Serializable)](path)
     }
   }
 

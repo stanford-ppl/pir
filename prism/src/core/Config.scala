@@ -5,6 +5,8 @@ import scala.collection.mutable
 
 class Config(compiler:Compiler) extends ArgParser {
 
+  var cwd: String = new java.io.File(".").getAbsolutePath
+
   def defaultName = compiler.getClass.getSimpleName.replace("$","")
 
   register("codegen", true, "Enable codegen")
@@ -14,7 +16,7 @@ class Config(compiler:Compiler) extends ArgParser {
   register[Int]("start-id", "Runner ID to start with")
   register[Int]("end-id", "Runner ID to stop")
   register[String]("name", defaultName, "name of the application")
-  register[String]("check-point-path", "pir/out/pir.ckpt", "Path for checkpoint")
+  register[String]("ckpt", "pir/out/pir.ckpt", "Path for checkpoint")
   register("load", false, "Load checkpoint")
   register("save", true, "Save checkpoint")
 
@@ -29,7 +31,7 @@ class Config(compiler:Compiler) extends ArgParser {
   def endRunId = getOption[Int]("end-id")
   def load = getOption[Int]("start-id").fold(true) { _ != 0 } && option[Boolean]("load")
   def save = option[Boolean]("save")
-  def checkPointPath = option[String]("check-point-path")
+  def checkPointPath = option[String]("ckpt")
   def enableCodegen = option[Boolean]("codegen")
   def verbose = option[Boolean]("verbose")
 

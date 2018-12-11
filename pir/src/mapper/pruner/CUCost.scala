@@ -77,7 +77,7 @@ trait CUCostUtil extends PIRPass with CostUtil with RuntimeAnalyzer with Memoriz
     } orElse switch[StageCost](x,ct) {
       case n:GlobalContainer => 
         val ctxs = n.collectDown[Context]()
-        ctxs.map { _.getCost[StageCost] }.reduce { _ + _ }
+        ctxs.map { _.getCost[StageCost] }.fold(StageCost()) { _ + _ }
       case n:Context =>
         val ops = n.collectDown[OpNode]()
         StageCost(ops.size)
@@ -87,16 +87,18 @@ trait CUCostUtil extends PIRPass with CostUtil with RuntimeAnalyzer with Memoriz
     } orElse switch[LaneCost](x,ct) {
       case n:GlobalContainer => 
         val ctxs = n.collectDown[Context]()
-        ctxs.map { _.getCost[LaneCost] }.reduce { _ + _ }
+        ctxs.map { _.getCost[LaneCost] }.fold(LaneCost()) { _ + _ }
       case n:Context =>
-        val inner = n.collectDown[Controller]().minOptionBy { _.ctrl.get }
-        LaneCost(inner.map { _.getVec }.getOrElse(1))
+        val lane = assertUnify(n.collectDown[Controller]().flatMap { _.leaves }.distinct, s"$n.lane") {
+          _.getVec
+        }.getOrElse(1)
+        LaneCost(lane)
       case n:CUParam => LaneCost(n.numLane)
       case n:Parameter => LaneCost(1)
     } orElse switch[OpCost](x,ct) {
       case n:GlobalContainer => 
         val ctxs = n.collectDown[Context]()
-        ctxs.map { _.getCost[OpCost] }.reduce { _ + _ }
+        ctxs.map { _.getCost[OpCost] }.fold(OpCost()) { _ + _ }
       case n:Context =>
         val ops = n.collectDown[OpDef]()
         OpCost(ops.map { _.op }.toSet)

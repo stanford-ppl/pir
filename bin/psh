@@ -1,0 +1,4 @@
+#!/bin/bash
+
+args=${@:1}
+sbt "; project pir; runMain pir.PIRShell $args"

@@ -40,6 +40,7 @@ abstract class PIRNode(implicit env:BuildEnvironment)
   val count = new Metadata[Option[Long]]("count")
   // Iter is how many iteration a node run between enabled and done. Independent of what it stacks on
   val iter = new Metadata[Option[Long]]("iter")
+  val vec = new Metadata[Int]("vec")
 
   env.initNode(this)
 }

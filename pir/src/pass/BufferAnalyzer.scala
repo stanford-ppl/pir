@@ -133,19 +133,34 @@ trait BufferAnalyzer extends MemoryAnalyzer {
       case x:Memory => false
       case x:HostWrite => false
       case x:LocalInAccess => false
-      case x:LocalOutAccess => 
-        val from = x.in.T
-        from != n && !from.isDescendentOf(n)
+      //case x:LocalOutAccess => // prevent infinate loop in case of cycle
+        //val from = x.in.T
+        //from != n && !from.isDescendentOf(n)
       case x:GlobalInput => false
       case x:GlobalOutput => false
       case _ => true
     }
   }
 
-  def getDeps(x:PIRNode, visitFunc:N => List[N] = visitGlobalIn _) = dbgblk(s"getDeps($x)"){
+  def getDeps(
+    x:PIRNode, 
+    visitFunc:N => List[N] = visitGlobalIn _
+  ):Seq[PIRNode] = dbgblk(s"getDeps($x)"){
     var deps = x.accum(visitFunc=cover[Controller](bound(visitFunc)))
     deps = deps.filterNot(_ == x)
-    deps
+    if (compiler.hasRun[DependencyDuplication]) {
+      val ctrlers = deps.collect { case ctrler:Controller => ctrler }
+      val leaf = assertOneOrLess(ctrlers.flatMap { _.leaves }.distinct, 
+        s"leaf of ${ctrlers}")
+      dbg(s"leaf=$leaf")
+      leaf.foreach { leaf =>
+        if (leaf != x) {
+          deps ++= leaf +: (leaf.descendents++getDeps(leaf, visitFunc))
+          deps = deps.distinct
+        }
+      }
+    }
+    deps.as[List[PIRNode]]
   }
 
 

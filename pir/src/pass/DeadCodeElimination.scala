@@ -13,12 +13,15 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with Trans
 
   val liveMap = mutable.Map[N, Boolean]()
 
+  var depDupHasRun = false
+
   override def resetTraversal = {
     super.resetTraversal
     liveMap.clear
   }
 
   override def runPass =  {
+    depDupHasRun = compiler.hasRunAll[DependencyDuplication]
     // Mark dead code
     traverseTop
     // Remove dead code
@@ -62,7 +65,7 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with Trans
     //case n:ProcessStreamOut => Some(true)
     //case n:ProcessControlToken => Some(true)
     case n:HostInController => Some(true)
-    case n:Controller if !compiler.hasRunAll[DependencyDuplication] => Some(true)
+    case n:Controller if !depDupHasRun => Some(true)
     case n => None
   }
 
