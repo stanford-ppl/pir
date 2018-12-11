@@ -5,85 +5,87 @@ from collections import OrderedDict
 # from https://docs.google.com/spreadsheets/d/1ib4jPlyKifF4ALXWo8rhwFOWV6EBJF7sJ32UU5CRf_Y/edit?usp=sharing
 scale_28_to_45 = 1/0.47436959
 cu_area = { "pcu": 0.849, "pmu": 0.532 } # mm^2
-cu_power = { "pcu":224.0, "pmu":300.3135, "dag":31.4111 } # mW
-D_v1_s4_q4      = { "vlink":1, "slink":4, 'net':'dynamic', 'flit-width':512, 'psim-q':4}
-D_v1_s4_q8      = { "vlink":1, "slink":4, 'net':'dynamic', 'flit-width':512, 'psim-q':8}
-D_v1_s4_q16 = { "vlink":1, "slink":4, 'net':'dynamic', 'flit-width':512, 'psim-q':16}
 AREA_HEADER='synthesis area (um^2)'
 ENERGY_HEADER='flit energy (J)'
 
 class PlasticineModel:
-    def __init__(self, dataPath, tech):
+    def __init__(self, path, tech):
+        self.path = path
         self.tech = tech
-        self.routertb = self.loadrouter(dataPath)
-        self.switchtb = self.loadswitch(dataPath)
+        self.routertb = self.loadrouter()
+        self.switchtb = self.loadswitch()
 
-    def loadrouter(self, path):
-        index = "sim_scalar,packet_rate,buffer_size,flit_data_width,num_message_classes,num_nodes_per_router"
-        index = index.split(",")
-        tab = pd.read_csv("{}/router{}.csv".format(path, self.tech), header=0,
+    def loadrouter(self):
+        # index = "sim_scalar,packet_rate,buffer_size,flit_data_width,num_message_classes,num_nodes_per_router"
+        # index = index.split(",")
+        tab = pd.read_csv("{}/router{}.csv".format(self.path, self.tech), header=0,
             encoding="utf-8-sig",
-            index_col=index
+            # index_col=index
         )
+        interp_tab = pd.read_csv("{}/router{}_interp.csv".format(self.path, self.tech), header=0,
+            encoding="utf-8-sig",
+            # index_col=index
+        )
+        tab = pd.concat([tab, interp_tab], axis=0)
+        old = pd.read_csv("data/old/router28.csv", header=0,encoding="utf-8-sig")
+        tab = pd.concat([tab, lookup(old, flit_data_width=512, num_message_classes=8, drop=False)], axis=0,
+                sort=True)
+        tab['vc_buffer_size'] = tab['buffer_size'] / tab['num_message_classes']
         return tab
     
-    def loadswitch(self, path):
-        index = "sim_scalar,packet_rate,XBAR_FULL,LINKS_SW,DIRS_SW,WIDTH,BACKPRESSURE,DIRS_CU,LINKS_CU"
-        index = index.split(",")
-        tab = pd.read_csv("{}/switch{}.csv".format(path, self.tech), header=0,
-            encoding="utf-8-sig",
-            index_col=index
-        )
+    def loadswitch(self):
+        # index = "sim_scalar,packet_rate,XBAR_FULL,LINKS_SW,DIRS_SW,WIDTH,BACKPRESSURE,DIRS_CU,LINKS_CU"
+        # index = index.split(",")
+        # tab = pd.read_csv("{}/switch{}_merged.csv".format(self.path, self.tech), header=0,
+            # encoding="utf-8-sig",
+            # # index_col=index
+        # )
+        tab = pd.read_csv("data/switch28.csv", header=0, encoding="utf-8-sig")
+        tab = tab.assign(sim_scalar=0)
+        old = pd.read_csv("data/old/switch28.csv", header=0,encoding="utf-8-sig")
+        new = pd.read_csv("data/switch28_new.csv", header=0,encoding="utf-8-sig")
+        tab = pd.concat([tab, lookup(old, WIDTH=512, drop=False)], axis=0, sort=True)
+        tab = pd.concat([tab, lookup(old, WIDTH=32, LINKS_SW=1, drop=False)], axis=0, sort=True)
+        tab = pd.concat([tab, new], axis=0, sort=True)
         return tab
 
     def get_router_spec(self, **conf):
-        if conf['net'] == 'dynamic':
-            if all([D_v1_s4_q4[k] == conf[k] for k in D_v1_s4_q4]):
-                return 50577,0
-            elif all([D_v1_s4_q8[k] == conf[k] for k in D_v1_s4_q8]):
-                return 47275,0
-            elif all([D_v1_s4_q16[k] == conf[k] for k in D_v1_s4_q16]):
-                return 45624,0
-            vc = conf['max_vc']
-            if vc <= 2:
-                vc = 2
-            elif vc <= 4:
-                vc = 4
-            elif vc <= 8:
-                vc = 8
-            if conf['vec']:
-                sim_scalar=0
-            else:
-                sim_scalar=1
-            flit_width = 512 if 'flit-width' not in conf else conf['flit-width']
-            tab = lookup(self.routertb, num_message_classes=vc,
-                    num_nodes_per_router=1, flit_data_width=flit_width, buffer_size=vc * 4, sim_scalar=sim_scalar)
+        vc = conf['vcLimit']
+        tab = lookup(self.routertb, 
+                num_message_classes=vc,
+                flit_data_width=512, 
+                buffer_size=vc * 3, 
+                **conf
+                )
     
-            area = get_col_value(tab, AREA_HEADER)
-            energy = get_col_value(tab, ENERGY_HEADER)
-            return area, energy
-        else: 
-            return 0,0
+        return tab
     
-    def get_switch_spec(self, **conf):
-        if conf['vec']:
-            link = conf['vlink'] if 'vlink' in conf else 0
-        else:
-            link = conf['slink'] if 'slink' in conf else 0
-        if link==0:
-            return 0,0
-        tab = lookup(self.switchtb,sim_scalar=0,XBAR_FULL=1)
-        link_prop = conf['link-prop'] if 'link-prop' in conf else 'db'
-        tab = lookup(tab,BACKPRESSURE=(1 if link_prop == 'db' else 0))
-        # if conf['net'] == 'dynamic':
-            # tab = lookup(tab,DIRS_CU=1,LINKS_CU=4)
-        # else:
-            # tab = lookup(tab,DIRS_CU=4,LINKS_CU=1)
-        tab = lookup(tab,DIRS_CU=1,LINKS_CU=4)
-        WIDTH = 512 if conf['vec'] else 32
-        tab = lookup(tab, LINKS_SW=link, WIDTH=WIDTH)
-        return get_col_value(tab,AREA_HEADER), get_col_value(tab,ENERGY_HEADER)
-    
+    def get_switch_spec(self, header, **conf):
+        conf['sim_scalar'] = 0
+        conf['XBAR_FULL'] = 1
+        conf['DIRS_CU'] = 1
+        link_prop = conf['link_prop'] if 'link_prop' in conf else 'B'
+        conf['BACKPRESSURE']=(1 if link_prop == 'B' else 0)
+        if conf["WIDTH"] == 512:
+            conf['LINKS_SW'] = conf["vlink"]
+        elif conf["WIDTH"] == 32:
+            conf['LINKS_SW'] = conf["slink"]
+        if conf['LINKS_SW'] == 0:
+            return 0
+        res = get_col_value(lookup(self.switchtb, **conf), header)
+        return res
+
+    def hasDynamic(self, **conf):
+        return conf["vcLimit"] is not None and conf["vcLimit"] > 0
+
+    def getLayout(self, conf):
+        conf["n1_node"] = 0
+        conf["n2_node"] = 0
+        if "row" in conf and conf["row"] is not None and "col" in conf and conf["col"] is not None and not conf["p2p"]:
+            conf["n1_node"] = conf["row"] * conf["col"] - 1
+            conf["n2_node"] = conf["row"] * 2 + 1
+        return
+
     # unit in um^2
     def get_cu_area(self, cutype, **conf):
         area = cu_area[cutype] * 1e6
@@ -98,63 +100,81 @@ class PlasticineModel:
             print("only have power data for 28nm for cus")
             assert(False)
         return power
-
-    # unit in J
-    def get_cu_energy(self, cutype, **conf):
-        power = self.get_cu_power(cutype, **conf)
-        time_per_cycle = 1.0 / conf['freq']
-        return power * time_per_cycle
-
+    
     # unit in um^2
-    def get_area_summary(self, **conf):
-        summary = OrderedDict()
-        summary['router_unit_area'] = self.get_router_spec(vec=True, **conf)[0]
-        summary['vswitch_unit_area'] = self.get_switch_spec(vec=True, **conf)[0]
-        summary['sswitch_unit_area'] = self.get_switch_spec(vec=False, **conf)[0]
-        summary['pcu_unit_area'] = self.get_cu_area("pcu", **conf)
-        summary['pmu_unit_area'] = self.get_cu_area("pmu", **conf)
-        summary['total_router_area'] = conf['nRouter'] * self.get_router_spec(vec=True, **conf)[0]
-        summary['total_vswitch_area'] = conf['nSwitch'] * self.get_switch_spec(vec=True, **conf)[0]
-        summary['total_sswitch_area'] = conf['nSwitch'] * self.get_switch_spec(vec=False, **conf)[0]
-        summary['total_pcu_area'] = summary['pcu_unit_area'] * conf['nPCU']
-        summary['total_pmu_area'] = summary['pmu_unit_area'] * conf['nPMU']
-        summary['total_net_area'] = sum([summary[t] for t in ['total_router_area',
-            'total_vswitch_area', 'total_sswitch_area']])
-        summary['total_area'] = sum([summary[t] for t in ['total_net_area', 'total_pcu_area',
-            'total_pmu_area']])
-        return summary
+    def get_net_area_summary(self, conf):
+        conf['total_vswitch_area'] = 0
+        conf['total_sswitch_area'] = 0
+        conf['total_router_area'] = 0
+        conf['total_net_area'] = 0
+        conf['n1_vswitch_area'] = 0
+        conf['n2_vswitch_area'] = 0
+        conf['n1_sswitch_area'] = 0
+        conf['n2_sswitch_area'] = 0
+        conf['n1_router_area'] = 0
+        conf['n2_router_area'] = 0
+        self.getLayout(conf)
+        if conf['p2p'] or conf['asic']:
+            return
+        conf['n1_vswitch_area'] = self.get_switch_spec(AREA_HEADER, LINKS_CU=4, WIDTH=512, **conf)
+        # conf['n2_vswitch_area'] = get_col_value(self.get_switch_spec(LINKS_CU=8, WIDTH=512, **conf), AREA_HEADER)
+        # TODO
+        conf['n2_vswitch_area'] = self.get_switch_spec(AREA_HEADER, LINKS_CU=4, WIDTH=512, **conf)
+        conf['n1_sswitch_area'] = self.get_switch_spec(AREA_HEADER, LINKS_CU=4, WIDTH=32, **conf)
+        conf['n2_sswitch_area'] = self.get_switch_spec(AREA_HEADER, LINKS_CU=8, WIDTH=32, **conf)
+        conf['total_vswitch_area'] = \
+            conf['n1_node'] * conf['n1_vswitch_area'] + conf["n2_node"] * conf["n2_vswitch_area"]
+        conf['total_sswitch_area'] = \
+            conf['n1_node'] * conf['n1_sswitch_area'] + conf["n2_node"] * conf["n2_sswitch_area"]
+
+        if self.hasDynamic(**conf) :
+            conf['n1_router_area'] = get_col_value(self.get_router_spec(sim_scalar=0,
+                num_nodes_per_router=1, **conf), AREA_HEADER)
+            conf['n2_router_area'] = get_col_value(self.get_router_spec(sim_scalar=0,
+                num_nodes_per_router=2, **conf), AREA_HEADER)
+            conf['total_router_area'] += conf["n1_node"] * conf['n1_router_area']
+            conf['total_router_area'] += conf["n2_node"] * conf['n2_router_area']
+        conf['pcu_unit_area'] = self.get_cu_area("pcu", **conf)
+        conf['pmu_unit_area'] = self.get_cu_area("pmu", **conf)
+        conf['total_net_area'] += conf['total_vswitch_area']
+        conf['total_net_area'] += conf['total_sswitch_area']
+        conf['total_net_area'] += conf['total_router_area']
+        return
     
     # unit in J
-    def get_net_energy_summary(self, **conf):
-        summary = OrderedDict()
-        summary['router_flit_energy'] = self.get_router_spec(vec=True, **conf)[1]
-        summary['router_flit_energy_scalar'] = self.get_router_spec(vec=False, **conf)[1]
-        summary['vswitch_flit_energy'] = self.get_switch_spec(vec=True, **conf)[1]
-        summary['sswitch_flit_energy'] = self.get_switch_spec(vec=False, **conf)[1]
-        summary['total_router_energy'] = conf['DynHopsVec'] * summary['router_flit_energy'] 
-        summary['total_router_energy'] += conf['DynHopsScal'] * summary['router_flit_energy_scalar']
-        summary['total_vswitch_energy'] = conf['StatHopsVec'] * summary['vswitch_flit_energy']
-        summary['total_sswitch_energy'] = conf['StatHopsScal'] * summary['sswitch_flit_energy']
-        summary['total_net_energy'] = sum([summary[e] for e in ['total_router_energy',
+    def get_net_energy_summary(self, conf):
+        size = len(conf)
+        conf['total_vswitch_energy'] = 0
+        conf['total_sswitch_energy'] = 0
+        conf['total_router_energy'] = 0
+        conf['total_net_energy'] = 0
+        conf['n1_vswitch_energy'] = 0
+        conf['n1_sswitch_energy'] = 0
+        conf['n1_router_energy'] = 0
+        conf['n1_router_scalar_energy'] = 0
+        if conf['p2p'] or conf['asic']: return
+        conf['n1_vswitch_energy'] = self.get_switch_spec(ENERGY_HEADER, LINKS_CU=4, WIDTH=512,
+                **conf)
+        conf['n1_sswitch_energy'] = self.get_switch_spec(ENERGY_HEADER, LINKS_CU=4, WIDTH=32,
+                **conf)
+        conf['total_vswitch_energy'] = int(conf['StatHopsVec']) * conf['n1_vswitch_energy']
+        conf['total_sswitch_energy'] = int(conf['StatHopsScal']) * conf['n1_sswitch_energy']
+        if self.hasDynamic(**conf) :
+            conf['n1_router_energy'] = get_col_value(self.get_router_spec(sim_scalar=0,
+                num_nodes_per_router=1, **conf), ENERGY_HEADER)
+            conf['n1_router_scalar_energy'] = get_col_value(self.get_router_spec(sim_scalar=1,
+                num_nodes_per_router=1, **conf), ENERGY_HEADER)
+        conf['total_router_energy'] = int(conf['DynHopsVec']) * conf['n1_router_energy'] 
+        conf['total_router_energy'] += int(conf['DynHopsScal']) * conf['n1_router_scalar_energy']
+        conf['total_net_energy'] = sum([conf[e] for e in ['total_router_energy',
             'total_vswitch_energy', 'total_sswitch_energy']])
-        return summary
-
-    # unit in J
-    def get_energy_summary(self, **conf):
-        summary = self.get_net_energy_summary(**conf)
-        summary["pcu_unit_energy"] = self.get_cu_energy("pcu", **conf)
-        summary["pmu_unit_energy"] = self.get_cu_energy("pmu", **conf)
-        summary["dag_unit_energy"] = self.get_cu_energy("dag", **conf)
-        summary["total_pcu_energy"] = conf["pcu_total_active"] * summary["pcu_unit_energy"]
-        summary["total_pmu_energy"] = conf["pmu_total_active"] * summary["pmu_unit_energy"]
-        summary["total_dag_energy"] = conf["dag_total_active"] * summary["dag_unit_energy"]
-        summary['total_energy'] = sum([summary[e] for e in ['total_net_energy',
-            'total_pcu_energy', 'total_pmu_energy', 'total_dag_energy']])
-        return summary
+        return
 
     # unit in W
-    def get_power_summary(self, energy, **conf):
-        summary = OrderedDict()
-        for k in energy: 
-            if 'total' in k: summary[k.replace('energy', 'power')] = energy[k] * conf['freq'] / conf['cycle']
-        return summary
+    def get_power_summary(self, conf):
+        if conf['cycle'] is None:
+            return
+        for k in conf.keys(): 
+            if 'total' in k and 'energy' in k: 
+                conf[k.replace('energy', 'power')] = float(conf[k] * conf['freq']) / conf['cycle']
+        return

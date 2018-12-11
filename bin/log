@@ -1,0 +1,346 @@
+#!env/bin/python
+
+import os
+import csv
+import shutil
+
+from util import *
+
+parser.add_argument('-p', '--path', dest="path")
+parser.add_argument('-s', '--summarize', dest="summarize", action='store_true', default=False, help='summarize log into csv')
+parser.add_argument('-ap', '--append', dest="append", action='store_true', default=False,
+        help='Append to previous summary')
+(opts, args) = parser.parse_known_args()
+
+def sprint(msg):
+    if not opts.summarize:
+        print(msg)
+
+def initSummary(backend):
+    opts.sfile = None
+    opts.summary = None
+    if opts.summarize:
+        summary_path ="data/sims/{}.csv".format(backend)
+        append = opts.append
+        if append:
+            rows = []
+            with open(summary_path, "r") as f:
+                reader = csv.DictReader(f)
+                for row in reader:
+                    rows.append(row)
+        # create new csv
+        opts.sfile = open(summary_path, "w")
+        conf = parse('', '')
+        opts.summary = csv.DictWriter(opts.sfile, delimiter=',', fieldnames=conf.keys())
+        opts.summary.writeheader()
+        if append:
+            for row in rows:
+                opts.summary.writerow(row)
+    return opts.sfile,opts.summary
+
+def parse(backend, app):
+    conf = {}
+    conf["backend"] = backend
+    conf["app"] = app.split("_")[0]
+    conf["param"] = app
+    conf["freq"] = 1e9
+    conf['mappirlog'] = os.path.join(opts.gendir,backend,app,"mappir.log")
+    conf['runpirlog'] = os.path.join(opts.gendir,backend,app,"runpir.log")
+    conf['psimlog'] = os.path.join(opts.gendir,backend,app,"runpsim.log")
+    conf['psimsh'] = os.path.join(opts.gendir,backend,app,"runpsim.sh")
+    conf['proutelog'] = os.path.join(opts.gendir,backend,app,"runproute.log")
+    conf['proutesh'] = os.path.join(opts.gendir,backend,app,"runproute.sh")
+    conf['prouteSummary'] = os.path.join(opts.gendir,backend,app,"pir","plastisim","summary.csv")
+    parse_runpir(conf['runpirlog'], conf)
+    parse_mappir(conf['mappirlog'], conf)
+    parse_runpsim(conf['psimlog'], conf)
+    parse_runpsimsh(conf['psimsh'], conf)
+    parse_runproutesh(conf['proutesh'], conf)
+    parse_proutesummary(conf['prouteSummary'], conf)
+    return conf
+
+def logApp(backend, app, show):
+    conf = parse(backend, app)
+    vc = conf["NetVC"]
+    ct = conf['compiletime']
+    err = conf['err']
+    usageStr = ' '.join(['{}:{}'.format(k,conf[k]) for k in ['PCU', "PMU"]])
+    if err is not None:
+        sprint('{} {}\t compile:{} {}'.format(
+            cstr(RED,backend),
+            cstr(RED,app), 
+            ct, 
+            err,
+            ))
+    elif conf['notFit'] is not None:
+        sprint('{} {}\t compile: {} {}'.format(
+            cstr(YELLOW,backend),
+            cstr(YELLOW,app), 
+            ct, 
+            conf['notFit'], 
+            ))
+    elif conf['deadlock']:
+        sprint('{} {}\t cycle: {} compile:{} vc:{} {} {}'.format(
+            cstr(RED,backend),
+            cstr(RED,app), 
+            conf['cycle'], 
+            ct, 
+            vc,
+            usageStr,
+            cstr(RED, "DEADLOCK"), 
+            ))
+    elif conf['cycle'] is None or conf['lbw'] is None or conf['sbw'] is None:
+        sprint('{} {}\t cycle: {} bw:{} {} compile:{} vc:{} {}'.format(
+            cstr(RED,backend),
+            cstr(RED,app), 
+            conf['cycle'], 
+            conf['lbw'], 
+            conf['sbw'], 
+            ct, 
+            vc,
+            usageStr, 
+            ))
+    else:
+        sprint('{} {}\t cycle: {} bw:{} {} compile:{} vc:{} {}'.format(
+            cstr(GREEN,backend),
+            cstr(GREEN,app), 
+            conf['cycle'], 
+            conf['lbw'], 
+            conf['sbw'], 
+            ct, 
+            vc,
+            usageStr, 
+            ))
+        if opts.summarize:
+            opts.summary.writerow(conf)
+    if opts.summarize and backend in ["P14x14", "Asic", 'H14x14v3s4c4w']:
+        igraph = os.path.join(opts.gendir,backend,app,"pir/igraph/graph.py")
+        if os.path.exists(igraph):
+            shutil.copyfile(igraph, "data/igraph/{}__{}.py".format(backend, app))
+    if opts.summarize and backend in ['H14x14v3s4', 'H14x14v3s4c4w']:
+        link = os.path.join(opts.gendir,backend,app,"pir/plastisim/link.csv")
+        if os.path.exists(link):
+            shutil.copyfile(link, "data/link/{}__{}.csv".format(backend, app))
+    if show:
+        tail(conf['runpirlog'])
+        tail(conf['mappirlog'])
+        tail(conf['proutelog'])
+        tail(conf['psimlog'])
+
+def parse_runpsim(log, conf):
+    if opts.summarize:
+        print(log)
+    parsers = []
+    parsers.append(Parser(
+        conf,
+        'cycle', 
+        'Simulation complete at cycle:',
+        lambda lines: int(lines[0].split('Simulation complete at cycle:')[1])
+    ))
+    parsers.append(Parser(
+        conf,
+        'lbw', 
+        'Total DRAM:',
+         lambda lines: float(lines[0].split("(")[1].split("GB/s R")[0].strip())
+    ))
+    parsers.append(Parser(
+        conf,
+        'sbw', 
+        'Total DRAM:',
+         lambda lines: float(lines[0].split(",")[1].split("GB/s W")[0].strip())
+    ))
+    parsers.append(Parser(
+        conf,
+        'deadlock', 
+        'POSSIBLE DEADLOCK',
+         lambda lines: True,
+         default=False
+    ))
+    parseLog(log, parsers, conf)
+
+def parse_mappir(log, conf):
+    parsers = []
+    parsers.append(Parser(
+        conf,
+        'notFit', 
+        'Not enough resource of type',
+        lambda lines: lines[0]
+    ))
+    pattern = ["MC Usage:", "DAG Usage:", "PMU Usage:", "PCU Usage:"]
+    for pat in pattern:
+        key = pat.replace(" Usage:", "")
+        parsers.append(Parser(
+            conf,
+            key, 
+            pat,
+            lambda lines, pat=pat: float(lines[0].split(pat)[1].split("%")[0].strip())
+        ))
+    parsers.append(Parser(
+        conf,
+        'row', 
+        '--row=',
+        lambda lines: int(lines[-1].split("--row=")[-1].split(",")[0])
+    ))
+    parsers.append(Parser(
+        conf,
+        'col', 
+        '--col=',
+        lambda lines: int(lines[-1].split("--col=")[-1].split(",")[0].split(']')[0])
+    ))
+    parsers.append(Parser(
+        conf,
+        'p2p', 
+        '--net=',
+        lambda lines: lines[-1].split("--net=")[-1].split(",")[0] == "p2p",
+        default=False
+    ))
+    parsers.append(Parser(
+        conf,
+        'asic', 
+        '--net=',
+        lambda lines: lines[-1].split("--net=")[-1].split(",")[0].split(']')[0] == "asic",
+        default=False
+    ))
+    parsers.append(Parser(
+        conf,
+        'scheduled', 
+        '--scheduled',
+        lambda lines: lines[-1].split("--scheduled=")[-1].split(",")[0].split(']')[0] == "true",
+        default=False
+    ))
+    parsers.append(Parser(
+        conf,
+        'fifo_depth', 
+        '--fifo-depth',
+        lambda lines: int(lines[-1].split("--fifo-depth=")[-1].split(",")[0].split(']')[0]),
+        default=100
+    ))
+    parseLog(log, parsers, conf)
+
+def parse_runproutesh(log, conf):
+    parsers = []
+    parsers.append(Parser(
+        conf,
+        'algo', 
+        '',
+        lambda lines: lines[0].split("-a ")[1].split(" ")[0]
+    ))
+    parsers.append(Parser(
+        conf,
+        'pattern', 
+        '',
+         lambda lines: lines[0].split("-T ")[1].split(" ")[0]
+    ))
+    parsers.append(Parser(
+        conf,
+        'slink', 
+        '',
+         lambda lines: int(lines[0].split("-e ")[1].split(" ")[0])
+    ))
+    parsers.append(Parser(
+        conf,
+        'vlink', 
+        '',
+         lambda lines: int(lines[0].split("-x ")[1].split(" ")[0])
+    ))
+    parsers.append(Parser(
+        conf,
+        'prtime', 
+        '',
+         lambda lines: int(lines[0].split("-S ")[1].split(" ")[0])
+    ))
+    parsers.append(Parser(
+        conf,
+        'vcLimit', 
+        '',
+         lambda lines: int(lines[0].split("-q")[1].split("-")[0].strip())
+    ))
+    parseLog(log, parsers, conf)
+
+def parse_runpsimsh(log, conf):
+    parsers = []
+    parsers.append(Parser(
+        conf,
+        'link_prop', 
+        '',
+        lambda lines: lines[0].split("-l ")[1].split(" ")[0]
+    ))
+    parsers.append(Parser(
+        conf,
+        'flit_data_width', 
+        '-i',
+        lambda lines: lines[0].split("-i")[1].split(" ")[0],
+        default=512
+    ))
+    parseLog(log, parsers, conf)
+    # if opts.summarize:
+        # if ('f128' in conf['backend'] or 'f256' in conf['backend'] and conf['flit_data_width'] == 512):
+            # psimlog = log.replace('.sh', '.log')
+            # if os.path.exists(log):
+                # print(log)
+                # os.remove(log)
+            # if os.path.exists(psimlog):
+                # os.remove(psimlog)
+                # print(psimlog)
+
+def parse_proutesummary(log, conf):
+    conf["DynHopsVec"] = None
+    conf["DynHopsScal"] = None
+    conf["StatHopsVec"] = None
+    conf["StatHopsScal"] = None
+    conf["Score"] = None
+    conf["NetVC"] = None
+    conf["TotPkts"] = None
+    conf["LinkLim"] = None
+    conf["InjectLim"] = None
+    conf["EjectLim"] = None
+    conf["LongRoute"] = None
+    conf["Q0Pct"] = None
+    conf["Q0Lim"] = None
+    if not os.path.exists(log): return
+    with open(log, "r") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            for k in row:
+                if k in conf:
+                    conf[k] = row[k]
+
+def parse_runpir(log, conf):
+    parsers = []
+    parsers.append(Parser(
+        conf,
+        'compiletime', 
+        ["Compilation failed in", "Compilation succeed in"],
+        lambda lines: float(lines[0].split("in ")[1].split("s")[0].strip())
+    ))
+    parsers.append(Parser(
+        conf,
+        'err', 
+        ["error", "fail", "Exception"],
+        lambda lines: lines[0] 
+    ))
+    parseLog(log, parsers, conf)
+
+def main():
+    backends = []
+    if opts.path is not None:
+        gen, backend, app,_ = opts.path.split("/")
+        opts.gendir = gen
+        opts.backend = [backend]
+        opts.app = [app]
+    if opts.summarize and opts.backend is None:
+        backends = getBackends()
+    else:
+        backends = opts.backend
+    for backend in backends:
+        initSummary(backend)
+        apps = getApps(backend)
+        for app in apps:
+            logApp(backend, app, len(apps)==1 and not opts.summarize)
+        if opts.summarize:
+            opts.sfile.close()
+
+if __name__ == "__main__":
+    main()
+
+

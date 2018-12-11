@@ -1,0 +1,9 @@
+#!/bin/bash
+
+genDir=$1
+cd pir
+sbt "; publishAll"
+cd ../
+cd $genDir
+args=${@:2}
+sbt "; runMain AccelMain $args"

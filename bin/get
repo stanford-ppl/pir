@@ -1,26 +1,12 @@
 #!/bin/bash
 
-if [[ $1 == "-"*  ]]; then
-	OPT=$1
-	FILE=$2
-else
-	FILE=$1
-fi
+FILE=$1
+OPT=$2
 
 if [[ $OPT == "-"*"t"*  ]]; then
-	HOST=tucson
-elif [[ $OPT == "-"*"l"* ]]; then
-	HOST=london
+  server=tucson
+elif [[ $OPT == "-"*"l"*  ]]; then
+  server=lagos
 fi
-
-FLAG=""
-if [[ $OPT == "-"*"r"*  ]]; then
-	FLAG="$FLAG -r"
-fi
-
-LOCAL_DIR=$(dirname $FILE)
-scp $FLAG yaqiz@$HOST.stanford.edu:~/pir/out/$FILE $LOCAL_DIR
-
-if [[ $OPT == "-"*"o"*  ]]; then
-	open $FILE &
-fi
+mkdir -p $(dirname $FILE)
+scp -r yaqiz@$server.stanford.edu:~/isca2019/$FILE $FILE

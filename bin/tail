@@ -1,0 +1,3 @@
+app=$2
+backend=$1
+tail -F logs/$backend/$app/run.log

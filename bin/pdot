@@ -1,0 +1,19 @@
+#!env/bin/python
+import os
+import subprocess
+
+from util import *
+
+def main():
+    apps = getApps()
+    for app in apps:
+        for backend in opts.backend:
+            # psimlog = os.path.join("logs",backend,app,"runpsim.log")
+            psimlog = os.path.join("gen",backend,app,"runpsim.log")
+            ckpt = os.path.join("gen",backend,app,"pir","out","pir1.ckpt")
+            subprocess.call(["bin/psh", "--ckpt=../{}".format(ckpt), "--load-psim=../{}".format(psimlog)])
+
+if __name__ == "__main__":
+    main()
+
+
