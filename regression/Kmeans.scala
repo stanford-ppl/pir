@@ -14,11 +14,11 @@ case class KmeansParam(
 
 class Kmeans_0 extends Kmeans
 
-class Kmeans_1 extends Kmeans {override lazy val param = KmeansParam(mp1 = 4,mp2 = 2)}
-class Kmeans_2 extends Kmeans {override lazy val param = KmeansParam(mp1 = 1,mp2 = 8)}
-class Kmeans_3 extends Kmeans {override lazy val param = KmeansParam(mp1 = 2,mp2 = 4)}
-class Kmeans_4 extends Kmeans {override lazy val param = KmeansParam(mp1 = 2,mp2 = 2)}
-class Kmeans_5 extends Kmeans {override lazy val param = KmeansParam(mp1 = 3,mp2 = 3)}
+class Kmeans_1 extends Kmeans {override lazy val param = KmeansParam(mp1 = 2,mp2 = 2)}
+//class Kmeans_1 extends Kmeans {override lazy val param = KmeansParam(mp1 = 4,mp2 = 2)}
+//class Kmeans_2 extends Kmeans {override lazy val param = KmeansParam(mp1 = 1,mp2 = 8)}
+//class Kmeans_3 extends Kmeans {override lazy val param = KmeansParam(mp1 = 2,mp2 = 4)}
+//class Kmeans_5 extends Kmeans {override lazy val param = KmeansParam(mp1 = 3,mp2 = 3)}
 
 @spatial abstract class Kmeans extends DSETest { self => // Regression (Dense) // Args: 3 64
   type X = Int

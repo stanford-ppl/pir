@@ -8,12 +8,12 @@ case class TPCHQ6Param(
 
 class TPCHQ6_0 extends TPCHQ6
 class TPCHQ6_1 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=2) }
-class TPCHQ6_2 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=3) }
-class TPCHQ6_3 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=4) }
-class TPCHQ6_4 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=5) }
-class TPCHQ6_5 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=6) }
-class TPCHQ6_6 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=7) }
-class TPCHQ6_7 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=8) }
+//class TPCHQ6_2 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=3) }
+//class TPCHQ6_3 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=4) }
+//class TPCHQ6_4 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=5) }
+//class TPCHQ6_5 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=6) }
+//class TPCHQ6_6 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=7) }
+//class TPCHQ6_7 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=8) }
 //class TPCHQ6_8 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=10) }
 //class TPCHQ6_9 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=12) }
 

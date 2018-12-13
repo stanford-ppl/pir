@@ -11,10 +11,10 @@ case class OuterProductParam(
 
 class OuterProduct_0 extends OuterProduct
 class OuterProduct_1 extends OuterProduct {override lazy val param = OuterProductParam(op2=2)}
-class OuterProduct_2 extends OuterProduct {override lazy val param = OuterProductParam(op2=4)}
-class OuterProduct_3 extends OuterProduct {override lazy val param = OuterProductParam(op2=6)}
-class OuterProduct_4 extends OuterProduct {override lazy val param = OuterProductParam(op2=8)}
-class OuterProduct_5 extends OuterProduct {override lazy val param = OuterProductParam(op2=10)}
+//class OuterProduct_2 extends OuterProduct {override lazy val param = OuterProductParam(op2=4)}
+//class OuterProduct_3 extends OuterProduct {override lazy val param = OuterProductParam(op2=6)}
+//class OuterProduct_4 extends OuterProduct {override lazy val param = OuterProductParam(op2=8)}
+//class OuterProduct_5 extends OuterProduct {override lazy val param = OuterProductParam(op2=10)}
 
 @spatial abstract class OuterProduct extends DSETest { // Regression (Dense) // Args: 640 640
 

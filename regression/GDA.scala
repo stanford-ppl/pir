@@ -11,17 +11,18 @@ case class GDAParam(
 
 class GDA_0 extends GDA
 //class GDA_1 extends GDA {override lazy val param = GDAParam(mp1 = 8,mp2 = 1)}
-class GDA_2 extends GDA {override lazy val param = GDAParam(mp1 = 4,mp2 = 2)}
-class GDA_3 extends GDA {override lazy val param = GDAParam(mp1 = 2,mp2 = 4)}
-class GDA_4 extends GDA {override lazy val param = GDAParam(mp1 = 6,mp2 = 1)}
-class GDA_5 extends GDA {override lazy val param = GDAParam(mp1 = 5,mp2 = 1)}
-class GDA_6 extends GDA {override lazy val param = GDAParam(mp1 = 4,mp2 = 1)}
-class GDA_7 extends GDA {override lazy val param = GDAParam(mp1 = 1,mp2 = 4)}
-class GDA_8 extends GDA {override lazy val param = GDAParam(mp1 = 1,mp2 = 2)}
-class GDA_9 extends GDA {override lazy val param = GDAParam(mp1 = 2,mp2 = 1)}
-class GDA_11 extends GDA {override lazy val param = GDAParam(mp1 = 3,mp2 = 1)}
-class GDA_12 extends GDA {override lazy val param = GDAParam(mp1 = 1,mp2 = 3)}
-class GDA_13 extends GDA {override lazy val param = GDAParam(op = 2,mp1 = 1,mp2 = 1)}
+//class GDA_2 extends GDA {override lazy val param = GDAParam(mp1 = 4,mp2 = 2)}
+//class GDA_3 extends GDA {override lazy val param = GDAParam(mp1 = 2,mp2 = 4)}
+//class GDA_4 extends GDA {override lazy val param = GDAParam(mp1 = 6,mp2 = 1)}
+//class GDA_5 extends GDA {override lazy val param = GDAParam(mp1 = 5,mp2 = 1)}
+//class GDA_6 extends GDA {override lazy val param = GDAParam(mp1 = 4,mp2 = 1)}
+//class GDA_7 extends GDA {override lazy val param = GDAParam(mp1 = 1,mp2 = 4)}
+//class GDA_8 extends GDA {override lazy val param = GDAParam(mp1 = 1,mp2 = 2)}
+//class GDA_9 extends GDA {override lazy val param = GDAParam(mp1 = 2,mp2 = 1)}
+//class GDA_11 extends GDA {override lazy val param = GDAParam(mp1 = 3,mp2 = 1)}
+//class GDA_12 extends GDA {override lazy val param = GDAParam(mp1 = 1,mp2 = 3)}
+//class GDA_13 extends GDA {override lazy val param = GDAParam(op = 2,mp1 = 1,mp2 = 1)}
+class GDA_14 extends GDA {override lazy val param = GDAParam(mp1 = 2,mp2 = 2)}
 
 @spatial abstract class GDA extends DSETest { self => // Regression (Dense) // Args: 64
 

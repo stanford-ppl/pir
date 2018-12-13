@@ -10,12 +10,12 @@ case class LeNetParam(
 
 class LeNet_0 extends LeNet
 
-class LeNet_1 extends LeNet {override val param = LeNetParam(conv1_par=2,conv2_par=1,mat1_par=1,mat2_par=1)}
-class LeNet_2 extends LeNet {override val param = LeNetParam(conv1_par=1,conv2_par=2,mat1_par=1,mat2_par=1)}
-class LeNet_3 extends LeNet {override val param = LeNetParam(conv1_par=2,conv2_par=2,mat1_par=1,mat2_par=1)}
+//class LeNet_1 extends LeNet {override val param = LeNetParam(conv1_par=2,conv2_par=1,mat1_par=1,mat2_par=1)}
+//class LeNet_2 extends LeNet {override val param = LeNetParam(conv1_par=1,conv2_par=2,mat1_par=1,mat2_par=1)}
+//class LeNet_3 extends LeNet {override val param = LeNetParam(conv1_par=2,conv2_par=2,mat1_par=1,mat2_par=1)}
 class LeNet_4 extends LeNet {override val param = LeNetParam(conv1_par=2,conv2_par=2,mat1_par=2,mat2_par=1)}
-class LeNet_5 extends LeNet {override val param = LeNetParam(conv1_par=2,conv2_par=4,mat1_par=2,mat2_par=1)}
-class LeNet_6 extends LeNet {override val param = LeNetParam(conv1_par=4,conv2_par=2,mat1_par=2,mat2_par=1)}
+//class LeNet_5 extends LeNet {override val param = LeNetParam(conv1_par=2,conv2_par=4,mat1_par=2,mat2_par=1)}
+//class LeNet_6 extends LeNet {override val param = LeNetParam(conv1_par=4,conv2_par=2,mat1_par=2,mat2_par=1)}
 //class LeNet_2 extends LeNet {
   //override val param = LeNetParam(
     //conv1_par=4,

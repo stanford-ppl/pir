@@ -7,9 +7,9 @@ case class LSTMParam(
 
 class LSTM_0 extends LSTMApp
 class LSTM_1 extends LSTMApp {override lazy val param = LSTMParam(rp=2)}
-class LSTM_2 extends LSTMApp {override lazy val param = LSTMParam(rp=4)}
-class LSTM_3 extends LSTMApp {override lazy val param = LSTMParam(rp=6)}
-class LSTM_4 extends LSTMApp {override lazy val param = LSTMParam(rp=8)}
+//class LSTM_2 extends LSTMApp {override lazy val param = LSTMParam(rp=4)}
+//class LSTM_3 extends LSTMApp {override lazy val param = LSTMParam(rp=6)}
+//class LSTM_4 extends LSTMApp {override lazy val param = LSTMParam(rp=8)}
 
 @spatial abstract class LSTMApp extends DSETest with RNNHelper {
   lazy val param = LSTMParam()

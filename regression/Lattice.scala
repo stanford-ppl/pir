@@ -13,7 +13,7 @@ case class LatticeParam(
 
 class Lattice_0 extends Lattice
 class Lattice_1 extends Lattice { override lazy val param = LatticeParam(op=2) }
-class Lattice_2 extends Lattice { override lazy val param = LatticeParam(op=3) }
+//class Lattice_2 extends Lattice { override lazy val param = LatticeParam(op=3) }
 
 @spatial abstract class Lattice extends DSETest {
   import spatial.dsl._

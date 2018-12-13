@@ -8,13 +8,10 @@ case class DotProductParam(
 
 class DotProduct_0 extends DotProduct
 class DotProduct_1 extends DotProduct { override lazy val param = DotProductParam(op=2) }
-class DotProduct_2 extends DotProduct { override lazy val param = DotProductParam(op=4) }
-class DotProduct_3 extends DotProduct { override lazy val param = DotProductParam(op=6) }
-class DotProduct_4 extends DotProduct { override lazy val param = DotProductParam(op=8) }
-class DotProduct_5 extends DotProduct { override lazy val param = DotProductParam(op=10) }
-class DotProduct_6 extends DotProduct { override lazy val param = DotProductParam(op=12) }
-//class DotProduct_7 extends DotProduct { override lazy val param = DotProductParam(op=14) }
-//class DotProduct_8 extends DotProduct { override lazy val param = DotProductParam(op=16) }
+//class DotProduct_2 extends DotProduct { override lazy val param = DotProductParam(op=4) }
+//class DotProduct_3 extends DotProduct { override lazy val param = DotProductParam(op=6) }
+//class DotProduct_4 extends DotProduct { override lazy val param = DotProductParam(op=8) }
+//class DotProduct_5 extends DotProduct { override lazy val param = DotProductParam(op=10) }
 
 @spatial abstract class DotProduct extends DSETest {
   type X = FixPt[TRUE,_32,_0]

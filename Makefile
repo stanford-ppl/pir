@@ -4,15 +4,10 @@ all:
 env:
 	virtualenv env
 
-doc:
-	sbt doc
-	ln -s `readlink -f target/scala-2.11/api` docs/api
-	#make -C docs/manual
-
 clean:
-	rm -rf out
-	rm -f docs/api
-	sbt clean
+	#rm -rf out
+	#rm -f docs/api
+	#sbt clean
 
 distclean: clean
 	make -C docs/manual clean
@@ -20,3 +15,21 @@ distclean: clean
 tag:
 	ctags -R src/ apps/
 	#sbt gen-ctags
+
+install: spatial pir psim proute
+
+spatial:
+	cd ../
+	sbt "; project pir_test; compile"
+
+pir:
+	sbt publishAll
+
+psim:
+		cd plastisim; mkdir -p build; make
+
+proute:
+		cd plastiroute; make
+
+.PHONY: all spatial pir psim proute init pull install add env igraph
+

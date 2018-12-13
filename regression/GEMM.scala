@@ -13,15 +13,15 @@ case class GEMMParam(
 
 class GEMM_0 extends GEMM
 class GEMM_1 extends GEMM {override lazy val param = GEMMParam(loop_kk = 2,loop_i = 2,loop_j = 2)}
-class GEMM_2 extends GEMM {override lazy val param = GEMMParam(loop_j = 8)}
-class GEMM_3 extends GEMM {override lazy val param = GEMMParam(loop_i = 4,loop_j = 4)}
-class GEMM_4 extends GEMM {override lazy val param = GEMMParam(loop_i = 2,loop_j = 2)}
-class GEMM_5 extends GEMM {override lazy val param = GEMMParam(loop_i = 1,loop_j = 2)}
-class GEMM_6 extends GEMM {override lazy val param = GEMMParam(loop_i = 2,loop_j = 1)}
-class GEMM_7 extends GEMM {override lazy val param = GEMMParam(loop_jj = 2)}
-class GEMM_8 extends GEMM {override lazy val param = GEMMParam(loop_i = 3)}
-class GEMM_9 extends GEMM {override lazy val param = GEMMParam(loop_j = 3)}
-class GEMM_10 extends GEMM {override lazy val param = GEMMParam(loop_i = 3,loop_j = 3)}
+//class GEMM_2 extends GEMM {override lazy val param = GEMMParam(loop_j = 8)}
+//class GEMM_3 extends GEMM {override lazy val param = GEMMParam(loop_i = 4,loop_j = 4)}
+//class GEMM_4 extends GEMM {override lazy val param = GEMMParam(loop_i = 2,loop_j = 2)}
+//class GEMM_5 extends GEMM {override lazy val param = GEMMParam(loop_i = 1,loop_j = 2)}
+//class GEMM_6 extends GEMM {override lazy val param = GEMMParam(loop_i = 2,loop_j = 1)}
+//class GEMM_7 extends GEMM {override lazy val param = GEMMParam(loop_jj = 2)}
+//class GEMM_8 extends GEMM {override lazy val param = GEMMParam(loop_i = 3)}
+//class GEMM_9 extends GEMM {override lazy val param = GEMMParam(loop_j = 3)}
+//class GEMM_10 extends GEMM {override lazy val param = GEMMParam(loop_i = 3,loop_j = 3)}
 
 @spatial abstract class GEMM extends DSETest { // Regression (Dense) // Args: 128
                                                                                                   

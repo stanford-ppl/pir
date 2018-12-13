@@ -12,15 +12,15 @@ case class LogRegParam(
 class LogReg_0 extends LogReg
 
 class LogReg_1 extends LogReg {override lazy val param = LogRegParam(mp=2)}
-class LogReg_2 extends LogReg {override lazy val param = LogRegParam(mp=3)}
-class LogReg_3 extends LogReg {override lazy val param = LogRegParam(mp=4)}
-class LogReg_4 extends LogReg {override lazy val param = LogRegParam(mp=5)}
-class LogReg_5 extends LogReg {override lazy val param = LogRegParam(mp=6)}
-class LogReg_6 extends LogReg {override lazy val param = LogRegParam(op=2)}
-class LogReg_7 extends LogReg {override lazy val param = LogRegParam(op=2,mp=1)}
-class LogReg_8 extends LogReg {override lazy val param = LogRegParam(op=2,mp=2)}
-class LogReg_9 extends LogReg {override lazy val param = LogRegParam(op=2,mp=4)}
-class LogReg_10 extends LogReg {override lazy val param = LogRegParam(op=3,mp=2)}
+//class LogReg_2 extends LogReg {override lazy val param = LogRegParam(mp=3)}
+//class LogReg_3 extends LogReg {override lazy val param = LogRegParam(mp=4)}
+//class LogReg_4 extends LogReg {override lazy val param = LogRegParam(mp=5)}
+//class LogReg_5 extends LogReg {override lazy val param = LogRegParam(mp=6)}
+//class LogReg_6 extends LogReg {override lazy val param = LogRegParam(op=2)}
+//class LogReg_7 extends LogReg {override lazy val param = LogRegParam(op=2,mp=1)}
+//class LogReg_8 extends LogReg {override lazy val param = LogRegParam(op=2,mp=2)}
+//class LogReg_9 extends LogReg {override lazy val param = LogRegParam(op=2,mp=4)}
+//class LogReg_10 extends LogReg {override lazy val param = LogRegParam(op=3,mp=2)}
 
 //class LogReg_2 extends LogReg {
   //override lazy val param = LogRegParam(mp=8)
