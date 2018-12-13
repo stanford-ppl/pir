@@ -1,9 +1,25 @@
-#!/bin/bash
+#!env/bin/python
 
-genDir=$1
-cd pir
-sbt "; publishAll"
-cd ../
-cd $genDir
-args=${@:2}
-sbt "; runMain AccelMain $args"
+import glob
+import re
+from argparse import ArgumentParser
+import os, sys, datetime
+import subprocess
+from os.path import dirname, abspath
+from util import *
+
+def main():
+    os.system('sbt "; project pir; publishAll"')
+    for app in opts.app:
+        if (opts.backend is not None):
+            genDir = "out/{}/{}".format(opts.backend, app)
+        else:
+            genDir = "out/{}".format(app)
+
+        print(genDir)
+
+        os.chdir(genDir)
+        ecode = os.system('sbt "runMain AccelMain {}"'.format(args))
+
+if __name__ == "__main__":
+    main()

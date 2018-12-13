@@ -10,7 +10,7 @@ parser = argparse.ArgumentParser(description='Run experiments')
 parser.add_argument('-a', '--app', action='append', help='name of application to run')
 parser.add_argument('-b', '--backend', type=str, action="append", help='Testing Backend')
 parser.add_argument('-t', '--thread', type=int, default=16, help='Number of threads to run')
-parser.add_argument('--project', type=str, default="dse", help='project name')
+parser.add_argument('--project', type=str, default="pirTest", help='project name')
 parser.add_argument('--gen', action='store_true', default=False, help='compile only')
 parser.add_argument('--gendir', default="gen/")
 

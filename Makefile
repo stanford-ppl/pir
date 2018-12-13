@@ -1,6 +1,9 @@
 all:
 	sbt "; compile; project apps; compile"
 
+env:
+	virtualenv env
+
 doc:
 	sbt doc
 	ln -s `readlink -f target/scala-2.11/api` docs/api

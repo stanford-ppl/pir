@@ -10,6 +10,7 @@ from util import *
 
 def main():
     java_cmd = ""
+    args.append("--gendir=pir/out")
     java_cmd += "export TEST_ARGS=\"{}\"; ".format(' '.join(args))
     java_cmd += "sbt -Dmaxthreads={} ".format(opts.thread)
     if (opts.backend is not None):
@@ -18,11 +19,12 @@ def main():
     else:
         java_cmd += "-Dci=true "
     java_cmd += "\"; "
-    java_cmd += " project {}; test:compile; testOnly {}".format(opts.project, ' '.join(opts.app))
+    java_cmd += " project {}; testOnly {}".format(opts.project, ' '.join(opts.app))
     java_cmd += "\""
 
     print(java_cmd)
 
+    os.chdir("../")
     ecode = os.system(java_cmd)
 
 if __name__ == "__main__":

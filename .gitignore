@@ -56,3 +56,4 @@ lib/
 
 *__*.scala
 shell/
+env/
