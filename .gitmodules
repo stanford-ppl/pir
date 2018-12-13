@@ -1,0 +1,6 @@
+[submodule "plastiroute"]
+	path = plastiroute
+	url = git@github.com:acrucker/plastiroute.git
+[submodule "plastisim"]
+	path = plastisim
+	url = git@github.com:acrucker/plastisim.git
