@@ -16,7 +16,7 @@ tag:
 	ctags -R src/ apps/
 	#sbt gen-ctags
 
-install: spatial pir psim proute
+install: pir psim proute
 
 spatial:
 	cd ../ && sbt "; project pirTest; compile"
@@ -25,10 +25,13 @@ pir:
 	sbt publishAll
 
 psim:
-		cd plastisim; mkdir -p build; make CC=gcc Cpp=g++ CXX=g++
+		mkdir -p plastisim/build
+		cd plastisim && make CC=gcc Cpp=g++ CXX=g++
+		export PLASTISIM_HOME=$(shell pwd)/plastisim
 
 proute:
-		cd plastiroute; make CC=gcc Cpp=g++ CXX=g++
+		cd plastiroute && make CC=gcc Cpp=g++ CXX=g++ 
+		export PLASTIROUTE_HOME=$(shell pwd)/plastiroute
 
 pull:
 	cd plastisim && git pull && git submodule update --init
