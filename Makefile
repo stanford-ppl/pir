@@ -27,11 +27,11 @@ pir:
 psim:
 		mkdir -p plastisim/build
 		cd plastisim && make CC=gcc Cpp=g++ CXX=g++
-		export PLASTISIM_HOME=$(shell pwd)/plastisim
+		bin/pconf --psim-home=$(shell pwd)/plastisim
 
 proute:
 		cd plastiroute && make CC=gcc Cpp=g++ CXX=g++ 
-		export PLASTIROUTE_HOME=$(shell pwd)/plastiroute
+		bin/pconf --proute-home=$(shell pwd)/plastiroute
 
 pull:
 	cd plastisim && git pull && git submodule update --init

@@ -86,8 +86,8 @@ trait Printer extends FormatPrinter {
     res
   }
 
-  def withOpen[T](fileName:String, append:Boolean=false)(lambda: => T)(implicit compiler:Compiler):T = {
-    withOpen(compiler.outDir, fileName, append)(lambda)
+  def withOpen[T](fullPath:String, append:Boolean)(lambda: => T):T = {
+    withOpen(dirName(fullPath), baseName(fullPath), append)(lambda)
   }
 
   def open(stream:StreamWriter):StreamWriter = {
