@@ -43,9 +43,9 @@ trait DSETest extends SpatialTest { test =>
     override def shouldRun: Boolean = checkFlag(s"test.${name}")
     def compileOnly = checkFlag(s"test.compileOnly")
     def runOnly = checkFlag(s"test.runOnly")
-    override def genDir(name:String):String = s"${IR.config.cwd}/gen/${this.name}/$name/"
-    override def logDir(name:String):String = s"${IR.config.cwd}/gen/${this.name}/$name/"
-    override def repDir(name:String):String = s"${IR.config.cwd}/gen/${this.name}/$name/"
+    override def genDir(name:String):String = s"${IR.config.cwd}/out/${this.name}/$name/"
+    override def logDir(name:String):String = s"${IR.config.cwd}/out/${this.name}/$name/"
+    override def repDir(name:String):String = s"${IR.config.cwd}/out/${this.name}/$name/"
     override def runBackend() = {
       s"${test.name}" should s"run for backend $name" in {
         val name = test.name
