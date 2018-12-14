@@ -19,17 +19,20 @@ tag:
 install: spatial pir psim proute
 
 spatial:
-	cd ../
-	sbt "; project pir_test; compile"
+	cd ../ && sbt "; project pirTest; compile"
 
 pir:
 	sbt publishAll
 
 psim:
-		cd plastisim; mkdir -p build; make
+		cd plastisim; mkdir -p build; make CC=gcc Cpp=g++ CXX=g++
 
 proute:
-		cd plastiroute; make
+		cd plastiroute; make CC=gcc Cpp=g++ CXX=g++
 
-.PHONY: all spatial pir psim proute init pull install add env igraph
+pull:
+	cd plastisim && git pull && git submodule update --init
+	cd plastiroute && git pull
+
+.PHONY: all spatial pir psim proute init pull install env
 
