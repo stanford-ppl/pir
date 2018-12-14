@@ -21,9 +21,7 @@ trait DSETest extends SpatialTest { test =>
 
   val cmdlnArgs = sys.env.get("TEST_ARGS").getOrElse("").split(" ").map(_.trim).toList
 
-  val psimHome = buildPath(IR.config.cwd, s"plastisim")
-  val prouteHome = buildPath(IR.config.cwd, s"plastiroute")
-  val pshPath = buildPath(IR.config.cwd, s"bin", "psh")
+  val pshPath = buildPath(IR.config.cwd, "pir", "bin", "psh")
 
   val pirArgs:List[String] = 
     "bash" ::
@@ -34,8 +32,6 @@ trait DSETest extends SpatialTest { test =>
     "--psim=true" ::
     "--run-psim=false" ::
     s"--tungsten=false" ::
-    s"--psim-home=$psimHome" ::
-    s"--proute-home=$prouteHome" ::
     Nil
 
   abstract class ExpBackend extends Backend(name, "", "", "") {
@@ -43,9 +39,9 @@ trait DSETest extends SpatialTest { test =>
     override def shouldRun: Boolean = checkFlag(s"test.${name}")
     def compileOnly = checkFlag(s"test.compileOnly")
     def runOnly = checkFlag(s"test.runOnly")
-    override def genDir(name:String):String = s"${IR.config.cwd}/out/${this.name}/$name/"
-    override def logDir(name:String):String = s"${IR.config.cwd}/out/${this.name}/$name/"
-    override def repDir(name:String):String = s"${IR.config.cwd}/out/${this.name}/$name/"
+    override def genDir(name:String):String = s"${IR.config.cwd}/pir/out/${this.name}/$name/"
+    override def logDir(name:String):String = s"${IR.config.cwd}/pir/out/${this.name}/$name/"
+    override def repDir(name:String):String = s"${IR.config.cwd}/pir/out/${this.name}/$name/"
     override def runBackend() = {
       s"${test.name}" should s"run for backend $name" in {
         val name = test.name
@@ -137,7 +133,7 @@ trait DSETest extends SpatialTest { test =>
     }
 
     def runproute(row:Int=16, col:Int=8, vlink:Int=2, slink:Int=4, time:Int = -1, iter:Int=1000, vcLimit:Int=4, stopScore:Int= -1, rerun:Boolean=false) = {
-      var cmd = s"${buildPath(prouteHome, "plastiroute")}" :: 
+      var cmd = s"${buildPath(IR.config.cwd, "pir", "plastiroute", "plastiroute")}" :: 
       "-n" :: s"${IR.config.genDir}/pir/plastisim/node.csv" ::
       "-l" :: s"${IR.config.genDir}/pir/plastisim/link.csv" ::
       "-v" :: s"${IR.config.genDir}/pir/plastisim/summary.csv" ::
@@ -172,7 +168,7 @@ trait DSETest extends SpatialTest { test =>
     }
 
     def runpsim(name:String="runpsim", flit:Int=512, linkTp:String="B", placefile:String="", rerun:Boolean=false) = {
-      var cmd = s"${buildPath(psimHome, "plastisim")}" :: 
+      var cmd = s"${buildPath(IR.config.cwd, "pir", "plastisim", "plastisim")}" :: 
       "-f" :: s"${IR.config.genDir}/pir/plastisim/psim.conf" ::
       s"-i$flit" ::
       "-l" :: s"$linkTp" ::
@@ -283,10 +279,10 @@ trait DSETest extends SpatialTest { test =>
   }
 
   override def backends: Seq[Backend] = 
-    Asic :: 
-    P2P(row=14,col=14) :: 
-    //Hybrid(row=14,col=14,vlink=1,slink=4) :: 
-    //Static(row=14,col=14,vlink=1,slink=4) :: 
+    Asic +:
+    P2P(row=14,col=14) +:
+    //Hybrid(row=14,col=14,vlink=1,slink=4) +: 
+    //Static(row=14,col=14,vlink=1,slink=4) +: 
     super.backends
 
 }
