@@ -1,9 +1,9 @@
-package pir
-package pass
+//package pir
+//package pass
 
-import pir.node._
-import pir.mapper._
-import prism.graph._
+//import pir.node._
+//import pir.mapper._
+//import prism.graph._
 
 //class CUPruning(implicit compiler:PIR) extends PIRPass with CostUtil with MappingLogger {
 

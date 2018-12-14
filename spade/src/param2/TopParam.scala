@@ -2,7 +2,6 @@ package spade
 package param
 
 import prism.graph._
-import prism.graph.implicits._
 import spray.json._
 import DefaultJsonProtocol._
 
@@ -17,7 +16,7 @@ case class TopParam(
 }
 
 trait Pattern extends Parameter {
-  def cuParams = this.collectIn[CUParam]()
+  def cuParams = new NodeCollector(this).collectIn[CUParam]()
 }
 
 case class AsicPattern(
