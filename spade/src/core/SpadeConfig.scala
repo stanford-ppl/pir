@@ -23,7 +23,7 @@ class SpadeConfig(compiler:Compiler) extends prism.Config(compiler) {
   register[Int]("col", info="number of columns in network")
   register[Boolean]("nn", default=false, info="enable nearest neighbor")
   register[Boolean]("dag", default=true, info="enable dram address generator in network")
-  register[String]("pattern", default="checkerboard", info="Pattern in layout of different CU types. For topo=[mesh/torus] - [checkerboard,cstrip,rstrip,mixall,half&half], for topo=cmesh - [checkerboard]")
+  register[String]("pattern", default="checkerboard", info="Pattern in layout of different CU types. [checkerboard,mcmcstrip]")
   register[Int]("argin", default=6, info="number of ArgIn")
   register[Int]("argout", default=4, info="number of ArgOut")
   register[Int]("tokenout", default=5, info="number of TokenOut")

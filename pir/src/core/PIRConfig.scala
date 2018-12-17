@@ -42,7 +42,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   }
 
   /* ------------------- Tungsten --------------------  */
-  register("tungsten", default=true, info="Enable tungsten codegen")
+  register("tungsten", default=false, info="Enable tungsten codegen")
   def genTungsten = enableCodegen && option[Boolean]("tungsten")
 
   /* ------------------- Routing --------------------  */

@@ -24,9 +24,8 @@ trait DefaultParamLoader extends Transformer {
           case ("scheduled", x, arg) => getOptOrElse("scheduled", arg)
           case ("clockFrequency", x, arg) => getOptOrElse("clock", arg)
           case ("pattern", x, arg) if optIs("net","asic") => transform(AsicPattern())
-          case ("pattern", x, arg) if optIs("pattern","checkerboard") => 
-            val cb = Checkerboard()
-            transform(cb)
+          case ("pattern", x, arg) if optIs("pattern","checkerboard") => transform(Checkerboard())
+          case ("pattern", x, arg) if optIs("pattern","mcmcstrip") => transform(MCMColumnStrip())
           case (_, x, arg) => transform(arg)
         }
       case n:Checkerboard =>

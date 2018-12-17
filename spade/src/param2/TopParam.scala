@@ -23,6 +23,15 @@ case class AsicPattern(
   networkParam:NetworkParam=NetworkParam("vec")
 ) extends Pattern
 
+/*
+ *
+ *  +-----+-----+
+ *  | PCU | PMU |
+ *  +-----+-----+
+ *  | PCU | PMU |
+ *  +-----+-----+
+ *
+ * */
 case class Checkerboard(
   row:Int=8,
   col:Int=8,
@@ -33,6 +42,28 @@ case class Checkerboard(
 ) extends Pattern {
   def cuAt(i:Int, j:Int) = {
     if ((i+j) % 2 == 0) cu1 else cu2
+  }
+}
+
+/*
+ *
+ *  +-----+-----+-----+
+ *  | PMU | PCU | PMU |
+ *  +-----+-----+-----+
+ *  | PMU | PCU | PMU |
+ *  +-----+-----+-----+
+ *
+ * */
+case class MCMColumnStrip(
+  row:Int=8,
+  col:Int=8,
+  cu1:CUParam=PCUParam(),
+  cu2:CUParam=PMUParam(),
+  fringeParam:FringeParam=FringeParam(),
+  networkParams:List[NetworkParam]=List(NetworkParam("bit"), NetworkParam("word"), NetworkParam("vec", numVC=4))
+) extends Pattern {
+  def cuAt(i:Int, j:Int) = {
+    if (i % 3 % 2 == 0) cu2 else cu1
   }
 }
 
