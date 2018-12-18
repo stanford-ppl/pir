@@ -11,7 +11,7 @@ class Config(compiler:Compiler) extends ArgParser {
 
   register("codegen", true, "Enable codegen")
   register("debug", false, "Enable debug")
-  register[String]("out", "pir/out", "Output directory for pir compiler.")
+  register[String]("out", s"${System.getProperty("user.dir")}${separator}pir/out", "Output directory for pir compiler.")
   register("verbose", false, "Enter verbose mode")
   register[Int]("start-id", "Runner ID to start with")
   register[Int]("end-id", "Runner ID to stop")
@@ -22,10 +22,7 @@ class Config(compiler:Compiler) extends ArgParser {
 
   def relativeOutDir:String = option("out")
   def debug:Boolean = option[Boolean]("debug")
-  def outDir = getOption[String]("out").getOrElse {
-    val pir_home = PIR_HOME.getOrElse(throw PIRException(s"Please define PIR_HOME or provide output directory with --out"))
-    s"$pir_home${separator}out$separator$name"
-  }
+  def outDir = option[String]("out")
   def name = option[String]("name")
   def startRunId = option[Int]("start-id")
   def endRunId = getOption[Int]("end-id")
