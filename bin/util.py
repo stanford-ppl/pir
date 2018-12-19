@@ -10,16 +10,10 @@ parser = argparse.ArgumentParser(description='Run experiments')
 parser.add_argument('-a', '--app', action='append', help='name of application to run')
 parser.add_argument('-b', '--backend', type=str, action="append", help='Testing Backend')
 parser.add_argument('-t', '--thread', type=int, default=16, help='Number of threads to run')
-parser.add_argument('--project', type=str, default="pirTest", help='project name')
+parser.add_argument('--project', type=str, default="test", help='project name')
 parser.add_argument('--gen', action='store_true', default=False, help='compile only')
 parser.add_argument('--gendir', default="gen/")
-
-global opts
-global args
-(opts, args) = parser.parse_known_args()
-
-if opts.app is None:
-    opts.app = ["*"]
+parser.add_argument('-r', '--rerun', action='append', help='passes to rerun', default=[])
 
 HEADER    = '\033[95m'
 OKBLUE    = '\033[94m'
@@ -64,9 +58,9 @@ def parseLog(log, parsers, conf):
     for parser in parsers:
         parser.parse(found)
 
-def getApps(backend):
+def getApps(backend, opts):
     apps = []
-    if opts.app != ["*"]:
+    if opts.app is not None:
         return opts.app
     gendir = "{}/{}".format(opts.gendir, backend)
     for app in os.listdir(gendir):
@@ -113,6 +107,12 @@ def grep(path, patterns):
                 if pattern in line:
                     found[pattern].append(line)
     return found
+
+def remove(path):
+    if os.path.exists(path):
+        ans = raw_input('remove {}? y/n '.format(path))
+        if ans == 'y':
+            os.remove(path)
 
 def loadSimData(datapath, backends=None):
     if backends is None:

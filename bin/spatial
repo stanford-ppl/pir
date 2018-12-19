@@ -10,7 +10,6 @@ from util import *
 
 def main():
     java_cmd = ""
-    args.append("--gendir=pir/out")
     java_cmd += "export TEST_ARGS=\"{}\"; ".format(' '.join(args))
     java_cmd += "sbt -Dmaxthreads={} ".format(opts.thread)
     if (opts.backend is not None):

@@ -20,7 +20,7 @@ class GDA_0 extends GDA
 //class GDA_8 extends GDA {override lazy val param = GDAParam(mp1 = 1,mp2 = 2)}
 //class GDA_9 extends GDA {override lazy val param = GDAParam(mp1 = 2,mp2 = 1)}
 //class GDA_11 extends GDA {override lazy val param = GDAParam(mp1 = 3,mp2 = 1)}
-//class GDA_12 extends GDA {override lazy val param = GDAParam(mp1 = 1,mp2 = 3)}
+class GDA_12 extends GDA {override lazy val param = GDAParam(mp1 = 1,mp2 = 3)}
 //class GDA_13 extends GDA {override lazy val param = GDAParam(op = 2,mp1 = 1,mp2 = 1)}
 class GDA_14 extends GDA {override lazy val param = GDAParam(mp1 = 2,mp2 = 2)}
 
