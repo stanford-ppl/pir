@@ -11,7 +11,7 @@ class GlobalInsertion(implicit compiler:PIR) extends PIRTraversal with SiblingFi
   val ctxMap = mutable.Map[ControlTree, Context]() 
 
   override def visitNode(n:N) = n match {
-    case n:Context if n.collectDown[DRAMCommand]().nonEmpty =>
+    case n:Context if n.collectDown[DRAMCommand]().nonEmpty | n.collectDown[StreamCommand]().nonEmpty=>
       val global = within(pirTop) { DRAMFringe() }
       swapParent(n,global)
     case n:Context if !n.isUnder[GlobalContainer] =>

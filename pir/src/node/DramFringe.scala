@@ -1,7 +1,7 @@
 package pir
 package node
 
-abstract class DRAMCommand(implicit env:Env) extends PIRNode {
+trait DRAMCommand extends PIRNode {
   def dram:DRAM
   val respondValid = new OutputField[List[BufferRead]]("respondValid")
 }
@@ -33,4 +33,13 @@ case class FringeSparseStore(dram:DRAM)(implicit env:Env) extends DRAMSparseComm
 
 case class DRAM(sid:String) extends prism.graph.IR {
   val dims = Metadata[List[Int]]("dims")
+}
+
+trait StreamCommand extends PIRNode 
+
+case class FringeStreamWrite()(implicit env:Env) extends StreamCommand {
+  val stream = new OutputField[PIRNode]("stream")
+}
+case class FringeStreamRead()(implicit env:Env) extends StreamCommand {
+  val stream = new InputField[PIRNode]("stream")
 }

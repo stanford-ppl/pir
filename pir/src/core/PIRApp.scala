@@ -60,9 +60,9 @@ trait PIRApp extends PIR with Logging {
     addPass(controlPropogator)
     addPass(enableDot, new PIRIRDotGen(s"top2.dot"))
     addPass(validProp) ==>
-    addPass(routeThroughEliminator)
+    addPass(enableRouteElim, routeThroughEliminator)
     addPass(enableDot, new PIRIRDotGen(s"top3.dot"))
-    addPass(contextInsertion).dependsOn(routeThroughEliminator)
+    addPass(contextInsertion).dependsOn(controlPropogator)
     addPass(enableDot, new PIRIRDotGen(s"top4.dot"))
     addPass(memLowering).dependsOn(contextInsertion) ==>
     addPass(enableDot, new PIRIRDotGen(s"top5.dot"))
@@ -138,8 +138,14 @@ trait PIRApp extends PIR with Logging {
             HostRead(mem.name.v.getOrElse(mem.sname.get)).input(MemRead().setMem(mem))
           }
         }
+        streamOuts.foreach { streamOut =>
+          within(ControlTree("Streaming")) {
+            FringeStreamRead().stream(MemRead().setMem(streamOut).out)
+          }
+        }
       }
       argOuts.clear
+      streamOuts.clear
       dramAddrs.clear
       toc(s"New design", "ms")
     }
@@ -150,6 +156,7 @@ trait PIRApp extends PIR with Logging {
   /* Helper function during staging graph */
 
   val argOuts = scala.collection.mutable.ListBuffer[Reg]()
+  val streamOuts = scala.collection.mutable.ListBuffer[FIFO]()
   val dramAddrs = scala.collection.mutable.Map[DRAM, Reg]()
 
   implicit class NodeHelper[T](x:T) {
@@ -198,6 +205,15 @@ trait PIRApp extends PIR with Logging {
     }
   }
 
+  def streamIn(fifo:FIFO) = {
+    within(ControlTree("Streaming")) {
+      FringeStreamWrite().stream(MemWrite().setMem(fifo).data)
+    }
+  }
+
+  def streamOut(fifo:FIFO) = {
+    streamOuts += fifo
+  }
 
 }
 

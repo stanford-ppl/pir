@@ -27,6 +27,7 @@ class ContextAnalyzer(implicit compiler:PIR) extends BufferAnalyzer {
 
   def tokenInInsertion(ctx:Context):Unit = {
     if (ctx.collectUp[ArgFringe]().nonEmpty) return
+    if (ctx.collectDown[StreamCommand]().nonEmpty) return
     val nonLutInputs = ctx.deps.filterNot { _.isInstanceOf[LUT] }
     if (nonLutInputs.isEmpty) {
       val hostInCtx = pirTop.argFringe.collectDown[HostInController]().head.ctx.get

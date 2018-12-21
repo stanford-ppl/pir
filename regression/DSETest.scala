@@ -16,6 +16,6 @@ abstract class Param[T:TypeTag] extends Product {
 }
 
 trait DSETest extends PlasticineTest {
-  def param:Param[_]
+  //def param:Param[_]
 
 }

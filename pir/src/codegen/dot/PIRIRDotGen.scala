@@ -81,8 +81,9 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     case n:Counter => attr.fillcolor(indianred).style(filled)
     //case n:CUContainer => attr.fillcolor(deepskyblue).style(filled)
     case n:DRAMCommand => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
+    case n:StreamCommand => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
     case n:DRAMFringe => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
-    //case n:StreamFringe => attr.fillcolor("lightseagreen").style(filled)
+    //case n:StreamFringe => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
 
     case n:OpNode => attr.fillcolor("mediumorchid1").style(filled)
     case n => super.color(attr, n)

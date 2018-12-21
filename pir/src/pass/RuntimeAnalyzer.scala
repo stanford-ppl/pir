@@ -53,10 +53,10 @@ trait RuntimeAnalyzer { self:PIRPass =>
 
   def compIter(n:PIRNode):Option[Long] = dbgblk(s"compIter($n)"){
     n match {
-      case n:Counter => 
-        val min = n.min.T.getBound
-        val max = n.max.T.getBound
-        val step = n.step.T.getBound
+      case n:Counter if !n.isForever => 
+        val min = n.min.T.get.getBound
+        val max = n.max.T.get.getBound
+        val step = n.step.T.get.getBound
         zipMap(min, max, step) { case (min, max, step) =>
           val par = n.par
           (max - min) /! (step * par)

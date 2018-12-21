@@ -107,9 +107,9 @@ case class CountAck()(implicit env:Env) extends Def {
 }
 case class Counter(par:Int, isForever:Boolean=false)(implicit env:Env) extends Def {
   /*  ------- Fields -------- */
-  val min = new InputField[PIRNode]("min")
-  val step = new InputField[PIRNode]("step")
-  val max = new InputField[PIRNode]("max")
+  val min = new InputField[Option[PIRNode]]("min")
+  val step = new InputField[Option[PIRNode]]("step")
+  val max = new InputField[Option[PIRNode]]("max")
   def iters = this.collectOut[CounterIter]().sortBy { _.i }
   def valids = this.collectOut[CounterValid]().sortBy { _.i }
   def isInner = iters.forall { _.i.isEmpty } && iters.size == 1
