@@ -41,6 +41,15 @@ trait Transformer extends Logging {
   }
 
   /*
+   * Change input connection from from to to
+   * */
+  def swapConnection(input:Input, from:Output, to:Output) = {
+    dbg(s"swapInput(input=${input.src}.${input}, from=${from.src}.$from, to=${to.src}.$to)")
+    assert(input.isConnectedTo(from), s"${input.src}.${input} is not connected to ${from.src}.${from}")
+    input.swapOutputConnection(from, to)
+  }
+
+  /*
    * Find node's connection to from and swap it to to
    * */
   def swapInput(node:N, from:Output, to:Output):Unit = {
@@ -48,7 +57,7 @@ trait Transformer extends Logging {
     val connected = node.localIns.filter { _.isConnectedTo(from) }
     dbg(s"connected=${node.localIns}")
     assert (connected.nonEmpty, s"$node.localIns is not connected to ${from.src}.$from")
-    connected.foreach { _.swapConnection(from, to) }
+    connected.foreach { in => swapConnection(in, from, to) }
   }
 
   /*
@@ -62,7 +71,7 @@ trait Transformer extends Logging {
       }.map { fromEdge => (nodeEdge, fromEdge) }
     }
     assert (connected.nonEmpty, s"$node is not connected to $from")
-    connected.foreach { case (nodeEdge, fromEdge) => nodeEdge.swapConnection(fromEdge, to) }
+    connected.foreach { case (nodeEdge, fromEdge) => swapConnection(nodeEdge, fromEdge, to) }
   }
 
   /*

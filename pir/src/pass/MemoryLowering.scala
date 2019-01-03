@@ -77,26 +77,25 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
 
   def lowerAccesses(mem:Memory, memCU:MemoryContainer, accesses:Set[Access]) = {
     if (accesses.size==1) {
-      within(memCU) {
-        val accessCtx = Context()
-        val access = accesses.head
-        swapParent(access, accessCtx)
-        access match {
-          case access:BankedRead => 
-            bufferOutput(access.out)
-          case access:MemRead =>
-            bufferOutput(access.out)
-          case access:BankedWrite => 
-            flattenBankAddr(access)
-            //bufferInput(access.bank)
-            //bufferInput(access.offset)
-            bufferInput(access.data)
-          case access:MemWrite =>
-            bufferInput(access.data)
-            val writeEns = access.en.T
-            dbg(s"writeEns=$writeEns")
-            val fromValid = writeEns.forall { case en:CounterValid => true }
-            if (!fromValid) bufferInput(access.en)
+      dbgblk(s"lowerAccesses($mem, $memCU, ${accesses.head})") {
+        within(memCU) {
+          val accessCtx = Context()
+          val access = accesses.head
+          swapParent(access, accessCtx)
+          access match {
+            case access:BankedRead => 
+              bufferOutput(access.out)
+            case access:MemRead =>
+              bufferOutput(access.out)
+            case access:BankedWrite => 
+              bufferInput(access.data)
+            case access:MemWrite =>
+              bufferInput(access.data)
+              val writeEns = access.en.T
+              dbg(s"writeEns=$writeEns")
+              val fromValid = writeEns.forall { case en:CounterValid => true }
+              if (!fromValid) bufferInput(access.en)
+          }
         }
       }
     } else {
@@ -178,7 +177,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
           accesses.foreach { case read:BankedRead =>
             read.out.connected.foreach{ in => 
               dbg(s"${in.src}.$in.swapInput($read.out, $newRead.out)")
-              in.as[Input].swapConnection(read.out, newRead.out)
+              swapConnection(in.as[Input], read.out, newRead.out)
             }
           }
           bufferOutput(newRead.out)

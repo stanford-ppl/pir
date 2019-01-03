@@ -24,25 +24,23 @@ trait BufferAnalyzer extends MemoryAnalyzer {
 
   def bufferInput(in:Input):Seq[BufferRead] = {
     val deped = in.src.as[PIRNode]
-    deped.localIns.toSeq.flatMap { _.connected }.distinct.flatMap { out =>
-      bufferInput(out.as[Output], deped.as[PIRNode])
+    in.connected.flatMap { out =>
+      bufferInput(out.as[Output], in)
     }
   }
 
   def bufferOutput(out:Output):Seq[BufferRead] = {
-    val dep = out.src.as[PIRNode]
-    dep.localOuts.flatMap { out => 
-      out.neighbors.flatMap { deped =>
-        bufferInput(out, deped.as[PIRNode]) 
-      }
+    out.connected.flatMap { in =>
+      bufferInput(out, in.as[Input])
     }
   }
 
-  private def bufferInput(depOut:Output, deped:PIRNode):Option[BufferRead] = {
+  private def bufferInput(depOut:Output, depedIn:Input):Option[BufferRead] = {
     val dep = depOut.src.as[PIRNode]
+    val deped = depedIn.src.as[PIRNode]
     val depedCtx = deped.ctx.get
     if (escape(dep, depedCtx)) {
-      val read = dbgblk(s"bufferInput(depOut=$dep.${depOut}, deped=$deped)") {
+      val read = dbgblk(s"bufferInput(depOut=$dep.$depOut, depedIn=$deped.$depedIn)") {
         val depCtx = dep.ctx.get
         val isFIFO = dep.getCtrl == deped.getCtrl
         val (enq, deq) = compEnqDeq(dep.getCtrl, deped.getCtrl, isFIFO, depCtx, depedCtx)
@@ -62,7 +60,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
             BufferRead(isFIFO).in(write.out).done(deq).banks(List(dep.getVec))
           }
         }
-        swapInput(deped, depOut, read.out)
+        swapConnection(depedIn, depOut, read.out)
         read
       }
       Some(read)
@@ -86,13 +84,13 @@ trait BufferAnalyzer extends MemoryAnalyzer {
       out.src match {
         case dep:GlobalInput if dep.isDescendentOf(global) => dep
         case dep:GlobalInput => 
-          ins.foreach { in => in.swapConnection(out, dep.in.T.out) }
+          ins.foreach { in => swapConnection(in, out, dep.in.T.out) }
           insertGlobalInput(global, dep.in.T.out, ins)
         case dep =>
           val gin = within(global) { 
             allocate[GlobalInput] { _.in.isConnectedTo(out) } { GlobalInput().in(out) } 
           }
-          ins.foreach { _.swapConnection(out, gin.out) }
+          ins.foreach { in => swapConnection(in, out, gin.out) }
           gin
       }
     }
@@ -118,7 +116,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
         val gout = within(global) { 
           allocate[GlobalOutput]{ _.in.isConnectedTo(out) } { GlobalOutput().in(out) }
         }
-        ins.foreach { _.swapConnection(out, gout.out) }
+        ins.foreach { in => swapConnection(in, out, gout.out) }
         gout
     }
   }

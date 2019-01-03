@@ -42,7 +42,7 @@ class PlastisimAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFS
             assert(count == 1, s"Host out count != 1: $count")
           }
           n.collectDown[FringeStreamRead]().headOption.foreach { streamRead =>
-            streamRead.count.v.foreach { v =>
+            streamRead.count.v.flatten.foreach { v =>
               assert(count == v, s"StreamOut count $count != annotated count $v")
             }
           }
