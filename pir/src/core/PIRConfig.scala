@@ -32,6 +32,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register[String]("psim-out", info="Directory to copy psim files over")
   register[Int]("psim-q", default=1, info="VC slowdown parameter")
   register("trace", default=false, info="Enable trace generation for simulation")
+  register[String]("count", info="Annotation on count values")
 
   def genPsim = option[Boolean]("psim") && enableCodegen
   def runPsim = option[Boolean]("run-psim") && genPsim

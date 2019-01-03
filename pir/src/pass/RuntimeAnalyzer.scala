@@ -126,6 +126,11 @@ trait RuntimeAnalyzer { self:PIRPass =>
   def compCount(n:PIRNode):Option[Long] = dbgblk(s"compCount($n)"){
     n match {
       case n:Context if n.collectDown[HostInController]().nonEmpty => Some(1l)
+      case n:Context if n.collectDown[FringeStreamWrite]().nonEmpty => 
+        val stream = n.collectDown[FringeStreamWrite]().head
+        stream.count.v.getOrElse {
+          throw PIRException(s"No annotation on stream count ${stream.name.v.getOrElse(stream.sname.get)}")
+        }
       case n:Context =>
         var (readsWithInits, reads) = n.reads.partition { _.initToken.get }
         if (accountForCycle) {

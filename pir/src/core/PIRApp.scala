@@ -140,14 +140,30 @@ trait PIRApp extends PIR with Logging {
         }
         streamOuts.foreach { streamOut =>
           within(ControlTree("Streaming")) {
-            FringeStreamRead().stream(MemRead().setMem(streamOut).out)
+            FringeStreamRead().name(streamOut.name.v).stream(MemRead().setMem(streamOut).out)
           }
         }
       }
       argOuts.clear
       streamOuts.clear
       dramAddrs.clear
+      setAnnotation(top)
       toc(s"New design", "ms")
+    }
+  }
+
+  def setAnnotation(top:Top) = {
+    config.getOption[String]("count").foreach { v =>
+      val streamCommands = top.collectDown[StreamCommand]()
+      v.split(",").toList.sliding(2,2).foreach { 
+        case List(key,value) =>
+          info(s"Annotate $key.count=$value")
+          assertOne(streamCommands.filter {_.name.v == Some(key)}, s"Stream with name $key")
+            .count(Some(value.toLong))
+        case List(key) =>
+          info(s"Malformat on count annotation. Parsed $key with no value")
+        case Nil =>
+      }
     }
   }
 
@@ -207,7 +223,7 @@ trait PIRApp extends PIR with Logging {
 
   def streamIn(fifo:FIFO) = {
     within(ControlTree("Streaming")) {
-      FringeStreamWrite().stream(MemWrite().setMem(fifo).data)
+      FringeStreamWrite().name(fifo.name.v).stream(MemWrite().setMem(fifo).data)
     }
   }
 

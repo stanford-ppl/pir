@@ -51,7 +51,7 @@ trait TopFactory extends Factory {
       array.zipWithIndex.foreach { case (col, x) =>
         col.zipWithIndex.foreach { case (nodes, y) =>
           nodes.zipWithIndex.foreach { case (node, i) => 
-            node.pos((x*scale,(y+0.4*i)*scale))
+            node.pos((x*scale*1.0,(y+0.4*i)*scale))
           }
         }
       }

@@ -14,6 +14,8 @@ case class ArgOption[T:ClassTag](key:String, default:Option[T], info:String) {
       case ct if ct == classTag[Long] => values.head.toLong
       case ct if ct == classTag[String] => values.head
       case ct if ct == classTag[Boolean] => values.head == "true"
+      case ct if ct == classTag[(String,Long)] => 
+        values.head.stripPrefix("(").stripSuffix(")").span(c => c == ',').map2(_.toLong)
     }).asInstanceOf[T]
   }
 }
@@ -21,13 +23,11 @@ case class ArgOption[T:ClassTag](key:String, default:Option[T], info:String) {
 trait ArgParser {
   val optionMap = mutable.ListMap[String, ArgOption[_]]()
 
-  def register[T:ClassTag](key:String, default:Option[T], info:String):Unit = {
+  def register[T:ClassTag](key:String, default:Option[T]=None, info:String=""):Unit = {
     if (optionMap.contains(key)) throw new Exception(s"$key already registered")
     optionMap += key -> ArgOption(key, default, info)
   }
   def register[T:ClassTag](key:String, default:T, info:String):Unit = register(key, Some(default), info)
-  def register[T:ClassTag](key:String, info:String):Unit = register(key, None, info)
-  def register[T:ClassTag](key:String):Unit = register(key, None, "")
 
   def getOption[T](key:String) = optionMap(key).getValue.asInstanceOf[Option[T]]
   def option[T](key:String):T = getOption[T](key).get

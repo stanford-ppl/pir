@@ -118,7 +118,7 @@ import forge.tags._
 			}
 			*/
 
-		        Pipe {
+		  Pipe {
 				s_reg := stream_in.value
 			}
 

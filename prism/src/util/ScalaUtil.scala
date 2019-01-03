@@ -184,6 +184,7 @@ trait ScalaUtilFunc {
   }
 
   implicit class Tuple2Util[A,B](tuple:(A,B)) {
+    def map1[C](func:A => C) = (func(tuple._1), tuple._2)
     def map2[C](func:B => C) = (tuple._1, func(tuple._2))
   }
 
