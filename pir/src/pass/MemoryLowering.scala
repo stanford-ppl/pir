@@ -33,18 +33,11 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
     // Create Memory Context
     swapParent(mem, memCU)
     val accesses = mem.accesses
-    accesses.foreach { access =>
-      access.getVec
-      access match {
-        case access:BanckedAccess => flattenBankAddr(access)
-        case access =>
-      }
-    }
     groupAccess(mem, mem.outAccesses).foreach { accesses =>
-      lowerAccesses(mem, memCU, accesses)
+      lowerAccesses2(mem, memCU, accesses)
     }
     groupAccess(mem, mem.inAccesses).foreach { accesses =>
-      lowerAccesses(mem, memCU, accesses)
+      lowerAccesses2(mem, memCU, accesses)
     }
     sequencedScheduleBarrierInsertion(mem)
     multiBufferBarrierInsertion(mem)
@@ -75,7 +68,87 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
     }.toList
   }
 
+  def lowerAccesses2(mem:Memory, memCU:MemoryContainer, accesses:Set[Access]) = dbgblk(s"lowerAccesses($mem, $memCU, $accesses)") {
+    val headAccess = accesses.head
+    val mergeCtrl = headAccess.getCtrl
+    val mergeCtx = within(memCU) { Context() }
+    dbg(s"mergeCtrl = $mergeCtrl")
+    dbg(s"mergeCtx=$mergeCtx")
+
+    headAccess match {
+      case headAccess:BanckedAccess =>
+        within(mergeCtx, mergeCtrl) {
+          val inputs = accesses.asInstanceOf[Set[BanckedAccess]].map { access =>
+            access.to[BankedRead].foreach { access =>
+              if (accesses.size == 1) {
+                swapParent(access, mergeCtx)
+              } else {
+                val addrCtx = Context()
+                dbg(s"addrCtx for $access = $addrCtx")
+                swapParent(access, mergeCtx)
+              }
+            }
+            flattenBankAddr(access)
+            val bank = access.bank.connected
+            val ofs = Shuffle().from(bank).to(Const(0)).base(access.offset.connected).out
+            val data = access match {
+              case access:BankedWrite => Some(Shuffle().from(bank).to(Const(0)).base(access.data.connected).out)
+              case access => None
+            }
+            (ofs, data)
+          }
+          var red:List[(Output, Option[Output])] = inputs.toList
+          while(red.size > 1) {
+            red = red.sliding(2,2).map{ 
+              case List((o1, d1),(o2, d2)) =>
+                val of = OpDef(FixOr).input(List(o1, o2))
+                dbg(s"add of = $of.input(${o1.src}.$o1,${o2.src}.$o2")
+                val dt = zipOption(d1, d2).map { case (d1, d2) =>
+                  val dt = OpDef(FixOr).input(List(d1,d2))
+                  dbg(s"add dt = $dt.input(${d1.src}.$d1,${d2.src}.$d2)")
+                  dt
+                }
+                (of.out, dt.map { _.out })
+              case List((o1, d1)) => (o1, d1)
+            }.toList
+          }
+          val List((ofs, data)) = red
+          data.fold[Unit]{
+            val newRead = BankedRead().offset(ofs).mem(mem).mirrorMetas(headAccess)
+            accesses.asInstanceOf[Set[BankedRead]].foreach { access =>
+              access.out.connected.foreach{ in => 
+                val inCtx = in.src.as[PIRNode].ctx.get
+                val shuffle = within(inCtx, in.src.as[PIRNode].getCtrl)  {
+                  Shuffle().from(Const(0)).to(access.bank.connected).base(newRead.out)
+                }
+                bufferInput(shuffle.base)
+                bufferInput(shuffle.to)
+                dbg(s"${in.src}.$in.swapInput($access.out, $shuffle.out)")
+                swapConnection(in.as[Input], access.out, shuffle.out)
+              }
+            }
+          } { data => 
+            BankedWrite().offset(ofs).data(data).mem(mem).mirrorMetas(headAccess)
+          }
+        }
+        accesses.foreach { removeNode }
+      case headAccess:Access =>
+        assert(accesses.size == 1)
+        swapParent(headAccess, mergeCtx)
+    }
+
+    // TODO buffer mergeCtx
+
+  }
+
   def lowerAccesses(mem:Memory, memCU:MemoryContainer, accesses:Set[Access]) = {
+    accesses.foreach { access =>
+      access.getVec
+      access match {
+        case access:BanckedAccess => flattenBankAddr(access)
+        case access =>
+      }
+    }
     if (accesses.size==1) {
       dbgblk(s"lowerAccesses($mem, $memCU, ${accesses.head})") {
         within(memCU) {
