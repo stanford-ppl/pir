@@ -110,19 +110,19 @@ class DRAMTraceCodegen(implicit compiler:PIR) extends ProgramOrderTraversal with
       visitNode(n)
       decLevel
       emitln(s"// } $n")
-    case n:Counter => 
-      emitln(s"val $n = (${n.min.T} until ${n.max.T} by (${n.step.T} * ${n.par}))")
+    case n:Counter if !n.isForever => 
+      emitln(s"val $n = (${n.min.T.get} until ${n.max.T.get} by (${n.step.T.get} * ${n.par}))")
     case n@Const(v) => 
       emitln(s"val $n = $v")
     case n:ControllerValid =>
     case n:ControllerDone =>
     case n:CounterValid =>
-    case n@CounterIter(Some(i)) =>
+    case n@CounterIter(Some(i)) if !n.counter.T.isForever =>
       val ctr = n.counter.T
-      emitln(s"val $n = iter_$ctr + $i * ${ctr.step.T}")
-    case n@CounterIter(None) =>
+      emitln(s"val $n = iter_$ctr + $i * ${ctr.step.T.get}")
+    case n@CounterIter(None) if !n.counter.T.isForever =>
       val ctr = n.counter.T
-      emitln(s"val $n = List.tabulate(${ctr.par}) { i => iter_$ctr + i * ${ctr.step.T} }")
+      emitln(s"val $n = List.tabulate(${ctr.par}) { i => iter_$ctr + i * ${ctr.step.T.get} }")
     case n:FringeDenseLoad =>
       emitln(s"// $n")
       emitln(s"""trace("${n}_size.trace", ${n.size.T.as[MemRead].mem.T.inAccesses.head})""")
@@ -231,6 +231,8 @@ class DRAMTraceCodegen(implicit compiler:PIR) extends ProgramOrderTraversal with
       case ("FixMul", Seq(a:Float, b:Float)) => a * b
       case ("FixFMA", Seq(a:Int, b:Int, c:Int)) => a * b + c
       case ("FixFMA", Seq(a:Float, b:Float, c:Float)) => a * b + c
+      case ("FixSLA", Seq(a:Int, b:Int)) => a << b 
+      case ("FixSRA", Seq(a:Int, b:Int)) => a >> b 
       case ("FixToFix", ins) => ins(0)
       case op => throw new Exception(s"Don't know how to eval $op")
     }
