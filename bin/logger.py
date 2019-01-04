@@ -48,21 +48,30 @@ def getMessage(backend, app, conf):
         msg.append(cstr(RED, 'genpir'))
         return msg,succeeded
 
-    if conf['runpir_err'] is None:
-        msg.append(cstr(GREEN,'runpir'))
-    else:
+    if conf['runpir_err'] is not None:
         msg.append(cstr(RED,'runpir'))
         msg.append(conf['runpir_err'].strip())
         return msg,succeeded
+    elif conf['runpir_time'] is None:
+        msg.append(cstr(YELLOW,'runpir'))
+        return msg,succeeded
+    else:
+        msg.append(cstr(GREEN,'runpir[{:.2f}s]'.format(conf['runpir_time'])))
 
-    if conf['PCU'] is not None:
-        msg.append(cstr(GREEN,' '.join(['{}:{}'.format(k,conf[k]) for k in ['PCU', "PMU"]])))
-    elif conf['notFit'] is not None:
-        msg.append(cstr(YELLOW, 'notFit'))
-    elif conf['mappir_err'] is not None:
+    if conf['mappir_err'] is not None:
         msg.append(cstr(RED,'mappir'))
         msg.append(conf['mappir_err'].strip())
         return msg,succeeded
+    elif conf['notFit'] is not None:
+        msg.append(cstr(YELLOW, 'notFit'))
+        return msg,succeeded
+    elif conf['mappir_time'] is None:
+        msg.append(cstr(YELLOW,'mappir'))
+        return msg,succeeded
+    elif conf['PCU'] is not None:
+        msg.append(cstr(GREEN,' '.join(['{}:{}'.format(k,conf[k]) for k in ['PCU', "PMU"]])))
+    else:
+        msg.append(cstr(GREEN,'mappir[{:.2f}s]'.format(conf['mappir_time'])))
 
     if conf['NetVC'] is None:
         msg.append(cstr(RED,'runproute'))
@@ -254,6 +263,12 @@ def parse_mappir(log, conf, opts):
         ["error", "Exception"],
         lambda lines: lines[0] 
     ))
+    parsers.append(Parser(
+        conf,
+        'mappir_time', 
+        ["Compilation failed in", "Compilation succeed in"],
+        lambda lines: float(lines[0].split("in ")[1].split("s")[0].strip())
+    ))
     parseLog(log, parsers, conf)
 
 def parse_runproutesh(log, conf, opts):
@@ -339,7 +354,7 @@ def parse_runpir(log, conf, opts):
     parsers = []
     parsers.append(Parser(
         conf,
-        'compiletime', 
+        'runpir_time', 
         ["Compilation failed in", "Compilation succeed in"],
         lambda lines: float(lines[0].split("in ")[1].split("s")[0].strip())
     ))

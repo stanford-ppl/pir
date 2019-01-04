@@ -61,7 +61,7 @@ def parseLog(log, parsers, conf):
 def getApps(backend, opts):
     apps = []
     if opts.app is not None:
-        return opts.app
+        return [opts.app]
     gendir = "{}/{}".format(opts.gendir, backend)
     for app in os.listdir(gendir):
         path = os.path.join(gendir, app)
