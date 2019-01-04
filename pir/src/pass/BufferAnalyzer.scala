@@ -24,13 +24,13 @@ trait BufferAnalyzer extends MemoryAnalyzer {
 
   def bufferInput(in:Input):Seq[BufferRead] = {
     val deped = in.src.as[PIRNode]
-    in.connected.flatMap { out =>
+    in.connected.distinct.flatMap { out =>
       bufferInput(out.as[Output], in)
     }
   }
 
   def bufferOutput(out:Output):Seq[BufferRead] = {
-    out.connected.flatMap { in =>
+    out.connected.distinct.flatMap { in =>
       bufferInput(out, in.as[Input])
     }
   }
