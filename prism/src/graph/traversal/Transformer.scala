@@ -43,7 +43,8 @@ trait Transformer extends Logging {
   /*
    * Change input connection from from to to
    * */
-  def swapConnection(input:Input, from:Output, to:Output) = {
+  def swapConnection(input:Input, from:Output, to:Output):Unit = {
+    if (from == to) return
     dbg(s"swapInput(input=${input.src}.${input}, from=${from.src}.$from, to=${to.src}.$to)")
     assert(input.isConnectedTo(from), s"${input.src}.${input} is not connected to ${from.src}.${from}")
     input.swapOutputConnection(from, to)
