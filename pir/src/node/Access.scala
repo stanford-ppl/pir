@@ -13,7 +13,7 @@ trait Access extends PIRNode {
   def mem:FieldEdge[Memory]
   def isBroadcast = port.get.isEmpty
 }
-trait BanckedAccess extends Access {
+trait BankedAccess extends Access {
   val bank = new InputField[List[PIRNode]]("bank")
   val offset = new InputField[PIRNode]("offset")
 }
@@ -29,10 +29,8 @@ trait WriteAccess extends InAccess {
   val data = new InputField[PIRNode]("data")
 }
 trait ReadAccess extends OutAccess
-case class BankedRead()(implicit env:Env) extends ReadAccess with BanckedAccess {
-  val bankHit = new OutputField[List[PIRNode]]("bankHit")
-}
-case class BankedWrite()(implicit env:Env) extends WriteAccess with BanckedAccess
+case class BankedRead()(implicit env:Env) extends ReadAccess with BankedAccess
+case class BankedWrite()(implicit env:Env) extends WriteAccess with BankedAccess
 case class MemRead()(implicit env:Env) extends ReadAccess
 case class MemWrite()(implicit env:Env) extends WriteAccess
 

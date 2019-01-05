@@ -30,8 +30,7 @@ trait PIRApp extends PIR with Logging {
   lazy val hardPruner = new HardConstrainPruner()
   lazy val softPruner = new SoftConstrainPruner()
   lazy val dagPruner = new DAGPruner()
-  lazy val sramBankPruner = new SRAMBankPruner()
-  lazy val sramCapPruner = new SRAMCapacityPruner()
+  lazy val memoryPruner = new MemoryPruner()
   lazy val matchPruner = new MatchPruner()
   lazy val placerAndRouter = new PlaceAndRoute()
 
@@ -64,6 +63,7 @@ trait PIRApp extends PIR with Logging {
     addPass(enableDot, new PIRIRDotGen(s"top3.dot"))
     addPass(contextInsertion).dependsOn(controlPropogator)
     addPass(enableDot, new PIRIRDotGen(s"top4.dot"))
+    addPass(enableDot, new PIRCtxDotGen(s"simple4.dot"))
     addPass(memLowering).dependsOn(contextInsertion) ==>
     addPass(enableDot, new PIRIRDotGen(s"top5.dot"))
     addPass(enableDot, new PIRCtxDotGen(s"simple5.dot"))
@@ -85,8 +85,7 @@ trait PIRApp extends PIR with Logging {
 
     // ------- Mapping  --------
     addPass(enableMapping, hardPruner).dependsOn(globalInsertion) ==>
-    addPass(enableMapping, sramBankPruner) ==>
-    addPass(enableMapping, sramCapPruner) ==>
+    addPass(enableMapping, memoryPruner) ==>
     addPass(enableMapping, softPruner) ==>
     addPass(enableMapping, dagPruner) ==>
     addPass(enableMapping, matchPruner) ==>

@@ -169,7 +169,7 @@ trait TungstenMemGen extends TungstenCodegen {
     case n => super.emitNode(n)
   }
 
-  def emitBankOffset(n:BanckedAccess) = {
+  def emitBankOffset(n:BankedAccess) = {
     val mem = n.mem.T
     val vec = n.getVec
     emitln(s"std::array<std::array<int, ${mem.bankDims}>,$vec> ${n}_bank;")
