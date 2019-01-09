@@ -71,6 +71,7 @@ case class ControlTree(schedule:String)(implicit env:Env) extends EnvNode[Contro
 
   val ctrler = new Metadata[Controller]("ctrler")
   val par = new Metadata[Int]("par")
+  val srcCtx = new Metadata[String]("srcCtx")
 
   def compare(that:ControlTree) = {
     if (this == that) 0

@@ -43,7 +43,7 @@ object PIRShell extends PIRApp with Logging {
     import config._
 
     //addPass(initializer)
-    addPass(enableDot, new PIRCtxDotGen(s"simple.dot"))
+    //addPass(enableDot, new PIRCtxDotGen(s"simple.dot"))
 
     // ------- Mapping  --------
     //addPass(enableMapping, hardPruner) ==>
@@ -73,12 +73,35 @@ object PIRShell extends PIRApp with Logging {
     //addPass(genPsim, psimConfigGen)
     //addPass(runPsim, psimRunner)
     addPass(psimParser)
-    addPass(new PIRCtxDotGen(s"simple1.dot"))
+    //addPass(new PIRCtxDotGen(s"simple1.dot"))
     //addPass(enableDot, new PIRIRDotGen(s"top.dot"))
 
     //addPass(areaPowerStat).dependsOn(psimConfigCodegen, cuPlacer)
+    addPass("tracer") { runner =>
+      val ctxs = pirTop.collectDown[Context]()
+      ctxs.filter(isStarved).filterNot { ctx =>
+        visitIn(ctx).exists(isStarved)
+      }.foreach { ctx =>
+        println(ctx, visitIn(ctx))
+      }
+    }
 
   }
 
-}
+  def isStarved(ctx:Context) = ctx.state.get == "STARVE" || ctx.state.get == "BOTH"
 
+  def visitIn(n:PIRNode):List[Context] = visitGlobalIn(n).flatMap {
+    case x:GlobalIO => visitIn(x)
+    case x:Context => List(x)
+    case x:Memory => Nil
+    case x => x.collectUp[Context]()
+  }.distinct
+
+  def visitOut(n:PIRNode):List[Context] = visitGlobalOut(n).flatMap {
+    case x:GlobalIO => visitOut(x)
+    case x:Context => List(x)
+    case x:Memory => Nil
+    case x => x.collectUp[Context]()
+  }.distinct
+
+}

@@ -6,9 +6,10 @@ import prism.graph._
 
 class ControlPropogation(implicit compiler:PIR) extends PIRPass {
   override def runPass = {
-    pirTop.collectDown[Controller]().foreach { controller =>
-      setPar(controller)
-      controller.descendents.foreach { d =>
+    pirTop.collectDown[Controller]().foreach { ctrler =>
+      setPar(ctrler)
+      ctrler.srcCtx.v.foreach { v => ctrler.ctrl.get.srcCtx := v }
+      ctrler.descendents.foreach { d =>
         dbgblk(s"descendents=$d") {
           var inputs = d.accumTill[Memory](visitGlobalIn _)
           inputs = inputs.filterNot { 
@@ -18,7 +19,7 @@ class ControlPropogation(implicit compiler:PIR) extends PIRPass {
           dbg(s"inputs=$inputs")
           (d :: inputs).foreach { n =>
             val node = n.as[PIRNode]
-            val ctrl = controller.ctrl.get
+            val ctrl = ctrler.ctrl.get
             node.ctrl.reset
             node.ctrl := ctrl
             dbg(s"Resetting $node.ctrl = $ctrl")

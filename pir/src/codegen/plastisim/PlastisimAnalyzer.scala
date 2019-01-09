@@ -34,21 +34,19 @@ class PlastisimAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFS
   }
 
   override def visitNode(n:N) = {
-    n match {
-      case n:Context => 
-        val count = n.getCount
-        count.foreach { count =>
-          if (n.collectDown[HostOutController]().nonEmpty) {
-            assert(count == 1, s"Host out count != 1: $count")
-          }
-          n.collectDown[FringeStreamRead]().headOption.foreach { streamRead =>
-            streamRead.count.v.flatten.foreach { v =>
-              assert(count == v, s"StreamOut count $count != annotated count $v")
-            }
+    n.to[Context].foreach { n =>
+      val count = n.getCount
+      count.foreach { count =>
+        if (n.collectDown[HostOutController]().nonEmpty) {
+          assert(count == 1, s"Host out count != 1: $count")
+        }
+        n.collectDown[FringeStreamRead]().headOption.foreach { streamRead =>
+          streamRead.count.v.flatten.foreach { v =>
+            assert(count == v, s"StreamOut count $count != annotated count $v")
           }
         }
-        n.collectDown[LocalAccess]().foreach(_.getScale)
-      case n =>
+      }
+      n.collectDown[LocalAccess]().foreach(_.getScale)
     }
     super.visitNode(n)
   }

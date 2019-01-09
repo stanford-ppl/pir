@@ -132,10 +132,10 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
     if (isHostIn) {
       emitln(s"start_at_tokens = 1")
     } else {
-      val reads = n.reads.filter { read => read.initToken.get }
-      if (reads.nonEmpty) {
-        val token = assertUnify(reads, s"$n.start_at_token"){ _.constScale }.get
-        emitln(s"start_at_tokens = $token")
+      n.reads.zipWithIndex.foreach { case (read, idx) =>
+        if (read.initToken.get) {
+          emitln(s"unscaled_init_token[${idx}] = 1")
+        }
       }
     }
   }
@@ -148,13 +148,14 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
   }
 
   def getBufferSize(n:Context, read:LocalOutAccess) = {
-    if (spadeParam.isAsic || spadeParam.isP2P) 100
+    val fifoDepth = config.option[Int]("fifo-depth")
+    if (spadeParam.isAsic || spadeParam.isP2P) fifoDepth
     else {
       val tp = if (read.getVec > 1) "vec" else "word"
       paramOf(n) match {
         case param:CUParam => param.fifoParamOf(tp).get.depth
-        case param:ArgFringeParam => 100
-        case param:MCParam => 100
+        case param:ArgFringeParam => fifoDepth
+        case param:MCParam => fifoDepth
       }
     }
   }
