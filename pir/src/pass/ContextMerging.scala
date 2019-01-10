@@ -33,7 +33,7 @@ class ContextMerging(implicit compiler:PIR) extends PIRPass with Transformer {
         rest.foreach { ctx =>
           ctx.children.foreach { c => swapParent(c, to) }
         }
-        rest.foreach(removeNode)
+        removeNodes(rest)
         to.collectDown[LocalOutAccess]().groupBy { _.in.T }.foreach { case (in, reads) => 
           if (reads.size > 1) {
             val read::rest = reads
@@ -43,7 +43,7 @@ class ContextMerging(implicit compiler:PIR) extends PIRPass with Transformer {
                 swapInput(deped, r.out, read.out)
               }
             }
-            rest.foreach { r => removeNode(r) }
+            removeNodes(rest)
           }
         }
       }

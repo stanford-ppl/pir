@@ -61,7 +61,7 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
           }
         }
         globals.foreach { insertGlobalIO }
-        (k::k.descendents).foreach { removeNode }
+        removeNodes(k::k.descendents)
         globals
       case k:Context =>
         val scope = k.children.filter { include }
@@ -80,7 +80,7 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
         (ctxs,parts).zipped.foreach { case (ctx,part) => dupDeps(k, ctx, part.getCost[InputCost]) }
         ctxs.foreach { ctx => bufferInput(ctx) }
         (part::parts).foreach { removeCache }
-        (k::k.descendents).foreach { removeNode }
+        removeNodes(k::k.descendents)
         ctxs
       case k:Partition =>
         if (!notFit(kcost, vcost)) List(k)

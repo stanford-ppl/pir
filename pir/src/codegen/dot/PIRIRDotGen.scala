@@ -18,7 +18,15 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
 
   override def quote(n:Any) = {
     super.quote(n).foldAt(n.to[PIRNode]) { (q, n) =>
-      q.foldAt(n.sname.v) { (q, v) => s"$q[$v]" }
+      q
+    .foldAt(n.to[Const]) { (q,n) =>
+      n.value match {
+        case v:List[_] if v.size > 1 => 
+          val l = v.as[List[Int]]
+          s"$q[${l.min}-${l.max}]"
+        case v => s"$q($v)"
+      }
+    }.foldAt(n.sname.v) { (q, v) => s"$q[$v]" }
       .append("name", n.name.v)
       .append("ctrl", n.ctrl.v)
       .append("count", n.count.v.flatten)
@@ -32,8 +40,6 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
       .append("par", n.par)
     }.foldAt(n.to[OpDef]) { (q,n) =>
       s"$q\n${n.op}"
-    }.foldAt(n.to[Const]) { (q,n) =>
-      s"$q\n${n.value}"
     }.foldAt(n.to[Access]) { (q,n) =>
       q.append("port", n.port.v)
     }.foldAt(n.to[LocalOutAccess]) { (q,n) =>

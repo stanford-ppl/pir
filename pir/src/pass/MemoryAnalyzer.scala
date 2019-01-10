@@ -95,4 +95,6 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
       node
     }
   }
+
+  def allocConst(value:Any) = allocate[Const] { c => c.value == value } { Const(value) }
 }

@@ -41,7 +41,7 @@ trait CUCostUtil extends PIRPass with CostUtil with RuntimeAnalyzer with Memoriz
     } orElse switch[SRAMCost](x,ct) {
       case n:GlobalContainer =>
         val srams = n.collectDown[SRAM]()
-        val sramSize = srams.map { sram => sram.depth.get * sram.size }.maxOption.getOrElse(0)
+        val sramSize = srams.map { _.capacity }.maxOption.getOrElse(0)
         val nBanks = srams.map { _.nBanks }.maxOption.getOrElse(0)
         SRAMCost(srams.size, nBanks, sramSize)
       case n:CUParam => SRAMCost(n.sramParam.count, n.sramParam.bank, n.sramParam.sizeInWord)

@@ -16,7 +16,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
     accesses.foreach { access =>
       dbg(s"access=$access order=${access.order.v}")
     }
-    var cannotToBuffer = accesses.exists { _.isInstanceOf[BanckedAccess] }
+    var cannotToBuffer = accesses.exists { _.isInstanceOf[BankedAccess] }
     // If read access is branch dependent, the ctx cannot block on the input for its activation
     cannotToBuffer |= mem.outAccesses.exists { _.en.T.nonEmpty }
     cannotToBuffer |= mem.inAccesses.size > 1
@@ -32,19 +32,16 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
     val memCU = within(mem.parent.get.as[PIRNode]) { MemoryContainer() }
     // Create Memory Context
     swapParent(mem, memCU)
+    val bankids = (0 until mem.banks.get.product).toList
+    mem.bankids := bankids
     val accesses = mem.accesses
-    accesses.foreach { access =>
-      access.getVec
-      access match {
-        case access:BanckedAccess => flattenBankAddr(access)
-        case access =>
+    List(mem.inAccesses, mem.outAccesses).foreach { accesses =>
+      groupAccess(mem, accesses).foreach { group =>
+        group.head match {
+          case _:BankedAccess => lowerBankedAccesses(mem, memCU, group.asInstanceOf[Set[BankedAccess]])
+          case _ => lowerAccesses(mem, memCU, group)
+        }
       }
-    }
-    groupAccess(mem, mem.outAccesses).foreach { accesses =>
-      lowerAccesses(mem, memCU, accesses)
-    }
-    groupAccess(mem, mem.inAccesses).foreach { accesses =>
-      lowerAccesses(mem, memCU, accesses)
     }
     sequencedScheduleBarrierInsertion(mem)
     multiBufferBarrierInsertion(mem)
@@ -75,138 +72,111 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
     }.toList
   }
 
-  def lowerAccesses(mem:Memory, memCU:MemoryContainer, accesses:Set[Access]) = {
-    if (accesses.size==1) {
-      dbgblk(s"lowerAccesses($mem, $memCU, ${accesses.head})") {
-        within(memCU) {
-          val accessCtx = Context()
-          val access = accesses.head
-          swapParent(access, accessCtx)
-          access match {
-            case access:BankedRead => 
-              bufferOutput(access.out)
-            case access:MemRead =>
-              bufferOutput(access.out)
-            case access:BankedWrite => 
-              bufferInput(access.data)
-            case access:MemWrite =>
-              bufferInput(access.data)
-              val writeEns = access.en.T
-              dbg(s"writeEns=$writeEns")
-              val fromValid = writeEns.forall { case en:CounterValid => true }
-              if (!fromValid) bufferInput(access.en)
-          }
-        }
-      }
-    } else {
-      mergeAccesses(mem, memCU, accesses)
+  def lowerAccesses(mem:Memory, memCU:MemoryContainer, accesses:Set[Access]) = dbgblk(s"lowerAccesses($mem, $memCU, $accesses)") {
+    assert(accesses.size == 1)
+    val access = accesses.head
+    val mergeCtx = within(memCU) { Context() }
+    swapParent(access, mergeCtx)
+    access match {
+      case access:MemRead =>
+        bufferOutput(access.out)
+      case access:MemWrite =>
+        bufferInput(access.data)
+        val writeEns = access.en.T
+        dbg(s"writeEns=$writeEns")
+        val fromValid = writeEns.forall { case en:CounterValid => true }
+        if (!fromValid) bufferInput(access.en)
     }
   }
 
-  def mergeAccesses(mem:Memory, memCU:MemoryContainer, accesses:Set[Access]) = dbgblk(s"MergeAccess($mem, $memCU)") {
-    dbg(s"accesses=$accesses")
-    //breakPoint(s"mergeAccesses($mem, accesses=$accesses)", None)
+  def lowerBankedAccesses(mem:Memory, memCU:MemoryContainer, accesses:Set[BankedAccess]) = dbgblk(s"lowerBankedAccesses($mem, $memCU, $accesses)") {
     val headAccess = accesses.head
-    within(pirTop) {
-      val mergeCtrl = headAccess.getCtrl
-      dbg(s"mergeCtrl = $mergeCtrl")
-      val mergeCtx = Context()
-      dbg(s"mergeCtx=$mergeCtx")
-      val writes = accesses.map { case access:BanckedAccess =>
-        val accessCtx = access match {
+    val mergeCtrl = headAccess.getCtrl
+    val mergeCtx = within(memCU) { Context() }
+    dbg(s"mergeCtrl = $mergeCtrl")
+    dbg(s"mergeCtx=$mergeCtx")
+    within(mergeCtx, mergeCtrl) {
+      val inputs = accesses.asInstanceOf[Set[BankedAccess]].map { access =>
+        val addrCtx = access match {
+          case access if accesses.size == 1 => mergeCtx
+          case access:BankedRead => within(pirTop) { Context() }
           case access:BankedWrite => access.ctx.get
-          case access:BankedRead => Context()
         }
-        dbg(s"$access accessCtx=$accessCtx for addr calculation")
-        val (enq, deq) = compEnqDeq(access.ctrl.get, mergeCtrl, isFIFO=true, accessCtx, mergeCtx)
-        val (bank, ofs, data, vec) = within(accessCtx, access.getCtrl) {
-          val bank = BufferWrite().data(access.bank.connected).done(enq)
-          val ofs = BufferWrite().data(access.offset.connected).done(enq)
+        dbg(s"addrCtx for $access = $addrCtx")
+        swapParent(access, addrCtx)
+        within(addrCtx, access.getCtrl) {
+          flattenBankAddr(access)
+          val bank = access.bank.connected
+          val ofs = Shuffle().from(bank).to(allocConst(mem.bankids.get)).base(access.offset.connected)
+          dbg(s"val $ofs = Shuffle() //ofs")
           val data = access match {
             case access:BankedWrite => 
-              val data = BufferWrite().data(access.data.connected).done(enq)
+              val data = Shuffle().from(bank).to(allocConst(mem.bankids.get)).base(access.data.connected)
+              bufferInput(data.base, isFIFO=Some(true)) // Force fifo control among unrolled controllers
+              dbg(s"val $data = Shuffle() //data")
               Some(data)
-            case access:BankedRead => None
+            case access => None
           }
-          (bank, ofs, data, access.getVec)
+          (ofs.out, data.map{_.out})
         }
-        (bank, ofs, data, deq, vec)
-      }.toList
-      val newAccessCtx = within(memCU) { Context() }
-      dbg(s"newAccessCtx=$newAccessCtx")
-      val (enq, deq) = compEnqDeq(mergeCtrl, mergeCtrl, isFIFO=true, mergeCtx, newAccessCtx)
-      val (bank, ofs, data) = within(mergeCtx, mergeCtrl) {
-        val buffered = writes.map { case (bankwrite, ofswrite, datawrite, deq, vec) =>
-          val bank = BufferRead(isFIFO=true).in(bankwrite.out).done(deq).banks(List(vec)).out
-          val ofs = BufferRead(isFIFO=true).in(ofswrite.out).done(deq).banks(List(vec)).out
-          val data = datawrite.map { datawrite => BufferRead(isFIFO=true).in(datawrite.out).done(deq).banks(List(vec)).out }
-          (bank, ofs, data)
-        }
-        var red:List[(Output, Output, Option[Output])] = buffered
-        while(red.size > 1) {
-          red = red.sliding(2,2).map{ 
-            case List((b1, o1, d1),(b2, o2, d2)) =>
-              val bk = BankCoalesce().in1(b1).in2(b2)
-              val of = SelectCoalesce().in1(o1).in2(o2).select(bk.select)
-              dbg(s"add bk = $bk.in1(${b1.src}.$b1).in2(${b2.src}.$b2)")
-              dbg(s"add of = $of.select(${bk}.${bk.select}).in1(${o1.src}.$o1).in2(${o2.src}.$o2")
-              val dt = zipOption(d1, d2).map { case (d1, d2) =>
-                val dt = SelectCoalesce().in1(d1).in2(d2).select(bk.select)
-                dbg(s"add dt = $dt.select(${bk}.${bk.select}).in1(${d1.src}.$d1).in2(${d2.src}.$d2)")
-                dt
-              }
-              (bk.out, of.out, dt.map { _.out })
-            case List((b1, o1, d1)) => (b1, o1, d1)
-          }.toList
-        }
-        red.head
-        val List((bank, ofs, data)) = red.toList
-        val bankWrite = BufferWrite().data(bank).done(enq)
-        val ofsWrite = BufferWrite().data(ofs).done(enq)
-        val dataWrite = data.map { data => BufferWrite().data(data).done(enq) }
-        (bankWrite, ofsWrite, dataWrite)
       }
-      within(newAccessCtx, mergeCtrl) {
-        //val vec = write.map { _.vec }.sum
-        val bankRead = BufferRead(isFIFO=true).in(bank.out).done(deq)
-        val ofsRead = BufferRead(isFIFO=true).in(ofs.out).done(deq)
-        //TODO: handle enables
-        //TODO: handle vec
-        data.fold[Unit]{
-          val newRead = BankedRead().bank(bankRead.out).offset(ofsRead.out)/*.vec(vec)*/.mem(mem).mirrorMetas(headAccess)
-          accesses.foreach { case read:BankedRead =>
-            read.out.connected.foreach{ in => 
-              dbg(s"${in.src}.$in.swapInput($read.out, $newRead.out)")
-              swapConnection(in.as[Input], read.out, newRead.out)
+      var red:List[(Output, Option[Output])] = inputs.toList
+      while(red.size > 1) {
+        red = red.sliding(2,2).map{ 
+          case List((o1, d1),(o2, d2)) =>
+            val of = OpDef(FixOr).input(o1, o2)
+            dbg(s"add of = $of.input(${o1.src}.$o1,${o2.src}.$o2")
+            bufferInput(of.input, isFIFO=Some(true))
+            val dt = zipOption(d1, d2).map { case (d1, d2) =>
+              val dt = OpDef(FixOr).input(d1,d2)
+              bufferInput(dt.input, isFIFO=Some(true))
+              dbg(s"add dt = $dt.input(${d1.src}.$d1,${d2.src}.$d2)")
+              dt
             }
+            (of.out, dt.map { _.out })
+          case List((o1, d1)) => (o1, d1)
+        }.toList
+      }
+      val List((ofs, data)) = red
+      data.fold[Unit]{
+        val newRead = BankedRead().offset(ofs).mem(mem).mirrorMetas(headAccess)
+        accesses.asInstanceOf[Set[BankedRead]].foreach { access =>
+          access.out.connected.distinct.foreach{ in => 
+            val inCtx = in.src.as[PIRNode].ctx.get
+            val shuffle = within(inCtx, in.src.as[PIRNode].getCtrl)  {
+              Shuffle().from(allocConst(mem.bankids.get)).to(access.bank.connected).base(newRead.out)
+            }
+            bufferInput(shuffle.base, isFIFO=Some(true))
+            bufferInput(shuffle.to, isFIFO=Some(true)) //TODO: can also not buffer if not expensive to duplicate calculation.
+            dbg(s"${in.src}.$in.swapInput($access.out, $shuffle.out)")
+            swapConnection(in.as[Input], access.out, shuffle.out)
           }
-          bufferOutput(newRead.out)
-        } { data => 
-          val dataRead = BufferRead(isFIFO=true).in(data.out).done(deq)
-          BankedWrite().bank(bankRead.out).offset(ofsRead.out).data(dataRead.out)/*.vec(vec)*/.mem(mem).mirrorMetas(headAccess)
         }
-        accesses.foreach { removeNode }
+      } { data => 
+        BankedWrite().offset(ofs).data(data).mem(mem).mirrorMetas(headAccess)
       }
     }
+    removeNodes(accesses)
   }
 
-  def flattenBankAddr(access:BanckedAccess):Unit = {
+  def flattenBankAddr(access:BankedAccess):Unit = {
     if (access.bank.T.size == 1) return
     val mem = access.mem.T
-    within(access.parent.get.as[PIRNode], access.getCtrl) {
+    val parent = access.parent.get.as[PIRNode]
+    within(parent, access.getCtrl) {
       def flattenND(inds:List[Edge], dims:List[Int]):Edge = {
         if (inds.size==1) return inds.head
         assert(inds.size == dims.size, s"flattenND inds=$inds dims=$dims have different size for access=$access")
         val i::irest = inds
         val d::drest = dims
-        OpDef(FixFMA).input(i,Const(drest.product), flattenND(irest, drest)).out
+        OpDef(FixFMA).input(i,allocConst(drest.product), flattenND(irest, drest)).out
       }
       val dims = mem match {
         case mem:SRAM => mem.banks.get
         case mem:LUT => mem.dims.get
       }
       val fbank = flattenND(access.bank.connected.toList, dims)
-      dbg(s"flattenBankAddr ${access.bank.T} => $fbank")
+      dbg(s"flattenBankAddr ${access.bank.T} => $fbank in $parent")
       access.bank.disconnect
       access.bank(fbank)
     }
@@ -370,8 +340,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
         }
       }
     }
-    mem.accesses.foreach { a => removeNode(a) }
-    removeNode(mem)
+    removeNodes(mem.accesses :+ mem)
   }
 
 }

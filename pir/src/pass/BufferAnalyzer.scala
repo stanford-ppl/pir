@@ -11,6 +11,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     case dep:GlobalInput => false
     case dep:GlobalOutput => false
     case dep if dep.isDescendentOf(scope) => false
+    case dep:Const => false
     case dep => true
   }
 
@@ -22,27 +23,27 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     deped.localIns.flatMap { in => bufferInput(in) }
   }
 
-  def bufferInput(in:Input):Seq[BufferRead] = {
-    val deped = in.src.as[PIRNode]
+  def bufferInput(in:Input, isFIFO:Option[Boolean]=None):Seq[BufferRead] = {
     in.connected.distinct.flatMap { out =>
-      bufferInput(out.as[Output], in)
+      bufferInput(out.as[Output], in, isFIFOOpt=isFIFO)
     }
   }
 
-  def bufferOutput(out:Output):Seq[BufferRead] = {
+  def bufferOutput(out:Output, isFIFO:Option[Boolean]=None):Seq[BufferRead] = {
     out.connected.distinct.flatMap { in =>
-      bufferInput(out, in.as[Input])
+      bufferInput(out, in.as[Input], isFIFOOpt=isFIFO)
     }
   }
 
-  private def bufferInput(depOut:Output, depedIn:Input):Option[BufferRead] = {
+  private def bufferInput(depOut:Output, depedIn:Input, isFIFOOpt:Option[Boolean]):Option[BufferRead] = {
     val dep = depOut.src.as[PIRNode]
     val deped = depedIn.src.as[PIRNode]
     val depedCtx = deped.ctx.get
     if (escape(dep, depedCtx)) {
       val read = dbgblk(s"bufferInput(depOut=$dep.$depOut, depedIn=$deped.$depedIn)") {
         val depCtx = dep.ctx.get
-        val isFIFO = dep.getCtrl == deped.getCtrl
+        val isFIFO = isFIFOOpt.getOrElse(dep.getCtrl == deped.getCtrl)
+        dbg(s"isFIFO=${isFIFO}")
         val (enq, deq) = compEnqDeq(dep.getCtrl, deped.getCtrl, isFIFO, depCtx, depedCtx)
         val write = within(depCtx, dep.getCtrl) {
           allocate[BufferWrite] { write => 

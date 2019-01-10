@@ -26,7 +26,7 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with Trans
     traverseTop
     // Remove dead code
     liveMap.foreach { 
-      case (n, false) => removeNode(n)
+      case (n, false) => removeNodes(Seq(n))
       case (n, true) => 
     }
   }

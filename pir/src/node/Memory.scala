@@ -9,14 +9,18 @@ trait MemoryNode extends PIRNode {
   /*  ------- Metadata -------- */
   val inits = Metadata[List[Any]]("inits")
   val dims = Metadata[List[Int]]("dims", default=List(1))
+  // Total bank dimension of the original memory
   val banks = Metadata[List[Int]]("banks", default=List(1))
+  // Assigned bank ids for this memory. Before splitting, it's List(0 until totlBanks)
+  val bankids = Metadata[List[Int]]("bankids") 
   val depth = Metadata[Int]("depth", default=1)
   def getBanks = banks.get
   def getDepth = depth.get
   def bankDims = getBanks.size
-  def nBanks = banks.get.product
-  def size = dims.get.product
-  def bankSize = size /! nBanks
+  def totalBanks = banks.get.product
+  def nBanks:Int = bankids.get.size
+  def size:Int = dims.get.product // User declared size
+  def capacity:Int = getDepth * size * nBanks /! totalBanks // Total capacity of this memory.
 }
 
 abstract class Memory(implicit env:Env) extends MemoryNode with DefNode[PIRNode] {
@@ -96,6 +100,11 @@ case class SelectCoalesce()(implicit env:Env) extends OpNode with Def {
   val in1 = new InputField[PIRNode]("in1")
   val in2 = new InputField[PIRNode]("in2")
   val select = new InputField[PIRNode]("select")
+}
+case class Shuffle()(implicit env:Env) extends OpNode with Def {
+  val from = new InputField[PIRNode]("from")
+  val to = new InputField[PIRNode]("to")
+  val base = new InputField[PIRNode]("base")
 }
 case class HostRead(sid:String)(implicit env:Env) extends Def {
   val input = new InputField[PIRNode]("input")

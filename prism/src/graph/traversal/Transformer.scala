@@ -9,17 +9,19 @@ trait Transformer extends Logging {
     node.localEdges.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
   }
 
-  def removeNode(node:N) = {
-    dbg(s"Remove $node")
-    node.metadata.values.foreach{_.reset}
-    node.localEdges.foreach { io => 
-      val connected = io.connected.map(_.src)
-      io.disconnect
-    }
-    node.parent.foreach { parent =>
-      parent.removeChild(node)
-      node.unsetParent
-      assert(!parent.children.contains(node), s"$parent still contains $node after removeNode")
+  def removeNodes(nodes:Iterable[N]) = {
+    dbg(s"Remove ${nodes.mkString(",")}")
+    nodes.foreach { node =>
+      node.metadata.values.foreach{_.reset}
+      node.localEdges.foreach { io => 
+        val connected = io.connected.map(_.src)
+        io.disconnect
+      }
+      node.parent.foreach { parent =>
+        parent.removeChild(node)
+        node.unsetParent
+        assert(!parent.children.contains(node), s"$parent still contains $node after removeNode")
+      }
     }
   }
 
@@ -201,7 +203,7 @@ trait Transformer extends Logging {
       val targs = args.map { arg => func(x, arg) }
       val change = args.zip(targs).exists { case (a,t) => a != t }
       if (change) {
-        removeNode(x)
+        removeNodes(Seq(x))
         val nn = x.newInstance[T](targs) 
         dbg(s"Create $nn")
         nn
@@ -214,7 +216,7 @@ trait Transformer extends Logging {
       val targs = fields.map { case (name, arg) => func(name, x, arg) }
       val change = args.zip(targs).exists { case (a,t) => a != t }
       if (change) {
-        removeNode(x)
+        removeNodes(Seq(x))
         val nn = x.newInstance[T](targs) 
         dbg(s"Create $nn")
         nn
