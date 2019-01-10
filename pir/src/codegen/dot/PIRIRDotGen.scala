@@ -50,7 +50,7 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
       ctrl.fold(q) { ctrl => s"$q\n${ctrl}" + ctrl.srcCtx.v.fold("") { sc => s"\n$sc" }}
       .append("sf", n.scheduleFactor)
       .append("active", n.active.v)
-      .append("state", n.state.v)
+      .append("state", n.psimState)
       .append("activeRate", n.activeRate)
     }
   }
@@ -58,17 +58,17 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
   override def color(attr:DotAttr, n:N) = n match {
     case n:LocalOutAccess => attr.fillcolor(gold).style(filled)
     case n:Memory => attr.fillcolor(chartreuse).style(filled)
-    //case n:ContextEnable => attr.fillcolor(orange).style(filled)
-    //case n:ContextEnableOut => attr.fillcolor(orange).style(filled)
-
+    case n:GlobalInput if n.psimState == Some(".") && n.out.T.map { _.ctx.get}.exists { _.psimState != Some("DONE") } => attr.setNode.fillcolor("firebrick1").style(filled)
+    case n:GlobalOutput if n.psimState == Some(".") => attr.setNode.fillcolor("goldenrod1").style(filled)
     case n:Context => 
-      val color = zipOption(n.active.v, n.state.v).fold {
+      val color = zipOption(n.active.v, n.psimState).fold {
         "palevioletred1"
       } { case (active, state) =>
         val expected = n.count.get.get
         if (active < expected) {
           if (state == "STARVE") "firebrick1"
           else if (state == "STALL") "goldenrod1"
+          else if (state == "BOTH") "darkorange"
           else "palevioletred1"
         } else {
           val G = Math.round((1 - n.activeRate.get / 100) * (255 - 50) + 50).toInt

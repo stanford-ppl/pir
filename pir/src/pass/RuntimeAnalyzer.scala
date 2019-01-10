@@ -34,6 +34,9 @@ trait RuntimeAnalyzer { self:PIRPass =>
     def getScale:Option[Long] = n.scale.getOrElseUpdate(compScale(n))
     def getIter:Option[Long] = n.iter.getOrElseUpdate(compIter(n))
     def getCount:Option[Long] = n.count.getOrElseUpdate(compCount(n))
+
+    def psimState(s:String) = n.getMeta[Float]("psimState").update(s)
+    def psimState = n.getMeta[String]("psimState").v
   }
   implicit class NodeRuntimeOp(n:N) {
     def getVec:Int = n.getMeta[Int]("vec").getOrElseUpdate(compVec(n))

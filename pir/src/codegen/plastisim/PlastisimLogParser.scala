@@ -12,7 +12,7 @@ class PlastisimLogParser(implicit compiler: PIR) extends PIRPass with PlastisimU
   override def runPass = {
     config.loadPsim.foreach { psimLog =>
       val nameMap = pirTop.collectDown[Context]().map { ctx => 
-        (s"$ctx".replace("Context","C"), ctx)
+        (s"$ctx", ctx)
       }.toMap
       getLines(psimLog).foreach { processOutput(nameMap) _ }
       if (!simulationSucceeded.getOrElse(false)) fail(s"Plastisim failed. details in $psimLog")
@@ -43,8 +43,24 @@ class PlastisimLogParser(implicit compiler: PIR) extends PIRPass with PlastisimU
         ctx.activeRate(line.split("Active:")(1).trim.split(" ")(0).trim.toFloat)
         //stallRateOf(node) = line.split("Stalled:")(1).trim.split(" ")(0).trim.toFloat
         //starveRateOf(node) = line.split("Starved:")(1).trim.split(" ")(0).trim.toFloat
-        if (line.contains("Final State:")) ctx.state := line.split("Final State:")(1).trim.split(" ")(0).trim
+        if (line.contains("Final State:")) ctx.psimState(line.split("Final State:")(1).trim.split(" ")(0).trim)
         if (line.contains("Expected Active:")) ctx.count := Some(line.split("Expected Active:")(1).trim.split(" ")(0).trim.toLong)
+        if (line.contains("Input State:")) {
+          ctx.reads.zip(line.split("Input State:")(1).trim.split(" ")(0).trim).foreach { case (read, state) =>
+            read.psimState(state.toString)
+            read.gin.foreach { gin =>
+              gin.psimState(state.toString)
+            }
+          }
+        }
+        if (line.contains("Output State:")) {
+          ctx.writes.zip(line.split("Output State:")(1).trim.split(" ")(0).trim).foreach { case (write, state) =>
+            write.psimState(state.toString)
+            write.gout.foreach { gout =>
+              gout.psimState(state.toString)
+            }
+          }
+        }
       }
     }
   }
