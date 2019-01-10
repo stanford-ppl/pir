@@ -8,20 +8,21 @@ import prism.collection.immutable._
 
 trait ComputePartitioner extends Partitioner with BufferAnalyzer with DependencyAnalyzer {
 
-  def getCosts(k:Any, x:Any) = {
-    k match {
-      case k:ArgFringe => Nil
-      case k:DRAMFringe => Nil
-      case k:MemoryContainer =>
-        //x.getCost[InputCost] ::
-        //x.getCost[OutputCost] ::
-        Nil
-      case k =>
+  def getCosts(x:Any):List[Cost[_]] = {
+    x match {
+      case x:ComputeContainer =>
         x.getCost[StageCost] ::
         x.getCost[InputCost] ::
         x.getCost[OutputCost] ::
         //x.getCost[FIFOCost] ::
         Nil
+      case x:CUMap.V =>
+        x.getCost[StageCost] ::
+        x.getCost[InputCost] ::
+        x.getCost[OutputCost] ::
+        //x.getCost[FIFOCost] ::
+        Nil
+      case x => Nil
     }
   }
 
@@ -29,7 +30,7 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer with Dependency
     x match {
       case Left(f@InvalidFactorGraph(fg:CUMap, k:CUMap.K)) =>
         val vs = fg.freeValuesOf(k)
-        val vcost = vs.map { v => getCosts(k,v) }.maxBy { 
+        val vcost = vs.map { v => getCosts(v) }.maxBy { 
           case List(StageCost(sc), InputCost(sin, vin), OutputCost(sout,vout)) => 
             (sc, vin, vout, sin, sout)
         }
@@ -45,8 +46,9 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer with Dependency
   lazy val schedular = new DFSTopologicalTraversal with Schedular {
     val forward = false
   }
-  def split(k:Any, vcost:Any):List[Any] = dbgblk(s"split($k)") {
-    val kcost = getCosts(k, k)
+
+  def split(k:Any, vcost:List[Cost[_]]):List[Any] = dbgblk(s"split($k)") {
+    val kcost = getCosts(k)
     dbg(s"kcost=$kcost")
     k match {
       case k:ComputeContainer =>
@@ -83,7 +85,7 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer with Dependency
         removeNodes(k::k.descendents)
         ctxs
       case k:Partition =>
-        if (!notFit(kcost, vcost)) List(k)
+        if (kcost.fit(vcost)) List(k)
         else {
           val nodes = schedular.scheduleScope(k.scope).asInstanceOf[List[PIRNode]]
           //dbg(s"schedule:")

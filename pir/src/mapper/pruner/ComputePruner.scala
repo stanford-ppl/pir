@@ -6,13 +6,13 @@ import prism.graph._
 import spade.param._
 import prism.collection.immutable._
 
-class SoftConstrainPruner(implicit compiler:PIR) extends ConstrainPruner with CUCostUtil with ComputePartitioner {
+class ComputePruner(implicit compiler:PIR) extends ConstrainPruner with CUCostUtil with ComputePartitioner {
 
   override def prune[T](x:T):EOption[T] = super.prune[T](x).flatMap {
     case x:CUMap if !spadeParam.isAsic =>
       flatFold(x.freeKeys, x) { case (x, k) =>
-        val kc = getCosts(k,k)
-        recover(x.filterNotAtKey(k) { v => notFit(kc, getCosts(k,v)) })
+        val kc = getCosts(k)
+        recover(x.filterNotAtKey(k) { v => !kc.fit(getCosts(v)) })
       }.asInstanceOf[EOption[T]]
     case x => super.prune(x)
   }
@@ -23,7 +23,7 @@ class SoftConstrainPruner(implicit compiler:PIR) extends ConstrainPruner with CU
       case e@InvalidFactorGraph(fg, k:CUMap.K) =>
         err(s"Constrain failed on $k", exception=false)
         err(s"$k costs:", exception=false)
-        val kc = getCosts(k,k)
+        val kc = getCosts(k)
         kc.foreach { kc =>
           err(s"${kc}:", exception=false)
         }
