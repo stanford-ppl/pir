@@ -112,7 +112,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
           val data = access match {
             case access:BankedWrite => 
               val data = Shuffle().from(bank).to(allocConst(mem.bankids.get)).base(access.data.connected)
-              bufferInput(data.base, isFIFO=Some(true)) // Force fifo control among unrolled controllers
+              bufferInput(data.base) // Force fifo control among unrolled controllers
               dbg(s"val $data = Shuffle() //data")
               Some(data)
             case access => None
@@ -126,10 +126,10 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
           case List((o1, d1),(o2, d2)) =>
             val of = OpDef(FixOr).input(o1, o2)
             dbg(s"add of = $of.input(${o1.src}.$o1,${o2.src}.$o2")
-            bufferInput(of.input, isFIFO=Some(true))
+            bufferInput(of.input)
             val dt = zipOption(d1, d2).map { case (d1, d2) =>
               val dt = OpDef(FixOr).input(d1,d2)
-              bufferInput(dt.input, isFIFO=Some(true))
+              bufferInput(dt.input)
               dbg(s"add dt = $dt.input(${d1.src}.$d1,${d2.src}.$d2)")
               dt
             }
@@ -146,8 +146,8 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
             val shuffle = within(inCtx, in.src.as[PIRNode].getCtrl)  {
               Shuffle().from(allocConst(mem.bankids.get)).to(access.bank.connected).base(newRead.out)
             }
-            bufferInput(shuffle.base, isFIFO=Some(true))
-            bufferInput(shuffle.to, isFIFO=Some(true)) //TODO: can also not buffer if not expensive to duplicate calculation.
+            bufferInput(shuffle.base)
+            bufferInput(shuffle.to) //TODO: can also not buffer if not expensive to duplicate calculation.
             dbg(s"${in.src}.$in.swapInput($access.out, $shuffle.out)")
             swapConnection(in.as[Input], access.out, shuffle.out)
           }
@@ -328,7 +328,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
           }
         }
         val read = within(outAccess.parent.get.as[PIRNode], outAccess.ctrl.get) {
-          BufferRead(mem.isFIFO).in(write.out).mirrorMetas(mem).mirrorMetas(outAccess).done(deq)
+          BufferRead().in(write.out).mirrorMetas(mem).mirrorMetas(outAccess).done(deq)
         }
         dbg(s"create $read.in(${write}).done($deq)")
         if (inAccess.order.get > outAccess.order.get ) {

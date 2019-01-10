@@ -23,28 +23,32 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     deped.localIns.flatMap { in => bufferInput(in) }
   }
 
-  def bufferInput(in:Input, isFIFO:Option[Boolean]=None):Seq[BufferRead] = {
+  def bufferInput(in:Input):Seq[BufferRead] = {
     in.connected.distinct.flatMap { out =>
-      bufferInput(out.as[Output], in, isFIFOOpt=isFIFO)
+      bufferInput(out.as[Output], in)
     }
   }
 
-  def bufferOutput(out:Output, isFIFO:Option[Boolean]=None):Seq[BufferRead] = {
+  def bufferOutput(out:Output):Seq[BufferRead] = {
     out.connected.distinct.flatMap { in =>
-      bufferInput(out, in.as[Input], isFIFOOpt=isFIFO)
+      bufferInput(out, in.as[Input])
     }
   }
 
-  private def bufferInput(depOut:Output, depedIn:Input, isFIFOOpt:Option[Boolean]):Option[BufferRead] = {
+  private def bufferInput(depOut:Output, depedIn:Input):Option[BufferRead] = {
     val dep = depOut.src.as[PIRNode]
     val deped = depedIn.src.as[PIRNode]
     val depedCtx = deped.ctx.get
     if (escape(dep, depedCtx)) {
       val read = dbgblk(s"bufferInput(depOut=$dep.$depOut, depedIn=$deped.$depedIn)") {
         val depCtx = dep.ctx.get
-        val isFIFO = isFIFOOpt.getOrElse(dep.getCtrl == deped.getCtrl)
-        dbg(s"isFIFO=${isFIFO}")
-        val (enq, deq) = compEnqDeq(dep.getCtrl, deped.getCtrl, isFIFO, depCtx, depedCtx)
+        // Assume dep.getCtrl and deped.getCtrl runs for the same number iterations of time.
+        // But cannot statically check this. This serves a loose checking on if they are at the
+        // same level in the control hiearchy
+        val depLevel = dep.getCtrl.ancestors.size
+        val depedLevel = deped.getCtrl.ancestors.size
+        assert(depLevel==depedLevel, s"${dep.getCtrl}.level($depLevel) != ${deped.getCtrl}.level($depedLevel)")
+        val (enq, deq) = compEnqDeq(dep.getCtrl, deped.getCtrl, isFIFO=true, depCtx, depedCtx)
         val write = within(depCtx, dep.getCtrl) {
           allocate[BufferWrite] { write => 
             write.data.traceInTo(depOut) &&
@@ -58,7 +62,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
             read.in.traceInTo(write.out) &&
             read.done.traceInTo(deq)
           } {
-            BufferRead(isFIFO).in(write.out).done(deq).banks(List(dep.getVec))
+            BufferRead().in(write.out).done(deq).banks(List(dep.getVec))
           }
         }
         swapConnection(depedIn, depOut, read.out)

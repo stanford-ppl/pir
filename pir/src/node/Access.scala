@@ -47,7 +47,7 @@ case class BufferWrite()(implicit env:Env) extends LocalInAccess {
   // En is anded with done. But done is branch independent
   val en = new InputField[List[PIRNode]]("en")
 }
-case class BufferRead(isFIFO:Boolean)(implicit env:Env) extends LocalOutAccess
+case class BufferRead()(implicit env:Env) extends LocalOutAccess
 case class TokenWrite()(implicit env:Env) extends LocalInAccess
 case class TokenRead()(implicit env:Env) extends LocalOutAccess
 
