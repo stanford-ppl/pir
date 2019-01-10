@@ -75,18 +75,17 @@ def getMessage(backend, app, conf):
 
     if conf['NetVC'] is None:
         msg.append(cstr(RED,'runproute'))
-        return msg,succeeded
     else:
         msg.append(cstr(GREEN,'vc:{}'.format(conf['NetVC'])))
 
     if conf['deadlock']:
-        msg.append(cstr(RED, 'deadlock'))
+        msg.append(cstr(RED, 'DEADLOCK'))
         return msg,succeeded
     elif conf['cycle'] is None:
         msg.append(cstr(RED, 'runpsim'))
         return msg,succeeded
     else:
-        msg.append(cstr(GREEN, 'cycle:{} bw:{}'.format(conf['cycle'], conf['bw'])))
+        msg.append(cstr(GREEN, 'cycle:{} lbw:{} sbw:{}'.format(conf['cycle'], conf['lbw'], conf['sbw'])))
 
     succeeded = True
     return msg,succeeded
