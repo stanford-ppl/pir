@@ -42,12 +42,6 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     if (escape(dep, depedCtx)) {
       val read = dbgblk(s"bufferInput(depOut=$dep.$depOut, depedIn=$deped.$depedIn)") {
         val depCtx = dep.ctx.get
-        // Assume dep.getCtrl and deped.getCtrl runs for the same number iterations of time.
-        // But cannot statically check this. This serves a loose checking on if they are at the
-        // same level in the control hiearchy
-        val depLevel = dep.getCtrl.ancestors.size
-        val depedLevel = deped.getCtrl.ancestors.size
-        assert(depLevel==depedLevel, s"${dep.getCtrl}.level($depLevel) != ${deped.getCtrl}.level($depedLevel)")
         val (enq, deq) = compEnqDeq(dep.getCtrl, deped.getCtrl, isFIFO=true, depCtx, depedCtx)
         val write = within(depCtx, dep.getCtrl) {
           allocate[BufferWrite] { write => 
