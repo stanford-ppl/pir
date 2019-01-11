@@ -14,6 +14,7 @@ parser.add_argument('-p', '--project', type=str, default="test", help='project n
 parser.add_argument('--gen', action='store_true', default=False, help='compile only')
 parser.add_argument('--gendir', default="gen/")
 parser.add_argument('-r', '--rerun', action='append', help='passes to rerun', default=[])
+parser.add_argument('-F', '--force', action='store_true', default=False)
 
 HEADER    = '\033[95m'
 OKBLUE    = '\033[94m'
@@ -108,11 +109,14 @@ def grep(path, patterns):
                     found[pattern].append(line)
     return found
 
-def remove(path):
+def remove(path, opts):
     if os.path.exists(path):
-        ans = raw_input('remove {}? y/n '.format(path))
-        if ans == 'y':
+        if (opts.force):
             os.remove(path)
+        else:
+            ans = raw_input('remove {}? y/n '.format(path))
+            if ans == 'y':
+                os.remove(path)
 
 def loadSimData(datapath, backends=None):
     if backends is None:

@@ -104,11 +104,11 @@ def removeRules(conf, opts):
 
     for p in reruns:
         if p == 'genpir':
-            remove(conf['AccelMain'])
+            remove(conf['AccelMain'], opts)
         elif p == 'runproute':
-            remove(conf['prouteSummary'])
+            remove(conf['prouteSummary'], opts)
         else:
-            remove(conf[p + 'log'])
+            remove(conf[p + 'log'], opts)
     return reruns
 
 def logApp(backend, app, show, opts):
