@@ -81,27 +81,28 @@ trait RuntimeAnalyzer { self:PIRPass =>
     }
   }
 
-  def compScale(n:PIRNode):Option[Long] = dbgblk(s"compScale($n)"){
+  def compScale(n:Any):Option[Long] = dbgblk(s"compScale($n)"){
     n match {
-      case n:LocalOutAccess =>
-        n.out.T match {
-          case List(dram:FringeDenseLoad) => dram.getIter.map { _ * n.ctx.get.getScheduleFactor }
-          case List(dram:FringeDenseStore) if n.out.isConnectedTo(dram.data) | n.out.isConnectedTo(dram.valid) => Some(n.ctx.get.getScheduleFactor)
-          case List(dram:FringeDenseStore) if n.out.isConnectedTo(dram.size) | n.out.isConnectedTo(dram.offset) =>
-            dram.getIter.map { _ * n.ctx.get.getScheduleFactor }
-          case List(dram:FringeSparseLoad) => Some(n.ctx.get.getScheduleFactor)
-          case List(dram:FringeSparseStore) => Some(n.ctx.get.getScheduleFactor)
-          case _ => n.done.T.getScale
-        }
-      case n:BufferWrite =>
-        n.data.T match {
-          case data:FringeDenseLoad => Some(n.ctx.get.getScheduleFactor)
-          case data:FringeDenseStore => data.getIter.map { _ * n.ctx.get.getScheduleFactor } // ack
-          case data:FringeSparseLoad => Some(n.ctx.get.getScheduleFactor)
-          case data:FringeSparseStore => Some(n.ctx.get.getScheduleFactor)
-          case data =>  n.done.T.getScale
-        }
-      case n:TokenWrite => n.done.T.getScale
+      //case n:LocalOutAccess =>
+        //n.out.T match {
+          //case List(dram:FringeDenseLoad) => dram.getIter.map { _ * n.ctx.get.getScheduleFactor }
+          //case List(dram:FringeDenseStore) if n.out.isConnectedTo(dram.data) | n.out.isConnectedTo(dram.valid) => Some(n.ctx.get.getScheduleFactor)
+          //case List(dram:FringeDenseStore) if n.out.isConnectedTo(dram.size) | n.out.isConnectedTo(dram.offset) =>
+            //dram.getIter.map { _ * n.ctx.get.getScheduleFactor }
+          //case List(dram:FringeSparseLoad) => Some(n.ctx.get.getScheduleFactor)
+          //case List(dram:FringeSparseStore) => Some(n.ctx.get.getScheduleFactor)
+          //case _ => n.done.T.getScale
+        //}
+      //case n:BufferWrite =>
+        //n.data.T match {
+          //case data:FringeDenseLoad => Some(n.ctx.get.getScheduleFactor)
+          //case data:FringeDenseStore => data.getIter.map { _ * n.ctx.get.getScheduleFactor } // ack
+          //case data:FringeSparseLoad => Some(n.ctx.get.getScheduleFactor)
+          //case data:FringeSparseStore => Some(n.ctx.get.getScheduleFactor)
+          //case data =>  n.done.T.getScale
+        //}
+      //case n:TokenWrite => n.done.T.getScale
+      case n:LocalAccess => n.done.T.getScale
       case n:ControllerDone =>
         val ctrler = n.ctrler
         zipMap(ctrler.getIter, ctrler.valid.T.getScale) { _*_ }
@@ -111,7 +112,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
         assertUnify(children, s"$n.valid.scale") { child =>
           zipMap(child.valid.T.getScale, child.getIter) { _ * _ }
         }.getOrElse(Some(n.ctx.get.getScheduleFactor))
-      case _:High => Some(n.ctx.get.getScheduleFactor)
+      case n:High => Some(n.ctx.get.getScheduleFactor)
       case n => throw PIRException(s"Don't know how to compute scale of $n")
     }
   }

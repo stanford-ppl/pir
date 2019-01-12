@@ -6,7 +6,7 @@ import pir.pass._
 import prism.graph._
 import prism.collection.immutable._
 
-trait ComputePartitioner extends Partitioner with BufferAnalyzer {
+trait ComputePartitioner extends Partitioner with BufferAnalyzer with DependencyAnalyzer {
 
   def getCosts(k:Any, x:Any) = {
     k match {
@@ -68,7 +68,7 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
         val part = Partition(scope.asInstanceOf[List[PIRNode]])
         val parts = split(part, vcost).asInstanceOf[List[Partition]]
         dbg(s"partitions=${parts.size}")
-        val ctxs = within(k.global.get) {
+        val ctxs = within(k.global.get, k.ctrl.get) {
           parts.map { case part@Partition(scope) =>
             val ctx = Context()
             dbg(s"Create $ctx for $part")

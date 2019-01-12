@@ -80,6 +80,8 @@ case class ControlTree(schedule:String)(implicit env:Env) extends EnvNode[Contro
     else throw PIRException(s"Cannot compare $this with $that")
   }
 
+  def isLeaf = children.isEmpty
+
   env.initNode(this)
 }
 

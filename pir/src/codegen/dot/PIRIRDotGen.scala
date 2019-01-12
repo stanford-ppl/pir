@@ -52,9 +52,8 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     }.foldAt(n.to[GlobalInput]) { (q,n) =>
       s"${q}\nfrom:\n${n.in.T}"
     }.foldAt(n.to[Context]) { (q,n) =>
-      val ctrl = n.collectDown[Controller]().map { _.ctrl.get }.maxOptionBy { _.ancestors.size }
-      ctrl.fold(q) { ctrl => s"$q\n${ctrl}" + ctrl.srcCtx.v.fold("") { sc => s"\n$sc" }}
-      .append("sf", n.scheduleFactor)
+      q
+      //.append("sf", n.scheduleFactor)
       .append("active", n.active.v)
       .append("state", n.psimState)
       .append("activeRate", n.activeRate)

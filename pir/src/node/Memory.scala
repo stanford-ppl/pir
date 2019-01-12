@@ -177,13 +177,14 @@ trait MemoryUtil extends CollectorImplicit {
   }
 
   implicit class ControllerOp(n:Controller) {
-    def children:List[Controller] = {
+    def childCtrlers:List[Controller] = {
       n.valid.T.out.neighbors.collect { case ctrler:Controller => ctrler }
     }
+    def isLeaf = childCtrlers.isEmpty
     def leaves:List[Controller] = {
-      val children = this.children
-      if (children.isEmpty) List(n)
-      else children.flatMap { c => c.leaves }
+      val childCtrlers = this.childCtrlers
+      if (childCtrlers.isEmpty) List(n)
+      else childCtrlers.flatMap { c => c.leaves }
     }
   }
 

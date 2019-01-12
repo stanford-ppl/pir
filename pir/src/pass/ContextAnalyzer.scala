@@ -31,9 +31,8 @@ class ContextAnalyzer(implicit compiler:PIR) extends BufferAnalyzer {
     val nonLutInputs = ctx.deps.filterNot { _.isInstanceOf[LUT] }
     if (nonLutInputs.isEmpty) {
       val hostInCtx = pirTop.argFringe.collectDown[HostInController]().head.ctx.get
-      val ctxCtrl = ctx.collectDown[Controller]().head.ctrl.get
       dbg(s"$ctx doesn't have any non lut inputs.")
-      insertToken(hostInCtx, ctx, pirTop.hostInCtrl, ctxCtrl)
+      insertToken(hostInCtx, ctx)
     }
   }
 

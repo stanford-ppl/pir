@@ -9,16 +9,18 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
 
   val tokenBufferDepth = 32 //TODO
 
-  def insertToken(actx:Context, bctx:Context, actrl:ControlTree, bctrl:ControlTree):TokenRead = {
-    dbgblk(s"InsertToken(actx=$actx, bctx=$bctx, actrl=$actrl, bctrl=$bctrl)") {
-      val (enq, deq) = compEnqDeq(actrl, bctrl, false, actx, bctx)
-      val write = within(actx, actrl) {
+  def insertToken(fctx:Context, tctx:Context):TokenRead = {
+    val fctrl = fctx.ctrl.get
+    val tctrl = tctx.ctrl.get
+    dbgblk(s"InsertToken(fctx=$fctx($fctrl), tctx=$tctx($tctrl))") {
+      val (enq, deq) = compEnqDeq(isFIFO=false, fctx, tctx, None, Nil)
+      val write = within(fctx, fctrl) {
         allocate[TokenWrite](_.done.evalTo(enq)) {
           TokenWrite().done(enq)
         }
       }
       dbg(s"add $write")
-      within(bctx, bctrl) {
+      within(tctx, tctrl) {
         allocate[TokenRead](read => read.in.evalTo(write) && read.done.evalTo(deq)) {
           TokenRead().in(write).done(deq)
         }
@@ -26,63 +28,69 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
     }
   }
 
-  def compEnqDeq(a:ControlTree, b:ControlTree, isFIFO:Boolean, actx:Context, bctx:Context):(PIRNode, PIRNode) = {
-    dbgblk(s"compEnqDeq($a, $b, isFIFO=$isFIFO, actx=$actx, bctx=$bctx)") {
-      if (isFIFO) {
-        (ctrlValid(a, actx), ctrlValid(b, bctx))
-      } else {
-        if (a == b) {
-          (ctrlDone(a, actx), ctrlDone(b, bctx))
-        } else if (a.isAncestorOf(b)) {
-          val bAncesstors = (b::b.ancestors)
-          val idx = bAncesstors.indexOf(a)
-          val ctrl = bAncesstors(idx-1).as[ControlTree]
-          (ctrlValid(a, actx), ctrlDone(ctrl, bctx))
-        } else if (b.isAncestorOf(a)) {
-          compEnqDeq(b,a,isFIFO,bctx,actx).swap
-        } else {
-          val lca = leastCommonAncesstor(a,b).get
-          val aAncesstors = (a::a.ancestors)
-          val bAncesstors = (b::b.ancestors)
-          val aidx = aAncesstors.indexOf(lca)
-          val bidx = bAncesstors.indexOf(lca)
-          val actrl = aAncesstors(aidx-1).as[ControlTree]
-          val bctrl = bAncesstors(bidx-1).as[ControlTree]
-          (ctrlDone(actrl, actx), ctrlDone(bctrl, bctx))
-        }
+  def compEnqDeq(isFIFO:Boolean, octx:Context, ictx:Context, out:Option[Output], ins:Seq[Input]):(Output, Output) = {
+    val from = out.map { _.src.as[PIRNode] }
+    val to = ins.map { _.src }.distinct.as[Seq[PIRNode]]
+    val o = octx.ctrl.get
+    val i = ictx.ctrl.get
+    dbgblk(s"compEnqDeq(isFIFO=$isFIFO, out=$from.$out, ins=${ins.map { in => s"${in.src}.$in"}.mkString(",")})") {
+      (from, to) match {
+        case (from, List(to:DRAMDenseCommand)) if ins.head == to.offset | ins.head == to.size => 
+          (ctrlValid(o, octx), to.deqCmd)
+        case (from, List(to:DRAMSparseCommand)) if ins.head == to.addr => 
+          (ctrlValid(o, octx), to.deqCmd)
+        case (from, List(to:DRAMStoreCommand)) if ins.head == to.data => 
+          (ctrlValid(o, octx), to.deqData)
+        case (from, List(to:FringeDenseStore)) if ins.head == to.valid => 
+          (ctrlValid(o, octx), to.deqData)
+        case (Some(from:DRAMLoadCommand), to) if out.get == from.data => 
+          (from.dataValid, ctrlValid(i, ictx))
+        case (Some(from:DRAMStoreCommand), to) if out.get == from.ack => 
+          (from.ackValid, ctrlValid(i, ictx))
+        case (_,_) if isFIFO =>
+          (ctrlValid(o, octx), ctrlValid(i, ictx))
+        case (_,_) if o == i =>
+          (ctrlDone(o, octx), ctrlDone(i, ictx))
+        case _ =>
+          val lca = leastCommonAncesstor(o,i).get
+          val oAncesstors = (o::o.ancestors)
+          val iAncesstors = (i::i.ancestors)
+          val oidx = oAncesstors.indexOf(lca)
+          val iidx = iAncesstors.indexOf(lca)
+          val octrl = oAncesstors(oidx-1).as[ControlTree]
+          val ictrl = iAncesstors(iidx-1).as[ControlTree]
+          if (lca == o)      (ctrlValid(o, octx), ctrlDone(ictrl, ictx))
+          else if (lca == i) (ctrlDone(octrl, octx), ctrlValid(i, ictx))
+          else               (ctrlDone(octrl, octx), ctrlDone(ictrl, ictx))
       }
     }
   }
 
-  def ctrlValid(ctrl:ControlTree, ctx:Context):PIRNode = {
-    ctrl.schedule match { //TODO: This is a problem
-      case "Streaming" =>
-        within(ctx, ctrl) { allocate[High]() { High() } }
-      case _ =>
-        if (!compiler.hasRun[DependencyDuplication]) {
-          // Centralized controller
-          ctrl.ctrler.get.valid
-        } else {
-          // Distributed controller
-          assertOneOrLess(ctx.collectDown[ControllerValid]().filter { _.ctrl.get == ctrl }, 
-            s"ctrlValid with ctrl=$ctrl in $ctx").getOrElse {
-              assert(this.isInstanceOf[ComputePartitioner])
-              within(ctx, ctrl) { allocate[High]() { High() } }
-            }
-        }
+  def ctrlValid(ctrl:ControlTree, ctx:Context):Output = {
+    if (!compiler.hasRun[DependencyDuplication]) {
+      // Centralized controller
+      ctrl.ctrler.get.valid.out
+    } else {
+       //Distributed controller
+      assertOneOrLess(ctx.collectDown[ControllerValid]().filter { _.ctrl.get == ctrl }, 
+        s"ctrlValid with ctrl=$ctrl in $ctx").getOrElse {
+          assert(this.isInstanceOf[ComputePartitioner], s"$ctx has no ControllerValid for $ctrl")
+          within(ctx, ctrl) { allocate[High]() { High() } }
+        }.out
     }
   }
 
-  def ctrlDone(ctrl:ControlTree, ctx:Context):PIRNode = {
+  def ctrlDone(ctrl:ControlTree, ctx:Context):Output = {
     if (!compiler.hasRun[DependencyDuplication]) {
       // Centralized controller
-      ctrl.ctrler.get.done
+      ctrl.ctrler.get.done.out
     } else {
-      // Distributed controller
+       //Distributed controller
       assertOne(ctx.collectDown[ControllerDone]().filter { _.ctrl.get == ctrl }, 
-        s"ctrlDone with ctrl=$ctrl in $ctx")
+        s"ctrlDone with ctrl=$ctrl in $ctx").out
     }
   }
+
 
   def allocate[T<:PIRNode:ClassTag:TypeTag](
     filter:T => Boolean = (n:T) => true

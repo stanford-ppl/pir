@@ -4,7 +4,7 @@ package pass
 import pir.node._
 import prism.graph._
 
-class DependencyDuplication(implicit compiler:PIR) extends PIRPass with Transformer with BufferAnalyzer {
+class DependencyDuplication(implicit compiler:PIR) extends DependencyAnalyzer {
 
   override def runPass = {
     val ctxs = pirTop.collectDown[Context]()
@@ -12,6 +12,45 @@ class DependencyDuplication(implicit compiler:PIR) extends PIRPass with Transfor
     val mappings = ctxs.map { ctx => (ctx, dupDeps(ctx)) }
     mappings.foreach { case (ctx, mapping) => swapDeps(ctx, mapping) }
     ctxs.foreach { check }
+  }
+
+}
+
+trait DependencyAnalyzer extends PIRPass with Transformer {
+
+  private def bound(visitFunc:N => List[N]):N => List[N] = { n:N =>
+    visitFunc(n).filter{ 
+      case x:Memory => false
+      case x:HostWrite => false
+      case x:LocalInAccess => false
+      //case x:LocalOutAccess => // prevent infinate loop in case of cycle
+        //val from = x.in.T
+        //from != n && !from.isDescendentOf(n)
+      case x:GlobalInput => false
+      case x:GlobalOutput => false
+      case _ => true
+    }
+  }
+
+  def getDeps(
+    x:PIRNode, 
+    visitFunc:N => List[N] = visitGlobalIn _
+  ):Seq[PIRNode] = dbgblk(s"getDeps($x)"){
+    var deps = x.accum(visitFunc=cover[Controller](bound(visitFunc)))
+    deps = deps.filterNot(_ == x)
+    if (compiler.hasRun[DependencyDuplication]) {
+      val ctrlers = deps.collect { case ctrler:Controller => ctrler }
+      val leaf = assertOneOrLess(ctrlers.flatMap { _.leaves }.distinct, 
+        s"leaf of ${ctrlers}")
+      dbg(s"leaf=$leaf")
+      leaf.foreach { leaf =>
+        if (leaf != x) {
+          deps ++= leaf +: (leaf.descendents++getDeps(leaf, visitFunc))
+          deps = deps.distinct
+        }
+      }
+    }
+    deps.as[List[PIRNode]]
   }
 
   def dupDeps(ctx:Context) = dbgblk(s"dupDeps($ctx)") {
