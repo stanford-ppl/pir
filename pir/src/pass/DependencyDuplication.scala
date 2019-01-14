@@ -44,13 +44,23 @@ trait DependencyAnalyzer extends PIRPass with Transformer {
         s"leaf of ${ctrlers}")
       dbg(s"leaf=$leaf")
       leaf.foreach { leaf =>
-        if (leaf != x) {
+        if (leaf != x && !deps.contains(leaf)) {
           deps ++= leaf +: (leaf.descendents++getDeps(leaf, visitFunc))
           deps = deps.distinct
         }
       }
     }
     deps.as[List[PIRNode]]
+  }
+
+  def getCtrlerDeps(
+    from:Context,
+    visitFunc:N => List[N] = visitGlobalIn _
+  ):Seq[PIRNode] = {
+    val leaf = assertOneOrLess(from.collectDown[Controller]().filter { _.isLeaf }, s"$from.leaf ctrler")
+    leaf.toList.flatMap { leaf =>
+      leaf +: (leaf.descendents++getDeps(leaf, visitFunc))
+    }.as[Seq[PIRNode]]
   }
 
   def dupDeps(ctx:Context) = dbgblk(s"dupDeps($ctx)") {

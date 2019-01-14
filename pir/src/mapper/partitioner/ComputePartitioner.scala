@@ -111,12 +111,15 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer with Dependency
   def dupDeps(from:Context, to:Context, incost:InputCost) = dbgblk(s"dupDeps($from, $to)") {
     var deps = getDeps(to, visitIn(from))
     val noInput = (incost.sin + incost.vin) == 0
-    if (noInput) {
-      val ins = from.collectDown[LocalOutAccess]()
-      val (vins, sins) = ins.partition { _.getVec > 0 }
-      val in = sins.headOption.getOrElse(vins.head)
-      dbg(s"$to has no input. mirror one input from $from $in")
-      deps ++= in+:getDeps(in, visitIn(from))
+    if (noInput && deps.filter { _.isInstanceOf[Controller] }.isEmpty ) {
+      val ctrlerDeps = getCtrlerDeps(from, visitIn(from))
+      assert(ctrlerDeps.nonEmpty, s"$from has no ctrlers and no inputs")
+      deps ++= ctrlerDeps
+      //val ins = from.collectDown[LocalOutAccess]()
+      //val (vins, sins) = ins.partition { _.getVec > 0 }
+      //val in = sins.headOption.getOrElse(vins.head)
+      //dbg(s"$to has no input. mirror one input from $from $in")
+      //deps ++= in+:getDeps(in, visitIn(from))
     }
     deps = deps.distinct
     val mapping = within(to) { mirrorAll(deps) }
