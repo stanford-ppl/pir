@@ -181,6 +181,17 @@ trait PIRApp extends PIR with Logging {
     def sname(c:String):T = x.to[PIRNode].fold(x) { case xx if xx.sname.isEmpty => xx.sname(c); x; case _ => x }
   }
 
+  val nameSpace = scala.collection.mutable.Map[String,Any]()
+  def lookup[T](name:String) = nameSpace(name).asInstanceOf[T]
+  def save[T](name:String, x:T) = { 
+    nameSpace(name) = x; 
+    x.to[PIRNode].foreach { x =>
+      if (x.sname.isEmpty) x.sname(name)
+    }
+    //x.to[DRAMCommand].foreach { x => initDRAMCommand(x) }
+    x
+  }
+
   def create[T<:Controller](schedule:String)(newCtrler: => T):T = {
     val tree = ControlTree(schedule)
     beginState(tree)
