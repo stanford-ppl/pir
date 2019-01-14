@@ -29,13 +29,12 @@ trait Codegen extends Pass with Printer with DFSTraversal with UnitTraversal {
     case n => s"$n"
   }
 
-  override def run:this.type = {
-    try {
-      super.run
-    } catch {
-      case e:Exception =>
+  final override def run:this.type = {
+    Try(super.run) match {
+      case Failure(e:Throwable) =>
         closeAll
         throw e
+      case Success(_) => this
     }
   }
 
