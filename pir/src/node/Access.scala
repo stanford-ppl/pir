@@ -75,11 +75,11 @@ trait AccessUtil { self:PIRNodeUtil =>
     }
   }
   implicit class LocalInAccessOp(n:LocalInAccess) {
-    def outAccesses:List[LocalOutAccess] = n.collect[LocalOutAccess](visitGlobalOut _)
+    def outAccesses:List[LocalOutAccess] = n.out.collect[LocalOutAccess](visitGlobalOut _)
     def gout:Option[GlobalOutput] = assertOneOrLess(n.out.T.collect { case gout:GlobalOutput => gout }, s"$n.gout")
   }
   implicit class LocalOutAccessOp(n:LocalOutAccess) {
-    def inAccess:LocalInAccess = assertOne(n.collect[LocalInAccess](visitGlobalIn _), s"$this.inAccess")
+    def inAccess:LocalInAccess = assertOne(n.in.collect[LocalInAccess](visitGlobalIn _), s"$this.inAccess")
     def gin:Option[GlobalInput] = n.in.T.to[GlobalInput]
   }
 }

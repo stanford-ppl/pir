@@ -1,6 +1,7 @@
 package prism
 package graph
 
+import implicits._
 import prism.util._
 
 trait GraphUtil {
@@ -40,7 +41,7 @@ trait GraphUtil {
    * Otherwise keep the node
    * */
   def lift[T<:N:ClassTag](visitFunc:N => List[N])(n:N) = visitFunc(n).map { x =>
-    collectUp[T](x).headOption.getOrElse(x)
+    x.collectUp[T]().headOption.getOrElse(x)
   }.distinct
 
   /*
@@ -48,7 +49,7 @@ trait GraphUtil {
    * descendents if it has one. Otherwise keep the node
    * */
   def cover[T<:N:ClassTag](visitFunc:N => List[N])(n:N) = visitFunc(n).flatMap { x =>
-    val xx = collectUp[T](x).headOption.getOrElse(x)
+    val xx = x.collectUp[T]().headOption.getOrElse(x)
     xx :: xx.descendents
   }.distinct
 
