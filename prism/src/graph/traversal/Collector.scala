@@ -39,110 +39,79 @@ class PrefixTraversal[TT](
   }
 }
 
-trait CollectorUtil { self =>
-
-  def filter(node:N, prefix:N => Boolean, visitFunc:N => List[N], depth:Int = -1, logger:Option[Logging]=None):List[N] = 
-    dbgblk(logger, s"filter($node, depth=$depth)") {
-      def accumulate(prev:List[N], n:N) = {
-        if (!prev.contains(n) && prefix(n)) (prev :+ n) else prev
-      }
-      new PrefixTraversal[List[N]](prefix, visitFunc, accumulate _, Nil, logger).traverseNode((node, depth), Nil)
-    }
- 
-  def collect[M<:N:ClassTag](node:N, visitFunc:N => List[N], depth:Int = -1, logger:Option[Logging]=None):List[M] = 
-    dbgblk(logger, s"collect($node, depth=$depth)") {
-      def prefix(n:N) = n match { case `node` => false; case n:M => true; case _ => false }
-      def accumulate(prev:List[M], n:N) = {
-        if (!prev.contains(n) && prefix(n)) (prev :+ n.asInstanceOf[M]) else prev
-      }
-      new PrefixTraversal[List[M]](prefix, visitFunc, accumulate _, Nil, logger).traverseNode((node, depth), Nil)
-    }
-
-  def collectUp[M<:N:ClassTag](node:N, depth:Int= -1, logger:Option[Logging]=None):List[M] =
-    collect[M](node, visitUp _, depth, logger)
-
-  def collectDown[M<:N:ClassTag:TypeTag](node:N, depth:Int= -1, logger:Option[Logging]=None):List[M] = 
-    collect[M](node, visitDown _, depth, logger)
-
-  def collectIn[M<:N:ClassTag](node:N, depth:Int= -1, logger:Option[Logging]=None):List[M] = 
-    collect[M](node, visitLocalIn _, depth, logger)
-
-  def collectOut[M<:N:ClassTag](node:N, depth:Int= -1, logger:Option[Logging]=None):List[M] = 
-    collect[M](node, visitLocalOut _, depth, logger)
-
-  def collectPeer[M<:N:ClassTag](node:N, depth:Int= -1, logger:Option[Logging]=None):List[M] =  {
-    collect[M](node, visitPeer _, depth, logger)
-  }
-
-  def accum(node:N, prefix:N => Boolean={n:N => false }, visitFunc:N => List[N], depth:Int= -1, logger:Option[Logging]=None):List[N] = 
-    dbgblk(logger, s"accum(depth=$depth)"){
-      def accumulate(prev:List[N], n:N) = {
-        if (!prev.contains(n)) (prev :+ n) else prev
-      }
-      new PrefixTraversal[List[N]](prefix, visitFunc, accumulate _, Nil, logger).traverseNode((node, depth), Nil)
-    }
-
-
-  def accumIn(node:N, prefix:N => Boolean, depth:Int= -1, logger:Option[Logging]=None):List[N] = 
-      accum(node, prefix, visitLocalIn _, depth, logger)
-
-  def accumTill[M<:N:ClassTag](node:N, visitFunc:N => List[N]=visitLocalIn _, depth:Int= -1, logger:Option[Logging]=None):List[N] = {
-      def prefix(n:N) = n match { case `node` => false; case n:M => true; case _ => false }
-    accum(node, prefix _, visitFunc, depth, logger)
-  }
-
-  def canReach(node:N, target:N, visitFunc:N => List[N], depth:Int= -1, logger:Option[Logging]=None):Boolean = 
-    dbgblk(logger, s"canReach($target, depth=$depth)"){
-      def prefix(n:N) = n == target
-      def accumulate(prev:Boolean, n:N) = prefix(n) || prev
-      new PrefixTraversal[Boolean](prefix, visitFunc, accumulate _, false, logger).traverseNode((node, depth), false)
-    }
-
-  def areLinealInherited(node:N, that:N, logger:Option[Logging]=None):Boolean = 
-    dbgblk(logger, s"areLinealInherited($node, $that)") {
-      node == that || node.ancestors.contains(that) || that.ancestors.contains(node)
-    }
-
-}
-
 trait CollectorImplicit {
   implicit class NodeCollector(node:N) {
     def filter(prefix:N => Boolean, visitFunc:N => List[N], depth:Int = -1, logger:Option[Logging]=None):List[N] = 
-      graph.filter(node, prefix, visitFunc, depth, logger)
+      dbgblk(logger, s"filter($node, depth=$depth)") {
+        def accumulate(prev:List[N], n:N) = {
+          if (!prev.contains(n) && prefix(n)) (prev :+ n) else prev
+        }
+        new PrefixTraversal[List[N]](prefix, visitFunc, accumulate _, Nil, logger).traverseNode((node, depth), Nil)
+      }
  
     def collect[M<:N:ClassTag](visitFunc:N => List[N], depth:Int = -1, logger:Option[Logging]=None):List[M] = 
-      graph.collect(node, visitFunc, depth, logger)
+      dbgblk(logger, s"collect($node, depth=$depth)") {
+        def prefix(n:N) = n match { case `node` => false; case n:M => true; case _ => false }
+        def accumulate(prev:List[M], n:N) = {
+          if (!prev.contains(n) && prefix(n)) (prev :+ n.asInstanceOf[M]) else prev
+        }
+        new PrefixTraversal[List[M]](prefix, visitFunc, accumulate _, Nil, logger).traverseNode((node, depth), Nil)
+      }
 
     def collectUp[M<:N:ClassTag](depth:Int= -1, logger:Option[Logging]=None):List[M] =
-      graph.collectUp(node, depth, logger)
+      node.collect[M](visitUp _, depth, logger)
 
     def collectDown[M<:N:ClassTag:TypeTag](depth:Int= -1, logger:Option[Logging]=None):List[M] = 
-      graph.collectDown(node, depth, logger)
+      node.collect[M](visitDown _, depth, logger)
 
     def collectIn[M<:N:ClassTag](depth:Int= -1, logger:Option[Logging]=None):List[M] = 
-      graph.collectIn(node, depth, logger)
+      node.collect[M](visitLocalIn _, depth, logger)
 
     def collectOut[M<:N:ClassTag](depth:Int= -1, logger:Option[Logging]=None):List[M] = 
-      graph.collectOut(node, depth, logger)
+      node.collect[M](visitLocalOut _, depth, logger)
 
     def collectPeer[M<:N:ClassTag](depth:Int= -1, logger:Option[Logging]=None):List[M] =
-      graph.collectPeer(node, depth, logger)
+      node.collect[M](visitPeer _, depth, logger)
 
     def accum(prefix:N => Boolean={n:N => false } , visitFunc:N => List[N], depth:Int= -1, logger:Option[Logging]=None):List[N] = 
-      graph.accum(node, prefix, visitFunc, depth, logger)
+      dbgblk(logger, s"accum(depth=$depth)"){
+        def accumulate(prev:List[N], n:N) = {
+          if (!prev.contains(n)) (prev :+ n) else prev
+        }
+        new PrefixTraversal[List[N]](prefix, visitFunc, accumulate _, Nil, logger).traverseNode((node, depth), Nil)
+      }
 
     def accumIn(prefix:N => Boolean, depth:Int= -1, logger:Option[Logging]=None):List[N] = 
-      graph.accumIn(node, prefix, depth, logger)
+      node.accum(prefix, visitLocalIn _, depth, logger)
 
     def accumTill[M<:N:ClassTag](visitFunc:N => List[N]=visitLocalIn _, depth:Int= -1, logger:Option[Logging]=None):List[N] = {
       def prefix(n:N) = n match { case `node` => false; case n:M => true; case _ => false }
-      graph.accumTill(node, visitFunc, depth, logger)
+      node.accum(prefix _, visitFunc, depth, logger)
     }
 
     def canReach(target:N, visitFunc:N => List[N], depth:Int= -1, logger:Option[Logging]=None):Boolean = 
-      graph.canReach(node, target, visitFunc, depth, logger)
+      dbgblk(logger, s"canReach($target, depth=$depth)"){
+        def prefix(n:N) = n == target
+        def accumulate(prev:Boolean, n:N) = prefix(n) || prev
+        new PrefixTraversal[Boolean](prefix, visitFunc, accumulate _, false, logger).traverseNode((node, depth), false)
+      }
 
     def areLinealInherited(that:N, logger:Option[Logging]=None):Boolean = 
-      graph.areLinealInherited(node, that, logger)
+      dbgblk(logger, s"areLinealInherited($node, $that)") {
+        node == that || node.ancestors.contains(that) || that.ancestors.contains(node)
+      }
+  }
+
+  implicit class EdgeCollector(edge:Edge) {
+    def collect[M<:N:ClassTag](visitFunc:N => List[N], depth:Int = -1, logger:Option[Logging]=None):List[M] = 
+      dbgblk(logger, s"collect(${edge.src}.${edge}, depth=$depth)") {
+        def prefix(n:N) = n match { case n:M => true; case _ => false }
+        def accumulate(prev:List[M], n:N) = {
+          if (!prev.contains(n) && prefix(n)) (prev :+ n.asInstanceOf[M]) else prev
+        }
+        val nodes = edge.neighbors.map { n => (n, depth) }
+        new PrefixTraversal[List[M]](prefix, visitFunc, accumulate _, Nil, logger).traverseNodes(nodes, Nil)
+      }
+
   }
 }
