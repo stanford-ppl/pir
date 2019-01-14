@@ -12,7 +12,7 @@ class ComputePruner(implicit compiler:PIR) extends ConstrainPruner with CUCostUt
     case x:CUMap if !spadeParam.isAsic =>
       flatFold(x.freeKeys, x) { case (x, k) =>
         val kc = getCosts(k)
-        recover(x.filterNotAtKey(k) { v => !kc.fit(getCosts(v)) })
+        recover(x.filterNotAtKey(k) { v => notFit(kc, getCosts(v)) })
       }.asInstanceOf[EOption[T]]
     case x => super.prune(x)
   }

@@ -13,7 +13,7 @@ class MemoryPruner(implicit compiler:PIR) extends ConstrainPruner with MemoryPar
     case x:CUMap if !spadeParam.isAsic =>
       flatFold(x.freeKeys, x) { case (x, k) =>
         val kc = k.getCost[SRAMCost]
-        recover(x.filterNotAtKey(k) { v => !kc.fit(v.getCost[SRAMCost]) })
+        recover(x.filterNotAtKey(k) { v => notFit(kc, v.getCost[SRAMCost]) })
       }.asInstanceOf[EOption[T]]
     case x => super.prune(x)
   }

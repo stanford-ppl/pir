@@ -29,11 +29,14 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer with Dependency
           case List(StageCost(sc), InputCost(sin, vin), OutputCost(sout,vout)) => 
             (sc, vin, vout, sin, sout)
         }
-        dbg(s"Recover $k")
-        dbg(s"value cost=$vcost")
+        dbg(s"Recover $k vcost=$vcost")
         val ks = split(k, vcost).toSet
         info(s"Split $k into ${ks.size} CUs")
         assert(ks.size > 1, s"$k not partitioned")
+        ks.foreach { k => 
+          val kcost = getCosts(k)
+          assert(fit(kcost, vcost), s"After splitting $k's cost $kcost > vcost=$vcost")
+        }
         Right(fg.mapFreeMap { _ - k ++ (ks, vs) })
       case x => super.recover(x)
     }
@@ -81,7 +84,7 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer with Dependency
         removeNodes(k::k.descendents)
         ctxs
       case k:Partition =>
-        if (kcost.fit(vcost)) List(k)
+        if (fit(kcost, vcost)) List(k)
         else {
           val nodes = schedular.scheduleScope(k.scope).asInstanceOf[List[PIRNode]]
           //dbg(s"schedule:")
