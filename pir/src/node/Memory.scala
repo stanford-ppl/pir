@@ -140,6 +140,8 @@ abstract class Controller(implicit env:Env) extends PIRNode {
 
   val valid = new ChildField[ControllerValid, ControllerValid]("valid")
   val done = new ChildField[ControllerDone, ControllerDone]("cchain")
+
+  def isForever = this.collectDown[Counter]().exists { _.isForever }
 }
 case class ControllerDone()(implicit env:Env) extends Def {
   def ctrler = this.collectUp[Controller]().head
@@ -177,13 +179,14 @@ trait MemoryUtil extends CollectorImplicit {
   }
 
   implicit class ControllerOp(n:Controller) {
-    def children:List[Controller] = {
+    def childCtrlers:List[Controller] = {
       n.valid.T.out.neighbors.collect { case ctrler:Controller => ctrler }
     }
+    def isLeaf = childCtrlers.isEmpty
     def leaves:List[Controller] = {
-      val children = this.children
-      if (children.isEmpty) List(n)
-      else children.flatMap { c => c.leaves }
+      val childCtrlers = this.childCtrlers
+      if (childCtrlers.isEmpty) List(n)
+      else childCtrlers.flatMap { c => c.leaves }
     }
   }
 

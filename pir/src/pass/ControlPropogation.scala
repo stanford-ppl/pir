@@ -7,7 +7,7 @@ import prism.graph._
 class ControlPropogation(implicit compiler:PIR) extends PIRPass {
   override def runPass = {
     pirTop.collectDown[Controller]().foreach { ctrler =>
-      setPar(ctrler)
+      setCtrl(ctrler)
       ctrler.srcCtx.v.foreach { v => ctrler.ctrl.get.srcCtx := v }
       ctrler.descendents.foreach { d =>
         dbgblk(s"descendents=$d") {
@@ -27,7 +27,7 @@ class ControlPropogation(implicit compiler:PIR) extends PIRPass {
         }
       }
     }
-    def setPar(ctrler:Controller) = {
+    def setCtrl(ctrler:Controller) = {
       val ctrl = ctrler.ctrl.get
       val par = ctrler match {
         case ctrler:LoopController => ctrler.cchain.T.map { _.par }.product

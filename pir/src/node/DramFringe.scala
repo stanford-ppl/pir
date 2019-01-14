@@ -3,22 +3,26 @@ package node
 
 trait DRAMCommand extends PIRNode {
   def dram:DRAM
-  val respondValid = new OutputField[List[BufferRead]]("respondValid")
 }
 
 trait DRAMDenseCommand extends DRAMCommand {
   val offset = new InputField[PIRNode]("offset")
   val size = new InputField[PIRNode]("size")
+  val deqCmd = new OutputField[List[PIRNode]]("deqCmd")
 }
 trait DRAMSparseCommand extends DRAMCommand {
   val addr = new InputField[PIRNode]("addr")
+  val deqCmd = new OutputField[List[PIRNode]]("deqCmd")
 }
 trait DRAMLoadCommand extends DRAMCommand {
   val data = new OutputField[PIRNode]("data")
+  val dataValid = new OutputField[List[PIRNode]]("dataValid")
 }
 trait DRAMStoreCommand extends DRAMCommand {
   val data = new InputField[PIRNode]("data")
   val ack = new OutputField[PIRNode]("ack")
+  val deqData = new OutputField[List[PIRNode]]("deqData")
+  val ackValid = new OutputField[List[PIRNode]]("ackValid")
 }
 
 case class FringeDenseLoad(dram:DRAM)(implicit env:Env) extends DRAMDenseCommand with DRAMLoadCommand

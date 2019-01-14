@@ -61,7 +61,7 @@ trait PIRApp extends PIR with Logging {
     addPass(validProp) ==>
     addPass(enableRouteElim, routeThroughEliminator)
     addPass(enableDot, new PIRIRDotGen(s"top3.dot"))
-    addPass(contextInsertion).dependsOn(controlPropogator)
+    addPass(contextInsertion).dependsOn(controlPropogator) ==>
     addPass(enableDot, new PIRIRDotGen(s"top4.dot"))
     addPass(enableDot, new PIRCtxDotGen(s"simple4.dot"))
     addPass(memLowering).dependsOn(contextInsertion) ==>
@@ -70,10 +70,10 @@ trait PIRApp extends PIR with Logging {
     addPass(depDuplications).dependsOn(memLowering)
     addPass(routeThroughEliminator) ==>
     addPass(deadCodeEliminator) ==>
-    addPass(contextAnalyzer) ==>
+    //addPass(contextAnalyzer) ==>
     addPass(enableDot, new PIRIRDotGen(s"top6.dot"))
     addPass(enableDot, new PIRCtxDotGen(s"simple6.dot"))
-    addPass(globalInsertion).dependsOn(contextAnalyzer)
+    addPass(globalInsertion).dependsOn(deadCodeEliminator)
     
     saveSession("pir/out/pir.ckpt")
 
@@ -91,8 +91,8 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, matchPruner) ==>
     addPass(enableMapping, placerAndRouter) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple8.dot"))
-    addPass(genPsim, psimAnalyzer).dependsOn(placerAndRouter) ==>
-    addPass(genPsim, psimAnalyzer) //==> // Need to run twice to account for cycle in data flow graph
+    addPass(genPsim, psimAnalyzer).dependsOn(placerAndRouter)
+    //addPass(genPsim, psimAnalyzer) //==> // Need to run twice to account for cycle in data flow graph
     //addPass(genPsim, ctxMerging)
 
     addPass(enableDot, new PIRCtxDotGen(s"simple9.dot"))
@@ -102,7 +102,7 @@ trait PIRApp extends PIR with Logging {
     saveSession("pir/out/pir1.ckpt")
     
     // ------- Codegen  --------
-    addPass(igraphGen).dependsOn(psimAnalyzer)
+    addPass(enableIgraph, igraphGen).dependsOn(psimAnalyzer)
     addPass(genTungsten, tungstenPIRGen).dependsOn(psimAnalyzer)
     addPass(genPsim, prouteLinkGen).dependsOn(psimAnalyzer)
     addPass(genPsim, prouteNodeGen).dependsOn(placerAndRouter, psimAnalyzer)
@@ -147,6 +147,7 @@ trait PIRApp extends PIR with Logging {
       streamOuts.clear
       dramAddrs.clear
       setAnnotation(top)
+      nameSpace.clear
       toc(s"New design", "ms")
     }
   }
@@ -178,7 +179,6 @@ trait PIRApp extends PIR with Logging {
     def sctx(c:String):T = x.to[PIRNode].fold(x) { xx => xx.srcCtx(c); x }
     def name(c:String):T = x.to[PIRNode].fold(x) { xx => xx.name(c); x }
     def setMem(m:Memory):T = x.to[Access].fold(x) { xx => xx.order := m.accesses.size; xx.mem(m) ; x }
-    def sname(c:String):T = x.to[PIRNode].fold(x) { case xx if xx.sname.isEmpty => xx.sname(c); x; case _ => x }
   }
 
   val nameSpace = scala.collection.mutable.Map[String,Any]()
@@ -240,6 +240,15 @@ trait PIRApp extends PIR with Logging {
   def streamOut(fifo:FIFO) = {
     streamOuts += fifo
   }
+
+  //def initDRAMCommand(n:DRAMCommand) = {
+    //val ctrl = ControlTree("Pipelined")
+    //(n.neighbors :+ n).foreach { x =>
+      //val n = x.as[PIRNode]
+      //n.ctrl.reset
+      //n.ctrl(ctrl)
+    //}
+  //}
 
 }
 

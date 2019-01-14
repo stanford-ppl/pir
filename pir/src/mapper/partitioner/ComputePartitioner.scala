@@ -6,7 +6,7 @@ import pir.pass._
 import prism.graph._
 import prism.collection.immutable._
 
-trait ComputePartitioner extends Partitioner with BufferAnalyzer {
+trait ComputePartitioner extends Partitioner with BufferAnalyzer with DependencyAnalyzer {
 
   def getCosts(k:Any, x:Any) = {
     k match {
@@ -68,7 +68,7 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
         val part = Partition(scope.asInstanceOf[List[PIRNode]])
         val parts = split(part, vcost).asInstanceOf[List[Partition]]
         dbg(s"partitions=${parts.size}")
-        val ctxs = within(k.global.get) {
+        val ctxs = within(k.global.get, k.ctrl.get) {
           parts.map { case part@Partition(scope) =>
             val ctx = Context()
             dbg(s"Create $ctx for $part")
@@ -111,12 +111,15 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer {
   def dupDeps(from:Context, to:Context, incost:InputCost) = dbgblk(s"dupDeps($from, $to)") {
     var deps = getDeps(to, visitIn(from))
     val noInput = (incost.sin + incost.vin) == 0
-    if (noInput) {
-      val ins = from.collectDown[LocalOutAccess]()
-      val (vins, sins) = ins.partition { _.getVec > 0 }
-      val in = sins.headOption.getOrElse(vins.head)
-      dbg(s"$to has no input. mirror one input from $from $in")
-      deps ++= in+:getDeps(in, visitIn(from))
+    if (noInput && deps.filter { _.isInstanceOf[Controller] }.isEmpty ) {
+      val ctrlerDeps = getCtrlerDeps(from, visitIn(from))
+      assert(ctrlerDeps.nonEmpty, s"$from has no ctrlers and no inputs")
+      deps ++= ctrlerDeps
+      //val ins = from.collectDown[LocalOutAccess]()
+      //val (vins, sins) = ins.partition { _.getVec > 0 }
+      //val in = sins.headOption.getOrElse(vins.head)
+      //dbg(s"$to has no input. mirror one input from $from $in")
+      //deps ++= in+:getDeps(in, visitIn(from))
     }
     deps = deps.distinct
     val mapping = within(to) { mirrorAll(deps) }

@@ -2,6 +2,7 @@ package pir
 package node
 
 import prism.graph._
+import prism.util._
 
 import scala.collection.mutable
 
@@ -33,13 +34,13 @@ abstract class PIRNode(implicit env:BuildEnvironment)
   }
 
   // Scale is relative rate of a node active to ctx enable
-  val scale = new Metadata[Option[Long]]("scale") {
+  val scale = new Metadata[Value[Long]]("scale") {
     override def mirror(frommeta:MetadataLike[_]) = {}
   }
   // Count is total number of time a node is active
-  val count = new Metadata[Option[Long]]("count")
+  val count = new Metadata[Value[Long]]("count")
   // Iter is how many iteration a node run between enabled and done. Independent of what it stacks on
-  val iter = new Metadata[Option[Long]]("iter")
+  val iter = new Metadata[Value[Long]]("iter")
   val vec = new Metadata[Int]("vec")
 
   env.initNode(this)
@@ -79,6 +80,8 @@ case class ControlTree(schedule:String)(implicit env:Env) extends EnvNode[Contro
     else if (that.isAncestorOf(this)) -1
     else throw PIRException(s"Cannot compare $this with $that")
   }
+
+  def isLeaf = children.isEmpty
 
   env.initNode(this)
 }

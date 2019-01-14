@@ -3,6 +3,7 @@ package pass
 
 import pir.node._
 import prism.graph._
+import prism.util._
 import scala.collection.mutable
 
 trait RuntimeAnalyzer { self:PIRPass =>
@@ -31,9 +32,9 @@ trait RuntimeAnalyzer { self:PIRPass =>
   implicit class PIRNodeRuntimeOp(n:PIRNode) {
     def getCtrl:ControlTree = n.ctrl.get
     def getBound:Option[Int] = n.getMeta[Option[Int]]("bound").getOrElseUpdate(constProp(n).as[Option[Int]])
-    def getScale:Option[Long] = n.scale.getOrElseUpdate(compScale(n))
-    def getIter:Option[Long] = n.iter.getOrElseUpdate(compIter(n))
-    def getCount:Option[Long] = n.count.getOrElseUpdate(compCount(n))
+    def getScale:Value[Long] = n.scale.getOrElseUpdate(compScale(n))
+    def getIter:Value[Long] = n.iter.getOrElseUpdate(compIter(n))
+    def getCount:Value[Long] = n.count.getOrElseUpdate(compCount(n))
 
     def psimState(s:String) = n.getMeta[Float]("psimState").update(s)
     def psimState = n.getMeta[String]("psimState").v
@@ -42,7 +43,6 @@ trait RuntimeAnalyzer { self:PIRPass =>
     def getVec:Int = n.getMeta[Int]("vec").getOrElseUpdate(compVec(n))
   }
 
-  //TODO
   def constProp(n:PIRNode):Option[Any] = dbgblk(s"constProp($n)"){
     n match {
       case Const(v) => Some(v)
@@ -54,64 +54,51 @@ trait RuntimeAnalyzer { self:PIRPass =>
     }
   }
 
-  def compIter(n:PIRNode):Option[Long] = dbgblk(s"compIter($n)"){
+  def compIter(n:PIRNode):Value[Long] = dbgblk(s"compIter($n)"){
     n match {
       case n:Counter if !n.isForever => 
-        val min = n.min.T.get.getBound
-        val max = n.max.T.get.getBound
-        val step = n.step.T.get.getBound
-        zipMap(min, max, step) { case (min, max, step) =>
-          val par = n.par
-          (max - min) /! (step * par)
-        }
+        val min = n.min.T.get.getBound.toValue
+        val max = n.max.T.get.getBound.toValue
+        val step = n.step.T.get.getBound.toValue
+        val par = n.par
+        (max - min) /! (step * par)
       case n:LoopController =>
-        flatReduce(n.cchain.T.map { _.getIter }) { _ * _ }
-      case n:Controller => Some(1l)
+        n.cchain.T.map { _.getIter }.reduce { _ * _ }
+      case n:Controller => Finite(1l)
       case n:FringeDenseLoad =>
-        val size = n.size.T.getBound
-        val dataPar = n.data.T.getVec //TODO:
-        size.map { size => size /! (spadeParam.bytePerWord * dataPar) }
+        val size = n.size.T.getBound.toValue
+        val dataPar = n.data.T.getVec
+        size /! (spadeParam.bytePerWord * dataPar)
       case n:FringeDenseStore =>
-        val size = n.size.T.getBound
-        val dataPar = n.data.T.getVec //TODO
-        size.map { size => size /! (spadeParam.bytePerWord * dataPar) }
-      case n:FringeSparseLoad => Some(1l)
-      case n:FringeSparseStore => Some(1l)
-      case n => None
+        val size = n.size.T.getBound.toValue
+        val dataPar = n.data.T.getVec
+        size /! (spadeParam.bytePerWord * dataPar)
+      case n:FringeSparseLoad => Finite(1l)
+      case n:FringeSparseStore => Finite(1l)
+      case n => Unknown
     }
   }
 
-  def compScale(n:PIRNode):Option[Long] = dbgblk(s"compScale($n)"){
+  def compScale(n:Any):Value[Long] = dbgblk(s"compScale($n)"){
     n match {
-      case n:LocalOutAccess =>
-        n.out.T match {
-          case List(dram:FringeDenseLoad) => dram.getIter.map { _ * n.ctx.get.getScheduleFactor }
-          case List(dram:FringeDenseStore) if n.out.isConnectedTo(dram.data) | n.out.isConnectedTo(dram.valid) => Some(n.ctx.get.getScheduleFactor)
-          case List(dram:FringeDenseStore) if n.out.isConnectedTo(dram.size) | n.out.isConnectedTo(dram.offset) =>
-            dram.getIter.map { _ * n.ctx.get.getScheduleFactor }
-          case List(dram:FringeSparseLoad) => Some(n.ctx.get.getScheduleFactor)
-          case List(dram:FringeSparseStore) => Some(n.ctx.get.getScheduleFactor)
-          case _ => n.done.T.getScale
-        }
-      case n:BufferWrite =>
-        n.data.T match {
-          case data:FringeDenseLoad => Some(n.ctx.get.getScheduleFactor)
-          case data:FringeDenseStore => data.getIter.map { _ * n.ctx.get.getScheduleFactor } // ack
-          case data:FringeSparseLoad => Some(n.ctx.get.getScheduleFactor)
-          case data:FringeSparseStore => Some(n.ctx.get.getScheduleFactor)
-          case data =>  n.done.T.getScale
-        }
-      case n:TokenWrite => n.done.T.getScale
+      case OutputField(n:DRAMDenseCommand, "deqCmd") => n.getIter * n.ctx.get.getScheduleFactor
+      case OutputField(n:FringeSparseLoad, "deqCmd") => Finite(n.ctx.get.getScheduleFactor)
+      case OutputField(n:DRAMLoadCommand, "dataValid") => Finite(n.ctx.get.getScheduleFactor)
+      case OutputField(n:DRAMStoreCommand, "deqData") => Finite(n.ctx.get.getScheduleFactor)
+      case OutputField(n:DRAMDenseCommand, "ackValid") => n.getIter * n.ctx.get.getScheduleFactor
+      case OutputField(n:DRAMSparseCommand, "ackValid") => Finite(n.ctx.get.getScheduleFactor)
+      case OutputField(n:PIRNode, _) => n.getScale 
+      case n:LocalAccess => compScale(assertOne(n.done.connected, s"$n.done.connected"))
       case n:ControllerDone =>
         val ctrler = n.ctrler
-        zipMap(ctrler.getIter, ctrler.valid.T.getScale) { _*_ }
+        ctrler.getIter *  ctrler.valid.T.getScale
       case n:ControllerValid =>
         val ctrler = n.ctrler
         val children = ctrler.valid.T.out.connected.filter { _.asInstanceOf[Field[_]].name == "parentEn" }.map { _.src.as[Controller] }
         assertUnify(children, s"$n.valid.scale") { child =>
-          zipMap(child.valid.T.getScale, child.getIter) { _ * _ }
-        }.getOrElse(Some(n.ctx.get.getScheduleFactor))
-      case _:High => Some(n.ctx.get.getScheduleFactor)
+          child.valid.T.getScale * child.getIter
+        }.getOrElse(Finite(n.ctx.get.getScheduleFactor))
+      case n:High => Finite(n.ctx.get.getScheduleFactor)
       case n => throw PIRException(s"Don't know how to compute scale of $n")
     }
   }
@@ -124,35 +111,71 @@ trait RuntimeAnalyzer { self:PIRPass =>
     }
   }
 
-  def accountForCycle = true
+  //def accountForCycle = true
 
-  def compCount(n:PIRNode):Option[Long] = dbgblk(s"compCount($n)"){
+  /*
+   * Compute count of the context using reads. Return None if reads is empty
+   * and ctrlers nonEmpty
+   * */
+  def countByReads(n:Context):Option[Value[Long]] = {
+    val reads = n.reads
+    val counts = reads.map { read => read.getCount * read.getScale }
+    val (unknown, known) = counts.partition { _.unknown }
+    val (finite, infinite) = known.partition { _.isFinite }
+    if (unknown.nonEmpty) Some(Unknown)
+    else if (finite.nonEmpty) assertIdentical(finite, s"$n.reads.count reads=$reads")
+    else if (infinite.nonEmpty) Some(Infinite)
+    else { // reads is empty
+      val ctrlers = n.collectDown[Controller]()
+      if (ctrlers.isEmpty) throw PIRException(s"$n's ctrlers and reads are empty")
+      else if (ctrlers.exists { _.isForever }) Some(Infinite)
+      else None
+    }
+  }
+
+  def compCount(n:PIRNode):Value[Long] = dbgblk(s"compCount($n)"){
     n match {
-      case n:Context if n.collectDown[HostInController]().nonEmpty => Some(1l)
-      case n:Context if n.collectDown[FringeStreamWrite]().nonEmpty => 
-        val stream = n.collectDown[FringeStreamWrite]().head
-        stream.count.v.getOrElse {
-          throw PIRException(s"No annotation on stream count ${stream.name.v.getOrElse(stream.sname.get)}")
-        }
       case n:Context =>
-        var (readsWithInits, reads) = n.reads.partition { _.initToken.get }
-        if (accountForCycle) {
-          reads = reads ++ readsWithInits
-          if (reads.isEmpty) err(s"$n has no read inputs!")
-        }
-        assertOptionUnify(reads, s"$n.reads=$reads, read.count * read.scale") { read => 
-          zipMap(read.getCount, read.getScale) { _ * _ }
-        }
+        val ctrlers = n.collectDown[Controller]()
+        val reads = n.reads
+        if (ctrlers.isEmpty) countByReads(n).get
+        else ctrlers.map { _.getIter }.reduce { _ * _ }
       case n:LocalOutAccess =>
         n.in.T.getCount
       case n:LocalInAccess =>
-        zipMap(n.ctx.get.getCount, n.getScale) { _ /! _ }
+        n.ctx.get.getCount /! n.getScale
       case n:GlobalInput =>
         n.in.T.getCount
       case n:GlobalOutput =>
         n.in.T.getCount
       case n => throw PIRException(s"Don't know how to compute count of $n")
     }
+    //n match {
+      //case n:Context if n.collectDown[HostInController]().nonEmpty => Finite(1l)
+      //case n:Context if n.collectDown[FringeStreamWrite]().nonEmpty => 
+        //val stream = n.collectDown[FringeStreamWrite]().head
+        //stream.count.v.getOrElse {
+          //throw PIRException(s"No annotation on stream count ${stream.name.v.getOrElse(stream.sname.get)}")
+        //}
+      //case n:Context =>
+        //var (readsWithInits, reads) = n.reads.partition { _.initToken.get }
+        //if (accountForCycle) {
+          //reads = reads ++ readsWithInits
+          //if (reads.isEmpty) err(s"$n has no read inputs!")
+        //}
+        //assertUnify(reads, s"$n.reads=$reads, read.count * read.scale") { read => 
+          //read.getCount * read.getScale
+        //}.get //TODO
+      //case n:LocalOutAccess =>
+        //n.in.T.getCount
+      //case n:LocalInAccess =>
+        //n.ctx.get.getCount /! n.getScale
+      //case n:GlobalInput =>
+        //n.in.T.getCount
+      //case n:GlobalOutput =>
+        //n.in.T.getCount
+      //case n => throw PIRException(s"Don't know how to compute count of $n")
+    //}
   }
 
   def compVec(n:N):Int = dbgblk(s"compVec($n)"){

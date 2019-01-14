@@ -5,7 +5,7 @@ import pir.node._
 import prism.graph._
 import spade.param._
 
-class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
+class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with DependencyAnalyzer {
 
   override def runPass = {
     pirTop.collectDown[Memory]().foreach(lowerMem)
@@ -39,7 +39,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
       groupAccess(mem, accesses).foreach { group =>
         group.head match {
           case _:BankedAccess => lowerBankedAccesses(mem, memCU, group.asInstanceOf[Set[BankedAccess]])
-          case _ => lowerAccesses(mem, memCU, group)
+          case _ => lowerAccess(mem, memCU, assertOne(group, s"$mem.access group"))
         }
       }
     }
@@ -72,10 +72,8 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
     }.toList
   }
 
-  def lowerAccesses(mem:Memory, memCU:MemoryContainer, accesses:Set[Access]) = dbgblk(s"lowerAccesses($mem, $memCU, $accesses)") {
-    assert(accesses.size == 1)
-    val access = accesses.head
-    val mergeCtx = within(memCU) { Context() }
+  def lowerAccess(mem:Memory, memCU:MemoryContainer, access:Access) = dbgblk(s"lowerAccess($mem, $memCU, $access)") {
+    val mergeCtx = within(memCU, access.ctx.get.getCtrl) { Context() }
     swapParent(access, mergeCtx)
     access match {
       case access:MemRead =>
@@ -92,14 +90,14 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
   def lowerBankedAccesses(mem:Memory, memCU:MemoryContainer, accesses:Set[BankedAccess]) = dbgblk(s"lowerBankedAccesses($mem, $memCU, $accesses)") {
     val headAccess = accesses.head
     val mergeCtrl = headAccess.getCtrl
-    val mergeCtx = within(memCU) { Context() }
+    val mergeCtx = within(memCU, headAccess.ctx.get.getCtrl) { Context() }
     dbg(s"mergeCtrl = $mergeCtrl")
     dbg(s"mergeCtx=$mergeCtx")
     within(mergeCtx, mergeCtrl) {
       val inputs = accesses.asInstanceOf[Set[BankedAccess]].map { access =>
         val addrCtx = access match {
           case access if accesses.size == 1 => mergeCtx
-          case access:BankedRead => within(pirTop) { Context() }
+          case access:BankedRead => within(pirTop, access.ctx.get.getCtrl) { Context() }
           case access:BankedWrite => access.ctx.get
         }
         dbg(s"addrCtx for $access = $addrCtx")
@@ -185,7 +183,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
     // Insert token for sequencial control dependency
   def sequencedScheduleBarrierInsertion(mem:Memory) = {
     dbgblk(s"sequencedScheduleBarrierInsertion($mem)") {
-      val ctrls = mem.accesses.flatMap { a => a.getCtrl :: a.getCtrl.ancestors }.distinct.asInstanceOf[Seq[ControlTree]]
+      val ctrls = mem.accesses.flatMap { a => a.getCtrl :: a.getCtrl.ancestors }.distinct.as[Seq[ControlTree]]
       ctrls.foreach { ctrl =>
         if (ctrl.schedule == "Sequenced") {
           val accesses = ctrl.children.flatMap { c => 
@@ -202,7 +200,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
                   from.foreach { fromAccess =>
                     to.foreach { toAccess =>
                       dbg(s"Insert token between $fromAccess ($fromCtrl) and $toAccess ($toCtrl)")
-                      insertToken(fromAccess.ctx.get, toAccess.ctx.get, fromCtrl, toCtrl).depth(1)
+                      insertToken(fromAccess.ctx.get, toAccess.ctx.get).depth(1)
                     }
                   }
                 case _ =>
@@ -235,9 +233,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
               dbg(s"Insert token for multibuffer between $fromAccess and $toAccess")
               val token = insertToken(
                 fromAccess.ctx.get, 
-                toAccess.ctx.get, 
-                ctrlMap(fromAccess.getCtrl).as[ControlTree], 
-                ctrlMap(toAccess.getCtrl).as[ControlTree]
+                toAccess.ctx.get
               )
               val depth = toid - fromid + 1
               dbg(s"$token.depth = $depth")
@@ -258,9 +254,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
           dbg(s"Insert token for data dependency between $inAccess and $outAccess")
           val token = insertToken(
             inAccess.ctx.get, 
-            outAccess.ctx.get, 
-            inAccess.getCtrl.as[ControlTree], 
-            outAccess.getCtrl.as[ControlTree]
+            outAccess.ctx.get
           )
           if (token.depth.isEmpty) {
             token.depth(1)
@@ -279,7 +273,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
     dbgblk(s"fifoBarrierInsertion($mem)") {
       val w = assertOne(mem.inAccesses, s"$mem.inAccesses")
       val r = assertOne(mem.outAccesses, s"$mem.outAccesses")
-      insertToken(w.ctx.get,r.ctx.get,w.getCtrl, r.getCtrl)
+      insertToken(w.ctx.get,r.ctx.get)
     }
   }
 
@@ -289,7 +283,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
        //Insert token between accesses based on program order
       val sorted = accesses.sortBy { _.order.get }
       sorted.sliding(2, 1).foreach {
-        case List(a, b) => insertToken(a.ctx.get,b.ctx.get,a.getCtrl, b.getCtrl)
+        case List(a, b) => insertToken(a.ctx.get,b.ctx.get)
         case List(a) =>
       }
        //Insert token for loop carried dependency
@@ -300,7 +294,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
           if (accesses.nonEmpty) {
             dbg(s"$ctrl accesses = ${accesses}")
             zipOption(accesses.head.to[ReadAccess], accesses.last.to[WriteAccess]).foreach { case (r, w) =>
-              val token = insertToken(w.ctx.get, r.ctx.get, w.getCtrl, r.getCtrl)
+              val token = insertToken(w.ctx.get, r.ctx.get)
               dbg(s"$token.initToken = true")
               token.initToken := true
             }
@@ -315,7 +309,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer {
     mem.outAccesses.foreach { outAccess =>
       within(outAccess.parent.get.as[PIRNode]) {
         val inAccess = mem.inAccesses.head.as[MemWrite]
-        val (enq, deq) = compEnqDeq(inAccess.ctrl.get, outAccess.ctrl.get, mem.isFIFO, inAccess.ctx.get, outAccess.ctx.get)
+        val (enq, deq) = compEnqDeq(mem.isFIFO, inAccess.ctx.get, outAccess.ctx.get, Some(inAccess.data.connected.head.as[Output]), outAccess.out.connected.as[Seq[Input]])
         val write = within(inAccess.parent.get.as[PIRNode], inAccess.ctrl.get) {
           allocate[BufferWrite]{ write => 
             write.data.evalTo(inAccess.data.neighbors) &&

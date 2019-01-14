@@ -183,6 +183,17 @@ trait ScalaUtilFunc {
     def /! (d:Int) = (i + d - 1) / d
   }
 
+  implicit class NumOp[N:Numeric](i:N) {
+    // Round up division
+    def /! (d:N):N = ((i, d) match {
+      case (i:Int,d:Int) => (i + d - 1) / d
+      case (i:Long,d:Long) => (i + d - 1) / d
+      case (i:Double,d:Double) => (i / d).ceil
+      case (i:Float,d:Float) => (i / d).ceil
+      case (_,_) => throw PIRException(s"Don't know how to do roundup div")
+    }).as[N]
+  }
+
   implicit class Tuple2Util[A,B](tuple:(A,B)) {
     def map1[C](func:A => C) = (func(tuple._1), tuple._2)
     def map2[C](func:B => C) = (tuple._1, func(tuple._2))
@@ -199,6 +210,12 @@ trait ScalaUtilFunc {
   }
   implicit class SetUtil[T](s:Set[T]) {
     def contains(x:Any) = s.contains(x.asInstanceOf[T])
+  }
+  implicit class OptionOp[A](o:Option[A]) {
+    def toValue:Value[A] = o match {
+      case None => Unknown
+      case Some(v) => Finite(v)
+    }
   }
 
   def log2(x:Int) = (Math.log(x) / Math.log(2)).ceil.toInt

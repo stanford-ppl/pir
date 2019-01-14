@@ -42,7 +42,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     if (escape(dep, depedCtx)) {
       val read = dbgblk(s"bufferInput(depOut=$dep.$depOut, depedIn=$deped.$depedIn)") {
         val depCtx = dep.ctx.get
-        val (enq, deq) = compEnqDeq(dep.getCtrl, deped.getCtrl, isFIFO=true, depCtx, depedCtx)
+        val (enq, deq) = compEnqDeq(isFIFO=true, depCtx, depedCtx, Some(depOut), List(depedIn))
         val write = within(depCtx, dep.getCtrl) {
           allocate[BufferWrite] { write => 
             write.data.traceInTo(depOut) &&
@@ -124,42 +124,6 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     insertGlobalInput(global)
     insertGlobalOutput(global)
   }
-
-  def bound(visitFunc:N => List[N]):N => List[N] = { n:N =>
-    visitFunc(n).filter{ 
-      case x:Memory => false
-      case x:HostWrite => false
-      case x:LocalInAccess => false
-      //case x:LocalOutAccess => // prevent infinate loop in case of cycle
-        //val from = x.in.T
-        //from != n && !from.isDescendentOf(n)
-      case x:GlobalInput => false
-      case x:GlobalOutput => false
-      case _ => true
-    }
-  }
-
-  def getDeps(
-    x:PIRNode, 
-    visitFunc:N => List[N] = visitGlobalIn _
-  ):Seq[PIRNode] = dbgblk(s"getDeps($x)"){
-    var deps = x.accum(visitFunc=cover[Controller](bound(visitFunc)))
-    deps = deps.filterNot(_ == x)
-    if (compiler.hasRun[DependencyDuplication]) {
-      val ctrlers = deps.collect { case ctrler:Controller => ctrler }
-      val leaf = assertOneOrLess(ctrlers.flatMap { _.leaves }.distinct, 
-        s"leaf of ${ctrlers}")
-      dbg(s"leaf=$leaf")
-      leaf.foreach { leaf =>
-        if (leaf != x) {
-          deps ++= leaf +: (leaf.descendents++getDeps(leaf, visitFunc))
-          deps = deps.distinct
-        }
-      }
-    }
-    deps.as[List[PIRNode]]
-  }
-
 
 }
 

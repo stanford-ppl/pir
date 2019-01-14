@@ -13,6 +13,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("folded-redacc", default=false, "Fold reduction and accumulate operation into a single stage")
   register("stat", default=false, info="Printing statistics")
   register("force-align", default=false, info="Remove control signals that handle unaligned parallalization")
+  register("igraph", default=false, info="Enable igraph codegen")
 
   def arch = option[String]("arch")
   def enableSplitting = option[Boolean]("splitting")
@@ -21,6 +22,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def aggressive_dce = option[Boolean]("ag-dce")
   def printStat = option[Boolean]("stat")
   def forceAlign = option[Boolean]("force-align")
+  def enableIgraph = option[Boolean]("igraph")
 
   /* ------------------- Plastisim --------------------  */
   register[String]("psim-home", default=sys.env.get("PLASTISIM_HOME"), info="Plastisim Home")

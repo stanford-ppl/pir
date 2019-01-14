@@ -4,11 +4,30 @@ package graph
 import scala.collection.mutable
 
 trait Field[T] extends Serializable {
-  val name:String
+  def name:String
   implicit val Ttt:TypeTag[T]
   def update(x:Any):Unit
   def fieldToNodes:Seq[Node[_]]
   def T:T
+  def node:Node[_]
+}
+object Field {
+  def unapply(x:Any):Option[(Node[_], String)] = x match {
+    case x:Field[_] => Some((x.node, x.name))
+    case _ => None
+  }
+}
+object InputField {
+  def unapply(x:Any):Option[(Node[_], String)] = x match {
+    case x:Field[_] with Input => Some((x.node, x.name))
+    case _ => None
+  }
+}
+object OutputField {
+  def unapply(x:Any):Option[(Node[_], String)] = x match {
+    case x:Field[_] with Output => Some((x.node, x.name))
+    case _ => None
+  }
 }
 /*
  * With field node the edges are declared with FieldEdge
@@ -53,6 +72,7 @@ trait FieldNode[N] extends Node[N] { self:N =>
     }
     def evalTo(n:Any) = fieldToNodes.contains(n)
     def evalTo(n:List[Any]) = n.forall { n => fieldToNodes.contains(n) }
+    def node:Node[_] = n
   }
 
   /*
@@ -103,6 +123,4 @@ trait FieldNode[N] extends Node[N] { self:N =>
     }
   }
   
-  //class FieldChild[T:TypeTag](implicit src:Node[_]) extends 
-
 }

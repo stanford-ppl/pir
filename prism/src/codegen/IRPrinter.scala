@@ -4,6 +4,7 @@ package codegen
 import prism.graph._
 
 class BasicIRPrinter(override val dirName:String, val fileName:String, val top:Node[_]) extends Pass()(null) with IRPrinter {
+  override def debug = true
 }
 
 trait IRPrinter extends Pass with DFSTopDownTopologicalTraversal with Codegen {

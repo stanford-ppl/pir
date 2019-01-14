@@ -29,9 +29,9 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     }.foldAt(n.sname.v) { (q, v) => s"$q[$v]" }
       .append("name", n.name.v)
       .append("ctrl", n.ctrl.v)
-      .append("count", n.count.v.flatten)
-      .append("scale", n.scale.v.flatten)
-      .append("iter", n.iter.v.flatten) +
+      .append("count", n.count.v)
+      .append("scale", n.scale.v)
+      .append("iter", n.iter.v) +
       n.srcCtx.v.fold("") { sc => s"\n$sc" }
     }.foldAt(n.to[Counter]) { (q, n) =>
       q.append("min", n.min.T)
@@ -52,9 +52,8 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     }.foldAt(n.to[GlobalInput]) { (q,n) =>
       s"${q}\nfrom:\n${n.in.T}"
     }.foldAt(n.to[Context]) { (q,n) =>
-      val ctrl = n.collectDown[Controller]().map { _.ctrl.get }.maxOptionBy { _.ancestors.size }
-      ctrl.fold(q) { ctrl => s"$q\n${ctrl}" + ctrl.srcCtx.v.fold("") { sc => s"\n$sc" }}
-      .append("sf", n.scheduleFactor)
+      q
+      //.append("sf", n.scheduleFactor)
       .append("active", n.active.v)
       .append("state", n.psimState)
       .append("activeRate", n.activeRate)
@@ -126,7 +125,7 @@ class PIRCtxDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fil
   }
   override def quote(n:Any) = {
     super.quote(n).foldAt(n.to[Context]) { (q,n) =>
-      val accesses = n.collectDown[Access]()
+      val accesses = n.collectDown[BankedAccess]()
       val astr = accesses.map(quote)
       if (astr.nonEmpty) s"$q\n${astr.mkString("\n")}" else q
     }
