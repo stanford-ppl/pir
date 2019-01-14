@@ -60,7 +60,7 @@ trait Session { self:Compiler =>
     if (config.save) {
       val saved = (runner.id, compiler.getDesign)
       saveToFile(saved, path)
-      loadFromFile[(Int, Serializable)](path)
+      //loadFromFile[(Int, Serializable)](path)
     }
   }
 

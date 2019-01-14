@@ -6,47 +6,14 @@ import pir.pass._
 import prism.graph._
 import prism.collection.immutable._
 
-trait ComputePartitioner extends Partitioner with BufferAnalyzer with DependencyAnalyzer {
-
-  def getCosts(k:Any, x:Any) = {
-    k match {
-      case k:ArgFringe => Nil
-      case k:DRAMFringe => Nil
-      case k:MemoryContainer =>
-        //x.getCost[InputCost] ::
-        //x.getCost[OutputCost] ::
-        Nil
-      case k =>
-        x.getCost[StageCost] ::
-        x.getCost[InputCost] ::
-        x.getCost[OutputCost] ::
-        //x.getCost[FIFOCost] ::
-        Nil
-    }
-  }
-
-  override def recover(x:EOption[CUMap]):EOption[CUMap] = {
-    x match {
-      case Left(f@InvalidFactorGraph(fg:CUMap, k:CUMap.K)) =>
-        val vs = fg.freeValuesOf(k)
-        val vcost = vs.map { v => getCosts(k,v) }.maxBy { 
-          case List(StageCost(sc), InputCost(sin, vin), OutputCost(sout,vout)) => 
-            (sc, vin, vout, sin, sout)
-        }
-        dbg(s"Recover $k")
-        dbg(s"value cost=$vcost")
-        val ks = split(k, vcost).toSet
-        info(s"Split $k into ${ks.size} CUs")
-        Right(fg.mapFreeMap { _ - k ++ (ks, vs) })
-      case x => super.recover(x)
-    }
-  }
+trait ComputePartitioner extends CUPruner {
 
   lazy val schedular = new DFSTopologicalTraversal with Schedular {
     val forward = false
   }
-  def split(k:Any, vcost:Any):List[Any] = dbgblk(s"split($k)") {
-    val kcost = getCosts(k, k)
+
+  def split(k:Any, vcost:List[Cost[_]]):List[Any] = dbgblk(s"split($k)") {
+    val kcost = getCosts(k)
     dbg(s"kcost=$kcost")
     k match {
       case k:ComputeContainer =>
@@ -83,7 +50,7 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer with Dependency
         removeNodes(k::k.descendents)
         ctxs
       case k:Partition =>
-        if (!notFit(kcost, vcost)) List(k)
+        if (fit(kcost, vcost)) List(k)
         else {
           val nodes = schedular.scheduleScope(k.scope).asInstanceOf[List[PIRNode]]
           //dbg(s"schedule:")
@@ -97,7 +64,7 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer with Dependency
   def include(n:N) = n match {
     case n:OpNode => true
     case n:LocalInAccess => true
-    //case n:LocalOutAccess => true
+    //case n:LocalOutAccess => true // Not include read so they can be duplicated at each partition
     case n => false
   }
 
@@ -115,11 +82,6 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer with Dependency
       val ctrlerDeps = getCtrlerDeps(from, visitIn(from))
       assert(ctrlerDeps.nonEmpty, s"$from has no ctrlers and no inputs")
       deps ++= ctrlerDeps
-      //val ins = from.collectDown[LocalOutAccess]()
-      //val (vins, sins) = ins.partition { _.getVec > 0 }
-      //val in = sins.headOption.getOrElse(vins.head)
-      //dbg(s"$to has no input. mirror one input from $from $in")
-      //deps ++= in+:getDeps(in, visitIn(from))
     }
     deps = deps.distinct
     val mapping = within(to) { mirrorAll(deps) }
@@ -193,7 +155,7 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer with Dependency
 }
 
 case class Partition(scope:List[PIRNode]) extends {
-  override def toString = s"Partition${hashCode}"
+  override def toString = super.toString
   def deps:Seq[Node[_]] = {
     val descendents = scope.flatMap { n => n :: n.descendents }
     val edges = descendents.toIterator.flatMap { _.localEdges }

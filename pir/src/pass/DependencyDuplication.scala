@@ -23,9 +23,6 @@ trait DependencyAnalyzer extends PIRPass with Transformer {
       case x:Memory => false
       case x:HostWrite => false
       case x:LocalInAccess => false
-      //case x:LocalOutAccess => // prevent infinate loop in case of cycle
-        //val from = x.in.T
-        //from != n && !from.isDescendentOf(n)
       case x:GlobalInput => false
       case x:GlobalOutput => false
       case _ => true
