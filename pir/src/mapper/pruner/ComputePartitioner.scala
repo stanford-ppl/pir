@@ -10,19 +10,14 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer with Dependency
 
   def getCosts(x:Any):List[Cost[_]] = {
     x match {
-      case x:ComputeContainer =>
+      case _:MemoryContainer => Nil
+      case _:DRAMFringe => Nil
+      case x => 
         x.getCost[StageCost] ::
         x.getCost[InputCost] ::
         x.getCost[OutputCost] ::
         //x.getCost[FIFOCost] ::
         Nil
-      case x:CUMap.V =>
-        x.getCost[StageCost] ::
-        x.getCost[InputCost] ::
-        x.getCost[OutputCost] ::
-        //x.getCost[FIFOCost] ::
-        Nil
-      case x => Nil
     }
   }
 
@@ -38,6 +33,7 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer with Dependency
         dbg(s"value cost=$vcost")
         val ks = split(k, vcost).toSet
         info(s"Split $k into ${ks.size} CUs")
+        assert(ks.size > 1, s"$k not partitioned")
         Right(fg.mapFreeMap { _ - k ++ (ks, vs) })
       case x => super.recover(x)
     }
@@ -99,7 +95,7 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer with Dependency
   def include(n:N) = n match {
     case n:OpNode => true
     case n:LocalInAccess => true
-    //case n:LocalOutAccess => true
+    //case n:LocalOutAccess => true // Not include read so they can be duplicated at each partition
     case n => false
   }
 
@@ -117,11 +113,6 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer with Dependency
       val ctrlerDeps = getCtrlerDeps(from, visitIn(from))
       assert(ctrlerDeps.nonEmpty, s"$from has no ctrlers and no inputs")
       deps ++= ctrlerDeps
-      //val ins = from.collectDown[LocalOutAccess]()
-      //val (vins, sins) = ins.partition { _.getVec > 0 }
-      //val in = sins.headOption.getOrElse(vins.head)
-      //dbg(s"$to has no input. mirror one input from $from $in")
-      //deps ++= in+:getDeps(in, visitIn(from))
     }
     deps = deps.distinct
     val mapping = within(to) { mirrorAll(deps) }
@@ -195,7 +186,7 @@ trait ComputePartitioner extends Partitioner with BufferAnalyzer with Dependency
 }
 
 case class Partition(scope:List[PIRNode]) extends {
-  override def toString = s"Partition${hashCode}"
+  override def toString = super.toString
   def deps:Seq[Node[_]] = {
     val descendents = scope.flatMap { n => n :: n.descendents }
     val edges = descendents.toIterator.flatMap { _.localEdges }
