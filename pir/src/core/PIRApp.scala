@@ -102,7 +102,7 @@ trait PIRApp extends PIR with Logging {
     saveSession("pir/out/pir1.ckpt")
     
     // ------- Codegen  --------
-    addPass(igraphGen).dependsOn(psimAnalyzer)
+    addPass(enableIgraph, igraphGen).dependsOn(psimAnalyzer)
     addPass(genTungsten, tungstenPIRGen).dependsOn(psimAnalyzer)
     addPass(genPsim, prouteLinkGen).dependsOn(psimAnalyzer)
     addPass(genPsim, prouteNodeGen).dependsOn(placerAndRouter, psimAnalyzer)
@@ -188,7 +188,7 @@ trait PIRApp extends PIR with Logging {
     x.to[PIRNode].foreach { x =>
       if (x.sname.isEmpty) x.sname(name)
     }
-    x.to[DRAMCommand].foreach { x => initDRAMCommand(x) }
+    //x.to[DRAMCommand].foreach { x => initDRAMCommand(x) }
     x
   }
 
@@ -252,14 +252,14 @@ trait PIRApp extends PIR with Logging {
     streamOuts += fifo
   }
 
-  def initDRAMCommand(n:DRAMCommand) = {
-    val ctrl = ControlTree("Pipelined")
-    (n.neighbors :+ n).foreach { x =>
-      val n = x.as[PIRNode]
-      n.ctrl.reset
-      n.ctrl(ctrl)
-    }
-  }
+  //def initDRAMCommand(n:DRAMCommand) = {
+    //val ctrl = ControlTree("Pipelined")
+    //(n.neighbors :+ n).foreach { x =>
+      //val n = x.as[PIRNode]
+      //n.ctrl.reset
+      //n.ctrl(ctrl)
+    //}
+  //}
 
 }
 
