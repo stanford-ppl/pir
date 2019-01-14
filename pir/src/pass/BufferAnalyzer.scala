@@ -125,8 +125,6 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     insertGlobalOutput(global)
   }
 
-
-
 }
 
 class BufferInsertion(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with BufferAnalyzer {

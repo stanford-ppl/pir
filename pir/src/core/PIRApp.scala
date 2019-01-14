@@ -91,8 +91,8 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, matchPruner) ==>
     addPass(enableMapping, placerAndRouter) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple8.dot"))
-    addPass(genPsim, psimAnalyzer).dependsOn(placerAndRouter) ==>
-    addPass(genPsim, psimAnalyzer) //==> // Need to run twice to account for cycle in data flow graph
+    addPass(genPsim, psimAnalyzer).dependsOn(placerAndRouter)
+    //addPass(genPsim, psimAnalyzer) //==> // Need to run twice to account for cycle in data flow graph
     //addPass(genPsim, ctxMerging)
 
     addPass(enableDot, new PIRCtxDotGen(s"simple9.dot"))

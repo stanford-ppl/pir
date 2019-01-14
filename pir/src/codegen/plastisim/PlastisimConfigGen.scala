@@ -3,12 +3,15 @@ package codegen
 
 import pir.node._
 import prism.graph._
+import prism.util._
 import spade.param._
 
 class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with PIRTraversal {
 
   val fileName = configName
   val forward = true
+
+  val infCount = 1000000
 
   override def emitNode(n:N) = {
     n match {
@@ -103,10 +106,10 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
     }
     emitStartToken(n)
     emitStopToken(n)
-    n.count.v.flatten.fold {
-      emitln(s"# count not exists")
-    } { c =>
-      emitln(s"count = $c")
+    n.count.get match {
+      case Unknown => emitln(s"# count not exists")
+      case Finite(c) => emitln(s"count = $c")
+      case Infinite => emitln(s"count = $infCount # count is nfinite")
     }
   }
 
@@ -128,9 +131,12 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
   }
 
   def emitStartToken(n:Context) = {
-    val isHostIn = n.collectDown[HostInController]().nonEmpty
-    if (isHostIn) {
-      emitln(s"start_at_tokens = 1")
+    if (n.reads.isEmpty) {
+      n.count.get match {
+        case Unknown => err(s"count of $n with no inputs unknown")
+        case Finite(c) => emitln(s"start_at_tokens = $c")
+        case Infinite => emitln(s"start_at_tokens = $infCount")
+      }
     } else {
       n.reads.zipWithIndex.foreach { case (read, idx) =>
         if (read.initToken.get) {
@@ -190,10 +196,10 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
       dsts.zipWithIndex.foreach { case (dst,idx) =>
         emitln(s"dst[$idx] = ${quote(dst)}")
       }
-      n.count.v.flatten.fold {
-        emitln(s"# count doen't exist")
-      } { c =>
-        emitln(s"count = $c")
+      n.count.get match {
+        case Unknown => emitln(s"# count not exists")
+        case Finite(c) => emitln(s"count = $c")
+        case Infinite => emitln(s"count = $infCount # count is nfinite")
       }
       if (isLocalLink) {
         dsts.zipWithIndex.foreach { case (dst, dstIdx) =>

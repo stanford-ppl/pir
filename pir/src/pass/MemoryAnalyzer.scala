@@ -34,18 +34,20 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
     val o = octx.ctrl.get
     val i = ictx.ctrl.get
     dbgblk(s"compEnqDeq(isFIFO=$isFIFO, out=$from.$out, ins=${ins.map { in => s"${in.src}.$in"}.mkString(",")})") {
-      (from, to) match {
-        case (from, List(to:DRAMDenseCommand)) if ins.head == to.offset | ins.head == to.size => 
+      (out, ins) match {
+        case (out, List(InputField(to:DRAMDenseCommand, "offset"))) => 
           (ctrlValid(o, octx), to.deqCmd)
-        case (from, List(to:DRAMSparseCommand)) if ins.head == to.addr => 
+        case (out, List(InputField(to:DRAMDenseCommand, "size"))) => 
           (ctrlValid(o, octx), to.deqCmd)
-        case (from, List(to:DRAMStoreCommand)) if ins.head == to.data => 
+        case (out, List(InputField(to:DRAMSparseCommand, "addr"))) => 
+          (ctrlValid(o, octx), to.deqCmd)
+        case (out, List(InputField(to:DRAMStoreCommand, "data"))) => 
           (ctrlValid(o, octx), to.deqData)
-        case (from, List(to:FringeDenseStore)) if ins.head == to.valid => 
+        case (out, List(InputField(to:FringeDenseStore, "valid"))) => 
           (ctrlValid(o, octx), to.deqData)
-        case (Some(from:DRAMLoadCommand), to) if out.get == from.data => 
+        case (Some(OutputField(from:DRAMLoadCommand, "data")), to) => 
           (from.dataValid, ctrlValid(i, ictx))
-        case (Some(from:DRAMStoreCommand), to) if out.get == from.ack => 
+        case (Some(OutputField(from:DRAMStoreCommand, "ack")), to) => 
           (from.ackValid, ctrlValid(i, ictx))
         case (_,_) if isFIFO =>
           (ctrlValid(o, octx), ctrlValid(i, ictx))

@@ -140,6 +140,8 @@ abstract class Controller(implicit env:Env) extends PIRNode {
 
   val valid = new ChildField[ControllerValid, ControllerValid]("valid")
   val done = new ChildField[ControllerDone, ControllerDone]("cchain")
+
+  def isForever = this.collectDown[Counter]().exists { _.isForever }
 }
 case class ControllerDone()(implicit env:Env) extends Def {
   def ctrler = this.collectUp[Controller]().head
