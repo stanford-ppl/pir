@@ -6,28 +6,36 @@ import prism.graph._
 import spade.param._
 import prism.collection.immutable._
 
-class ComputePruner(implicit compiler:PIR) extends ConstrainPruner with CUCostUtil with ComputePartitioner {
+class ComputePruner(implicit compiler:PIR) extends CUPruner with ComputePartitioner {
 
-  override def prune[T](x:T):EOption[T] = super.prune[T](x).flatMap {
-    case x:CUMap if !spadeParam.isAsic =>
-      flatFold(x.freeKeys, x) { case (x, k) =>
-        val kc = getCosts(k)
-        recover(x.filterNotAtKey(k) { v => notFit(kc, getCosts(v)) })
-      }.asInstanceOf[EOption[T]]
-    case x => super.prune(x)
+  def getCosts(x:Any):List[Cost[_]] = {
+    x match {
+      case _:MemoryContainer => Nil
+      case _:DRAMFringe => Nil
+      case x => 
+        x.getCost[StageCost] ::
+        x.getCost[InputCost] ::
+        x.getCost[OutputCost] ::
+        //x.getCost[FIFOCost] ::
+        Nil
+    }
   }
 
-  override def fail(f:Any) = {
-    super.fail(f)
-    f match {
-      case e@InvalidFactorGraph(fg, k:CUMap.K) =>
-        err(s"Constrain failed on $k", exception=false)
-        err(s"$k costs:", exception=false)
-        val kc = getCosts(k)
-        kc.foreach { kc =>
-          err(s"${kc}:", exception=false)
+  override def recover(x:EOption[CUMap]):EOption[CUMap] = {
+    x match {
+      case Left(f@InvalidFactorGraph(fg:CUMap, k:CUMap.K)) =>
+        val vs = fg.freeValuesOf(k)
+        val kcost = getCosts(k)
+        val vcost = vs.map { v => getCosts(v) }.maxBy { 
+          case List(StageCost(sc), InputCost(sin, vin), OutputCost(sout,vout)) => 
+            (sc, vin, vout, sin, sout)
         }
-      case _ =>
+        dbg(s"Recover $k")
+        dbg(s"kcost=$kcost")
+        dbg(s"vcost=$vcost")
+        val ks = split(k, vcost).toSet.as[Set[CUMap.K]]
+        newFG(fg, k, ks, vs)
+      case x => super.recover(x)
     }
   }
 

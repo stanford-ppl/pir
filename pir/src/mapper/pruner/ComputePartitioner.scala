@@ -6,41 +6,7 @@ import pir.pass._
 import prism.graph._
 import prism.collection.immutable._
 
-trait ComputePartitioner extends Partitioner with BufferAnalyzer with DependencyAnalyzer {
-
-  def getCosts(x:Any):List[Cost[_]] = {
-    x match {
-      case _:MemoryContainer => Nil
-      case _:DRAMFringe => Nil
-      case x => 
-        x.getCost[StageCost] ::
-        x.getCost[InputCost] ::
-        x.getCost[OutputCost] ::
-        //x.getCost[FIFOCost] ::
-        Nil
-    }
-  }
-
-  override def recover(x:EOption[CUMap]):EOption[CUMap] = {
-    x match {
-      case Left(f@InvalidFactorGraph(fg:CUMap, k:CUMap.K)) =>
-        val vs = fg.freeValuesOf(k)
-        val vcost = vs.map { v => getCosts(v) }.maxBy { 
-          case List(StageCost(sc), InputCost(sin, vin), OutputCost(sout,vout)) => 
-            (sc, vin, vout, sin, sout)
-        }
-        dbg(s"Recover $k vcost=$vcost")
-        val ks = split(k, vcost).toSet
-        info(s"Split $k into ${ks.size} CUs")
-        assert(ks.size > 1, s"$k not partitioned")
-        ks.foreach { k => 
-          val kcost = getCosts(k)
-          assert(fit(kcost, vcost), s"After splitting $k's cost $kcost > vcost=$vcost")
-        }
-        Right(fg.mapFreeMap { _ - k ++ (ks, vs) })
-      case x => super.recover(x)
-    }
-  }
+trait ComputePartitioner extends CUPruner {
 
   lazy val schedular = new DFSTopologicalTraversal with Schedular {
     val forward = false
