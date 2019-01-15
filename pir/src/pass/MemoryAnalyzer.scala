@@ -7,21 +7,19 @@ import prism.graph._
 
 trait MemoryAnalyzer extends PIRPass with Transformer {
 
-  val tokenBufferDepth = 32 //TODO
-
   def insertToken(fctx:Context, tctx:Context):TokenRead = {
     val fctrl = fctx.ctrl.get
     val tctrl = tctx.ctrl.get
     dbgblk(s"InsertToken(fctx=$fctx($fctrl), tctx=$tctx($tctrl))") {
       val (enq, deq) = compEnqDeq(isFIFO=false, fctx, tctx, None, Nil)
       val write = within(fctx, fctrl) {
-        allocate[TokenWrite](_.done.evalTo(enq)) {
+        allocate[TokenWrite](_.done.isConnectedTo(enq)) {
           TokenWrite().done(enq)
         }
       }
       dbg(s"add $write")
       within(tctx, tctrl) {
-        allocate[TokenRead](read => read.in.evalTo(write) && read.done.evalTo(deq)) {
+        allocate[TokenRead](read => read.in.isConnectedTo(write.out) && read.done.isConnectedTo(deq)) {
           TokenRead().in(write).done(deq)
         }
       }

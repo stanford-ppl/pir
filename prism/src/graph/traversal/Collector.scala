@@ -113,5 +113,15 @@ trait CollectorImplicit {
         new PrefixTraversal[List[M]](prefix, visitFunc, accumulate _, Nil, logger).traverseNodes(nodes, Nil)
       }
 
+    def canReach(target:Edge, visitEdges:N => List[Edge], depth:Int= -1, logger:Option[Logging]=None):Boolean = 
+      dbgblk(logger, s"canReach($target, depth=$depth)"){
+        def prefix(n:N) = visitEdges(n).exists { _.connected.contains(target) }
+        def accumulate(prev:Boolean, n:N) = prefix(n) || prev
+        def vf(n:N):List[N] = visitEdges(n).flatMap { _.neighbors }.distinct
+        val nodes = edge.neighbors.map { n => (n, depth) }
+        edge.connected.contains(target) || 
+        new PrefixTraversal[Boolean](prefix, vf _, accumulate _, false, logger).traverseNodes(nodes, false)
+      }
   }
+
 }

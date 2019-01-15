@@ -35,6 +35,14 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     }
   }
 
+  private def visitInEdges(n:N):List[E] = n match {
+    case n:BufferRead => List(n.in)
+    case n:BufferWrite => List(n.data)
+    case n:GlobalInput => List(n.in)
+    case n:GlobalOutput => List(n.in)
+    case n => Nil
+  }
+
   private def bufferInput(depOut:Output, depedIn:Input):Option[BufferRead] = {
     val dep = depOut.src.as[PIRNode]
     val deped = depedIn.src.as[PIRNode]
@@ -45,16 +53,16 @@ trait BufferAnalyzer extends MemoryAnalyzer {
         val (enq, deq) = compEnqDeq(isFIFO=true, depCtx, depedCtx, Some(depOut), List(depedIn))
         val write = within(depCtx, dep.getCtrl) {
           allocate[BufferWrite] { write => 
-            write.data.traceInTo(depOut) &&
-            write.done.traceInTo(enq)
+            write.data.canReach(depOut, visitEdges=visitInEdges _) &&
+            write.done.canReach(enq, visitEdges=visitInEdges _)
           } {
             BufferWrite().data(depOut).done(enq)
           }
         }
         val read = within(depedCtx, deped.getCtrl) {
           allocate[BufferRead] { read => 
-            read.in.traceInTo(write.out) &&
-            read.done.traceInTo(deq)
+            read.in.canReach(write.out, visitEdges=visitInEdges _) &&
+            read.done.canReach(deq, visitEdges=visitInEdges _)
           } {
             BufferRead().in(write.out).done(deq).banks(List(dep.getVec))
           }
