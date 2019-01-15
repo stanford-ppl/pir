@@ -7,7 +7,7 @@ import prism.graph.implicits._
 
 import scala.collection.mutable
 
-class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with Transformer with DFSBottomUpTopologicalTraversal with UnitTraversal {
+class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with Transformer with BFSBottomUpTopologicalTraversal with UnitTraversal {
 
   val forward = false
 
@@ -63,8 +63,6 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with Trans
     case n:HostWrite => Some(true)
     case n:TokenRead => Some(true)
     case n:FringeStreamRead => Some(true)
-    //case n:ProcessStreamOut => Some(true)
-    //case n:ProcessControlToken => Some(true)
     case n:HostInController => Some(true)
     case n:Controller if !depDupHasRun => Some(true)
     case n => None
