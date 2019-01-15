@@ -80,7 +80,6 @@ trait Def extends PIRNode with DefNode[PIRNode] {
 }
 
 case class Const(value:Any)(implicit env:Env) extends Def
-case class High()(implicit env:Env) extends Def
 trait OpNode extends PIRNode
 case class OpDef(op:Opcode)(implicit env:Env) extends OpNode with Def {
   val input = new InputField[List[PIRNode]]("input")

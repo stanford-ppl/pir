@@ -222,4 +222,10 @@ trait ScalaUtilFunc {
 
   final val SINGLE_PRECISION = 32
 
+  case class MatchRule[A:ClassTag, B](lambda:A => Option[B]) {
+    def unapply(x:Any):Option[B] = x match {
+      case x:A => lambda(x)
+      case _ => None
+    }
+  }
 }

@@ -78,6 +78,16 @@ trait Transformer extends Logging {
   }
 
   /*
+   * Find usage of from and change it to to
+   * */
+  def swapOutput(from:Output, to:Output) = {
+    dbg(s"swapOutput ${from.src}.$from to ${to.src}.$to")
+    from.connected.distinct.foreach { in =>
+      swapConnection(in.as[Input], from, to)
+    }
+  }
+
+  /*
    * Find connection between n1 and n2, and insert new connection such that
    * n1.old connection -> e1 and n2.old conection -> e2
    * */

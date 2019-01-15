@@ -22,7 +22,7 @@ abstract class Pass(implicit val compiler:Compiler) extends Logging {
 
   def runPass:Unit = {
     this match {
-      case self:TopDownTraversal => self.traverseTop
+      case self:HierarchicalTraversal => self.traverseTop
       case _ =>
     }
   }

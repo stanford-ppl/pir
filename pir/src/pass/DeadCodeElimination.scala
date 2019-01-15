@@ -7,6 +7,7 @@ import prism.graph.implicits._
 
 import scala.collection.mutable
 
+// BFS is slightly faster than DFS
 class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with Transformer with BFSBottomUpTopologicalTraversal with UnitTraversal {
 
   val forward = false

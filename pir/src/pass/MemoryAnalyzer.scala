@@ -57,8 +57,10 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
           val iAncesstors = (i::i.ancestors)
           val oidx = oAncesstors.indexOf(lca)
           val iidx = iAncesstors.indexOf(lca)
-          val octrl = oAncesstors(oidx-1).as[ControlTree]
-          val ictrl = iAncesstors(iidx-1).as[ControlTree]
+          // Use def to prevent evaluation outside if statement to prevent idx out of bound
+          // in case of one ctrl is ancesstor of another
+          def octrl = oAncesstors(oidx-1).as[ControlTree]
+          def ictrl = iAncesstors(iidx-1).as[ControlTree]
           if (lca == o)      (ctrlValid(o, octx), ctrlDone(ictrl, ictx))
           else if (lca == i) (ctrlDone(octrl, octx), ctrlValid(i, ictx))
           else               (ctrlDone(octrl, octx), ctrlDone(ictrl, ictx))
@@ -75,7 +77,7 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
       assertOneOrLess(ctx.collectDown[ControllerValid]().filter { _.ctrl.get == ctrl }, 
         s"ctrlValid with ctrl=$ctrl in $ctx").getOrElse {
           assert(this.isInstanceOf[ComputePartitioner], s"$ctx has no ControllerValid for $ctrl")
-          within(ctx, ctrl) { allocate[High]() { High() } }
+          within(ctx, ctrl) { allocConst(true) }
         }.out
     }
   }
@@ -98,10 +100,18 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
     val ct = implicitly[ClassTag[T]]
     val container = stackTop[PIRParent].getOrElse(throw PIRException(s"allocate[$ct] outside PIRParent env")).as[PIRNode]
     val nodes = container.collectDown[T]().filter(filter)
-    assertOneOrLess(nodes, s"$ct under $container").getOrElse {
-      val node = within(container) { newNode }
-      dbg(s"allocate[$ct](container=$container) = ${quote(node)}")
-      node
+    if (classTag[T] == classTag[Const]) {
+      nodes.headOption.getOrElse {
+        val node = within(container) { newNode }
+        dbg(s"allocate[$ct](container=$container) = ${quote(node)}")
+        node
+      }
+    } else {
+      assertOneOrLess(nodes, s"$ct under $container").getOrElse {
+        val node = within(container) { newNode }
+        dbg(s"allocate[$ct](container=$container) = ${quote(node)}")
+        node
+      }
     }
   }
 

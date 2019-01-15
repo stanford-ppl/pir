@@ -31,7 +31,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
 
   implicit class PIRNodeRuntimeOp(n:PIRNode) {
     def getCtrl:ControlTree = n.ctrl.get
-    def getBound:Option[Int] = n.getMeta[Option[Int]]("bound").getOrElseUpdate(constProp(n).as[Option[Int]])
+    def getBound:Option[Int] = n.getMeta[Option[Int]]("bound").getOrElseUpdate(boundProp(n).as[Option[Int]])
     def getScale:Value[Long] = n.scale.getOrElseUpdate(compScale(n))
     def getIter:Value[Long] = n.iter.getOrElseUpdate(compIter(n))
     def getCount:Value[Long] = n.count.getOrElseUpdate(compCount(n))
@@ -43,7 +43,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
     def getVec:Int = n.getMeta[Int]("vec").getOrElseUpdate(compVec(n))
   }
 
-  def constProp(n:PIRNode):Option[Any] = dbgblk(s"constProp($n)"){
+  def boundProp(n:PIRNode):Option[Any] = dbgblk(s"boundProp($n)"){
     n match {
       case Const(v) => Some(v)
       case n:BufferRead => n.in.T.getBound
@@ -98,7 +98,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
         assertUnify(children, s"$n.valid.scale") { child =>
           child.valid.T.getScale * child.getIter
         }.getOrElse(Finite(n.ctx.get.getScheduleFactor))
-      case n:High => Finite(n.ctx.get.getScheduleFactor)
+      case n@Const(true) => Finite(n.ctx.get.getScheduleFactor)
       case n => throw PIRException(s"Don't know how to compute scale of $n")
     }
   }

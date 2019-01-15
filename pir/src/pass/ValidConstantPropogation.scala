@@ -4,7 +4,7 @@ package pass
 import pir.node._
 import prism.graph._
 
-class ValidConstantPropogation(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with Transformer {
+class ValidConstantPropogation(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with Transformer with MemoryAnalyzer {
 
   override def visitNode(n:N) = {
     n match {
@@ -42,11 +42,11 @@ class ValidConstantPropogation(implicit compiler:PIR) extends PIRTraversal with 
         dbg(s"None constant loop bounds min=$min, step=$step, max=$max, par=$par (0 until 1)")
         (0 until 1)
     }
-    range.foreach { i =>
-      val edge = counter.valids(i).out
-      edge.connected.foreach { c =>
-        dbg(s"disconnect valid($i) from ${c.src}.$c")
-        edge.disconnectFrom(c)
+    if (range.nonEmpty) {
+      val const = within(pirTop, counter.ctrl.get) { allocConst(true) }
+      range.foreach { i =>
+        val out = counter.valids(i).out
+        swapOutput(out, const.out)
       }
     }
   }
