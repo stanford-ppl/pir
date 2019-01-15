@@ -30,8 +30,8 @@ trait Edge extends IR {
 
   def disconnectFrom(e:Edge):Unit = {
     assert(this.isConnectedTo(e), s"$this is not connected to $e. this.connected=$connected")
-    _connected -= e
-    e._connected -= this
+    while (_connected.contains(e)) _connected -= e
+    while (e._connected.contains(this)) e._connected -= this
   }
   def disconnect = connected.foreach(disconnectFrom)
 
