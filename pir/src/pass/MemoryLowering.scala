@@ -314,7 +314,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           allocate[BufferWrite]{ write => 
             write.data.evalTo(inAccess.data.neighbors) &&
             write.en.evalTo(inAccess.en.neighbors) && 
-            write.done.evalTo(enq)
+            write.done.isConnectedTo(enq)
           } {
             val write = BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(inAccess.en.T).done(enq)
             dbg(s"create $write.data(${inAccess.data.neighbors}).done(${write.done.T})")

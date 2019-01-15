@@ -56,7 +56,8 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
       //.append("sf", n.scheduleFactor)
       .append("active", n.active.v)
       .append("state", n.psimState)
-      .append("activeRate", n.activeRate)
+      .append("activeRate", n.activeRate) + 
+      n.ctrl.get.srcCtx.v.fold("") { sc => s"\n$sc" }
     }
   }
 
