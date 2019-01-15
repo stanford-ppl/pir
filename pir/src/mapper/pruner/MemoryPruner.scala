@@ -138,9 +138,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner {
             }.toList
           }
           val List(out) = red.toList
-          shuffle.out.connected.distinct.foreach { in =>
-            swapConnection(in.as[Input], shuffle.out, out)
-          }
+          swapOutput(shuffle.out, out)
         }
       }
     }

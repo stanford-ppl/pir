@@ -12,6 +12,7 @@ trait PIRApp extends PIR with Logging {
   /* Analysis and Transformations*/
 
   lazy val deadCodeEliminator = new DeadCodeElimination()
+  lazy val constProp = new ConstantPropogation()
   lazy val memLowering = new MemoryLowering()
   lazy val contextAnalyzer = new ContextAnalyzer()
   lazy val contextInsertion = new ContextInsertion()
@@ -54,12 +55,13 @@ trait PIRApp extends PIR with Logging {
     addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
     addPass(enableDot, new ControlTreeHtmlIRPrinter(s"ctrl.html"))
     addPass(enableDot, new PIRIRDotGen(s"top1.dot"))
-    addPass(deadCodeEliminator)
     addPass(enableTrace && genPsim, dramTraceGen)
     addPass(controlPropogator)
     addPass(enableDot, new PIRIRDotGen(s"top2.dot"))
     addPass(validProp) ==>
+    addPass(constProp) ==>
     addPass(enableRouteElim, routeThroughEliminator)
+    addPass(deadCodeEliminator) ==>
     addPass(enableDot, new PIRIRDotGen(s"top3.dot"))
     addPass(contextInsertion).dependsOn(controlPropogator) ==>
     addPass(enableDot, new PIRIRDotGen(s"top4.dot"))
@@ -68,7 +70,8 @@ trait PIRApp extends PIR with Logging {
     addPass(enableDot, new PIRIRDotGen(s"top5.dot"))
     addPass(enableDot, new PIRCtxDotGen(s"simple5.dot"))
     addPass(depDuplications).dependsOn(memLowering)
-    addPass(routeThroughEliminator) ==>
+    addPass(enableRouteElim, routeThroughEliminator) ==>
+    addPass(constProp) ==>
     addPass(deadCodeEliminator) ==>
     //addPass(contextAnalyzer) ==>
     addPass(enableDot, new PIRIRDotGen(s"top6.dot"))
