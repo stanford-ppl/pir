@@ -11,7 +11,7 @@ class ValidConstantPropogation(implicit compiler:PIR) extends PIRTraversal with 
       case n:Counter => propogate(n)
       case n => 
         val ens = n.localIns.filter { in => 
-          in.asInstanceOf[Field[_]].name == "en"
+          in.as[Field[_]].name == "en"
         }
         ens.foreach { propogateEn }
     }
