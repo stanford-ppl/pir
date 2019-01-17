@@ -39,6 +39,17 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with Trans
       if (ctrler.nonEmpty) List(ctrler.head) else super.depFunc(n)
   }
 
+  // Breaking loop in traversal
+  override def visitIn(n:N):List[N] = n match {
+    case n:LocalOutAccess => n.in.neighbors
+    case n => super.visitIn(n)
+  }
+
+  override def visitOut(n:N):List[N] = super.visitOut(n).filter {
+    case x:LocalOutAccess => x.in.isConnectedTo(n)
+    case x => true
+  }
+
   def depedsExistsLive(n:N):Boolean = {
     val depeds = depFunc(n)
     val (analyzedDepeds, unanalyzedDepeds) = depeds.partition { deped => isLive(deped).nonEmpty }

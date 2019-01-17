@@ -207,6 +207,10 @@ trait ScalaUtilFunc {
       if (x.isEmpty) None else Some(x.maxBy(func))
     def minOptionBy[O:Ordering](func:T => O):Option[T] = 
       if (x.isEmpty) None else Some(x.minBy(func))
+    def tryFilter(lambda:T => Boolean):Iterable[T] = {
+      val filtered = x.filter(lambda)
+      if (filtered.isEmpty) x else filtered
+    }
   }
   implicit class SetUtil[T](s:Set[T]) {
     def contains(x:Any) = s.contains(x.asInstanceOf[T])

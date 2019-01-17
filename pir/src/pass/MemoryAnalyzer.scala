@@ -99,19 +99,17 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
   )(newNode: => T):T = {
     val ct = implicitly[ClassTag[T]]
     val container = stackTop[PIRParent].getOrElse(throw PIRException(s"allocate[$ct] outside PIRParent env")).as[PIRNode]
-    val nodes = container.collectDown[T]().filter(filter)
-    if (classTag[T] == classTag[Const]) {
-      nodes.headOption.getOrElse {
-        val node = within(container) { newNode }
-        dbg(s"allocate[$ct](container=$container) = ${quote(node)}")
-        node
-      }
-    } else {
-      assertOneOrLess(nodes, s"$ct under $container").getOrElse {
-        val node = within(container) { newNode }
-        dbg(s"allocate[$ct](container=$container) = ${quote(node)}")
-        node
-      }
+    (container, classTag[T]) match {
+      case (container:Top, ct) if ct == classTag[Const] => newNode // allocation is too expensive performance-wise, just get a new one
+      case (container, ct) if ct == classTag[Const] => 
+        container.children.find { case c:T => filter(c); case _ => false }.getOrElse { newNode }.as[T]
+      case _ =>
+        val nodes = container.collectDown[T]().filter(filter)
+        assertOneOrLess(nodes, s"$ct under $container").getOrElse {
+          val node = within(container) { newNode }
+          dbg(s"allocate[$ct](container=$container) = ${quote(node)}")
+          node
+        }
     }
   }
 
