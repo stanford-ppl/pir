@@ -32,6 +32,10 @@ trait Traversal extends Logging {
   var _scope:Option[List[N]] = None
   def withinScope(n:N) = _scope.map { _.contains(n) }.getOrElse(true)
   def scope = _scope.get
+  def addAndVisitNode(n:N, prev:T) = { 
+    _scope = Some(n::_scope.get)
+    markVisitNode(n, prev)
+  }
 
   def resetTraversal = {
     visited.clear
@@ -151,24 +155,17 @@ trait TopologicalTraversal extends GraphTraversal {
   }
 
   def selectFrontier(unvisited:List[N]) = {
-    var breakingPoints = unvisited
-    breakingPoints = filtering(breakingPoints){ 
-      _.filter { n => frontier.contains(n) }
-    }
-    breakingPoints = filtering(breakingPoints){ 
-      _.filter { n => depedFunc(n).filter{_.children.isEmpty}.nonEmpty }
-    }
-    breakingPoints = List(breakingPoints.map( n => (depFunc(n).size, n) ).minBy(_._1)._2)
-    breakingPoints
+    val filtered = unvisited
+      .tryFilter { n => frontier.contains(n) }
+    List(filtered.minBy { n => depFunc(n).size })
   }
 
   def scheduleDepFree(nodes:List[N]):List[N] = {
     val unvisited = nodes.filterNot(isVisited) 
     var depFree = unvisited.filter(isDepFree) 
     if (unvisited.nonEmpty && depFree.isEmpty) {
-      dbg(s"Loop in Data flow graph.")
       var nexts = selectFrontier(unvisited)
-      dbg(s"Breaking loop at $nexts")
+      dbg(s"Loop in data flow graph. Breaking loop at $nexts")
       nexts
     } else depFree
   }
@@ -215,15 +212,9 @@ trait BottomUpTopologicalTraversal extends HierarchicalTopologicalTraversal {
   override def isDepFree(n:N):Boolean = n.children.forall(isVisited) && depFunc(n).forall(isVisited) // performance optimization no need to evaluate depFunc(n) until children are visited
 
   override def selectFrontier(unvisited:List[N]) = {
-    var breakingPoints = unvisited
-    breakingPoints = filtering(breakingPoints){ 
-      _.filter { n => frontier.contains(n) && n.children.isEmpty }
-    }
-    breakingPoints = filtering(breakingPoints){ 
-      _.filter { n => n.children.isEmpty && depedFunc(n).filter{_.children.isEmpty}.nonEmpty }
-    }
-    breakingPoints = List(breakingPoints.map( n => (depFunc(n).size, n) ).minBy(_._1)._2)
-    breakingPoints
+    val filtered = unvisited
+      .tryFilter { n => frontier.contains(n) && n.children.isEmpty }
+    List(filtered.minBy { n => depFunc(n).size })
   }
 
   def visitScope(n:N):List[N] = n::n.descendents

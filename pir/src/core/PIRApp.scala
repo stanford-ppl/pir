@@ -17,10 +17,8 @@ trait PIRApp extends PIR with Logging {
   lazy val contextAnalyzer = new ContextAnalyzer()
   lazy val contextInsertion = new ContextInsertion()
   lazy val depDuplications = new DependencyDuplication()
-  lazy val validProp = new ValidConstantPropogation()
   lazy val bufferInsertion = new BufferInsertion()
   lazy val globalInsertion = new GlobalInsertion()
-  lazy val routeThroughEliminator = new RouteThroughElimination()
   lazy val controlPropogator = new ControlPropogation()
   lazy val psimAnalyzer = new PlastisimAnalyzer()
   lazy val ctxMerging = new ContextMerging()
@@ -58,9 +56,7 @@ trait PIRApp extends PIR with Logging {
     addPass(enableTrace && genPsim, dramTraceGen)
     addPass(controlPropogator)
     addPass(enableDot, new PIRIRDotGen(s"top2.dot"))
-    addPass(validProp) ==>
     addPass(constProp) ==>
-    addPass(enableRouteElim, routeThroughEliminator)
     addPass(deadCodeEliminator) ==>
     addPass(enableDot, new PIRIRDotGen(s"top3.dot"))
     addPass(contextInsertion).dependsOn(controlPropogator) ==>
@@ -70,7 +66,6 @@ trait PIRApp extends PIR with Logging {
     addPass(enableDot, new PIRIRDotGen(s"top5.dot"))
     addPass(enableDot, new PIRCtxDotGen(s"simple5.dot"))
     addPass(depDuplications).dependsOn(memLowering)
-    addPass(enableRouteElim, routeThroughEliminator) ==>
     addPass(constProp) ==>
     addPass(deadCodeEliminator) ==>
     //addPass(contextAnalyzer) ==>
