@@ -39,6 +39,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
     def psimState(s:String) = n.getMeta[Float]("psimState").update(s)
     def psimState = n.getMeta[String]("psimState").v
   }
+
   implicit class NodeRuntimeOp(n:N) {
     def getVec:Int = n.getMeta[Int]("vec").getOrElseUpdate(compVec(n))
   }
@@ -111,8 +112,6 @@ trait RuntimeAnalyzer { self:PIRPass =>
     }
   }
 
-  //def accountForCycle = true
-
   /*
    * Compute count of the context using reads. Return None if reads is empty
    * and ctrlers nonEmpty
@@ -138,7 +137,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
       case n:Context =>
         val ctrlers = n.collectDown[Controller]()
         val reads = n.reads
-        if (ctrlers.isEmpty) countByReads(n).get
+        if (ctrlers.isEmpty || ctrlers.exists { _.isForever }) countByReads(n).get
         else ctrlers.map { _.getIter }.reduce { _ * _ }
       case n:LocalOutAccess =>
         n.in.T.getCount
@@ -150,32 +149,6 @@ trait RuntimeAnalyzer { self:PIRPass =>
         n.in.T.getCount
       case n => throw PIRException(s"Don't know how to compute count of $n")
     }
-    //n match {
-      //case n:Context if n.collectDown[HostInController]().nonEmpty => Finite(1l)
-      //case n:Context if n.collectDown[FringeStreamWrite]().nonEmpty => 
-        //val stream = n.collectDown[FringeStreamWrite]().head
-        //stream.count.v.getOrElse {
-          //throw PIRException(s"No annotation on stream count ${stream.name.v.getOrElse(stream.sname.get)}")
-        //}
-      //case n:Context =>
-        //var (readsWithInits, reads) = n.reads.partition { _.initToken.get }
-        //if (accountForCycle) {
-          //reads = reads ++ readsWithInits
-          //if (reads.isEmpty) err(s"$n has no read inputs!")
-        //}
-        //assertUnify(reads, s"$n.reads=$reads, read.count * read.scale") { read => 
-          //read.getCount * read.getScale
-        //}.get //TODO
-      //case n:LocalOutAccess =>
-        //n.in.T.getCount
-      //case n:LocalInAccess =>
-        //n.ctx.get.getCount /! n.getScale
-      //case n:GlobalInput =>
-        //n.in.T.getCount
-      //case n:GlobalOutput =>
-        //n.in.T.getCount
-      //case n => throw PIRException(s"Don't know how to compute count of $n")
-    //}
   }
 
   def compVec(n:N):Int = dbgblk(s"compVec($n)"){
