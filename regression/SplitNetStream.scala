@@ -3,7 +3,7 @@ import forge.tags._
 
 @spatial class SplitStream extends SpatialTest {
 
-  override protected val pirArgs = "--count=stream_in,2046"
+  override protected def pirArgs = super.pirArgs :+ "--count=stream_in,2046"
 
   object NetStreamBus extends spatial.lang.Bus {
     @rig def nbits: scala.Int = 32
