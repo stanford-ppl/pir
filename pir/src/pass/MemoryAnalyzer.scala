@@ -43,10 +43,14 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
           (ctrlValid(o, octx), to.deqData)
         case (out, List(InputField(to:FringeDenseStore, "valid"))) => 
           (ctrlValid(o, octx), to.deqData)
+        case (out, List(InputField(to:FringeStreamRead, "stream"))) => 
+          (ctrlValid(o, octx), to.deqData)
         case (Some(OutputField(from:DRAMLoadCommand, "data")), to) => 
           (from.dataValid, ctrlValid(i, ictx))
         case (Some(OutputField(from:DRAMStoreCommand, "ack")), to) => 
           (from.ackValid, ctrlValid(i, ictx))
+        case (Some(OutputField(from:FringeStreamWrite, "stream")), to) => 
+          (from.dataValid, ctrlValid(i, ictx))
         case (_,_) if isFIFO =>
           (ctrlValid(o, octx), ctrlValid(i, ictx))
         case (_,_) if o == i =>

@@ -11,8 +11,6 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
   val fileName = configName
   val forward = true
 
-  val infCount = 1000000
-
   override def emitNode(n:N) = {
     n match {
       case n:Context =>
@@ -147,9 +145,12 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
   }
 
   def emitStopToken(n:Context) = {
-    val isHostOut = n.collectDown[HostOutController]().nonEmpty
-    if (isHostOut) {
-      emitln(s"stop_after_tokens = 1")
+    n match {
+      case n if n.collectDown[HostOutController]().nonEmpty =>
+        emitln(s"stop_after_tokens = 1")
+      case StreamReadContext(sw) =>
+        emitln(s"stop_after_tokens = ${n.constCount}")
+      case n =>
     }
   }
 

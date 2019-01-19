@@ -4,6 +4,7 @@ package pass
 import pir.node._
 import prism.graph._
 import spade.param._
+import scala.collection.mutable
 
 class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with DependencyAnalyzer {
 
@@ -93,13 +94,15 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     val mergeCtx = within(memCU, headAccess.ctx.get.getCtrl) { Context() }
     dbg(s"mergeCtrl = $mergeCtrl")
     dbg(s"mergeCtx=$mergeCtx")
+    val addrCtxs = mutable.Map[BankedAccess, Context]()
     within(mergeCtx, mergeCtrl) {
-      val inputs = accesses.asInstanceOf[Set[BankedAccess]].map { access =>
+      val requests = accesses.map { access =>
         val addrCtx = access match {
           case access if accesses.size == 1 => mergeCtx
           case access:BankedRead => within(pirTop, access.ctx.get.getCtrl) { Context() }
           case access:BankedWrite => access.ctx.get
         }
+        addrCtxs += access -> addrCtx
         dbg(s"addrCtx for $access = $addrCtx")
         swapParent(access, addrCtx)
         within(addrCtx, access.getCtrl) {
@@ -118,7 +121,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           (ofs.out, data.map{_.out})
         }
       }
-      var red:List[(Output, Option[Output])] = inputs.toList
+      var red:List[(Output, Option[Output])] = requests.toList
       while(red.size > 1) {
         red = red.sliding(2,2).map{ 
           case List((o1, d1),(o2, d2)) =>
@@ -144,8 +147,12 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
             val shuffle = within(inCtx, in.src.as[PIRNode].getCtrl)  {
               Shuffle().from(allocConst(mem.bankids.get)).to(access.bank.connected).base(newRead.out)
             }
+            dbg(s"val $shuffle = Shuffle() // bankRead")
             bufferInput(shuffle.base)
-            bufferInput(shuffle.to) //TODO: can also not buffer if not expensive to duplicate calculation.
+             //TODO: to can also not buffer if not expensive to duplicate calculation.
+            bufferInput(shuffle.to).foreach { read =>
+              swapParent(read.inAccess, addrCtxs(access))
+            }
             dbg(s"${in.src}.$in.swapInput($access.out, $shuffle.out)")
             swapConnection(in.as[Input], access.out, shuffle.out)
           }
