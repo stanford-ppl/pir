@@ -43,7 +43,9 @@ trait StreamCommand extends PIRNode
 
 case class FringeStreamWrite()(implicit env:Env) extends StreamCommand {
   val stream = new OutputField[PIRNode]("stream")
+  val dataValid = new OutputField[List[PIRNode]]("dataValid")
 }
 case class FringeStreamRead()(implicit env:Env) extends StreamCommand {
   val stream = new InputField[PIRNode]("stream")
+  val deqData = new OutputField[List[PIRNode]]("deqData")
 }

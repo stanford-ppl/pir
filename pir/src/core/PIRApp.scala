@@ -5,6 +5,7 @@ import pir.pass._
 import pir.codegen._
 import pir.mapper._
 import prism.codegen._
+import prism.util._
 import spade.codegen._
 
 trait PIRApp extends PIR with Logging {
@@ -144,20 +145,27 @@ trait PIRApp extends PIR with Logging {
       argOuts.clear
       streamOuts.clear
       dramAddrs.clear
-      setAnnotation(top)
       nameSpace.clear
       toc(s"New design", "ms")
     }
+    setAnnotation(pirTop)
   }
 
   def setAnnotation(top:Top) = {
     config.getOption[String]("count").foreach { v =>
       val streamCommands = top.collectDown[StreamCommand]()
+      val nameMap = streamCommands.map { stream =>
+        stream.name.v.getOrElse(stream.sname.get) -> stream
+      }.toMap
       v.split(",").toList.sliding(2,2).foreach { 
         case List(key,value) =>
-          info(s"Annotate $key.count=$value")
-          assertOne(streamCommands.filter {_.name.v == Some(key)}, s"Stream with name $key")
-            .count(Some(value.toLong))
+          nameMap.get(key).fold {
+            warn(s"No stream with name $key")
+          } { stream =>
+            stream.count.reset
+            info(s"Annotate $key.count=$value")
+            stream.count(Finite(value.toLong))
+          }
         case List(key) =>
           info(s"Malformat on count annotation. Parsed $key with no value")
         case Nil =>

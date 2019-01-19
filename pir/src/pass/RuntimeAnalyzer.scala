@@ -44,6 +44,14 @@ trait RuntimeAnalyzer { self:PIRPass =>
     def getVec:Int = n.getMeta[Int]("vec").getOrElseUpdate(compVec(n))
   }
 
+  val StreamWriteContext = MatchRule[Context, FringeStreamWrite] { n =>
+    n.collectDown[FringeStreamWrite]().headOption
+  }
+
+  val StreamReadContext = MatchRule[Context, FringeStreamRead] { n =>
+    n.collectDown[FringeStreamRead]().headOption
+  }
+
   def boundProp(n:PIRNode):Option[Any] = dbgblk(s"boundProp($n)"){
     n match {
       case Const(v) => Some(v)
@@ -88,6 +96,8 @@ trait RuntimeAnalyzer { self:PIRPass =>
       case OutputField(n:DRAMStoreCommand, "deqData") => Finite(n.ctx.get.getScheduleFactor)
       case OutputField(n:DRAMDenseCommand, "ackValid") => n.getIter * n.ctx.get.getScheduleFactor
       case OutputField(n:DRAMSparseCommand, "ackValid") => Finite(n.ctx.get.getScheduleFactor)
+      case OutputField(n:FringeStreamWrite, "dataValid") => Finite(n.ctx.get.getScheduleFactor)
+      case OutputField(n:FringeStreamRead, "deqData") => Finite(n.ctx.get.getScheduleFactor)
       case OutputField(n:PIRNode, _) => n.getScale 
       case n:LocalAccess => compScale(assertOne(n.done.connected, s"$n.done.connected"))
       case n:ControllerDone =>
@@ -124,6 +134,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
     if (unknown.nonEmpty) Some(Unknown)
     else if (finite.nonEmpty) assertIdentical(finite, s"$n.reads.count reads=$reads")
     else if (infinite.nonEmpty) Some(Infinite)
+    else if (n.collectDown[FringeStreamWrite]().nonEmpty) None
     else { // reads is empty
       val ctrlers = n.collectDown[Controller]()
       if (ctrlers.isEmpty) throw PIRException(s"$n's ctrlers and reads are empty")
@@ -134,6 +145,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
 
   def compCount(n:PIRNode):Value[Long] = dbgblk(s"compCount($n)"){
     n match {
+      case StreamWriteContext(sw) => sw.count.v.getOrElse(throw PIRException(s"${sw.name.v.getOrElse(sw.sname.get)} is not annotated with count"))
       case n:Context =>
         val ctrlers = n.collectDown[Controller]()
         val reads = n.reads

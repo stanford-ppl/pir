@@ -4,6 +4,7 @@ package codegen
 import pir.node._
 import pir.pass._
 import prism.graph._
+import prism.util._
 
 trait PlastisimUtil extends PIRPass {
   lazy val psimOut = config.psimOut
@@ -25,9 +26,19 @@ trait PlastisimUtil extends PIRPass {
 
   def noPlaceAndRoute = spadeParam.isAsic || spadeParam.isP2P
 
+  val infCount = 1000000
+
   implicit class PIRNodePsimOp(n:PIRNode) {
-    def constScale:Long = n.scale.get.getOrElse(throw PIRException(s"${n}.scale not statically known"))
-    def constCount:Long = n.count.get.getOrElse(throw PIRException(s"${n}.count not statically known"))
+    def constScale:Long = n.scale.get match {
+      case Unknown => throw PIRException(s"${n}.scale not statically known")
+      case Finite(c) => c
+      case Infinite => infCount
+    }
+    def constCount:Long = n.count.get match {
+      case Unknown => throw PIRException(s"${n}.count not statically known")
+      case Finite(c) => c
+      case Infinite => infCount
+    }
   }
 }
 

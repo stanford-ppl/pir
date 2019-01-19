@@ -3,6 +3,7 @@ package codegen
 
 import pir.node._
 import prism.codegen._
+import prism.util._
 
 class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal with IRDotCodegen { self =>
 
@@ -70,17 +71,17 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
       val color = zipOption(n.active.v, n.psimState).fold {
         "palevioletred1"
       } { case (active, state) =>
-        val expected = n.count.get.get
-        if (active < expected) {
-          if (state == "STARVE") "firebrick1"
-          else if (state == "STALL") "goldenrod1"
-          else if (state == "BOTH") "darkorange"
-          else "palevioletred1"
-        } else {
-          val G = Math.round((1 - n.activeRate.get / 100) * (255 - 50) + 50).toInt
-          var HG = G.toHexString
-          while (HG.size < 2) HG = "0" + HG
-          s"#00${HG}00"
+        n.count.get match {
+          case Finite(expected) if active < expected =>
+            if (state == "STARVE") "firebrick1"
+            else if (state == "STALL") "goldenrod1"
+            else if (state == "BOTH") "darkorange"
+            else "palevioletred1"
+          case _ =>
+            val G = Math.round((1 - n.activeRate.get / 100) * (255 - 50) + 50).toInt
+            var HG = G.toHexString
+            while (HG.size < 2) HG = "0" + HG
+            s"#00${HG}00"
         }
       }
       attr.setGraph.fillcolor(color).style(filled).setNode.fillcolor(color).style(filled)

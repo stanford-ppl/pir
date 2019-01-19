@@ -3,6 +3,7 @@ package codegen
 
 import pir.node._
 import prism.graph._
+import prism.util._
 import spade.param._
 
 class PlastisimLogParser(implicit compiler: PIR) extends PIRPass with PlastisimUtil {
@@ -44,7 +45,10 @@ class PlastisimLogParser(implicit compiler: PIR) extends PIRPass with PlastisimU
         //stallRateOf(node) = line.split("Stalled:")(1).trim.split(" ")(0).trim.toFloat
         //starveRateOf(node) = line.split("Starved:")(1).trim.split(" ")(0).trim.toFloat
         if (line.contains("Final State:")) ctx.psimState(line.split("Final State:")(1).trim.split(" ")(0).trim)
-        if (line.contains("Expected Active:")) ctx.count := Some(line.split("Expected Active:")(1).trim.split(" ")(0).trim.toLong)
+        if (line.contains("Expected Active:")) {
+          val cnt = line.split("Expected Active:")(1).trim.split(" ")(0).trim.toLong
+          ctx.count := { if (cnt == infCount) Infinite else Finite(cnt) }
+        }
         if (line.contains("Input State:")) {
           ctx.reads.zip(line.split("Input State:")(1).trim.split(" ")(0).trim).foreach { case (read, state) =>
             read.psimState(state.toString)
@@ -61,6 +65,7 @@ class PlastisimLogParser(implicit compiler: PIR) extends PIRPass with PlastisimU
             }
           }
         }
+        ctx.count.get.foreach { c => if (ctx.active.get < c) warn(s"$ctx active for ${ctx.active.get}. Expected $c") }
       }
     }
   }
