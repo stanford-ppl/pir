@@ -19,7 +19,7 @@ trait ProgramOrderTraversal extends PIRTraversal with ChildFirstTraversal {
 
   def scheduleCtrl(ctrl:ControlTree) = {
     var nodes:List[PIRNode] = ctrlMap.get(Some(ctrl)).getOrElse(Nil)
-    nodes ++= ctrl.children.map { _.as[ControlTree].ctrler.get }
+    nodes ++= ctrl.children.flatMap { _.as[ControlTree].ctrler.v }
     ctrl.ctrler.v.foreach { ctrler =>
       nodes = nodes.filterNot { node => node == ctrler }
     }
@@ -112,6 +112,8 @@ class DRAMTraceCodegen(implicit compiler:PIR) extends ProgramOrderTraversal with
       emitln(s"// } $n")
     case n:Counter if !n.isForever => 
       emitln(s"val $n = (${n.min.T.get} until ${n.max.T.get} by (${n.step.T.get} * ${n.par}))")
+    case n:Counter => 
+      emitln(s"val $n = (0 until $infCount)")
     case n@Const(v) => 
       emitln(s"val $n = $v")
     case n:ControllerValid =>
