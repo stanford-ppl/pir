@@ -15,7 +15,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
     n match {
       case n:Context =>
         val nodeType = n.global.get match {
-          case n:DRAMFringe if config.enableTrace => s"dramnode"
+          case n:DRAMFringe if config.enableTrace & n.collectDown[DRAMCommand]().nonEmpty => s"dramnode"
           case n => s"node"
         }
         emitNodeBlock(s"$nodeType ${quote(n)} # ${n.global.get}") {
