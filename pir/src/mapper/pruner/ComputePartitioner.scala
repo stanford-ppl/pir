@@ -58,7 +58,7 @@ trait ComputePartitioner extends CUPruner {
           val (head, tail) = nodes.splitAt(nodes.size/2)
           split(Partition(head), vcost) ++ split(Partition(tail),vcost)
         }
-    }).as
+    }).as[List[T]]
   }
 
   def include(n:N) = n match {
