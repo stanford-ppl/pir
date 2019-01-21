@@ -81,7 +81,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner {
     removeNodes(consts)
   }
 
-  def updateShuffle(k:CUMap.K, mem:Memory, mappings:List[mutable.Map[N, N]]) = {
+  def updateShuffle(k:CUMap.K, mem:Memory, mappings:List[mutable.Map[ND, ND]]) = {
     val shuffles = k.collectDown[Shuffle]()
     mappings.foreach { mapping =>
       val mk = mapping(k).as[CUMap.K]
@@ -97,7 +97,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner {
     }
   }
 
-  def mergeReads(k:CUMap.K, mem:Memory, br:BankedRead, mappings:List[mutable.Map[N, N]]) = dbgblk(s"mergeReads($k, $br)") {
+  def mergeReads(k:CUMap.K, mem:Memory, br:BankedRead, mappings:List[mutable.Map[ND, ND]]) = dbgblk(s"mergeReads($k, $br)") {
     val shuffles = br.collect[Shuffle](visitGlobalOut _)
     shuffles.foreach { shuffle =>
       val ctx = shuffle.ctx.get
@@ -127,7 +127,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner {
             mshuffle.from(allocConst(mmem.bankids.get))
             mshuffle
           }
-          var red:List[Output] = mshuffles.map { _.out }
+          var red:List[Output[PIRNode]] = mshuffles.map { _.out }
           while(red.size > 1) {
             red = red.sliding(2,2).map{ 
               case List(o1, o2) =>

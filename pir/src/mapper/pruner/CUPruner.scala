@@ -30,7 +30,7 @@ trait CUPruner extends ConstrainPruner with CUCostUtil with Transformer with Buf
     Right(fg.mapFreeMap { _ - k ++ (ks, vs) })
   }
 
-  override def removeNodes(nodes:Iterable[N]) = {
+  override def removeNodes[N<:Node[N]](nodes:Iterable[Node[N]]) = {
     super.removeNodes(nodes)
     nodes.foreach { removeCache }
   }

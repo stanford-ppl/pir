@@ -20,7 +20,7 @@ trait Factory extends Env with DFSTopologicalTraversal with ParamTraversal {
   def visitNodeAs[M](n:N, prev:T):M = visitNode(n,prev).asInstanceOf[M]
 
   implicit class Parent(val value:SpadeNode) extends State[SpadeNode] {
-    def initNode[N<:Node[N]](n:N, value:SpadeNode) = {
+    def initNode[N<:Node[N]](n:Node[N], value:SpadeNode) = {
       n.setParent(value.as)
     }
   }

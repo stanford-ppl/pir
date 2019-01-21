@@ -5,7 +5,7 @@ import pir.node._
 import pir.mapper._
 import prism.graph._
 
-trait MemoryAnalyzer extends PIRTraversal with Transformer {
+trait MemoryAnalyzer extends PIRPass with Transformer {
 
   def insertToken(fctx:Context, tctx:Context):TokenRead = {
     val fctrl = fctx.ctrl.get
@@ -26,9 +26,9 @@ trait MemoryAnalyzer extends PIRTraversal with Transformer {
     }
   }
 
-  def compEnqDeq(isFIFO:Boolean, octx:Context, ictx:Context, out:Option[Output], ins:Seq[Input]):(Output, Output) = {
-    val from = out.map { _.src.as[PIRNode] }
-    val to = ins.map { _.src }.distinct.as[Seq[PIRNode]]
+  def compEnqDeq(isFIFO:Boolean, octx:Context, ictx:Context, out:Option[Output[PIRNode]], ins:Seq[Input[PIRNode]]):(Output[PIRNode], Output[PIRNode]) = {
+    val from = out.map { _.src }
+    val to = ins.map { _.src }.distinct
     val o = octx.ctrl.get
     val i = ictx.ctrl.get
     dbgblk(s"compEnqDeq(isFIFO=$isFIFO, out=$from.$out, ins=${ins.map { in => s"${in.src}.$in"}.mkString(",")})") {
@@ -72,7 +72,7 @@ trait MemoryAnalyzer extends PIRTraversal with Transformer {
     }
   }
 
-  def ctrlValid(ctrl:ControlTree, ctx:Context):Output = {
+  def ctrlValid(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
     if (!compiler.hasRun[DependencyDuplication]) {
       // Centralized controller
       ctrl.ctrler.get.valid.out
@@ -86,7 +86,7 @@ trait MemoryAnalyzer extends PIRTraversal with Transformer {
     }
   }
 
-  def ctrlDone(ctrl:ControlTree, ctx:Context):Output = {
+  def ctrlDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
     if (!compiler.hasRun[DependencyDuplication]) {
       // Centralized controller
       ctrl.ctrler.get.done.out

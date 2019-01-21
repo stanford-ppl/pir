@@ -19,14 +19,14 @@ trait Node[N<:Node[N]] extends IR { self:N =>
   /*  ------- functions -------- */
   // Parent
   def parent:Option[N] = _parent
-  def setParent(p:N):this.type =  {
+  def setParent(p:Node[N]):this.type =  {
     assert(p != this, s"setting parent of $this to be the same as it self $p!")
     _parent match {
       case Some(`p`) => this
       case Some(parent) => err(s"Resetting parent of $this from $parent to $p"); this
       case None =>
         p match {
-          case _:N =>
+          case p:N =>
             assert(!this.isAncestorOf(p), s"Setting descendent $p as parent of $this") 
             _parent = Some(p)
             p.addChild(this)
@@ -42,16 +42,16 @@ trait Node[N<:Node[N]] extends IR { self:N =>
     }
     this
   }
-  def resetParent(p:N):this.type = { unsetParent; setParent(p) }
-  def isParentOf(m:N) = m.parent == Some(this)
+  def resetParent(p:Node[N]):this.type = { unsetParent; setParent(p) }
+  def isParentOf(m:Node[N]) = m.parent == Some(this)
 
   // Children
   def children:List[N] = _children.toList
-  def addChild(cs:N*):this.type = { 
+  def addChild(cs:Node[N]*):this.type = { 
     cs.foreach { c =>
       assert(c != this, s"Cannot add self as a children node=$this")
       c match {
-        case _:N => 
+        case c:N => 
           if (_children.contains(c)) return this
           _children += c
           c.setParent(this)
@@ -62,27 +62,27 @@ trait Node[N<:Node[N]] extends IR { self:N =>
     this
   }
 
-  def removeChild(c:N):Unit = {
+  def removeChild(c:Node[N]):Unit = {
     if (!_children.contains(c)) return
-    _children -= c
+    _children -= c.as[N]
     c.unsetParent
   }
-  def isChildOf(p:N) = p.children.contains(this)
+  def isChildOf(p:Node[N]) = p.children.contains(this)
 
   def siblings:List[N] = parent.map { _.children.filterNot { _ == this} }.getOrElse(Nil)
   def ancestors:List[N] = {
     parent.toList.flatMap { parent => parent :: parent.ancestors }
   }
-  def isAncestorOf(n:N):Boolean = n.isDescendentOf(this)
+  def isAncestorOf(n:Node[N]):Boolean = n.isDescendentOf(this)
   // Inclusive
-  def ancestorSlice(top:N) = { // from this to top inclusive
+  def ancestorSlice(top:Node[N]) = { // from this to top inclusive
     val chain = this :: this.ancestors
     val idx = chain.indexOf(top)
     assert(idx != -1, s"$top is not ancestor of the $this")
     chain.slice(0, idx+1)
   }
   def descendents:List[N] = children.flatMap { child => child :: child.descendents }
-  def isDescendentOf(n:N):Boolean = parent.fold(false) { p => p == n || p.isDescendentOf(n) }
+  def isDescendentOf(n:Node[N]):Boolean = parent.fold(false) { p => p == n || p.isDescendentOf(n) }
 
   def addEdge(io:Edge[N]) = {
     localEdges += io
@@ -102,7 +102,7 @@ trait Node[N<:Node[N]] extends IR { self:N =>
     localOuts.flatMap { _.connected.map { _.src.as[N]} }.toSeq.distinct
   }
 
-  def matchLevel(n:N) = (n :: n.ancestors).filter { _.parent == this.parent }.headOption
+  def matchLevel(n:Node[N]):Option[N] = (n.as[N] :: n.ancestors).filter { _.parent == this.parent }.headOption
 
   /*
    * A map of external dependent outputs and internal inputs that depends on the external 
@@ -133,13 +133,13 @@ trait Node[N<:Node[N]] extends IR { self:N =>
 
   def depeds:Seq[N] = depedsTo.values.flatten.map { _.src }.toSeq.distinct
 
-  def siblingDeps = deps.flatMap(matchLevel)
-  def globalDeps = deps.filter { d => matchLevel(d).isEmpty }
-  def siblingDepeds = depeds.flatMap(matchLevel)
-  def globalDepeds = depeds.filter { d => matchLevel(d).isEmpty }
-  def neighbors = deps ++ depeds
+  def siblingDeps:Seq[N] = deps.flatMap(matchLevel)
+  def globalDeps:Seq[N] = deps.filter { d => matchLevel(d).isEmpty }
+  def siblingDepeds:Seq[N] = depeds.flatMap(matchLevel)
+  def globalDepeds:Seq[N] = depeds.filter { d => matchLevel(d).isEmpty }
+  def neighbors:Seq[N] = deps ++ depeds
 
 }
 object Node {
-  implicit def node2n[N<:Node[N]](node:Node[N]) = node.as[N]
+  implicit def node2n[N<:Node[N]](node:Node[N]):N = node.as[N]
 }

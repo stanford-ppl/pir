@@ -5,7 +5,7 @@ import pir.node._
 import prism.graph._
 
 trait BufferAnalyzer extends MemoryAnalyzer {
-  def escape(dep:N, scope:N) = dep match {
+  def escape(dep:PIRNode, scope:PIRNode) = dep match {
     case dep:Memory => false 
     case dep:BufferWrite => false
     case dep:GlobalInput => false
@@ -23,19 +23,19 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     deped.localIns.flatMap { in => bufferInput(in) }
   }
 
-  def bufferInput(in:Input):Seq[BufferRead] = {
+  def bufferInput(in:Input[PIRNode]):Seq[BufferRead] = {
     in.connected.distinct.flatMap { out =>
-      bufferInput(out.as[Output], in)
+      bufferInput(out.as[Output[PIRNode]], in)
     }
   }
 
-  def bufferOutput(out:Output):Seq[BufferRead] = {
+  def bufferOutput(out:Output[PIRNode]):Seq[BufferRead] = {
     out.connected.distinct.flatMap { in =>
-      bufferInput(out, in.as[Input])
+      bufferInput(out, in.as[Input[PIRNode]])
     }
   }
 
-  private def visitInEdges(n:N):List[E] = n match {
+  private def visitInEdges(n:PIRNode):List[Edge[PIRNode]] = n match {
     case n:BufferRead => List(n.in)
     case n:BufferWrite => List(n.data)
     case n:GlobalInput => List(n.in)
@@ -43,9 +43,9 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     case n => Nil
   }
 
-  private def bufferInput(depOut:Output, depedIn:Input):Option[BufferRead] = {
-    val dep = depOut.src.as[PIRNode]
-    val deped = depedIn.src.as[PIRNode]
+  private def bufferInput(depOut:Output[PIRNode], depedIn:Input[PIRNode]):Option[BufferRead] = {
+    val dep = depOut.src
+    val deped = depedIn.src
     val depedCtx = deped.ctx.get
     if (escape(dep, depedCtx)) {
       val read = dbgblk(s"bufferInput(depOut=$dep.$depOut, depedIn=$deped.$depedIn)") {
@@ -82,13 +82,13 @@ trait BufferAnalyzer extends MemoryAnalyzer {
 
   def insertGlobalInput(
     global:GlobalContainer,
-    out:Output, 
-    inputs:Seq[Input]
+    out:Output[PIRNode], 
+    inputs:Seq[Input[PIRNode]]
   ):Unit = {
     val ins = inputs.filterNot { _.src.isInstanceOf[GlobalInput] }
     if (ins.isEmpty) return
     dbgblk(s"insertGlobalInput($global, ${out.src}.${out}, $ins)"){
-      out.src.as[PIRNode] match {
+      out.src match {
         case dep:GlobalInput if dep.isDescendentOf(global) => dep
         case dep:GlobalInput => 
           ins.foreach { in => swapConnection(in, out, dep.in.T.out) }
@@ -113,10 +113,10 @@ trait BufferAnalyzer extends MemoryAnalyzer {
 
   def insertGlobalOutput(
     global:GlobalContainer,
-    out:Output, 
-    ins:Seq[Input]
+    out:Output[PIRNode], 
+    ins:Seq[Input[PIRNode]]
   ):GlobalOutput = dbgblk(s"insertGlobalOutput($global, ${out.src}.${out}, $ins)"){
-    out.src.as[PIRNode] match {
+    out.src match {
       case depedFrom:GlobalOutput if depedFrom.isDescendentOf(global) => depedFrom
       case depedFrom:GlobalOutput => throw PIRException(s"impossible case insertGlobalOutput")
       case depedFrom =>

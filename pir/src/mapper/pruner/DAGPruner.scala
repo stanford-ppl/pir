@@ -43,8 +43,8 @@ class DAGPruner(implicit compiler:PIR) extends CUPruner {
     }
   }
 
-  def trace(input:Input):Iterable[GlobalContainer] = {
-    input.neighbors.as[Seq[PIRNode]].flatMap { _.collect[GlobalOutput](visitGlobalIn _).map{ _.global.get } }
+  def trace(input:Input[PIRNode]):Iterable[GlobalContainer] = {
+    input.neighbors.flatMap { _.collect[GlobalOutput](visitGlobalIn _).map{ _.global.get } }
   }
 
 }

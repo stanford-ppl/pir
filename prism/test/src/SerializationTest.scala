@@ -21,8 +21,9 @@ object aa extends Serializable
 class SerializationTest extends UnitTest with Serialization {
   "TestMapSerialization" should "success" in {
     var map = new mutable.OneToOneMap[Int,String]()
-    saveToFile(map, s"$testOut/saved")
-    loadFromFile[Serializable]("out/test/saved")
+    val path = s"$testOut/saved"
+    saveToFile(map, path)
+    loadFromFile[Serializable](path)
   }
 
   "IRMetadataSerialization" should "success" in {

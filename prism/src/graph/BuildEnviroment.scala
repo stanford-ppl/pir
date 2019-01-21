@@ -7,8 +7,8 @@ import scala.collection.mutable._
 abstract class State[T] extends Serializable {
   def value:T
   val key = this.getClass
-  def initNode[N<:Node[N]](n:N, value:T):Unit
-  def initNodeX[N<:Node[N]](n:N, value:Any):Unit = initNode(n, value.asInstanceOf[T])
+  def initNode[N<:Node[N]](n:Node[N], value:T):Unit
+  def initNodeX[N<:Node[N]](n:Node[N], value:Any):Unit = initNode(n, value.asInstanceOf[T])
 }
 
 class States extends Serializable {
@@ -47,7 +47,7 @@ trait BuildEnvironment extends Logging {
 
   def endState[T:ClassTag] = stacks(classTag[T].runtimeClass).pop
 
-  def initNode[N<:Node[N]](n:N) = {
+  def initNode[N<:Node[N]](n:Node[N]) = {
     stacks.foreach { case (key,stack) =>
       stack.headOption.foreach { head =>
         head.initNodeX(n, head.value)

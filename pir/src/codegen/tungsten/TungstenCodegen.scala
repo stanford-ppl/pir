@@ -38,7 +38,7 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     if (n.getVec > 1) s"${n}[i]" else s"${n}"
   }
 
-  def emitEn(en:Input with Field[_]):Unit = {
+  def emitEn(en:Input[PIRNode] with Field[_]):Unit = {
     val src = en.src
     val ens = en.neighbors
     val enName = s"${src}_${en.name}"

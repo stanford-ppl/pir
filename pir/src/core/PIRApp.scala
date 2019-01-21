@@ -249,8 +249,7 @@ trait PIRApp extends PIR with Logging {
 
   //def initDRAMCommand(n:DRAMCommand) = {
     //val ctrl = ControlTree("Pipelined")
-    //(n.neighbors :+ n).foreach { x =>
-      //val n = x.as[PIRNode]
+    //(n.neighbors :+ n).foreach { n =>
       //n.ctrl.reset
       //n.ctrl(ctrl)
     //}

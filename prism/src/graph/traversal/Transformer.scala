@@ -5,11 +5,11 @@ import scala.collection.mutable
 
 trait Transformer extends Logging {
 
-  def removeUnusedIOs[N<:Node[N]](node:N) = {
+  def removeUnusedIOs[N<:Node[N]](node:Node[N]) = {
     node.localEdges.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
   }
 
-  def removeNodes[N<:Node[N]](nodes:Iterable[N]) = {
+  def removeNodes[N<:Node[N]](nodes:Iterable[Node[N]]) = {
     dbg(s"Remove ${nodes.mkString(",")}")
     nodes.foreach { node =>
       node.metadata.values.foreach{_.reset}
@@ -25,14 +25,14 @@ trait Transformer extends Logging {
     }
   }
 
-  def swapParent[N<:Node[N]](node:N, newParent:N):Unit = {
+  def swapParent[N<:Node[N]](node:Node[N], newParent:Node[N]):Unit = {
     dbg(s"swapParent($node, $newParent)")
     if (newParent.isParentOf(node)) return
     node.parent.foreach { parent => parent.removeChild(node) }
     node.setParent(newParent)
   }
 
-  def swapDep[N<:Node[N]](node:N, from:N, to:N) = {
+  def swapDep[N<:Node[N]](node:Node[N], from:Node[N], to:Node[N]) = {
     dbg(s"swapDep(node=$node, from=$from, to=$to)")
     dbg(s"fromOuts=${from.localOuts} toOuts=${to.localOuts}")
     assert(from.localOuts.size == to.localOuts.size, 
@@ -55,7 +55,7 @@ trait Transformer extends Logging {
   /*
    * Find node's connection to from and swap it to to
    * */
-  def swapInput[N<:Node[N]](node:N, from:Output[N], to:Output[N]):Unit = {
+  def swapInput[N<:Node[N]](node:Node[N], from:Output[N], to:Output[N]):Unit = {
     dbg(s"swapInput(node=${node}, from=$from, to=${to.src}.$to)")
     val connected = node.localIns.filter { _.isConnectedTo(from) }
     dbg(s"connected=${node.localIns}")
@@ -66,7 +66,7 @@ trait Transformer extends Logging {
   /*
    * Find node's connection to edges of from and swap them to to
    * */
-  def swapInput[N<:Node[N]](node:N, from:N, to:Output[N]):Unit = {
+  def swapInput[N<:Node[N]](node:Node[N], from:Node[N], to:Output[N]):Unit = {
     dbg(s"swapInput(node=${node}, from=$from, to=${to.src}.$to)")
     val connected = node.localIns.flatMap { nodeEdge => 
       from.localOuts.filter { fromEdge =>
@@ -91,7 +91,7 @@ trait Transformer extends Logging {
    * Find connection between n1 and n2, and insert new connection such that
    * n1.old connection -> e1 and n2.old conection -> e2
    * */
-  def insertConnection[N<:Node[N]](n1:N, n2:N, e1:Edge[N], e2:Edge[N]) = {
+  def insertConnection[N<:Node[N]](n1:Node[N], n2:Node[N], e1:Edge[N], e2:Edge[N]) = {
     dbg(s"insertConnection($n1, $n2, ${e1.src}.${e1}, ${e2.src}.${e2})")
     val connected = n1.localEdges.flatMap { n1e => 
       n2.localEdges.filter { n2e =>
@@ -106,15 +106,15 @@ trait Transformer extends Logging {
     }
   }
 
-  def areConnected[N<:Node[N]](node1:N, node2:N) = {
+  def areConnected[N<:Node[N]](node1:Node[N], node2:Node[N]) = {
     node1.localEdges.exists { io1 => node2.localEdges.exists { io2 => io1.isConnectedTo(io2) } }
   }
 
-  def assertConnected[N<:Node[N]](node1:N, node2:N) = {
+  def assertConnected[N<:Node[N]](node1:Node[N], node2:Node[N]) = {
     assert(areConnected(node1, node2), s"$node1 and $node2 are not connected")
   }
 
-  def disconnect[N<:Node[N]](a:N, b:N) = {
+  def disconnect[N<:Node[N]](a:Node[N], b:Node[N]) = {
     dbg(s"disconnect($a, $b)")
     val pairs = a.localEdges.flatMap { aio => 
       aio.connected.filter{ _.src == b }.map { bio => (aio, bio) }
@@ -123,7 +123,7 @@ trait Transformer extends Logging {
     pairs.foreach { case (aio,bio) => aio.disconnectFrom(bio) }
   }
 
-  def disconnect[N<:Node[N]](a:Edge[N], b:N) = {
+  def disconnect[N<:Node[N]](a:Edge[N], b:Node[N]) = {
     dbg(s"disconnect($a, $b)")
     val bios = a.connected.filter { _.src == b }
     assert(bios.nonEmpty, s"$a is not connected to $b, a.connected=${a.neighbors}")
@@ -186,7 +186,7 @@ trait Transformer extends Logging {
     }).asInstanceOf[T]
   }
 
-  def mirrorN[N<:Node[N]](n:N, mapping:mutable.Map[ND,ND]=mutable.Map.empty):N = {
+  def mirrorN[N<:Node[N]](n:Node[N], mapping:mutable.Map[ND,ND]=mutable.Map.empty):N = {
     val margs = newInstanceArgs(n, mapping)
     mapping.getOrElseUpdate(n, {
       val m = dbgblk(s"mirrorN($n)") { n.newInstance[N](margs) }

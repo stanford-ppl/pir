@@ -108,7 +108,7 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
     n match {
       case n:Shuffle if n.from.T == n.to.T =>
         dbgblk(s"Shuffle($n)") {
-          val base = assertOne(n.base.connected, s"$n.base.connected").as[Output]
+          val base = assertOne(n.base.connected, s"$n.base.connected").as[Output[PIRNode]]
           swapOutput(n.out, base)
         }
       case WrittenByConstData(read:MemRead, c:Const) =>

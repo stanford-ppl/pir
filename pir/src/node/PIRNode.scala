@@ -46,7 +46,7 @@ abstract class PIRNode(implicit env:BuildEnvironment)
   env.initNode(this)
 }
 object PIRNode extends MemoryUtil with AccessUtil {
-  implicit class PIRNodeOp(n:PIRNode) extends NodeCollector[PIRNode](n){
+  implicit class PIRNodeOp(n:PIRNode) {
     def ctx = n.collectUp[Context]().headOption
     def global = n.collectUp[GlobalContainer]().headOption
     def isUnder[T:ClassTag] = n.ancestors.exists { _.to[T].nonEmpty }
@@ -70,8 +70,5 @@ case class ControlTree(schedule:String)(implicit env:Env) extends EnvNode[Contro
   def isLeaf = children.isEmpty
 
   env.initNode(this)
-}
-object ControlTree {
-  implicit class ControlTreeOp(n:ControlTree) extends NodeCollector[ControlTree](n)
 }
 

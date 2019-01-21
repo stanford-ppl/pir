@@ -29,11 +29,8 @@ case class ParamB(a:ParamA) extends Parameter
 
 trait TestEnv extends Env {
   implicit class Parent(val value:Node[_]) extends State[Node[_]] {
-    def initNode[N<:Node[N]](n:N, value:Node[_]) = {
-      n match {
-        case n:Node[_] => n.setParent(value.as)
-        case _ =>
-      }
+    def initNode[N<:Node[N]](n:Node[N], value:Node[_]) = {
+      n.setParent(value.as)
     }
   }
 

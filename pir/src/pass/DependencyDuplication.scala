@@ -16,9 +16,9 @@ class DependencyDuplication(implicit compiler:PIR) extends DependencyAnalyzer {
 
 }
 
-trait DependencyAnalyzer extends PIRTraversal with Transformer {
-
-  private def bound(visitFunc:N => List[N]):N => List[N] = { n:N =>
+trait DependencyAnalyzer extends PIRPass with Transformer {
+  
+  private def bound(visitFunc:PIRNode => List[PIRNode]):PIRNode => List[PIRNode] = { n:PIRNode =>
     visitFunc(n).filter{ 
       case x:Memory => false
       case x:HostWrite => false
@@ -31,7 +31,7 @@ trait DependencyAnalyzer extends PIRTraversal with Transformer {
 
   def getDeps(
     x:PIRNode, 
-    visitFunc:N => List[N] = visitGlobalIn _
+    visitFunc:PIRNode => List[PIRNode] = visitGlobalIn _
   ):Seq[PIRNode] = dbgblk(s"getDeps($x)"){
     var deps = x.accum(visitFunc=cover[PIRNode, Controller](bound(visitFunc)))
     deps = deps.filterNot(_ == x)
@@ -52,7 +52,7 @@ trait DependencyAnalyzer extends PIRTraversal with Transformer {
 
   def getCtrlerDeps(
     from:Context,
-    visitFunc:N => List[N] = visitGlobalIn _
+    visitFunc:PIRNode => List[PIRNode] = visitGlobalIn _
   ):Seq[PIRNode] = {
     val leaf = assertOneOrLess(from.collectDown[Controller]().filter { _.isLeaf }, s"$from.leaf ctrler")
     leaf.toList.flatMap { leaf =>
@@ -62,10 +62,10 @@ trait DependencyAnalyzer extends PIRTraversal with Transformer {
 
   def dupDeps(ctx:Context) = dbgblk(s"dupDeps($ctx)") {
     val deps = getDeps(ctx)
-    within(ctx) { mirrorAll(deps).toMap }
+    within(ctx) { mirrorAll(deps).toMap }.as[Map[PIRNode, PIRNode]]
   }
 
-  def swapDeps(ctx:Context, mapping:Map[N,N]) = dbgblk(s"swapDeps($ctx)"){
+  def swapDeps(ctx:Context, mapping:Map[PIRNode,PIRNode]) = dbgblk(s"swapDeps($ctx)"){
     mapping.foreach { case (dep, mdep) =>
       dep.localDepeds.filter { _.isDescendentOf(ctx) }.foreach { n =>
         swapDep(n, dep, mdep)

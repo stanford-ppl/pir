@@ -121,7 +121,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           (ofs.out, data.map{_.out})
         }
       }
-      var red:List[(Output, Option[Output])] = requests.toList
+      var red:List[(Output[PIRNode], Option[Output[PIRNode]])] = requests.toList
       while(red.size > 1) {
         red = red.sliding(2,2).map{ 
           case List((o1, d1),(o2, d2)) =>
@@ -143,8 +143,8 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
         val newRead = BankedRead().offset(ofs).mem(mem).mirrorMetas(headAccess)
         accesses.asInstanceOf[Set[BankedRead]].foreach { access =>
           access.out.connected.distinct.foreach{ in => 
-            val inCtx = in.src.as[PIRNode].ctx.get
-            val shuffle = within(inCtx, in.src.as[PIRNode].getCtrl)  {
+            val inCtx = in.src.ctx.get
+            val shuffle = within(inCtx, in.src.getCtrl)  {
               Shuffle().from(allocConst(mem.bankids.get)).to(access.bank.connected).base(newRead.out)
             }
             dbg(s"val $shuffle = Shuffle() // bankRead")
@@ -154,7 +154,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
               swapParent(read.inAccess, addrCtxs(access))
             }
             dbg(s"${in.src}.$in.swapInput($access.out, $shuffle.out)")
-            swapConnection(in.as[Input], access.out, shuffle.out)
+            swapConnection(in.as[Input[PIRNode]], access.out, shuffle.out)
           }
         }
       } { data => 
@@ -169,7 +169,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     val mem = access.mem.T
     val parent = access.parent.get
     within(parent, access.getCtrl) {
-      def flattenND(inds:List[Edge], dims:List[Int]):Edge = {
+      def flattenND(inds:List[Edge[PIRNode]], dims:List[Int]):Edge[PIRNode] = {
         if (inds.size==1) return inds.head
         assert(inds.size == dims.size, s"flattenND inds=$inds dims=$dims have different size for access=$access")
         val i::irest = inds
@@ -315,7 +315,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     mem.outAccesses.foreach { outAccess =>
       within(outAccess.parent.get) {
         val inAccess = mem.inAccesses.head.as[MemWrite]
-        val (enq, deq) = compEnqDeq(mem.isFIFO, inAccess.ctx.get, outAccess.ctx.get, Some(inAccess.data.connected.head.as[Output]), outAccess.out.connected.as[Seq[Input]])
+        val (enq, deq) = compEnqDeq(mem.isFIFO, inAccess.ctx.get, outAccess.ctx.get, Some(inAccess.data.connected.head.as[Output[PIRNode]]), outAccess.out.connected.as[Seq[Input[PIRNode]]])
         val write = within(inAccess.parent.get, inAccess.ctrl.get) {
           allocate[BufferWrite]{ write => 
             write.data.evalTo(inAccess.data.neighbors) &&

@@ -3,7 +3,6 @@ package node
 
 import spade.param._
 import prism.graph._
-import prism.graph.implicits._
 
 trait MemoryNode extends PIRNode {
   /*  ------- Metadata -------- */

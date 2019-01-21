@@ -39,7 +39,7 @@ class ContextMerging(implicit compiler:PIR) extends PIRTraversal with Transforme
             val read::rest = reads
             dbg(s"Remove redundant $rest")
             rest.foreach { r =>
-              r.out.neighbors.as[Seq[PIRNode]].foreach { deped =>
+              r.out.neighbors.foreach { deped =>
                 swapInput(deped, r.out, read.out)
               }
             }

@@ -162,7 +162,7 @@ class MapTest extends UnitTest with Serialization {
     map += (2 -> "b")
     map += (1 -> "c")
     map += (4 -> "a")
-    val path = s"${mkdir(s"out/MapTest")}/saved"
+    val path = s"$testOut/saved6"
     saveToFile(map, path)
     val loaded = loadFromFile[mutable.BiManyToManyMap[Int,String]](path)
     assert(loaded.fmap.map == map.fmap.map, loaded.bmap.map == map.bmap.map)

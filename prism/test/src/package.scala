@@ -1,5 +1,5 @@
 package prism
 
 package object test {
-  val testOut = "out/test/"
+  val testOut:String = "out/test/"
 }

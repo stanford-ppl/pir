@@ -17,7 +17,7 @@ trait ComputePartitioner extends CUPruner {
     dbg(s"kcost=$kcost")
     (k match {
       case k:ComputeContainer =>
-        val ctxs = k.collectDown[Context]().flatMap { ctx => split(ctx, vcost) }
+        val ctxs:List[Context] = k.collectDown[Context]().flatMap { ctx => split(ctx, vcost) }
         val globals = ctxs.map { ctx =>
           within(pirTop) {
             val global = ComputeContainer()
@@ -88,7 +88,7 @@ trait ComputePartitioner extends CUPruner {
     to.descendents.foreach { x =>
       x.localDeps.foreach { dep =>
         mapping.get(dep).foreach { toDep =>
-          swapDep(x, dep, toDep)
+          swapDep(x, dep, toDep.as[PIRNode])
         }
       }
     }
@@ -159,9 +159,9 @@ case class Partition(scope:List[PIRNode]) extends {
   def deps:Seq[PIRNode] = {
     val descendents = scope.flatMap { n => n :: n.descendents }
     val edges = descendents.toIterator.flatMap { _.localEdges }
-    val ins = edges.collect { case i:Input => i }
+    val ins = edges.collect { case i:Input[PIRNode] => i }
     ins.flatMap { in =>
-      in.connected.map { _.src.as[PIRNode] }
+      in.connected.map { _.src }
       .filterNot { descendents.contains } 
     }.toSeq.distinct
   }
@@ -169,11 +169,11 @@ case class Partition(scope:List[PIRNode]) extends {
   def depedsTo:Map[PIRNode, Seq[PIRNode]] = {
     val descendents = scope.flatMap { n => n::n.descendents }
     val edges = descendents.toIterator.flatMap { _.localEdges }
-    val outs = edges.collect { case i:Output => i }
+    val outs = edges.collect { case i:Output[PIRNode] => i }
     outs.flatMap { out =>
-      out.connected.map { _.src.as[PIRNode] }
+      out.connected.map { _.src }
       .filterNot { descendents.contains } 
-      .map { deped => (deped, out.src.as[PIRNode]) } 
+      .map { deped => (deped, out.src) } 
     }.toSeq.groupBy { _._2 }.mapValues { _.map { _._1 } }
   }
 
