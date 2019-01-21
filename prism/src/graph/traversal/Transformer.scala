@@ -5,6 +5,8 @@ import scala.collection.mutable
 
 trait Transformer extends Logging {
 
+  type N <:Node[N]
+
   def removeUnusedIOs(node:N) = {
     node.localEdges.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
   }
@@ -131,10 +133,11 @@ trait Transformer extends Logging {
   }
 
   def mirrorAll(nodes:Iterable[N], mapping:mutable.Map[N,N]=mutable.Map.empty):mutable.Map[N,N] = {
+    type F = FN forSome { type FN <:FieldNode[FN] }
     if (nodes.nonEmpty) {
       nodes.head match {
-        case node:FieldNode[_] => mirrorField(nodes.asInstanceOf[Iterable[FieldNode[_]]], mapping)
-        case node:ProductNode[_] => mirrorProduct(nodes.asInstanceOf[Iterable[ProductNode[_]]], mapping)
+        case node:FieldNode[n] => mirrorField(nodes.as, mapping)
+        case node:ProductNode[n] => mirrorProduct(nodes, mapping)
         case _ => throw new Exception(s"Don't know thow to mirror $nodes")
       }
     }
@@ -148,7 +151,7 @@ trait Transformer extends Logging {
    * original nodes to build the hiearchy and connection. Only input connection order
    * is preserved
    * */
-  def mirrorField(nodes:Iterable[FieldNode[_]], mapping:mutable.Map[N,N]) = {
+  def mirrorField[FN<:FieldNode[FN] with N](nodes:Iterable[FN], mapping:mutable.Map[N,N]) = {
     // First pass mirror all nodes and put in a map
     nodes.foreach { n => mirror[N](n, mapping) }
 
@@ -163,7 +166,7 @@ trait Transformer extends Logging {
       n.localIns.zipWithIndex.foreach { case (io, idx) =>
         val mio = m.localIns(idx)
         io.connected.foreach { c => 
-          val cs = c.src
+          val cs = c.src.as[N]
           val cidx = cs.localEdges.indexOf(c)
           val mcs = mapping.getOrElse(cs, cs)
           val mc = mcs.localEdges(cidx)
@@ -173,13 +176,15 @@ trait Transformer extends Logging {
     }
   }
 
-  def mirrorProduct(nodes:Iterable[ProductNode[_]], mapping:mutable.Map[N,N]) = {
+  def mirrorProduct(nodes:Iterable[N], mapping:mutable.Map[N,N]) = {
     nodes.foreach { n => mirror(n, mapping) }
   }
 
   final def mirror[T](n:Any, mapping:mutable.Map[N,N]=mutable.Map.empty):T = {
     (unpack(n) {
-      case n:Node[_] => mapping.getOrElseUpdate(n, mirrorN(n))
+      case nn:Node[n] => 
+        val n = nn.as[N]
+        mapping.getOrElseUpdate(n, mirrorN(n))
       case n => n
     }).asInstanceOf[T]
   }
@@ -241,7 +246,7 @@ trait Transformer extends Logging {
       case (a,b) => (transform(a), transform(b))
       case (a,b,c) => (transform(a), transform(b), transform(c))
       case (a,b,c,d) => (transform(a), transform(b), transform(c), transform(d))
-      case x:N with Product => x.mapFields { case (x, arg) => transform(arg) }
+      case x:Node[n] with Product => x.as[N with Product].mapFields { case (x, arg) => transform(arg) }
       case x => x
     }).asInstanceOf[T]
   }

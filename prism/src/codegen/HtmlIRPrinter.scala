@@ -62,7 +62,7 @@ trait HtmlIRPrinter extends IRPrinter with HtmlCodegen {
   }
 
   override def quote(n:Any) = n match {
-    case n:N =>
+    case n:Node[n] =>
       val q = super.quote(n)
       elem("a", q, "href"->s"${fileName}#$q")
     case n:Edge =>

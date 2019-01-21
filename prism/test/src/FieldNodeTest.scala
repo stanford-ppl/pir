@@ -13,10 +13,11 @@ case class X(name:String)(implicit env:Env) extends EnvNode[TestFNode] with Test
   val ens = new InputField[Set[X]]("ens")
   val out = new OutputField[List[X]]("out")
   val cchain = new ChildField[X, List[X]]("cchain")
-  env.initNode(this)
+  env.initNode[TestFNode](this)
 }
 
 class FieldNodeTest extends UnitTest with TestEnv with Transformer {
+  type N = TestFNode
 
   "FieldNodeTest1" should "success" in {
     createNewState
@@ -32,11 +33,11 @@ class FieldNodeTest extends UnitTest with TestEnv with Transformer {
     assert(a.parent==Some(d))
     assert(a.deps.contains(c))
     assert(a.depeds.contains(b))
-    new prism.codegen.BasicIRDotGen(testOut, s"field1.dot", top).run
+    new prism.codegen.BasicIRDotGen[N](testOut, s"field1.dot", top).run
 
     val mapping = mirrorAll(top+:top.descendents)
     val mtop = mapping(top)
-    new prism.codegen.BasicIRDotGen(testOut, s"field2.dot", top).run
+    new prism.codegen.BasicIRDotGen[N](testOut, s"field2.dot", top).run
     val ma = mapping(a)
     val mb = mapping(b)
     val md = mapping(d)

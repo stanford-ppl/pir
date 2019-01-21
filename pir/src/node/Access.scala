@@ -51,8 +51,8 @@ case class BufferRead()(implicit env:Env) extends LocalOutAccess
 case class TokenWrite()(implicit env:Env) extends LocalInAccess
 case class TokenRead()(implicit env:Env) extends LocalOutAccess
 
-trait AccessUtil { self:PIRNodeUtil =>
-  implicit class AccessOp(x:N) {
+trait AccessUtil {
+  implicit class AccessOp(x:PIRNode) {
     def isInAccess:Boolean = x match {
       case x:InAccess => true
       case x => false

@@ -11,7 +11,6 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
   with PIRDebugger 
   with GraphUtilImplicits 
   with CollectorImplicit
-  with PIRNodeUtil 
   with RuntimeAnalyzer
   //with prism.traversal.GraphUtil  
   //with spade.SpadeAlias 
@@ -26,8 +25,10 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
 
 }
 trait PIRTraversal extends PIRPass {
+  type N = PIRNode
   def top = compiler.pirTop
 }
 trait ControlTreeTraversal extends PIRPass {
+  type N = ControlTree
   def top = compiler.pirTop.topCtrl
 }

@@ -5,7 +5,9 @@ import prism.graph._
 
 import scala.collection.mutable
 
-class BasicIRDotGen(override val dirName:String, val fileName:String, val top:Node[_]) extends Pass()(null) with IRDotCodegen
+class BasicIRDotGen[TN<:Node[TN]](override val dirName:String, val fileName:String, val top:TN) extends Pass()(null) with IRDotCodegen {
+  type N = TN
+}
 
 trait IRDotCodegen extends DotCodegen with ChildFirstTraversal {
 
@@ -83,14 +85,14 @@ trait IRDotCodegen extends DotCodegen with ChildFirstTraversal {
     (n::n.descendents.filter { d => !nodes.contains(d) }).foreach { d =>
       d.localIns.foreach { in =>
         in.connected.foreach { out => 
-          if (!out.src.isDescendentOf(n)) emitEdge(out, in, DotAttr.empty)
+          if (!out.src.as[N].isDescendentOf(n)) emitEdge(out, in, DotAttr.empty)
         }
       }
     }
   }
 
   def emitEdge(from:E, to:E, attr:DotAttr):Unit = {
-    emitEdgeMatched(from.src, to.src, attr) 
+    emitEdgeMatched(from.src.as[N], to.src.as[N], attr) 
   }
 
   def lift(n:N) = {

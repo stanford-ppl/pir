@@ -16,7 +16,7 @@ case class TopParam(
 }
 
 trait Pattern extends Parameter {
-  def cuParams = new NodeCollector(this).collectIn[CUParam]()
+  def cuParams = this.collectIn[CUParam]()
 }
 
 case class AsicPattern(

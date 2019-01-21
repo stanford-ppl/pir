@@ -5,7 +5,7 @@ import pir.node._
 import pir.mapper._
 import prism.graph._
 
-trait MemoryAnalyzer extends PIRPass with Transformer {
+trait MemoryAnalyzer extends PIRTraversal with Transformer {
 
   def insertToken(fctx:Context, tctx:Context):TokenRead = {
     val fctrl = fctx.ctrl.get
@@ -63,8 +63,8 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
           val iidx = iAncesstors.indexOf(lca)
           // Use def to prevent evaluation outside if statement to prevent idx out of bound
           // in case of one ctrl is ancesstor of another
-          def octrl = oAncesstors(oidx-1).as[ControlTree]
-          def ictrl = iAncesstors(iidx-1).as[ControlTree]
+          def octrl = oAncesstors(oidx-1)
+          def ictrl = iAncesstors(iidx-1)
           if (lca == o)      (ctrlValid(o, octx), ctrlDone(ictrl, ictx))
           else if (lca == i) (ctrlDone(octrl, octx), ctrlValid(i, ictx))
           else               (ctrlDone(octrl, octx), ctrlDone(ictrl, ictx))

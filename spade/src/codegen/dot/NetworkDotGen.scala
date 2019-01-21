@@ -5,11 +5,11 @@ import spade.node._
 import spade.param._ 
 import prism.codegen._
 
-class SpadeNetworkDotGen(val fileName:String)(implicit compiler:Spade) extends NetworkDotGen {
+class SpadeNetworkDotGen(val fileName:String)(implicit compiler:Spade) extends NetworkDotGen with SpadeTraversal {
   lazy val top = compiler.spadeTop
 }
 
-trait NetworkDotGen extends IRDotCodegen {
+trait NetworkDotGen extends IRDotCodegen with SpadeTraversal {
 
   override def label(attr:DotAttr, n:N) = {
     var label = quote(n)

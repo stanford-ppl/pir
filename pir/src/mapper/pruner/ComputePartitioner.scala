@@ -8,16 +8,16 @@ import prism.collection.immutable._
 
 trait ComputePartitioner extends CUPruner {
 
-  lazy val schedular = new DFSTopologicalTraversal with Schedular {
+  lazy val schedular = new PIRTraversal with DFSTopologicalTraversal with Schedular {
     val forward = false
   }
 
-  def split(k:Any, vcost:List[Cost[_]]):List[Any] = dbgblk(s"split($k)") {
+  def split[T](k:T, vcost:List[Cost[_]]):List[T] = dbgblk(s"split($k)") {
     val kcost = getCosts(k)
     dbg(s"kcost=$kcost")
-    k match {
+    (k match {
       case k:ComputeContainer =>
-        val ctxs = k.collectDown[Context]().flatMap { ctx => split(ctx, vcost).asInstanceOf[List[Context]] }
+        val ctxs = k.collectDown[Context]().flatMap { ctx => split(ctx, vcost) }
         val globals = ctxs.map { ctx =>
           within(pirTop) {
             val global = ComputeContainer()
@@ -32,8 +32,8 @@ trait ComputePartitioner extends CUPruner {
         globals
       case k:Context =>
         val scope = k.children.filter { include }
-        val part = Partition(scope.asInstanceOf[List[PIRNode]])
-        val parts = split(part, vcost).asInstanceOf[List[Partition]]
+        val part = Partition(scope)
+        val parts = split(part, vcost)
         dbg(s"partitions=${parts.size}")
         val ctxs = within(k.global.get, k.ctrl.get) {
           parts.map { case part@Partition(scope) =>
@@ -52,13 +52,13 @@ trait ComputePartitioner extends CUPruner {
       case k:Partition =>
         if (fit(kcost, vcost)) List(k)
         else {
-          val nodes = schedular.scheduleScope(k.scope).asInstanceOf[List[PIRNode]]
+          val nodes = schedular.scheduleScope(k.scope)
           //dbg(s"schedule:")
           //nodes.foreach { n => dbg(s"$n") }
           val (head, tail) = nodes.splitAt(nodes.size/2)
           split(Partition(head), vcost) ++ split(Partition(tail),vcost)
         }
-    }
+    }).as[List[T]]
   }
 
   def include(n:N) = n match {
@@ -156,24 +156,24 @@ trait ComputePartitioner extends CUPruner {
 
 case class Partition(scope:List[PIRNode]) extends {
   override def toString = super.toString
-  def deps:Seq[Node[_]] = {
+  def deps:Seq[PIRNode] = {
     val descendents = scope.flatMap { n => n :: n.descendents }
     val edges = descendents.toIterator.flatMap { _.localEdges }
     val ins = edges.collect { case i:Input => i }
     ins.flatMap { in =>
-      in.connected.map { _.src }
+      in.connected.map { _.src.as[PIRNode] }
       .filterNot { descendents.contains } 
     }.toSeq.distinct
   }
 
-  def depedsTo:Map[Node[_], Seq[Node[_]]] = {
+  def depedsTo:Map[PIRNode, Seq[PIRNode]] = {
     val descendents = scope.flatMap { n => n::n.descendents }
     val edges = descendents.toIterator.flatMap { _.localEdges }
     val outs = edges.collect { case i:Output => i }
     outs.flatMap { out =>
-      out.connected.map { _.src }
+      out.connected.map { _.src.as[PIRNode] }
       .filterNot { descendents.contains } 
-      .map { deped => (deped, out.src) } 
+      .map { deped => (deped, out.src.as[PIRNode]) } 
     }.toSeq.groupBy { _._2 }.mapValues { _.map { _._1 } }
   }
 

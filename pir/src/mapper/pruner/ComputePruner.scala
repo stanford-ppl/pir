@@ -8,7 +8,7 @@ import prism.collection.immutable._
 
 class ComputePruner(implicit compiler:PIR) extends CUPruner with ComputePartitioner {
 
-  def getCosts(x:Any):List[Cost[_]] = {
+  override def getCosts(x:Any):List[Cost[_]] = {
     x match {
       case _:MemoryContainer => Nil
       case _:DRAMFringe => Nil
@@ -33,7 +33,7 @@ class ComputePruner(implicit compiler:PIR) extends CUPruner with ComputePartitio
         dbg(s"Recover $k")
         dbg(s"kcost=$kcost")
         dbg(s"vcost=$vcost")
-        val ks = split(k, vcost).toSet.as[Set[CUMap.K]]
+        val ks = split(k, vcost).toSet
         newFG(fg, k, ks, vs)
       case x => super.recover(x)
     }

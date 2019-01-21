@@ -3,7 +3,8 @@ package codegen
 
 import prism.graph._
 
-class BasicIRPrinter(override val dirName:String, val fileName:String, val top:Node[_]) extends Pass()(null) with IRPrinter {
+class BasicIRPrinter[TN<:Node[TN]](override val dirName:String, val fileName:String, val top:TN) extends Pass()(null) with IRPrinter {
+  type N = TN
   override def debug = true
 }
 

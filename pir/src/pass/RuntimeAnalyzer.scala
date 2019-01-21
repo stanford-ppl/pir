@@ -39,8 +39,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
     def psimState(s:String) = n.getMeta[Float]("psimState").update(s)
     def psimState = n.getMeta[String]("psimState").v
   }
-
-  implicit class NodeRuntimeOp(n:N) {
+  implicit class NodeRuntimeOp(n:ND) {
     def getVec:Int = n.getMeta[Int]("vec").getOrElseUpdate(compVec(n))
   }
 
@@ -163,7 +162,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
     }
   }
 
-  def compVec(n:N):Int = dbgblk(s"compVec($n)"){
+  def compVec(n:ND):Int = dbgblk(s"compVec($n)"){
     n match {
       case n:Const => 1
       case n:CounterIter if n.i.nonEmpty => 1

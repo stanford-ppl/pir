@@ -117,14 +117,14 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
         }
       case EvalOp(n, c) =>
         dbgblk(s"EvalOp($n, $c)") {
-          val const = within(n.parent.get.as[PIRNode], n.ctrl.get) { allocConst(c) }
+          val const = within(n.parent.get, n.ctrl.get) { allocConst(c) }
           swapOutput(n.out, const.out)
           addAndVisitNode(const, ())
         }
       case CounterRange(counter, range) => 
         dbgblk(s"CounterRange($counter)") {
-          val ctrler = counter.parent.get.as[Controller]
-          val const = within(ctrler.parent.get.as[PIRNode], counter.ctrl.get) { allocConst(true) }
+          val ctrler = counter.parent.get
+          val const = within(ctrler.parent.get, counter.ctrl.get) { allocConst(true) }
           range.foreach { i =>
             val out = counter.valids(i).out
             swapOutput(out, const.out)
@@ -134,7 +134,7 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
       case RouteThrough1(w1, r1, w2) =>
         val mem = w2.mem.T
         disconnect(w2.mem, mem)
-        val mw1 = within(w1.parent.get.as[PIRNode]) {
+        val mw1 = within(w1.parent.get) {
           mirrorAll(List(w1))(w1).as[MemWrite]
         }
         mw1.mem(mem)
@@ -154,7 +154,7 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
 
   // Breaking loop in traversal
   override def visitIn(n:N):List[N] = n match {
-    case n:LocalOutAccess => n.in.neighbors
+    case n:LocalOutAccess => n.in.neighbors.as
     case n => super.visitIn(n)
   }
 

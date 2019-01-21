@@ -18,7 +18,7 @@ class ControlPropogation(implicit compiler:PIR) extends PIRPass {
           }
           dbg(s"inputs=$inputs")
           (d :: inputs).foreach { n =>
-            val node = n.as[PIRNode]
+            val node = n
             val ctrl = ctrler.ctrl.get
             node.ctrl.reset
             node.ctrl := ctrl

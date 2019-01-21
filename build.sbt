@@ -75,16 +75,16 @@ lazy val spade = Project("spade", file("spade/"))
  /*)*/
 
 lazy val pir = Project("pir", file("pir/"))
-.dependsOn(prism % "compile->compile;test->test")
-.dependsOn(spade % "compile->compile")
-.settings(bldSettings).settings(
-  scalaSource in Compile := baseDirectory(_ / "src/core").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/util/").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/pass/").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/codegen/").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/").value,
-  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node").value
-)
+  .dependsOn(prism % "compile->compile;test->test")
+  .dependsOn(spade % "compile->compile")
+  .settings(bldSettings).settings(
+    scalaSource in Compile := baseDirectory(_ / "src/core").value,
+    unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/util/").value,
+    unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/pass/").value,
+    unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/codegen/").value,
+    unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/mapper/").value,
+    unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node").value
+  )
 
 // sbt command alias
 addCommandAlias("make", "compile")

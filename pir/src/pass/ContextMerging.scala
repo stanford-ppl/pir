@@ -6,7 +6,7 @@ import prism.graph._
 import spade.param._
 import prism.collection.immutable._
 
-class ContextMerging(implicit compiler:PIR) extends PIRPass with Transformer {
+class ContextMerging(implicit compiler:PIR) extends PIRTraversal with Transformer {
 
   override def runPass {
     val globals = pirTop.collectDown[GlobalContainer]().collect { case global:MemoryContainer => global }
@@ -18,7 +18,7 @@ class ContextMerging(implicit compiler:PIR) extends PIRPass with Transformer {
     dbg(s"mem=$mem")
     mem.outAccesses.groupBy { read =>
       val readCtrl = read.getCtrl
-      (readCtrl::readCtrl.ancestors).as[List[ControlTree]].filter { _.schedule == "ForkJoin" }
+      (readCtrl::readCtrl.ancestors).filter { _.schedule == "ForkJoin" }
     }.filterNot { _._1.isEmpty }.foreach { case (forkJoins, reads) =>
       if (reads.size > 1) {
         dbg(s"forkJoins=$forkJoins")
@@ -39,7 +39,7 @@ class ContextMerging(implicit compiler:PIR) extends PIRPass with Transformer {
             val read::rest = reads
             dbg(s"Remove redundant $rest")
             rest.foreach { r =>
-              r.out.neighbors.foreach { deped =>
+              r.out.neighbors.as[Seq[PIRNode]].foreach { deped =>
                 swapInput(deped, r.out, read.out)
               }
             }
@@ -49,28 +49,5 @@ class ContextMerging(implicit compiler:PIR) extends PIRPass with Transformer {
       }
     }
   }
-
-  //def mergeCtx(global:GlobalContainer) = dbgblk(s"mergeCtx($global)"){
-    //val mem = assertOne(global.children.collect { case mem:Memory => mem }, s"$global.mem")
-    //dbg(s"mem=$mem")
-    //mem.outAccesses.groupBy { read =>
-      //val readCtrl = read.getCtrl
-      //(readCtrl::readCtrl.ancestors).as[List[ControlTree]].filter { _.schedule == "ForkJoin" }
-    //}.filterNot { _._1.isEmpty }.foreach { case (forkJoins, reads) =>
-      //if (reads.size > 1) {
-        //dbg(s"forkJoins=$forkJoins")
-        //val ctxs = reads.map { read =>
-          //val ctx = read.ctx.get 
-          //dbg(s"read=$read, ctrl=${read.getCtrl}, ctx=$ctx")
-          //ctx
-        //}
-        //val newCtx = within(global) {
-          //val ctx = Context()
-          //within(ctx) {
-          //}
-        //}
-      //}
-    //}
-  //}
 
 }
