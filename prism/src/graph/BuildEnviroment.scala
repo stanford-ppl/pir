@@ -55,6 +55,6 @@ trait BuildEnvironment extends Logging {
     }
   }
 }
-abstract class EnvNode[N<:EnvNode[N]](implicit env:BuildEnvironment) extends Node[N] { self:N =>
+abstract class EnvNode[N<:Node[N]](implicit env:BuildEnvironment) extends Node[N] { self:N =>
   override val id = env.nextId
 }

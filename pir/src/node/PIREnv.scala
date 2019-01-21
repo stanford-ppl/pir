@@ -26,9 +26,7 @@ trait PIREnv extends Env { self =>
 
   implicit class PIRParent(val value:PIRNode) extends State[PIRNode] {
     def initNode[N<:Node[N]](n:N, value:PIRNode):Unit = {
-      n.to[PIRNode].foreach{ n =>
-        n.setParent(value.as[PIRNode])
-      }
+      n.to[PIRNode].foreach{ _.setParent(value) }
     }
   }
   

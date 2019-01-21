@@ -12,12 +12,12 @@ trait ComputePartitioner extends CUPruner {
     val forward = false
   }
 
-  def split(k:Any, vcost:List[Cost[_]]):List[Any] = dbgblk(s"split($k)") {
+  def split[T](k:T, vcost:List[Cost[_]]):List[T] = dbgblk(s"split($k)") {
     val kcost = getCosts(k)
     dbg(s"kcost=$kcost")
-    k match {
+    (k match {
       case k:ComputeContainer =>
-        val ctxs = k.collectDown[Context]().flatMap { ctx => split(ctx, vcost).asInstanceOf[List[Context]] }
+        val ctxs = k.collectDown[Context]().flatMap { ctx => split(ctx, vcost) }
         val globals = ctxs.map { ctx =>
           within(pirTop) {
             val global = ComputeContainer()
@@ -32,8 +32,8 @@ trait ComputePartitioner extends CUPruner {
         globals
       case k:Context =>
         val scope = k.children.filter { include }
-        val part = Partition(scope.asInstanceOf[List[PIRNode]])
-        val parts = split(part, vcost).asInstanceOf[List[Partition]]
+        val part = Partition(scope)
+        val parts = split(part, vcost)
         dbg(s"partitions=${parts.size}")
         val ctxs = within(k.global.get, k.ctrl.get) {
           parts.map { case part@Partition(scope) =>
@@ -52,13 +52,13 @@ trait ComputePartitioner extends CUPruner {
       case k:Partition =>
         if (fit(kcost, vcost)) List(k)
         else {
-          val nodes = schedular.scheduleScope(k.scope).asInstanceOf[List[PIRNode]]
+          val nodes = schedular.scheduleScope(k.scope)
           //dbg(s"schedule:")
           //nodes.foreach { n => dbg(s"$n") }
           val (head, tail) = nodes.splitAt(nodes.size/2)
           split(Partition(head), vcost) ++ split(Partition(tail),vcost)
         }
-    }
+    }).as
   }
 
   def include(n:N) = n match {

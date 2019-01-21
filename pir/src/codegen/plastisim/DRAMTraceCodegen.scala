@@ -9,7 +9,7 @@ import prism.codegen._
 import scala.collection.mutable
 
 trait ProgramOrderTraversal extends PIRTraversal with ChildFirstTraversal {
-  lazy val ctrlMap = top.descendents.as[List[PIRNode]].groupBy { _.ctrl.v }
+  lazy val ctrlMap = top.descendents.groupBy { _.ctrl.v }
 
   override def visitFunc(n:N):List[N] = n match {
     case n:Top => scheduleCtrl(n.topCtrl)
@@ -19,7 +19,7 @@ trait ProgramOrderTraversal extends PIRTraversal with ChildFirstTraversal {
 
   def scheduleCtrl(ctrl:ControlTree) = {
     var nodes:List[PIRNode] = ctrlMap.get(Some(ctrl)).getOrElse(Nil)
-    nodes ++= ctrl.children.flatMap { _.as[ControlTree].ctrler.v }
+    nodes ++= ctrl.children.flatMap { _.ctrler.v }
     ctrl.ctrler.v.foreach { ctrler =>
       nodes = nodes.filterNot { node => node == ctrler }
     }
@@ -69,7 +69,7 @@ class DRAMTraceCodegen(implicit compiler:PIR) extends ProgramOrderTraversal with
           dbgblk(s"tracing $fringe.$in") {
             nodes.foreach { node => dbg(node) }
           }
-          tracked ++= nodes.asInstanceOf[List[PIRNode]]
+          tracked ++= nodes
         }
       }
     }

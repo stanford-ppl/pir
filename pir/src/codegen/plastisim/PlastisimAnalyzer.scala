@@ -12,33 +12,9 @@ class PlastisimAnalyzer(implicit compiler:PIR) extends PIRTraversal with Sibling
   import compiler.env._
   val forward = true
 
-  //override def accountForCycle = compiler.hasRun[PlastisimAnalyzer]
-
-  //override def runPass = {
-    //if (accountForCycle) {
-      //val resets = pirTop.descendents.flatMap { d =>
-        //val n = d.as[PIRNode]
-        //val count = n.count
-        //if (count.v.nonEmpty && count.get == None) {
-          //dbg(s"Reset Count for $n...")
-          //count.reset
-          //Some(n)
-        //} else if (n.count.isEmpty) {
-          //n match {
-            //case n:GlobalIO => Some(n)
-            //case n:LocalAccess => Some(n)
-            //case n => None
-          //}
-        //} else None
-      //}
-      //resets.foreach { _.getCount }
-    //} else super.runPass
-  //}
-
   override def visitNode(n:N) = {
     n.to[Context].foreach { n =>
       n.getCount
-    //super.visitNode(n)
     }
   }
 

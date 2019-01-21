@@ -80,7 +80,7 @@ trait FieldNode[N<:FieldNode[N]] extends Node[N] { self:N =>
    * and read connection of the edge with type of T
    * */
   trait FieldEdge[T] extends Edge with NodeField[T] {
-    def fieldToNodes:Seq[N] = connected.map { _.src.as }
+    def fieldToNodes:Seq[N] = connected.map { _.src.as[N] }
     def update(x:Any):Unit = {
       unpack(x) { 
         case x:Edge => connect(x)

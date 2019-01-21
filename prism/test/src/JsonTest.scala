@@ -1,7 +1,7 @@
-package prism
-package test
+//package prism
+//package test
 
-import spray.json._
+//import spray.json._
 
 //object MyJsonProtocal extends DefaultJsonProtocol {
   ////override def extractCaseNames() = {}

@@ -47,7 +47,7 @@ trait DependencyAnalyzer extends PIRTraversal with Transformer {
         }
       }
     }
-    deps.as[List[PIRNode]]
+    deps
   }
 
   def getCtrlerDeps(
@@ -57,7 +57,7 @@ trait DependencyAnalyzer extends PIRTraversal with Transformer {
     val leaf = assertOneOrLess(from.collectDown[Controller]().filter { _.isLeaf }, s"$from.leaf ctrler")
     leaf.toList.flatMap { leaf =>
       leaf +: (leaf.descendents++getDeps(leaf, visitFunc))
-    }.as[Seq[PIRNode]]
+    }
   }
 
   def dupDeps(ctx:Context) = dbgblk(s"dupDeps($ctx)") {

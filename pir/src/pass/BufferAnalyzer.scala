@@ -16,7 +16,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
   }
 
   def bufferInput(ctx:Context):Unit = dbgblk(s"bufferInput($ctx)"){
-    ctx.descendents.foreach { deped => bufferInput(deped.as[PIRNode]) }
+    ctx.descendents.foreach { deped => bufferInput(deped) }
   }
 
   def bufferInput(deped:PIRNode):Seq[BufferRead] = {

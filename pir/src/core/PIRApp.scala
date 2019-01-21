@@ -203,7 +203,7 @@ trait PIRApp extends PIR with Logging {
     beginState(tree)
     val ctrler = newCtrler.valid(ControllerValid()).done(ControllerDone())
     tree.ctrler(ctrler)
-    tree.parent.get.as[ControlTree].ctrler.v.foreach { pctrler =>
+    tree.parent.get.ctrler.v.foreach { pctrler =>
       ctrler.parentEn(pctrler.valid.T)
     }
     ctrler

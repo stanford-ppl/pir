@@ -20,7 +20,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner {
         dbg(s"Recover $k")
         dbg(s"kcost=$kcost")
         dbg(s"vcost=$vcost")
-        val ks = split(k, kcost, vcost).toSet.as[Set[CUMap.K]]
+        val ks = split(k, kcost, vcost).toSet
         newFG(fg, k, ks, vs)
       case x => super.recover(x)
     }
@@ -88,7 +88,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner {
       val mmem = mapping(mem).as[Memory]
       shuffles.foreach { shuffle =>
         val mshuffle = mapping(shuffle).as[Shuffle]
-        within(mshuffle.parent.get.as[PIRNode], mshuffle.ctrl.get) {
+        within(mshuffle.parent.get, mshuffle.ctrl.get) {
           mshuffle.to.disconnect
           mshuffle.to(allocConst(mmem.bankids.get).out)
         }

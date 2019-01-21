@@ -42,7 +42,7 @@ class DAGTraversalTest extends UnitTest with Logging {
 
   "DAGTestBFS" should "success" in {
     val traversal = new BFSTraversal with Schedular {
-      type N = Node[_]
+      type N = TestPNode
       def visitFunc(n:N):List[N] = visitLocalIn(n)
     }
     var res = traversal.scheduleNode(e)
@@ -53,7 +53,7 @@ class DAGTraversalTest extends UnitTest with Logging {
 
   "DAGTestDFS" should "success" in {
     val traversal = new DFSTraversal with Schedular {
-      type N = Node[_]
+      type N = TestPNode
       def visitFunc(n:N):List[N] = visitLocalIn(n)
     }
     var res = traversal.scheduleNode(e)
@@ -64,6 +64,7 @@ class DAGTraversalTest extends UnitTest with Logging {
 
   "DAGTestChildFirst" should "success" in {
     val traversal = new ChildFirstTraversal with Schedular {
+      type N = TestPNode
       val top = DAG1.top
       override def visitNode(n:N, prev:T):T = {
         assert(!n.children.exists(prev.contains), s"n=$n prev=$prev")
@@ -78,6 +79,7 @@ class DAGTraversalTest extends UnitTest with Logging {
 
   "DAGTestSiblingFirst" should "success" in {
     val traversal = new SiblingFirstTraversal with Schedular {
+      type N = TestPNode
       val top = DAG1.top
       override def visitNode(n:N, prev:T):T = {
         assert(!n.children.exists(prev.contains), s"n=$n prev=$prev")
@@ -95,6 +97,7 @@ class DAGTraversalTest extends UnitTest with Logging {
 
   "DAGTestDFSTDTopo" should "success" in {
     val traversal = new DFSTopDownTopologicalTraversal with Schedular {
+      type N = TestPNode
       val top = DAG1.top
       implicit val nct:ClassTag[N] = classTag[N]
       val forward = true
@@ -112,6 +115,7 @@ class DAGTraversalTest extends UnitTest with Logging {
 
   "DAGTestBUTopo" should "success" in {
     val traversal = new BottomUpTopologicalTraversal with Schedular with DFSTraversal {
+      type N = TestPNode
       val top = DAG1.top
       implicit val nct:ClassTag[N] = classTag[N]
       val forward = true

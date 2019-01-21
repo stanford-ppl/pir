@@ -1,13 +1,14 @@
 package pir
 package test
 
-import pir._
 import pir.node._
 import prism.graph._
 import prism.util._
 import prism.test._
 
 class IRTest extends UnitTest with Serialization with TestEnv with Transformer {
+  type N = PIRNode
+
   createNewState
 
   "PIRTest" should "success" in {
@@ -23,7 +24,7 @@ class IRTest extends UnitTest with Serialization with TestEnv with Transformer {
     val path = s"$testOut/irtest"
     saveToFile(top, path)
     val loaded = loadFromFile[Top](path)
-    new prism.codegen.BasicIRDotGen(testOut, s"irtest.dot", loaded).run
+    new prism.codegen.BasicIRDotGen[PIRNode](testOut, s"irtest.dot", loaded).run
   }
 
   "PIRMirrorTest1" should "success" in {
