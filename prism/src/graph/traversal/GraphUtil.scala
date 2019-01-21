@@ -9,38 +9,38 @@ trait GraphUtil {
   /*
    * Visit from buttom up
    * */
-  def visitUp(n:N):List[N] = n.parent.toList
+  def visitUp[N<:Node[N]](n:N):List[N] = n.parent.toList
 
   /*
    * Visit subgraph
    * */
-  def visitDown(n:N):List[N] = n.children
+  def visitDown[N<:Node[N]](n:N):List[N] = n.children
 
   /*
    * Visit siblings
    * */
-  def visitPeer(n:N):List[N] = n.parent.map { p => p.children.filterNot(_ == n) }.getOrElse(Nil)
+  def visitPeer[N<:Node[N]](n:N):List[N] = n.parent.map { p => p.children.filterNot(_ == n) }.getOrElse(Nil)
 
   /*
    * Visit inputs of a node
    * */
-  def visitLocalIn(n:N):List[N] = n.siblingDeps.toList
+  def visitLocalIn[N<:Node[N]](n:N):List[N] = n.siblingDeps.toList
 
   /*
    * Visit outputs of a node 
    * */
-  def visitLocalOut(n:N):List[N] = n.siblingDepeds.toList
+  def visitLocalOut[N<:Node[N]](n:N):List[N] = n.siblingDepeds.toList
 
-  def visitLocal(n:N):List[N] = visitLocalIn(n) ++ visitLocalOut(n) 
+  def visitLocal[N<:Node[N]](n:N):List[N] = visitLocalIn(n) ++ visitLocalOut(n) 
 
-  def visitGlobalIn(n:N):List[N] = n.deps.toList
-  def visitGlobalOut(n:N):List[N] = n.depeds.toList
+  def visitGlobalIn[N<:Node[N]](n:N):List[N] = n.deps.toList
+  def visitGlobalOut[N<:Node[N]](n:N):List[N] = n.depeds.toList
 
   /*
    * For each node returned by visitFunc, swap node to its ancesstor with type T if it has one.
    * Otherwise keep the node
    * */
-  def lift[T<:N:ClassTag](visitFunc:N => List[N])(n:N) = visitFunc(n).map { x =>
+  def lift[N<:Node[N],T<:N:ClassTag](visitFunc:N => List[N])(n:N) = visitFunc(n).map { x =>
     x.collectUp[T]().headOption.getOrElse(x)
   }.distinct
 
@@ -48,16 +48,16 @@ trait GraphUtil {
    * For each node returned by visitFunc, include its ancesstor with type T and ancesstor's
    * descendents if it has one. Otherwise keep the node
    * */
-  def cover[T<:N:ClassTag](visitFunc:N => List[N])(n:N) = visitFunc(n).flatMap { x =>
+  def cover[N<:Node[N],T<:N:ClassTag](visitFunc:N => List[N])(n:N) = visitFunc(n).flatMap { x =>
     val xx = x.collectUp[T]().headOption.getOrElse(x)
     xx :: xx.descendents
   }.distinct
 
-  def leastCommonAncesstor(n1:N, n2:N):Option[N] = {
+  def leastCommonAncesstor[N<:Node[N]](n1:N, n2:N):Option[N] = {
     ((n1 :: n1.ancestors) intersect (n2 :: n2.ancestors)).headOption
   }
 
-  def leastCommonAncesstor(ns:Iterable[N]):Option[N] = {
+  def leastCommonAncesstor[N<:Node[N]](ns:Iterable[N]):Option[N] = {
     val head::rest = ns.toList
     rest.foldLeft[Option[N]](Some(head)){ 
       case (Some(lca), n) => leastCommonAncesstor(lca, n)
@@ -65,7 +65,7 @@ trait GraphUtil {
     }
   }
 
-  def leastMatchedPeers(ns:Seq[N], lca:N):Map[N, N] = {
+  def leastMatchedPeers[N<:Node[N]](ns:Seq[N], lca:N):Map[N, N] = {
     ns.map { n =>
       n -> (if (n == lca) n else {
         val ancestors = n :: n.ancestors
@@ -75,7 +75,7 @@ trait GraphUtil {
     }.toMap
   }
 
-  def leastMatchedPeers(ns:Seq[N]):Option[Map[N, N]] = {
+  def leastMatchedPeers[N<:Node[N]](ns:Seq[N]):Option[Map[N, N]] = {
     leastCommonAncesstor(ns).map { lca =>
       leastMatchedPeers(ns, lca)
     }
@@ -84,7 +84,7 @@ trait GraphUtil {
 }
 
 trait GraphUtilImplicits {
-  implicit class NodeUtil(node:N) {
+  implicit class NodeUtil[N<:Node[N]](node:N) {
     def visitUp:List[N] = graph.visitUp(node)
     def visitDown:List[N] = graph.visitDown(node)
     def visitPeer:List[N] = graph.visitPeer(node)

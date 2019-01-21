@@ -39,8 +39,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
     def psimState(s:String) = n.getMeta[Float]("psimState").update(s)
     def psimState = n.getMeta[String]("psimState").v
   }
-
-  implicit class NodeRuntimeOp(n:N) {
+  implicit class NodeRuntimeOp(n:ND) {
     def getVec:Int = n.getMeta[Int]("vec").getOrElseUpdate(compVec(n))
   }
 

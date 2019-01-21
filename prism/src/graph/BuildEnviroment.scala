@@ -7,8 +7,8 @@ import scala.collection.mutable._
 abstract class State[T] extends Serializable {
   def value:T
   val key = this.getClass
-  def initNode(n:Node[_], value:T):Unit
-  def initNodeX(n:Node[_], value:Any):Unit = initNode(n, value.asInstanceOf[T])
+  def initNode[N<:Node[N]](n:N, value:T):Unit
+  def initNodeX[N<:Node[N]](n:N, value:Any):Unit = initNode(n, value.asInstanceOf[T])
 }
 
 class States extends Serializable {
@@ -47,7 +47,7 @@ trait BuildEnvironment extends Logging {
 
   def endState[T:ClassTag] = stacks(classTag[T].runtimeClass).pop
 
-  def initNode(n:Node[_]) = {
+  def initNode[N<:Node[N]](n:N) = {
     stacks.foreach { case (key,stack) =>
       stack.headOption.foreach { head =>
         head.initNodeX(n, head.value)
@@ -55,6 +55,6 @@ trait BuildEnvironment extends Logging {
     }
   }
 }
-abstract class EnvNode[N](implicit env:BuildEnvironment) extends Node[N] { self:N =>
+abstract class EnvNode[N<:EnvNode[N]](implicit env:BuildEnvironment) extends Node[N] { self:N =>
   override val id = env.nextId
 }

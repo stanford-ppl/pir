@@ -20,7 +20,7 @@ trait PrismLocalAlias extends Misc with MappingUtil with ScalaUtil with FileMana
   //type Metadata = prism.util.Metadata
   val ConsoleLogger=prism.util.ConsoleLogger
 
-  type N = prism.graph.Node[_]
+  type ND = prism.graph.Node[X] forSome { type X <:prism.graph.Node[X] }
   type E = prism.graph.Edge
   type FG[K,V,S<:FactorGraphLike[K,V,S]] = FactorGraphLike[K,V,S]
 }

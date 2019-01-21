@@ -14,6 +14,9 @@ abstract class SpadeNode(implicit env:BuildEnvironment) extends EnvNode[SpadeNod
 
   env.initNode(this)
 }
+object SpadeNode {
+  implicit class SpadeNodeCollector[N<:SpadeNode](node:N) extends NodeCollector[SpadeNode, N](node)
+}
 
 object Param {
   def unapply(n:SpadeNode):Option[Parameter] = n.params

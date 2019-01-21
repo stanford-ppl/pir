@@ -6,7 +6,7 @@ import scala.collection.mutable
 trait Edge extends IR {
 
   /*  ------- State -------- */
-  def src:Node[_]
+  def src:ND
   val _connected = mutable.ListBuffer[Edge]()
 
   def connected:List[Edge] = _connected.toList
@@ -26,7 +26,7 @@ trait Edge extends IR {
     }
   }
   def neighbors = connected.map(_.src).distinct
-  def isConnectedTo(n:Node[_]) = neighbors.contains(n)
+  def isConnectedTo(n:ND) = neighbors.contains(n)
 
   def disconnectFrom(e:Edge):Unit = {
     assert(this.isConnectedTo(e), s"${this.src}.$this is not connected to ${e.src}.$e. connected=$connected")
@@ -38,7 +38,7 @@ trait Edge extends IR {
   src.addEdge(this)
 }
 
-class Input(implicit val src:Node[_]) extends Edge {
+class Input(implicit val src:ND) extends Edge {
   override def connect(e:Edge):this.type = {
     e match {
       case _:Output => super.connect(e)
@@ -56,7 +56,7 @@ class Input(implicit val src:Node[_]) extends Edge {
   }
 }
 
-class Output(implicit val src:Node[_]) extends Edge {
+class Output(implicit val src:ND) extends Edge {
   override def connect(e:Edge):this.type = {
     e match {
       case _:Input => super.connect(e)

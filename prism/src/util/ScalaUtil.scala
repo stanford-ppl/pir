@@ -232,4 +232,5 @@ trait ScalaUtilFunc {
       case _ => None
     }
   }
+
 }

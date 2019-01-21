@@ -16,7 +16,7 @@ trait UnitTraversal extends Traversal {
 }
 
 trait GraphTraversal extends Traversal {
-  type N = Node[_]
+  type N<:Node[N]
 }
 
 trait Traversal extends Logging {

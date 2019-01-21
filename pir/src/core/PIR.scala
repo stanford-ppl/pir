@@ -3,7 +3,7 @@ package pir
 import prism.graph._
 import pir.node._
 
-trait PIR extends Compiler with PIREnv with PIRNodeUtil {
+trait PIR extends Compiler with PIREnv {
 
   override val logExtensions = super.logExtensions ++ List(".py", ".cluster")
   override lazy val config = new PIRConfig(this)

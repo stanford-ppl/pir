@@ -45,9 +45,8 @@ abstract class PIRNode(implicit env:BuildEnvironment)
 
   env.initNode(this)
 }
-
-trait PIRNodeUtil extends MemoryUtil with AccessUtil {
-  implicit class PIRNodeOp(n:PIRNode) {
+object PIRNode extends MemoryUtil with AccessUtil {
+  implicit class PIRNodeOp[N<:PIRNode](n:N) extends NodeCollector[PIRNode, N](n){
     def ctx = n.collectUp[Context]().headOption
     def global = n.collectUp[GlobalContainer]().headOption
     def isUnder[T:ClassTag] = n.ancestors.exists { _.to[T].nonEmpty }

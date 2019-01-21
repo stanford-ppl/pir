@@ -1,9 +1,9 @@
-package prism
-package graph1
+//package prism
+//package graph1
 
-import prism.graph._
+//import prism.graph._
 
-import scala.collection.mutable
+//import scala.collection.mutable
 
 //trait Edge[A<:Edge[A,B],B<:Edge[B,A]] extends IR { self:A =>
 

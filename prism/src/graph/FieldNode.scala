@@ -9,10 +9,10 @@ trait Field[T] extends Serializable {
   def update(x:Any):Unit
   def fieldToNodes:Seq[Node[_]]
   def T:T
-  def node:Node[_]
+  def node:Node[N] forSome { type N <:Node[N] }
 }
 object Field {
-  def unapply(x:Any):Option[(Node[_], String)] = x match {
+  def unapply[N<:Node[N]](x:Any):Option[(Node[_], String)] = x match {
     case x:Field[_] => Some((x.node, x.name))
     case _ => None
   }
@@ -38,8 +38,8 @@ object OutputField {
  * The constructor argument should not containing connection to other
  * nodes
  * */
-trait FieldNode[N] extends Node[N] { self:N =>
-  implicit val n:Node[_] = this
+trait FieldNode[N<:FieldNode[N]] extends Node[N] { self:N =>
+  implicit val n = this
   val idx = Metadata[Int]("idx")
 
   def asInput:Option[Input] = None
@@ -72,7 +72,7 @@ trait FieldNode[N] extends Node[N] { self:N =>
     }
     def evalTo(n:Any) = fieldToNodes.contains(n)
     def evalTo(n:List[Any]) = n.forall { n => fieldToNodes.contains(n) }
-    def node:Node[_] = n
+    def node:Node[N] forSome { type N <:Node[N] } = n
   }
 
   /*
@@ -80,7 +80,7 @@ trait FieldNode[N] extends Node[N] { self:N =>
    * and read connection of the edge with type of T
    * */
   trait FieldEdge[T] extends Edge with NodeField[T] {
-    def fieldToNodes:Seq[Node[_]] = connected.map { _.src }
+    def fieldToNodes:Seq[N] = connected.map { _.src.as }
     def update(x:Any):Unit = {
       unpack(x) { 
         case x:Edge => connect(x)
@@ -107,7 +107,7 @@ trait FieldNode[N] extends Node[N] { self:N =>
     override def toString = s"${super.toString}_$name"
   }
 
-  class ChildField[M<:FieldNode[_]:ClassTag, T:TypeTag:ClassTag](val name:String) extends NodeField[T] {
+  class ChildField[M<:FieldNode[N]:ClassTag, T:TypeTag:ClassTag](val name:String) extends NodeField[T] {
     val Ttt = typeTag[T]
     val Tct = classTag[T]
     def update(x:Any):Unit = {
