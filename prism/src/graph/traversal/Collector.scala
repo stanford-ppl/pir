@@ -40,7 +40,7 @@ class PrefixTraversal[NN<:Node[NN],TT](
 }
 
 trait CollectorImplicit {
-  implicit class NodeCollector[N<:Node[N], NN<:N](node:NN) {
+  implicit class NodeCollector[N<:Node[N]](node:N) {
     def filter(prefix:N => Boolean, visitFunc:N => List[N], depth:Int = -1, logger:Option[Logging]=None):List[N] = 
       dbgblk(logger, s"filter($node, depth=$depth)") {
         def accumulate(prev:List[N], n:N) = {
@@ -102,7 +102,7 @@ trait CollectorImplicit {
       }
   }
 
-  implicit class EdgeCollector[N<:Node[N]](edge:Edge) {
+  class EdgeCollector[N<:Node[N]](edge:Edge) {
     def collect[M<:N:ClassTag](visitFunc:N => List[N], depth:Int = -1, logger:Option[Logging]=None):List[M] = 
       dbgblk(logger, s"collect(${edge.src}.${edge}, depth=$depth)") {
         def prefix(n:N) = n match { case n:M => true; case _ => false }

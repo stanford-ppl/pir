@@ -25,18 +25,18 @@ trait PIREnv extends Env { self =>
   def topMap_=(tmap:EOption[TopMap])= states.topMap_=(tmap)
 
   implicit class PIRParent(val value:PIRNode) extends State[PIRNode] {
-    def initNode(n:Node[_], value:PIRNode) = {
-      n match {
-        case n:PIRNode => n.setParent(value)
-        case _ =>
+    def initNode[N<:Node[N]](n:N, value:PIRNode):Unit = {
+      n.to[PIRNode].foreach{ n =>
+        n.setParent(value.as[PIRNode])
       }
     }
   }
   
   implicit class Ctrl(val value:ControlTree) extends State[ControlTree] {
-    def initNode(n:Node[_], value:ControlTree) = {
+    def initNode[N<:Node[N]](n:N, value:ControlTree):Unit = {
       n match {
-        case n:ControlTree => n.setParent(value)
+        case n:ControlTree => 
+          n.as[ControlTree].setParent(value) //TODO: why is this necessary
         case n:Memory => 
         case n:PIRNode => n.ctrl(value)
         case n => 

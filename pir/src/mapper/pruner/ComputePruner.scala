@@ -8,7 +8,7 @@ import prism.collection.immutable._
 
 class ComputePruner(implicit compiler:PIR) extends CUPruner with ComputePartitioner {
 
-  def getCosts(x:Any):List[Cost[_]] = {
+  override def getCosts(x:Any):List[Cost[_]] = {
     x match {
       case _:MemoryContainer => Nil
       case _:DRAMFringe => Nil

@@ -88,7 +88,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     val ins = inputs.filterNot { _.src.isInstanceOf[GlobalInput] }
     if (ins.isEmpty) return
     dbgblk(s"insertGlobalInput($global, ${out.src}.${out}, $ins)"){
-      out.src match {
+      out.src.as[PIRNode] match {
         case dep:GlobalInput if dep.isDescendentOf(global) => dep
         case dep:GlobalInput => 
           ins.foreach { in => swapConnection(in, out, dep.in.T.out) }
@@ -116,7 +116,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     out:Output, 
     ins:Seq[Input]
   ):GlobalOutput = dbgblk(s"insertGlobalOutput($global, ${out.src}.${out}, $ins)"){
-    out.src match {
+    out.src.as[PIRNode] match {
       case depedFrom:GlobalOutput if depedFrom.isDescendentOf(global) => depedFrom
       case depedFrom:GlobalOutput => throw PIRException(s"impossible case insertGlobalOutput")
       case depedFrom =>

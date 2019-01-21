@@ -6,7 +6,7 @@ import prism.graph._
 import spade.param._
 import prism.collection.immutable._
 
-class ContextMerging(implicit compiler:PIR) extends PIRPass with Transformer {
+class ContextMerging(implicit compiler:PIR) extends PIRTraversal with Transformer {
 
   override def runPass {
     val globals = pirTop.collectDown[GlobalContainer]().collect { case global:MemoryContainer => global }
@@ -39,7 +39,7 @@ class ContextMerging(implicit compiler:PIR) extends PIRPass with Transformer {
             val read::rest = reads
             dbg(s"Remove redundant $rest")
             rest.foreach { r =>
-              r.out.neighbors.foreach { deped =>
+              r.out.neighbors.as[Seq[PIRNode]].foreach { deped =>
                 swapInput(deped, r.out, read.out)
               }
             }

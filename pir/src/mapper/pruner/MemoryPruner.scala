@@ -9,7 +9,7 @@ import scala.collection.mutable
 
 class MemoryPruner(implicit compiler:PIR) extends CUPruner {
 
-  def getCosts(x:Any):List[Cost[_]] = List(x.getCost[SRAMCost])
+  override def getCosts(x:Any):List[Cost[_]] = List(x.getCost[SRAMCost])
 
   override def recover(x:EOption[CUMap]):EOption[CUMap] = {
     x match {

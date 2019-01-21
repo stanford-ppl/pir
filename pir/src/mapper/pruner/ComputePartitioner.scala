@@ -8,7 +8,7 @@ import prism.collection.immutable._
 
 trait ComputePartitioner extends CUPruner {
 
-  lazy val schedular = new DFSTopologicalTraversal with Schedular {
+  lazy val schedular = new PIRTraversal with DFSTopologicalTraversal with Schedular {
     val forward = false
   }
 
@@ -156,24 +156,24 @@ trait ComputePartitioner extends CUPruner {
 
 case class Partition(scope:List[PIRNode]) extends {
   override def toString = super.toString
-  def deps:Seq[Node[_]] = {
+  def deps:Seq[PIRNode] = {
     val descendents = scope.flatMap { n => n :: n.descendents }
     val edges = descendents.toIterator.flatMap { _.localEdges }
     val ins = edges.collect { case i:Input => i }
     ins.flatMap { in =>
-      in.connected.map { _.src }
+      in.connected.map { _.src.as[PIRNode] }
       .filterNot { descendents.contains } 
     }.toSeq.distinct
   }
 
-  def depedsTo:Map[Node[_], Seq[Node[_]]] = {
+  def depedsTo:Map[PIRNode, Seq[PIRNode]] = {
     val descendents = scope.flatMap { n => n::n.descendents }
     val edges = descendents.toIterator.flatMap { _.localEdges }
     val outs = edges.collect { case i:Output => i }
     outs.flatMap { out =>
-      out.connected.map { _.src }
+      out.connected.map { _.src.as[PIRNode] }
       .filterNot { descendents.contains } 
-      .map { deped => (deped, out.src) } 
+      .map { deped => (deped, out.src.as[PIRNode]) } 
     }.toSeq.groupBy { _._2 }.mapValues { _.map { _._1 } }
   }
 

@@ -15,7 +15,7 @@ abstract class SpadeNode(implicit env:BuildEnvironment) extends EnvNode[SpadeNod
   env.initNode(this)
 }
 object SpadeNode {
-  implicit class SpadeNodeCollector[N<:SpadeNode](node:N) extends NodeCollector[SpadeNode, N](node)
+  implicit class SpadeNodeCollector(node:SpadeNode) extends NodeCollector[SpadeNode](node)
 }
 
 object Param {

@@ -297,7 +297,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       val lcaCtrl = leastCommonAncesstor(accesses.map(_.ctrl.get)).get
       (lcaCtrl::lcaCtrl.descendents).foreach { ctrl =>
         if (ctrl.as[ControlTree].ctrler.get.isInstanceOf[LoopController]) {
-          val accesses = sorted.filter { a => a.ctrl.get.isDescendentOf(ctrl) || a.ctrl == ctrl }
+          val accesses = sorted.filter { a => a.ctrl.get.isDescendentOf(ctrl) || a.ctrl.get == ctrl }
           if (accesses.nonEmpty) {
             dbg(s"$ctrl accesses = ${accesses}")
             zipOption(accesses.head.to[ReadAccess], accesses.last.to[WriteAccess]).foreach { case (r, w) =>

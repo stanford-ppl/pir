@@ -16,7 +16,7 @@ class DependencyDuplication(implicit compiler:PIR) extends DependencyAnalyzer {
 
 }
 
-trait DependencyAnalyzer extends PIRPass with Transformer {
+trait DependencyAnalyzer extends PIRTraversal with Transformer {
 
   private def bound(visitFunc:N => List[N]):N => List[N] = { n:N =>
     visitFunc(n).filter{ 
@@ -33,7 +33,7 @@ trait DependencyAnalyzer extends PIRPass with Transformer {
     x:PIRNode, 
     visitFunc:N => List[N] = visitGlobalIn _
   ):Seq[PIRNode] = dbgblk(s"getDeps($x)"){
-    var deps = x.accum(visitFunc=cover[Controller](bound(visitFunc)))
+    var deps = x.accum(visitFunc=cover[PIRNode, Controller](bound(visitFunc)))
     deps = deps.filterNot(_ == x)
     if (compiler.hasRun[DependencyDuplication]) {
       val ctrlers = deps.collect { case ctrler:Controller => ctrler }

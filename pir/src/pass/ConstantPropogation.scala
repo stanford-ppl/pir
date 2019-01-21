@@ -154,7 +154,7 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
 
   // Breaking loop in traversal
   override def visitIn(n:N):List[N] = n match {
-    case n:LocalOutAccess => n.in.neighbors
+    case n:LocalOutAccess => n.in.neighbors.as
     case n => super.visitIn(n)
   }
 

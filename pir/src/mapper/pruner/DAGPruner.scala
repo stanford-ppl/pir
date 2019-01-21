@@ -7,7 +7,7 @@ import prism.graph._
 import spade.param._
 import prism.collection.immutable._
 
-class DAGPruner(implicit compiler:PIR) extends ConstrainPruner with CUCostUtil {
+class DAGPruner(implicit compiler:PIR) extends CUPruner {
 
   val dags = scala.collection.mutable.Set[GlobalContainer]()
 
@@ -15,11 +15,11 @@ class DAGPruner(implicit compiler:PIR) extends ConstrainPruner with CUCostUtil {
     case x:CUMap if !spadeParam.isAsic =>
       flatFold(dags, x) { case (x, k) =>
         val vs = x.freeValuesOf(k)
-        val (isDAGs, notDAGs) = vs.partition { _.params.get.isInstanceOf[DramAGParam] }
+        val (isDAGs, nonDAGs) = vs.partition { _.params.get.isInstanceOf[DramAGParam] }
         val fits = isDAGs.nonEmpty
         dbg(s"$k fits in DramAGParam=$fits")
         if (fits) {
-          x.filterNotAtKey(k) { v => notDAGs.contains(v) }
+          x.filterNotAtKey(k) { v => nonDAGs.contains(v) }
         } else Right(x)
       }.asInstanceOf[EOption[T]]
     case x => super.prune(x)
@@ -44,7 +44,7 @@ class DAGPruner(implicit compiler:PIR) extends ConstrainPruner with CUCostUtil {
   }
 
   def trace(input:Input):Iterable[GlobalContainer] = {
-    input.neighbors.flatMap { _.collect[GlobalOutput](visitGlobalIn _).map{ _.global.get } }
+    input.neighbors.as[Seq[PIRNode]].flatMap { _.collect[GlobalOutput](visitGlobalIn _).map{ _.global.get } }
   }
 
 }

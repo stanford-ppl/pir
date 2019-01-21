@@ -9,7 +9,7 @@ import prism.collection.immutable._
 
 class HardConstrainPruner(implicit compiler:PIR) extends CUPruner {
 
-  def getCosts(x:Any) = {
+  override def getCosts(x:Any) = {
     x.getCost[AFGCost] ::
     x.getCost[MCCost] ::
     x.getCost[SRAMCost] ::
