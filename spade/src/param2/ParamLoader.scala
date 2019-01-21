@@ -5,7 +5,7 @@ import prism.graph._
 import prism.graph.implicits._
 import scala.collection.mutable
 
-trait DefaultParamLoader extends Transformer with ParamTraversal {
+trait DefaultParamLoader extends Transformer {
 
   def loadParam:TopParam = transform(TopParam())
 
