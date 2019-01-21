@@ -1,30 +1,11 @@
 #!env/bin/python
 
-import glob
-import re
-from argparse import ArgumentParser
-import os, sys, datetime
-import subprocess
-from os.path import dirname, abspath
-from util import *
+import os
+import spatial_test
 
 def main():
-    java_cmd = ""
-    java_cmd += "export TEST_ARGS=\"{}\"; ".format(' '.join(args))
-    java_cmd += "sbt -Dmaxthreads={} ".format(opts.thread)
-    if (opts.backend is not None):
-        for b in opts.backend:
-            java_cmd += "-Dtest.{}=true ".format(b)
-    else:
-        java_cmd += "-Dci=true "
-    java_cmd += "\"; "
-    java_cmd += " project {}; testOnly {}".format(opts.project, ' '.join(opts.app))
-    java_cmd += "\""
-
-    print(java_cmd)
-
     os.chdir("../")
-    ecode = os.system(java_cmd)
+    spatial_test.main()
 
 if __name__ == "__main__":
     main()

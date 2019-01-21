@@ -1,108 +1,14 @@
 #!/bin/bash
 
-thread_count=3
+backend=P14x14
+project=pirTest
+thread=30
 
-APPS=()
-APPS+=('DotProduct')
-APPS+=('OuterProduct')
-APPS+=('TPCHQ6')
-APPS+=('GDA')
-APPS+=('GEMM_Blocked')
-APPS+=('LogReg')
-APPS+=('SGD_minibatch')
-APPS+=('Kmeans')
-APPS+=('SPMV_ELL')
-APPS+=('P4')
-APPS+=('PensieveStream')
-APPS+=('BlackScholes')
-APPS+=('lenet_loops')
+starttime="$(date +'%m_%d_%y_%H_%M_%S')"
+log=logs/${backend}_${project}_${starttime}.log
 
-#APPS+=('DotProduct__N_1048576_ts_65536_op_1')
-#APPS+=('TPCHQ6__N_1048576_ts_65536_op_1')
-#APPS+=('OuterProduct__M_12288_N_12288_ts1_64_ts2_1024_op1_1_op2_2_ip2_16_ip1_1')
-#APPS+=('BlackScholes__N_1048576_ts_65536_op_1')
-#APPS+=('GDA__C_128_R_4096_ts_512_op_1_mp1_8_mp2_1')
-#APPS+=('LogReg__iters_4_D_128_N_8192_ts_512_op_1_mp_4')
-#APPS+=('Kmeans__I_2_N_16384_K_64_D_64_ts_1024_op_1_mp1_4_mp2_1_mp3_1')
-#APPS+=('lenet_loops__batch_par_1_conv1_par_2_conv2_par_4_mat1_par_1_mat2_par_1')
-#APPS+=('GEMM_Blocked__DIM_512_IDIM_256_ts_256_its_128_loop_ii_1_loop_jj_1_loop_kk_1_loop_i_1_loop_k_16')
-#APPS+=('SGD_minibatch__D_64_N_16384_E_2_ts_1024_mp1_8_mp2_16')
-
-#APPS+=('DoubleLoad')
-
-logDir=out/regression/
-
-RED='\033[0;31m'
-Cyan='\033[0;36m'
-NC='\033[0m'
-
-if [[ $1 == *"s" ]]; then
-    #for log in $logDir/*.log; do
-    for APP in ${APPS[@]}; do
-      log=$logDir/$APP.log
-      echo -e "${Cyan}${log}${NC}========="
-      fail=$(grep "fail\]\|error" $log)
-      success=$(grep "success" $log)
-      if [[ $fail || $success ]]; then
-        echo $fail$success
-      else
-        tail $log
-      fi
-    done
-
-elif [[ $1 == *"r" ]]; then
-    mkdir -p $logDir
-    pids=()
-    runningApps=()
-    for APP in ${APPS[@]}; do
-      echo running $APP &
-      log=$logDir/$APP.log
-      [ -e $log ] && rm $log
-      bin/pir $APP $@ --debug=false --dot=true > $log 2>&1 &
-      pids+=($!)
-      runningApps+=($APP)
-      sleep 1
-      if [[ ${#pids[@]} -ge $thread_count ]]; then
-         # wait for all pids
-         echo numer of process running ${#pids[@]} waiting ...
-         for pid in ${pids[*]}; do
-             wait $pid
-         done
-         # print status of APPS just finished
-         for APP in ${runningApps[@]}; do
-           log=$logDir/$APP.log
-           echo -e "${Cyan}${log}${NC}========="
-           fail=$(grep "fail\]\|error" $log)
-           success=$(grep "success" $log)
-           if [[ $fail || $success ]]; then
-             echo $success$fail
-           else
-             tail $log
-           fi
-           if [[ $fail ]]; then
-             exit
-           fi
-         done
-         # clear pids and runningApps
-         pids=()
-      fi
-    done
-    echo waiting for everyone ... 
-    for pid in ${pids[*]}; do
-        wait $pid
-    done
-
-    # print status at the end
-    for APP in ${APPS[@]}; do
-      log=$logDir/$APP.log
-      echo -e "${Cyan}${log}${NC}========="
-      fail=$(grep "fail\]\|error" $log)
-      success=$(grep "success" $log)
-      if [[ $fail || $success ]]; then
-        echo $fail$success
-      else
-        tail $log
-      fi
-    done
-    
-fi
+mkdir -p logs/
+sbt "; project pir; publishAll"
+bin/spatial -t $thread -p $project -b $backend
+git log --pretty=format:'%h' -n 1 > $log
+bin/log ../gen/$backend | tee -a $log
