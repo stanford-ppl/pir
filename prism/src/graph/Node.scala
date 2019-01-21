@@ -140,4 +140,6 @@ trait Node[N<:Node[N]] extends IR { self:N =>
   def neighbors = deps ++ depeds
 
 }
-
+object Node {
+  implicit def node2n[N<:Node[N]](node:Node[N]) = node.as[N]
+}
