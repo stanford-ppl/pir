@@ -3,20 +3,20 @@ package graph
 
 import scala.collection.mutable
 
-trait Edge extends IR {
+trait Edge[N<:Node[N]] extends IR {
 
   /*  ------- State -------- */
-  def src:ND
-  val _connected = mutable.ListBuffer[Edge]()
+  def src:N
+  val _connected = mutable.ListBuffer[Edge[N]]()
 
-  def connected:List[Edge] = _connected.toList
-  def singleConnected:Option[Edge] = {
+  def connected:List[Edge[N]] = _connected.toList
+  def singleConnected:Option[Edge[N]] = {
     assert(connected.size <= 1, s"${this.src}.$this has more than 1 connection. connected to ${connected.map( c => s"${c.src}.$c")}")
     connected.headOption
   }
   def isConnected:Boolean = connected.nonEmpty
-  def isConnectedTo(e:Edge) = connected.contains(e)
-  def connect(e:Edge):this.type = {
+  def isConnectedTo(e:Edge[N]) = connected.contains(e)
+  def connect(e:Edge[N]):this.type = {
     if (e.src.Nct == src.Nct) {
       _connected += e
       e._connected += this
@@ -26,9 +26,9 @@ trait Edge extends IR {
     }
   }
   def neighbors = connected.map(_.src).distinct
-  def isConnectedTo(n:ND) = neighbors.contains(n)
+  def isConnectedTo(n:N) = neighbors.contains(n)
 
-  def disconnectFrom(e:Edge):Unit = {
+  def disconnectFrom(e:Edge[N]):Unit = {
     assert(this.isConnectedTo(e), s"${this.src}.$this is not connected to ${e.src}.$e. connected=$connected")
     while (_connected.contains(e)) _connected -= e
     while (e._connected.contains(this)) e._connected -= this
@@ -38,14 +38,14 @@ trait Edge extends IR {
   src.addEdge(this)
 }
 
-class Input(implicit val src:ND) extends Edge {
-  override def connect(e:Edge):this.type = {
+class Input[N<:Node[N]](implicit val src:N) extends Edge[N] {
+  override def connect(e:Edge[N]):this.type = {
     e match {
-      case _:Output => super.connect(e)
+      case _:Output[n] => super.connect(e)
       case e => throw new Exception(s"$this cannot connect non output to input")
     }
   }
-  def swapOutputConnection(from:Output, to:Output) = {
+  def swapOutputConnection(from:Output[N], to:Output[N]) = {
     _connected.transform {
       case `from` =>
         to._connected += this
@@ -56,10 +56,10 @@ class Input(implicit val src:ND) extends Edge {
   }
 }
 
-class Output(implicit val src:ND) extends Edge {
-  override def connect(e:Edge):this.type = {
+class Output[N<:Node[N]](implicit val src:N) extends Edge[N] {
+  override def connect(e:Edge[N]):this.type = {
     e match {
-      case _:Input => super.connect(e)
+      case _:Input[n] => super.connect(e)
       case e => throw new Exception(s"$this cannot connect non input to output")
     }
   }

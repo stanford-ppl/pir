@@ -11,7 +11,7 @@ trait Node[N<:Node[N]] extends IR { self:N =>
   implicit def Nct:ClassTag[N]
   private var _parent:Option[N] = None
   private lazy val _children = ListBuffer[N]()
-  val localEdges = mutable.ListBuffer[Edge]()
+  val localEdges = mutable.ListBuffer[Edge[N]]()
 
   /*  ------- Metadata -------- */
   val pos = Metadata[(Double,Double)]("pos")
@@ -84,16 +84,16 @@ trait Node[N<:Node[N]] extends IR { self:N =>
   def descendents:List[N] = children.flatMap { child => child :: child.descendents }
   def isDescendentOf(n:N):Boolean = parent.fold(false) { p => p == n || p.isDescendentOf(n) }
 
-  def addEdge(io:Edge) = {
+  def addEdge(io:Edge[N]) = {
     localEdges += io
   }
-  def removeEdge(io:Edge) = localEdges -= io
-  def localIns = localEdges.collect { case i:Input => i }
-  def localOuts = localEdges.collect { case i:Output => i }
+  def removeEdge(io:Edge[N]) = localEdges -= io
+  def localIns = localEdges.collect { case i:Input[N] => i }
+  def localOuts = localEdges.collect { case i:Output[N] => i }
 
   def edges = localEdges ++ descendents.flatMap { _.localEdges }
-  def ins = edges.collect { case i:Input => i }
-  def outs = edges.collect { case i:Output => i }
+  def ins = edges.collect { case i:Input[N] => i }
+  def outs = edges.collect { case i:Output[N] => i }
   def localDeps:Seq[N] = { 
     localIns.flatMap { _.connected.map { _.src.as[N]} }.toSeq.distinct
   }
@@ -108,30 +108,30 @@ trait Node[N<:Node[N]] extends IR { self:N =>
    * A map of external dependent outputs and internal inputs that depends on the external 
    * dependencies
    * */
-  def depsFrom:Map[Output, Seq[Input]] = {
+  def depsFrom:Map[Output[N], Seq[Input[N]]] = {
     val descendents = this.descendents
     val ins = localIns.toIterator ++ descendents.toIterator.flatMap { _.localIns }
     ins.flatMap { in =>
-      in.connected.filterNot { out => descendents.contains(out.src.as[N]) } 
-      .map { out => (out.as[Output], in) } 
+      in.connected.filterNot { out => descendents.contains(out.src) } 
+      .map { out => (out.as[Output[N]], in) } 
     }.toSeq.groupBy { _._1 }.mapValues { _.map { _._2 } }
   }
 
-  def deps:Seq[N] = depsFrom.keys.map(_.src.as[N]).toSeq
+  def deps:Seq[N] = depsFrom.keys.map(_.src).toSeq
 
   /*
    * A map of internal outs to seq of external inputs
    * */
-  def depedsTo:Map[Output, Seq[Input]] = {
+  def depedsTo:Map[Output[N], Seq[Input[N]]] = {
     val descendents = this.descendents
     val outs = localOuts.toIterator ++ descendents.toIterator.flatMap { _.localOuts }
     outs.flatMap { out =>
-      out.connected.filterNot { in => descendents.contains(in.src.as[N]) } 
-      .map { in => (in.as[Input], out) } 
+      out.connected.filterNot { in => descendents.contains(in.src) } 
+      .map { in => (in.as[Input[N]], out) } 
     }.toSeq.groupBy { _._2 }.mapValues { _.map { _._1 } }
   }
 
-  def depeds:Seq[N] = depedsTo.values.flatten.map { _.src.as[N] }.toSeq.distinct
+  def depeds:Seq[N] = depedsTo.values.flatten.map { _.src }.toSeq.distinct
 
   def siblingDeps = deps.flatMap(matchLevel)
   def globalDeps = deps.filter { d => matchLevel(d).isEmpty }

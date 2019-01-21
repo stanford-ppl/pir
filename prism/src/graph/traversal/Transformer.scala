@@ -5,13 +5,11 @@ import scala.collection.mutable
 
 trait Transformer extends Logging {
 
-  type N <:Node[N]
-
-  def removeUnusedIOs(node:N) = {
+  def removeUnusedIOs[N<:Node[N]](node:N) = {
     node.localEdges.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
   }
 
-  def removeNodes(nodes:Iterable[N]) = {
+  def removeNodes[N<:Node[N]](nodes:Iterable[Node[N]]) = {
     dbg(s"Remove ${nodes.mkString(",")}")
     nodes.foreach { node =>
       node.metadata.values.foreach{_.reset}
@@ -27,14 +25,14 @@ trait Transformer extends Logging {
     }
   }
 
-  def swapParent(node:N, newParent:N):Unit = {
+  def swapParent[N<:Node[N]](node:N, newParent:N):Unit = {
     dbg(s"swapParent($node, $newParent)")
     if (newParent.isParentOf(node)) return
     node.parent.foreach { parent => parent.removeChild(node) }
     node.setParent(newParent)
   }
 
-  def swapDep(node:N, from:N, to:N) = {
+  def swapDep[N<:Node[N]](node:N, from:N, to:N) = {
     dbg(s"swapDep(node=$node, from=$from, to=$to)")
     dbg(s"fromOuts=${from.localOuts} toOuts=${to.localOuts}")
     assert(from.localOuts.size == to.localOuts.size, 
@@ -47,7 +45,7 @@ trait Transformer extends Logging {
   /*
    * Change input connection from from to to
    * */
-  def swapConnection(input:Input, from:Output, to:Output):Unit = {
+  def swapConnection[N<:Node[N]](input:Input[N], from:Output[N], to:Output[N]):Unit = {
     if (from == to) return
     dbg(s"swapInput(input=${input.src}.${input}, from=${from.src}.$from, to=${to.src}.$to)")
     assert(input.isConnectedTo(from), s"${input.src}.${input} is not connected to ${from.src}.${from}")
@@ -57,7 +55,7 @@ trait Transformer extends Logging {
   /*
    * Find node's connection to from and swap it to to
    * */
-  def swapInput(node:N, from:Output, to:Output):Unit = {
+  def swapInput[N<:Node[N]](node:N, from:Output[N], to:Output[N]):Unit = {
     dbg(s"swapInput(node=${node}, from=$from, to=${to.src}.$to)")
     val connected = node.localIns.filter { _.isConnectedTo(from) }
     dbg(s"connected=${node.localIns}")
@@ -68,7 +66,7 @@ trait Transformer extends Logging {
   /*
    * Find node's connection to edges of from and swap them to to
    * */
-  def swapInput(node:N, from:N, to:Output):Unit = {
+  def swapInput[N<:Node[N]](node:N, from:N, to:Output[N]):Unit = {
     dbg(s"swapInput(node=${node}, from=$from, to=${to.src}.$to)")
     val connected = node.localIns.flatMap { nodeEdge => 
       from.localOuts.filter { fromEdge =>
@@ -82,10 +80,10 @@ trait Transformer extends Logging {
   /*
    * Find usage of from and change it to to
    * */
-  def swapOutput(from:Output, to:Output) = {
+  def swapOutput[N<:Node[N]](from:Output[N], to:Output[N]) = {
     dbg(s"swapOutput ${from.src}.$from to ${to.src}.$to")
     from.connected.distinct.foreach { in =>
-      swapConnection(in.as[Input], from, to)
+      swapConnection(in.as[Input[N]], from, to)
     }
   }
 
@@ -93,7 +91,7 @@ trait Transformer extends Logging {
    * Find connection between n1 and n2, and insert new connection such that
    * n1.old connection -> e1 and n2.old conection -> e2
    * */
-  def insertConnection(n1:N, n2:N, e1:Edge, e2:Edge) = {
+  def insertConnection[N<:Node[N]](n1:N, n2:N, e1:Edge[N], e2:Edge[N]) = {
     dbg(s"insertConnection($n1, $n2, ${e1.src}.${e1}, ${e2.src}.${e2})")
     val connected = n1.localEdges.flatMap { n1e => 
       n2.localEdges.filter { n2e =>
@@ -108,15 +106,15 @@ trait Transformer extends Logging {
     }
   }
 
-  def areConnected(node1:N, node2:N) = {
+  def areConnected[N<:Node[N]](node1:N, node2:N) = {
     node1.localEdges.exists { io1 => node2.localEdges.exists { io2 => io1.isConnectedTo(io2) } }
   }
 
-  def assertConnected(node1:N, node2:N) = {
+  def assertConnected[N<:Node[N]](node1:N, node2:N) = {
     assert(areConnected(node1, node2), s"$node1 and $node2 are not connected")
   }
 
-  def disconnect(a:N, b:N) = {
+  def disconnect[N<:Node[N]](a:N, b:N) = {
     dbg(s"disconnect($a, $b)")
     val pairs = a.localEdges.flatMap { aio => 
       aio.connected.filter{ _.src == b }.map { bio => (aio, bio) }
@@ -125,14 +123,14 @@ trait Transformer extends Logging {
     pairs.foreach { case (aio,bio) => aio.disconnectFrom(bio) }
   }
 
-  def disconnect(a:Edge, b:N) = {
+  def disconnect[N<:Node[N]](a:Edge[N], b:N) = {
     dbg(s"disconnect($a, $b)")
     val bios = a.connected.filter { _.src == b }
     assert(bios.nonEmpty, s"$a is not connected to $b, a.connected=${a.neighbors}")
     bios.foreach { bio => a.disconnectFrom(bio) }
   }
 
-  def mirrorAll(nodes:Iterable[N], mapping:mutable.Map[N,N]=mutable.Map.empty):mutable.Map[N,N] = {
+  def mirrorAll(nodes:Iterable[ND], mapping:mutable.Map[ND,ND]=mutable.Map.empty):mutable.Map[ND,ND] = {
     type F = FN forSome { type FN <:FieldNode[FN] }
     if (nodes.nonEmpty) {
       nodes.head match {
@@ -151,7 +149,7 @@ trait Transformer extends Logging {
    * original nodes to build the hiearchy and connection. Only input connection order
    * is preserved
    * */
-  def mirrorField[FN<:FieldNode[FN] with N](nodes:Iterable[FN], mapping:mutable.Map[N,N]) = {
+  def mirrorField[N<:Node[N]](nodes:Iterable[FieldNode[N]], mapping:mutable.Map[ND,ND]) = {
     // First pass mirror all nodes and put in a map
     nodes.foreach { n => mirror[N](n, mapping) }
 
@@ -160,45 +158,44 @@ trait Transformer extends Logging {
       n.parent.foreach { p => 
         mapping.get(p).foreach { mp =>
           m.unsetParent
-          m.setParent(mp)
+          m.setParent(mp.as)
         }
       }
       n.localIns.zipWithIndex.foreach { case (io, idx) =>
         val mio = m.localIns(idx)
         io.connected.foreach { c => 
-          val cs = c.src.as[N]
+          val cs = c.src
           val cidx = cs.localEdges.indexOf(c)
           val mcs = mapping.getOrElse(cs, cs)
           val mc = mcs.localEdges(cidx)
-          mio.connect(mc)
+          mio.connect(mc.as)
         }
       }
     }
   }
 
-  def mirrorProduct(nodes:Iterable[N], mapping:mutable.Map[N,N]) = {
+  def mirrorProduct(nodes:Iterable[ND], mapping:mutable.Map[ND,ND]) = {
     nodes.foreach { n => mirror(n, mapping) }
   }
 
-  final def mirror[T](n:Any, mapping:mutable.Map[N,N]=mutable.Map.empty):T = {
+  final def mirror[T](n:Any, mapping:mutable.Map[ND,ND]=mutable.Map.empty):T = {
     (unpack(n) {
-      case nn:Node[n] => 
-        val n = nn.as[N]
-        mapping.getOrElseUpdate(n, mirrorN(n))
+      case n:Node[n] => 
+        mapping.getOrElseUpdate(n, mirrorN[n](n.as[n]))
       case n => n
     }).asInstanceOf[T]
   }
 
-  def mirrorN(n:N, mapping:mutable.Map[N,N]=mutable.Map.empty):N = {
+  def mirrorN[N<:Node[N]](n:N, mapping:mutable.Map[ND,ND]=mutable.Map.empty):N = {
     val margs = newInstanceArgs(n, mapping)
     mapping.getOrElseUpdate(n, {
       val m = dbgblk(s"mirrorN($n)") { n.newInstance[N](margs) }
       m.mirrorMetas(n)
       m
-    })
+    }).as[N]
   }
 
-  def newInstanceArgs(n:Node[_], mapping:mutable.Map[N,N]):Seq[Any] = n match {
+  def newInstanceArgs(n:ND, mapping:mutable.Map[ND,ND]):Seq[Any] = n match {
     case n:EnvNode[_] with ProductNode[_] => n.productIterator.map { arg => mirror[Any](arg, mapping) }.toList :+ getEnv
     case n:ProductNode[_] => n.productIterator.map { arg => mirror[Any](arg, mapping) }.toList
     case n:EnvNode[_] with Product => n.productIterator.toSeq :+ getEnv
@@ -211,28 +208,28 @@ trait Transformer extends Logging {
     case _ => throw PIRException(s"Cannot find env")
   }
 
-  implicit class ProductOp[T<:N with Product](x:T) {
-    def mapFields(func:(T, Any) => Any):T = {
+  implicit class ProductOp[N<:Node[N]](x:Node[N] with Product) {
+    def mapFields(func:(N, Any) => Any):N = {
       val args = x.productIterator.toList
       dbg(s"$x, args=$args")
       val targs = args.map { arg => func(x, arg) }
       val change = args.zip(targs).exists { case (a,t) => a != t }
       if (change) {
         removeNodes(Seq(x))
-        val nn = x.newInstance[T](targs) 
+        val nn = x.newInstance[N](targs) 
         dbg(s"Create $nn")
         nn
       } else x
     }
 
-    def mapFieldWithName(func:(String, T, Any) => Any)(implicit tg:TypeTag[T]):T = {
+    def mapFieldWithName(func:(String, N, Any) => Any)(implicit tg:TypeTag[N]):N = {
       val args = x.productIterator.toList
       val fields = x.fields
       val targs = fields.map { case (name, arg) => func(name, x, arg) }
       val change = args.zip(targs).exists { case (a,t) => a != t }
       if (change) {
         removeNodes(Seq(x))
-        val nn = x.newInstance[T](targs) 
+        val nn = x.newInstance[N](targs) 
         dbg(s"Create $nn")
         nn
       } else x
@@ -246,7 +243,7 @@ trait Transformer extends Logging {
       case (a,b) => (transform(a), transform(b))
       case (a,b,c) => (transform(a), transform(b), transform(c))
       case (a,b,c,d) => (transform(a), transform(b), transform(c), transform(d))
-      case x:Node[n] with Product => x.as[N with Product].mapFields { case (x, arg) => transform(arg) }
+      case x:Node[n] with Product => x.mapFields { case (x, arg) => transform(arg) }
       case x => x
     }).asInstanceOf[T]
   }

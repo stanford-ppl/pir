@@ -18,14 +18,14 @@ object Field {
   }
 }
 object InputField {
-  def unapply(x:Any):Option[(Node[_], String)] = x match {
-    case x:Field[_] with Input => Some((x.node, x.name))
+  def unapply(x:Any):Option[(ND, String)] = x match {
+    case x:Field[_] with Input[_] => Some((x.node, x.name))
     case _ => None
   }
 }
 object OutputField {
-  def unapply(x:Any):Option[(Node[_], String)] = x match {
-    case x:Field[_] with Output => Some((x.node, x.name))
+  def unapply(x:Any):Option[(ND, String)] = x match {
+    case x:Field[_] with Output[_] => Some((x.node, x.name))
     case _ => None
   }
 }
@@ -38,12 +38,12 @@ object OutputField {
  * The constructor argument should not containing connection to other
  * nodes
  * */
-trait FieldNode[N<:FieldNode[N]] extends Node[N] { self:N =>
+trait FieldNode[N<:Node[N]] extends Node[N] { self:N =>
   implicit val n = this
   val idx = Metadata[Int]("idx")
 
-  def asInput:Option[Input] = None
-  def asOutput:Option[Output] = None
+  def asInput:Option[Input[N]] = None
+  def asOutput:Option[Output[N]] = None
 
   def Ts = edges.map { e => e.asInstanceOf[FieldEdge[_]].T }
 
@@ -79,15 +79,15 @@ trait FieldNode[N<:FieldNode[N]] extends Node[N] { self:N =>
    * Field edge provide helper function to connection of the edge with type of T
    * and read connection of the edge with type of T
    * */
-  trait FieldEdge[T] extends Edge with NodeField[T] {
+  trait FieldEdge[T] extends Edge[N] with NodeField[T] {
     def fieldToNodes:Seq[N] = connected.map { _.src.as[N] }
     def update(x:Any):Unit = {
       unpack(x) { 
-        case x:Edge => connect(x)
+        case x:Edge[N] => connect(x)
         case x:FieldNode[_] => 
           this match {
-            case edge:Input if x.asOutput.nonEmpty => connect(x.asOutput.get)
-            case edge:Output if x.asInput.nonEmpty => connect(x.asInput.get)
+            case edge:Input[N] if x.asOutput.nonEmpty => connect(x.asOutput.get.as[Output[N]])
+            case edge:Output[N] if x.asInput.nonEmpty => connect(x.asInput.get.as[Output[N]])
             case edge => throw new Exception(s"$x cannot be converted to edges")
           }
         case x => throw new Exception(s"$x cannot be converted to edges")
@@ -95,13 +95,13 @@ trait FieldNode[N<:FieldNode[N]] extends Node[N] { self:N =>
     }
   }
   
-  class InputField[T:TypeTag:ClassTag](val name:String) extends Input()(self) with FieldEdge[T] {
+  class InputField[T:TypeTag:ClassTag](val name:String) extends Input[N]()(self) with FieldEdge[T] {
     val Ttt = typeTag[T]
     val Tct = classTag[T]
     override def toString = s"${super.toString}_$name"
   }
   
-  class OutputField[T:TypeTag:ClassTag](val name:String) extends Output()(self) with FieldEdge[T] {
+  class OutputField[T:TypeTag:ClassTag](val name:String) extends Output[N]()(self) with FieldEdge[T] {
     val Ttt = typeTag[T]
     val Tct = classTag[T]
     override def toString = s"${super.toString}_$name"

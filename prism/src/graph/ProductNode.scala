@@ -14,11 +14,11 @@ import scala.collection.mutable
 trait ProductNode[N<:ProductNode[N]] extends Node[N] with DefNode[N] with Product { self:N =>
   implicit val src = this
 
-  def newIn = new Input
-  def newOut = new Output
+  def newIn = new Input[N]
+  def newOut = new Output[N]
   val out = newOut
 
-  private val efields = mutable.ListBuffer[Input]()
+  private val efields = mutable.ListBuffer[Input[N]]()
   productIterator.foreach { field => 
     unpack(field) { case x:N => connectField(x) }
   }
@@ -26,7 +26,7 @@ trait ProductNode[N<:ProductNode[N]] extends Node[N] with DefNode[N] with Produc
   def connectField[T<:ProductNode[N]](x:T) = { efields += newIn.connect(x.out); x }
 
   def nfields = efields.toList.map { field =>
-    unpack(field) { case x:Edge => x.connected.map { _.src} }
+    unpack(field) { case x:Edge[N] => x.connected.map { _.src} }
   }
 
   def trace[T<:N:ClassTag]:T = assertOne(this.collect[T](visitGlobalOut _), 

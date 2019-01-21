@@ -65,7 +65,7 @@ trait HtmlIRPrinter extends IRPrinter with HtmlCodegen {
     case n:Node[n] =>
       val q = super.quote(n)
       elem("a", q, "href"->s"${fileName}#$q")
-    case n:Edge =>
+    case n:Edge[n] =>
       val q = super.quote(n)
       elem("a", q, "href"->s"${fileName}#$q")
     case n => super.quote(n)

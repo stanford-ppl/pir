@@ -102,7 +102,7 @@ trait CollectorImplicit {
       }
   }
 
-  class EdgeCollector[N<:Node[N]](edge:Edge) {
+  class EdgeCollector[N<:Node[N]](edge:Edge[N]) {
     def collect[M<:N:ClassTag](visitFunc:N => List[N], depth:Int = -1, logger:Option[Logging]=None):List[M] = 
       dbgblk(logger, s"collect(${edge.src}.${edge}, depth=$depth)") {
         def prefix(n:N) = n match { case n:M => true; case _ => false }
@@ -113,7 +113,7 @@ trait CollectorImplicit {
         new PrefixTraversal[N,List[M]](prefix, visitFunc, accumulate _, Nil, logger).traverseNodes(nodes, Nil)
       }
 
-    def canReach(target:Edge, visitEdges:N => List[Edge], depth:Int= -1, logger:Option[Logging]=None):Boolean = 
+    def canReach(target:Edge[N], visitEdges:N => List[Edge[N]], depth:Int= -1, logger:Option[Logging]=None):Boolean = 
       dbgblk(logger, s"canReach($target, depth=$depth)"){
         def prefix(n:N) = visitEdges(n).exists { _.connected.contains(target) }
         def accumulate(prev:Boolean, n:N) = prefix(n) || prev
