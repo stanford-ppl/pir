@@ -10,7 +10,7 @@ trait Access extends PIRNode {
 
   val en = new InputField[List[PIRNode]]("en")
   val done = new InputField[Option[PIRNode]]("done")
-  def mem:FieldEdge[Memory]
+  def mem:FieldEdge[Memory,_,_]
   def isBroadcast = port.get.isEmpty
 }
 trait BankedAccess extends Access {

@@ -25,17 +25,17 @@ trait BufferAnalyzer extends MemoryAnalyzer {
 
   def bufferInput(in:Input[PIRNode]):Seq[BufferRead] = {
     in.connected.distinct.flatMap { out =>
-      bufferInput(out.as[Output[PIRNode]], in)
+      bufferInput(out, in)
     }
   }
 
   def bufferOutput(out:Output[PIRNode]):Seq[BufferRead] = {
     out.connected.distinct.flatMap { in =>
-      bufferInput(out, in.as[Input[PIRNode]])
+      bufferInput(out, in)
     }
   }
 
-  private def visitInEdges(n:PIRNode):List[Edge[PIRNode]] = n match {
+  private def visitInEdges(n:Node[PIRNode]):List[Input[PIRNode]] = n match {
     case n:BufferRead => List(n.in)
     case n:BufferWrite => List(n.data)
     case n:GlobalInput => List(n.in)

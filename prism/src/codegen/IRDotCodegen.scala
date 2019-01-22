@@ -15,7 +15,7 @@ trait IRDotCodegen extends DotCodegen with ChildFirstTraversal {
   def fileName:String
   override def codegenPostfix = dotFile
 
-  val nodes = mutable.ListBuffer[N]()
+  val nodes = mutable.HashSet[N]()
 
   override def initPass = {
     super.initPass
@@ -82,21 +82,21 @@ trait IRDotCodegen extends DotCodegen with ChildFirstTraversal {
   def emitEdges = { nodes.foreach(emitEdge) }
 
   def emitEdge(n:N):Unit = {
-    (n::n.descendents.filter { d => !nodes.contains(d) }).foreach { d =>
+    (n+:(n.descendents.filter { d => !nodes.contains(d) })).foreach { d =>
       d.localIns.foreach { in =>
         in.connected.foreach { out => 
-          if (!out.src.as[N].isDescendentOf(n)) emitEdge(out, in, DotAttr.empty)
+          if (!out.src.isDescendentOf(n)) emitEdge(out, in, DotAttr.empty)
         }
       }
     }
   }
 
-  def emitEdge(from:E, to:E, attr:DotAttr):Unit = {
-    emitEdgeMatched(from.src.as[N], to.src.as[N], attr) 
+  def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
+    emitEdgeMatched(from.src, to.src, attr) 
   }
 
   def lift(n:N) = {
-    (n::n.ancestors).foldLeft[Option[N]](None) {
+    n.ancestorTree.foldLeft[Option[N]](None) {
       case (Some(matched), a) => Some(matched)
       case (None, a) if nodes.contains(a) => Some(a)
       case (None, a) => None

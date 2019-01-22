@@ -154,7 +154,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
               swapParent(read.inAccess, addrCtxs(access))
             }
             dbg(s"${in.src}.$in.swapInput($access.out, $shuffle.out)")
-            swapConnection(in.as[Input[PIRNode]], access.out, shuffle.out)
+            swapConnection(in, access.out, shuffle.out)
           }
         }
       } { data => 
@@ -169,7 +169,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     val mem = access.mem.T
     val parent = access.parent.get
     within(parent, access.getCtrl) {
-      def flattenND(inds:List[Edge[PIRNode]], dims:List[Int]):Edge[PIRNode] = {
+      def flattenND(inds:List[Output[PIRNode]], dims:List[Int]):Output[PIRNode] = {
         if (inds.size==1) return inds.head
         assert(inds.size == dims.size, s"flattenND inds=$inds dims=$dims have different size for access=$access")
         val i::irest = inds
@@ -190,7 +190,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     // Insert token for sequencial control dependency
   def sequencedScheduleBarrierInsertion(mem:Memory) = {
     dbgblk(s"sequencedScheduleBarrierInsertion($mem)") {
-      val ctrls = mem.accesses.flatMap { a => a.getCtrl :: a.getCtrl.ancestors }.distinct
+      val ctrls = mem.accesses.toStream.flatMap { a => a.getCtrl.ancestorTree }.distinct
       ctrls.foreach { ctrl =>
         if (ctrl.schedule == "Sequenced") {
           val accesses = ctrl.children.flatMap { childCtrl => 
@@ -294,7 +294,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       }
        //Insert token for loop carried dependency
       val lcaCtrl = leastCommonAncesstor(accesses.map(_.ctrl.get)).get
-      (lcaCtrl::lcaCtrl.descendents).foreach { ctrl =>
+      (lcaCtrl.descendentTree).foreach { ctrl =>
         if (ctrl.ctrler.get.isInstanceOf[LoopController]) {
           val accesses = sorted.filter { a => a.ctrl.get.isDescendentOf(ctrl) || a.ctrl.get == ctrl }
           if (accesses.nonEmpty) {
@@ -315,7 +315,13 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     mem.outAccesses.foreach { outAccess =>
       within(outAccess.parent.get) {
         val inAccess = mem.inAccesses.head.as[MemWrite]
-        val (enq, deq) = compEnqDeq(mem.isFIFO, inAccess.ctx.get, outAccess.ctx.get, Some(inAccess.data.connected.head.as[Output[PIRNode]]), outAccess.out.connected.as[Seq[Input[PIRNode]]])
+        val (enq, deq) = compEnqDeq(
+          mem.isFIFO, 
+          inAccess.ctx.get, 
+          outAccess.ctx.get, 
+          Some(inAccess.data.connected.head), 
+          outAccess.out.connected
+        )
         val write = within(inAccess.parent.get, inAccess.ctrl.get) {
           allocate[BufferWrite]{ write => 
             write.data.evalTo(inAccess.data.neighbors) &&

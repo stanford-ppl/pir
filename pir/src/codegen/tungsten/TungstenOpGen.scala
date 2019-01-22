@@ -36,7 +36,7 @@ trait TungstenOpGen extends TungstenCodegen {
       emitVisitNode(n.valid)
       val cchain = n.cchain.T
       cchain.foreach(emitVisitNode)
-      visited ++= cchain
+      markVisited(cchain)
       emitln(s"if (${n}_en) ${cchain.last}->Inc();")
       cchain.sliding(2, 1).foreach {
         case List(outer, inner) =>

@@ -15,16 +15,16 @@ class PrefixTraversal[NN<:Node[NN],TT](
   type N = (NN, Int)
   type T = TT
 
-  override def isVisited(n:N) = {
+  override def isVisited(n:Any) = {
     val (node, depth) = n
-    visited.contains(node)
+    super.isVisited(node)
   }
   // depth = -1 is infinate depth
   def withinDepth(depth:Int) = (depth > 0 || depth < 0)
 
   override def visitNode(n:N, prev:T):T = prism.dbgblk(logging, s"visitNode($n, depth=${n._2})") {
     val (node, depth) = n
-    visited += node
+    markVisited(node)
     val pfx = prefix(node)
     node match {
       case _ if withinDepth(depth) & pfx => accumulate(prev, node)
@@ -102,24 +102,24 @@ trait CollectorImplicit {
       }
   }
 
-  class EdgeCollector[N<:Node[N]](edge:Edge[N]) {
-    def collect[M<:N:ClassTag](visitFunc:N => List[N], depth:Int = -1, logger:Option[Logging]=None):List[M] = 
+  class EdgeCollector[N<:Node[N],A<:Edge[N,A,B],B<:Edge[N,B,A]](edge:Edge[N,A,B]) {
+    def collect[M<:N:ClassTag](visitFunc:Node[N] => List[N], depth:Int = -1, logger:Option[Logging]=None):List[M] = 
       dbgblk(logger, s"collect(${edge.src}.${edge}, depth=$depth)") {
         def prefix(n:N) = n match { case n:M => true; case _ => false }
         def accumulate(prev:List[M], n:N) = {
           if (!prev.contains(n) && prefix(n)) (prev :+ n.asInstanceOf[M]) else prev
         }
-        val nodes = edge.neighbors.as[List[N]].map { n => (n, depth) }
+        val nodes = edge.neighbors.map { n => (n, depth) }.toList //TODO
         new PrefixTraversal[N,List[M]](prefix, visitFunc, accumulate _, Nil, logger).traverseNodes(nodes, Nil)
       }
 
-    def canReach(target:Edge[N], visitEdges:N => List[Edge[N]], depth:Int= -1, logger:Option[Logging]=None):Boolean = 
+    def canReach(target:Edge[N,B,A], visitEdges:Node[N] => List[EN[N]], depth:Int= -1, logger:Option[Logging]=None):Boolean = 
       dbgblk(logger, s"canReach($target, depth=$depth)"){
         def prefix(n:N) = visitEdges(n).exists { _.connected.contains(target) }
         def accumulate(prev:Boolean, n:N) = prefix(n) || prev
-        def vf(n:N):List[N] = visitEdges(n).flatMap { _.neighbors.as[List[N]] }.distinct
-        val nodes = edge.neighbors.as[List[N]].map { n => (n, depth) }
-        edge.connected.contains(target) || 
+        def vf(n:N):List[N] = visitEdges(n).flatMap { _.neighbors }.distinct
+        val nodes = edge.neighbors.map { n => (n, depth) }.toList //TODO
+        edge.isConnectedTo(target) || 
         new PrefixTraversal[N,Boolean](prefix, vf _, accumulate _, false, logger).traverseNodes(nodes, false)
       }
   }

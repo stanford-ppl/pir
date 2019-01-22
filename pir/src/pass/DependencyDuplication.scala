@@ -18,7 +18,7 @@ class DependencyDuplication(implicit compiler:PIR) extends DependencyAnalyzer {
 
 trait DependencyAnalyzer extends PIRPass with Transformer {
   
-  private def bound(visitFunc:PIRNode => List[PIRNode]):PIRNode => List[PIRNode] = { n:PIRNode =>
+  private def bound(visitFunc:Node[PIRNode] => List[PIRNode]):Node[PIRNode] => List[PIRNode] = { n:Node[PIRNode] =>
     visitFunc(n).filter{ 
       case x:Memory => false
       case x:HostWrite => false
@@ -31,7 +31,7 @@ trait DependencyAnalyzer extends PIRPass with Transformer {
 
   def getDeps(
     x:PIRNode, 
-    visitFunc:PIRNode => List[PIRNode] = visitGlobalIn _
+    visitFunc:Node[PIRNode] => List[PIRNode] = visitGlobalIn _
   ):Seq[PIRNode] = dbgblk(s"getDeps($x)"){
     var deps = x.accum(visitFunc=cover[PIRNode, Controller](bound(visitFunc)))
     deps = deps.filterNot(_ == x)
@@ -52,7 +52,7 @@ trait DependencyAnalyzer extends PIRPass with Transformer {
 
   def getCtrlerDeps(
     from:Context,
-    visitFunc:PIRNode => List[PIRNode] = visitGlobalIn _
+    visitFunc:Node[PIRNode] => List[PIRNode] = visitGlobalIn _
   ):Seq[PIRNode] = {
     val leaf = assertOneOrLess(from.collectDown[Controller]().filter { _.isLeaf }, s"$from.leaf ctrler")
     leaf.toList.flatMap { leaf =>

@@ -28,7 +28,7 @@ trait ComputePartitioner extends CUPruner {
           }
         }
         globals.foreach { insertGlobalIO }
-        removeNodes(k::k.descendents)
+        removeNodes(k.descendentTree)
         globals
       case k:Context =>
         val scope = k.children.filter { include }
@@ -47,7 +47,7 @@ trait ComputePartitioner extends CUPruner {
         (ctxs,parts).zipped.foreach { case (ctx,part) => dupDeps(k, ctx, part.getCost[InputCost]) }
         ctxs.foreach { ctx => bufferInput(ctx) }
         (part::parts).foreach { removeCache }
-        removeNodes(k::k.descendents)
+        removeNodes(k.descendentTree)
         ctxs
       case k:Partition =>
         if (fit(kcost, vcost)) List(k)
@@ -61,18 +61,18 @@ trait ComputePartitioner extends CUPruner {
     }).as[List[T]]
   }
 
-  def include(n:N) = n match {
+  def include(n:PIRNode) = n match {
     case n:OpNode => true
     case n:LocalInAccess => true
     //case n:LocalOutAccess => true // Not include read so they can be duplicated at each partition
     case n => false
   }
 
-  def visitIn(scope:Context)(n:N):List[N] = (visitGlobalIn(n).flatMap {
+  def visitIn(scope:Context)(n:Node[PIRNode]):List[PIRNode] = (visitGlobalIn(n).flatMap {
     case x if !x.isDescendentOf(scope) => None
     case x => 
-      val underScope = (x::x.ancestors).filter { _.parent.fold(false) { _ == scope } }.head
-      underScope :: underScope.descendents
+      val underScope = (x.ancestorTree).filter { _.parent.fold(false) { _ == scope } }.head
+      underScope.descendentTree
   }).distinct
 
   def dupDeps(from:Context, to:Context, incost:InputCost) = dbgblk(s"dupDeps($from, $to)") {
@@ -157,7 +157,7 @@ trait ComputePartitioner extends CUPruner {
 case class Partition(scope:List[PIRNode]) extends {
   override def toString = super.toString
   def deps:Seq[PIRNode] = {
-    val descendents = scope.flatMap { n => n :: n.descendents }
+    val descendents = scope.flatMap { n => n.descendentTree }
     val edges = descendents.toIterator.flatMap { _.localEdges }
     val ins = edges.collect { case i:Input[PIRNode] => i }
     ins.flatMap { in =>
@@ -167,7 +167,7 @@ case class Partition(scope:List[PIRNode]) extends {
   }
 
   def depedsTo:Map[PIRNode, Seq[PIRNode]] = {
-    val descendents = scope.flatMap { n => n::n.descendents }
+    val descendents = scope.flatMap { n => n.descendentTree }
     val edges = descendents.toIterator.flatMap { _.localEdges }
     val outs = edges.collect { case i:Output[PIRNode] => i }
     outs.flatMap { out =>

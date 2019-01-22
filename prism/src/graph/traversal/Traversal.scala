@@ -25,15 +25,16 @@ trait Traversal extends Logging {
 
   def zero:T
 
-  val visited = mutable.ListBuffer[Any]()
+  private val visited = mutable.HashSet[Any]()
 
-  def isVisited(n:N) = visited.contains(n)
+  def markVisited(n:Any) = visited += n
+  def isVisited(n:Any) = visited.contains(n)
 
-  var _scope:Option[List[N]] = None
-  def withinScope(n:N) = _scope.map { _.contains(n) }.getOrElse(true)
+  private var _scope:Option[mutable.HashSet[N]] = None
+  def withinScope(n:N) = _scope.fold(true) { _.contains(n) }
   def scope = _scope.get
   def addAndVisitNode(n:N, prev:T) = { 
-    _scope = Some(n::_scope.get)
+    _scope.foreach { _ += n }
     markVisitNode(n, prev)
   }
 
@@ -47,7 +48,7 @@ trait Traversal extends Logging {
 
   def markVisitNode(n:N, prev:T):T = {
     if (isVisited(n)) return prev
-    visited += n
+    markVisited(n)
     visitNode(n, prev)
   }
 
@@ -57,7 +58,7 @@ trait Traversal extends Logging {
   def traverseNodes(ns: => List[N], zero:T):T
 
   final def traverseNodesInScope(scope:List[N], ns: => List[N], zero:T) = {
-    _scope = Some(scope)
+    _scope = Some(mutable.HashSet.empty ++ scope)
     val res = traverseNodes(ns, zero)
     _scope = None
     res
@@ -217,7 +218,7 @@ trait BottomUpTopologicalTraversal extends HierarchicalTopologicalTraversal {
     List(filtered.minBy { n => depFunc(n).size })
   }
 
-  def visitScope(n:N):List[N] = n::n.descendents
+  def visitScope(n:N):List[N] = n.descendentTree.toList
 
   def traverseScope(n:N, zero:T) = {
     val scope = visitScope(n)

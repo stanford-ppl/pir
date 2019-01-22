@@ -96,7 +96,7 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     case n => super.color(attr, n)
   }
 
-  override def emitEdge(from:E, to:E, attr:DotAttr):Unit = {
+  override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
     val newAttr = from.src match {
       case from:GlobalOutput if from.vec.v.fold(false) { _ > 1 } => attr.setEdge.style(bold)
       case _ =>  attr

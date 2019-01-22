@@ -65,6 +65,8 @@ class SanityCheck(implicit compiler:PIR) extends PIRTraversal with SiblingFirstT
             }
           }
         }
+      case n:GlobalIO => 
+        if (n.neighbors.isEmpty) err(s"$n is not connected")
       case n =>
     }
     super.visitNode(n)

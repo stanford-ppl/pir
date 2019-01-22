@@ -3,48 +3,51 @@ package graph
 
 import scala.collection.mutable
 
-trait Edge[N<:Node[N]] extends IR {
+trait Edge[N<:Node[N], A<:Edge[N,A,B], B<:Edge[N,B,A]] extends IR { self:A =>
+  type TA = A
+  type TB = B
 
   /*  ------- State -------- */
   def src:N
-  val _connected = mutable.ListBuffer[Edge[N]]()
+  val _connected = mutable.ListBuffer[B]()
 
-  def connected:List[Edge[N]] = _connected.toList
-  def singleConnected:Option[Edge[N]] = {
+  def connected:List[B] = _connected.toList
+  def singleConnected:Option[B] = {
     assert(connected.size <= 1, s"${this.src}.$this has more than 1 connection. connected to ${connected.map( c => s"${c.src}.$c")}")
     connected.headOption
   }
   def isConnected:Boolean = connected.nonEmpty
-  def isConnectedTo(e:Edge[N]) = connected.contains(e)
-  def connect(e:Edge[N]):this.type = {
-    if (e.src.Nct == src.Nct) {
-      _connected += e
-      e._connected += this
-      this
-    } else {
-      throw new Exception(s"Cannot connect edge with node type ${src.Nct} from $src to edge with node type ${e.src.Nct} from ${e.src}")
-    }
+  def isConnectedTo(e:Edge[N,B,A]) = _connected.contains(e.as[B])
+  def connect(e:Edge[N,B,A]):this.type = {
+    _connected += e.as[B]
+    e._connected += this.as[A]
+    this
   }
-  def neighbors = connected.map(_.src).distinct
-  def isConnectedTo(n:N) = neighbors.contains(n)
+  def neighbors:Seq[N] = _connected.map(_.src).distinct
+  def isConnectedTo(n:Node[N]) = _connected.exists{ _.src == n }
 
-  def disconnectFrom(e:Edge[N]):Unit = {
+  def disconnectFrom(e:Edge[N,B,A]):Unit = {
     assert(this.isConnectedTo(e), s"${this.src}.$this is not connected to ${e.src}.$e. connected=$connected")
-    while (_connected.contains(e)) _connected -= e
-    while (e._connected.contains(this)) e._connected -= this
+    while (_connected.contains(e.as[B])) _connected -= e
+    while (e._connected.contains(this.as[A])) e._connected -= this.as[A]
   }
-  def disconnect = connected.distinct.foreach(disconnectFrom)
+  def disconnect = _connected.distinct.foreach(disconnectFrom)
 
   src.addEdge(this)
 }
+object Edge {
+  implicit def edgeToA[N<:Node[N], A<:Edge[N,A,B], B<:Edge[N,B,A]](e:Edge[N,A,B]):A = e.as[A]
+}
 
-class Input[N<:Node[N]](implicit val src:N) extends Edge[N] {
-  override def connect(e:Edge[N]):this.type = {
-    e match {
-      case _:Output[n] => super.connect(e)
-      case e => throw new Exception(s"$this cannot connect non output to input")
-    }
-  }
+/*
+ * Un-directed edge
+ * */
+trait UEdge[N<:Node[N]] extends Edge[N,UEdge[N],UEdge[N]]
+
+/*
+ * Directed Edges
+ * */
+class Input[N<:Node[N]](implicit val src:N) extends Edge[N,Input[N],Output[N]] {
   def swapOutputConnection(from:Output[N], to:Output[N]) = {
     _connected.transform {
       case `from` =>
@@ -56,12 +59,5 @@ class Input[N<:Node[N]](implicit val src:N) extends Edge[N] {
   }
 }
 
-class Output[N<:Node[N]](implicit val src:N) extends Edge[N] {
-  override def connect(e:Edge[N]):this.type = {
-    e match {
-      case _:Input[n] => super.connect(e)
-      case e => throw new Exception(s"$this cannot connect non input to output")
-    }
-  }
-}
+class Output[N<:Node[N]](implicit val src:N) extends Edge[N,Output[N],Input[N]]
 
