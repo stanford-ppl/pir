@@ -30,7 +30,7 @@ trait Traversal extends Logging {
   def markVisited(n:Any) = visited += n
   def isVisited(n:Any) = visited.contains(n)
 
-  var _scope:Option[mutable.HashSet[N]] = None
+  private var _scope:Option[mutable.HashSet[N]] = None
   def withinScope(n:N) = _scope.fold(true) { _.contains(n) }
   def scope = _scope.get
   def addAndVisitNode(n:N, prev:T) = { 
