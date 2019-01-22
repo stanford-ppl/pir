@@ -83,7 +83,7 @@ trait Transformer extends Logging {
   def swapOutput[N<:Node[N]](from:Output[N], to:Output[N]) = {
     dbg(s"swapOutput ${from.src}.$from to ${to.src}.$to")
     from.connected.distinct.foreach { in =>
-      swapConnection(in.as[Input[N]], from, to)
+      swapConnection(in, from, to)
     }
   }
 
@@ -91,12 +91,14 @@ trait Transformer extends Logging {
    * Find connection between n1 and n2, and insert new connection such that
    * n1.old connection -> e1 and n2.old conection -> e2
    * */
-  def insertConnection[N<:Node[N]](n1:Node[N], n2:Node[N], e1:Edge[N], e2:Edge[N]) = {
+  def insertConnection[N<:Node[N],A<:Edge[N,A,B],B<:Edge[N,B,A]](n1:Node[N], n2:Node[N], e1:Edge[N,A,B], e2:Edge[N,B,A]) = {
     dbg(s"insertConnection($n1, $n2, ${e1.src}.${e1}, ${e2.src}.${e2})")
-    val connected = n1.localEdges.flatMap { n1e => 
-      n2.localEdges.filter { n2e =>
-        n1e.isConnectedTo(n2e)
-      }.map { n2e => (n1e, n2e) }
+    val connected = n1.localEdges.flatMap { n1ex => 
+      n2.localEdges.flatMap { n2ex =>
+        val n1e = n1ex.as[B]
+        val n2e = n2ex.as[A]
+        if (n1e.isConnectedTo(n2e)) Some((n1e, n2e)) else None
+      }
     }
     assert (connected.nonEmpty, s"$n1 is not connected to $n2")
     connected.foreach { case (n1e, n2e) =>
@@ -107,7 +109,9 @@ trait Transformer extends Logging {
   }
 
   def areConnected[N<:Node[N]](node1:Node[N], node2:Node[N]) = {
-    node1.localEdges.exists { io1 => node2.localEdges.exists { io2 => io1.isConnectedTo(io2) } }
+    node1.localEdges.exists { case io1:Edge[N,a,b] => 
+      node2.localEdges.exists { io2 => io1.as[Edge[N,a,b]].isConnectedTo(io2.as[b]) }
+    }
   }
 
   def assertConnected[N<:Node[N]](node1:Node[N], node2:Node[N]) = {
@@ -116,14 +120,14 @@ trait Transformer extends Logging {
 
   def disconnect[N<:Node[N]](a:Node[N], b:Node[N]) = {
     dbg(s"disconnect($a, $b)")
-    val pairs = a.localEdges.flatMap { aio => 
+    val pairs = a.localEdges.flatMap[(EN[N],EN[N]), ListBuffer[(EN[N],EN[N])]] { aio => 
       aio.connected.filter{ _.src == b }.map { bio => (aio, bio) }
     }
     assert(pairs.nonEmpty, s"$a is not connected to $b, a.connected=${a.deps++a.depeds}")
-    pairs.foreach { case (aio,bio) => aio.disconnectFrom(bio) }
+    pairs.foreach { case (aio,bio) => aio.disconnectFrom(bio.as) }
   }
 
-  def disconnect[N<:Node[N]](a:Edge[N], b:Node[N]) = {
+  def disconnect[N<:Node[N],A<:Edge[N,A,B],B<:Edge[N,B,A]](a:Edge[N,A,B], b:Node[N]) = {
     dbg(s"disconnect($a, $b)")
     val bios = a.connected.filter { _.src == b }
     assert(bios.nonEmpty, s"$a is not connected to $b, a.connected=${a.neighbors}")

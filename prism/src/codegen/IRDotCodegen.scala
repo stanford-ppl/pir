@@ -85,14 +85,14 @@ trait IRDotCodegen extends DotCodegen with ChildFirstTraversal {
     (n::n.descendents.filter { d => !nodes.contains(d) }).foreach { d =>
       d.localIns.foreach { in =>
         in.connected.foreach { out => 
-          if (!out.src.as[N].isDescendentOf(n)) emitEdge(out, in, DotAttr.empty)
+          if (!out.src.isDescendentOf(n)) emitEdge(out, in, DotAttr.empty)
         }
       }
     }
   }
 
-  def emitEdge(from:E, to:E, attr:DotAttr):Unit = {
-    emitEdgeMatched(from.src.as[N], to.src.as[N], attr) 
+  def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
+    emitEdgeMatched(from.src, to.src, attr) 
   }
 
   def lift(n:N) = {

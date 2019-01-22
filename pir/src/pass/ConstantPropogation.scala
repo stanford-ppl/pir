@@ -108,7 +108,7 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
     n match {
       case n:Shuffle if n.from.T == n.to.T =>
         dbgblk(s"Shuffle($n)") {
-          val base = assertOne(n.base.connected, s"$n.base.connected").as[Output[PIRNode]]
+          val base = assertOne(n.base.connected, s"$n.base.connected")
           swapOutput(n.out, base)
         }
       case WrittenByConstData(read:MemRead, c:Const) =>
@@ -154,7 +154,7 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
 
   // Breaking loop in traversal
   override def visitIn(n:N):List[N] = n match {
-    case n:LocalOutAccess => n.in.neighbors.as
+    case n:LocalOutAccess => n.in.neighbors.toList
     case n => super.visitIn(n)
   }
 

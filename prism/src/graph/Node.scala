@@ -11,7 +11,7 @@ trait Node[N<:Node[N]] extends IR { self:N =>
   implicit def Nct:ClassTag[N]
   private var _parent:Option[N] = None
   private lazy val _children = ListBuffer[N]()
-  val localEdges = mutable.ListBuffer[Edge[N]]()
+  val localEdges = mutable.ListBuffer[EN[N]]()
 
   /*  ------- Metadata -------- */
   val pos = Metadata[(Double,Double)]("pos")
@@ -84,22 +84,22 @@ trait Node[N<:Node[N]] extends IR { self:N =>
   def descendents:List[N] = children.flatMap { child => child :: child.descendents }
   def isDescendentOf(n:Node[N]):Boolean = parent.fold(false) { p => p == n || p.isDescendentOf(n) }
 
-  def addEdge(io:Edge[N]) = {
+  def addEdge(io:EN[N]) = {
     localEdges += io
   }
-  def removeEdge(io:Edge[N]) = localEdges -= io
-  def localIns = localEdges.collect { case i:Input[N] => i }
-  def localOuts = localEdges.collect { case i:Output[N] => i }
+  def removeEdge(io:EN[N]) = localEdges -= io
+  def localIns:Seq[Input[N]] = localEdges.collect { case i:Input[N] => i }
+  def localOuts:Seq[Output[N]] = localEdges.collect { case i:Output[N] => i }
 
   def edges = localEdges ++ descendents.flatMap { _.localEdges }
   def ins = edges.collect { case i:Input[N] => i }
   def outs = edges.collect { case i:Output[N] => i }
   def localDeps:Seq[N] = { 
-    localIns.flatMap { _.connected.map { _.src.as[N]} }.toSeq.distinct
+    localIns.flatMap { _.connected.map { _.src} }.toSeq.distinct
   }
 
   def localDepeds:Seq[N] = {
-    localOuts.flatMap { _.connected.map { _.src.as[N]} }.toSeq.distinct
+    localOuts.flatMap { _.connected.map { _.src} }.toSeq.distinct
   }
 
   def matchLevel(n:Node[N]):Option[N] = (n.as[N] :: n.ancestors).filter { _.parent == this.parent }.headOption
@@ -113,7 +113,7 @@ trait Node[N<:Node[N]] extends IR { self:N =>
     val ins = localIns.toIterator ++ descendents.toIterator.flatMap { _.localIns }
     ins.flatMap { in =>
       in.connected.filterNot { out => descendents.contains(out.src) } 
-      .map { out => (out.as[Output[N]], in) } 
+      .map { out => (out, in) } 
     }.toSeq.groupBy { _._1 }.mapValues { _.map { _._2 } }
   }
 
@@ -127,7 +127,7 @@ trait Node[N<:Node[N]] extends IR { self:N =>
     val outs = localOuts.toIterator ++ descendents.toIterator.flatMap { _.localOuts }
     outs.flatMap { out =>
       out.connected.filterNot { in => descendents.contains(in.src) } 
-      .map { in => (in.as[Input[N]], out) } 
+      .map { in => (in, out) } 
     }.toSeq.groupBy { _._2 }.mapValues { _.map { _._1 } }
   }
 

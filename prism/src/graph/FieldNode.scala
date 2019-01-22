@@ -45,7 +45,7 @@ trait FieldNode[N<:Node[N]] extends Node[N] { self:N =>
   def asInput:Option[Input[N]] = None
   def asOutput:Option[Output[N]] = None
 
-  def Ts = edges.map { e => e.asInstanceOf[FieldEdge[_]].T }
+  def Ts = edges.map { e => e.asInstanceOf[FieldEdge[N,_,_]].T }
 
   trait NodeField[T] extends Field[T] {
     val name:String
@@ -79,15 +79,15 @@ trait FieldNode[N<:Node[N]] extends Node[N] { self:N =>
    * Field edge provide helper function to connection of the edge with type of T
    * and read connection of the edge with type of T
    * */
-  trait FieldEdge[T] extends Edge[N] with NodeField[T] {
-    def fieldToNodes:Seq[N] = connected.map { _.src.as[N] }
+  trait FieldEdge[T, A<:Edge[N,A,B], B<:Edge[N,B,A]] extends Edge[N,A,B] with NodeField[T] { self:A =>
+    def fieldToNodes:Seq[N] = connected.map { _.src }
     def update(x:Any):Unit = {
       unpack(x) { 
-        case x:Edge[N] => connect(x)
+        case x:Edge[N,B,A] => connect(x)
         case x:FieldNode[_] => 
-          this match {
-            case edge:Input[N] if x.asOutput.nonEmpty => connect(x.asOutput.get.as[Output[N]])
-            case edge:Output[N] if x.asInput.nonEmpty => connect(x.asInput.get.as[Output[N]])
+          this.as[A] match {
+            case edge:Input[N] if x.asOutput.nonEmpty => edge.as[Input[N]].connect(x.asOutput.get.as[Output[N]])
+            case edge:Output[N] if x.asInput.nonEmpty => edge.as[Output[N]].connect(x.asInput.get.as[Input[N]])
             case edge => throw new Exception(s"$x cannot be converted to edges")
           }
         case x => throw new Exception(s"$x cannot be converted to edges")
@@ -95,13 +95,13 @@ trait FieldNode[N<:Node[N]] extends Node[N] { self:N =>
     }
   }
   
-  class InputField[T:TypeTag:ClassTag](val name:String) extends Input[N]()(self) with FieldEdge[T] {
+  class InputField[T:TypeTag:ClassTag](val name:String) extends Input[N]()(self) with FieldEdge[T,Input[N],Output[N]] {
     val Ttt = typeTag[T]
     val Tct = classTag[T]
     override def toString = s"${super.toString}_$name"
   }
   
-  class OutputField[T:TypeTag:ClassTag](val name:String) extends Output[N]()(self) with FieldEdge[T] {
+  class OutputField[T:TypeTag:ClassTag](val name:String) extends Output[N]()(self) with FieldEdge[T,Output[N],Input[N]] {
     val Ttt = typeTag[T]
     val Tct = classTag[T]
     override def toString = s"${super.toString}_$name"

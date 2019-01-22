@@ -3,6 +3,7 @@ package prism
 import prism.util._
 import prism.mapper._
 import prism.collection.immutable._
+import prism.graph._
 
 trait PrismLocalAlias extends Misc with MappingUtil with ScalaUtil with FileManager with Serialization {
   
@@ -20,8 +21,9 @@ trait PrismLocalAlias extends Misc with MappingUtil with ScalaUtil with FileMana
   //type Metadata = prism.util.Metadata
   val ConsoleLogger=prism.util.ConsoleLogger
 
-  type ND = prism.graph.Node[X] forSome { type X <:prism.graph.Node[X] }
-  type E = prism.graph.Edge[X] forSome { type X <:prism.graph.Node[X] }
+  type ND = Node[X] forSome { type X <:Node[X] }
+  type E = Edge[X,XA,XB] forSome { type X <:Node[X]; type XA<:Edge[X,XA,XB]; type XB <:Edge[X,XB,XA] }
+  type EN[N<:Node[N]] = Edge[N,XA,XB] forSome { type XA<:Edge[N,XA,XB]; type XB <:Edge[N,XB,XA] }
   type FG[K,V,S<:FactorGraphLike[K,V,S]] = FactorGraphLike[K,V,S]
 }
 
