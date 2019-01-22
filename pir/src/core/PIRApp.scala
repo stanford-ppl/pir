@@ -24,6 +24,7 @@ trait PIRApp extends PIR with Logging {
   lazy val psimAnalyzer = new PlastisimAnalyzer()
   lazy val ctxMerging = new ContextMerging()
   lazy val psimParser = new PlastisimLogParser()
+  lazy val sanityCheck = new SanityCheck()
 
   /* Mapping */
   lazy val initializer = new TargetInitializer()
@@ -87,12 +88,11 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, memoryPruner) ==>
     addPass(enableMapping, computePruner) ==>
     addPass(enableMapping, dagPruner) ==>
+    addPass(sanityCheck) ==>
     addPass(enableMapping, matchPruner) ==>
-    addPass(enableMapping, placerAndRouter) ==>
+    addPass(enableMapping, placerAndRouter)
     addPass(enableDot, new PIRCtxDotGen(s"simple8.dot"))
     addPass(genPsim, psimAnalyzer).dependsOn(placerAndRouter)
-    //addPass(genPsim, psimAnalyzer) //==> // Need to run twice to account for cycle in data flow graph
-    //addPass(genPsim, ctxMerging)
 
     addPass(enableDot, new PIRCtxDotGen(s"simple9.dot"))
     addPass(enableDot, new PIRIRDotGen(s"top9.dot"))
