@@ -190,7 +190,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     // Insert token for sequencial control dependency
   def sequencedScheduleBarrierInsertion(mem:Memory) = {
     dbgblk(s"sequencedScheduleBarrierInsertion($mem)") {
-      val ctrls = mem.accesses.flatMap { a => a.getCtrl :: a.getCtrl.ancestors }.distinct
+      val ctrls = mem.accesses.toStream.flatMap { a => a.getCtrl.ancestorTree }.distinct
       ctrls.foreach { ctrl =>
         if (ctrl.schedule == "Sequenced") {
           val accesses = ctrl.children.flatMap { childCtrl => 
@@ -294,7 +294,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       }
        //Insert token for loop carried dependency
       val lcaCtrl = leastCommonAncesstor(accesses.map(_.ctrl.get)).get
-      (lcaCtrl::lcaCtrl.descendents).foreach { ctrl =>
+      (lcaCtrl.descendentTree).foreach { ctrl =>
         if (ctrl.ctrler.get.isInstanceOf[LoopController]) {
           val accesses = sorted.filter { a => a.ctrl.get.isDescendentOf(ctrl) || a.ctrl.get == ctrl }
           if (accesses.nonEmpty) {

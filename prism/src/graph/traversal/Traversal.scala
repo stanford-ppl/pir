@@ -218,7 +218,7 @@ trait BottomUpTopologicalTraversal extends HierarchicalTopologicalTraversal {
     List(filtered.minBy { n => depFunc(n).size })
   }
 
-  def visitScope(n:N):List[N] = n::n.descendents
+  def visitScope(n:N):List[N] = n.descendentTree.toList
 
   def traverseScope(n:N, zero:T) = {
     val scope = visitScope(n)

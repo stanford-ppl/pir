@@ -36,7 +36,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner {
     dbg(s"bankMult=$bankMult capMult=$capMult totalBanks=$totalBanks")
     info(s"Split $k into ${numCU} CUs")
 
-    val nodes = k::k.descendents
+    val nodes = k.descendentTree
     val mappings = List.fill(numCU) { within(pirTop) { mirrorAll(nodes) } }
     val mks = mappings.map { _(k).as[GlobalContainer] }
 

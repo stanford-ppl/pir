@@ -70,18 +70,20 @@ trait Node[N<:Node[N]] extends IR { self:N =>
   def isChildOf(p:Node[N]) = p.children.contains(this)
 
   def siblings:List[N] = parent.map { _.children.filterNot { _ == this} }.getOrElse(Nil)
-  def ancestors:List[N] = {
-    parent.toList.flatMap { parent => parent :: parent.ancestors }
+  def ancestors:Stream[N] = {
+    parent.toStream.flatMap { parent => parent +: parent.ancestors }
   }
+  def ancestorTree:Stream[N] = this.as[N] +: ancestors
   def isAncestorOf(n:Node[N]):Boolean = n.isDescendentOf(this)
   // Inclusive
   def ancestorSlice(top:Node[N]) = { // from this to top inclusive
-    val chain = this :: this.ancestors
+    val chain = ancestorTree
     val idx = chain.indexOf(top)
     assert(idx != -1, s"$top is not ancestor of the $this")
     chain.slice(0, idx+1)
   }
-  def descendents:List[N] = children.flatMap { child => child :: child.descendents }
+  def descendents:Stream[N] = children.toStream.flatMap { child => child +: child.descendents }
+  def descendentTree:Stream[N] = this.as[N] +: descendents
   def isDescendentOf(n:Node[N]):Boolean = parent.fold(false) { p => p == n || p.isDescendentOf(n) }
 
   def addEdge(io:EN[N]) = {
@@ -102,7 +104,7 @@ trait Node[N<:Node[N]] extends IR { self:N =>
     localOuts.flatMap { _.connected.map { _.src} }.toSeq.distinct
   }
 
-  def matchLevel(n:Node[N]):Option[N] = (n.as[N] :: n.ancestors).filter { _.parent == this.parent }.headOption
+  def matchLevel(n:Node[N]):Option[N] = n.ancestorTree.filter { _.parent == this.parent }.headOption
 
   /*
    * A map of external dependent outputs and internal inputs that depends on the external 

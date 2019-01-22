@@ -12,13 +12,13 @@ trait ProgramOrderTraversal extends PIRTraversal with ChildFirstTraversal {
   lazy val ctrlMap = top.descendents.groupBy { _.ctrl.v }
 
   override def visitFunc(n:N):List[N] = n match {
-    case n:Top => scheduleCtrl(n.topCtrl)
-    case n:Controller => scheduleCtrl(n.ctrl.get)
+    case n:Top => scheduleCtrl(n.topCtrl).toList
+    case n:Controller => scheduleCtrl(n.ctrl.get).toList
     case n => Nil
   }
 
   def scheduleCtrl(ctrl:ControlTree) = {
-    var nodes:List[PIRNode] = ctrlMap.get(Some(ctrl)).getOrElse(Nil)
+    var nodes:Stream[PIRNode] = ctrlMap.get(Some(ctrl)).getOrElse(Stream.empty)
     nodes ++= ctrl.children.flatMap { _.ctrler.v }
     ctrl.ctrler.v.foreach { ctrler =>
       nodes = nodes.filterNot { node => node == ctrler }

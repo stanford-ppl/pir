@@ -50,11 +50,11 @@ trait GraphUtil {
    * */
   def cover[N<:Node[N],T<:N:ClassTag](visitFunc:Node[N] => List[N])(n:Node[N]) = visitFunc(n).flatMap { x =>
     val xx = x.collectUp[T]().headOption.getOrElse(x)
-    xx :: xx.descendents
+    xx.descendentTree
   }.distinct
 
   def leastCommonAncesstor[N<:Node[N]](n1:Node[N], n2:Node[N]):Option[N] = {
-    ((n1.as[N] :: n1.ancestors) intersect (n2.as[N] :: n2.ancestors)).headOption
+    (n1.ancestorTree intersect n2.ancestorTree).headOption
   }
 
   def leastCommonAncesstor[N<:Node[N]](ns:Iterable[Node[N]]):Option[N] = {
@@ -68,7 +68,7 @@ trait GraphUtil {
   def leastMatchedPeers[N<:Node[N]](ns:Seq[Node[N]], lca:Node[N]):Map[N, N] = {
     ns.map { n =>
       n.as[N] -> (if (n == lca) n else {
-        val ancestors = n :: n.ancestors
+        val ancestors = n.ancestorTree
         val idx = ancestors.indexOf(lca)
         ancestors(idx-1)
       }).as[N]

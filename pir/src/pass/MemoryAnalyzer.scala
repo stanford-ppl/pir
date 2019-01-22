@@ -57,8 +57,8 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
           (ctrlDone(o, octx), ctrlDone(i, ictx))
         case _ =>
           val lca = leastCommonAncesstor(o,i).get
-          val oAncesstors = (o::o.ancestors)
-          val iAncesstors = (i::i.ancestors)
+          val oAncesstors = o.ancestorTree
+          val iAncesstors = i.ancestorTree
           val oidx = oAncesstors.indexOf(lca)
           val iidx = iAncesstors.indexOf(lca)
           // Use def to prevent evaluation outside if statement to prevent idx out of bound
