@@ -10,5 +10,6 @@ log=logs/${backend}_${project}_${starttime}.log
 mkdir -p logs/
 sbt "; project pir; publishAll"
 bin/spatial -t $thread -p $project -b $backend
-git log --pretty=format:'%h' -n 1 > $log
+echo $(git log --pretty=oneline -n 1) > $log
+echo "" >> $log
 bin/log ../gen/$backend | tee -a $log
