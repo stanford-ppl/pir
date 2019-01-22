@@ -90,18 +90,18 @@ trait Node[N<:Node[N]] extends IR { self:N =>
     localEdges += io
   }
   def removeEdge(io:EN[N]) = localEdges -= io
-  def localIns:Seq[Input[N]] = localEdges.collect { case i:Input[N] => i }
-  def localOuts:Seq[Output[N]] = localEdges.collect { case i:Output[N] => i }
+  def localIns:Vector[Input[N]] = localEdges.toVector.collect { case i:Input[N] => i }
+  def localOuts:Vector[Output[N]] = localEdges.toVector.collect { case i:Output[N] => i }
 
   def edges = localEdges ++ descendents.flatMap { _.localEdges }
   def ins = edges.collect { case i:Input[N] => i }
   def outs = edges.collect { case i:Output[N] => i }
-  def localDeps:Seq[N] = { 
-    localIns.flatMap { _.connected.map { _.src} }.toSeq.distinct
+  def localDeps:Vector[N] = { 
+    localIns.flatMap { _.connected.map { _.src} }.distinct
   }
 
-  def localDepeds:Seq[N] = {
-    localOuts.flatMap { _.connected.map { _.src} }.toSeq.distinct
+  def localDepeds:Vector[N] = {
+    localOuts.flatMap { _.connected.map { _.src} }.distinct
   }
 
   def matchLevel(n:Node[N]):Option[N] = n.ancestorTree.filter { _.parent == this.parent }.headOption
@@ -110,38 +110,38 @@ trait Node[N<:Node[N]] extends IR { self:N =>
    * A map of external dependent outputs and internal inputs that depends on the external 
    * dependencies
    * */
-  def depsFrom:Map[Output[N], Seq[Input[N]]] = {
+  def depsFrom:Map[Output[N], Vector[Input[N]]] = {
     val descendents = this.descendents
     val descendentSet = descendents.toSet
     val ins = localIns.toIterator ++ descendents.toIterator.flatMap { _.localIns }
     ins.flatMap { in =>
       in.connected.filterNot { out => descendentSet.contains(out.src) } 
       .map { out => (out, in) } 
-    }.toSeq.groupBy { _._1 }.mapValues { _.map { _._2 } }
+    }.toVector.groupBy { _._1 }.mapValues { _.map { _._2 } }
   }
 
-  def deps:Seq[N] = depsFrom.keys.map(_.src).toSeq
+  def deps:Vector[N] = depsFrom.keys.map(_.src).toVector
 
   /*
    * A map of internal outs to seq of external inputs
    * */
-  def depedsTo:Map[Output[N], Seq[Input[N]]] = {
+  def depedsTo:Map[Output[N], Vector[Input[N]]] = {
     val descendents = this.descendents
     val descendentSet = descendents.toSet
     val outs = localOuts.toIterator ++ descendents.toIterator.flatMap { _.localOuts }
     outs.flatMap { out =>
       out.connected.filterNot { in => descendentSet.contains(in.src) } 
       .map { in => (in, out) } 
-    }.toSeq.groupBy { _._2 }.mapValues { _.map { _._1 } }
+    }.toVector.groupBy { _._2 }.mapValues { _.map { _._1 } }
   }
 
-  def depeds:Seq[N] = depedsTo.values.flatten.map { _.src }.toSeq.distinct
+  def depeds:Vector[N] = depedsTo.values.flatten.map { _.src }.toVector.distinct
 
-  def siblingDeps:Seq[N] = deps.flatMap(matchLevel)
-  def globalDeps:Seq[N] = deps.filter { d => matchLevel(d).isEmpty }
-  def siblingDepeds:Seq[N] = depeds.flatMap(matchLevel)
-  def globalDepeds:Seq[N] = depeds.filter { d => matchLevel(d).isEmpty }
-  def neighbors:Seq[N] = deps ++ depeds
+  def siblingDeps:Vector[N] = deps.flatMap(matchLevel)
+  def globalDeps:Vector[N] = deps.filter { d => matchLevel(d).isEmpty }
+  def siblingDepeds:Vector[N] = depeds.flatMap(matchLevel)
+  def globalDepeds:Vector[N] = depeds.filter { d => matchLevel(d).isEmpty }
+  def neighbors:Vector[N] = deps ++ depeds
 
 }
 object Node {
