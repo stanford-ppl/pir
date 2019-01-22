@@ -15,7 +15,7 @@ trait IRDotCodegen extends DotCodegen with ChildFirstTraversal {
   def fileName:String
   override def codegenPostfix = dotFile
 
-  val nodes = mutable.ListBuffer[N]()
+  val nodes = mutable.HashSet[N]()
 
   override def initPass = {
     super.initPass
