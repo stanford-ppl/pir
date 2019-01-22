@@ -110,9 +110,10 @@ trait Node[N<:Node[N]] extends IR { self:N =>
    * */
   def depsFrom:Map[Output[N], Seq[Input[N]]] = {
     val descendents = this.descendents
+    val descendentSet = descendents.toSet
     val ins = localIns.toIterator ++ descendents.toIterator.flatMap { _.localIns }
     ins.flatMap { in =>
-      in.connected.filterNot { out => descendents.contains(out.src) } 
+      in.connected.filterNot { out => descendentSet.contains(out.src) } 
       .map { out => (out, in) } 
     }.toSeq.groupBy { _._1 }.mapValues { _.map { _._2 } }
   }
@@ -124,9 +125,10 @@ trait Node[N<:Node[N]] extends IR { self:N =>
    * */
   def depedsTo:Map[Output[N], Seq[Input[N]]] = {
     val descendents = this.descendents
+    val descendentSet = descendents.toSet
     val outs = localOuts.toIterator ++ descendents.toIterator.flatMap { _.localOuts }
     outs.flatMap { out =>
-      out.connected.filterNot { in => descendents.contains(in.src) } 
+      out.connected.filterNot { in => descendentSet.contains(in.src) } 
       .map { in => (in, out) } 
     }.toSeq.groupBy { _._2 }.mapValues { _.map { _._1 } }
   }
