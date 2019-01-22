@@ -30,11 +30,11 @@ trait Traversal extends Logging {
   def markVisited(n:Any) = visited += n
   def isVisited(n:Any) = visited.contains(n)
 
-  var _scope:Option[List[N]] = None
-  def withinScope(n:N) = _scope.map { _.contains(n) }.getOrElse(true)
+  var _scope:Option[mutable.HashSet[N]] = None
+  def withinScope(n:N) = _scope.fold(true) { _.contains(n) }
   def scope = _scope.get
   def addAndVisitNode(n:N, prev:T) = { 
-    _scope = Some(n::_scope.get)
+    _scope.foreach { _ += n }
     markVisitNode(n, prev)
   }
 
@@ -58,7 +58,7 @@ trait Traversal extends Logging {
   def traverseNodes(ns: => List[N], zero:T):T
 
   final def traverseNodesInScope(scope:List[N], ns: => List[N], zero:T) = {
-    _scope = Some(scope)
+    _scope = Some(mutable.HashSet.empty ++ scope)
     val res = traverseNodes(ns, zero)
     _scope = None
     res
