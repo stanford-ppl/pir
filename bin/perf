@@ -1,0 +1,8 @@
+#!/bin/bash
+
+sbt "; project pir; publishAll"
+gendir=$1
+args=${@:2}
+cd $gendir
+sbt "; set fork in run := true; set javaOptions in run +=\"-agentlib:hprof=cpu=samples\"; runMain AccelMain $args"
+echo "Results in $gendir/java.hprof.txt"
