@@ -15,16 +15,16 @@ class PrefixTraversal[NN<:Node[NN],TT](
   type N = (NN, Int)
   type T = TT
 
-  override def isVisited(n:N) = {
+  override def isVisited(n:Any) = {
     val (node, depth) = n
-    visited.contains(node)
+    super.isVisited(node)
   }
   // depth = -1 is infinate depth
   def withinDepth(depth:Int) = (depth > 0 || depth < 0)
 
   override def visitNode(n:N, prev:T):T = prism.dbgblk(logging, s"visitNode($n, depth=${n._2})") {
     val (node, depth) = n
-    visited += node
+    markVisited(node)
     val pfx = prefix(node)
     node match {
       case _ if withinDepth(depth) & pfx => accumulate(prev, node)
