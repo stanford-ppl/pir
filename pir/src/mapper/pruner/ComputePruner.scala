@@ -26,10 +26,10 @@ class ComputePruner(implicit compiler:PIR) extends CUPruner with ComputePartitio
       case Left(f@InvalidFactorGraph(fg:CUMap, k:CUMap.K)) =>
         val vs = fg.freeValuesOf(k)
         val kcost = getCosts(k)
-        val vcost = vs.map { v => getCosts(v) }.maxBy { 
-          case List(StageCost(sc), InputCost(sin, vin), OutputCost(sout,vout)) => 
-            (sc, vin, vout, sin, sout)
-        }
+        val vcost = vs.map { v => (getCosts(v), v.params.get) }.maxBy { 
+          case (List(StageCost(sc), InputCost(sin, vin), OutputCost(sout,vout)), param) => 
+            (param.isInstanceOf[PCUParam], sc, vin, vout, sin, sout)
+        }._1
         dbg(s"Recover $k")
         dbg(s"kcost=$kcost")
         dbg(s"vcost=$vcost")

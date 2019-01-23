@@ -23,7 +23,7 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
 
   override def recover(x:EOption[CUMap]):EOption[CUMap] = {
     x match {
-      case Left(f@InvalidFactorGraph(fg:CUMap, k:CUMap.K)) =>
+      case e@Left(f@InvalidFactorGraph(fg:CUMap, k:CUMap.K)) =>
         val vs = fg.freeValuesOf(k)
         val kcost = getCosts(k)
         val vcost = assertOne(vs.map { getCosts(_) }, s"MemoryCU vcost")
@@ -31,7 +31,19 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
         dbg(s"kcost=$kcost")
         dbg(s"vcost=$vcost")
         val ks = split(k).toSet
-        newFG(fg, k, ks+k, vs)
+        resetCacheOn {
+          case `k` => true
+          case (`k`, _) => true
+          case _ => false
+        }
+        info(s"Split $k into ${ks.size + 1} CUs")
+        val nkcost = getCosts(k)
+        if (notFit(nkcost, vcost)) {
+          warn(s"$k still not fit after splitting $nkcost")
+          e
+        } else {
+          Right(fg ++ (k, vs) ++ (ks, spadeTop.cus.toSet))
+        }
       case x => super.recover(x)
     }
   }

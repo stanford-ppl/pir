@@ -33,7 +33,7 @@ trait ComputePartitioner extends CUPruner {
         globals
       case k:Context =>
         val scope = k.children.filter { include }
-        val part = Partition(scope)
+        val part = new Partition(scope)
         val parts = split(part, vcost)
         dbg(s"partitions=${parts.size}")
         val ctxs = within(k.global.get, k.ctrl.get) {
@@ -58,7 +58,7 @@ trait ComputePartitioner extends CUPruner {
           //dbg(s"schedule:")
           //nodes.foreach { n => dbg(s"$n") }
           val (head, tail) = nodes.splitAt(nodes.size/2)
-          split(Partition(head), vcost) ++ split(Partition(tail),vcost)
+          split(new Partition(head), vcost) ++ split(new Partition(tail),vcost)
         }
     }).as[List[T]]
   }
@@ -95,8 +95,8 @@ trait ComputePartitioner extends CUPruner {
 
 }
 
-case class Partition(scope:List[PIRNode]) extends {
-  override def toString = super.toString
+class Partition(val scope:List[PIRNode]) {
+  override def toString = s"${super.toString}(${scope.size})"
   def deps:Seq[PIRNode] = {
     val descendents = scope.flatMap { n => n.descendentTree }
     val edges = descendents.toIterator.flatMap { _.localEdges }
@@ -118,5 +118,11 @@ case class Partition(scope:List[PIRNode]) extends {
     }.toSeq.groupBy { _._2 }.mapValues { _.map { _._1 } }
   }
 
+}
+object Partition {
+  def unapply(x:Any):Option[List[PIRNode]] = x match {
+    case x:Partition => Some(x.scope)
+    case x => None
+  }
 }
 

@@ -88,6 +88,7 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, hardPruner).dependsOn(globalInsertion) ==>
     addPass(enableMapping, memoryPruner) ==>
     addPass(enableMapping, memoryComputePruner) ==>
+    addPass(enableMapping, hardPruner).dependsOn(globalInsertion) ==>
     addPass(enableMapping, computePruner) ==>
     addPass(enableMapping, dagPruner) ==>
     addPass(sanityCheck) ==>
