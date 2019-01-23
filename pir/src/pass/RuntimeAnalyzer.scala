@@ -162,7 +162,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
     }
   }
 
-  def compVec(n:ND):Int = dbgblk(s"compVec($n)"){
+  def compVec(n:ND):Int = /*dbgblk(s"compVec($n)")*/{
     n match {
       case n:Const => 1
       case n:CounterIter if n.i.nonEmpty => 1

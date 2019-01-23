@@ -28,7 +28,7 @@ trait CUCostUtil extends PIRPass with CostUtil with RuntimeAnalyzer with Memoriz
   }
 
 
-  def scheduleBy(s:Int, v:Int, numOp: => Int):(Int,Int) = dbgblk(s"scheduleBy($s, $v, $numOp)") {
+  def scheduleBy(s:Int, v:Int, numOp: => Int):(Int,Int) = /*dbgblk(s"scheduleBy($s, $v, $numOp)") */{
     if (spadeParam.scheduled) {
       val factor = spadeParam.vecNetParam.fold { 1 } { vecNet =>
         if (vecNet.numVC > 0) { // dynamic network
