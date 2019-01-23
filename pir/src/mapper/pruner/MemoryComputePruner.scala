@@ -31,18 +31,28 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
         dbg(s"kcost=$kcost")
         dbg(s"vcost=$vcost")
         val ks = split(k).toSet
-        newFG(fg, k, ks, vs)
+        newFG(fg, k, ks+k, vs)
       case x => super.recover(x)
     }
   }
 
   def split(k:GlobalContainer):Set[CUMap.K] = {
     val ctxs = k.collectDown[Context]()
-    ctxs.map { split(_,k) }.toSet
+    val globals = ctxs.map { split(_,k) }.toSet
+    k.children.foreach { 
+      case gin:GlobalInput if gin.out.T.isEmpty => removeNodes(List(gin))
+      case gin => 
+    }
+    resetCacheOn {
+      case `k` => true
+      case (`k`, _) => true
+      case _ => false
+    }
+    globals
   }
 
   def split(ctx:Context, k:GlobalContainer):GlobalContainer = dbgblk(s"split($ctx)") {
-    val newCtx = within(k.parent.get, ctx.ctrl.get) { Context() }
+    val newCtx = within(k, ctx.ctrl.get) { Context() }
     dbg(s"newCtx=$newCtx")
     var localNnodes:List[PIRNode] = ctx.collectDown[Access]() 
     localNnodes ++= localNnodes.flatMap { _.accum(visitFunc=visitLocalOut _) }.distinct
@@ -52,10 +62,10 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
     bufferInput(newCtx)
     dupDeps(List(newCtx), from=Some(ctx))
     val global = within(pirTop) { ComputeContainer() }
-    val gouts = newCtx.collectOut[GlobalOutput]()
-    swapParent(newCtx, global)
-    gouts.foreach { gout => swapParent(gout, global) }
+    swapParent(ctx, global)
     insertGlobalIO(global)
+    insertGlobalIO(k)
+    //breakPoint(s"split $ctx in $k")
     global
   }
 

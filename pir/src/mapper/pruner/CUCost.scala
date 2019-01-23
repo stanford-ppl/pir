@@ -108,7 +108,7 @@ trait CUCostUtil extends PIRPass with CostUtil with RuntimeAnalyzer with Memoriz
 
     } orElse switch[OutputCost](x,ct) {
       case x: GlobalContainer => 
-        val outs = x.collectDown[LocalInAccess]()
+        val outs = x.collectDown[GlobalOutput]()
         val (vouts, souts) = outs.partition { _.getVec > 1 }
         OutputCost(souts.size, vouts.size)
           .scheduledBy(x.collectDown[Context]().map { _.collectDown[OpNode]().size }.min)
