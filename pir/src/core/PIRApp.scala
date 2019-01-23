@@ -32,6 +32,7 @@ trait PIRApp extends PIR with Logging {
   lazy val computePruner = new ComputePruner()
   lazy val dagPruner = new DAGPruner()
   lazy val memoryPruner = new MemoryPruner()
+  lazy val memoryComputePruner = new MemoryComputePruner()
   lazy val matchPruner = new MatchPruner()
   lazy val placerAndRouter = new PlaceAndRoute()
 
@@ -86,6 +87,7 @@ trait PIRApp extends PIR with Logging {
     // ------- Mapping  --------
     addPass(enableMapping, hardPruner).dependsOn(globalInsertion) ==>
     addPass(enableMapping, memoryPruner) ==>
+    addPass(enableMapping, memoryComputePruner) ==>
     addPass(enableMapping, computePruner) ==>
     addPass(enableMapping, dagPruner) ==>
     addPass(sanityCheck) ==>

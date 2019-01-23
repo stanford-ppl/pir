@@ -1,0 +1,62 @@
+package pir
+package mapper
+
+import pir.node._
+import prism.graph._
+import spade.param._
+import prism.collection.immutable._
+
+class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
+
+  override def getCosts(x:Any):List[Cost[_]] = {
+    x match {
+      case _:ComputeContainer => Nil
+      case _:DRAMFringe => Nil
+      case _ => 
+        x.getCost[StageCost] ::
+        x.getCost[InputCost] ::
+        x.getCost[OutputCost] ::
+        //x.getCost[FIFOCost] ::
+        Nil
+    }
+  }
+
+  override def recover(x:EOption[CUMap]):EOption[CUMap] = {
+    x match {
+      case Left(f@InvalidFactorGraph(fg:CUMap, k:CUMap.K)) =>
+        val vs = fg.freeValuesOf(k)
+        val kcost = getCosts(k)
+        val vcost = assertOne(vs.map { getCosts(_) }, s"MemoryCU vcost")
+        dbg(s"Recover $k")
+        dbg(s"kcost=$kcost")
+        dbg(s"vcost=$vcost")
+        val ks = split(k).toSet
+        newFG(fg, k, ks, vs)
+      case x => super.recover(x)
+    }
+  }
+
+  def split(k:GlobalContainer):Set[CUMap.K] = {
+    val ctxs = k.collectDown[Context]()
+    ctxs.map { split(_,k) }.toSet
+  }
+
+  def split(ctx:Context, k:GlobalContainer):GlobalContainer = dbgblk(s"split($ctx)") {
+    val newCtx = within(k.parent.get, ctx.ctrl.get) { Context() }
+    dbg(s"newCtx=$newCtx")
+    var localNnodes:List[PIRNode] = ctx.collectDown[Access]() 
+    localNnodes ++= localNnodes.flatMap { _.accum(visitFunc=visitLocalOut _) }.distinct
+    localNnodes ++= ctx.collectDown[TokenWrite]() 
+    localNnodes ++= ctx.collectDown[TokenRead]()
+    localNnodes.foreach { local => swapParent(local, newCtx) }
+    bufferInput(newCtx)
+    dupDeps(List(newCtx), from=Some(ctx))
+    val global = within(pirTop) { ComputeContainer() }
+    val gouts = newCtx.collectOut[GlobalOutput]()
+    swapParent(newCtx, global)
+    gouts.foreach { gout => swapParent(gout, global) }
+    insertGlobalIO(global)
+    global
+  }
+
+}

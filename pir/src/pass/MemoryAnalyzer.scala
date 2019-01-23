@@ -80,7 +80,7 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
        //Distributed controller
       assertOneOrLess(ctx.collectDown[ControllerValid]().filter { _.ctrl.get == ctrl }, 
         s"ctrlValid with ctrl=$ctrl in $ctx").getOrElse {
-          assert(this.isInstanceOf[ComputePartitioner], s"$ctx has no ControllerValid for $ctrl")
+          assert(this.isInstanceOf[CUPruner], s"$ctx has no ControllerValid for $ctrl")
           within(ctx, ctrl) { allocConst(true) }
         }.out
     }
