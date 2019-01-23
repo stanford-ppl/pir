@@ -21,7 +21,8 @@ trait ComputePartitioner extends CUPruner {
         val globals = ctxs.map { ctx =>
           within(pirTop) {
             val global = ComputeContainer()
-            val gouts = ctx.collectOut[GlobalOutput]()
+            //val gouts = ctx.collectOut[GlobalOutput]()
+            val gouts = ctx.depeds.collect { case gout:GlobalOutput => gout }
             swapParent(ctx, global)
             gouts.foreach { gout => swapParent(gout, global) }
             global

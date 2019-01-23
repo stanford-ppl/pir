@@ -46,6 +46,8 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
     resetCacheOn {
       case `k` => true
       case (`k`, _) => true
+      case k if ctxs.contains(k) => true
+      case (k, _) if ctxs.contains(k) => true
       case _ => false
     }
     globals
@@ -62,10 +64,12 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
     bufferInput(newCtx)
     dupDeps(List(newCtx), from=Some(ctx))
     val global = within(pirTop) { ComputeContainer() }
+    val gouts = ctx.depeds.collect { case gout:GlobalOutput => gout }
     swapParent(ctx, global)
+    gouts.foreach { gout => swapParent(gout, global) }
     insertGlobalIO(global)
     insertGlobalIO(k)
-    //breakPoint(s"split $ctx in $k")
+    if (k.id==768) breakPoint(s"split $ctx in $k")
     global
   }
 
