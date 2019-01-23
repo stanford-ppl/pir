@@ -9,7 +9,8 @@ trait Transformer extends Logging {
     node.localEdges.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
   }
 
-  def removeNodes[N<:Node[N]](nodes:Iterable[Node[N]]) = {
+  def removeNodes[N<:Node[N]](nodes:Iterable[Node[N]]):Unit = {
+    if (nodes.isEmpty) return
     dbg(s"Remove ${nodes.mkString(",")}")
     nodes.foreach { node =>
       node.metadata.values.foreach{_.reset}

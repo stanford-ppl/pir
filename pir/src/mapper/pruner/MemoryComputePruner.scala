@@ -81,7 +81,7 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
     gouts.foreach { gout => swapParent(gout, global) }
     insertGlobalIO(global)
     insertGlobalIO(k)
-    if (k.id==768) breakPoint(s"split $ctx in $k")
+    //breakPoint(s"split $ctx in $k")
     global
   }
 

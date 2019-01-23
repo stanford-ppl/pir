@@ -7,7 +7,7 @@ import spade.param._
 import prism.collection.immutable._
 import scala.collection.mutable
 
-class MemoryPruner(implicit compiler:PIR) extends CUPruner {
+class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner {
 
   override def getCosts(x:Any):List[Cost[_]] = List(x.getCost[SRAMCost])
 
@@ -28,12 +28,12 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner {
 
   def split(k:CUMap.K, kcost:SRAMCost, vcost:SRAMCost):List[GlobalContainer] = dbgblk(s"split($k)"){
     val mem = k.collectDown[Memory]().head
-    val bankMult = kcost.bank /! vcost.bank
-    val newSize = mem.getDepth * mem.size * vcost.bank /! mem.totalBanks 
-    val capMult = newSize /! vcost.size
-    val totalBanks = kcost.bank * capMult
-    val numCU = bankMult * capMult
-    dbg(s"bankMult=$bankMult capMult=$capMult totalBanks=$totalBanks")
+    val parts = splitBanks(kcost, vcost)
+    val totalBanks = parts.map { _.size }.sum
+    val bankMult = totalBanks /! kcost.bank
+    val numCU = parts.size
+
+    dbg(s"bankMult=$bankMult bankMult=$bankMult totalBanks=$totalBanks")
     info(s"Split $k into ${numCU} CUs")
 
     val nodes = k.descendentTree
@@ -41,23 +41,22 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner {
     val mks = mappings.map { _(k).as[GlobalContainer] }
 
     // Update metadata of new partitions
-    val bankids = (0 until totalBanks).toList.grouped(vcost.bank).toList
-    (mappings, bankids).zipped.foreach { case (mapping, bankids) =>
+    (mappings, parts).zipped.foreach { case (mapping, bankids) =>
       val mmem = mapping(mem).as[Memory]
-      if (capMult != 1) {
+      if (bankMult != 1) {
         mmem.banks.reset
-        mmem.banks := mem.banks.get :+ capMult
+        mmem.banks := mem.banks.get :+ bankMult
       }
       mmem.bankids.reset
-      mmem.bankids := bankids
+      mmem.bankids := bankids.toList
     }
 
     // Update Shuffles within new partitions
     updateShuffle(k, mem, mappings)
 
-    // TODO: update bank address calculation if capMult is not one
-    if (capMult > 1) {
-      warn(s"Capacity splitting to $capMult. TODO: update bank address calculation")
+    // TODO: update bank address calculation if bankMult is not one
+    if (bankMult > 1) {
+      warn(s"Capacity splitting to $bankMult. TODO: update bank address calculation")
     }
     
     // Merge bankReads of multiple partitions
@@ -146,6 +145,28 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner {
       insertGlobalInput(global)
       removeUnusedConst(global)
     }
+  }
+}
+
+trait BankPartitioner extends Logging {
+  def splitBanks(kcost:SRAMCost, vcost:SRAMCost) = {
+    var sizePerBank = kcost.size /! kcost.bank
+    var cuPerBank = sizePerBank /! vcost.size
+    var bankPerCU = Math.min(vcost.size / sizePerBank, vcost.bank)
+    val (numCU, bankMult) = if (bankPerCU < 1) {
+      val numCU = cuPerBank * kcost.bank
+      val bankMult = cuPerBank
+      (numCU, bankMult)
+    } else {
+      val numCU = kcost.bank /! bankPerCU
+      (numCU, 1)
+    }
+    val totalBanks = kcost.bank * bankMult  
+    sizePerBank = kcost.size /! totalBanks
+    bankPerCU = Math.min(vcost.size / sizePerBank, vcost.bank)
+
+    dbg(s"totalBanks=$totalBanks, numCU=$numCU, bankMult=$bankMult, bankPerCU=$bankPerCU")
+    (0 until totalBanks).grouped(bankPerCU).toList
   }
 }
 

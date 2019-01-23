@@ -69,9 +69,10 @@ def getMessage(backend, app, conf):
         msg.append(cstr(YELLOW,'mappir'))
         return msg,succeeded
     elif conf['PCU'] is not None:
+        msg.append(cstr(GREEN, "mappir[{:.1f}s]".format(conf['mappir_time'])))
         msg.append(cstr(GREEN,' '.join(['{}:{}'.format(k,conf[k]) for k in ['PCU', "PMU"]])))
     else:
-        msg.append(cstr(GREEN,'mappir[{:.2f}s]'.format(conf['mappir_time'])))
+        msg.append(cstr(GREEN,'mappir[{:.1f}s]'.format(conf['mappir_time'])))
 
     if conf['NetVC'] is None:
         msg.append(cstr(RED,'runproute'))
@@ -115,12 +116,14 @@ def logApp(backend, app, show, opts):
     conf = parse(backend, app, opts)
 
     msg, succeeded = getMessage(backend, app, conf)
-    if not opts.summarize:
-        print(' '.join(msg))
 
     reruns = removeRules(conf, opts)
     if len(reruns) != 0:
         return
+
+    if not opts.summarize:
+        print(' '.join(msg))
+
 
     if succeeded and opts.summarize:
         opts.summary.writerow(conf)

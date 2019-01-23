@@ -125,7 +125,7 @@ class DAGTraversalTest extends UnitTest with Logging {
       }
     }
     var res = traversal.scheduleScope(top)
-    assert((top::top.descendents).forall(traversal.isVisited))
+    assert((top.descendentTree).forall(traversal.isVisited))
     //println("BUTopo", res)
   }
 
