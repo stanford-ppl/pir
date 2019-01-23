@@ -27,6 +27,34 @@ trait CUCostUtil extends PIRPass with CostUtil with RuntimeAnalyzer with Memoriz
     }
   }
 
+
+  def scheduleBy(s:Int, v:Int, numOp: => Int):(Int,Int) = dbgblk(s"scheduleBy($s, $v, $numOp)") {
+    if (spadeParam.scheduled) {
+      val factor = spadeParam.vecNetParam.fold { 1 } { vecNet =>
+        if (vecNet.numVC > 0) { // dynamic network
+          Math.max(numOp, 1)
+        } else 1
+      }
+      (s /! factor, v /! factor)
+    } else {
+      (s,v)
+    }
+  }
+
+  implicit class InputCostOp(x:InputCost) {
+    def scheduledBy(numOp: => Int):InputCost = {
+      val (sin, vin) = scheduleBy(x.sin, x.vin, numOp)
+      InputCost(sin, vin)
+    }
+  }
+
+  implicit class OutputCostOp(x:OutputCost) {
+    def scheduledBy(numOp: => Int):OutputCost = {
+      val (sout, vout) = scheduleBy(x.sout, x.vout, numOp)
+      OutputCost(sout, vout)
+    }
+  }
+
   private def getCost(x:Any, ct:ClassTag[_]) = memorize("getCost", (x, ct)) { case (x, ct) => compCost(x, ct) }
 
   protected def switch[C<:Cost[C]:ClassTag](x:Any, ct:ClassTag[_])(cfunc:PartialFunction[Any, C]) = if (ct == classTag[C] && cfunc.isDefinedAt(x)) Some(cfunc(x)) else None
@@ -35,9 +63,11 @@ trait CUCostUtil extends PIRPass with CostUtil with RuntimeAnalyzer with Memoriz
     switch[AFGCost](x,ct) {
       case n:GlobalContainer => AFGCost(n.isInstanceOf[ArgFringe])
       case n:Parameter => AFGCost(n.isInstanceOf[ArgFringeParam])
+
     } orElse switch[MCCost](x,ct) {
       case n:GlobalContainer => MCCost(n.isInstanceOf[DRAMFringe])
       case n:Parameter => MCCost(n.isInstanceOf[MCParam])
+
     } orElse switch[SRAMCost](x,ct) {
       case n:GlobalContainer =>
         val srams = n.collectDown[SRAM]()
@@ -46,6 +76,7 @@ trait CUCostUtil extends PIRPass with CostUtil with RuntimeAnalyzer with Memoriz
         SRAMCost(srams.size, nBanks, sramSize)
       case n:CUParam => SRAMCost(n.sramParam.count, n.sramParam.bank, n.sramParam.sizeInWord)
       case n => SRAMCost(0,0,0)
+
     } orElse switch[FIFOCost](x,ct) {
       case n:GlobalContainer => 
         val fifos = n.collectDown[FIFO]()
@@ -60,20 +91,35 @@ trait CUCostUtil extends PIRPass with CostUtil with RuntimeAnalyzer with Memoriz
       case n:CUParam =>
         FIFOCost(n.fifoParamOf("word").fold(0){_.count}, n.fifoParamOf("vec").fold(0){_.count})
       case n:Parameter => FIFOCost(0,0)
+
     } orElse switch[InputCost](x,ct) {
-      case n:GlobalContainer => 
-        val gins = n.collectDown[GlobalInput]()
-        val (vins, sins) = gins.partition { _.getVec > 1 }
+      case x: GlobalContainer =>
+        val ins = x.collectDown[GlobalInput]()
+        val (vins, sins) = ins.partition { _.getVec > 1 }
         InputCost(sins.size, vins.size)
+          .scheduledBy(x.collectDown[Context]().map { _.collectDown[OpNode]().size }.min)
+      case x: Context => 
+        val ins = x.collectDown[LocalOutAccess]().filter { _.gin.nonEmpty }
+        val (vins, sins) = ins.partition { _.getVec > 1 }
+        InputCost(sins.size, vins.size)
+          .scheduledBy(x.collectDown[OpNode]().size)
       case n:CUParam => InputCost(n.numSin, n.numVin)
       case n:Parameter => InputCost(100,100)
+
     } orElse switch[OutputCost](x,ct) {
-      case n:GlobalContainer => 
-        val outs = n.collectDown[GlobalOutput]()
+      case x: GlobalContainer => 
+        val outs = x.collectDown[LocalInAccess]()
         val (vouts, souts) = outs.partition { _.getVec > 1 }
         OutputCost(souts.size, vouts.size)
+          .scheduledBy(x.collectDown[Context]().map { _.collectDown[OpNode]().size }.min)
+      case x: Context => 
+        val outs = x.collectDown[LocalInAccess]().filter { _.gout.nonEmpty }
+        val (vouts, souts) = outs.partition { _.getVec > 1 }
+        OutputCost(souts.size, vouts.size)
+          .scheduledBy(x.collectDown[OpNode]().size)
       case n:CUParam => OutputCost(n.numSout, n.numVout)
       case n:Parameter => OutputCost(100,100)
+
     } orElse switch[StageCost](x,ct) {
       case n:GlobalContainer => 
         val ctxs = n.collectDown[Context]()
@@ -84,6 +130,7 @@ trait CUCostUtil extends PIRPass with CostUtil with RuntimeAnalyzer with Memoriz
       case n:CUParam => 
         StageCost(n.numStage)
       case n:Parameter => StageCost(0)
+
     } orElse switch[LaneCost](x,ct) {
       case n:GlobalContainer => 
         val ctxs = n.collectDown[Context]()
@@ -95,6 +142,7 @@ trait CUCostUtil extends PIRPass with CostUtil with RuntimeAnalyzer with Memoriz
         LaneCost(lane)
       case n:CUParam => LaneCost(n.numLane)
       case n:Parameter => LaneCost(1)
+
     } orElse switch[OpCost](x,ct) {
       case n:GlobalContainer => 
         val ctxs = n.collectDown[Context]()
@@ -104,6 +152,7 @@ trait CUCostUtil extends PIRPass with CostUtil with RuntimeAnalyzer with Memoriz
         OpCost(ops.map { _.op }.toSet)
       case n:CUParam => OpCost(n.ops)
       case n:Parameter => OpCost(Set.empty)
+
     } getOrElse {
       throw PIRException(s"Don't know how to compute $ct of $x")
     }

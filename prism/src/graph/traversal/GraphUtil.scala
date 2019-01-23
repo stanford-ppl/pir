@@ -41,16 +41,15 @@ trait GraphUtil {
    * Otherwise keep the node
    * */
   def lift[N<:Node[N],T<:N:ClassTag](visitFunc:Node[N] => List[N])(n:Node[N]) = visitFunc(n).map { x =>
-    x.collectUp[T]().headOption.getOrElse(x)
+    x.ancestors.collectFirst{ case x:T => x }.getOrElse(x)
   }.distinct
 
   /*
    * For each node returned by visitFunc, include its ancesstor with type T and ancesstor's
    * descendents if it has one. Otherwise keep the node
    * */
-  def cover[N<:Node[N],T<:N:ClassTag](visitFunc:Node[N] => List[N])(n:Node[N]) = visitFunc(n).flatMap { x =>
-    val xx = x.collectUp[T]().headOption.getOrElse(x)
-    xx.descendentTree
+  def cover[N<:Node[N],T<:N:ClassTag](ns:List[Node[N]]):List[N] = ns.flatMap { x =>
+    x.ancestors.collectFirst { case x:T => x }.map { _.descendentTree.toList }.getOrElse(List(x.as[N]))
   }.distinct
 
   def leastCommonAncesstor[N<:Node[N]](n1:Node[N], n2:Node[N]):Option[N] = {
