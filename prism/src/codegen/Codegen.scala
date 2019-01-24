@@ -13,6 +13,8 @@ trait Codegen extends Pass with Printer with DFSTraversal with UnitTraversal {
 
   lazy val outputPath = buildPath(dirName, fileName)
 
+  def clearGenDir = clearDir(dirName)
+
   override def initPass = {
     super.initPass
     startStream(outputPath, FileWriter(outputPath, false))

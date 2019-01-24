@@ -33,9 +33,13 @@ proute:
 		cd plastiroute && make CC=gcc Cpp=g++ CXX=g++ 
 		bin/pconf --proute-home=$(shell pwd)/plastiroute
 
+tungsten:
+		cd tungsten && make Cpp=g++ CXX=g++ 
+		bin/pconf --tungsten-home=$(shell pwd)/tungsten
+
 pull:
 	cd plastisim && git pull && git submodule update --init
 	cd plastiroute && git pull
 
-.PHONY: all spatial pir psim proute init pull install env
+.PHONY: all spatial pir psim proute init pull install env tungsten
 

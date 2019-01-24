@@ -4,3 +4,6 @@
 [submodule "plastisim"]
 	path = plastisim
 	url = git@github.com:acrucker/plastisim.git
+[submodule "tungsten"]
+	path = tungsten
+	url = ./tungsten/

@@ -18,6 +18,18 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   val forward = true
   val fileName = "Top.h"
 
+  def tungstenHome = config.option[String]("tungsten-home")
+
+  override def initPass = {
+    clearGenDir
+    copyFiles(buildPath(tungstenHome, "plasticine", "resources"), dirName)
+    withOpen(dirName,"Makefile",false) {
+      emitln(s"TUNGSTEN_HOME=${tungstenHome}")
+      getLines(buildPath(tungstenHome, "plasticine", "resources", "Makefile")).foreach { emitln }
+    }
+    super.initPass
+  }
+
   override def quote(n:Any) = n match {
     case n:Iterable[_] => 
       s"{${n.map(quote).mkString(",")}}"
@@ -32,10 +44,6 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   override def visitOut(n:N) = n match {
     case n:BufferWrite => super.visitOut(n).filterNot{_.isInstanceOf[BufferRead]}
     case n => super.visitOut(n)
-  }
-
-  def quoteRef(n:PIRNode) = {
-    if (n.getVec > 1) s"${n}[i]" else s"${n}"
   }
 
   def emitEn(en:Input[PIRNode] with Field[_]):Unit = {
@@ -54,42 +62,38 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     }
   }
 
+  def quoteEn(en:Input[PIRNode] with Field[_]):String = {
+    val src = en.src
+    val ens = en.neighbors
+    s"${ens.map { _.toString}.foldLeft("true"){ case (prev,b) => s"$prev & $b" }}"
+  }
+
   def emitVec(n:PIRNode)(rhs:Any) = {
     val vec = n.getVec
     if (vec > 1) {
-      emitln(s"float $n[${vec}] = {};")
+      emitln(s"int $n[${vec}] = {};")
       emitBlock(s"for (int i = 0; i < ${vec}; i++)") {
         emitln(s"$n[i] = ${rhs}")
       }
     } else {
-      emitln(s"float ${n} = ${rhs}")
+      emitln(s"auto ${n} = ${rhs}")
     }
   }
 
-  val numStages = 6
-
-  val ctxArgs = mutable.Set[(String, String)]()
-  val dutArgs = mutable.ListBuffer[String]()
-
-  final protected def genTop(block: => Unit) = enterFile(outputPath, false)(block)
-
-  final protected def genTopEnd(block: => Unit) = enterBuffer("top_end")(block)
-
-  final protected def genFields(block: => Unit) = enterBuffer("fields"){ incLevel(1); block; decLevel(1) }
-
-  final protected def genInits(block: => Unit) = enterBuffer("inits") { incLevel(2); block; decLevel(2) }
-
-  final protected def genCompute(block: => Unit) = enterBuffer("computes") { incLevel(2); block; decLevel(2) }
-
-  final protected def genPush(block: => Unit) = enterBuffer("push") { incLevel(2); block; decLevel(2) }
-
-  final protected def addEscapeVar(tp:String, name:String):Unit = {
-    ctxArgs += ((tp, name))
+  def emitToken(name:Any, vec:Int, value:List[Any]) = {
+    emitln(s"Token $name;")
+    if (vec == 1) {
+      emitln(s"$name.type = TT_INT;")
+      emitln(s"$name.int_ = ${assertOne(value, s"$name.value")};") 
+    } else {
+      emitln(s"$name.type = TT_INTVEC;")
+      val vs = value ++ List.fill(spadeParam.vecWidth - vec)(0)
+      emitln(s"$name.intVec_ = {${vs.mkString(",")}};") 
+    }
   }
 
-  final protected def addEscapeVar(n:PIRNode):Unit = {
-    addEscapeVar(tpOf(n), s"$n")
+  def quoteRef(n:PIRNode) = {
+    if (n.getVec > 1) s"${n}[i]" else s"${n}"
   }
 
-  def tpOf(n:PIRNode):String = throw PIRException(s"Don't know tpOf($n)")
 }

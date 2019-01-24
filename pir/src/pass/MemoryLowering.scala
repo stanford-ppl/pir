@@ -219,6 +219,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
   }
 
   def multiBufferBarrierInsertion(mem:Memory):Unit = {
+    // None multi buffer doesn't need to connect access.done
     if (mem.depth.get == 1) return
     dbgblk(s"multiBufferBarrierInsertion($mem)") {
       val accesses = mem.accesses.filter { _.port.nonEmpty }

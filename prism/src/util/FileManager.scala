@@ -25,14 +25,17 @@ trait FileManager {
   }
 
   def clearDir(outDir:String) = {
-    val logs = getListOfFiles(outDir)
-    logs.foreach(deleteFile)
+    Option(new File(outDir).listFiles).map(_.toList).getOrElse(Nil)
+      .foreach(deleteFile)
   }
   
   def getListOfFiles(dir: String):List[File] = {
-    val d = new File(dir)
-    if (d.exists && d.isDirectory) {
-        d.listFiles.filter(_.isFile).toList
+    getListOfFiles(new File(dir))
+  }
+
+  def getListOfFiles(dir: File):List[File] = {
+    if (dir.exists && dir.isDirectory) {
+        dir.listFiles.filter(_.isFile).toList
     } else {
         List[File]()
     }
@@ -60,31 +63,16 @@ trait FileManager {
             )
   }
 
-  def copyDir(srcDirFile: File, dstDirFile: File): Unit = {
-    for (f <- srcDirFile.listFiles) {
-      if (f.isDirectory) {
-        val dstDir = new File(s"${dstDirFile.getAbsolutePath}/${f.getName}")
-        dstDir.mkdirs()
-        copyDir(f, dstDir)
-      } else {
-        val dst = s"${dstDirFile.getAbsolutePath()}/${f.getName}"
-        val src = f.getAbsolutePath()
-        copyFile(src, dst)
-      }
-    }
+  def copyFiles(srcDir: String, dstDir:String): Unit = {
+    copyFiles(new File(srcDir), new File(dstDir))
   }
 
-  def copyDir(srcDir: String, dstDir: String): Unit = {
-    val srcDirFile = new File(srcDir)
-    val srcDirName = srcDir.split(separator).last
-    val dstDirFile = new File(s"$dstDir$separator$srcDirName")
-    dstDirFile.mkdirs()
-
+  def copyFiles(srcDirFile: File, dstDirFile:File): Unit = {
     for (f <- srcDirFile.listFiles) {
       if (f.isDirectory) {
         val dstDir = new File(s"${dstDirFile.getAbsolutePath}${separator}${f.getName}")
         dstDir.mkdirs()
-        copyDir(f, dstDir)
+        copyFiles(f, dstDir)
       } else {
         val dst = s"${dstDirFile.getAbsolutePath()}${separator}${f.getName}"
         val src = f.getAbsolutePath()
