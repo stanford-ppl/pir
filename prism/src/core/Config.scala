@@ -28,7 +28,10 @@ class Config(compiler:Compiler) extends ArgParser {
   def endRunId = getOption[Int]("end-id")
   def load = getOption[Int]("start-id").fold(true) { _ != 0 } && option[Boolean]("load")
   def save = option[Boolean]("save")
-  def checkPointPath = option[String]("ckpt")
+  def checkPointPath = option[String]("ckpt") match {
+    case p if p.forall(_.isDigit) => s"pir/out/pir$p.ckpt"
+    case p => p
+  }
   def enableCodegen = option[Boolean]("codegen")
   def verbose = option[Boolean]("verbose")
 
