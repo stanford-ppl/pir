@@ -15,7 +15,7 @@ class LSTM_1 extends LSTMApp {override lazy val param = LSTMParam(rp=2)}
   lazy val param = LSTMParam()
   import param._
 
-  val nHiddenUnits = 1024
+  val nHiddenUnits = 512
   val nGates = 4
   val innerPar = 16
 
