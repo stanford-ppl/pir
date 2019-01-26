@@ -121,16 +121,21 @@ trait RuntimeAnalyzer { self:PIRPass =>
     }
   }
 
+  // To handle cycle in computing count
+  val countStack = mutable.HashSet[Context]()
+
   /*
    * Compute count of the context using reads. Return None if reads is empty
    * and ctrlers nonEmpty
    * */
   def countByReads(n:Context):Option[Value[Long]] = {
-    val reads = n.reads
+    countStack += n
+    var reads = n.reads
+    reads = reads.filterNot { read => countStack.contains(read.inAccess.ctx.get) }
     val counts = reads.map { read => read.getCount * read.getScale }
     val (unknown, known) = counts.partition { _.unknown }
     val (finite, infinite) = known.partition { _.isFinite }
-    if (unknown.nonEmpty) Some(Unknown)
+    val c = if (unknown.nonEmpty) Some(Unknown)
     else if (finite.nonEmpty) assertIdentical(finite, s"$n.reads.count reads=$reads")
     else if (infinite.nonEmpty) Some(Infinite)
     else if (n.collectDown[FringeStreamWrite]().nonEmpty) None
@@ -140,6 +145,8 @@ trait RuntimeAnalyzer { self:PIRPass =>
       else if (ctrlers.exists { _.isForever }) Some(Infinite)
       else None
     }
+    countStack -= n
+    c
   }
 
   def compCount(n:PIRNode):Value[Long] = dbgblk(s"compCount($n)"){

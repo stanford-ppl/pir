@@ -7,8 +7,8 @@ import prism.graph._
 import prism.util._
 import scala.collection.mutable
 
-//class PlastisimAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTraversal with UnitTraversal {
-class PlastisimAnalyzer(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal {
+class PlastisimAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTraversal with UnitTraversal {
+//class PlastisimAnalyzer(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal {
   import compiler.env._
   val forward = true
 
