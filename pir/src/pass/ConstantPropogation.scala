@@ -138,7 +138,7 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
         dbgblk(s"WrittenByConstData($read, $c)") {
           swapOutput(read.out, c.out)
         }
-      case FirstIter(ctr, n) =>
+      case FirstIter(ctr, n) if config.option[Boolean]("shuffle-hack") => // TODO: fix this
         dbgblk(s"FirstIter($ctr)") {
           swapOutput(n.out, ctr.isFirstIter)
         }
