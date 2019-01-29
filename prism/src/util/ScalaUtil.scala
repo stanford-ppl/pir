@@ -192,6 +192,13 @@ trait ScalaUtilFunc {
       case (i:Float,d:Float) => (i / d).ceil
       case (_,_) => throw PIRException(s"Don't know how to do roundup div")
     }).as[N]
+
+    def log2:N = i match {
+      case i:Int => ((math.log(i) / math.log(2)).ceil).toInt.as[N]
+      case i:Long => ((math.log(i) / math.log(2)).ceil).toLong.as[N]
+      case i:Float => (math.log(i) / math.log(2)).toFloat.as[N]
+      case i:Double => (math.log(i) / math.log(2)).toDouble.as[N]
+    }
   }
 
   implicit class Tuple2Util[A,B](tuple:(A,B)) {

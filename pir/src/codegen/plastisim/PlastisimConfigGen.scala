@@ -69,7 +69,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
     n.collectDown[DRAMCommand]().headOption.flatMap { command =>
       if (config.enableTrace) Some(command) else None
     }.fold{
-      emitln(s"lat = ${getLatency(n)}")
+      emitln(s"lat = ${ getLatency(n)}")
     } {
       case command:FringeDenseLoad =>
         val par = command.data.T.getVec
@@ -116,16 +116,26 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
     topMap.right.get.cumap.usedMap(global).params.get
   }
 
-  def getLatency(n:Context) = {
+  def getLatency(n:Context):Int = {
     n.global.get match {
       case g:ArgFringe => 1
-      case g:DRAMFringe => 100
+      case g:DRAMFringe if g.collectDown[DRAMCommand]().nonEmpty => 100
+      case g:DRAMFringe if g.collectDown[StreamCommand]().nonEmpty => 1
       case g:GlobalContainer if spadeParam.isAsic =>
-        Math.max(n.collectDown[OpNode]().size, 1)
+          Math.max(n.collectDown[OpNode]().map { getLatency }.sum, 1)
       case g:GlobalContainer =>
         val cuParam = paramOf(n).as[CUParam]
-        if (cuParam.trace[TopParam].scheduled) 1 else cuParam.numStage
+        if (cuParam.trace[TopParam].scheduled) 1 else {
+          val ops = n.collectDown[OpNode]()
+          val unusedStage = cuParam.numStage - ops.size
+          ops.map { getLatency }.sum + unusedStage
+        }
     }
+  }
+
+  def getLatency(n:OpNode):Int = n match {
+    case n:RegAccumOp => n.getCtrl.getVec.log2 + 1
+    case n => 1
   }
 
   def emitStartToken(n:Context) = {
@@ -200,7 +210,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
       n.count.get match {
         case Unknown => emitln(s"# count not exists")
         case Finite(c) => emitln(s"count = $c")
-        case Infinite => emitln(s"count = $infCount # count is nfinite")
+        case Infinite => emitln(s"count = $infCount # count is infinite")
       }
       if (isLocalLink) {
         dsts.zipWithIndex.foreach { case (dst, dstIdx) =>

@@ -125,25 +125,31 @@ trait PIRApp extends PIR with Logging {
       val top = Top()
       states.pirTop = top
       import top._
-      within(top, topCtrl) {
-        top.hostInCtrl = ControlTree("Sequenced")
+      within(top) {
+        val topCtrler = create("Sequenced") { TopController() }
+        top.topCtrl = topCtrler.ctrl.get
+        topCtrl.ctrler := topCtrler
         top.argFringe = ArgFringe()
-        within(argFringe, hostInCtrl) {
-          hostInCtrl.ctrler(HostInController().valid(ControllerValid()).done(ControllerDone()))
+        within(argFringe) {
+          val hostInCtrler = create("Sequenced") { HostInController() }
+          top.hostInCtrl = hostInCtrler.ctrl.get
+          endState[Ctrl]
         }
         staging(top)
-        top.hostOutCtrl = ControlTree("Sequenced")
-        within(argFringe, hostOutCtrl) {
-          top.hostOutCtrl.ctrler(HostOutController().valid(ControllerValid()).done(ControllerDone()))
+        within(argFringe) {
+          val hostOutCtrler = create("Sequenced") { HostOutController() }
+          top.hostOutCtrl = hostOutCtrler.ctrl.get
           argOuts.foreach { mem =>
             HostRead(mem.name.v.getOrElse(mem.sname.get)).input(MemRead().setMem(mem))
           }
+          endState[Ctrl]
         }
         streamOuts.foreach { streamOut =>
           within(ControlTree("Streaming")) {
             FringeStreamRead().name(streamOut.name.v).stream(MemRead().setMem(streamOut).out)
           }
         }
+        endState[Ctrl]
       }
       argOuts.clear
       streamOuts.clear
@@ -206,8 +212,10 @@ trait PIRApp extends PIR with Logging {
     beginState(tree)
     val ctrler = newCtrler.valid(ControllerValid()).done(ControllerDone())
     tree.ctrler(ctrler)
-    tree.parent.get.ctrler.v.foreach { pctrler =>
-      ctrler.parentEn(pctrler.valid.T)
+    tree.parent.foreach { parent =>
+      parent.ctrler.v.foreach { pctrler =>
+        ctrler.parentEn(pctrler.valid.T)
+      }
     }
     ctrler
   }

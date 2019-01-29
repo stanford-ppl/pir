@@ -10,9 +10,9 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("arch", default="MyDesign", info="Default architecture for mapping")
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
   register("rt-elm", default=true, info="Enable route through elimination")
-  register("folded-redacc", default=false, "Fold reduction and accumulate operation into a single stage")
   register("stat", default=false, info="Printing statistics")
   register("force-align", default=false, info="Remove control signals that handle unaligned parallalization")
+  register("shuffle-hack", default=false, info="Workaround to enable optimization of Shuffle elimination prevented by unrolling bug")
   register("igraph", default=false, info="Enable igraph codegen")
 
   def arch = option[String]("arch")

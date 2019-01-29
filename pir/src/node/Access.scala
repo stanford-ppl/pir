@@ -79,7 +79,7 @@ trait AccessUtil {
     def gout:Option[GlobalOutput] = assertOneOrLess(n.out.T.collect { case gout:GlobalOutput => gout }, s"$n.gout")
   }
   implicit class LocalOutAccessOp(n:LocalOutAccess) {
-    def inAccess:LocalInAccess = assertOne(n.in.collect[LocalInAccess](visitGlobalIn _), s"$this.inAccess")
+    def inAccess:LocalInAccess = assertOne(n.in.collect[LocalInAccess](visitGlobalIn _), s"$n.inAccess")
     def gin:Option[GlobalInput] = n.in.T.to[GlobalInput]
   }
 }

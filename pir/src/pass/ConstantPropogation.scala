@@ -4,6 +4,7 @@ package pass
 import pir.node._
 import prism.graph._
 import prism.graph.implicits._
+import spade.param._
 
 import scala.collection.mutable
 
@@ -87,10 +88,32 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
   }
 
   val RouteThrough2 = MatchRule[BufferWrite, (BufferWrite, BufferRead, BufferWrite)] { n =>
-      n.data.T match {
-        case r1:BufferRead /*if r1.done.evalTo(n.done.T) */=> Some((r1.inAccess.as[BufferWrite], r1, n))
-        case _ =>  None
-      }
+    n.data.T match {
+      case r1:BufferRead /*if r1.done.evalTo(n.done.T) */=> Some((r1.inAccess.as[BufferWrite], r1, n))
+      case _ =>  None
+    }
+  }
+
+  val FirstIter = MatchRule[OpDef, (Counter, OpDef)] { n =>
+    (n.op, n.input.T) match {
+      case (FixEql, List(iter:CounterIter, Const(c))) =>
+        val ctr = iter.counter.T
+        ctr.min.T match {
+          case Some(Const(min)) if min == c => Some(ctr, n)
+          case _ => None
+        }
+      case (_) => None
+    }
+  }
+
+  val ShuffleMatch = MatchRule[Shuffle, Shuffle] { n =>
+    (n.from.T, n.to.T) match {
+      case (from, to) if from == to => Some(n)
+      case (Const(from), Const(to)) if from == to => Some(n)
+      case (Const(from:List[_]), Const(to:Int)) if n.getCtrl.getVec > 1 && from.head == to && config.option[Boolean]("shuffle-hack") => Some(n) // HACK: work around the spatial unroll bug for pir
+      case (Const(from:Int), Const(to:List[_])) if n.getCtrl.getVec > 1 && from == to.head && config.option[Boolean]("shuffle-hack") => Some(n)
+      case (from, to) => None
+    }
   }
 
   override def visitNode(n:N):T = /*dbgblk(s"visitNode:${quote(n)}") */{
@@ -106,14 +129,18 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
       }
     }
     n match {
-      case n:Shuffle if n.from.T == n.to.T =>
-        dbgblk(s"Shuffle($n)") {
+      case ShuffleMatch(n) =>
+        dbgblk(s"ShuffleMatch($n, from=${n.from.T}, to=${n.to.T})") {
           val base = assertOne(n.base.connected, s"$n.base.connected")
           swapOutput(n.out, base)
         }
       case WrittenByConstData(read:MemRead, c:Const) =>
         dbgblk(s"WrittenByConstData($read, $c)") {
           swapOutput(read.out, c.out)
+        }
+      case FirstIter(ctr, n) if config.option[Boolean]("shuffle-hack") => // TODO: fix this
+        dbgblk(s"FirstIter($ctr)") {
+          swapOutput(n.out, ctr.isFirstIter)
         }
       case EvalOp(n, c) =>
         dbgblk(s"EvalOp($n, $c)") {
@@ -142,7 +169,6 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
         dbg(s" => $mw1 -> $mem")
       case RouteThrough2(w1, r1, w2) =>
         val outs = w2.outAccesses
-        disconnect(w1.out, r1)
         outs.foreach { out => disconnect(w2.out, out) }
         w1.out(outs.map { _.in })
         dbg(s"Route through $w1 -> $r1 -> $n -> $outs detected")

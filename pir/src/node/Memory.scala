@@ -39,7 +39,7 @@ case class RegFile()(implicit env:Env) extends Memory
 case class LUT()(implicit env:Env) extends Memory
 
 case class Top()(implicit env:Env) extends PIRNode {
-  val topCtrl = ControlTree("Pipelined")
+  var topCtrl:ControlTree = _
   var hostInCtrl:ControlTree = _
   var hostOutCtrl:ControlTree = _
   var argFringe:ArgFringe = _
@@ -117,6 +117,8 @@ case class Counter(par:Int, isForever:Boolean=false)(implicit env:Env) extends D
   val min = new InputField[Option[PIRNode]]("min")
   val step = new InputField[Option[PIRNode]]("step")
   val max = new InputField[Option[PIRNode]]("max")
+  val isFirstIter = new OutputField[List[PIRNode]]("isFirstIter")
+
   def iters = this.collectOut[CounterIter]().sortBy { _.i }
   def valids = this.collectOut[CounterValid]().sortBy { _.i }
   def isInner = iters.forall { _.i.isEmpty } && iters.size == 1
@@ -151,6 +153,7 @@ case class ControllerValid()(implicit env:Env) extends Def {
 case class HostInController()(implicit env:Env) extends Controller
 case class HostOutController()(implicit env:Env) extends Controller
 case class UnitController()(implicit env:Env) extends Controller
+case class TopController()(implicit env:Env) extends Controller
 case class LoopController()(implicit env:Env) extends Controller {
   /*  ------- Fields -------- */
   val cchain = new ChildField[Counter, List[Counter]]("cchain")
