@@ -24,7 +24,7 @@ object PIRShell extends PIRApp with Logging {
   override def loadSession = {
     import config._
     var args = ""
-    args += " --load --debug -- dot --out=../gen/shell/ --trace=false"
+    args += s" --load --debug -- dot --out=${dirName(option[String]("ckpt"))} --trace=false"
     args += " --run-psim --psim"
     args += s" --psim-out=${cwd}/../gen/shell/"
     args += s" --psim-home=${cwd}/../plastisim/"
@@ -68,23 +68,24 @@ object PIRShell extends PIRApp with Logging {
     //addPass(enableMapping, placerAndRouter)
 
     //// ------- Codegen  --------
+    addPass(tungstenPIRGen)
     //addPass(genPsim, prouteLinkGen)
     //addPass(genPsim, prouteNodeGen)
     //addPass(genPsim, psimConfigGen)
     //addPass(runPsim, psimRunner)
-    addPass(psimParser)
+    //addPass(psimParser)
     //addPass(new PIRCtxDotGen(s"simple1.dot"))
     //addPass(enableDot, new PIRIRDotGen(s"top.dot"))
 
     //addPass(areaPowerStat).dependsOn(psimConfigCodegen, cuPlacer)
-    addPass("tracer") { runner =>
-      val ctxs = pirTop.collectDown[Context]()
-      ctxs.filter(isStarved).filterNot { ctx =>
-        visitIn(ctx).exists(isStarved)
-      }.foreach { ctx =>
-        println(ctx, visitIn(ctx))
-      }
-    }
+    //addPass("tracer") { runner =>
+      //val ctxs = pirTop.collectDown[Context]()
+      //ctxs.filter(isStarved).filterNot { ctx =>
+        //visitIn(ctx).exists(isStarved)
+      //}.foreach { ctx =>
+        //println(ctx, visitIn(ctx))
+      //}
+    //}
 
   }
 

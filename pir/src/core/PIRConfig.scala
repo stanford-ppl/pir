@@ -27,6 +27,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   /* ------------------- Plastisim --------------------  */
   register[String]("psim-home", default=sys.env.get("PLASTISIM_HOME"), info="Plastisim Home")
   register[String]("proute-home", default=sys.env.get("PLASTIROUTE_HOME"), info="Plastiroute Home")
+  register[String]("tungsten-home", default=sys.env.get("TUNGSTEN_HOME"), info="Tungsten Home")
   register("psim", default=true, info="Enable code generations for plastisim")
   register("run-psim", default=false, info="Launch Plastisim simulation")
   register[String]("load-psim", info="Path to load psim log")

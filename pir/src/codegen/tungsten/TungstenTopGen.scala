@@ -16,6 +16,20 @@ trait TungstenTopGen extends TungstenCodegen {
 #include "module.h"
 #include "state.h"
 #include "token.h"
+#include <cassert>
+#include <iomanip>
+
+#include "counter.h"
+#include "controller.h"
+#include "op.h"
+#include "context.h"
+#include "broadcast.h"
+#include "bankedsram.h"
+#include "nbuffer.h"
+#include "logger.h"
+
+using namespace std;
+
 """)
 
   }
@@ -27,9 +41,30 @@ trait TungstenTopGen extends TungstenCodegen {
   }
 
   override def finPass = {
-    getBuffer("top_end").foreach { _.flushTo(sw) }
-    emitln(s"Module DUT({${dutArgs.map(_.&).mkString(",")}});")
+    getBuffer("top-end").foreach { _.flushTo(sw) }
+    emitln(
+"""
+class Tester : public Logger {
+ public:
+  explicit Tester(): Logger() { }
+  void Log() {
+    cout << "#" << setw(2) << cycle << " ";
+    // Log modules here
+    cout << endl;
+  }
+};
+
+Tester logger;
+""")
+    dutArgs += "logger";
+    emitln(s"""Module DUT({${dutArgs.map(_.&).mkString(",")}}, "DUT");""")
     super.finPass
   }
+
+  val dutArgs = mutable.ListBuffer[String]()
+
+  final protected def genTop(block: => Unit) = enterFile(outputPath, false)(block)
+
+  final protected def genTopEnd(block: => Unit) = enterBuffer("top-end")(block)
 
 }

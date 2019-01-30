@@ -5,53 +5,90 @@ import pir.node._
 import prism.graph._
 import prism.codegen._
 import scala.collection.mutable
+import spade.param._
 
-trait TungstenCtxGen extends TungstenCodegen {
+trait TungstenCtxGen extends TungstenCodegen with TungstenTopGen {
 
-  def emitCtx(ctx:Context) = {
-    enterFile(dirName, s"$ctx.h", false) {
-      genCompute {
-        visitNode(ctx)
-      }
-      emitln(s"""#include "context.h"""")
-      emitln(s"""#include "math.h"""")
-      emitln(s"""#include "counter.h"""")
+  def paramOf(n:Context):Parameter = {
+    val global = n.global.get
+    topMap.right.get.cumap.usedMap(global).params.get
+  }
 
-      emitBlock(s"""class $ctx: public Context<$numStages>""") {
-        emitln(s"public:")
-        getBuffer("fields").foreach { _.flushTo(sw) }
-        ctxArgs.foreach { case (tp, field) =>
-          emitln(s"$tp *$field;")
-        }
-
-        emitln(s"public:")
-        emitBlock(s"""explicit $ctx(std::initializer_list<Module*> modules):Context<$numStages>("$ctx")""") {
-          ctxArgs.zipWithIndex.foreach { case ((tp, field), i) =>
-            emitln(s"$field = dynamic_cast<$tp*> (modules.begin()[$i]);")
-          }
-          getBuffer("inits").foreach { _.flushTo(sw) }
-        }
-        emitBlock(s"void Compute()") {
-          getBuffer("computes").foreach { _.flushTo(sw) }
-        }
-        emitBlock(s"void PushPipe()") {
-          emitln(s"Context::PushPipe();")
-          getBuffer("push").foreach { _.flushTo(sw) }
-        }
-      }
-      emit(s""";""")
-    }
+  def numStagesOf(ctx:Context) = ctx.global.get match {
+    case g:ArgFringe => 1
+    case g:DRAMFringe => 100
+    case g:GlobalContainer if spadeParam.isAsic =>
+      Math.max(ctx.collectDown[OpNode]().size, 1)
+    case g:GlobalContainer =>
+      val cuParam = paramOf(ctx).as[CUParam]
+      if (cuParam.trace[TopParam].scheduled) 1 else cuParam.numStage
   }
 
   override def emitNode(n:N) = n match {
     case n:Context =>
-      emitCtx(n)
-      emitln(s"""#include "$n.h"""")
-      emitln(s"""$n ctx_$n({${ctxArgs.map { _._2 }.map { _.& }.mkString(",")}});""")
+      val numStages = numStagesOf(n)
+      enterFile(dirName, s"$n.h", false) {
+        genCtxCompute {
+          visitNode(n)
+        }
+
+        emitln("""
+using namespace std;
+""")  
+        emitBlock(s"""class $n: public Context<$numStages>""") {
+          emitln(s"public:")
+          getBuffer("fields").foreach { _.flushTo(sw) }
+          ctxExtVars.foreach { case (tp, field) => 
+            emitln(s"$tp* $field;")
+          }
+          emitln(s"public:")
+          val constructorArgs = ctxExtVars.map { case (tp, field) => s"$tp* _$field" }.mkString(",")
+          val constructor = s"""explicit $n($constructorArgs):Context<$numStages>("$n")"""
+          emitBlock(constructor) {
+            ctxExtVars.foreach { case (tp, field) =>
+              emitln(s"$field = _$field;")
+            }
+            getBuffer("inits").foreach { _.flushTo(sw) }
+          }
+          emitBlock(s"void Compute()") {
+            getBuffer("computes").foreach { _.flushTo(sw) }
+            getBuffer("computes-end").foreach { _.flushTo(sw) }
+          }
+          emitBlock(s"void PushPipe()") {
+            emitln(s"Context::PushPipe();")
+            getBuffer("push").foreach { _.flushTo(sw) }
+          }
+        }
+        emit(s""";""")
+      }
+      genTopEnd {
+        emitln(s"""#include "$n.h"""")
+        var args = s"${ctxExtVars.map { _._2 }.map { _.& }.mkString(",")}"
+        if (ctxExtVars.nonEmpty) args = s"($args)"
+        emitln(s"""$n ctx_$n$args;""")
+      }
       dutArgs += s"ctx_$n"
-      ctxArgs.clear
+      ctxExtVars.clear
 
     case n => super.emitNode(n)
   }
 
+  val ctxExtVars = mutable.ListBuffer[(String, String)]()
+
+  final protected def genCtxFields(block: => Unit) = enterBuffer("fields"){ incLevel(1); block; decLevel(1) }
+
+  final protected def genCtxInits(block: => Unit) = enterBuffer("inits") { incLevel(2); block; decLevel(2) }
+
+  final protected def genCtxCompute(block: => Unit) = enterBuffer("computes") { incLevel(2); block; decLevel(2) }
+
+  final protected def genCtxComputeEnd(block: => Unit) = enterBuffer("computes-end") { incLevel(2); block; decLevel(2) }
+
+  final protected def genCtxPush(block: => Unit) = enterBuffer("push") { incLevel(2); block; decLevel(2) }
+
+  final protected def addEscapeVar(n:PIRNode):Unit = {
+    val v = varOf(n)
+    if (!ctxExtVars.contains(v)) ctxExtVars += v
+  }
+
+  def varOf(n:PIRNode):(String, String) = throw PIRException(s"Don't know varOf($n)")
 }

@@ -6,23 +6,54 @@ import prism.graph._
 import prism.codegen._
 import scala.collection.mutable
 
-trait TungstenMemGen extends TungstenCodegen {
+trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
   override def emitNode(n:N) = n match {
-    case n:LocalOutAccess =>
-      genFields {
-        val depth = n.depth.get
-        emitln(s"""FIFO<Token, $depth> *fifo_${n} = new FIFO<Token, $depth>("$n");""")
+    case n:GlobalOutput =>
+      val (tp, name) = varOf(n)
+      genTop {
+        emitln(s"""$tp $name("$n");""")
+        dutArgs += name
       }
-      genInits {
-        emitln(s"""addInput(fifo_$n);""")
-        emitln(s"""AddChild(fifo_$n);""")
+      genTopEnd {
+        val bcArgs = n.out.T.map { out => varOf(out)._2.& }
+        emitln(s"""Broadcast<Token> bc_$n("bc_$n", ${name.&}, {${bcArgs.mkString(",")}});""")
+        dutArgs += s"bc_$n"
+      }
+      
+    case n:GlobalInput =>
+      val (tp, name) = varOf(n)
+      genTop {
+        emitln(s"""$tp $name("$n");""")
+        dutArgs += name
+      }
+      genTopEnd {
+        val bcArgs = n.out.T.map { out => varOf(out)._2.& }
+        emitln(s"""Broadcast<Token> bc_$n("bc_$n", ${name.&}, {${bcArgs.mkString(",")}});""")
+        dutArgs += s"bc_$n"
+      }
+
+    case n:LocalOutAccess =>
+      val (tp, name) = varOf(n)
+      genTop {
+        emitln(s"""$tp $name("$n");""")
+        dutArgs += name
+      }
+      addEscapeVar(n)
+      genCtxInits {
+        emitln(s"""inputs.push_back($name);""")
+        if (n.initToken.get) {
+          emitToken(s"init_$n", n.getVec, n.inits.get)
+          emitln(s"$name->Push(init_$n);")
+        }
       }
       val readByFringe = n.out.T.exists { _.isInstanceOf[DRAMCommand] }
       if (!readByFringe) {
-        emitVec(n)(s"fifo_${n}->Read().floatVec_${if (n.getVec==1) "[0]" else "[i]"};")
-        emitIf(s"${n.done.T}") {
-          emitln(s"fifo_$n->Pop();")
+        emitVec(n)(s"$name->Read().intVec_${if (n.getVec==1) "[0]" else "[i]"};")
+        genCtxComputeEnd {
+          emitIf(s"${n.done.T}") {
+            emitln(s"$name->Pop();")
+          }
         }
       }
 
@@ -31,99 +62,38 @@ trait TungstenMemGen extends TungstenCodegen {
         case n:BufferWrite => n.data.T
         case n:TokenWrite => n.done.T
       }
-      val reads = n.out.T //TODO Consider GlobalOutput
-      val send = s"fifo_$n"
-      genTop {
-        emitln(s"""FIFO<Token, 4> $send("$send");""")
+      val (tp, name) = varOf(n)
+      genCtxFields {
+        emitln(s"""$tp *$name = new $tp("$n");""")
       }
-      genTopEnd {
-        val bcArgs = reads.map { read => s"ctx_${read.ctx.get}->fifo_${read}" }
-        emitln(s"""Broadcast<Token> bc_$n("bc_$n", ${send.&}, ${quote(bcArgs)});""")
-        dutArgs += s"bc_$n"
+      genCtxInits {
+        emitln(s"""AddChild($name);""")
       }
-      addEscapeVar(s"CheckedSend<Token>", s"$send")
-      data match {
-        case data:DRAMCommand =>
-        case data:BankedRead =>
-          genPush {
-            emitIf(s"${data}->Valid()") {
-              emitln(s"Token ${n}_respond = Token();")
-              emitBlock(s"for (int i = 0; i < ${n.getVec}; i++)") {
-                emitln(s"$n.floatVec_[i] = ${data}->ReadData()[i];")
-              }
-              emitln(s"$send->Push(${n}_respond);")
-            }
-          }
-
-        case data =>
-          val pipe = s"pipe_$n"
-          genFields {
-            emitln(s"""ValPipeline<Token, $numStages> *$pipe = new ValPipeline<Token, $numStages>("$pipe");""")
-          }
-          genInits {
-            emitln(s"""AddChild($pipe);""")
-            emitln(s"""addSend($send, $pipe);""")
-          }
-          emitIf(s"${n.done.T}") {
-            emitln(s"Token ${n} = Token();")
-            emitBlock(s"for (int i = 0; i < ${n.getVec}; i++)") {
-              emitln(s"$n.floatVec_[i] = ${quoteRef(data).cast("float")};")
-            }
-            emitln(s"$pipe->Push($n);")
-          }
+      val ctx = n.ctx.get
+      n.out.T.foreach { send =>
+        if (!send.isDescendentOf(ctx)) addEscapeVar(send)
+        genCtxInits {
+          emitln(s"AddSend(${varOf(send)._2}, $name);")
+        }
+      }
+      val sendValid = data match {
+        case data:BankedRead => s"${data}->Valid()"
+        case data => s"${n.done.T}"
+      }
+      emitIf(s"$sendValid") {
+        emitToken(n, n.getVec, List.tabulate(n.getVec) { i => if (data.getVec>1) s"$data[$i]" else s"$data" })
+        emitln(s"$name->Push($n);")
       }
 
-    case n:SRAM =>
-      val banks = n.banks.get
-      val bankIds = banks.foldLeft[List[List[Int]]](Nil) { case (prev, nbank) =>
-        if (prev.isEmpty) (0 until nbank).map { id => List(id) }.toList
-        else prev.flatMap { ids => (0 until nbank).map { id => ids :+ id } }
-      }
-      emitln(s"""${tpOf(n)} $n("$n", ${quote(bankIds)});""")
-      n.inAccesses.foreach { inAccess =>
-        emitln(s"$n.addWriter($inAccess);")
-      }
-
-    case n:LUT =>
-      val banks = n.banks.get
-      val bankIds = banks.foldLeft[List[List[Int]]](Nil) { case (prev, nbank) =>
-        if (prev.isEmpty) (0 until nbank).map { id => List(id) }.toList
-        else prev.flatMap { ids => (0 until nbank).map { id => ids :+ id } }
-      }
-      emitln(s"""${tpOf(n)} $n("$n", ${quote(bankIds)});""")
-      n.inAccesses.foreach { inAccess =>
-        emitln(s"$n.addWriter($inAccess);")
-      }
-
-    case n:BankedRead =>
-      val mem = n.mem.T
-      val reader = s"reader_${n}"
-      addEscapeVar(tpOf(n), reader)
-      genTop {
-        emitln(s"""${tpOf(n)} $reader("$n", ${n.isBroadcast});""")
-        emitln(s"$mem.addReader($reader);")
-      }
-      emitBankOffset(n)
-      emitln(s"${n}->SetupRead(&${n}_bank, &${n}_offset, (bool) ${n.done.T.getOrElse(false)});")
-
-    case n:BankedWrite =>
-      val mem = n.mem.T
-      addEscapeVar(n)
-      genTop {
-        emitln(s"""${tpOf(n)} $n("$n", ${n.isBroadcast});""")
-        //emitln(s"$mem.addWriter($n);")
-      }
-      emitBankOffset(n)
-      emitln(s"${n}->Write(&${n}_bank, &${n}_offset, &${n.data.T}, (bool) ${n.done.T.getOrElse(false)});")
-
-    case n:FIFO => 
-      emitln(s"""${tpOf(n)} $n("$n");""")
+    case n:Memory =>
+      val (tp, name) = varOf(n)
+      emitln(s"""$tp $name("$n");""")
 
     case n:MemRead if n.mem.T.isFIFO =>
       val mem = n.mem.T
       addEscapeVar(mem)
       emitEn(n.en)
-      emitln(s"float $n = 0;")
+      emitln(s"int $n = 0;")
       emitIf(s"${n}_en"){
         emitln(s"${n} = $mem->Read();")
         emitIf(n.done.T) {
@@ -139,71 +109,73 @@ trait TungstenMemGen extends TungstenCodegen {
         emitln(s"$mem->Push(${n.data.T});")
       }
 
-    case n:Reg =>
-      emitln(s"""${tpOf(n)} $n("$n");""")
-      n.inAccesses.foreach { inAccess =>
-        emitln(s"$n.addWriter($inAccess);")
+    case n:BankedRead =>
+      emitAccess(n) { mem =>
+        emitln(s"${mem}->SetupRead(${n.offset.T});")
+        emitln(s"Token $n;")
+        emitBlock(s"if ($mem->ReadValid())") {
+          emitln(s"$n = $mem->ReadData();")
+        }
+      }
+
+    case n:BankedWrite =>
+      emitAccess(n) { mem =>
+        emitln(s"if (${quoteEn(n.en)}) ${mem}->Write(${n.data.T}, ${n.offset.T});")
       }
 
     case n:MemRead =>
-      val mem = n.mem.T
-      val reader = s"reader_${n}"
-      addEscapeVar(n)
-      genTop {
-        emitln(s"""${tpOf(n)} $reader("$n", ${n.isBroadcast});""")
-        emitln(s"$mem.addReader($reader);")
+      emitAccess(n) { mem =>
+        emitln(s"auto $n = ${mem}->Read();")
       }
-      emitEn(n.en)
-      emitln(s"${n}->Read((bool) ${n.done.T.getOrElse(false)}, ${n}_en);")
 
     case n:MemWrite =>
-      val mem = n.mem.T
-      addEscapeVar(n)
-      genTop {
-        emitln(s"""${tpOf(n)} $n("$n", ${n.isBroadcast});""")
-        //emitln(s"$mem.addWriter($n);")
+      emitAccess(n) { mem =>
+        emitln(s"if (${quoteEn(n.en)}) ${mem}->Write(${n.data.T});")
       }
-      emitEn(n.en)
-      emitln(s"${n}->Write(&${n}_bank, &${n}_offset, &${n.data.T}, (bool) ${n.done.T.getOrElse(false)}, ${n}_en);")
 
     case n => super.emitNode(n)
   }
 
-  def emitBankOffset(n:BankedAccess) = {
+  def emitAccess(n:Access)(func:String => Unit) = {
     val mem = n.mem.T
-    val vec = n.getVec
-    emitln(s"std::array<std::array<int, ${mem.bankDims}>,$vec> ${n}_bank;")
-    emitBlock(s"for (int i = 0; i < $vec; i++)") {
-      n.bank.T.zipWithIndex.foreach { case (bank, i) =>
-        emitln(s"${n}_bank[i][$i] = (int) ${quoteRef(bank)};")
+    if (n.port.nonEmpty) {
+      emitln(s"""auto* ${n}_buffer = $mem->GetBuffer("$n", ${n.done.T.getOrElse(false)})""")
+      func(s"${n}_buffer")
+    } else {
+      emitBlock(s"for (int i = 0; i < $mem.buffers.size(); i++)") {
+        emitln(s"""auto* ${n}_buffer = $mem->buffers[i]""")
+        func(s"${n}_buffer");
       }
-    }
-    emitln(s"std::array<int,$vec> ${n}_offset;")
-    emitBlock(s"for (int i = 0; i < $vec; i++)") {
-      emitln(s"${n}_offset[i] = (int) ${quoteRef(n.offset.T)};")
     }
   }
 
-  override def tpOf(n:PIRNode):String = n match {
+  override def varOf(n:PIRNode):(String,String) = n match {
+    case n:GlobalOutput =>
+      (s"FIFO<Token, 4>", s"$n")
+    case n:GlobalInput =>
+      (s"FIFO<Token, 1>", s"$n")
+    case n:LocalOutAccess =>
+      (s"FIFO<Token, 4>", s"fifo_$n") //TODO
+    case n:LocalInAccess =>
+      val data = n match {
+        case n:BufferWrite => n.data.T
+        case n:TokenWrite => n.done.T
+      }
+      val pipeDepth = data match {
+        case data:BankedRead => 1
+        case _ => numStagesOf(n.ctx.get)
+      }
+      (s"ValPipeline<Token, $pipeDepth>", s"pipe_$n")
     case n:FIFO =>
-      s"FIFO<float, ${n.getDepth}>"
+      (s"FIFO<int, ${n.getDepth}>", s"$n")
     case n:SRAM =>
       val numBanks = n.getBanks.product
-      s"BufferedBankedSRAM<float, ${n.getDepth}, ${n.bankDims}, ${numBanks}>"
+      (s"NBuffer<BankedSRAM<int, ${n.capacity}, ${n.nBanks}>, ${n.getDepth}>", s"$n")
     case n:LUT =>
-      val numBanks = n.getBanks.product
-      s"BufferedBankedSRAM<float, ${n.getDepth}, ${n.bankDims}, ${numBanks}>"
-    case n:BankedRead =>
-      s"BufferedBankedReader<float, ${n.mem.T.getDepth}, ${n.mem.T.bankDims}, ${n.getVec}>"
-    case n:BankedWrite =>
-      s"BufferedBankedWriter<float, ${n.mem.T.getDepth}, ${n.mem.T.bankDims}, ${n.getVec}>"
+      (s"NBuffer<BankedSRAM<int, ${n.capacity}, ${n.nBanks}>, ${n.getDepth}>", s"$n")
     case n:Reg =>
-      s"BufferedReg<float, ${n.getDepth}>"
-    case n:MemWrite if !n.mem.T.isFIFO =>
-      s"BufferedWriter<float, ${n.mem.T.getDepth}>"
-    case n:MemRead if !n.mem.T.isFIFO =>
-      s"BufferedReader<float, ${n.mem.T.getDepth}>"
-    case n => super.tpOf(n)
+      (s"NBuffer<Register<int>, ${n.getDepth}>", s"$n")
+    case n => super.varOf(n)
   }
 
 }

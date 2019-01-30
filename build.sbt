@@ -88,7 +88,7 @@ lazy val pir = Project("pir", file("pir/"))
 
 // sbt command alias
 addCommandAlias("make", "compile")
-addCommandAlias("pir", "; project prism; test; project apps; run-main")
+addCommandAlias("pir", "; project prism; test; project pir; run-main")
 
 addCommandAlias("spade", "; project spade; runMain spade.Plasticine --out=out/plasticine")
 
