@@ -8,6 +8,9 @@ case class SumSquareParam(
 ) extends Param[SumSquareParam]
 
 class SumSquare_0 extends SumSquare
+class SumSquare_1 extends SumSquare {
+  override lazy val param = SumSquareParam(ip=1)
+}
 
 @spatial abstract class SumSquare extends DSETest {
   type T = Int

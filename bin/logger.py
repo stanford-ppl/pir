@@ -81,12 +81,17 @@ def getMessage(backend, app, conf):
 
     if conf['deadlock']:
         msg.append(cstr(RED, 'DEADLOCK'))
-        return msg,succeeded
-    elif conf['cycle'] is None:
+    elif conf['psimcycle'] is None:
         msg.append(cstr(RED, 'runpsim'))
-        return msg,succeeded
     else:
-        msg.append(cstr(GREEN, 'cycle:{} lbw:{} sbw:{}'.format(conf['cycle'], conf['lbw'], conf['sbw'])))
+        msg.append(cstr(GREEN, 'psimcycle:{} lbw:{} sbw:{}'.format(conf['psimcycle'], conf['lbw'], conf['sbw'])))
+
+    if conf['runtst_err'] is not None:
+        msg.append(conf['runtst_err'].strip())
+    elif conf['tstcycle'] is None:
+        msg.append(cstr(RED, 'runtst'))
+    else:
+        msg.append(cstr(GREEN, 'tstcycle:{}'.format(conf['tstcycle'])))
 
     succeeded = True
     return msg,succeeded
@@ -156,6 +161,7 @@ def parse(backend, app, opts):
     conf['proutesh'] = os.path.join(opts.gendir,backend,app,"log/runproute.sh")
     conf['prouteSummary'] = os.path.join(opts.gendir,backend,app,"pir","plastisim","summary.csv")
     conf['AccelMain'] = os.path.join(opts.gendir,backend,app,"pir","AccelMain.scala")
+    conf['runtstlog'] = os.path.join(opts.gendir,backend,app,"log/runtst.log")
     parse_genpir(conf['AccelMain'], conf, opts)
     parse_runpir(conf['runpirlog'], conf, opts)
     parse_mappir(conf['mappirlog'], conf, opts)
@@ -163,6 +169,7 @@ def parse(backend, app, opts):
     parse_runpsimsh(conf['psimsh'], conf, opts)
     parse_runproutesh(conf['proutesh'], conf, opts)
     parse_proutesummary(conf['prouteSummary'], conf, opts)
+    parse_runtst(conf['runtstlog'], conf, opts)
     return conf
 
 def parse_genpir(log, conf, opts):
@@ -177,7 +184,7 @@ def parse_runpsim(log, conf, opts):
     parsers = []
     parsers.append(Parser(
         conf,
-        'cycle', 
+        'psimcycle', 
         'Simulation complete at cycle:',
         lambda lines: int(lines[0].split('Simulation complete at cycle:')[1])
     ))
@@ -199,6 +206,24 @@ def parse_runpsim(log, conf, opts):
         'POSSIBLE DEADLOCK',
          lambda lines: True,
          default=False
+    ))
+    parseLog(log, parsers, conf)
+
+def parse_runtst(log, conf, opts):
+    if opts.summarize:
+        print(log)
+    parsers = []
+    parsers.append(Parser(
+        conf,
+        'tstcycle', 
+        'Simulation complete at cycle ',
+        lambda lines: int(lines[0].split('Simulation complete at cycle ')[1])
+    ))
+    parsers.append(Parser(
+        conf,
+        'runtst_err', 
+        ["error", "fail"],
+        lambda lines: lines[0] 
     ))
     parseLog(log, parsers, conf)
 

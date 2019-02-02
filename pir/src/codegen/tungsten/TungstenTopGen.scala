@@ -28,7 +28,7 @@ trait TungstenTopGen extends TungstenCodegen {
 #include "nbuffer.h"
 #include "logger.h"
 
-#include "io.h"
+#include "hostio.h"
 
 using namespace std;
 
@@ -49,10 +49,13 @@ using namespace std;
 class Tester : public Logger {
  public:
   explicit Tester(): Logger() { }
+  void Eval() {
+    cycle += 1;
+  }
   void Log() {
-    cout << "#" << setw(2) << cycle << " ";
+    //cout << "#" << setw(2) << cycle << " ";
     // Log modules here
-    cout << endl;
+    //cout << endl;
   }
 };
 

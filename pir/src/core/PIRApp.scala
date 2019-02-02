@@ -52,6 +52,8 @@ trait PIRApp extends PIR with Logging {
   override def initSession = {
     import config._
 
+    saveSession("pir/out/pir0.ckpt")
+
     // ------- Analysis and Transformations --------
     addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
     addPass(enableDot, new ControlTreeHtmlIRPrinter(s"ctrl.html"))
@@ -76,7 +78,7 @@ trait PIRApp extends PIR with Logging {
     addPass(enableDot, new PIRCtxDotGen(s"simple6.dot"))
     addPass(globalInsertion).dependsOn(deadCodeEliminator)
     
-    saveSession("pir/out/pir.ckpt")
+    saveSession("pir/out/pir1.ckpt")
 
     addPass(initializer)
     addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
@@ -95,23 +97,24 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, matchPruner) ==>
     addPass(enableMapping, placerAndRouter)
     addPass(enableDot, new PIRCtxDotGen(s"simple8.dot"))
-    addPass(genPsim, psimAnalyzer).dependsOn(placerAndRouter)
+    addPass(enableDot, new PIRIRDotGen(s"top8.dot"))
 
-    addPass(enableDot, new PIRCtxDotGen(s"simple9.dot"))
-    addPass(enableDot, new PIRIRDotGen(s"top9.dot"))
     //addPass(enableDot, new PIRNetworkDotGen(s"net.dot"))
     addPass(enableMapping,report)//.dependsOn(ctxMerging)
-    saveSession("pir/out/pir1.ckpt")
+    saveSession("pir/out/pir2.ckpt")
     
     // ------- Codegen  --------
+    addPass(genPsim, psimAnalyzer).dependsOn(placerAndRouter)
+    addPass(enableDot, new PIRCtxDotGen(s"simple9.dot"))
+    addPass(enableDot, new PIRIRDotGen(s"top9.dot"))
     addPass(enableIgraph, igraphGen).dependsOn(psimAnalyzer)
-    addPass(genTungsten, tungstenPIRGen).dependsOn(psimAnalyzer)
+    addPass(genTungsten, tungstenPIRGen)
     addPass(genPsim, prouteLinkGen).dependsOn(psimAnalyzer)
     addPass(genPsim, prouteNodeGen).dependsOn(placerAndRouter, psimAnalyzer)
     addPass(genPsim, psimConfigGen).dependsOn(placerAndRouter, psimAnalyzer, prouteLinkGen) ==>
     addPass(genPsim && runPsim, psimRunner)
     addPass(psimParser)
-    addPass(enableDot, new PIRCtxDotGen(s"simple9.dot"))
+    addPass(enableDot, new PIRCtxDotGen(s"simple10.dot"))
 
     //addPass(areaPowerStat).dependsOn(psimConfigCodegen, cuPlacer)
 
