@@ -18,11 +18,24 @@ Generate app from spatial
 ```
 bin/spatial <App> --pir
 ```
+
 Run pir
 ```
-cd <gendir> # By default generated directory is in out/<app> unless override by --out=<gendir>
+bin/pir <gendir> [options]  # By default generated directory is in out/<app> unless override by --out=<gendir>
+```
+or equivalently 
+```
+cd <gendir>
 bash run.sh [options]
 ```
+
+Run Tungsten
+```
+cd <gendir>/tungsten
+make
+./tungsten <args>
+```
+
 ## Options
 To see all possible options, run
 ```
