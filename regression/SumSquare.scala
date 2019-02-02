@@ -37,7 +37,8 @@ class SumSquare_0 extends SumSquare
     val a = Array.fill(N){ random[T](4) }
 
     val result = sumSquare(a)
-    val gold = a.map { aa => aa * aa }.reduce{_+_}
+    //val gold = a.map { aa => aa * aa }.reduce{_+_}
+    val gold = List.tabulate(N) { i => i * i }.sum
 
     println("expected: " + gold)
     println("result: " + result)

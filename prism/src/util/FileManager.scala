@@ -24,9 +24,9 @@ trait FileManager {
     logs.foreach(deleteFile)
   }
 
-  def clearDir(outDir:String) = {
+  def clearDir(outDir:String, filter:String => Boolean = { _ => true}) = {
     Option(new File(outDir).listFiles).map(_.toList).getOrElse(Nil)
-      .foreach(deleteFile)
+      .foreach{ file => if (filter(file.getName)) deleteFile(file) }
   }
   
   def getListOfFiles(dir: String):List[File] = {
