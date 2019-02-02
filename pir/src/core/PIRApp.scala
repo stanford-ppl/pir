@@ -114,6 +114,7 @@ trait PIRApp extends PIR with Logging {
     addPass(genPsim, psimConfigGen).dependsOn(placerAndRouter, psimAnalyzer, prouteLinkGen) ==>
     addPass(genPsim && runPsim, psimRunner)
     addPass(psimParser)
+    addPass(enableDot, new PIRIRDotGen(s"top10.dot"))
     addPass(enableDot, new PIRCtxDotGen(s"simple10.dot"))
 
     //addPass(areaPowerStat).dependsOn(psimConfigCodegen, cuPlacer)

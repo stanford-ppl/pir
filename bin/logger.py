@@ -86,12 +86,20 @@ def getMessage(backend, app, conf):
     else:
         msg.append(cstr(GREEN, 'psimcycle:{} lbw:{} sbw:{}'.format(conf['psimcycle'], conf['lbw'], conf['sbw'])))
 
-    if conf['runtst_err'] is not None:
-        msg.append(conf['runtst_err'].strip())
+    if conf['gentst_err'] is not None:
+        msg.append(cstr(RED, 'gentst') + ": "+ conf['gentst_err'].strip())
+    elif conf['maketst_err'] is not None:
+        msg.append(cstr(RED, 'maketst') + ": " + conf['maketst_err'].strip())
+    elif conf['runtst_err'] is not None:
+        msg.append(cstr(RED, 'runtst') + ": " + conf['runtst_err'].strip())
     elif conf['tstcycle'] is None:
         msg.append(cstr(RED, 'runtst'))
+    elif conf['runtst_pass'] is None:
+        msg.append(cstr(RED, 'runtst'))
+    elif not conf['runtst_pass']:
+        msg.append(cstr(RED, 'tstcycle:{} PASS:false'.format(conf['tstcycle'])))
     else:
-        msg.append(cstr(GREEN, 'tstcycle:{}'.format(conf['tstcycle'])))
+        msg.append(cstr(GREEN, 'tstcycle:{} PASS:true'.format(conf['tstcycle'])))
 
     succeeded = True
     return msg,succeeded
@@ -146,6 +154,9 @@ def logApp(backend, app, show, opts):
         tail(conf['mappirlog'])
         tail(conf['runproutelog'])
         tail(conf['runpsimlog'])
+        tail(conf['gentstlog'])
+        tail(conf['maketstlog'])
+        tail(conf['runtstlog'])
 
 def parse(backend, app, opts):
     conf = {}
@@ -161,6 +172,8 @@ def parse(backend, app, opts):
     conf['proutesh'] = os.path.join(opts.gendir,backend,app,"log/runproute.sh")
     conf['prouteSummary'] = os.path.join(opts.gendir,backend,app,"pir","plastisim","summary.csv")
     conf['AccelMain'] = os.path.join(opts.gendir,backend,app,"pir","AccelMain.scala")
+    conf['gentstlog'] = os.path.join(opts.gendir,backend,app,"log/gentst.log")
+    conf['maketstlog'] = os.path.join(opts.gendir,backend,app,"log/maketst.log")
     conf['runtstlog'] = os.path.join(opts.gendir,backend,app,"log/runtst.log")
     parse_genpir(conf['AccelMain'], conf, opts)
     parse_runpir(conf['runpirlog'], conf, opts)
@@ -169,6 +182,8 @@ def parse(backend, app, opts):
     parse_runpsimsh(conf['psimsh'], conf, opts)
     parse_runproutesh(conf['proutesh'], conf, opts)
     parse_proutesummary(conf['prouteSummary'], conf, opts)
+    parse_gentst(conf['gentstlog'], conf, opts)
+    parse_maketst(conf['maketstlog'], conf, opts)
     parse_runtst(conf['runtstlog'], conf, opts)
     return conf
 
@@ -210,8 +225,6 @@ def parse_runpsim(log, conf, opts):
     parseLog(log, parsers, conf)
 
 def parse_runtst(log, conf, opts):
-    if opts.summarize:
-        print(log)
     parsers = []
     parsers.append(Parser(
         conf,
@@ -223,6 +236,32 @@ def parse_runtst(log, conf, opts):
         conf,
         'runtst_err', 
         ["error", "fail"],
+        lambda lines: lines[0] 
+    ))
+    parsers.append(Parser(
+        conf,
+        'runtst_pass', 
+        ["PASS: "],
+        lambda lines: bool(lines[0].split('PASS: ')[1].split(" (")[0])
+    ))
+    parseLog(log, parsers, conf)
+
+def parse_maketst(log, conf, opts):
+    parsers = []
+    parsers.append(Parser(
+        conf,
+        'maketst_err', 
+        ["error", "fail", "Exception"],
+        lambda lines: lines[0] 
+    ))
+    parseLog(log, parsers, conf)
+
+def parse_gentst(log, conf, opts):
+    parsers = []
+    parsers.append(Parser(
+        conf,
+        'gentst_err', 
+        ["error", "fail", "Exception"],
         lambda lines: lines[0] 
     ))
     parseLog(log, parsers, conf)

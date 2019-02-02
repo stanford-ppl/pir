@@ -92,8 +92,20 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     }
   }
 
-  def quoteRef(n:PIRNode) = {
+  def quoteRef(n:PIRNode):String = {
     if (n.getVec > 1) s"${n}[i]" else s"${n}"
+  }
+
+  implicit class PIRNodeGenOp(n:PIRNode) {
+    def qref(i:Int):String = {
+      if (n.getVec > 1) s"${n}[$i]" else s"${n}"
+    }
+    def qref:String = {
+      if (n.getVec > 1) s"${n}[i]" else s"${n}"
+    }
+    def qref(i:String):String = {
+      if (n.getVec > 1) s"${n}[$i]" else s"${n}"
+    }
   }
 
 }
