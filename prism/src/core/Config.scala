@@ -16,7 +16,7 @@ class Config(compiler:Compiler) extends ArgParser {
   register[Int]("start-id", info="Runner ID to start with")
   register[Int]("end-id", info="Runner ID to stop")
   register[String]("name", defaultName, "name of the application")
-  register[String]("ckpt", "pir/out/pir.ckpt", "Path for checkpoint")
+  register[String]("ckpt", "pir/out/pir1.ckpt", "Path for checkpoint")
   register("load", false, "Load checkpoint")
   register("save", true, "Save checkpoint")
 

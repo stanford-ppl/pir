@@ -53,6 +53,7 @@ using namespace std;
           emitBlock(s"void Compute()") {
             getBuffer("computes").foreach { _.flushTo(sw) }
             getBuffer("computes-end").foreach { _.flushTo(sw) }
+            emitStopSim(n)
           }
           emitBlock(s"void PushPipe()") {
             emitln(s"Context::PushPipe();")
@@ -71,6 +72,15 @@ using namespace std;
       ctxExtVars.clear
 
     case n => super.emitNode(n)
+  }
+
+  def emitStopSim(ctx:Context) = {
+    ctx.collectDown[HostOutController]().headOption.foreach { hostOut =>
+      emitIf(s"${hostOut.done.T}") {
+        emitln(s"""cout << "Simulation complete at cycle " << cycle << endl;""")
+        emitln(s"stopsim.setstate(ios::eofbit);")
+      }
+    }
   }
 
   val ctxExtVars = mutable.ListBuffer[(String, String)]()
