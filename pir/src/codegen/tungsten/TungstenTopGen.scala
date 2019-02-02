@@ -28,6 +28,8 @@ trait TungstenTopGen extends TungstenCodegen {
 #include "nbuffer.h"
 #include "logger.h"
 
+#include "io.h"
+
 using namespace std;
 
 """)

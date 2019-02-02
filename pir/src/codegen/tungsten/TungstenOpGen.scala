@@ -105,10 +105,9 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       emitln(s"// TokenRead $n")
 
     case n:HostRead =>
-      emitln(s"""std::ofstream stream_$n("${n.sid}.txt");""")
-      emitln(s"""stream_$n << ${n.input.T};""")
-      emitln(s"""stream_$n.close();""")
-      emitln(s"""cout << "Get ArgOut ${n.sid} " << ${n.input.T} << endl;""")
+      n.input.T.as[BufferRead].sname.v.foreach { sname =>
+        emitln(s"${sname} = ${n.input.T};")
+      }
 
     case n:HostWrite =>
       emitln(s"int $n;")
