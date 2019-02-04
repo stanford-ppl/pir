@@ -110,6 +110,8 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
     (n.from.T, n.to.T) match {
       case (from, to) if from == to => Some(n)
       case (Const(from), Const(to)) if from == to => Some(n)
+      case (Const(List(from:Int)), Const(to:Int)) if from == to => Some(n)
+      case (Const(from:Int), Const(List(to))) if from == to => Some(n)
       case (Const(from:List[_]), Const(to:Int)) if n.getCtrl.getVec > 1 && from.head == to && config.option[Boolean]("shuffle-hack") => Some(n) // HACK: work around the spatial unroll bug for pir
       case (Const(from:Int), Const(to:List[_])) if n.getCtrl.getVec > 1 && from == to.head && config.option[Boolean]("shuffle-hack") => Some(n)
       case (from, to) => None

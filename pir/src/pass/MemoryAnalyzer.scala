@@ -45,6 +45,8 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
           (ctrlValid(o, octx), to.deqData)
         case (out, List(InputField(to:FringeStreamRead, "stream"))) => 
           (ctrlValid(o, octx), to.deqData)
+        case (Some(OutputField(from:OutAccess, _)), to) => 
+          (from.valid, ctrlValid(i, ictx))
         case (Some(OutputField(from:DRAMLoadCommand, "data")), to) => 
           (from.dataValid, ctrlValid(i, ictx))
         case (Some(OutputField(from:DRAMStoreCommand, "ack")), to) => 
@@ -75,25 +77,25 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
   def ctrlValid(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
     if (!compiler.hasRun[DependencyDuplication]) {
       // Centralized controller
-      ctrl.ctrler.get.valid.out
+      ctrl.ctrler.get.valid
     } else {
        //Distributed controller
-      assertOneOrLess(ctx.collectDown[ControllerValid]().filter { _.ctrl.get == ctrl }, 
-        s"ctrlValid with ctrl=$ctrl in $ctx").getOrElse {
-          assert(this.isInstanceOf[CUPruner], s"$ctx has no ControllerValid for $ctrl")
-          within(ctx, ctrl) { allocConst(true) }
-        }.out
+      assertOneOrLess(ctx.collectDown[Controller]().filter { _.ctrl.get == ctrl }, 
+        s"ctrlValid with ctrl=$ctrl in $ctx").map { _.valid }.getOrElse {
+          assert(this.isInstanceOf[CUPruner], s"$ctx has no Controller for $ctrl")
+          within(ctx, ctrl) { allocConst(true).out }
+        }
     }
   }
 
   def ctrlDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
     if (!compiler.hasRun[DependencyDuplication]) {
       // Centralized controller
-      ctrl.ctrler.get.done.out
+      ctrl.ctrler.get.done
     } else {
        //Distributed controller
-      assertOne(ctx.collectDown[ControllerDone]().filter { _.ctrl.get == ctrl }, 
-        s"ctrlDone with ctrl=$ctrl in $ctx").out
+      assertOne(ctx.collectDown[Controller]().filter { _.ctrl.get == ctrl }, 
+        s"ctrlDone with ctrl=$ctrl in $ctx").done
     }
   }
 

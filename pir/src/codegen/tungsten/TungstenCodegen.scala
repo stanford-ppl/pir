@@ -62,28 +62,31 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     }
   }
 
-  def quoteEn(en:Input[PIRNode] with Field[_]):String = {
-    val src = en.src
-    val ens = en.neighbors
-    s"${ens.map { _.toString}.foldLeft("true"){ case (prev,b) => s"$prev & $b" }}"
-  }
-
-  def emitVec(n:PIRNode)(rhs:Any) = {
+  def emitVec(n:PIRNode)(rhs: => Any) = {
     val vec = n.getVec
     if (vec > 1) {
-      emitln(s"int $n[${vec}] = {};")
+      emitln(s"${n.tp} $n[${vec}] = {};")
       emitBlock(s"for (int i = 0; i < ${vec}; i++)") {
-        emitln(s"$n[i] = ${rhs}")
+        emitln(s"$n[i] = ${rhs};")
       }
     } else {
-      emitln(s"auto ${n} = ${rhs}")
+      emitln(s"auto ${n} = ${rhs};")
+    }
+  }
+
+  def emitVec(n:PIRNode, rhs:List[Any]) = {
+    assert(n.getVec == rhs.size)
+    if (n.getVec==1) {
+      emitln(s"auto ${n} = ${rhs.head};")
+    } else {
+      emitln(s"${n.tp} ${n}[] = {${rhs.mkString(",")}}")
     }
   }
 
   def emitToken(name:Any, vec:Int, value:List[Any]) = {
     emitln(s"Token $name;")
     if (vec == 1) {
-      emitln(s"$name.type = TT_INT;")
+      emitln(s"$name.type = TT_INT;") //TODO
       emitln(s"$name.int_ = ${assertOne(value, s"$name.value")};") 
     } else {
       emitln(s"$name.type = TT_INTVEC;")
@@ -92,20 +95,31 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     }
   }
 
-  def quoteRef(n:PIRNode):String = {
-    if (n.getVec > 1) s"${n}[i]" else s"${n}"
+  def quoteRef(n:Any):String = n match {
+    case n@InputField(_, name) if name == "en" | name == "parentEn" =>
+      val ens = n.as[Input[PIRNode]].connected
+      s"${ens.foldLeft("true"){ case (prev,b) => s"$prev & ${quoteRef(b)}" }}"
+    case n:Input[_] => quoteRef(assertOne(n.connected, s"${n.src}.$n.connected"))
+    case n:Output[_] => quoteRef(n.src)
+    //case n:PIRNode => if (n.getVec > 1) s"${n}[i]" else s"${n}"
+    case n => s"$n"
   }
 
   implicit class PIRNodeGenOp(n:PIRNode) {
-    def qref(i:Int):String = {
-      if (n.getVec > 1) s"${n}[$i]" else s"${n}"
+    def qref:String = quoteRef(n)
+    def qref(i:Any):String = {
+      val q = quoteRef(n)
+      if (n.getVec==1) q else s"$q[$i]"
     }
-    def qref:String = {
-      if (n.getVec > 1) s"${n}[i]" else s"${n}"
-    }
-    def qref(i:String):String = {
-      if (n.getVec > 1) s"${n}[$i]" else s"${n}"
-    }
+    def tp = "int" // TODO
+  }
+
+  implicit class PIRInputGenOp(n:Input[PIRNode]) {
+    def qref = quoteRef(n)
+  }
+
+  implicit class PIROutputGenOp(n:Output[PIRNode]) {
+    def qref = quoteRef(n)
   }
 
 }

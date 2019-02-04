@@ -88,17 +88,6 @@ case class RegAccumOp(op:String)(implicit env:Env) extends OpNode with Def {
   val en = new InputField[Set[PIRNode]]("en")
   val first = new InputField[PIRNode]("first")
 }
-case class BankCoalesce()(implicit env:Env) extends OpNode {
-  val in1 = new InputField[PIRNode]("in1")
-  val in2 = new InputField[PIRNode]("in2")
-  val out = new OutputField[List[PIRNode]]("out")
-  val select = new OutputField[List[PIRNode]]("select")
-}
-case class SelectCoalesce()(implicit env:Env) extends OpNode with Def {
-  val in1 = new InputField[PIRNode]("in1")
-  val in2 = new InputField[PIRNode]("in2")
-  val select = new InputField[PIRNode]("select")
-}
 case class Shuffle()(implicit env:Env) extends OpNode with Def {
   val from = new InputField[PIRNode]("from")
   val to = new InputField[PIRNode]("to")
@@ -138,16 +127,10 @@ abstract class Controller(implicit env:Env) extends PIRNode {
   val en = new InputField[Option[PIRNode]]("en")
   val parentEn = new InputField[Option[PIRNode]]("parentEn")
 
-  val valid = new ChildField[ControllerValid, ControllerValid]("valid")
-  val done = new ChildField[ControllerDone, ControllerDone]("done")
+  val valid = new OutputField[List[PIRNode]]("valid")
+  val done = new OutputField[List[PIRNode]]("done")
 
   def isForever = this.collectDown[Counter]().exists { _.isForever }
-}
-case class ControllerDone()(implicit env:Env) extends Def {
-  def ctrler = this.collectUp[Controller]().head
-}
-case class ControllerValid()(implicit env:Env) extends Def {
-  def ctrler = this.collectUp[Controller]().head
 }
 
 case class HostInController()(implicit env:Env) extends Controller
@@ -181,7 +164,7 @@ trait MemoryUtil extends CollectorImplicit {
 
   implicit class ControllerOp(n:Controller) {
     def childCtrlers:Seq[Controller] = {
-      n.valid.T.out.neighbors.collect { case ctrler:Controller => ctrler }
+      n.valid.T.collect { case ctrler:Controller => ctrler }
     }
     def isLeaf = childCtrlers.isEmpty
     def leaves:Seq[Controller] = {

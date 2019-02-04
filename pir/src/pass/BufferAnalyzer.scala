@@ -8,22 +8,22 @@ trait BufferAnalyzer extends MemoryAnalyzer {
   /*
    * escaped node will be buffered between dep ctx and scope
    * */
-  def escape(dep:PIRNode, scope:Context) = dep match {
-    case dep:Memory => false 
-    case dep:LocalInAccess => false
-    case dep:GlobalInput => false
-    case dep:GlobalOutput => false
-    case dep:Const => false
-    
-    case dep:CounterIter => false // duplicate later
-    case dep:CounterValid => false // duplicate later
-    case dep:Controller => false // duplicate later
-    case dep:ControllerValid => false // duplicate later
-    case dep:ControllerDone => false // duplicate later
-    case dep:LocalOutAccess => false // duplicate later
+  def escape(dep:PIRNode, scope:Context) = {
+    dep match {
+      case dep:Memory => false 
+      case dep:LocalInAccess => false
+      case dep:GlobalInput => false
+      case dep:GlobalOutput => false
+      case dep:Const => false
+      case dep if dep.isDescendentOf(scope) => false
 
-    case dep if dep.isDescendentOf(scope) => false
-    case dep => true
+      case dep:CounterIter => false // duplicate later
+      case dep:CounterValid => false // duplicate later
+      case dep:Controller => false // duplicate later
+      case dep:LocalOutAccess => false // duplicate later
+
+      case dep => true
+    }
   }
 
   def bufferInput(ctx:Context):Unit = dbgblk(s"bufferInput($ctx)"){

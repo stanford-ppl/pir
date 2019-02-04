@@ -22,6 +22,7 @@ trait InAccess extends Access { // Memory as output
 }
 trait OutAccess extends Access { // Memory as input
   val out = new OutputField[List[PIRNode]]("out")
+  val valid = new OutputField[List[PIRNode]]("valid")
   override def asOutput = Some(out)
   val mem = new InputField[Memory]("mem")
 }
