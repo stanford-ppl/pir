@@ -34,6 +34,16 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
           emitln(s"$ctrler->Eval();")
           emitln(s"bool ${ctrler.done.T} = ${ctrler}->Done();")
         }
+        n.to[LoopController].foreach { ctrler =>
+          val laneValids = ctrler.cchain.T.foldLeft(List[String]()) { 
+            case (Nil, ctr) => List.tabulate(ctr.par) { i => s"$ctr->Valids()[$i]" }
+            case (prev, ctr) => 
+              prev.flatMap { valid => 
+                List.tabulate(ctr.par) { i => s"$valid & $ctr->Valids()[$i]" }
+              }
+          }
+          emitln(s"bool laneValids[] = {${laneValids.mkString(",")}};")
+        }
       }
 
     case n:ControllerDone =>
@@ -58,7 +68,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
     case n@CounterIter(None) =>
       val ctr = n.counter.T
-      emitln(s"auto $n = $ctr->Iters();")
+      emitln(s"auto $n = $ctr->Iters()${if (n.getVec==1) "[0]" else ""};")
 
     case n@CounterIter(Some(i)) =>
       val ctr = n.counter.T
@@ -66,7 +76,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
     case n@CounterValid(None) =>
       val ctr = n.counter.T
-      emitln(s"auto $n = $ctr->Valids();")
+      emitln(s"auto $n = $ctr->Valids()${if (n.getVec==1) "[0]" else ""};")
 
     case n@CounterValid(Some(i)) =>
       val ctr = n.counter.T
@@ -82,15 +92,18 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       val accumOp = op match {
         case "AccumAdd" => s"FixAdd"
         case "AccumMul" => s"FixMul"
+        case "AccumMax" => s"FixMax"
+        case "AccumMin" => s"FixMin"
+        case "AccumFMA" => s"FixFMA"
+        //case "AccumUnk" => s"" //TODO
       }
       val in = n.in.T
       val firstVec = n.first.T.getVec
-      emitIf(s"${quoteEn(n.en)}") {
+      val ctrler = assertOne(n.collectPeer[LoopController]().filter { _.getCtrl == n.getCtrl }, s"$n.ctrler")
+      emitIf(s"${quoteEn(n.en)} & ${ctrler.valid.T}") {
         emitBlock(s"for (int i = 0; i < ${firstVec}; i++)") {
-          emitIfElse(s"${quoteRef(n.first.T)}") {
-            emitln(s"$n = ${quoteRef(in)};")
-          } {
-            emitln(s"$n = $accumOp($n, ${quoteRef(in)});")
+          emitIf(s"laneValids[i]") {
+            emitln(s"$n = (${n.first.T.qref}) ? ${in.qref} : $accumOp($n, ${in.qref});")
           }
         }
       }

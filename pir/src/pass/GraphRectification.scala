@@ -28,9 +28,6 @@ class GraphRectification(implicit compiler:PIR) extends PIRTraversal with Siblin
         }
       }
       super.visitNode(n)
-    case n:RegAccumOp =>
-      n.en(n.ctrl.get.ctrler.get.valid.T)
-      super.visitNode(n)
     case n =>
       super.visitNode(n)
   }

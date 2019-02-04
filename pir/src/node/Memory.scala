@@ -139,7 +139,7 @@ abstract class Controller(implicit env:Env) extends PIRNode {
   val parentEn = new InputField[Option[PIRNode]]("parentEn")
 
   val valid = new ChildField[ControllerValid, ControllerValid]("valid")
-  val done = new ChildField[ControllerDone, ControllerDone]("cchain")
+  val done = new ChildField[ControllerDone, ControllerDone]("done")
 
   def isForever = this.collectDown[Counter]().exists { _.isForever }
 }

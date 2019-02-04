@@ -74,7 +74,7 @@ object PIRShell extends PIRApp with Logging {
     //addPass(genPsim, psimConfigGen)
     //addPass(runPsim, psimRunner)
     //addPass(psimParser)
-    //addPass(new PIRCtxDotGen(s"simple1.dot"))
+    addPass(new PIRCtxDotGen(s"top10.dot"))
     //addPass(enableDot, new PIRIRDotGen(s"top.dot"))
 
     //addPass(areaPowerStat).dependsOn(psimConfigCodegen, cuPlacer)
