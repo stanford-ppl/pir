@@ -47,28 +47,48 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
           emitln(s"$name->Push(init_$n);")
         }
       }
-      val readByFringe = n.out.T.exists { _.isInstanceOf[DRAMCommand] }
-      if (!readByFringe) {
-        emitVec(n)(s"$name->Read().intVec_${if (n.getVec==1) "[0]" else "[i]"};")
-        genCtxComputeEnd {
-          emitIf(s"${n.done.T}") {
-            emitln(s"$name->Pop();")
+      n match {
+        case n:BufferRead =>
+          emitVec(n)(s"$name->Read().intVec_${if (n.getVec==1) "[0]" else "[i]"}")
+          genCtxComputeEnd {
+            emitIf(s"${n.done.qref}") {
+              emitln(s"$name->Pop();")
+            }
+          }
+        case n:TokenRead =>
+          val pipeTp = s"ValPipeline<Token, ${numStagesOf(n.ctx.get)}>" 
+          val pipeName = s"pipe_${n}_done"
+          emitNewMember(pipeTp, pipeName)
+          genCtxInits {
+            emitln(s"AddPipe($pipeName);")
+          }
+          emitln(s"$pipeName->Push(make_token(${n.done.qref}));")
+          genCtxReadPipe {
+            emitIf(s"$pipeName->Read().bool_") {
+              emitln(s"$name->Pop();")
+            }
+          }
+      }
+
+    case n:BufferWrite if n.data.T.isInstanceOf[BankedRead] =>
+      n.out.T.foreach { send =>
+        addEscapeVar(send)
+        genCtxReadPipe {
+          emitAccess(n.data.T.as[BankedRead]) { mem =>
+            emitIf(s"$mem->ReadValid()") {
+              emitln(s"${send}->Push($mem->ReadData());");
+            }
           }
         }
       }
 
     case n:LocalInAccess =>
       val data = n match {
-        case n:BufferWrite => n.data.T
-        case n:TokenWrite => n.done.T
+        case n:BufferWrite => n.data.qref
+        case n:TokenWrite => n.done.qref
       }
       val (tp, name) = varOf(n)
-      genCtxFields {
-        emitln(s"""$tp *$name = new $tp("$n");""")
-      }
-      genCtxInits {
-        emitln(s"""AddChild($name);""")
-      }
+      emitNewMember(tp, name)
       val ctx = n.ctx.get
       n.out.T.foreach { send =>
         if (!send.isDescendentOf(ctx)) addEscapeVar(send)
@@ -76,18 +96,15 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
           emitln(s"AddSend(${varOf(send)._2}, $name);")
         }
       }
-      val sendValid = data match {
-        case data:BankedRead => s"${data}->Valid()"
-        case data => s"${n.done.T}"
-      }
-      emitIf(s"$sendValid") {
-        emitToken(n, n.getVec, List.tabulate(n.getVec) { i => if (data.getVec>1) s"$data[$i]" else s"$data" })
-        emitln(s"$name->Push($n);")
+      emitIf(s"${n.done.qref}") {
+        emitln(s"$name->Push(make_token($data));")
       }
 
     case n:Memory =>
       val (tp, name) = varOf(n)
-      emitln(s"""$tp $name("$n");""")
+      val accesses = n.accesses.filterNot { _.port.isEmpty }
+      emitln(s"""$tp $name("$n", {${accesses.map { a => s""""$a"""" }.mkString(",")}});""")
+      dutArgs += name
 
     case n:MemRead if n.mem.T.isFIFO =>
       val mem = n.mem.T
@@ -106,45 +123,73 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       addEscapeVar(mem)
       emitEn(n.en)
       emitIf(s"${n}_en && ${n.done.T}"){
-        emitln(s"$mem->Push(${n.data.T});")
+        emitln(s"$mem->Push(${n.data.qref});")
       }
 
     case n:BankedRead =>
-      emitAccess(n) { mem =>
-        emitln(s"${mem}->SetupRead(${n.offset.T});")
-        emitln(s"Token $n;")
-        emitBlock(s"if ($mem->ReadValid())") {
-          emitln(s"$n = $mem->ReadData();")
+      addEscapeVar(n.mem.T)
+      emitNewMember(s"ValPipeline<Token, ${numStagesOf(n.ctx.get)}>", s"${n}_offset")
+      emitNewMember(s"ValPipeline<Token, ${numStagesOf(n.ctx.get)}>", s"${n}_done")
+      genCtxInits {
+        emitln(s"AddPipe(${n}_offset);")
+        emitln(s"AddPipe(${n}_done);")
+      }
+      emitln(s"${n}_offset->Push(make_token(${n.offset.qref}));")
+      emitln(s"${n}_done->Push(make_token(${n.done.qref}));")
+      genCtxReadPipe {
+        emitln(s"""${n.mem.T}->SetDone("$n", ${n}_done->Read().bool_);""")
+        emitAccess(n) { mem =>
+          emitln(s"${mem}->SetupRead(${n}_offset->Read());")
         }
       }
 
     case n:BankedWrite =>
-      emitAccess(n) { mem =>
-        emitln(s"if (${quoteEn(n.en)}) ${mem}->Write(${n.data.T}, ${n.offset.T});")
+      addEscapeVar(n.mem.T)
+      emitNewMember(s"ValPipeline<Token, ${numStagesOf(n.ctx.get)}>", s"${n}_offset")
+      emitNewMember(s"ValPipeline<Token, ${numStagesOf(n.ctx.get)}>", s"${n}_data")
+      emitNewMember(s"ValPipeline<Token, ${numStagesOf(n.ctx.get)}>", s"${n}_done")
+      genCtxInits {
+        emitln(s"AddPipe(${n}_offset);")
+        emitln(s"AddPipe(${n}_data);")
+        emitln(s"AddPipe(${n}_done);")
+      }
+      emitIf(s"${n.en.qref}") {
+        emitln(s"${n}_offset->Push(make_token(${n.offset.qref}));")
+        emitln(s"${n}_data->Push(make_token(${n.data.qref}));")
+      }
+      emitln(s"${n}_done->Push(make_token(${n.done.qref}));")
+      genCtxReadPipe {
+        emitln(s"""${n.mem.T}->SetDone("$n", ${n}_done->Read().bool_);""")
+        emitAccess(n) { mem =>
+          emitln(s"if (${n}_offset->Valid()) ${mem}->Write(${n}_data->Read(), ${n}_offset->Read());")
+        }
       }
 
-    case n:MemRead =>
-      emitAccess(n) { mem =>
-        emitln(s"auto $n = ${mem}->Read();")
-      }
+    //case n:MemRead =>
+      //emitAccess(n) { mem =>
+        //emitln(s"auto $n = ${mem}->Read();")
+      //}
 
-    case n:MemWrite =>
-      emitAccess(n) { mem =>
-        emitln(s"if (${quoteEn(n.en)}) ${mem}->Write(${n.data.T});")
-      }
+    //case n:MemWrite =>
+      //emitAccess(n) { mem =>
+        //emitln(s"if (${n.en.qref}) ${mem}->Write(${n.data.T});")
+      //}
 
     case n => super.emitNode(n)
+  }
+
+  override def quoteRef(n:Any):String = n match {
+    case n@InputField(access:Access, "done") if !n.as[Input[PIRNode]].isConnected => "false"
+    case n => super.quoteRef(n)
   }
 
   def emitAccess(n:Access)(func:String => Unit) = {
     val mem = n.mem.T
     if (n.port.nonEmpty) {
-      emitln(s"""auto* ${n}_buffer = $mem->GetBuffer("$n", ${n.done.T.getOrElse(false)})""")
-      func(s"${n}_buffer")
+      func(s"""$mem->GetBuffer("$n")""")
     } else {
       emitBlock(s"for (int i = 0; i < $mem.buffers.size(); i++)") {
-        emitln(s"""auto* ${n}_buffer = $mem->buffers[i]""")
-        func(s"${n}_buffer");
+        func(s"""$mem->GetBuffer("$n")""");
       }
     }
   }

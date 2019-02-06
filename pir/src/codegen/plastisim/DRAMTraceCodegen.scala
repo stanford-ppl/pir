@@ -116,8 +116,6 @@ class DRAMTraceCodegen(implicit compiler:PIR) extends ProgramOrderTraversal with
       emitln(s"val $n = (0 until $infCount)")
     case n@Const(v) => 
       emitln(s"val $n = $v")
-    case n:ControllerValid =>
-    case n:ControllerDone =>
     case n:CounterValid =>
     case n@CounterIter(Some(i)) if !n.counter.T.isForever =>
       val ctr = n.counter.T

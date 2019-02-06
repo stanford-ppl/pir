@@ -214,11 +214,11 @@ trait PIRApp extends PIR with Logging {
   def create[T<:Controller](schedule:String)(newCtrler: => T):T = {
     val tree = ControlTree(schedule)
     beginState(tree)
-    val ctrler = newCtrler.valid(ControllerValid()).done(ControllerDone())
+    val ctrler = newCtrler
     tree.ctrler(ctrler)
     tree.parent.foreach { parent =>
       parent.ctrler.v.foreach { pctrler =>
-        ctrler.parentEn(pctrler.valid.T)
+        ctrler.parentEn(pctrler.valid)
       }
     }
     ctrler

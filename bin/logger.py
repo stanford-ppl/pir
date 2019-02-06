@@ -112,15 +112,23 @@ def removeRules(conf, opts):
     # if conf['runpir_err'] is not None and 'value depth is not a member of object pir.node.RegFile' in conf['runpir_err']:
         # print(conf['runpir_err'].strip())
         # reruns.append('genpir')
-    if conf['runpir_err'] is not None and 'value addr is not a member of pir.node.FringeDenseStore' in conf['runpir_err']:
-        print(conf['runpir_err'].strip())
-        reruns.append('genpir')
+    # if conf['runpir_err'] is not None and 'value addr is not a member of pir.node.FringeDenseStore' in conf['runpir_err']:
+        # print(conf['runpir_err'].strip())
+        # reruns.append('genpir')
 
     for p in reruns:
         if p == 'genpir':
             remove(conf['AccelMain'], opts)
         elif p == 'runproute':
             remove(conf['prouteSummary'], opts)
+        elif p == 'runtst':
+            remove(conf['gentstlog'], opts)
+            remove(conf['maketstlog'], opts)
+            remove(conf['runtstlog'], opts)
+        elif p == 'runpsim':
+            remove(conf['gentracelog'], opts)
+            remove(conf['genpsimlog'], opts)
+            remove(conf['runpsimlog'], opts)
         else:
             remove(conf[p + 'log'], opts)
     return reruns
@@ -153,6 +161,8 @@ def logApp(backend, app, show, opts):
         tail(conf['runpirlog'])
         tail(conf['mappirlog'])
         tail(conf['runproutelog'])
+        tail(conf['gentracelog'])
+        tail(conf['genpsimlog'])
         tail(conf['runpsimlog'])
         tail(conf['gentstlog'])
         tail(conf['maketstlog'])
@@ -166,6 +176,8 @@ def parse(backend, app, opts):
     conf["freq"] = 1e9
     conf['mappirlog'] = os.path.join(opts.gendir,backend,app,"log/mappir.log")
     conf['runpirlog'] = os.path.join(opts.gendir,backend,app,"log/runpir.log")
+    conf['genpsimlog'] = os.path.join(opts.gendir,backend,app,"log/genpsim.log")
+    conf['gentracelog'] = os.path.join(opts.gendir,backend,app,"log/gentrace.log")
     conf['runpsimlog'] = os.path.join(opts.gendir,backend,app,"log/runpsim.log")
     conf['psimsh'] = os.path.join(opts.gendir,backend,app,"log/runpsim.sh")
     conf['runproutelog'] = os.path.join(opts.gendir,backend,app,"log/runproute.log")

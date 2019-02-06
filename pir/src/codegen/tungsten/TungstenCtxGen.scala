@@ -55,9 +55,9 @@ using namespace std;
             getBuffer("computes-end").foreach { _.flushTo(sw) }
             emitStopSim(n)
           }
-          emitBlock(s"void PushPipe()") {
-            emitln(s"Context::PushPipe();")
-            getBuffer("push").foreach { _.flushTo(sw) }
+          emitBlock(s"void ReadPipe()") {
+            emitln(s"Context::ReadPipe();")
+            getBuffer("readpipe").foreach { _.flushTo(sw) }
           }
         }
         emit(s""";""")
@@ -76,7 +76,7 @@ using namespace std;
 
   def emitStopSim(ctx:Context) = {
     ctx.collectDown[HostOutController]().headOption.foreach { hostOut =>
-      emitIf(s"${hostOut.done.T}") {
+      emitIf(s"${hostOut.done.qref}") {
         emitln(s"""cout << "Simulation complete at cycle " << cycle << endl;""")
         emitln(s"stopsim.setstate(ios::eofbit);")
       }
@@ -93,7 +93,7 @@ using namespace std;
 
   final protected def genCtxComputeEnd(block: => Unit) = enterBuffer("computes-end") { incLevel(2); block; decLevel(2) }
 
-  final protected def genCtxPush(block: => Unit) = enterBuffer("push") { incLevel(2); block; decLevel(2) }
+  final protected def genCtxReadPipe(block: => Unit) = enterBuffer("readpipe") { incLevel(2); block; decLevel(2) }
 
   final protected def addEscapeVar(n:PIRNode):Unit = {
     val v = varOf(n)
@@ -101,4 +101,13 @@ using namespace std;
   }
 
   def varOf(n:PIRNode):(String, String) = throw PIRException(s"Don't know varOf($n)")
+
+  def emitNewMember(tp:String, name:Any) = {
+    genCtxFields {
+      emitln(s"""$tp* $name = new $tp("$name");""")
+    }
+    genCtxInits {
+      emitln(s"AddChild($name);");
+    }
+  }
 }

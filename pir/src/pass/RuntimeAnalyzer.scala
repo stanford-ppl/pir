@@ -97,17 +97,14 @@ trait RuntimeAnalyzer { self:PIRPass =>
       case OutputField(n:DRAMSparseCommand, "ackValid") => Finite(n.ctx.get.getScheduleFactor)
       case OutputField(n:FringeStreamWrite, "dataValid") => Finite(n.ctx.get.getScheduleFactor)
       case OutputField(n:FringeStreamRead, "deqData") => Finite(n.ctx.get.getScheduleFactor)
+      case OutputField(n:OutAccess, "valid") => Finite(n.ctx.get.getScheduleFactor)
+      case OutputField(ctrler:Controller, "done") => 
+        ctrler.getIter *  compScale(ctrler.valid)
+      case OutputField(ctrler:Controller, "valid") => 
+        val children = ctrler.valid.connected.filter { _.asInstanceOf[Field[_]].name == "parentEn" }.map { _.src.as[Controller] }
+        assertUnify(children, s"$ctrler.valid.scale") { child => compScale(child.done) }.getOrElse(Finite(ctrler.ctx.get.getScheduleFactor))
       case OutputField(n:PIRNode, _) => n.getScale 
       case n:LocalAccess => compScale(assertOne(n.done.connected, s"$n.done.connected"))
-      case n:ControllerDone =>
-        val ctrler = n.ctrler
-        ctrler.getIter *  ctrler.valid.T.getScale
-      case n:ControllerValid =>
-        val ctrler = n.ctrler
-        val children = ctrler.valid.T.out.connected.filter { _.asInstanceOf[Field[_]].name == "parentEn" }.map { _.src.as[Controller] }
-        assertUnify(children, s"$n.valid.scale") { child =>
-          child.valid.T.getScale * child.getIter
-        }.getOrElse(Finite(n.ctx.get.getScheduleFactor))
       case n@Const(true) => Finite(n.ctx.get.getScheduleFactor)
       case n => throw PIRException(s"Don't know how to compute scale of $n")
     }
@@ -171,12 +168,11 @@ trait RuntimeAnalyzer { self:PIRPass =>
 
   def compVec(n:ND):Int = /*dbgblk(s"compVec($n)")*/{
     n match {
-      case n:Const => 1
       case n:CounterIter if n.i.nonEmpty => 1
       case n:CounterValid if n.i.nonEmpty => 1
       case n:RegAccumOp => 1
-      case n:ControllerValid => 1
-      case n:ControllerDone => 1
+      case n:TokenWrite => 1
+      case n:TokenRead => 1
       case n:GlobalOutput => n.in.T.getVec
       case n:GlobalInput => assertUnify(n.out.T, s"$n.out.T") { _.getVec }.get
       case n:BufferWrite if n.getCtrl.schedule=="Streaming" =>
@@ -188,6 +184,9 @@ trait RuntimeAnalyzer { self:PIRPass =>
         n.banks.get.head
       case n:MemRead if n.getCtrl.schedule=="Streaming" =>
         n.mem.banks.get.head
+      case n:Shuffle => n.to.T.getVec
+      case Const(v:List[_]) => v.size
+      case Const(v) => 1
       case n:PIRNode => n.getCtrl.getVec
       case n:ControlTree =>
         if (n.children.isEmpty) n.par.get else 1

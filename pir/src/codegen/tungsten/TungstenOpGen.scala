@@ -8,31 +8,33 @@ import scala.collection.mutable
 
 trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
+  override def quoteRef(n:Any):String = n match {
+    case OutputField(ctrler:Controller, "done") => s"$ctrler->Done()"
+    case OutputField(ctrler:Controller, "valid") => s"$ctrler->Valid()"
+    case n => super.quoteRef(n)
+  }
+
   override def emitNode(n:N) = n match {
     case n:Controller =>
       val tp = n match {
         case n:LoopController => "LoopController"
         case n => "UnitController"
       }
-      genCtxFields {
-        emitln(s"""$tp* $n = new $tp("$n"); // ${n.getCtrl}""")
-      }
+      emitNewMember(tp, n)
       genCtxInits {
         assertOneOrLess(n.childCtrlers, s"$n.childCtrlers").foreach { child =>
           emitln(s"""$n->SetChild($child);""");
         }
-        emitln(s"AddChild($n);");
         emitln(s"controllers.push_back($n);");
         n.collectDown[Counter]().foreach { ctr =>
           emitln(s"$n->AddCounter(${ctr});")
         }
       }
-      emitln(s"$n->SetEn(${quoteEn(n.en)} & ${quoteEn(n.parentEn)});")
+      emitln(s"$n->SetEn(${n.en.qref} & ${n.parentEn.qref});")
       super.visitNode(n)
       if (n.isLeaf) {
         n.ctx.get.collectDown[Controller]().foreach { ctrler =>
           emitln(s"$ctrler->Eval();")
-          emitln(s"bool ${ctrler.done.T} = ${ctrler}->Done();")
         }
         n.to[LoopController].foreach { ctrler =>
           val laneValids = ctrler.cchain.T.foldLeft(List[String]()) { 
@@ -46,21 +48,8 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
         }
       }
 
-    case n:ControllerDone =>
-      //val ctrler = n.collectUp[Controller]().head
-      //emitln(s"bool $n = ${ctrler}.Done();")
-      super.visitNode(n)
-
-    case n:ControllerValid =>
-      emitln(s"bool $n = ${n.ctrler}->Valid();")
-
     case n:Counter if !n.isForever =>
-      genCtxFields {
-        emitln(s"""Counter<${n.par}>* $n = new Counter<${n.par}>("$n");""")
-      }
-      genCtxInits {
-        emitln(s"AddChild($n);");
-      }
+      emitNewMember(s"Counter<${n.par}>", n)
       emitln(s"$n->setMin(${n.min.T.get});")
       emitln(s"$n->setStep(${n.step.T.get});")
       emitln(s"$n->setMax(${n.max.T.get});")
@@ -82,12 +71,13 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       val ctr = n.counter.T
       emitln(s"bool $n = $ctr->Valids()[$i];")
 
-    case n@Const(v) =>
-      emitln(s"auto $n =  $v;")
+    case n@Const(v:List[_]) => emitVec(n, v)
+
+    case n@Const(v) => emitVec(n, List.fill(n.getVec)(v))
 
     case n@RegAccumOp(op) =>
       genCtxFields {
-        emitln(s"int $n = 0;")
+        emitln(s"${n.tp} $n = 0;")
       }
       val accumOp = op match {
         case "AccumAdd" => s"FixAdd"
@@ -100,18 +90,31 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       val in = n.in.T
       val firstVec = n.first.T.getVec
       val ctrler = assertOne(n.collectPeer[LoopController]().filter { _.getCtrl == n.getCtrl }, s"$n.ctrler")
-      emitIf(s"${quoteEn(n.en)} & ${ctrler.valid.T}") {
+      emitIf(s"${n.en.qref} & ${ctrler.valid.qref}") {
         emitBlock(s"for (int i = 0; i < ${firstVec}; i++)") {
           emitIf(s"laneValids[i]") {
-            emitln(s"$n = (${n.first.T.qref}) ? ${in.qref} : $accumOp($n, ${in.qref});")
+            emitln(s"$n = (${n.first.T.qref("i")}) ? ${in.qref("i")} : $accumOp($n, ${in.qref("i")});")
           }
         }
       }
 
+    case n:Shuffle =>
+      val from = n.from.T
+      val base = n.base.T
+      val to = n.to.T
+      emitln(s"${from.tp} ${n}_vfrom[] = ${if (from.getVec==1) s"{$from}" else from};")
+      emitln(s"${to.tp} ${n}_vto[] = ${if (to.getVec==1) s"{$to}" else to};")
+      emitln(s"${base.tp} ${n}_vbase[] = ${if (base.getVec==1) s"{$base}" else base};")
+      (0 until n.getVec).foreach { i =>
+        emitln(s"int ${n}_idx_$i = find<${from.tp}, ${from.getVec}>(${n}_vfrom, ${n}_vto[$i]);")
+        emitln(s"auto ${n}_$i = (${n}_idx_$i < 0) ? INVALID : ${n}_vbase[${n}_idx_$i];")
+      }
+      emitVec(n, List.tabulate(n.getVec) { i => s"${n}_$i"} )
+
     case n:OpDef =>
       val inputs = n.input.T
       emitVec(n) {
-        s"${n.op}(${inputs.map(in => s"${quoteRef(in)}").mkString(",")});" 
+        s"${n.op}(${inputs.map(in => s"${in.qref("i")}").mkString(",")})" 
       }
 
     case n:TokenRead =>
@@ -123,7 +126,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       }
 
     case n:HostWrite =>
-      emitln(s"int $n;")
+      emitln(s"${n.tp} $n;")
       emitln(s"""std::ifstream stream_$n("${n.sid}.txt");""")
       emitln(s"""stream_$n << $n;""")
       emitln(s"""stream_$n.close();""")

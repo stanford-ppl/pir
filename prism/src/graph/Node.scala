@@ -120,7 +120,7 @@ trait Node[N<:Node[N]] extends IR { self:N =>
     }.toVector.groupBy { _._1 }.mapValues { _.map { _._2 } }
   }
 
-  def deps:Vector[N] = depsFrom.keys.map(_.src).toVector
+  def deps:Vector[N] = depsFrom.keys.flatMap(_.src.descendentTree).toVector.distinct
 
   /*
    * A map of internal outs to seq of external inputs
@@ -135,7 +135,7 @@ trait Node[N<:Node[N]] extends IR { self:N =>
     }.toVector.groupBy { _._2 }.mapValues { _.map { _._1 } }
   }
 
-  def depeds:Vector[N] = depedsTo.values.flatten.map { _.src }.toVector.distinct
+  def depeds:Vector[N] = depedsTo.values.flatten.flatMap { _.src.descendentTree}.toVector.distinct
 
   def siblingDeps:Vector[N] = deps.flatMap(matchLevel)
   def globalDeps:Vector[N] = deps.filter { d => matchLevel(d).isEmpty }
