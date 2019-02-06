@@ -14,7 +14,7 @@ class TungstenPIRGen(implicit design:PIR) extends TungstenCodegen
   with TungstenMemGen
 
 trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal with CppCodegen {
-  override def dirName = buildPath(super.dirName, s"../../tungsten/src") 
+  override def dirName = buildPath(super.dirName, s"..", "..", "tungsten", "src") 
   val forward = true
   val fileName = "Top.h"
 
@@ -22,6 +22,8 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
 
   override def initPass = {
     clearDir(dirName, { fileName => fileName.contains("Context") })
+    clearDir(buildPath(dirName, "..", "build"))
+    clearDir(buildPath(dirName, "..", "logs"))
     copyFiles(buildPath(tungstenHome, "plasticine", "resources"), buildPath(dirName, ".."))
     withOpen(buildPath(dirName, ".."),"Makefile",false) {
       emitln(s"TUNGSTEN_HOME=${tungstenHome}")
@@ -37,12 +39,12 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   }
 
   override def visitIn(n:N) = n match {
-    case n:BufferRead => super.visitIn(n).filterNot{_.isInstanceOf[BufferWrite]}
+    case n:LocalOutAccess => Nil
     case n => super.visitIn(n)
   }
 
   override def visitOut(n:N) = n match {
-    case n:BufferWrite => super.visitOut(n).filterNot{_.isInstanceOf[BufferRead]}
+    case n:LocalInAccess => super.visitOut(n).filterNot{_.isInstanceOf[LocalOutAccess]}
     case n => super.visitOut(n)
   }
 

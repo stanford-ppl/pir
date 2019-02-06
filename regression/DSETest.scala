@@ -15,9 +15,25 @@ abstract class Param[T:TypeTag] extends Product {
   }
 }
 
-trait DSETest extends PlasticineTest {
+trait DSETest extends PlasticineTest { test =>
   //def param:Param[_]
   
   override def runtimeArgs = Args(Seq(""))
 
+  case object P2PTst extends PIRBackend {
+    val row:Int=14
+    val col:Int=14
+    override def shouldRun = {
+      test.name.contains("SimpleDotProduct") |
+      test.name.contains("SumSquare")
+    }
+    def runPasses():Result = {
+      genpir() >>
+      runpir() >>
+      mappir(s"--net=p2p --row=$row --col=$col") >>
+      runtst()
+    }
+  }
+
+  override def backends: Seq[Backend] = P2PTst +: super.backends
 }
