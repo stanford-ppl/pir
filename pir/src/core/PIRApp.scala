@@ -18,6 +18,7 @@ trait PIRApp extends PIR with Logging {
   lazy val contextAnalyzer = new ContextAnalyzer()
   lazy val contextInsertion = new ContextInsertion()
   lazy val depDuplications = new DependencyDuplication()
+  lazy val accessCtxCreation = new AccessContextCreation()
   lazy val bufferInsertion = new BufferInsertion()
   lazy val globalInsertion = new GlobalInsertion()
   lazy val graphCorrector = new GraphRectification()
@@ -59,56 +60,57 @@ trait PIRApp extends PIR with Logging {
     addPass(enableDot, new ControlTreeHtmlIRPrinter(s"ctrl.html"))
     addPass(enableDot, new PIRIRDotGen(s"top1.dot"))
     addPass(enableTrace && genPsim, dramTraceGen)
-    addPass(graphCorrector)
+    addPass(graphCorrector) ==>
     addPass(enableDot, new PIRIRDotGen(s"top2.dot"))
-    addPass(constProp) ==>
+    addPass(constProp).dependsOn(graphCorrector) ==>
     addPass(deadCodeEliminator) ==>
-    addPass(enableDot, new PIRIRDotGen(s"top3.dot"))
-    addPass(contextInsertion).dependsOn(graphCorrector) ==>
-    addPass(enableDot, new PIRIRDotGen(s"top4.dot"))
+    addPass(contextInsertion) ==>
+    addPass(enableDot, new PIRIRDotGen(s"top3.dot")) ==>
+    addPass(enableDot, new PIRCtxDotGen(s"simple3.dot"))
+    addPass(memLowering).dependsOn(contextInsertion)
+    addPass(enableDot, new PIRIRDotGen(s"top4.dot")) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple4.dot"))
-    addPass(memLowering).dependsOn(contextInsertion) ==>
-    addPass(enableDot, new PIRIRDotGen(s"top5.dot"))
-    addPass(enableDot, new PIRCtxDotGen(s"simple5.dot"))
     addPass(depDuplications).dependsOn(memLowering)
+    addPass(enableDot, new PIRIRDotGen(s"top5.dot")) ==>
+    addPass(enableDot, new PIRCtxDotGen(s"simple5.dot"))
+    addPass(accessCtxCreation).dependsOn(depDuplications) ==>
     addPass(constProp) ==>
     addPass(deadCodeEliminator) ==>
     //addPass(contextAnalyzer) ==>
-    addPass(enableDot, new PIRIRDotGen(s"top6.dot"))
+    addPass(enableDot, new PIRIRDotGen(s"top6.dot")) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple6.dot"))
     addPass(globalInsertion).dependsOn(deadCodeEliminator)
     
-    saveSession("pir/out/pir1.ckpt")
+    saveSession("pir/out/pir1.ckpt").dependsOn(globalInsertion)
 
-    addPass(initializer)
-    addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
+    addPass(initializer).dependsOn(globalInsertion) ==>
     addPass(new ParamHtmlIRPrinter(s"param.html", spadeParam))
-    addPass(enableDot, new PIRCtxDotGen(s"simple7.dot"))
+    addPass(enableDot, new PIRCtxDotGen(s"simple7.dot")) ==>
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
 
     // ------- Mapping  --------
-    addPass(enableMapping, hardPruner).dependsOn(globalInsertion) ==>
+    addPass(enableMapping, hardPruner).dependsOn(initializer) ==>
     addPass(enableMapping, memoryPruner) ==>
     addPass(enableMapping, memoryComputePruner) ==>
-    addPass(enableMapping, hardPruner).dependsOn(globalInsertion) ==>
+    addPass(enableMapping, hardPruner) ==>
     addPass(enableMapping, computePruner) ==>
     addPass(enableMapping, dagPruner) ==>
     addPass(sanityCheck) ==>
     addPass(enableMapping, matchPruner) ==>
-    addPass(enableMapping, placerAndRouter)
-    addPass(enableDot, new PIRCtxDotGen(s"simple8.dot"))
+    addPass(enableMapping, placerAndRouter) ==>
+    addPass(enableDot, new PIRCtxDotGen(s"simple8.dot")) ==>
     addPass(enableDot, new PIRIRDotGen(s"top8.dot"))
 
     //addPass(enableDot, new PIRNetworkDotGen(s"net.dot"))
-    addPass(enableMapping,report)//.dependsOn(ctxMerging)
+    addPass(enableMapping,report).dependsOn(matchPruner) ==>
     saveSession("pir/out/pir2.ckpt")
     
     // ------- Codegen  --------
-    addPass(genPsim, psimAnalyzer).dependsOn(placerAndRouter)
-    addPass(enableDot, new PIRCtxDotGen(s"simple9.dot"))
+    addPass(psimAnalyzer).dependsOn(placerAndRouter) ==>
+    addPass(enableDot, new PIRCtxDotGen(s"simple9.dot")) ==>
     addPass(enableDot, new PIRIRDotGen(s"top9.dot"))
     addPass(enableIgraph, igraphGen).dependsOn(psimAnalyzer)
-    addPass(genTungsten, tungstenPIRGen)
+    addPass(genTungsten, tungstenPIRGen).dependsOn(placerAndRouter)
     addPass(genPsim, prouteLinkGen).dependsOn(psimAnalyzer)
     addPass(genPsim, prouteNodeGen).dependsOn(placerAndRouter, psimAnalyzer)
     addPass(genPsim, psimConfigGen).dependsOn(placerAndRouter, psimAnalyzer, prouteLinkGen) ==>

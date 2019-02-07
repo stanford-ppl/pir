@@ -8,21 +8,19 @@ trait BufferAnalyzer extends MemoryAnalyzer {
   /*
    * escaped node will be buffered between dep ctx and scope
    * */
-  def escape(dep:PIRNode, scope:Context) = {
-    dep match {
-      case dep:Memory => false 
-      case dep:LocalInAccess => false
-      case dep:GlobalInput => false
-      case dep:GlobalOutput => false
-      case dep:Const => false
-      case dep if dep.isDescendentOf(scope) => false
+  def escape(dep:PIRNode, depedIn:Input[PIRNode], depedCtx:Context) = {
+    (dep, depedIn) match {
+      case (_, InputField(deped:Access, "mem")) => false
+      case (_, InputField(deped:LocalOutAccess, "in")) => false
+      case (dep, _) if dep.isDescendentOf(depedCtx) => false
 
-      case dep:CounterIter => false // duplicate later
-      case dep:CounterValid => false // duplicate later
-      case dep:Controller => false // duplicate later
-      case dep:LocalOutAccess => false // duplicate later
+      case (dep:Const, _) => false // duplicate later
+      case (dep:CounterIter, _) => false // duplicate later
+      case (dep:CounterValid, _) => false // duplicate later
+      case (dep:Controller, _) => false // duplicate later
+      case (dep:LocalOutAccess, _) => false // duplicate later
 
-      case dep => true
+      case (dep, _) => true
     }
   }
 
@@ -58,7 +56,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     val dep = depOut.src
     val deped = depedIn.src
     val depedCtx = deped.ctx.get
-    if (escape(dep, depedCtx)) {
+    if (escape(dep, depedIn, depedCtx)) {
       val read = dbgblk(s"bufferInput(depOut=$dep.$depOut, depedIn=$deped.$depedIn)") {
         val depCtx = dep.ctx.get
         val (enq, deq) = compEnqDeq(isFIFO=true, depCtx, depedCtx, Some(depOut), List(depedIn))

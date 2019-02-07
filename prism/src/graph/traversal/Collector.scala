@@ -73,6 +73,9 @@ trait CollectorImplicit {
     def collectPeer[M<:N:ClassTag](depth:Int= -1, logger:Option[Logging]=None):List[M] =
       collect[M](visitPeer _, depth, logger)
 
+    def collectChildren[M<:N:ClassTag]:List[M] = node.children.collect { case m:M => m }
+    def collectFirstChild[M<:N:ClassTag]:Option[M] = node.children.collectFirst { case m:M => m }
+
     def accum(prefix:N => Boolean={n:N => false } , visitFunc:N => List[N], depth:Int= -1, logger:Option[Logging]=None):List[N] = 
       dbgblk(logger, s"accum(depth=$depth)"){
         def accumulate(prev:List[N], n:N) = {
