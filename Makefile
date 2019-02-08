@@ -25,17 +25,20 @@ pir:
 	sbt publishAll
 
 psim:
-		mkdir -p plastisim/build
-		cd plastisim && make CC=gcc Cpp=g++ CXX=g++
-		bin/pconf --psim-home=$(shell pwd)/plastisim
+	git submodule update
+	mkdir -p plastisim/build
+	cd plastisim && make CC=gcc Cpp=g++ CXX=g++
+	bin/pconf --psim-home=$(shell pwd)/plastisim
 
 proute:
-		cd plastiroute && make CC=gcc Cpp=g++ CXX=g++ 
-		bin/pconf --proute-home=$(shell pwd)/plastiroute
+	git submodule update
+	cd plastiroute && make CC=gcc Cpp=g++ CXX=g++ 
+	bin/pconf --proute-home=$(shell pwd)/plastiroute
 
 tungsten:
-		cd tungsten && make Cpp=g++ CXX=g++ 
-		bin/pconf --tungsten-home=$(shell pwd)/tungsten
+	git submodule update
+	cd tungsten && make Cpp=g++ CXX=g++ 
+	bin/pconf --tungsten-home=$(shell pwd)/tungsten
 
 pull:
 	cd plastisim && git pull && git submodule update --init
