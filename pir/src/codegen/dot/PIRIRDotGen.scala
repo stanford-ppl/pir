@@ -54,7 +54,6 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
       s"${q}\nfrom:\n${n.in.T}"
     }.foldAt(n.to[Context]) { (q,n) =>
       q
-      //.append("sf", n.scheduleFactor)
       .append("active", n.active.v)
       .append("state", n.psimState)
       .append("activeRate", n.activeRate) + 

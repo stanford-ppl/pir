@@ -57,10 +57,7 @@ case class Runner(session:Session, id:Int) extends Serializable with RunnerStatu
         case Failure(e:Throwable) => 
           setFailed
           err(s"$name throw $e", exception=false)
-          pass.dbgblk(s"$e") {
-            e.getStackTrace.foreach(pass.dbg)
-          }
-          pass.logger.closeAllBuffersAndWrite
+          pass.handle(e)
       }
       info(s"Finished ${cstr(Console.CYAN, name)} in ${toc("ms")}ms")
     }

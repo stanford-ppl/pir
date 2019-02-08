@@ -46,4 +46,11 @@ abstract class Pass(implicit val compiler:Compiler) extends Logging {
     runner.setFailed
   }
 
+  def handle(e:Throwable) = {
+    dbgblk(s"$e") {
+      e.getStackTrace.foreach(dbg)
+    }
+    logger.closeAllBuffersAndWrite
+  }
+
 }

@@ -7,8 +7,9 @@ import pir.codegen._
 import pir.mapper._
 import prism.codegen._
 import spade.codegen._
+import prism._
 
-object PIRShell extends PIRApp with Logging {
+object PIRShell extends PIRApp with Logging with Session {
   
   //lazy val ctxMerging = new ContextMerging()
   //lazy val initializer = new TargetInitializer()
@@ -34,29 +35,20 @@ object PIRShell extends PIRApp with Logging {
     getArgOption("proute-opts").get.updateValue("-i1000 -p100 -t1 -d100 -S5")
     setOption(args.split(" ").map(_.trim).toList)
     val start = getArgOption[Int]("start-id").flatMap { _.getValue }.getOrElse(-1)
-    super.loadSession
+    super[Session].loadSession
+    if (_states.isEmpty) {
+      err(s"Load session failed")
+    }
+    setAnnotation(pirTop)
     args = s"--start-id=$start "
     setOption(args.split(" ").map(_.trim).toList)
   }
 
-  override def initSession = {
-    import config._
+  //override def initSession = {
+    //import config._
 
     //addPass(initializer)
     //addPass(enableDot, new PIRCtxDotGen(s"simple.dot"))
-
-    // ------- Mapping  --------
-    //addPass(enableMapping, hardPruner) ==>
-    //addPass(enableMapping, sramBankPruner) ==>
-    //addPass(enableMapping, sramCapPruner) ==>
-    //addPass(enableMapping, softPruner) ==>
-    //addPass(enableMapping, dagPruner) ==>
-    //addPass(enableMapping, matchPruner) ==>
-    //addPass(enableMapping, placerAndRouter) ==>
-    //addPass(genPsim, psimAnalyzer).dependsOn(placerAndRouter) ==>
-    //addPass(genPsim, psimAnalyzer) ==> // Need to run twice to account for cycle in data flow graph
-    //addPass(genPsim, ctxMerging)
-    //addPass(enableDot, new PIRCtxDotGen(s"simple1.dot"))
 
     // ------- Analysis and Transformations --------
     //addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
@@ -68,14 +60,14 @@ object PIRShell extends PIRApp with Logging {
     //addPass(enableMapping, placerAndRouter)
 
     //// ------- Codegen  --------
-    addPass(tungstenPIRGen)
+    //addPass(tungstenPIRGen)
     //addPass(genPsim, prouteLinkGen)
     //addPass(genPsim, prouteNodeGen)
     //addPass(genPsim, psimConfigGen)
     //addPass(runPsim, psimRunner)
     //addPass(psimParser)
-    addPass(new PIRCtxDotGen(s"simple10.dot"))
-    addPass(new PIRIRDotGen(s"top10.dot"))
+    //addPass(new PIRCtxDotGen(s"simple10.dot"))
+    //addPass(new PIRIRDotGen(s"top10.dot"))
     //addPass(enableDot, new PIRIRDotGen(s"top.dot"))
 
     //addPass(areaPowerStat).dependsOn(psimConfigCodegen, cuPlacer)
@@ -87,8 +79,7 @@ object PIRShell extends PIRApp with Logging {
         //println(ctx, visitIn(ctx))
       //}
     //}
-
-  }
+  //}
 
   def isStarved(ctx:Context) = ctx.state.get == "STARVE" || ctx.state.get == "BOTH"
 
