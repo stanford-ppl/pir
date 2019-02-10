@@ -26,28 +26,31 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with Trans
     // Mark dead code
     traverseTop
     // Remove dead code
-    liveMap.foreach { 
-      case (n, false) => removeNodes(Seq(n))
-      case (n, true) => 
-    }
+    val toRemove = liveMap.flatMap { case (n, false) => Some(n); case (n, true) => None }
+    removeNodes(toRemove)
   }
 
-  override def depFunc(n:N) = n match {
-    case n:Controller => n.depeds.toList
-    case n => 
-      val ctrler = n.collectUp[Controller]().headOption
-      if (ctrler.nonEmpty) List(ctrler.head) else super.depFunc(n)
-  }
+  //override def depFunc(n:N) = n match {
+    //case n:Controller => 
+      //n.ctx.get.children.collect{ case c:Controller => c }.flatMap { _.depeds }
+    //case n => 
+      //val ctrler = n.collectUp[Controller]().headOption
+      //if (ctrler.nonEmpty) List(ctrler.head) else super.depFunc(n)
+  //}
 
   // Breaking loop in traversal
   override def visitIn(n:N):List[N] = n match {
-    case n:LocalOutAccess => n.in.neighbors.toList
+    case n:LocalOutAccess => n.in.neighbors.toList ++ n.done.neighbors.filterNot { case c:Controller => true; case _ => false }
+    case n:Controller => super.visitIn(n)
+    case n if n.ctx.nonEmpty => super.visitIn(n) ++ n.ctx.get.children.filter { case c:Controller => c.isLeaf ; case  _ => false }
     case n => super.visitIn(n)
   }
 
-  override def visitOut(n:N):List[N] = super.visitOut(n).filter {
-    case x:LocalOutAccess => x.in.isConnectedTo(n)
-    case x => true
+  override def visitOut(n:N):List[N] = n match {
+    case n:Controller if n.isUnder[Context] => n.ctx.get.children.filter { case c:Controller => false; case c:LocalOutAccess => false ; case _ => true }
+    case n:Controller => super.visitOut(n)
+    case n if n.isUnder[Controller] => visitOut(n.collectUp[Controller]().head)
+    case n => super.visitOut(n)
   }
 
   def depedsExistsLive(n:N):Boolean = {
@@ -77,6 +80,7 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with Trans
     case n:FringeStreamRead => Some(true)
     case n:HostInController => Some(true)
     case n:Controller if !depDupHasRun => Some(true)
+    case n if n.isUnder[Controller] && !depDupHasRun => Some(true)
     case n => None
   }
 

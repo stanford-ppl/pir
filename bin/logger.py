@@ -81,6 +81,10 @@ def getMessage(backend, app, conf):
 
     if conf['deadlock']:
         msg.append(cstr(RED, 'DEADLOCK'))
+    elif conf['gentrace_err'] is not None:
+        msg.append(cstr(RED, 'gentrace') + ": " + conf['gentrace_err'].strip())
+    elif conf['genpsim_err'] is not None:
+        msg.append(cstr(RED, 'genpsim') + ": " + conf['genpsim_err'].strip())
     elif conf['psimcycle'] is None:
         msg.append(cstr(RED, 'runpsim'))
     else:
@@ -190,6 +194,8 @@ def parse(backend, app, opts):
     parse_genpir(conf['AccelMain'], conf, opts)
     parse_runpir(conf['runpirlog'], conf, opts)
     parse_mappir(conf['mappirlog'], conf, opts)
+    parse_genpsim(conf['genpsimlog'], conf, opts)
+    parse_gentrace(conf['gentracelog'], conf, opts)
     parse_runpsim(conf['runpsimlog'], conf, opts)
     parse_runpsimsh(conf['psimsh'], conf, opts)
     parse_runproutesh(conf['proutesh'], conf, opts)
@@ -443,6 +449,27 @@ def parse_runpir(log, conf, opts):
         lambda lines: lines[0] 
     ))
     parseLog(log, parsers, conf)
+
+def parse_genpsim(log, conf, opts):
+    parsers = []
+    parsers.append(Parser(
+        conf,
+        'genpsim_err', 
+        ["error", "fail", "Exception"],
+        lambda lines: lines[0] 
+    ))
+    parseLog(log, parsers, conf)
+
+def parse_gentrace(log, conf, opts):
+    parsers = []
+    parsers.append(Parser(
+        conf,
+        'gentrace_err', 
+        ["error", "fail", "Exception"],
+        lambda lines: lines[0] 
+    ))
+    parseLog(log, parsers, conf)
+
 
 def main():
     (opts, args) = parser.parse_known_args()

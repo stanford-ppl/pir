@@ -22,7 +22,6 @@ trait InAccess extends Access { // Memory as output
 }
 trait OutAccess extends Access { // Memory as input
   val out = new OutputField[List[PIRNode]]("out")
-  val valid = new OutputField[List[PIRNode]]("valid")
   override def asOutput = Some(out)
   val mem = new InputField[Memory]("mem")
 }
@@ -30,7 +29,9 @@ trait WriteAccess extends InAccess {
   val data = new InputField[PIRNode]("data")
 }
 trait ReadAccess extends OutAccess
-case class BankedRead()(implicit env:Env) extends ReadAccess with BankedAccess
+case class BankedRead()(implicit env:Env) extends ReadAccess with BankedAccess {
+  val valid = new OutputField[List[PIRNode]]("valid")
+}
 case class BankedWrite()(implicit env:Env) extends WriteAccess with BankedAccess
 case class MemRead()(implicit env:Env) extends ReadAccess
 case class MemWrite()(implicit env:Env) extends WriteAccess

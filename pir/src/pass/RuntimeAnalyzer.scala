@@ -9,12 +9,12 @@ import scala.collection.mutable
 trait RuntimeAnalyzer { self:PIRPass =>
 
   implicit class CtxUtil(ctx:Context) {
-    def reads:Seq[LocalOutAccess] = ctx.collectDown[LocalOutAccess]().filterNot { _.isLocal }
-    def writes:Seq[LocalInAccess] = ctx.collectDown[LocalInAccess]().filterNot { _.isLocal }
+    def reads:Seq[LocalOutAccess] = ctx.collectChildren[LocalOutAccess].filterNot { _.isLocal }
+    def writes:Seq[LocalInAccess] = ctx.collectChildren[LocalInAccess].filterNot { _.isLocal }
     def ctrs:Seq[Counter] = ctx.collectDown[Counter]()
     def ctrler(ctrl:ControlTree) = {
       assertOne(
-        ctx.collectDown[Controller]().filter { _.ctrl.get == ctrl }, 
+        ctx.collectChildren[Controller].filter { _.ctrl.get == ctrl }, 
         s"$ctx.ctrler with ($ctrl)"
       )
     }
@@ -44,11 +44,11 @@ trait RuntimeAnalyzer { self:PIRPass =>
   }
 
   val StreamWriteContext = MatchRule[Context, FringeStreamWrite] { n =>
-    n.collectDown[FringeStreamWrite]().headOption
+    n.collectFirstChild[FringeStreamWrite]
   }
 
   val StreamReadContext = MatchRule[Context, FringeStreamRead] { n =>
-    n.collectDown[FringeStreamRead]().headOption
+    n.collectFirstChild[FringeStreamRead]
   }
 
   def boundProp(n:PIRNode):Option[Any] = dbgblk(s"boundProp($n)"){
@@ -64,6 +64,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
 
   def compIter(n:PIRNode):Value[Long] = dbgblk(s"compIter($n)"){
     n match {
+      case n:Counter if n.isForever => Infinite
       case n:Counter if !n.isForever => 
         val min = n.min.T.get.getBound.toValue
         val max = n.max.T.get.getBound.toValue
@@ -125,7 +126,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
    * Compute count of the context using reads. Return None if reads is empty
    * and ctrlers nonEmpty
    * */
-  def countByReads(n:Context):Option[Value[Long]] = {
+  def countByReads(n:Context):Option[Value[Long]] = dbgblk(s"countByReads($n)") {
     countStack += n
     var reads = n.reads
     reads = reads.filterNot { read => countStack.contains(read.inAccess.ctx.get) }
@@ -135,9 +136,9 @@ trait RuntimeAnalyzer { self:PIRPass =>
     val c = if (unknown.nonEmpty) Some(Unknown)
     else if (finite.nonEmpty) assertIdentical(finite, s"$n.reads.count reads=$reads")
     else if (infinite.nonEmpty) Some(Infinite)
-    else if (n.collectDown[FringeStreamWrite]().nonEmpty) None
+    else if (n.collectFirstChild[FringeStreamWrite].nonEmpty) None
     else { // reads is empty
-      val ctrlers = n.collectDown[Controller]()
+      val ctrlers = n.collectChildren[Controller]
       if (ctrlers.isEmpty) throw PIRException(s"$n's ctrlers and reads are empty")
       else if (ctrlers.exists { _.isForever }) Some(Infinite)
       else None
@@ -150,9 +151,10 @@ trait RuntimeAnalyzer { self:PIRPass =>
     n match {
       case StreamWriteContext(sw) => sw.count.v.getOrElse(throw PIRException(s"${sw.name.v.getOrElse(sw.sname.get)} is not annotated with count"))
       case n:Context =>
-        val ctrlers = n.collectDown[Controller]()
+        val ctrlers = n.collectChildren[Controller]
+        val cmds = n.collectFirstChild[FringeCommand]
         val reads = n.reads
-        if (ctrlers.isEmpty || ctrlers.exists { _.isForever }) countByReads(n).get
+        if (ctrlers.isEmpty || cmds.nonEmpty || ctrlers.exists { _.isForever }) countByReads(n).get
         else ctrlers.map { _.getIter }.reduce { _ * _ }
       case n:LocalOutAccess =>
         n.in.T.getCount

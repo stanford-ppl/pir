@@ -1,7 +1,9 @@
 package pir
 package node
 
-trait DRAMCommand extends PIRNode {
+trait FringeCommand extends PIRNode
+
+trait DRAMCommand extends FringeCommand {
   def dram:DRAM
 }
 
@@ -39,7 +41,7 @@ case class DRAM(sid:String) extends prism.graph.IR {
   val dims = Metadata[List[Int]]("dims")
 }
 
-trait StreamCommand extends PIRNode 
+trait StreamCommand extends FringeCommand
 
 case class FringeStreamWrite()(implicit env:Env) extends StreamCommand {
   val stream = new OutputField[PIRNode]("stream")

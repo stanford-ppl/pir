@@ -45,7 +45,6 @@ trait ComputePartitioner extends CUPruner {
           }
         }
          // need to run in two pass to avoid duplicated allocation
-        //(ctxs,parts).zipped.foreach { case (ctx,part) => dupDeps(k, ctx, part.getCost[InputCost]) }
         ctxs.foreach { ctx => bufferInput(ctx) }
         dupDeps(ctxs, from=Some(k))
         (part::parts).foreach { removeCache }

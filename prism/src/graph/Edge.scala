@@ -18,6 +18,7 @@ trait Edge[N<:Node[N], A<:Edge[N,A,B], B<:Edge[N,B,A]] extends IR { self:A =>
   }
   def isConnected:Boolean = connected.nonEmpty
   def isConnectedTo(e:Edge[N,B,A]) = _connected.contains(e.as[B])
+  def onlyConnectedTo(e:Edge[N,B,A]) = _connected.forall { _ == e }
   def connect(e:Edge[N,B,A]):this.type = {
     _connected += e.as[B]
     e._connected += this.as[A]

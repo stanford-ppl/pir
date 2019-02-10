@@ -35,36 +35,53 @@ trait DependencyAnalyzer extends PIRPass with Transformer {
     deps
   }
 
+  def getCtrlerDeps(from:Context, to:Option[Context]=None) = {
+    val leaf = assertOneOrLess(from.collectDown[Controller]().filter { _.isLeaf }, s"$from.leaf ctrler")
+    leaf.fold(List.empty[PIRNode]) { leaf =>
+      (leaf.descendentTree ++ getDeps(leaf, Some(from), to)).distinct.toList
+    }
+  }
+
+
   def getDeps(
     x:PIRNode, 
     from:Option[Context]=None,
     to:Option[Context]=None,
-    visitFunc:Node[PIRNode] => List[PIRNode] = visitGlobalIn _
-  ):List[PIRNode] = dbgblk(s"getDeps($x)"){
+  ):List[PIRNode] = dbgblk(s"getDeps($x, from=$from, to=$to)"){
     val toCtx = to.getOrElse(x.ancestorTree.collectFirst { case ctx:Context => ctx }.get)
-    var deps = x.accum(visitFunc=bound(from,toCtx,visitFunc))
+    dbg(s"toCtx=$toCtx")
+    def accumDeps(x:PIRNode) = x.accum(visitFunc=bound(from,toCtx,visitGlobalIn))
+    var deps = accumDeps(x)
     deps = deps.filterNot(_ == x)
+    dbg(s"rawDeps=$deps")
+    val depCtrlers = deps.collect { case ctrler:Controller => ctrler }.distinct
+    val toCtrlers = toCtx.children.collect { case c:Controller => c}
     if (compiler.hasRun[DependencyDuplication]) {
       // If dependency contains controller, copy all dependencies of the leaf controller
-      val ctrlers = deps.collect { case ctrler:Controller => ctrler }.distinct
-      val leaf = assertOneOrLess(ctrlers.flatMap { _.leaves }.distinct, 
-        s"leaf of ${ctrlers}")
+      assert(depCtrlers.isEmpty || toCtrlers.isEmpty, s"Dep contains controller=${depCtrlers} and $toCtx already contains controller=$toCtrlers")
+      val leaf = assertOneOrLess(depCtrlers.flatMap { _.leaves }.distinct, 
+        s"leaf of ${depCtrlers}")
       dbg(s"leaf=$leaf")
       leaf.foreach { leaf =>
         if (leaf != x && !deps.contains(leaf)) {
-          deps ++= (leaf.descendentTree ++ getDeps(leaf, from, Some(toCtx), visitFunc))
+          deps ++= (leaf.descendentTree ++ accumDeps(leaf))
           deps = deps.distinct
         }
       }
       from.foreach { from =>
         val hasInput = (deps ++ toCtx.children).exists { _.isInstanceOf[LocalOutAccess] }
-        val hasCtrler = (toCtx.children ++ ctrlers).exists { _.isInstanceOf[Controller] }
+        val hasCtrler = depCtrlers.nonEmpty || toCtrlers.nonEmpty
         if (!hasInput && !hasCtrler) {
-          val leaf = assertOneOrLess(from.collectDown[Controller]().filter { _.isLeaf }, s"$from.leaf ctrler")
-          leaf.foreach { leaf =>
-            deps ++= (leaf.descendentTree ++ getDeps(leaf, Some(from), Some(toCtx), visitFunc))
-            deps = deps.distinct
-          }
+          deps ++= getCtrlerDeps(from, Some(toCtx))
+          deps = deps.distinct
+        }
+      }
+    } else {
+      val cmds = toCtx.collectFirstChild[FringeCommand]
+      if (cmds.isEmpty && !(depCtrlers ++ toCtrlers).exists { _.getCtrl == toCtx.getCtrl }) {
+        toCtx.getCtrl.ctrler.v.foreach { ctxCtrler =>
+          deps ++= (ctxCtrler.descendentTree ++ accumDeps(ctxCtrler))
+          deps = deps.distinct
         }
       }
     }
@@ -72,9 +89,9 @@ trait DependencyAnalyzer extends PIRPass with Transformer {
     deps
   }
 
-  def dupDeps(ctx:Context, from:Option[Context]):Map[PIRNode,PIRNode] = dbgblk(s"dupDeps($ctx)") {
-    val deps = getDeps(ctx, from)
-    within(ctx) { mirrorAll(deps).toMap }.as[Map[PIRNode, PIRNode]]
+  def mirrorDeps(to:Context, from:Option[Context]):Map[PIRNode,PIRNode] = dbgblk(s"mirrorDeps($to, $from)") {
+    val deps = getDeps(to, from, Some(to))
+    within(to) { mirrorAll(deps).toMap }.as[Map[PIRNode, PIRNode]]
   }
 
   def swapDeps(ctx:Context, mapping:Map[PIRNode,PIRNode]) = dbgblk(s"swapDeps($ctx)"){
@@ -84,6 +101,11 @@ trait DependencyAnalyzer extends PIRPass with Transformer {
       }
     }
     //breakPoint(s"swapDep($ctx)", None)
+  }
+
+  def dupDeps(ctx:Context, from:Context) = dbgblk(s"dupDeps(to=$ctx, from=$from)"){
+    val mapping = mirrorDeps(ctx, from=Some(from))
+    swapDeps(ctx, mapping)
   }
 
   def check(ctx:Context) = {
@@ -98,7 +120,7 @@ trait DependencyAnalyzer extends PIRPass with Transformer {
   }
 
   def dupDeps(ctxs:List[Context], from:Option[Context]=None):Unit = {
-    val mappings = ctxs.map { ctx => (ctx, dupDeps(ctx, from)) }
+    val mappings = ctxs.map { ctx => (ctx, mirrorDeps(ctx, from)) }
     mappings.foreach { case (ctx, mapping) => swapDeps(ctx, mapping) }
     ctxs.foreach { check }
   }

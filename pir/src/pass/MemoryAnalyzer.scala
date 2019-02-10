@@ -31,33 +31,33 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
     val to = ins.map { _.src }.distinct
     val o = octx.ctrl.get
     val i = ictx.ctrl.get
-    dbgblk(s"compEnqDeq(isFIFO=$isFIFO, out=$from.$out, ins=${ins.map { in => s"${in.src}.$in"}.mkString(",")})") {
-      (out, ins) match {
-        case (out, List(InputField(to:DRAMDenseCommand, "offset"))) => 
-          (ctrlValid(o, octx), to.deqCmd)
-        case (out, List(InputField(to:DRAMDenseCommand, "size"))) => 
-          (ctrlValid(o, octx), to.deqCmd)
-        case (out, List(InputField(to:DRAMSparseCommand, "addr"))) => 
-          (ctrlValid(o, octx), to.deqCmd)
-        case (out, List(InputField(to:DRAMStoreCommand, "data"))) => 
-          (ctrlValid(o, octx), to.deqData)
-        case (out, List(InputField(to:FringeDenseStore, "valid"))) => 
-          (ctrlValid(o, octx), to.deqData)
-        case (out, List(InputField(to:FringeStreamRead, "stream"))) => 
-          (ctrlValid(o, octx), to.deqData)
-        case (Some(OutputField(from:OutAccess, _)), to) => 
-          (from.valid, ctrlValid(i, ictx))
-        case (Some(OutputField(from:DRAMLoadCommand, "data")), to) => 
-          (from.dataValid, ctrlValid(i, ictx))
-        case (Some(OutputField(from:DRAMStoreCommand, "ack")), to) => 
-          (from.ackValid, ctrlValid(i, ictx))
-        case (Some(OutputField(from:FringeStreamWrite, "stream")), to) => 
-          (from.dataValid, ctrlValid(i, ictx))
-        case (_,_) if isFIFO =>
-          (ctrlValid(o, octx), ctrlValid(i, ictx))
-        case (_,_) if o == i =>
-          (ctrlDone(o, octx), ctrlDone(i, ictx))
-        case _ =>
+    dbgblk(s"compEnqDeq(isFIFO=$isFIFO, o=$o, i=$i, out=$from.$out, ins=${ins.map { in => s"${in.src}.$in"}.mkString(",")})") {
+      val deq = out match {
+        case Some(OutputField(from:BankedRead, _)) => Some(from.valid)
+        case Some(OutputField(from:DRAMLoadCommand, "data")) => Some(from.dataValid)
+        case Some(OutputField(from:DRAMStoreCommand, "ack")) => Some(from.ackValid)
+        case Some(OutputField(from:FringeStreamWrite, "stream")) => Some(from.dataValid)
+        case _ => None
+      }
+      val enq = ins match {
+        case List(InputField(to:DRAMDenseCommand, "offset")) => Some(to.deqCmd)
+        case List(InputField(to:DRAMDenseCommand, "size")) => Some(to.deqCmd)
+        case List(InputField(to:DRAMSparseCommand, "addr")) => Some(to.deqCmd)
+        case List(InputField(to:DRAMStoreCommand, "data")) => Some(to.deqData)
+        case List(InputField(to:FringeDenseStore, "valid")) => Some(to.deqData)
+        case List(InputField(to:FringeStreamRead, "stream")) => Some(to.deqData)
+        case List(InputField(to:Access, _)) => Some(within(i, ictx) { allocConst(true).out })
+        case List(InputField(to:TokenWrite, _)) => Some(within(i, ictx) { allocConst(true).out })
+        case List(InputField(to:TokenRead, _)) => Some(within(i, ictx) { allocConst(true).out })
+        case ins => None
+      }
+      (deq, enq) match {
+        case (Some(deq), Some(enq)) => (deq, enq) 
+        case (Some(deq), None) => (deq, ctrlValid(i, ictx))
+        case (None, Some(enq)) => (ctrlValid(o, octx), enq)
+        case (None, None) if isFIFO => (ctrlValid(o, octx), ctrlValid(i, ictx))
+        case (None,None) if o == i => (ctrlDone(o, octx), ctrlDone(i, ictx))
+        case (None, None) =>
           val lca = leastCommonAncesstor(o,i).get
           val oAncesstors = o.ancestorTree
           val iAncesstors = i.ancestorTree
