@@ -1,16 +1,18 @@
-#!/bin/bash
+#!env/bin/python
+import argparse
 
-backend=P14x14
-project=pirTest
-thread=30
+import os
 
-starttime="$(date +'%y%m%d_%H%M%S')"
-sha=$(git log --pretty=format:'%h' -n 1)
-log=logs/${backend}_${project}_${starttime}_$sha.log
+def main():
+    parser = argparse.ArgumentParser(description='Run experiments')
+    parser.add_argument('-b', '--backend', type=str, action="append", help='Testing Backend')
+    parser.add_argument('-t', '--thread', type=int, default=30, help='Number of threads to run')
+    parser.add_argument('-p', '--project', type=str, default="pirTest", help='project name')
+    (opts, args) = parser.parse_known_args()
+    if (opts.backend is None):
+        opts.backend = ['P14x14']
+    for backend in opts.backend:
+        os.system('bash bin/regression.sh {} {} {}'.format(backend, opts.project, opts.thread))
 
-mkdir -p logs/
-sbt "; project pir; publishAll"
-bin/spatial -t $thread -p $project -b $backend
-echo $(git log --pretty=oneline -n 1) > $log
-echo "" >> $log
-bin/log ../gen/$backend | tee -a $log
+if __name__ == "__main__":
+    main()

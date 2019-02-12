@@ -1,11 +1,6 @@
 #!env/bin/python
 
-import glob
-import re
-from argparse import ArgumentParser
-import os, sys, datetime
-import subprocess
-from os.path import dirname, abspath
+import os
 from util import *
 
 def main():
