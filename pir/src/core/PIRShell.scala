@@ -9,17 +9,7 @@ import prism.codegen._
 import spade.codegen._
 import prism._
 
-object PIRShell extends PIRApp with Logging with Session {
-  
-  //lazy val ctxMerging = new ContextMerging()
-  //lazy val initializer = new TargetInitializer()
-  //lazy val psimRunner = new PlastisimRunner()
-  //lazy val psimConfigGen = new PlastisimConfigGen()
-  //lazy val psimParser = new PlastisimLogParser()
-  //lazy val placerAndRouter = new PlaceAndRoute()
-  //lazy val prouteLinkGen = new PlastirouteLinkGen()
-  //lazy val prouteNodeGen = new PlastirouteNodeGen()
-
+trait PIRShell extends PIRApp with Logging with Session {
   def staging(top:Top):Unit = {}
 
   override def loadSession = {
@@ -37,40 +27,35 @@ object PIRShell extends PIRApp with Logging with Session {
     val start = getArgOption[Int]("start-id").flatMap { _.getValue }.getOrElse(-1)
     super[Session].loadSession
     if (_states.isEmpty) {
-      err(s"Load session failed")
+      err(s"Load session failed", false)
+      sys.exit(0)
     }
     setAnnotation(pirTop)
     args = s"--start-id=$start "
     setOption(args.split(" ").map(_.trim).toList)
   }
+}
 
-  //override def initSession = {
-    //import config._
+object pload extends PIRShell
+  
+object psh extends PIRShell {
 
-    //addPass(initializer)
+  override def initSession = {
+    import config._
+
     //addPass(enableDot, new PIRCtxDotGen(s"simple.dot"))
-
-    // ------- Analysis and Transformations --------
     //addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
     //addPass(enableDot, new PIRIRDotGen(s"top.dot"))
     //addPass(new PIRCtxDotGen(s"simple.dot"))
-    //addPass(genPsim, ctxMerging)
-
-    //addPass(initializer)
-    //addPass(enableMapping, placerAndRouter)
-
-    //// ------- Codegen  --------
-    //addPass(tungstenPIRGen)
+    addPass(tungstenPIRGen)
     //addPass(genPsim, prouteLinkGen)
     //addPass(genPsim, prouteNodeGen)
     //addPass(genPsim, psimConfigGen)
     //addPass(runPsim, psimRunner)
     //addPass(psimParser)
-    //addPass(new PIRCtxDotGen(s"simple10.dot"))
-    //addPass(new PIRIRDotGen(s"top10.dot"))
-    //addPass(enableDot, new PIRIRDotGen(s"top.dot"))
+    addPass(new PIRCtxDotGen(s"simple10.dot"))
+    addPass(new PIRIRDotGen(s"top10.dot"))
 
-    //addPass(areaPowerStat).dependsOn(psimConfigCodegen, cuPlacer)
     //addPass("tracer") { runner =>
       //val ctxs = pirTop.collectDown[Context]()
       //ctxs.filter(isStarved).filterNot { ctx =>
@@ -79,22 +64,6 @@ object PIRShell extends PIRApp with Logging with Session {
         //println(ctx, visitIn(ctx))
       //}
     //}
-  //}
-
-  def isStarved(ctx:Context) = ctx.state.get == "STARVE" || ctx.state.get == "BOTH"
-
-  def visitIn(n:PIRNode):List[Context] = visitGlobalIn(n).flatMap {
-    case x:GlobalIO => visitIn(x)
-    case x:Context => List(x)
-    case x:Memory => Nil
-    case x => x.collectUp[Context]()
-  }.distinct
-
-  def visitOut(n:PIRNode):List[Context] = visitGlobalOut(n).flatMap {
-    case x:GlobalIO => visitOut(x)
-    case x:Context => List(x)
-    case x:Memory => Nil
-    case x => x.collectUp[Context]()
-  }.distinct
+  }
 
 }

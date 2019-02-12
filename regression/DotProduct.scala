@@ -1,17 +1,16 @@
 import spatial.dsl._
 
 case class DotProductParam(
-  N:scala.Int = 1048576,
+  N:scala.Int = 1024,
   op:scala.Int = 1,
-  ts:scala.Int = 32768
+  ts:scala.Int = 32,
+  ip:scala.Int = 16
 ) extends Param[DotProductParam]
 
 class DotProduct_0 extends DotProduct
-class DotProduct_1 extends DotProduct { override lazy val param = DotProductParam(op=2) }
-//class DotProduct_2 extends DotProduct { override lazy val param = DotProductParam(op=4) }
-//class DotProduct_3 extends DotProduct { override lazy val param = DotProductParam(op=6) }
-//class DotProduct_4 extends DotProduct { override lazy val param = DotProductParam(op=8) }
-//class DotProduct_5 extends DotProduct { override lazy val param = DotProductParam(op=10) }
+class DotProduct_1 extends DotProduct { override lazy val param = DotProductParam(ip=1, op=1) }
+class DotProduct_2 extends DotProduct { override lazy val param = DotProductParam(ip=1, op=2) }
+class DotProduct_3 extends DotProduct { override lazy val param = DotProductParam(op=2) }
 
 @spatial abstract class DotProduct extends DSETest {
   type X = FixPt[TRUE,_32,_0]
@@ -20,12 +19,6 @@ class DotProduct_1 extends DotProduct { override lazy val param = DotProductPara
   import param._
 
   def dotproduct[T:Num](aIn: Array[T], bIn: Array[T]): T = {
-    val ip = 16
-
-    //val size = aIn.length; bound(size) = 1920000
-
-    //val N = ArgIn[Int]
-    //setArg(N, size)
 
     val a = DRAM[T](N)
     val b = DRAM[T](N)

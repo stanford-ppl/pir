@@ -18,6 +18,7 @@ trait TungstenTopGen extends TungstenCodegen {
 #include "token.h"
 #include <cassert>
 #include <iomanip>
+#include <fstream>
 
 #include "counter.h"
 #include "controller.h"
@@ -44,25 +45,14 @@ using namespace std;
 
   override def finPass = {
     getBuffer("top-end").foreach { _.flushTo(sw) }
-    emitln(
-"""
-class Tester : public Logger {
- public:
-  explicit Tester(): Logger() { }
-  void Eval() {
-    cycle += 1;
-  }
-  void Log() {
-    //cout << "#" << setw(2) << cycle << " ";
-    // Log modules here
-    //cout << endl;
-  }
-};
-
-Tester logger;
-""")
-    dutArgs += "logger";
     emitln(s"""Module DUT({${dutArgs.map(_.&).mkString(",")}}, "DUT");""")
+    emitBlock(s"void RunAccel()") {
+      emitln(s"""REPL Top(&DUT, std::cout);""")
+      //emitln(s"""Top.Command("logon");""")
+      //emitln(s"""Top.Command("log2files");""")
+      emitln(s"""Top.Command("source script");""")
+      emitln(s"""Top.RunTill(stopsim);""")
+    }
     super.finPass
   }
 

@@ -12,9 +12,10 @@ trait RuntimeAnalyzer { self:PIRPass =>
     def reads:Seq[LocalOutAccess] = ctx.collectChildren[LocalOutAccess].filterNot { _.isLocal }
     def writes:Seq[LocalInAccess] = ctx.collectChildren[LocalInAccess].filterNot { _.isLocal }
     def ctrs:Seq[Counter] = ctx.collectDown[Counter]()
+    def ctrlers = ctx.collectChildren[Controller]
     def ctrler(ctrl:ControlTree) = {
       assertOne(
-        ctx.collectChildren[Controller].filter { _.ctrl.get == ctrl }, 
+        ctx.ctrlers.filter { _.ctrl.get == ctrl }, 
         s"$ctx.ctrler with ($ctrl)"
       )
     }

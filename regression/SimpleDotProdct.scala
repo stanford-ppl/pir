@@ -1,14 +1,15 @@
 import spatial.dsl._
 
 case class SimpleDotProductParam(
-  N:scala.Int = 1048576,
+  N:scala.Int = 1024,
   op:scala.Int = 1,
-  ts:scala.Int = 32768,
+  ts:scala.Int = 32,
   ip:scala.Int = 1
 ) extends Param[SimpleDotProductParam]
 
 class SimpleDotProduct_0 extends SimpleDotProduct
 class SimpleDotProduct_1 extends SimpleDotProduct { override lazy val param = SimpleDotProductParam(op=2) }
+//class SimpleDotProduct_2 extends SimpleDotProduct { override lazy val param = SimpleDotProductParam(op=3) } // Not working yet
 
 @spatial abstract class SimpleDotProduct extends DSETest {
   type T = FixPt[TRUE,_32,_0]

@@ -138,6 +138,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           case List((o1, d1)) => (o1, d1)
         }.toList
       }
+      //TODO: handle en
       val List((ofs, data)) = red
       data.fold[Unit]{
         val newRead = BankedRead().offset(ofs).mem(mem).mirrorMetas(headAccess)
@@ -329,7 +330,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
             write.en.evalTo(inAccess.en.neighbors) && 
             write.done.isConnectedTo(enq)
           } {
-            val write = BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(inAccess.en.T).done(enq)
+            val write = BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(inAccess.en.connected).done(enq)
             dbg(s"create $write.data(${inAccess.data.neighbors}).done(${write.done.T})")
             write
           }

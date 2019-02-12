@@ -77,7 +77,6 @@ using namespace std;
   def emitStopSim(ctx:Context) = {
     ctx.collectDown[HostOutController]().headOption.foreach { hostOut =>
       emitIf(s"${hostOut.done.qref}") {
-        emitln(s"""cout << "Simulation complete at cycle " << cycle << endl;""")
         emitln(s"stopsim.setstate(ios::eofbit);")
       }
     }
@@ -101,6 +100,8 @@ using namespace std;
   }
 
   def varOf(n:PIRNode):(String, String) = throw PIRException(s"Don't know varOf($n)")
+  def nameOf(n:PIRNode) = varOf(n)._2
+  def tpOf(n:PIRNode) = varOf(n)._1
 
   def emitNewMember(tp:String, name:Any) = {
     genCtxFields {
