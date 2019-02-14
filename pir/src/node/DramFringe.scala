@@ -5,16 +5,16 @@ trait FringeCommand extends PIRNode
 
 trait DRAMCommand extends FringeCommand {
   def dram:DRAM
+  val deqCmd = new OutputField[List[PIRNode]]("deqCmd")
+  val data:NodeField[PIRNode]
 }
 
 trait DRAMDenseCommand extends DRAMCommand {
   val offset = new InputField[PIRNode]("offset")
   val size = new InputField[PIRNode]("size")
-  val deqCmd = new OutputField[List[PIRNode]]("deqCmd")
 }
 trait DRAMSparseCommand extends DRAMCommand {
   val addr = new InputField[PIRNode]("addr")
-  val deqCmd = new OutputField[List[PIRNode]]("deqCmd")
 }
 trait DRAMLoadCommand extends DRAMCommand {
   val data = new OutputField[PIRNode]("data")
@@ -39,6 +39,7 @@ case class FringeSparseStore(dram:DRAM)(implicit env:Env) extends DRAMSparseComm
 
 case class DRAM(sid:String) extends prism.graph.IR {
   val dims = Metadata[List[Int]]("dims")
+  val sname = new Metadata[String]("sname")
 }
 
 trait StreamCommand extends FringeCommand

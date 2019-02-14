@@ -4,6 +4,7 @@ package codegen
 import pir.node._
 import prism.graph._
 import prism.codegen._
+import spade.param._
 import scala.collection.mutable
 
 trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
@@ -111,6 +112,12 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       }
       emitVec(n, List.tabulate(n.getVec) { i => s"${n}_$i"} )
 
+    case n@OpDef(FixToFix) =>
+      val inputs = n.input.T
+      emitVec(n) {
+        s"(${n.tp}) ${inputs.head.qref("i")}" 
+      }
+
     case n:OpDef =>
       val inputs = n.input.T
       emitVec(n) {
@@ -133,11 +140,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       emitln(s"""cout << "Set ArgIn ${n.sid} " << ${n} << endl;""")
 
     case n:DRAMAddr =>
-      emitln(s"long $n;")
-      emitln(s"""std::ifstream stream_$n("${n.dram.sid}_addr.txt");""")
-      emitln(s"""stream_$n << $n;""")
-      emitln(s"""stream_$n.close();""")
-      emitln(s"""cout << "Set DRAMAddr ${n.dram.sid} " << ${n} << endl;""")
+      emitln(s"auto $n = (uint64_t) ${n.dram.sname.get};")
 
     case n => super.emitNode(n)
   }
