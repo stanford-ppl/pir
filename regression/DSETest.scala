@@ -23,10 +23,6 @@ trait DSETest extends PlasticineTest { test =>
   case object P2PTst extends PIRBackend {
     val row:Int=14
     val col:Int=14
-    override def shouldRun = {
-      test.name.contains("SimpleDotProduct") |
-      test.name.contains("SumSquare")
-    }
     def runPasses():Result = {
       genpir() >>
       runpir() >>

@@ -19,13 +19,13 @@ def main():
             apps = ['SumSquare*', 'SimpleDotProduct*', 'DotProduct_1']
         starttime = time.strftime('%y%m%d_%H%M%S')
         sha = subprocess.check_output("git log --pretty=format:'%h' -n 1".split(" ")).replace("'","")
-        log = "logs/{}_{}_{}_{}.log".format(backend, opts.project, starttime, sha)
+        log = "logs/{}_{}_{}_{}.log".format(starttime, backend, opts.project, sha)
         os.system('mkdir -p logs/')
         os.system('sbt "; project pir; publishAll"')
         os.system('bin/spatial -t {} -p {} -b {} {}'.format(opts.thread, opts.project,backend,
             ' '.join(['-a ' + a for a in apps])))
         os.system('echo {}\n > {}'.format(sha, log))
-        os.system('bin/log ../gen/{} | tee -a {}'.format(log, log))
+        os.system('bin/log ../gen/{} | tee -a {}'.format(backend, log))
 
 if __name__ == "__main__":
     main()
