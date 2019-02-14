@@ -49,6 +49,7 @@ using namespace std;
               emitln(s"$field = _$field;")
             }
             getBuffer("inits").foreach { _.flushTo(sw) }
+            emitExpectStop(n)
           }
           emitBlock(s"void Compute()") {
             getBuffer("computes").foreach { _.flushTo(sw) }
@@ -74,10 +75,16 @@ using namespace std;
     case n => super.emitNode(n)
   }
 
+  def emitExpectStop(ctx:Context) = {
+    ctx.collectDown[HostOutController]().headOption.foreach { hostOut =>
+      emitln(s"Expect(1);")
+    }
+  }
+
   def emitStopSim(ctx:Context) = {
     ctx.collectDown[HostOutController]().headOption.foreach { hostOut =>
       emitIf(s"${hostOut.done.qref}") {
-        emitln(s"stopsim.setstate(ios::eofbit);")
+        emitln(s"Complete(1);")
       }
     }
   }
