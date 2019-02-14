@@ -16,7 +16,7 @@ tag:
 	ctags -R src/ apps/
 	#sbt gen-ctags
 
-install: pir psim proute
+install: pir psim proute tungsten
 
 spatial:
 	cd ../ && sbt "; project pirTest; compile"
