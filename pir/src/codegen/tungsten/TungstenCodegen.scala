@@ -113,7 +113,22 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       val q = quoteRef(n)
       if (n.getVec==1) q else s"$q[$i]"
     }
-    def tp = "int" // TODO
+    def tp:String = n match { // TODO: propogate type from spatial properly
+      case n:DRAMAddr => "uint64_t"
+      case n:BufferWrite if n.name.nonEmpty && n.name.get.contains("offset") => "uint64_t"
+      case n:BufferRead  if n.name.nonEmpty && n.name.get.contains("offset") => "uint64_t"
+      case n:BufferWrite => n.data.T.tp
+      case n:BufferRead => n.inAccess.tp
+      case n => "int"
+    }
+    def tokenTp = tp match {
+      case "int" if n.getVec == 1 => "TT_INT"
+      case "int" if n.getVec > 1 => "TT_INTVEC"
+      case "uint64_t" if n.getVec == 1 => "TT_UINT64"
+      case "float" if n.getVec == 1 => "TT_FLOAT"
+      case "float" if n.getVec > 1 => "TT_FlOATVEC"
+      case "bool" if n.getVec == 1 => "TT_BOOL"
+    }
   }
 
   implicit class PIRInputGenOp(n:Input[PIRNode]) {

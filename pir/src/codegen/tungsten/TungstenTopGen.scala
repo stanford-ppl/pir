@@ -27,7 +27,7 @@ trait TungstenTopGen extends TungstenCodegen {
 #include "broadcast.h"
 #include "bankedsram.h"
 #include "nbuffer.h"
-#include "logger.h"
+#include "idram.h"
 
 #include "hostio.h"
 
@@ -45,11 +45,10 @@ using namespace std;
 
   override def finPass = {
     getBuffer("top-end").foreach { _.flushTo(sw) }
+
     emitln(s"""Module DUT({${dutArgs.map(_.&).mkString(",")}}, "DUT");""")
     emitBlock(s"void RunAccel()") {
       emitln(s"""REPL Top(&DUT, std::cout);""")
-      //emitln(s"""Top.Command("logon");""")
-      //emitln(s"""Top.Command("log2files");""")
       emitln(s"""Top.Command("source script");""")
       emitln(s"""Top.RunTill(stopsim);""")
     }

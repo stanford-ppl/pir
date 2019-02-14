@@ -54,6 +54,8 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         }
       }
 
+    case n:BufferWrite if n.data.T.isInstanceOf[DRAMCommand] =>
+
     case n:BufferWrite if n.data.T.isInstanceOf[BankedRead] =>
       n.out.T.foreach { send =>
         addEscapeVar(send)

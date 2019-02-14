@@ -209,7 +209,7 @@ trait PIRApp extends PIR with Logging {
     x.to[PIRNode].foreach { x =>
       if (x.sname.isEmpty) x.sname(name)
     }
-    //x.to[DRAMCommand].foreach { x => initDRAMCommand(x) }
+    x.to[DRAM].foreach { x => x.sname(name) }
     x
   }
 
@@ -263,14 +263,6 @@ trait PIRApp extends PIR with Logging {
   def streamOut(fifo:FIFO) = {
     streamOuts += fifo
   }
-
-  //def initDRAMCommand(n:DRAMCommand) = {
-    //val ctrl = ControlTree("Pipelined")
-    //(n.neighbors :+ n).foreach { n =>
-      //n.ctrl.reset
-      //n.ctrl(ctrl)
-    //}
-  //}
 
 }
 
