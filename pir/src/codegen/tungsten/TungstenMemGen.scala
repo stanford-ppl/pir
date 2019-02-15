@@ -39,19 +39,23 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         emitln(s"""$tp $name("$n");""")
         dutArgs += name
       }
-      addEscapeVar(n)
-      genCtxInits {
-        emitln(s"""inputs.push_back($name);""")
-        if (n.initToken.get) {
-          emitToken(s"init_$n", n.getVec, n.inits.get)
-          emitln(s"$name->Push(init_$n);")
-        }
-      }
-      emitVec(n)(s"toT<${n.tp}>($name->Read(), ${if (n.getVec==1) "0" else "i" })")
-      genCtxComputeEnd {
-        emitIf(s"${n.done.qref}") {
-          emitln(s"$name->Pop();")
-        }
+      n.ctx.get match {
+        case DRAMContext(cmd) =>
+        case _ =>
+          addEscapeVar(n)
+          genCtxInits {
+            emitln(s"""inputs.push_back($name);""")
+            if (n.initToken.get) {
+              emitToken(s"init_$n", n.getVec, n.inits.get)
+              emitln(s"$name->Push(init_$n);")
+            }
+          }
+          emitVec(n)(s"toT<${n.tp}>($name->Read(), ${if (n.getVec==1) "0" else "i" })")
+          genCtxComputeEnd {
+            emitIf(s"${n.done.qref}") {
+              emitln(s"$name->Pop();")
+            }
+          }
       }
 
     case n:BufferWrite if n.data.T.isInstanceOf[DRAMCommand] =>
@@ -61,6 +65,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         addEscapeVar(send)
         genCtxInits {
           emitln(s"AddSend(${nameOf(send)});");
+          emitln(s"$send->SetAlmostBy(1);")
         }
         genCtxEval {
           emitAccess(n.data.T.as[Access], prev=true) { buffer =>
@@ -183,8 +188,10 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       (s"FIFO<Token, 4>", s"$n")
     case n:GlobalInput =>
       (s"FIFO<Token, 2>", s"$n")
-    case n:LocalOutAccess =>
+    case n:BufferRead =>
       (s"FIFO<Token, 4>", s"fifo_$n") //TODO
+    case n:TokenRead =>
+      (s"FIFO<Token, ${n.getDepth}>", s"fifo_$n") //TODO
     case n:LocalInAccess =>
       val data = n match {
         case n:BufferWrite => n.data.T

@@ -16,6 +16,22 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
   }
 
   override def emitNode(n:N) = n match {
+    case n:ControlBlock =>
+      super.visitNode(n)
+      n.ctx.get.collectDown[Controller]().foreach { ctrler =>
+        emitln(s"$ctrler->Eval();")
+      }
+      n.ctrlers.last.to[LoopController].foreach { ctrler =>
+        val laneValids = ctrler.cchain.T.foldLeft(List[String]()) { 
+          case (Nil, ctr) => List.tabulate(ctr.par) { i => s"$ctr->Valids()[$i]" }
+          case (prev, ctr) => 
+            prev.flatMap { valid => 
+              List.tabulate(ctr.par) { i => s"$valid & $ctr->Valids()[$i]" }
+            }
+        }
+        emitln(s"bool laneValids[] = {${laneValids.mkString(",")}};")
+      }
+
     case n:Controller =>
       val tp = n match {
         case n:LoopController => "LoopController"
@@ -33,21 +49,6 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       }
       emitln(s"$n->SetEn(${n.en.qref} & ${n.parentEn.qref});")
       super.visitNode(n)
-      if (n.isLeaf) {
-        n.ctx.get.collectDown[Controller]().foreach { ctrler =>
-          emitln(s"$ctrler->Eval();")
-        }
-        n.to[LoopController].foreach { ctrler =>
-          val laneValids = ctrler.cchain.T.foldLeft(List[String]()) { 
-            case (Nil, ctr) => List.tabulate(ctr.par) { i => s"$ctr->Valids()[$i]" }
-            case (prev, ctr) => 
-              prev.flatMap { valid => 
-                List.tabulate(ctr.par) { i => s"$valid & $ctr->Valids()[$i]" }
-              }
-          }
-          emitln(s"bool laneValids[] = {${laneValids.mkString(",")}};")
-        }
-      }
 
     case n:Counter if !n.isForever =>
       emitNewMember(s"Counter<${n.par}>", n)

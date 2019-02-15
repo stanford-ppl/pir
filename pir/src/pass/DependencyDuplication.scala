@@ -4,11 +4,15 @@ package pass
 import pir.node._
 import prism.graph._
 
-class DependencyDuplication(implicit compiler:PIR) extends DependencyAnalyzer {
+class DependencyDuplication(implicit compiler:PIR) extends DependencyAnalyzer with BufferAnalyzer {
 
   override def runPass = {
     val ctxs = pirTop.collectDown[Context]()
     // Compute and mirror in two passes to avoid duplication in mirroring
+    ctxs.foreach {
+      case ctx@DRAMContext(cmd) => cmd.localIns.foreach { bufferInput }
+      case _ =>
+    }
     dupDeps(ctxs)
     ctxs.foreach { insertControlBlock }
   }

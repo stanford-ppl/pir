@@ -1,16 +1,20 @@
 import spatial.dsl._
 
 case class OuterProductParam(
-  M:scala.Int = 1024,
-  N:scala.Int = 1024,
-  ts1:scala.Int = 128,
-  ts2:scala.Int = 128,
+  M:scala.Int = 256,
+  N:scala.Int = 256,
+  ts1:scala.Int = 64,
+  ts2:scala.Int = 64,
+  ip:scala.Int = 16,
   op1:scala.Int = 1,
   op2:scala.Int = 1
 ) extends Param[OuterProductParam]
 
 class OuterProduct_0 extends OuterProduct
-class OuterProduct_1 extends OuterProduct {override lazy val param = OuterProductParam(op2=2)}
+class OuterProduct_1 extends OuterProduct {override lazy val param = OuterProductParam(ip=1)}
+class OuterProduct_2 extends OuterProduct {override lazy val param = OuterProductParam(ip=1, op2=2)}
+class OuterProduct_3 extends OuterProduct {override lazy val param = OuterProductParam(ip=1, op1=2)}
+class OuterProduct_4 extends OuterProduct {override lazy val param = OuterProductParam(ip=1, op1=2, op2=2)}
 //class OuterProduct_2 extends OuterProduct {override lazy val param = OuterProductParam(op2=4)}
 //class OuterProduct_3 extends OuterProduct {override lazy val param = OuterProductParam(op2=6)}
 //class OuterProduct_4 extends OuterProduct {override lazy val param = OuterProductParam(op2=8)}
@@ -23,9 +27,6 @@ class OuterProduct_1 extends OuterProduct {override lazy val param = OuterProduc
 
   type X = FixPt[TRUE,_32,_0]
 
-  val ip = 16
-  val ip2 = 16 // param [16] # (8, 16, 8)
-  val ip1 = ip / ip2 // param 16 / <ip2>
 
   def outerproduct[T:Num](a: Array[T], b: Array[T]) = {
 
@@ -51,8 +52,8 @@ class OuterProduct_1 extends OuterProduct {override lazy val param = OuterProduc
           val b2 = SRAM[T](ts2)
           b2 load vec2(j::j+ts2 par ip)
           val outTile = SRAM[T](ts1, ts2)
-          Foreach(ts1 par ip1, ts2 par ip2){ (ii,jj) => outTile(ii, jj) = b1(ii) * b2(jj) } // 2
-          out(i::i+ts1, j::j+ts2 par ip2) store outTile
+          Foreach(ts1 by 1, ts2 par ip){ (ii,jj) => outTile(ii, jj) = b1(ii) * b2(jj) } // 2
+          out(i::i+ts1, j::j+ts2 par ip) store outTile
         }
       }
     }
@@ -60,10 +61,8 @@ class OuterProduct_1 extends OuterProduct {override lazy val param = OuterProduc
   }
 
   def main(args: Array[String]): Unit = {
-    // val a = Array.fill(M)(random[T](100))
-    // val b = Array.fill(N)(random[T](100))
-    val a = Array.tabulate(M) { i => (i % 64).to[X] }
-    val b = Array.tabulate(N){ i => (i % 64).to[X] }
+    val a = Array.tabulate(M) { i => i }
+    val b = Array.tabulate(N) { i => i }
 
     val result = outerproduct(a, b)
 

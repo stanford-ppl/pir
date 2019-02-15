@@ -9,18 +9,20 @@ trait BufferAnalyzer extends MemoryAnalyzer {
    * escaped node will be buffered between dep ctx and scope
    * */
   def escape(dep:PIRNode, depedIn:Input[PIRNode], depedCtx:Context) = {
-    (dep, depedIn) match {
-      case (_, InputField(deped:Access, "mem")) => false
-      case (_, InputField(deped:LocalOutAccess, "in")) => false
-      case (dep, _) if dep.isDescendentOf(depedCtx) => false
+    (dep, depedIn, depedCtx) match {
+      case (_, InputField(deped:Access, "mem"), _) => false
+      case (_, InputField(deped:LocalOutAccess, "in"), _) => false
+      case (dep, _, _) if dep.isDescendentOf(depedCtx) => false
 
-      case (dep:Const, _) => false // duplicate later
-      case (dep:CounterIter, _) => false // duplicate later
-      case (dep:CounterValid, _) => false // duplicate later
-      case (dep:Controller, _) => false // duplicate later
-      case (dep:LocalOutAccess, _) => false // duplicate later
+      case (_,_,DRAMContext(cmd)) => true
 
-      case (dep, _) => true
+      case (dep:Const, _, _) => false // duplicate later
+      case (dep:CounterIter, _, _) => false // duplicate later
+      case (dep:CounterValid, _, _) => false // duplicate later
+      case (dep:Controller, _, _) => false // duplicate later
+      case (dep:LocalOutAccess, _, _) => false // duplicate later
+
+      case (dep, _, _) => true
     }
   }
 

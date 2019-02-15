@@ -46,28 +46,28 @@ def getMessage(backend, app, conf):
         msg.append(cstr(GREEN, 'genpir'))
     else:
         msg.append(cstr(RED, 'genpir'))
-        return msg,succeeded
+        # return msg,succeeded
 
     if conf['runpir_err'] is not None:
         msg.append(cstr(RED,'runpir'))
         msg.append(conf['runpir_err'].strip())
-        return msg,succeeded
+        # return msg,succeeded
     elif conf['runpir_time'] is None:
         msg.append(cstr(YELLOW,'runpir'))
-        return msg,succeeded
+        # return msg,succeeded
     else:
         msg.append(cstr(GREEN,'runpir[{:.2f}s]'.format(conf['runpir_time'])))
 
     if conf['mappir_err'] is not None:
         msg.append(cstr(RED,'mappir'))
         msg.append(conf['mappir_err'].strip())
-        return msg,succeeded
+        # return msg,succeeded
     elif conf['notFit'] is not None:
         msg.append(cstr(YELLOW, 'notFit'))
-        return msg,succeeded
+        # return msg,succeeded
     elif conf['mappir_time'] is None:
         msg.append(cstr(YELLOW,'mappir'))
-        return msg,succeeded
+        # return msg,succeeded
     elif conf['PCU'] is not None:
         msg.append(cstr(GREEN, "mappir[{:.1f}s]".format(conf['mappir_time'])))
         msg.append(cstr(GREEN,' '.join(['{}:{}'.format(k,conf[k]) for k in ['PCU', "PMU"]])))

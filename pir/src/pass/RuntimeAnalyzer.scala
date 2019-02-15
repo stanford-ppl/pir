@@ -53,6 +53,10 @@ trait RuntimeAnalyzer { self:PIRPass =>
     n.collectFirstChild[FringeStreamRead]
   }
 
+  val DRAMContext = MatchRule[Context, DRAMCommand] { n =>
+    n.collectFirstChild[DRAMCommand]
+  }
+
   val UnderControlBlock = MatchRule[PIRNode, ControlBlock] { n =>
     n.ancestors.collectFirst { case n:ControlBlock => n }
   }
