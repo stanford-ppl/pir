@@ -56,9 +56,9 @@ using namespace std;
             getBuffer("computes-end").foreach { _.flushTo(sw) }
             emitStopSim(n)
           }
-          emitBlock(s"void ReadPipe()") {
-            emitln(s"Context::ReadPipe();")
-            getBuffer("readpipe").foreach { _.flushTo(sw) }
+          emitBlock(s"void Eval()") {
+            emitln(s"Context::Eval();")
+            getBuffer("eval").foreach { _.flushTo(sw) }
           }
         }
         emit(s""";""")
@@ -99,7 +99,7 @@ using namespace std;
 
   final protected def genCtxComputeEnd(block: => Unit) = enterBuffer("computes-end") { incLevel(2); block; decLevel(2) }
 
-  final protected def genCtxReadPipe(block: => Unit) = enterBuffer("readpipe") { incLevel(2); block; decLevel(2) }
+  final protected def genCtxEval(block: => Unit) = enterBuffer("eval") { incLevel(2); block; decLevel(2) }
 
   final protected def addEscapeVar(n:PIRNode):Unit = {
     val v = varOf(n)

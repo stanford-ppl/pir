@@ -9,10 +9,13 @@ case class TopParam(
   wordWidth:Int=32, // bit
   vecWidth:Int=16, // word
   clockFrequency:Int=1000000000, //Hz
+  burstSize:Int=512, // bit
   pattern:Pattern = Checkerboard(),
   scheduled:Boolean=false,
 ) extends Parameter {
-  def bytePerWord = wordWidth / 8
+  val bytePerWord = wordWidth / 8
+  val burstSizeWord = burstSize / wordWidth
+  val burstSizeByte = burstSize / 8 
 }
 
 trait Pattern extends Parameter {
@@ -37,7 +40,7 @@ case class Checkerboard(
   col:Int=8,
   cu1:CUParam=PCUParam(),
   cu2:CUParam=PMUParam(),
-  fringeParam:FringeParam=FringeParam(),
+  fringePattern:FringePattern=FringePattern(),
   networkParams:List[NetworkParam]=List(NetworkParam("bit"), NetworkParam("word"), NetworkParam("vec", numVC=4))
 ) extends Pattern {
   def cuAt(i:Int, j:Int) = {
@@ -59,7 +62,7 @@ case class MCMColumnStrip(
   col:Int=8,
   cu1:CUParam=PCUParam(),
   cu2:CUParam=PMUParam(),
-  fringeParam:FringeParam=FringeParam(),
+  fringePattern:FringePattern=FringePattern(),
   networkParams:List[NetworkParam]=List(NetworkParam("bit"), NetworkParam("word"), NetworkParam("vec", numVC=4))
 ) extends Pattern {
   def cuAt(i:Int, j:Int) = {
@@ -67,17 +70,13 @@ case class MCMColumnStrip(
   }
 }
 
-case class FringeParam(
-  burstSize:Int=512, // bit
+case class FringePattern(
   mcParam:MCParam=MCParam(),
   dagParam:Option[DramAGParam]=Some(DramAGParam()),
   argFringeParam:ArgFringeParam=ArgFringeParam(),
   shareNode:Boolean=true
 ) extends Parameter {
   lazy val topParam = trace[TopParam]
-  def burstSizeWord = burstSize / topParam.wordWidth
-  def burstSizeByte = burstSize / 8 
-  def bytePerWord = topParam.wordWidth / 8
   def fringeColumn = if (shareNode) 1 else if (dagParam.nonEmpty) 2 else 1
 }
 

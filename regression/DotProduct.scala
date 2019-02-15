@@ -44,8 +44,8 @@ class DotProduct_3 extends DotProduct { override lazy val param = DotProductPara
 
 
   def main(args: Array[String]): Unit = {
-    val a = Array.fill(N){ random[X](4) }
-    val b = Array.fill(N){ random[X](4) }
+    val a = Array.tabulate(N){ i => i }
+    val b = Array.tabulate(N){ i => i }
 
     val result = dotproduct(a, b)
     val gold = a.zip(b){_*_}.reduce{_+_}
