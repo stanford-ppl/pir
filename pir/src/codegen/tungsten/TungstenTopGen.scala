@@ -50,7 +50,7 @@ using namespace std;
     emitBlock(s"void RunAccel()") {
       emitln(s"""REPL Top(&DUT, std::cout);""")
       emitln(s"""Top.Command("source script");""")
-      emitln(s"""Top.RunTill(stopsim);""")
+      emitln(s"""Top.RunAll();""")
     }
     super.finPass
   }
