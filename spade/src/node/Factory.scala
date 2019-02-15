@@ -43,11 +43,11 @@ trait TopFactory extends Factory {
       }
       top
     case param:AsicPattern => None
-    case param@Checkerboard(row, col, cu1, cu2, fringeParam, networkParams) =>
+    case param@Checkerboard(row, col, cu1, cu2, fringePattern, networkParams) =>
       val center = List.tabulate(col, row) { case (x,y) =>
         ListBuffer(visitNodeAs[CU](param.cuAt(x,y), None))
       }
-      val array = visitNodeAs[CUArray](fringeParam, center)
+      val array = visitNodeAs[CUArray](fringePattern, center)
       array.zipWithIndex.foreach { case (col, x) =>
         col.zipWithIndex.foreach { case (nodes, y) =>
           nodes.zipWithIndex.foreach { case (node, i) => 
@@ -66,7 +66,7 @@ trait TopFactory extends Factory {
         visitNode(param, (array, connectors))
       }
       (array, connectors)
-    case param:FringeParam =>
+    case param:FringePattern =>
       val center = prev.asInstanceOf[CUArray]
       val row = center.head.size
       def createFringeColumn(side:String, array:CUArray):CUArray = {

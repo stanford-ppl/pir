@@ -29,6 +29,10 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       emitln(s"TUNGSTEN_HOME=${tungstenHome}")
       getLines(buildPath(tungstenHome, "plasticine", "resources", "Makefile")).foreach { emitln }
     }
+    //withOpen(buildPath(dirName, ".."),"script",true) {
+      //emitln(s"logon")
+      //emitln(s"log2files")
+    //}
     super.initPass
   }
 
@@ -115,8 +119,8 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     }
     def tp:String = n match { // TODO: propogate type from spatial properly
       case n:DRAMAddr => "uint64_t"
-      case n:BufferWrite if n.name.nonEmpty && n.name.get.contains("offset") => "uint64_t"
-      case n:BufferRead  if n.name.nonEmpty && n.name.get.contains("offset") => "uint64_t"
+      case n:BufferWrite if n.sname.nonEmpty && n.sname.get.contains("offset") => "uint64_t"
+      case n:BufferRead  if n.sname.nonEmpty && n.sname.get.contains("offset") => "uint64_t"
       case n:BufferWrite => n.data.T.tp
       case n:BufferRead => n.inAccess.tp
       case n => "int"

@@ -62,7 +62,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         genCtxInits {
           emitln(s"AddSend(${nameOf(send)});");
         }
-        genCtxReadPipe {
+        genCtxEval {
           emitAccess(n.data.T.as[Access], prev=true) { buffer =>
             emitIf(s"${n.done.qref}") {
               emitln(s"${send}->Push($buffer->ReadData());");

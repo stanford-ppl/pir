@@ -11,27 +11,32 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
 
   override def finPass = {
     genTopEnd {
-      //emitln(s"""DRAMController DRAM("DRAM", "ini/DRAM.ini", "ini/system.ini", ".", {${issuers.map{_.&}.mkString(",")}}, {${respondQueues.map(_.&).mkString(",")}});""")
-      emitln(s"""IDRAMController DRAM("DRAM", {${issuers.map{_.&}.mkString(",")}});""")
+      val cmds = issuers.map{ i => s"&$i.burstcmd" }.mkString(",")
+      val resps = issuers.map{ i => s"&$i.burstrsp" }.mkString(",")
+      val dramFile = buildPath(tungstenHome, "ini", "DRAM.ini")
+      val systemFile = buildPath(tungstenHome, "ini", "system.ini")
+      emitln(s"""DRAMController DRAM("DRAM", "$dramFile", "$systemFile", ".", {$cmds}, {$resps});""")
       dutArgs += "DRAM"
     }
     super.finPass
   }
 
+  def wordPerBurst = spadeParam.burstSizeWord
+
   override def emitNode(n:N) = n match {
     case n:FringeDenseLoad =>
       val (tp, name) = varOf(n)
       genTopEnd {
-        emitln(s"""$tp $name("$n", ${n.data.T.as[BufferWrite].gout.get.&}, ${n.data.T.getVec}, ${n.data.T.tokenTp});""")
+        emitln(s"""$tp $name("$n", ${n.data.T.as[BufferWrite].gout.get.&}, ${n.data.T.tokenTp});""")
         dutArgs += name
       }
       genCtxInits {
-        emitln(s"AddSend(${n}->offset);")
-        emitln(s"AddSend(${n}->size);")
+        emitln(s"AddSend(&${n}->offset);")
+        emitln(s"AddSend(&${n}->size);")
       }
       addEscapeVar(n)
-      emitln(s"${n}->offset->Push(make_token(${n.offset.T}));")
-      emitln(s"${n}->size->Push(make_token(${n.size.T}));")
+      emitln(s"${n}->offset.Push(make_token(${n.offset.T}));")
+      emitln(s"${n}->size.Push(make_token(${n.size.T}));")
       issuers += s"$n"
     //case n:DRAMCommand =>
       //val (tp, name) = varOf(n)
@@ -63,7 +68,7 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
   }
 
   override def varOf(n:PIRNode):(String,String) = n match {
-    case n:FringeDenseLoad => (s"DenseLoadIssuer", s"${n}")
+    case n:FringeDenseLoad => (s"DenseLoadIssuer<${n.data.T.getVec}, $wordPerBurst>", s"${n}")
     case n => super.varOf(n)
   }
 
