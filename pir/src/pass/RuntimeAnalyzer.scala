@@ -8,6 +8,8 @@ import scala.collection.mutable
 
 trait RuntimeAnalyzer { self:PIRPass =>
 
+  def noPlaceAndRoute = spadeParam.isAsic || spadeParam.isP2P 
+
   implicit class CtxUtil(ctx:Context) {
     def reads:Seq[LocalOutAccess] = ctx.collectChildren[LocalOutAccess].filterNot { _.isLocal }
     def writes:Seq[LocalInAccess] = ctx.collectChildren[LocalInAccess].filterNot { _.isLocal }

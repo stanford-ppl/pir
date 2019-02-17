@@ -8,6 +8,8 @@ import scala.collection.mutable
 
 trait TungstenTopGen extends TungstenCodegen {
 
+  val dutArgs = mutable.ListBuffer[String]()
+
   override def initPass = {
     super.initPass
     emitln(
@@ -28,12 +30,18 @@ trait TungstenTopGen extends TungstenCodegen {
 #include "bankedsram.h"
 #include "nbuffer.h"
 #include "dramag.h"
+#include "network.h"
 
 #include "hostio.h"
 
 using namespace std;
 
 """)
+
+    if (!noPlaceAndRoute) { //TODO: use spade parameter
+      emitln("""DynamicNetwork<4, 4> net({16, 12}, "net");""")
+      dutArgs += "net"
+    }
 
   }
 
@@ -54,8 +62,6 @@ using namespace std;
     }
     super.finPass
   }
-
-  val dutArgs = mutable.ListBuffer[String]()
 
   final protected def genTop(block: => Unit) = enterFile(outputPath, false)(block)
 

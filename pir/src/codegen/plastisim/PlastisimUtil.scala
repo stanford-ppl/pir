@@ -24,8 +24,6 @@ trait PlastisimUtil extends PIRPass {
   lazy val psimLog = buildPath(psimOut, "psim.log")
   lazy val prouteLog = buildPath(psimOut, "proute.log")
 
-  def noPlaceAndRoute = spadeParam.isAsic || spadeParam.isP2P
-
   val infCount = 1000000
 
   implicit class PIRNodePsimOp(n:PIRNode) {
