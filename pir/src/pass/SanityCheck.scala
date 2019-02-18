@@ -65,15 +65,18 @@ class SanityCheck(implicit compiler:PIR) extends PIRTraversal with SiblingFirstT
             }
           }
         }
-        val ctrlers = n.children.collect { case c:Controller => c }
+        val ctrlers = n.ctrlers
         if (ctrlers.nonEmpty) {
           val cs = ctrlers.filter { _.getCtrl == n.getCtrl }
           assert(cs.nonEmpty, s"$n doesn't have matched controller for ${n.getCtrl}")
         }
       case n:GlobalIO => 
         if (n.neighbors.isEmpty) err(s"$n is not connected")
-      case n:LoopController =>
-        assert(n.cchain.nonEmpty, s"$n.cchain is empty")
+      case n:Controller =>
+        assert(n.isUnder[ControlBlock], s"$n is not under control block")
+        n.to[LoopController].foreach { n =>
+          assert(n.cchain.nonEmpty, s"$n.cchain is empty")
+        }
       case n =>
     }
     super.visitNode(n)

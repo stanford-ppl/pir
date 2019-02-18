@@ -90,8 +90,8 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       }
       val in = n.in.T
       val firstVec = n.first.T.getVec
-      val ctrler = assertOne(n.collectPeer[LoopController]().filter { _.getCtrl == n.getCtrl }, s"$n.ctrler")
-      emitIf(s"${n.en.qref} & ${ctrler.valid.qref}") {
+      val ctrler = n.ctx.get.ctrler(n.getCtrl)
+      emitIf(s"${n.en.qref}") {
         emitBlock(s"for (int i = 0; i < ${firstVec}; i++)") {
           emitIf(s"laneValids[i]") {
             emitln(s"$n = (${n.first.T.qref("i")}) ? ${in.qref("i")} : $accumOp($n, ${in.qref("i")});")

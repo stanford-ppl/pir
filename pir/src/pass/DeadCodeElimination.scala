@@ -41,15 +41,16 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with Trans
   // Breaking loop in traversal
   override def visitIn(n:N):List[N] = n match {
     case n:LocalOutAccess => n.in.neighbors.toList ++ n.done.neighbors.filterNot { case c:Controller => true; case _ => false }
-    case n:Controller => super.visitIn(n)
-    case n if n.ctx.nonEmpty => super.visitIn(n) ++ n.ctx.get.children.filter { case c:Controller => c.isLeaf ; case  _ => false }
+    case n@UnderControlBlock(cb) if depDupHasRun => super.visitIn(cb)
+    case n if depDupHasRun => cover[PIRNode, ControlBlock](super.visitIn(n))
     case n => super.visitIn(n)
   }
 
   override def visitOut(n:N):List[N] = n match {
-    case n:Controller if n.isUnder[Context] => n.ctx.get.children.filter { case c:Controller => false; case c:LocalOutAccess => false ; case _ => true }
-    case n:Controller => super.visitOut(n)
-    case n if n.isUnder[Controller] => visitOut(n.collectUp[Controller]().head)
+    case n@UnderControlBlock(cb) if depDupHasRun => 
+      super.visitOut(cb).tryFilter { case x:LocalOutAccess => false; case _ => true }.toList
+    case n:ControlBlock if depDupHasRun => 
+      super.visitOut(n).tryFilter { case x:LocalOutAccess => false; case _ => true }.toList
     case n => super.visitOut(n)
   }
 

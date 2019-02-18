@@ -12,19 +12,6 @@ class AccessContextCreation(implicit compiler:PIR) extends PIRPass with Transfor
     pirTop.collectDown[MemoryContainer]().foreach { global => global.collectDown[Context]().foreach(split) }
   }
 
-  //override def escape(dep:PIRNode, depedIn:Input[PIRNode], depedCtx:Context) = dbgblk(s"escape($depedIn)") {
-    //(dep, depedIn) match {
-      //case (_, InputField(deped:Access, "mem")) => false
-      //case (_, InputField(deped:LocalOutAccess, "in")) => false
-      //case (dep, _) if dep.isDescendentOf(depedCtx) => false
-
-      //case (dep:Const, _) => false // duplicate later
-
-      //case (dep, _) => true
-    //}
-  //}
-
-
   def split(ctx:Context):Unit = {
     if (ctx.collectDown[OpNode]().isEmpty) return
     dbgblk(s"split($ctx)") {

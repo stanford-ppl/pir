@@ -142,6 +142,10 @@ case class LoopController()(implicit env:Env) extends Controller {
   val cchain = new ChildField[Counter, List[Counter]]("cchain")
 }
 
+case class ControlBlock()(implicit env:Env) extends PIRNode {
+  val ctrlers = new ChildField[Controller, List[Controller]]("ctrlers")
+}
+
 trait MemoryUtil extends CollectorImplicit {
 
   implicit class MemOp(n:Memory) {

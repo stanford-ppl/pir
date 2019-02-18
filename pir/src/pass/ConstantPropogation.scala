@@ -78,7 +78,7 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
       n.data.T match {
         case r1:MemRead if !r1.en.isConnected =>
           val w1s = r1.mem.T.inAccesses
-          if (w1s.size == 1) {
+          if (w1s.size == 1 && r1.mem.T.isFIFO == n.mem.T.isFIFO) {
             val w1 = w1s.head.as[MemWrite]
             Some((w1, r1, n))
           } else None
