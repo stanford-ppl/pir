@@ -477,7 +477,7 @@ def main():
     if opts.path_type == "app":
         path, app = path.rsplit('/',1)
         gen, backend = path.rsplit('/',1)
-        opts.app = app
+        opts.app = [app]
         opts.backend = [backend]
         opts.gendir = gen
     elif opts.path_type == "backend":
