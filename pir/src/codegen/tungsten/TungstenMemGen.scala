@@ -81,7 +81,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
           emitln(s"AddSend(${nameOf(send)}, $name);")
         }
       }
-      emitIf(s"${n.done.qref}") {
+      emitIf(s"${n.done.qref} && ${n.en.qref}") {
         emitln(s"$name->Push(make_token(${n.data.qref}));")
       }
 

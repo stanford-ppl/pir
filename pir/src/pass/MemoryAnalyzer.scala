@@ -51,13 +51,10 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
         case List(InputField(to:TokenRead, _)) => Some(within(i, ictx) { allocConst(true).out })
         case ins => None
       }
-      (deq, enq) match {
-        case (Some(deq), Some(enq)) => (deq, enq) 
-        case (Some(deq), None) => (deq, ctrlValid(i, ictx))
-        case (None, Some(enq)) => (ctrlValid(o, octx), enq)
-        case (None, None) if isFIFO => (ctrlValid(o, octx), ctrlValid(i, ictx))
-        case (None,None) if o == i => (ctrlDone(o, octx), ctrlDone(i, ictx))
-        case (None, None) =>
+      (o, i) match {
+        case (o,i) if isFIFO => (deq.getOrElse(ctrlValid(o, octx)), enq.getOrElse(ctrlValid(i, ictx)))
+        case (o,i) if o == i => (deq.getOrElse(ctrlDone(o, octx)), enq.getOrElse(ctrlDone(i, ictx)))
+        case (o,i) =>
           val lca = leastCommonAncesstor(o,i).get
           val oAncesstors = o.ancestorTree
           val iAncesstors = i.ancestorTree
@@ -67,9 +64,9 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
           // in case of one ctrl is ancesstor of another
           def octrl = oAncesstors(oidx-1)
           def ictrl = iAncesstors(iidx-1)
-          if (lca == o)      (ctrlValid(o, octx), ctrlDone(ictrl, ictx))
-          else if (lca == i) (ctrlDone(octrl, octx), ctrlValid(i, ictx))
-          else               (ctrlDone(octrl, octx), ctrlDone(ictrl, ictx))
+          if (lca == o)      (deq.getOrElse(ctrlValid(o, octx)), enq.getOrElse(ctrlDone(ictrl, ictx)))
+          else if (lca == i) (deq.getOrElse(ctrlDone(octrl, octx)), enq.getOrElse(ctrlValid(i, ictx)))
+          else               (deq.getOrElse(ctrlDone(octrl, octx)), enq.getOrElse(ctrlDone(ictrl, ictx)))
       }
     }
   }
@@ -80,7 +77,7 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
       ctrl.ctrler.get.valid
     } else {
        //Distributed controller
-      assertOneOrLess(ctx.collectDown[Controller]().filter { _.ctrl.get == ctrl }, 
+      assertOneOrLess(ctx.ctrlers.filter { _.getCtrl == ctrl }, 
         s"ctrlValid with ctrl=$ctrl in $ctx").map { _.valid }.getOrElse {
           assert(this.isInstanceOf[CUPruner], s"$ctx has no Controller for $ctrl")
           within(ctx, ctrl) { allocConst(true).out }
@@ -93,9 +90,8 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
       // Centralized controller
       ctrl.ctrler.get.done
     } else {
-       //Distributed controller
-      assertOne(ctx.collectDown[Controller]().filter { _.ctrl.get == ctrl }, 
-        s"ctrlDone with ctrl=$ctrl in $ctx").done
+      //Distributed controller
+      ctx.ctrler(ctrl).done
     }
   }
 

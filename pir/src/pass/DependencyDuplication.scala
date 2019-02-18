@@ -10,6 +10,7 @@ class DependencyDuplication(implicit compiler:PIR) extends DependencyAnalyzer {
     val ctxs = pirTop.collectDown[Context]()
     // Compute and mirror in two passes to avoid duplication in mirroring
     dupDeps(ctxs)
+    ctxs.foreach { insertControlBlock }
   }
 
 }
@@ -31,17 +32,9 @@ trait DependencyAnalyzer extends PIRPass with Transformer {
         !x.isDescendentOf(to) && 
         from.fold(true) { from => x.isDescendentOf(from) } 
     }
-    deps = cover[PIRNode, Controller](deps)
+    deps = cover[PIRNode, ControlBlock](deps)
     deps
   }
-
-  def getCtrlerDeps(from:Context, to:Option[Context]=None) = {
-    val leaf = assertOneOrLess(from.collectDown[Controller]().filter { _.isLeaf }, s"$from.leaf ctrler")
-    leaf.fold(List.empty[PIRNode]) { leaf =>
-      (leaf.descendentTree ++ getDeps(leaf, Some(from), to)).distinct.toList
-    }
-  }
-
 
   def getDeps(
     x:PIRNode, 
@@ -54,30 +47,23 @@ trait DependencyAnalyzer extends PIRPass with Transformer {
     var deps = accumDeps(x)
     deps = deps.filterNot(_ == x)
     dbg(s"rawDeps=$deps")
-    val depCtrlers = deps.collect { case ctrler:Controller => ctrler }.distinct
-    val toCtrlers = toCtx.children.collect { case c:Controller => c}
     if (compiler.hasRun[DependencyDuplication]) {
-      // If dependency contains controller, copy all dependencies of the leaf controller
-      assert(depCtrlers.isEmpty || toCtrlers.isEmpty, s"Dep contains controller=${depCtrlers} and $toCtx already contains controller=$toCtrlers")
-      val leaf = assertOneOrLess(depCtrlers.flatMap { _.leaves }.distinct, 
-        s"leaf of ${depCtrlers}")
-      dbg(s"leaf=$leaf")
-      leaf.foreach { leaf =>
-        if (leaf != x && !deps.contains(leaf)) {
-          deps ++= (leaf.descendentTree ++ accumDeps(leaf))
-          deps = deps.distinct
-        }
-      }
+      val depcb = deps.collectFirst { case cb:ControlBlock => cb }
+      val tocb = toCtx.collectFirstChild[ControlBlock]
+      assert(depcb.isEmpty || tocb.isEmpty, s"Dep contains $depcb but $toCtx already contains $tocb")
       from.foreach { from =>
         val hasInput = (deps ++ toCtx.children).exists { _.isInstanceOf[LocalOutAccess] }
-        val hasCtrler = depCtrlers.nonEmpty || toCtrlers.nonEmpty
+        val hasCtrler = depcb.nonEmpty || tocb.nonEmpty
         if (!hasInput && !hasCtrler) {
-          deps ++= getCtrlerDeps(from, Some(toCtx))
+          deps ++= from.collectFirstChild[ControlBlock].map(accumDeps).getOrElse(Nil)
+          deps ++= from.descendents
           deps = deps.distinct
         }
       }
     } else {
       val cmds = toCtx.collectFirstChild[FringeCommand]
+      val depCtrlers = deps.collect { case ctrler:Controller => ctrler }.distinct
+      val toCtrlers = toCtx.children.collect { case c:Controller => c}
       if (cmds.isEmpty && !(depCtrlers ++ toCtrlers).exists { _.getCtrl == toCtx.getCtrl }) {
         toCtx.getCtrl.ctrler.v.foreach { ctxCtrler =>
           deps ++= (ctxCtrler.descendentTree ++ accumDeps(ctxCtrler))
@@ -119,10 +105,20 @@ trait DependencyAnalyzer extends PIRPass with Transformer {
       s"$ctx has non Memory neighbors after DependencyDuplication = $nonMemNeighbors")
   }
 
+  def insertControlBlock(ctx:Context) = {
+    val ctrlers = ctx.collectDown[Controller]().sortBy { _.getCtrl.ancestors.size }
+    if (ctrlers.size > 0) {
+      val cb = within(ctx, ctx.getCtrl) {
+        ControlBlock().ctrlers(ctrlers)
+      }
+      dbg(s"add $cb in $ctx")
+    }
+  }
+
   def dupDeps(ctxs:List[Context], from:Option[Context]=None):Unit = {
     val mappings = ctxs.map { ctx => (ctx, mirrorDeps(ctx, from)) }
     mappings.foreach { case (ctx, mapping) => swapDeps(ctx, mapping) }
-    ctxs.foreach { check }
+    ctxs.foreach { ctx => check(ctx) }
   }
 
 }

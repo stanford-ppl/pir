@@ -12,7 +12,8 @@ trait RuntimeAnalyzer { self:PIRPass =>
     def reads:Seq[LocalOutAccess] = ctx.collectChildren[LocalOutAccess].filterNot { _.isLocal }
     def writes:Seq[LocalInAccess] = ctx.collectChildren[LocalInAccess].filterNot { _.isLocal }
     def ctrs:Seq[Counter] = ctx.collectDown[Counter]()
-    def ctrlers = ctx.collectChildren[Controller]
+    def cb = ctx.collectFirstChild[ControlBlock]
+    def ctrlers = ctx.cb.map { _.collectChildren[Controller] }.getOrElse(Nil)
     def ctrler(ctrl:ControlTree) = {
       assertOne(
         ctx.ctrlers.filter { _.ctrl.get == ctrl }, 
@@ -50,6 +51,10 @@ trait RuntimeAnalyzer { self:PIRPass =>
 
   val StreamReadContext = MatchRule[Context, FringeStreamRead] { n =>
     n.collectFirstChild[FringeStreamRead]
+  }
+
+  val UnderControlBlock = MatchRule[PIRNode, ControlBlock] { n =>
+    n.ancestors.collectFirst { case n:ControlBlock => n }
   }
 
   def boundProp(n:PIRNode):Option[Any] = dbgblk(s"boundProp($n)"){
@@ -139,7 +144,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
     else if (infinite.nonEmpty) Some(Infinite)
     else if (n.collectFirstChild[FringeStreamWrite].nonEmpty) None
     else { // reads is empty
-      val ctrlers = n.collectChildren[Controller]
+      val ctrlers = n.ctrlers
       if (ctrlers.isEmpty) throw PIRException(s"$n's ctrlers and reads are empty")
       else if (ctrlers.exists { _.isForever }) Some(Infinite)
       else None
@@ -152,7 +157,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
     n match {
       case StreamWriteContext(sw) => sw.count.v.getOrElse(throw PIRException(s"${sw.name.v.getOrElse(sw.sname.get)} is not annotated with count"))
       case n:Context =>
-        val ctrlers = n.collectChildren[Controller]
+        val ctrlers = n.ctrlers
         val cmds = n.collectFirstChild[FringeCommand]
         val reads = n.reads
         if (ctrlers.isEmpty || cmds.nonEmpty || ctrlers.exists { _.isForever }) countByReads(n).get

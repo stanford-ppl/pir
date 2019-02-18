@@ -9,20 +9,32 @@ import prism.codegen._
 import spade.codegen._
 import prism._
 
-trait PIRShell extends PIRApp with Logging with Session {
+trait PIRShell extends PIRApp with Logging {
   def staging(top:Top):Unit = {}
+
+}
+
+object pload extends PIRShell with Session {
+  override def loadSession = {
+    import config._
+    var args = ""
+    args += s" --load --debug --dot --out=${dirName(option[String]("ckpt"))}"
+    setOption(args.split(" ").map(_.trim).toList)
+    super[Session].loadSession
+    if (_states.isEmpty) {
+      err(s"Load session failed", false)
+      sys.exit(0)
+    }
+    setAnnotation(pirTop)
+  }
+}
+  
+object psh extends PIRShell with Session {
 
   override def loadSession = {
     import config._
     var args = ""
-    args += s" --load --debug -- dot --out=${dirName(option[String]("ckpt"))} --trace=false"
-    args += " --run-psim --psim"
-    args += s" --psim-out=${cwd}/../gen/shell/"
-    args += s" --psim-home=${cwd}/../plastisim/"
-    args += s" --proute-home=${cwd}/../plastiroute/"
-    //args += " --net=asic "
-    args += " --pattern=checkerboard --row=11 --col=11 "
-    getArgOption("proute-opts").get.updateValue("-i1000 -p100 -t1 -d100 -S5")
+    args += s" --load --debug --dot --out=${dirName(option[String]("ckpt"))}"
     setOption(args.split(" ").map(_.trim).toList)
     val start = getArgOption[Int]("start-id").flatMap { _.getValue }.getOrElse(-1)
     super[Session].loadSession
@@ -34,11 +46,6 @@ trait PIRShell extends PIRApp with Logging with Session {
     args = s"--start-id=$start "
     setOption(args.split(" ").map(_.trim).toList)
   }
-}
-
-object pload extends PIRShell
-  
-object psh extends PIRShell {
 
   override def initSession = {
     import config._
@@ -47,12 +54,12 @@ object psh extends PIRShell {
     //addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
     //addPass(enableDot, new PIRIRDotGen(s"top.dot"))
     //addPass(new PIRCtxDotGen(s"simple.dot"))
-    addPass(tungstenPIRGen)
+    //addPass(tungstenPIRGen)
     //addPass(genPsim, prouteLinkGen)
     //addPass(genPsim, prouteNodeGen)
     //addPass(genPsim, psimConfigGen)
-    //addPass(runPsim, psimRunner)
-    //addPass(psimParser)
+    addPass(runPsim, psimRunner)
+    addPass(psimParser)
     addPass(new PIRCtxDotGen(s"simple10.dot"))
     addPass(new PIRIRDotGen(s"top10.dot"))
 
