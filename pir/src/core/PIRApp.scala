@@ -53,7 +53,7 @@ trait PIRApp extends PIR with Logging {
   override def initSession = {
     import config._
 
-    saveSession("pir/out/pir0.ckpt")
+    saveSession(buildPath(config.outDir,"pir0.ckpt"))
 
     // ------- Analysis and Transformations --------
     addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
@@ -81,7 +81,7 @@ trait PIRApp extends PIR with Logging {
     addPass(enableDot, new PIRCtxDotGen(s"simple6.dot"))
     addPass(globalInsertion).dependsOn(deadCodeEliminator)
     
-    saveSession("pir/out/pir1.ckpt").dependsOn(globalInsertion)
+    saveSession(buildPath(config.outDir,"pir1.ckpt")).dependsOn(globalInsertion)
 
     addPass(initializer).dependsOn(globalInsertion) ==>
     addPass(new ParamHtmlIRPrinter(s"param.html", spadeParam))
@@ -103,7 +103,7 @@ trait PIRApp extends PIR with Logging {
 
     //addPass(enableDot, new PIRNetworkDotGen(s"net.dot"))
     addPass(enableMapping,report).dependsOn(matchPruner) ==>
-    saveSession("pir/out/pir2.ckpt")
+    saveSession(buildPath(config.outDir,"pir2.ckpt"))
     
     // ------- Codegen  --------
     addPass(psimAnalyzer).dependsOn(placerAndRouter) ==>

@@ -20,16 +20,16 @@ trait DSETest extends PlasticineTest { test =>
   
   override def runtimeArgs = Args(Seq(""))
 
-  case object P2PTst extends PIRBackend {
+  case object Tst extends PIRBackend {
     val row:Int=14
     val col:Int=14
     def runPasses():Result = {
       genpir() >>
-      runpir() >>
-      mappir(s"--net=p2p --row=$row --col=$col") >>
-      runtst()
+      runpir(s"--mapping=true --codegen=true --net=p2p --row=$row --col=$col --tungsten --psim=false") >>
+      scommand(s"maketst", "make -C tungsten/".split(" "), timeout=3000, parseMake, MakeError.apply) >>
+      scommand(s"runtst", "./tungsten/tungsten".split(" "), timeout=10, parseTst, RunError.apply)
     }
   }
 
-  override def backends: Seq[Backend] = P2PTst +: super.backends
+  override def backends: Seq[Backend] = Tst +: super.backends
 }

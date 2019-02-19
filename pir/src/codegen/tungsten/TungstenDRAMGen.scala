@@ -7,12 +7,12 @@ import scala.collection.mutable
 
 trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
 
-  val issuers = mutable.ListBuffer[String]()
+  val addrgens = mutable.ListBuffer[String]()
 
   override def finPass = {
     genTopEnd {
-      val cmds = issuers.map{ i => s"&$i.burstcmd" }.mkString(",")
-      val resps = issuers.map{ i => s"&$i.burstrsp" }.mkString(",")
+      val cmds = addrgens.map{ i => s"&$i.burstcmd" }.mkString(",")
+      val resps = addrgens.map{ i => s"&$i.burstrsp" }.mkString(",")
       val dramFile = buildPath(tungstenHome, "ini", "DRAM.ini")
       val systemFile = buildPath(tungstenHome, "ini", "system.ini")
       emitln(s"""DRAMController DRAM("DRAM", "$dramFile", "$systemFile", ".", {$cmds}, {$resps});""")
@@ -24,51 +24,40 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
   def wordPerBurst = spadeParam.burstSizeWord
 
   override def emitNode(n:N) = n match {
+    case DRAMContext(cmd) => super.visitNode(n)
     case n:FringeDenseLoad =>
       val (tp, name) = varOf(n)
       genTopEnd {
-        emitln(s"""$tp $name("$n", ${n.data.T.as[BufferWrite].gout.get.&}, ${n.data.T.tokenTp});""")
+        val offset = nameOf(n.offset.T.as[BufferRead]).&
+        val size = nameOf(n.size.T.as[BufferRead]).&
+        val data = nameOf(n.data.T.as[BufferWrite].gout.get).&
+        emitln(s"""$tp $name("$n", $offset, $size, $data, ${n.data.T.tokenTp});""")
         dutArgs += name
       }
-      genCtxInits {
-        emitln(s"AddSend(&${n}->offset);")
-        emitln(s"AddSend(&${n}->size);")
+      addrgens += s"$n"
+
+    case n:FringeDenseStore =>
+      val (tp, name) = varOf(n)
+      genTopEnd {
+        val offset = nameOf(n.offset.T.as[BufferRead]).&
+        val size = nameOf(n.size.T.as[BufferRead]).&
+        val data = nameOf(n.data.T.as[BufferRead]).&
+        val valid = nameOf(n.valid.T.as[BufferRead]).&
+        val ack = nameOf(n.ack.T.as[BufferWrite].gout.get).&
+        emitln(s"""$tp $name("$n", $offset, $size, $data, $valid, $ack);""")
+        dutArgs += name
       }
-      addEscapeVar(n)
-      emitln(s"${n}->offset.Push(make_token(${n.offset.T}));")
-      emitln(s"${n}->size.Push(make_token(${n.size.T}));")
-      issuers += s"$n"
-    //case n:DRAMCommand =>
-      //val (tp, name) = varOf(n)
-      //genTop {
-        //emitln(s"""$tp $name("$n", ${n.data.T.getVec});""")
-        //dutArgs += name
-      //}
-      //addEscapeVar(n)
-      //n match {
-        //case n:FringeDenseLoad =>
-          //emitln(s"$name->SetupCommand(${n.offset.T}, ${n.size.T});")
-          //respondQueues += nameOf(n.data.T.as[BufferWrite].gout.get)
-        //case n:FringeDenseStore =>
-          //emitln(s"$name->SetupCommand(${n.offset.T}, ${n.size.T}, ${n.data.T});")
-          //respondQueues += nameOf(n.ack.T.as[BufferWrite].gout.get)
-        //case n:FringeSparseLoad =>
-          //emitln(s"$name->SetupCommand(${n.addr.T});")
-          //respondQueues += nameOf(n.data.T.as[BufferWrite].gout.get)
-        //case n:FringeSparseStore =>
-          //emitln(s"$name->SetupCommand(${n.addr.T}, ${n.data.T});")
-          //respondQueues += nameOf(n.ack.T.as[BufferWrite].gout.get)
-      //}
-      //cmdQueues += s"$name.cmd"
-      //genCtxInits {
-        //emitln(s"AddSend(${name}->cmd);")
-      //}
+      addrgens += s"$n"
+
+    case n:CountAck =>
+      emitln(s"bool $n = true;")
 
     case n => super.emitNode(n)
   }
 
   override def varOf(n:PIRNode):(String,String) = n match {
-    case n:FringeDenseLoad => (s"DenseLoadIssuer<${n.data.T.getVec}, $wordPerBurst>", s"${n}")
+    case n:FringeDenseLoad => (s"DenseLoadAG<${n.data.T.getVec}, $wordPerBurst>", s"${n}")
+    case n:FringeDenseStore => (s"DenseStoreAG<${n.data.T.getVec}, $wordPerBurst>", s"${n}")
     case n => super.varOf(n)
   }
 

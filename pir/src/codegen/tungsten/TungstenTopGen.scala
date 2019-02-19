@@ -27,7 +27,7 @@ trait TungstenTopGen extends TungstenCodegen {
 #include "broadcast.h"
 #include "bankedsram.h"
 #include "nbuffer.h"
-#include "idram.h"
+#include "dramag.h"
 
 #include "hostio.h"
 

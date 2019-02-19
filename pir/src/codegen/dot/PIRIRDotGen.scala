@@ -126,9 +126,9 @@ class PIRCtxDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fil
   }
   override def quote(n:Any) = {
     super.quote(n).foldAt(n.to[Context]) { (q,n) =>
-      val accesses = n.collectDown[BankedAccess]()
-      val astr = accesses.map(quote)
-      if (astr.nonEmpty) s"$q\n${astr.mkString("\n")}" else q
+      val cs = n.children.collect { case c:Access => c; case c:FringeCommand => c }
+      val cstr = cs.map(quote)
+      if (cstr.nonEmpty) s"$q\n${cstr.mkString("\n")}" else q
     }
   }
 
