@@ -4,7 +4,7 @@ case class OuterProductParam(
   M:scala.Int = 256,
   N:scala.Int = 256,
   ts1:scala.Int = 64,
-  ts2:scala.Int = 64,
+  ts2:scala.Int = 32,
   ip:scala.Int = 16,
   op1:scala.Int = 1,
   op2:scala.Int = 1
@@ -52,23 +52,27 @@ class OuterProduct_4 extends OuterProduct {override lazy val param = OuterProduc
           val b2 = SRAM[T](ts2)
           b2 load vec2(j::j+ts2 par ip)
           val outTile = SRAM[T](ts1, ts2)
+          // (64, 32)
           Foreach(ts1 by 1, ts2 par ip){ (ii,jj) => outTile(ii, jj) = b1(ii) * b2(jj) } // 2
           out(i::i+ts1, j::j+ts2 par ip) store outTile
         }
       }
     }
-    getMem(out)
+    out
   }
 
   def main(args: Array[String]): Unit = {
     val a = Array.tabulate(M) { i => i }
     val b = Array.tabulate(N) { i => i }
 
-    val result = outerproduct(a, b)
-
-    val gold = Array.tabulate(M){i => Array.tabulate(N){j => a(i) * b(j) }}.flatten
-    val gold_cksum = gold.map(a => a).reduce{_+_}
-    val result_cksum = result.map(a => a).reduce{_+_}
+    val out = outerproduct(a, b)
+    val gold = (0 :: M, 0 :: N) { (i,j) => a(i) * b(j) }
+    //println(s"Result:")
+    //printMatrix(getMatrix(out))
+    //println(s"Gold:")
+    //printMatrix(gold)
+    val gold_cksum = gold.flatten.map(a => a).reduce{_+_}
+    val result_cksum = getMem(out).map(a => a).reduce{_+_}
     println("expected cksum: " + gold_cksum)
     println("result cksum:   " + result_cksum)
     // (0 until M*N) foreach { i => assert(result(i) == gold(i)) }
