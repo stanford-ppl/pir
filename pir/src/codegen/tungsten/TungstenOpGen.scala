@@ -43,8 +43,10 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
           emitln(s"""$n->SetChild($child);""");
         }
         emitln(s"controllers.push_back($n);");
-        n.collectDown[Counter]().foreach { ctr =>
-          emitln(s"$n->AddCounter(${ctr});")
+        n.to[LoopController].foreach { n =>
+          n.cchain.foreach { ctr =>
+            emitln(s"$n->AddCounter(${ctr});")
+          }
         }
       }
       emitln(s"$n->SetEn(${n.en.qref} & ${n.parentEn.qref});")

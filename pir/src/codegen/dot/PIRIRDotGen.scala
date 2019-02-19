@@ -9,7 +9,7 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
 
   implicit class PIRStringHelper(label:String) {
     def append(field:String, value:Any):String = value match {
-      case Const(value) => label + s"\n$field=$value"
+      case Some(Const(value)) => label + s"\n$field=$value"
       case x:PIRNode => label
       case None => label 
       case Some(x) => label + s"\n$field=$x"
