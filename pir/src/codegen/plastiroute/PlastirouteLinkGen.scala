@@ -24,6 +24,7 @@ class PlastirouteLinkGen(implicit compiler: PIR) extends PlastisimCodegen with C
       row("count") = n.constCount
       n.out.T.zipWithIndex.foreach { case (gin, idx) =>
         row(s"dst[$idx]") = gin.global.get.id
+        row(s"out[$idx]") = gin.id
       }
     case n => visitNode(n)
   }

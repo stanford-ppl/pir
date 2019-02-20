@@ -9,7 +9,7 @@ import scala.collection.mutable
 trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
   override def emitNode(n:N) = n match {
-    case n:GlobalOutput =>
+    case n:GlobalOutput if noPlaceAndRoute =>
       val (tp, name) = varOf(n)
       genTop {
         emitln(s"""$tp $name("$n");""")
@@ -21,7 +21,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         dutArgs += s"bc_$n"
       }
       
-    case n:GlobalInput =>
+    case n:GlobalInput if noPlaceAndRoute =>
       val (tp, name) = varOf(n)
       genTop {
         emitln(s"""$tp $name("$n");""")
@@ -31,6 +31,27 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         val bcArgs = n.out.T.map { out => varOf(out)._2.& }
         emitln(s"""Broadcast<Token> bc_$n("bc_$n", ${name.&}, {${bcArgs.mkString(",")}});""")
         dutArgs += s"bc_$n"
+      }
+
+    case n:GlobalOutput =>
+      val (tp, name) = varOf(n)
+      val bcArgs = n.out.T.map { out => varOf(out)._2.& }
+      emitln(s"""$tp $name("$n", &net);""")
+      emitln(s"""// dst = ${bcArgs.mkString(",")}""")
+      dutArgs += name
+      
+    case n:GlobalInput =>
+      val (tp, name) = varOf(n)
+      emitln(s"""$tp $name("$n", &net);""")
+      dutArgs += name
+
+      genTopEnd {
+        val bcArgs = n.out.T.map { out => varOf(out)._2 }
+        assert(bcArgs.length == 1) // This assertion can fail
+        val src = s"$name"
+        val dst = s"${bcArgs.mkString(",")}"
+        emitln(s"""Bridge<Token> brg_${src}_${dst}("brg_${src}_${dst}", &$src, &$dst);""")
+        dutArgs += s"brg_${src}_${dst}"
       }
 
     case n:LocalOutAccess =>
@@ -65,13 +86,12 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         addEscapeVar(send)
         genCtxInits {
           emitln(s"AddSend(${nameOf(send)});");
-          emitln(s"$send->SetAlmostBy(1);")
         }
         genCtxEval {
-          emitAccess(n.data.T.as[Access], prev=true) { buffer =>
-            emitIf(s"${n.done.qref}") {
-              emitln(s"${send}->Push($buffer->ReadData());");
-            }
+          val data = nameOf(n.data.T)
+          emitIf(s"$data->Valid() && ${nameOf(send)}->Ready()") {
+            emitln(s"${nameOf(send)}->Push($data->Read());")
+            emitln(s"$data->Pop();")
           }
         }
       }
@@ -131,11 +151,20 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:BankedRead =>
       addEscapeVar(n.mem.T)
+      val (tp, name) = varOf(n)
+      emitNewMember(tp, name)
       emitAccess(n) { mem =>
         emitln(s"${mem}->SetupRead(make_token(${n.offset.qref}));")
       }
       genCtxComputeEnd {
         emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
+      }
+      genCtxEval {
+        emitAccess(n, prev=true) { buffer =>
+          emitIf(s"$buffer->ReadValid()") {
+            emitln(s"$name->Push($buffer->ReadData());");
+          }
+        }
       }
 
     case n:BankedWrite =>
@@ -184,14 +213,18 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
   }
 
   override def varOf(n:PIRNode):(String,String) = n match {
+    case n:GlobalOutput if noPlaceAndRoute =>
+      (s"FIFO<Token,2>", s"$n")
+    case n:GlobalInput if noPlaceAndRoute =>
+      (s"FIFO<Token,2>", s"$n")
     case n:GlobalOutput =>
-      (s"FIFO<Token, 4>", s"$n")
+      (s"NetworkInput", s"ni_$n")
     case n:GlobalInput =>
-      (s"FIFO<Token, 2>", s"$n")
+      (s"NetworkOutput", s"no_$n")
     case n:BufferRead =>
       (s"FIFO<Token, 4>", s"fifo_$n") //TODO
     case n:TokenRead =>
-      (s"FIFO<Token, ${n.getDepth}>", s"fifo_$n") //TODO
+      (s"FIFO<Token, ${n.getDepth}>", s"fifo_$n")
     case n:LocalInAccess =>
       val data = n match {
         case n:BufferWrite => n.data.T
@@ -211,6 +244,8 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       (s"NBuffer<BankedSRAM<int, ${n.capacity/n.getDepth}, ${n.nBanks}>, ${n.getDepth}>", s"$n")
     case n:Reg =>
       (s"NBuffer<Register<int>, ${n.getDepth}>", s"$n")
+    case n:BankedRead =>
+      (s"FIFO<Token,2>", s"$n")
     case n => super.varOf(n)
   }
 
