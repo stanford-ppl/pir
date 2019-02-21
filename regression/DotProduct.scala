@@ -13,7 +13,8 @@ class DotProduct_2 extends DotProduct { override lazy val param = DotProductPara
 class DotProduct_3 extends DotProduct { override lazy val param = DotProductParam(op=2) }
 
 @spatial abstract class DotProduct extends DSETest {
-  type X = FixPt[TRUE,_32,_0]
+  //type X = FixPt[TRUE,_16,_16]
+  type X = Float
 
   lazy val param = DotProductParam()
   import param._
@@ -44,16 +45,16 @@ class DotProduct_3 extends DotProduct { override lazy val param = DotProductPara
 
 
   def main(args: Array[String]): Unit = {
-    val a = Array.tabulate(N){ i => i }
-    val b = Array.tabulate(N){ i => i }
+    val a = Array.tabulate(N){ i => i.to[X] }
+    val b = Array.tabulate(N){ i => i.to[X] }
 
-    val result = dotproduct(a, b)
+    val result = dotproduct[X](a, b)
     val gold = a.zip(b){_*_}.reduce{_+_}
 
     println("expected: " + gold)
     println("result: " + result)
 
-    val cksum = gold == result
+    val cksum = abs(gold - result) < (gold * 0.05f)
     println("PASS: " + cksum + " (DotProduct)")
     assert(cksum)
   }

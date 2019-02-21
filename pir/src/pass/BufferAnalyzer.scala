@@ -75,7 +75,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
             read.in.canReach(write.out, visitEdges=visitInEdges _) &&
             read.done.canReach(deq, visitEdges=visitInEdges _)
           } {
-            BufferRead().in(write.out).done(deq).banks(List(dep.getVec))
+            BufferRead().in(write.out).done(deq).banks(List(dep.getVec)).tp(compType(depOut))
           }
         }
         swapConnection(depedIn, depOut, read.out)

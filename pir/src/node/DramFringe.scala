@@ -40,6 +40,7 @@ case class FringeSparseStore(dram:DRAM)(implicit env:Env) extends DRAMSparseComm
 case class DRAM(sid:String) extends prism.graph.IR {
   val dims = Metadata[List[Int]]("dims")
   val sname = new Metadata[String]("sname")
+  val tp = new Metadata[BitType]("tp")
 }
 
 trait StreamCommand extends FringeCommand

@@ -5,7 +5,7 @@ import prism.graph._
 
 trait Codegen extends Pass with Printer with DFSTraversal with UnitTraversal {
 
-  def dirName = compiler.outDir
+  def dirName = config.outDir
   def fileName:String
   val append = false
   def codegenPostfix = fileName

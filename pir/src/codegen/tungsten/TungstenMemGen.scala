@@ -71,7 +71,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
               emitln(s"$name->Push(init_$n);")
             }
           }
-          emitVec(n)(s"toT<${n.tp}>($name->Read(), ${if (n.getVec==1) "0" else "i" })")
+          emitVec(n)(s"toT<${n.qtp}>($name->Read(), ${if (n.getVec==1) "0" else "i" })")
           genCtxComputeEnd {
             emitIf(s"${n.done.qref}") {
               emitln(s"$name->Pop();")
@@ -236,14 +236,14 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       }
       (s"ValPipeline<Token, $pipeDepth>", s"pipe_$n")
     case n:FIFO =>
-      (s"FIFO<int, ${n.getDepth}>", s"$n")
+      (s"FIFO<${n.qtp}, ${n.getDepth}>", s"$n")
     case n:SRAM =>
       val numBanks = n.getBanks.product
-      (s"NBuffer<BankedSRAM<int, ${n.capacity/n.getDepth}, ${n.nBanks}>, ${n.getDepth}>", s"$n")
+      (s"NBuffer<BankedSRAM<${n.qtp}, ${n.capacity/n.getDepth}, ${n.nBanks}>, ${n.getDepth}>", s"$n")
     case n:LUT =>
-      (s"NBuffer<BankedSRAM<int, ${n.capacity/n.getDepth}, ${n.nBanks}>, ${n.getDepth}>", s"$n")
+      (s"NBuffer<BankedSRAM<${n.qtp}, ${n.capacity/n.getDepth}, ${n.nBanks}>, ${n.getDepth}>", s"$n")
     case n:Reg =>
-      (s"NBuffer<Register<int>, ${n.getDepth}>", s"$n")
+      (s"NBuffer<Register<${n.qtp}>, ${n.getDepth}>", s"$n")
     case n:BankedRead =>
       (s"FIFO<Token,2>", s"$n")
     case n => super.varOf(n)

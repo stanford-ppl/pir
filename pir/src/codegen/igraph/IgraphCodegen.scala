@@ -7,7 +7,7 @@ import prism.graph._
 import prism.codegen._
 
 class IgraphCodegen(implicit compiler:PIR) extends PIRTraversal with PythonCodegen with ChildFirstTraversal with CUCostUtil {
-  override def dirName = buildPath(compiler.outDir, s"../igraph")
+  override def dirName = buildPath(config.outDir, s"../igraph")
   val fileName = "graph.py"
 
   override def initPass = {

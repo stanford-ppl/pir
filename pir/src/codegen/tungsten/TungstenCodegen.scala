@@ -71,21 +71,21 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   def emitVec(n:PIRNode)(rhs: => Any) = {
     val vec = n.getVec
     if (vec > 1) {
-      emitln(s"${n.tp} $n[${vec}] = {};")
+      emitln(s"${n.qtp} $n[${vec}] = {};")
       emitBlock(s"for (int i = 0; i < ${vec}; i++)") {
         emitln(s"$n[i] = ${rhs};")
       }
     } else {
-      emitln(s"auto ${n} = ${rhs};")
+      emitln(s"${n.qtp} ${n} = ${rhs};")
     }
   }
 
   def emitVec(n:PIRNode, rhs:List[Any]) = {
     assert(n.getVec == rhs.size)
     if (n.getVec==1) {
-      emitln(s"auto ${n} = ${rhs.head};")
+      emitln(s"${n.qtp} ${n} = ${rhs.head};")
     } else {
-      emitln(s"${n.tp} ${n}[] = {${rhs.mkString(",")}}")
+      emitln(s"${n.qtp} ${n}[] = {${rhs.mkString(",")}};")
     }
   }
 
@@ -117,15 +117,17 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       val q = quoteRef(n)
       if (n.getVec==1) q else s"$q[$i]"
     }
-    def tp:String = n match { // TODO: propogate type from spatial properly
-      case n:DRAMAddr => "uint64_t"
-      case n:BufferWrite if n.sname.nonEmpty && n.sname.get.contains("offset") => "uint64_t"
-      case n:BufferRead  if n.sname.nonEmpty && n.sname.get.contains("offset") => "uint64_t"
-      case n:BufferWrite => n.data.T.tp
-      case n:BufferRead => n.inAccess.tp
-      case n => "int"
+    def qtp:String = n.getTp match {
+      case Fix(true, 32, 0) => "int"
+      case Fix(true, 64, 0) => "long"
+      case Fix(false, 32, 0) => "uint32_t"
+      case Fix(false, 64, 0) => "uint64_t"
+      case Fix(true, i, f) if f > 0 && i + f <= 32 => "float"
+      case Fix(true, i, f) if f > 0 && i + f <= 64 => "double"
+      case Flt(m,f) => "float"
+      case Bool => "bool"
     }
-    def tokenTp = tp match {
+    def tokenTp = qtp match {
       case "int" if n.getVec == 1 => "TT_INT"
       case "int" if n.getVec > 1 => "TT_INTVEC"
       case "uint64_t" if n.getVec == 1 => "TT_UINT64"
