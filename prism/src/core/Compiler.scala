@@ -11,11 +11,9 @@ trait Compiler extends FileManager with ArgLoader with Session with Logging {
 
   lazy val config = new Config(this)
 
-  def outDir = config.outDir
-
   def reset = { 
     if (config.startRunId==0) {
-      clearLogs(outDir)
+      clearLogs(config.outDir)
     }
   } 
 
@@ -33,12 +31,12 @@ trait Compiler extends FileManager with ArgLoader with Session with Logging {
 
   def main(args: Array[String]): Unit = {
     setArgs(args)
-    withLog(outDir, s"compiler.log") {
+    withLog(config.logDir, s"compiler.log") {
       tic
       Try {
         loadSession
         reset
-        info(s"Output directory set to ${cstr(Console.CYAN,outDir)}")
+        info(s"Output directory set to ${cstr(Console.CYAN,config.outDir)}")
         initSession
         runSession
       }.recoverWith { case e:Throwable =>

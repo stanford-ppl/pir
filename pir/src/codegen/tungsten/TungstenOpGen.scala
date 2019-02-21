@@ -81,7 +81,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
     case n@RegAccumOp(op) =>
       genCtxFields {
-        emitln(s"${n.tp} $n = 0;")
+        emitln(s"${n.qtp} $n = 0;")
       }
       val accumOp = op match {
         case "AccumAdd" => s"FixAdd"
@@ -106,19 +106,19 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       val from = n.from.T
       val base = n.base.T
       val to = n.to.T
-      emitln(s"${from.tp} ${n}_vfrom[] = ${if (from.getVec==1) s"{$from}" else from};")
-      emitln(s"${to.tp} ${n}_vto[] = ${if (to.getVec==1) s"{$to}" else to};")
-      emitln(s"${base.tp} ${n}_vbase[] = ${if (base.getVec==1) s"{$base}" else base};")
+      emitln(s"${from.qtp} ${n}_vfrom[] = ${if (from.getVec==1) s"{$from}" else from};")
+      emitln(s"${to.qtp} ${n}_vto[] = ${if (to.getVec==1) s"{$to}" else to};")
+      emitln(s"${base.qtp} ${n}_vbase[] = ${if (base.getVec==1) s"{$base}" else base};")
       (0 until n.getVec).foreach { i =>
-        emitln(s"int ${n}_idx_$i = find<${from.tp}, ${from.getVec}>(${n}_vfrom, ${n}_vto[$i]);")
-        emitln(s"auto ${n}_$i = (${n}_idx_$i < 0) ? INVALID : ${n}_vbase[${n}_idx_$i];")
+        emitln(s"int ${n}_idx_$i = find<${from.qtp}, ${from.getVec}>(${n}_vfrom, ${n}_vto[$i]);")
+        emitln(s"${n.qtp} ${n}_$i = (${n}_idx_$i < 0) ? INVALID : ${n}_vbase[${n}_idx_$i];")
       }
       emitVec(n, List.tabulate(n.getVec) { i => s"${n}_$i"} )
 
     case n@OpDef(FixToFix) =>
       val inputs = n.input.T
       emitVec(n) {
-        s"(${n.tp}) ${inputs.head.qref("i")}" 
+        s"(${n.qtp}) ${inputs.head.qref("i")}" 
       }
 
     case n:OpDef =>
@@ -136,14 +136,14 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       }
 
     case n:HostWrite =>
-      emitln(s"${n.tp} $n;")
+      emitln(s"${n.qtp} $n;")
       emitln(s"""std::ifstream stream_$n("${n.sid}.txt");""")
       emitln(s"""stream_$n << $n;""")
       emitln(s"""stream_$n.close();""")
       emitln(s"""cout << "Set ArgIn ${n.sid} " << ${n} << endl;""")
 
     case n:DRAMAddr =>
-      emitln(s"auto $n = (uint64_t) ${n.dram.sname.get};")
+      emitln(s"${n.qtp} $n = (${n.qtp}) ${n.dram.sname.get};")
 
     case n => super.emitNode(n)
   }

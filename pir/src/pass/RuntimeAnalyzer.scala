@@ -42,6 +42,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
 
     def psimState(s:String) = n.getMeta[Float]("psimState").update(s)
     def psimState = n.getMeta[String]("psimState").v
+    def getTp:BitType = n.tp.getOrElseUpdate(compType(n))
   }
   implicit class NodeRuntimeOp(n:ND) {
     def getVec:Int = n.getMeta[Int]("vec").getOrElseUpdate(compVec(n))
@@ -204,6 +205,23 @@ trait RuntimeAnalyzer { self:PIRPass =>
       case n:PIRNode => n.getCtrl.getVec
       case n:ControlTree =>
         if (n.children.isEmpty) n.par.get else 1
+    }
+  }
+
+  def compType(n:Any):BitType = dbgblk(s"compType($n)") {
+    n match {
+      case n:DRAMAddr => n.out.T.head.getTp
+      case n:Shuffle => n.base.T.getTp
+      case n:LocalInAccess => assertUnify(n.outAccesses, s"$n.outAccesses.tp") { _.getTp }.get
+      case n:TokenRead => Bool
+      case Const(_:Boolean) => Bool
+      case Const(_:Int) => Fix(true, 32, 0)
+      case Const(_:Float) => Flt(23, 8)
+      case Const((i:Int) :: _) => Fix(true, 32, 0)
+      case OutputField(n:Controller, "valid") => Bool
+      case OutputField(n:Controller, "done") => Bool
+      case n:Edge[_,_,_] => n.src.as[PIRNode].getTp
+      case n:Any => throw PIRException(s"Don't know type of $n")
     }
   }
 

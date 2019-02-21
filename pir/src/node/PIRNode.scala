@@ -32,6 +32,7 @@ abstract class PIRNode(implicit env:BuildEnvironment)
       super.reset
     }
   }
+  val tp = new Metadata[BitType]("tp")
 
   // Scale is relative rate of a node active to ctx enable
   val scale = new Metadata[Value[Long]]("scale") {

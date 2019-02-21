@@ -49,7 +49,7 @@ case class Runner(session:Session, id:Int) extends Serializable with RunnerStatu
 
     setRunning
 
-    pass.withLog(compiler.outDir, logFile, append=false) {
+    pass.withLog(compiler.config.logDir, logFile, append=false) {
       tic(s"Running ${cstr(Console.CYAN, name)} ...")
       Try(pass.run) match {
         case Success(_) if isRunning => setSucceed
