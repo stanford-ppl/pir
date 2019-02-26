@@ -62,3 +62,10 @@ class Input[N<:Node[N]](implicit val src:N) extends Edge[N,Input[N],Output[N]] {
 
 class Output[N<:Node[N]](implicit val src:N) extends Edge[N,Output[N],Input[N]]
 
+
+object WithNode {
+  def unapply(x:Any) = x match {
+    case x:Edge[n,_,_] => Some(x.src.as[Node[n]])
+    case x => None
+  }
+}

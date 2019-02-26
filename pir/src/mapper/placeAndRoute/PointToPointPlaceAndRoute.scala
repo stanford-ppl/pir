@@ -7,7 +7,7 @@ import prism.mapper._
 trait PointToPointPlaceAndRoute extends Mapper {
 
   private def bindLambda(cuP:CUMap.K, cuS:CUMap.V, cumap:CUMap) = {
-    dbgblk(s"set ${quote(cuP)} -> ${quote(cuS)}") { cumap.set(cuP,cuS) }
+    dbgblk(s"set ${dquote(cuP)} -> ${dquote(cuS)}") { cumap.set(cuP,cuS) }
   }
 
   override def bind[T](x:T):EOption[T] = x match {

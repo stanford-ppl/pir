@@ -13,7 +13,7 @@ trait UniformCostGraphSearch[N,A,C] extends MappingLogging {
   implicit val cnu:Numeric[C]
 
   case class State(n:N, var cost:C) extends Ordered[State] {
-    override def toString = s"State(${quote(n)}, $cost)" 
+    override def toString = s"State(${dquote(n)}, $cost)" 
     def compare(that:State):Int = -cnu.compare(cost, that.cost)
   }
 
@@ -35,7 +35,7 @@ trait UniformCostGraphSearch[N,A,C] extends MappingLogging {
       assert(nodes.head == start, s"the head of nodes=$nodes is not start=$start")
       Right(route)
     } else {
-      Left(SearchFailure(start, end, s"No route from ${quote(start)} to ${quote(end)}"))
+      Left(SearchFailure(start, end, s"No route from ${dquote(start)} to ${dquote(end)}"))
     }
   }
 
@@ -86,7 +86,7 @@ trait UniformCostGraphSearch[N,A,C] extends MappingLogging {
       neighbors = neighbors.filterNot { case (n, a, c) => explored.contains(n) }
 
       dbg(s"neighbors minBy:")
-      dbg(s" - ${neighbors.map { case (n, a, c) => s"(${quote(n)}, $c)" }.mkString(",")}")
+      dbg(s" - ${neighbors.map { case (n, a, c) => s"(${dquote(n)}, $c)" }.mkString(",")}")
 
       neighbors.foreach { case (neighbor, action, cost) =>
         val newCost = cnu.plus(pastCost, cost)

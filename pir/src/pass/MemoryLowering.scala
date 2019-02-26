@@ -108,11 +108,11 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
         within(addrCtx, access.getCtrl) {
           flattenBankAddr(access)
           val bank = access.bank.connected
-          val ofs = Shuffle().from(bank).to(allocConst(mem.bankids.get)).base(access.offset.connected)
+          val ofs = stage(Shuffle().from(bank).to(allocConst(mem.bankids.get)).base(access.offset.connected))
           dbg(s"val $ofs = Shuffle() //ofs")
           val data = access match {
             case access:BankedWrite => 
-              val data = Shuffle().from(bank).to(allocConst(mem.bankids.get)).base(access.data.connected)
+              val data = stage(Shuffle().from(bank).to(allocConst(mem.bankids.get)).base(access.data.connected))
               bufferInput(data.base) // Force fifo control among unrolled controllers
               dbg(s"val $data = Shuffle() //data")
               Some(data)
@@ -125,13 +125,11 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       while(red.size > 1) {
         red = red.sliding(2,2).map{ 
           case List((o1, d1),(o2, d2)) =>
-            val of = OpDef(FixOr).input(o1, o2)
-            dbg(s"add of = $of.input(${o1.src}.$o1,${o2.src}.$o2")
+            val of = stage(OpDef(FixOr).input(o1, o2))
             bufferInput(of.input)
             val dt = zipOption(d1, d2).map { case (d1, d2) =>
-              val dt = OpDef(FixOr).input(d1,d2)
+              val dt = stage(OpDef(FixOr).input(d1,d2))
               bufferInput(dt.input)
-              dbg(s"add dt = $dt.input(${d1.src}.$d1,${d2.src}.$d2)")
               dt
             }
             (of.out, dt.map { _.out })
@@ -141,12 +139,11 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       //TODO: handle en
       val List((ofs, data)) = red
       data.fold[Unit]{
-        val newRead = BankedRead().offset(ofs).mem(mem).mirrorMetas(headAccess)
+        val newRead = stage(BankedRead().offset(ofs).mem(mem).mirrorMetas(headAccess))
         accesses.asInstanceOf[Set[BankedRead]].foreach { access =>
-          access.out.connected.distinct.foreach{ in => 
-            val inCtx = in.src.ctx.get
-            val shuffle = within(inCtx, in.src.getCtrl)  {
-              Shuffle().from(allocConst(mem.bankids.get)).to(access.bank.connected).base(newRead.out)
+          access.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx, ins) =>
+            val shuffle = within(inCtx, inCtx.getCtrl)  {
+              stage(Shuffle().from(allocConst(mem.bankids.get)).to(access.bank.connected).base(newRead.out))
             }
             dbg(s"val $shuffle = Shuffle() // bankRead")
             bufferInput(shuffle.base)
@@ -154,12 +151,14 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
             bufferInput(shuffle.to).foreach { read =>
               swapParent(read.inAccess, addrCtxs(access))
             }
-            dbg(s"${in.src}.$in.swapInput($access.out, $shuffle.out)")
-            swapConnection(in, access.out, shuffle.out)
+            ins.foreach { in =>
+              dbg(s"${in.src}.$in.swapInput($access.out, $shuffle.out)")
+              swapConnection(in, access.out, shuffle.out)
+            }
           }
         }
       } { data => 
-        BankedWrite().offset(ofs).data(data).mem(mem).mirrorMetas(headAccess)
+        stage(BankedWrite().offset(ofs).data(data).mem(mem).mirrorMetas(headAccess))
       }
     }
     removeNodes(accesses)
@@ -175,7 +174,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
         assert(inds.size == dims.size, s"flattenND inds=$inds dims=$dims have different size for access=$access")
         val i::irest = inds
         val d::drest = dims
-        OpDef(FixFMA).input(i,allocConst(drest.product), flattenND(irest, drest)).out
+        stage(OpDef(FixFMA).input(i,allocConst(drest.product), flattenND(irest, drest))).out
       }
       val dims = mem match {
         case mem:SRAM => mem.banks.get

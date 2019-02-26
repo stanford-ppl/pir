@@ -8,7 +8,7 @@ trait PointToPointPlacer extends Placer with BackTrackingMatch {
 
   private def bindLambda(cuP:CUMap.K, cuS:CUMap.V, pmap:PIRMap) = {
     pmap.flatMap[CUMap] { cumap => 
-      dbgblk(s"set ${quote(cuP)} -> ${quote(cuS)}") { cumap.set(cuP,cuS) }
+      dbgblk(s"set ${dquote(cuP)} -> ${dquote(cuS)}") { cumap.set(cuP,cuS) }
     }
   }
 

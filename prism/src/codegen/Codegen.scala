@@ -25,7 +25,7 @@ trait Codegen extends Pass with Printer with DFSTraversal with UnitTraversal {
     closeAll
   }
 
-  override def quote(n:Any):String = n match {
+  def quote(n:Any):String = n match {
     case n:Map[_,_] => n.map{ case (k, v) => (quote(k), quote(v)) }.toString
     case n:Iterable[_] => n.map(quote).toString
     case n => s"$n"
