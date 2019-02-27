@@ -25,7 +25,7 @@ def main():
         os.system('bin/spatial -t {} -p {} -b {} {}'.format(opts.thread, opts.project,backend,
             ' '.join(['-a ' + a for a in apps])))
         os.system('echo {}\n > {}'.format(sha, log))
-        os.system('bin/log ../gen/{} | tee -a {}'.format(backend, log))
+        os.system('bin/log ../gen/P14x14 | tee -a {}'.format(log))
 
 if __name__ == "__main__":
     main()
