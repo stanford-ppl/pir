@@ -4,9 +4,10 @@ package pass
 import pir.node._
 import prism.graph._
 import prism.util._
+import spade.param.FixOp
 import scala.collection.mutable
 
-trait RuntimeAnalyzer { self:PIRPass =>
+trait RuntimeAnalyzer extends Logging { self:PIRPass =>
 
   def noPlaceAndRoute = spadeParam.isAsic || spadeParam.isP2P 
 
@@ -42,7 +43,7 @@ trait RuntimeAnalyzer { self:PIRPass =>
 
     def psimState(s:String) = n.getMeta[Float]("psimState").update(s)
     def psimState = n.getMeta[String]("psimState").v
-    def getTp:BitType = n.tp.getOrElseUpdate(compType(n))
+    def getTp:BitType = inferType(n).getOrElse(throw PIRException(s"Don't know type of $n"))
   }
   implicit class NodeRuntimeOp(n:ND) {
     def getVec:Int = n.getMeta[Int]("vec").getOrElseUpdate(compVec(n))
@@ -208,21 +209,40 @@ trait RuntimeAnalyzer { self:PIRPass =>
     }
   }
 
-  def compType(n:Any):BitType = dbgblk(s"compType($n)") {
+  def inferType(n:PIRNode) = n.tp.v orElse {
+    compType(n)
+  }
+
+  def compType(n:Any):Option[BitType] = dbgblk(s"compType($n)") {
     n match {
-      case n:DRAMAddr => n.out.T.head.getTp
-      case n:Shuffle => n.base.T.getTp
-      case n:LocalInAccess => assertUnify(n.outAccesses, s"$n.outAccesses.tp") { _.getTp }.get
-      case n:TokenRead => Bool
-      case Const(_:Boolean) => Bool
-      case Const(_:Int) => Fix(true, 32, 0)
-      case Const(_:Float) => Flt(23, 8)
-      case Const((i:Int) :: _) => Fix(true, 32, 0)
-      case OutputField(n:Controller, "valid") => Bool
-      case OutputField(n:Controller, "done") => Bool
-      case n:Edge[_,_,_] => n.src.as[PIRNode].getTp
-      case n:Any => throw PIRException(s"Don't know type of $n")
+      case n:DRAMAddr => inferType(n.out.T.head)
+      case n:Shuffle => inferType(n.base.T)
+      case n:LocalInAccess => assertUnify(n.outAccesses, s"$n.outAccesses.tp") { inferType(_) }.get
+      case n:TokenRead => Some(Bool)
+      case n@OpDef(_:FixOp) => assertUnify(n.input.T, s"$n.tp") { inferType(_) }.get
+      case Const(_:Boolean) => Some(Bool)
+      case Const(_:Int) => Some(Fix(true, 32, 0))
+      case Const(_:Float) => Some(Flt(23, 8))
+      case Const((i:Int) :: _) => Some(Fix(true, 32, 0))
+      case OutputField(n:Controller, "valid") => Some(Bool)
+      case OutputField(n:Controller, "done") => Some(Bool)
+      case n:Edge[_,_,_] => inferType(n.src.as[PIRNode])
+      case n:Any => None
     }
+  }
+
+  def stage[T<:PIRNode](n:T):T = {
+    val tp = inferType(n)
+    val fields = n.fedges.map { e => s".${e.name}(${e.connected.map { dquote }})" }.mkString
+    dbg(s"Create $n$fields in ${n.parent} with tp=$tp")
+    n
+  }
+
+  override def dquote(x:Any) = x match {
+    case Const(v) => s"${super.dquote(x)}($v)"
+    case OpDef(op) => s"${super.dquote(x)}($op)"
+    case x:Edge[n,_,_] => s"${dquote(x.src)}.$x"
+    case x => super.dquote(x)
   }
 
 }

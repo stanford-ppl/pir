@@ -109,7 +109,7 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
         val nodes = container.collectDown[T]().filter(filter)
         assertOneOrLess(nodes, s"$ct under $container").getOrElse {
           val node = within(container) { newNode }
-          dbg(s"allocate[$ct](container=$container) = ${quote(node)}")
+          dbg(s"allocate[$ct](container=$container) = ${dquote(node)}")
           node
         }
     }

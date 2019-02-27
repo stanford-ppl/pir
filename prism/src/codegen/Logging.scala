@@ -21,18 +21,18 @@ trait Logging extends Serializable {
         case res:Iterable[_] =>
           dbg(resHeader)
           if (res.size <= 4) {
-            res.foreach { res => dbg(s" - ${quote(res)}") }
+            res.foreach { res => dbg(s" - ${dquote(res)}") }
           } else {
             dbg(s"size=${res.size} [${res.mkString(",")}]")
           }
-        case res => dbg(resHeader + s" ${quote(res)}")
+        case res => dbg(resHeader + s" ${dquote(res)}")
       }
       emitBEln(None, b, es)
       res
     } else block
   }
 
-  def quote(n:Any):String = n.toString
+  def dquote(n:Any):String = n.toString
 
   private def promp(header:Option[String], s:Any) = s"${header.fold("") { h => s"[$h] "}}$s"
 

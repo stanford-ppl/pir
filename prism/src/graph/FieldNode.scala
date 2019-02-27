@@ -29,6 +29,13 @@ object OutputField {
     case _ => None
   }
 }
+
+object Unbox {
+  def unapplySeq(x:Any):Option[Seq[Any]] = x match {
+    case x:FieldNode[_] => Some(x +: x.fins.map { _.T })
+    case x => None
+  }
+}
 /*
  * With field node the edges are declared with FieldEdge
  * The number of edge must be declared in the IR statically. 
@@ -45,7 +52,9 @@ trait FieldNode[N<:Node[N]] extends Node[N] { self:N =>
   def asInput:Option[Input[N]] = None
   def asOutput:Option[Output[N]] = None
 
-  def Ts = edges.map { e => e.asInstanceOf[FieldEdge[N,_,_]].T }
+  def fedges = localEdges.toList.asInstanceOf[List[FieldEdge[_,_,_]]]
+  def fins = localIns.toList.asInstanceOf[List[InputField[_]]]
+  def Ts = fedges.map { _.T } 
 
   trait NodeField[T] extends Field[T] {
     val name:String

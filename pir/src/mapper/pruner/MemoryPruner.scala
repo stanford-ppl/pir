@@ -51,8 +51,8 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
       mmem.bankids := bankids.toList
     }
 
-    // Update Shuffles within new partitions
-    updateShuffle(k, mem, mappings)
+    // Update Shuffles within new memory partitions
+    updateShuffle(k, mem, mappings) 
 
     // TODO: update bank address calculation if bankMult is not one
     if (bankMult > 1) {
@@ -68,9 +68,10 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     mks.foreach { nk =>
       insertGlobalOutput(nk)
     }
-    var toremove = nodes
-    toremove ++= k.accum(visitFunc = visitGlobalOut _)
-    removeNodes(toremove)
+    //breakPoint(s"$k, $mks")
+    val usedByRemove = k.accum(visitFunc = visitGlobalOut _, logger=Some(this))
+    removeNodes(nodes)
+    removeNodes(usedByRemove)
     //breakPoint(s"$k, $mks")
     mks
   }
@@ -97,51 +98,69 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
   }
 
   def mergeReads(k:CUMap.K, mem:Memory, br:BankedRead, mappings:List[mutable.Map[ND, ND]]) = dbgblk(s"mergeReads($k, $br)") {
-    val shuffles = br.collect[Shuffle](visitGlobalOut _)
-    shuffles.foreach { shuffle =>
-      val ctx = shuffle.ctx.get
-      dbgblk(s"merge $shuffle in $ctx") {
-        within(ctx, shuffle.ctrl.get) {
-          val mshuffles = mappings.map { mapping =>
-            val mmem = mapping(mem).as[Memory]
-            val mbr = mapping(br).as[BankedRead]
-            val mshuffle = mirrorAll(List(shuffle))(shuffle).as[Shuffle]
-            // Swap shuffle.base connection from new cu
-            mshuffle.base.disconnect
-            mshuffle.base(mbr.out)
-            bufferInput(mshuffle.base)
-            // Swap connection shuffle.to, which is bank address. If bank address is passed from k, 
-            // change to bank address calculated in corresponding new partitions
-            mshuffle.to.T.collect[BufferWrite](visitFunc=visitGlobalIn _, logger=Some(this)).headOption.foreach { bout =>
-              val bankAddr = bout.data.T
-              mapping.get(bankAddr).foreach { mbankAddr =>
-                dbg(s"bankAddr=$bankAddr, mbankAddr=$mbankAddr")
-                mshuffle.to.disconnect
-                mshuffle.to(mbankAddr)
-                bufferInput(mshuffle)
-              }
+    val reads = br.collect[BufferRead](visitGlobalOut _)
+    reads.groupBy { _.global.get }.foreach { case (global, reads) =>
+      reads.groupBy { _.ctx.get }.foreach { case (ctx, reads) =>
+        val read = assertOne(reads, s"reads of $br in $ctx")
+        dbgblk(s"Merge $read in $ctx") {
+          within(ctx, read.ctrl.get) {
+            val (toSwap, toMerge) = read.out.T match {
+              case List(Unbox(shuffle:Shuffle, from, Const(toBanks), base)) => 
+                dbg(s"Read by $shuffle.to(Const($toBanks))")
+                val toMerge = mappings.map { mapping => 
+                  val mmem = mapping(mem).as[Memory]
+                  val mbr = mapping(br).as[BankedRead]
+                  val fromBanks = mmem.bankids.get
+                  if (fromBanks == toBanks) {
+                    mbr.out
+                  } else {
+                    stage(Shuffle().base(mbr.out).from(allocConst(fromBanks)).to(allocConst(toBanks))).out
+                  }
+                }
+                (shuffle.out, toMerge)
+              case List(Unbox(shuffle:Shuffle, from, to, base)) => 
+                dbg(s"Read by $shuffle with non-constant to=$to")
+                val toMerge = mappings.map { mapping => 
+                  val mmem = mapping(mem).as[Memory]
+                  val mbr = mapping(br).as[BankedRead]
+                  val fromBanks = mmem.bankids.get
+                  val mbankAddr = shuffle.to.T.collect[BufferWrite](visitGlobalIn _).headOption.flatMap { bout =>
+                    val bankAddr = bout.data.T
+                    mapping.get(bankAddr)
+                  }
+                  val mto = mbankAddr.getOrElse { to }
+                  dbg(s"mbankAddr=$mbankAddr, mto=$mto")
+                  val mshuffle = stage(Shuffle().base(mbr.out).from(allocConst(fromBanks)).to(mto))
+                  mshuffle.out
+                }
+                (shuffle.out, toMerge)
+              case outs => 
+                dbg(s"Read by non Shuffle $outs")
+                // Shuffle eliminated, which means bankAddr was constant and was
+                // original bankIds. Likely from capacity splitting.
+                val toMerge = mappings.map { mapping => 
+                  val mmem = mapping(mem).as[Memory]
+                  val mbr = mapping(br).as[BankedRead]
+                  val fromBanks = mmem.bankids.get
+                  val toBanks = mem.bankids.get
+                  stage(Shuffle().base(mbr.out).from(allocConst(fromBanks)).to(allocConst(toBanks))).out
+                }
+                (read.out, toMerge)
             }
-            // Swap shuffle.from based on new statically assigned bankids.
-            mshuffle.from.disconnect
-            mshuffle.from(allocConst(mmem.bankids.get))
-            mshuffle
+
+            var red:List[Output[PIRNode]] = toMerge
+            while(red.size > 1) {
+              red = red.sliding(2,2).map{ 
+                case List(o1, o2) => stage(OpDef(FixOr).input(o1, o2)).out
+                case List(o1) => o1
+              }.toList
+            }
+            val List(out) = red.toList
+            swapOutput(toSwap, out)
+            bufferInput(ctx)
           }
-          var red:List[Output[PIRNode]] = mshuffles.map { _.out }
-          while(red.size > 1) {
-            red = red.sliding(2,2).map{ 
-              case List(o1, o2) =>
-                val op = OpDef(FixOr).input(o1, o2)
-                dbg(s"add val $op = FixOr.input(${o1.src}.$o1, ${o2.src}.$o2)")
-                op.out
-              case List(o1) => o1
-            }.toList
-          }
-          val List(out) = red.toList
-          swapOutput(shuffle.out, out)
         }
       }
-    }
-    shuffles.map { _.global.get }.distinct.foreach { global =>
       insertGlobalInput(global)
       removeUnusedConst(global)
     }

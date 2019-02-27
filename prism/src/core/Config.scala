@@ -12,7 +12,7 @@ class Config(compiler:Compiler) extends ArgParser {
   register("codegen", true, "Enable codegen")
   register("debug", false, "Enable debug")
   register[String]("out", s"${System.getProperty("user.dir")}${separator}pir/out", "Output directory for pir compiler.")
-  register[String]("log", s"${System.getProperty("user.dir")}${separator}pir/log", "Log directory for pir compiler.")
+  register[String]("log", info="Log directory for pir compiler.")
   register("verbose", false, "Enter verbose mode")
   register[Int]("start-id", info="Runner ID to start with")
   register[Int]("end-id", info="Runner ID to stop")
@@ -23,7 +23,7 @@ class Config(compiler:Compiler) extends ArgParser {
 
   def debug:Boolean = option[Boolean]("debug")
   def outDir = option[String]("out")
-  def logDir = option[String]("log")
+  def logDir = getOption[String]("log").getOrElse { buildPath(outDir, "..", "log") }
   def name = option[String]("name")
   def startRunId = option[Int]("start-id")
   def endRunId = getOption[Int]("end-id")

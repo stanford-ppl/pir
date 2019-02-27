@@ -8,7 +8,7 @@ trait Debugger extends Logging {
   val quit:BreakAction = {
     case ("q", state, callBack) => 
       info(s"Stop debugging and exiting...")
-      System.exit(-1)
+      System.exit(0)
   }
 
   val continue:BreakAction = {

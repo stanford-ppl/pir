@@ -2,6 +2,7 @@ package pir
 package pass
 
 import pir.node._
+import pir.mapper._
 import prism.graph._
 import prism.graph.implicits._
 import spade.param._
@@ -14,6 +15,7 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
   val forward = true
 
   var memLowerHasRun = false
+  var memPrunerHasRun = false
   var globalInsertHasRun = false
 
   override def initPass = {
@@ -87,9 +89,10 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
     } else None
   }
 
+  // (W) => r1 (R) => n (W)
   val RouteThrough2 = MatchRule[BufferWrite, (BufferWrite, BufferRead, BufferWrite)] { n =>
     n.data.T match {
-      case r1:BufferRead /*if r1.done.evalTo(n.done.T) */=> Some((r1.inAccess.as[BufferWrite], r1, n))
+      case r1:BufferRead => Some((r1.inAccess.as[BufferWrite], r1, n))
       case _ =>  None
     }
   }
@@ -112,8 +115,6 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
       case (Const(from), Const(to)) if from == to => Some(n)
       case (Const(List(from:Int)), Const(to:Int)) if from == to => Some(n)
       case (Const(from:Int), Const(List(to))) if from == to => Some(n)
-      case (Const(from:List[_]), Const(to:Int)) if n.getCtrl.getVec > 1 && from.head == to && config.option[Boolean]("shuffle-hack") => Some(n) // HACK: work around the spatial unroll bug for pir
-      case (Const(from:Int), Const(to:List[_])) if n.getCtrl.getVec > 1 && from == to.head && config.option[Boolean]("shuffle-hack") => Some(n)
       case (from, to) => None
     }
   }
@@ -132,7 +133,7 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
     }
     n match {
       case ShuffleMatch(n) =>
-        dbgblk(s"ShuffleMatch($n, from=${n.from.T}, to=${n.to.T})") {
+        dbgblk(s"ShuffleMatch($n, from=${dquote(n.from.T)}, to=${dquote(n.to.T)})") {
           val base = assertOne(n.base.connected, s"$n.base.connected")
           swapOutput(n.out, base)
         }
@@ -173,7 +174,7 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
         val outs = w2.outAccesses
         outs.foreach { out => disconnect(w2.out, out) }
         w1.out(outs.map { _.in })
-        dbg(s"Route through $w1 -> $r1 -> $n -> $outs detected")
+        dbg(s"Route through $w1 -> $r1 -> $w2 -> $outs detected")
         dbg(s" => $w1 -> $outs")
       case n => 
     }

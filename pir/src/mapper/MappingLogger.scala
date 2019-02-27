@@ -47,12 +47,12 @@ trait MappingLogger extends Logging {
     dbgblk(x.getClass.getSimpleName) {
       dbgblk(s"freeMap") {
         x.freeMap.foreach { case (k, vs) =>
-          dbg(s"${quote(k)} -> ${quote(vs)}")
+          dbg(s"${dquote(k)} -> ${dquote(vs)}")
         }
       }
       dbgblk(s"usedMap") {
         x.usedMap.foreach { case (k, vv) =>
-          dbg(s"${quote(k)} -> ${quote(vv)}")
+          dbg(s"${dquote(k)} -> ${dquote(vv)}")
         }
       }
     }
@@ -61,20 +61,20 @@ trait MappingLogger extends Logging {
   def logging(x:prism.collection.MapLike[_,_]):Unit = {
     dbgblk(x.getClass.getSimpleName) {
       x.foreach { case (k, v) =>
-        dbg(s"${quote(k)} -> ${quote(v)}")
+        dbg(s"${dquote(k)} -> ${dquote(v)}")
       }
     }
   }
 
-  override def quote(x:Any) = x match {
+  override def dquote(x:Any) = x match {
     case x:Set[_] if x.nonEmpty =>
       if (x.head.isInstanceOf[Routable]) {
         val params = x.flatMap { _.asInstanceOf[Routable].params }
         s"[${params.mkString(",")}] (${x.size})"
-      } else super.quote(x)
+      } else super.dquote(x)
     case x:Routable =>
       s"$x(${x.params.get})"
-    case _ => super.quote(x)
+    case _ => super.dquote(x)
   }
 
 }

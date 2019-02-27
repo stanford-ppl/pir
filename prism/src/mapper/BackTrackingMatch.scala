@@ -15,10 +15,10 @@ trait BackTrackingMatch extends MappingLogging {
   ):EOption[M] = {
     maxOptionBy(pnodes) { p => rankP(p, init) }.fold[EOption[M]](Right(init)) { pnode =>
       val sns = snodes(pnode, init).sortBy(s => rankS(pnode,s,init))(implicitly[Ordering[SR]].reverse)
-      dbgblk(s"Mapping ${quote(pnode)} => ${sns.map(quote)} (remain:${pnodes.size-1})",buffer=false) {
+      dbgblk(s"Mapping ${dquote(pnode)} => ${sns.map(dquote)} (remain:${pnodes.size-1})",buffer=false) {
         sns.foldLeft[Either[BindingTrace[P,M],M]](Left(BindingTrace(pnode, init))) { case (prev, snode) =>
           prev.left.flatMap { f =>
-            dbgblk(s"Try ${quote(pnode)} -> ${quote(snode)} (remain:${pnodes.size-1})",buffer=false) {
+            dbgblk(s"Try ${dquote(pnode)} -> ${dquote(snode)} (remain:${pnodes.size-1})",buffer=false) {
               val nextTry = bindLambda(pnode, snode, init).flatMap { m => bind(pnodes.filterNot { _ == pnode }, snodes, m, bindLambda)(rankS,rankP) }
               nextTry.left.foreach { failure => dbg(s"${failure}") }
               f.append(nextTry)

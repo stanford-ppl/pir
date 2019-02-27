@@ -10,8 +10,8 @@ trait MatchingConstrainPruner extends ConstrainPruner {
     val valueSize = vs.size
     val fit = keySize <= valueSize
     dbgblk(s"MatchingConstrain: keySize=$keySize <= valueSize=$valueSize = $fit") {
-      dbg(s"keys=${quote(ks)}")
-      dbg(s"values=${quote(vs)}")
+      dbg(s"keys=${dquote(ks)}")
+      dbg(s"values=${dquote(vs)}")
     }
     if (fit) Right(fg) else Left(MatchConstrainFailure[K,V,S](fg, ks, vs))
   }

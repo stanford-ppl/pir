@@ -132,7 +132,7 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       case "int" if n.getVec > 1 => "TT_INTVEC"
       case "uint64_t" if n.getVec == 1 => "TT_UINT64"
       case "float" if n.getVec == 1 => "TT_FLOAT"
-      case "float" if n.getVec > 1 => "TT_FlOATVEC"
+      case "float" if n.getVec > 1 => "TT_FLOATVEC"
       case "bool" if n.getVec == 1 => "TT_BOOL"
     }
   }
