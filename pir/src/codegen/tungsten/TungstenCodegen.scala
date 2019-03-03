@@ -10,6 +10,7 @@ class TungstenPIRGen(implicit design:PIR) extends TungstenCodegen
   with TungstenTopGen 
   with TungstenCtxGen 
   with TungstenDRAMGen 
+  with TungstenControllerGen
   with TungstenOpGen
   with TungstenMemGen
 

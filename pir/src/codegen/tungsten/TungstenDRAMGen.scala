@@ -25,6 +25,10 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
 
   override def emitNode(n:N) = n match {
     case DRAMContext(cmd) => super.visitNode(n)
+
+    case n:DRAMAddr =>
+      emitln(s"${n.qtp} $n = (${n.qtp}) ${n.dram.sname.get};")
+
     case n:FringeDenseLoad =>
       val (tp, name) = varOf(n)
       genTopEnd {

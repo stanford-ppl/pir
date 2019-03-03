@@ -9,63 +9,22 @@ import scala.collection.mutable
 
 trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
-  override def quoteRef(n:Any):String = n match {
-    case OutputField(ctrler:Controller, "done") => s"$ctrler->Done()"
-    case OutputField(ctrler:Controller, "valid") => s"$ctrler->Valid()"
-    case n => super.quoteRef(n)
-  }
-
   override def emitNode(n:N) = n match {
-    case n:ControlBlock =>
-      super.visitNode(n)
-      n.ctx.get.collectDown[Controller]().foreach { ctrler =>
-        emitln(s"$ctrler->Eval();")
-      }
-      n.ctrlers.last.to[LoopController].foreach { ctrler =>
-        val laneValids = ctrler.cchain.T.foldLeft(List[String]()) { 
-          case (Nil, ctr) => List.tabulate(ctr.par) { i => s"$ctr->Valids()[$i]" }
-          case (prev, ctr) => 
-            prev.flatMap { valid => 
-              List.tabulate(ctr.par) { i => s"$valid & $ctr->Valids()[$i]" }
-            }
-        }
-        emitln(s"bool laneValids[] = {${laneValids.mkString(",")}};")
+
+    case n:TokenRead =>
+      emitln(s"// TokenRead $n")
+
+    case n:HostRead =>
+      n.input.T.as[BufferRead].sname.v.foreach { sname =>
+        emitln(s"${sname} = ${n.input.T};")
       }
 
-    case n:Controller =>
-      val tp = n match {
-        case n:LoopController => "LoopController"
-        case n => "UnitController"
-      }
-      emitNewMember(tp, n)
-      genCtxInits {
-        assertOneOrLess(n.childCtrlers, s"$n.childCtrlers").foreach { child =>
-          emitln(s"""$n->SetChild($child);""");
-        }
-        emitln(s"controllers.push_back($n);");
-        n.to[LoopController].foreach { n =>
-          n.cchain.foreach { ctr =>
-            emitln(s"$n->AddCounter(${ctr});")
-          }
-        }
-      }
-      emitln(s"$n->SetEn(${n.en.qref} & ${n.parentEn.qref});")
-      super.visitNode(n)
-
-    case n:Counter if !n.isForever =>
-      emitNewMember(s"Counter<${n.par}>", n)
-      emitln(s"$n->setMin(${n.min.T.get});")
-      emitln(s"$n->setStep(${n.step.T.get});")
-      emitln(s"$n->setMax(${n.max.T.get});")
-      emitln(s"$n->Eval();")
-
-    case n@CounterIter(is) =>
-      val ctr = n.counter.T
-      emitVec(n, is.map { i => s"$ctr->Iters()[$i]" })
-
-    case n@CounterValid(is) =>
-      val ctr = n.counter.T
-      emitVec(n, is.map { i => s"$ctr->Valids()[$i]" })
+    case n:HostWrite =>
+      emitln(s"${n.qtp} $n;")
+      emitln(s"""std::ifstream stream_$n("${n.sid}.txt");""")
+      emitln(s"""stream_$n << $n;""")
+      emitln(s"""stream_$n.close();""")
+      emitln(s"""cout << "Set ArgIn ${n.sid} " << ${n} << endl;""")
 
     case n@Const(v:List[_]) => emitVec(n, v)
 
@@ -114,28 +73,115 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       }
 
     case n:OpDef =>
-      val inputs = n.input.T
       emitVec(n) { i =>
-        s"${n.op}(${inputs.map(in => s"${in.qidx(i)}").mkString(",")})" 
+        val ins = n.input.T.map { _.qidx(i) }
+        def a = ins(0)
+        def b = ins(1)
+        def c = ins(2)
+        n.op match {
+          //case FixInv       => s"1/$a"  // TODO: same as Recip?
+          case FixNeg       => s"- $a" 
+          case FixAdd       => s"$a + $b" 
+          case FixSub       => s"$a - $b" 
+          case FixMul       => s"$a * $b" 
+          case FixDiv       => s"$a / $b" 
+          case FixRecip     => s"1 / $a"  
+          case FixMod       => s"$a % $b" 
+          case FixAnd       => s"$a & $b" 
+          case FixOr        => s"$a | $b" 
+          case FixLst       => s"$a < $b" 
+          case FixLeq       => s"$a <= $b" 
+          case FixXor       => s"$a ^ $b" 
+          case FixSLA       => s"$a << $b" 
+          case FixSRA       => s"$a >> $b" 
+          //case FixSRU       => s"$a >> $b"  // TODO
+          case SatAdd       => s"$a + $b" 
+          case SatSub       => s"$a - $b" 
+          case SatMul       => s"$a * $b" 
+          case SatDiv       => s"$a / $b" 
+          case UnbMul       => s"$a * $b" 
+          case UnbDiv       => s"$a / $b" 
+          case UnbSatMul    => s"$a * $b" 
+          case UnbSatDiv    => s"$a / $b" 
+          case FixNeq       => s"$a != $b" 
+          case FixEql       => s"$a == $b" 
+          case FixMax       => s"max($a,$b)" 
+          case FixMin       => s"fmin($a,$b)" 
+          case FixToFix     => s"(${n.qtp}) $a"
+          case FixToFlt     => s"(${n.qtp}) $a"
+          //case FixRandom    => s"-$a"
+          case FixAbs       => s"abs($a)" 
+          case FixFloor     => s"floor($a)" 
+          case FixCeil      => s"ceil($a)" 
+          case FixLn        => s"log($a)" 
+          case FixExp       => s"exp($a)" 
+          case FixSqrt      => s"sqrt($a)" 
+          case FixSin       => s"sin($a)" 
+          case FixCos       => s"cos($a)" 
+          case FixTan       => s"tan($a)" 
+          case FixSinh      => s"sinh($a)"
+          case FixCosh      => s"sinh($a)"
+          case FixTanh      => s"sinh($a)"
+          case FixAsin      => s"asin($a)"
+          case FixAcos      => s"acos($a)"
+          case FixAtan      => s"atan($a)"
+          case FixPow       => s"pow($a, $b)"
+          case FixFMA       => s"$a * $b + $c" 
+          //case FixRecipSqrt => s"-$a"
+          //case FixSigmoid   => s"-$a"
+          //case FltIsPosInf  =>
+          //case FltIsNegInf  =>
+          //case FltIsNaN     =>
+          case FltNeg       => s"-$a" 
+          case FltAdd       => s"$a + $b" 
+          case FltSub       => s"$a - $b" 
+          case FltMul       => s"$a * $b" 
+          case FltDiv       => s"$a / $b" 
+          //case FltMod       => 
+          case FltRecip     => s"1/$a" 
+          case FltLst       => s"$a < $b" 
+          case FltLeq       => s"$a <= $b" 
+          case FltNeq       => s"$a != $b" 
+          case FltEql       => s"$a == $b" 
+          case FltMax       => s"fmax($a,$b)" 
+          case FltMin       => s"fmin($a,$b)" 
+          case FltToFlt     => s"(${n.qtp}) $a"
+          case FltToFix     => s"(${n.qtp}) $a"
+          //case TextToFlt    =>
+          //case FltToText    =>
+          //case FltRandom    =>
+          case FltAbs       => s"abs($a)" 
+          case FltFloor     => s"$a.floor" 
+          case FltCeil      => s"$a.ceil" 
+          case FltLn        => s"log($a)" 
+          case FltExp       => s"exp($a)" 
+          case FltSqrt      => s"sqrt($a)" 
+          case FltSin       => s"sin($a)" 
+          case FltCos       => s"cos($a)" 
+          case FltTan       => s"tan($a)" 
+          case FltSinh      => s"sinh($a)"
+          case FltCosh      => s"cosh($a)"
+          case FltTanh      => s"tanh($a)"
+          case FltAsin      => s"asin($a)"
+          case FltAcos      => s"acos($a)"
+          case FltAtan      => s"atan($a)"
+          case FltPow       => s"pow($a, $b)"
+          case FltFMA       => s"$a * $b + $c" 
+          //case FltRecipSqrt =>
+          //case FltSigmoid   =>
+
+          case Not       => s"!$a" 
+          case And       => s"$a & $b" 
+          case Or        => s"$a | $b" 
+          case Xor       => s"$a ^ $b" 
+          case Xnor      => s"$a == $b" 
+          //case BitRandom =>
+
+          case Mux => s"$a ? $b : $c"
+          //case OneHotMux =>
+          case op => throw PIRException(s"TODO: unsupported op $op")
+        }
       }
-
-    case n:TokenRead =>
-      emitln(s"// TokenRead $n")
-
-    case n:HostRead =>
-      n.input.T.as[BufferRead].sname.v.foreach { sname =>
-        emitln(s"${sname} = ${n.input.T};")
-      }
-
-    case n:HostWrite =>
-      emitln(s"${n.qtp} $n;")
-      emitln(s"""std::ifstream stream_$n("${n.sid}.txt");""")
-      emitln(s"""stream_$n << $n;""")
-      emitln(s"""stream_$n.close();""")
-      emitln(s"""cout << "Set ArgIn ${n.sid} " << ${n} << endl;""")
-
-    case n:DRAMAddr =>
-      emitln(s"${n.qtp} $n = (${n.qtp}) ${n.dram.sname.get};")
 
     case n => super.emitNode(n)
   }

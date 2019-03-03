@@ -1,9 +1,10 @@
 import spatial.dsl._
 
 case class TPCHQ6Param(
-  N:scala.Int = 1048576,
-  ts:scala.Int = 32768,
+  N:scala.Int = 1024,
+  ts:scala.Int = 64,
   op:scala.Int = 1,
+  ip:scala.Int = 16,
 ) extends Param[TPCHQ6Param]
 
 class TPCHQ6_0 extends TPCHQ6
@@ -28,8 +29,6 @@ class TPCHQ6_1 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=2) }
   val MIN_DISC = 0
   val MAX_DISC = 9999
   val margin = 1
-
-  val ip = 16
 
   def tpchq6[T:Num](datesIn: Array[Int], quantsIn: Array[Int], disctsIn: Array[T], pricesIn: Array[T]): T = {
     //val dataSize = ArgIn[Int]
