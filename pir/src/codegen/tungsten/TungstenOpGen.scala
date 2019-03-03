@@ -89,7 +89,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       emitIf(s"${n.en.qref}") {
         emitBlock(s"for (int i = 0; i < ${firstVec}; i++)") {
           emitIf(s"laneValids[i]") {
-            emitln(s"$n = (${n.first.T.qref}[i]) ? ${in.qref}[i] : $accumOp($n, ${in.qref}[i]);")
+            emitln(s"$n = (${n.first.T.qidx("i")}) ? ${in.qidx("i")} : $accumOp($n, ${in.qidx("i")});")
           }
         }
       }
