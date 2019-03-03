@@ -120,16 +120,20 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
 }
 
 class PIRCtxDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fileName) {
-  override def emitNode(n:N) = n match {
-    case _:Context => emitSingleNode(n)
-    case n => super.emitNode(n)
+  override def visitFunc(n:N) = n match {
+    case n:Context => n.children.collect { case n:LocalAccess => n; case n:Access => n; case c:FringeCommand => c }
+    case n => super.visitFunc(n)
   }
-  override def quote(n:Any) = {
-    super.quote(n).foldAt(n.to[Context]) { (q,n) =>
-      val cs = n.children.collect { case c:Access => c; case c:FringeCommand => c }
-      val cstr = cs.map(quote)
-      if (cstr.nonEmpty) s"$q\n${cstr.mkString("\n")}" else q
-    }
-  }
+  //override def emitNode(n:N) = n match {
+    //case _:Context => emitSingleNode(n)
+    //case n => super.emitNode(n)
+  //}
+  //override def quote(n:Any) = {
+    //super.quote(n).foldAt(n.to[Context]) { (q,n) =>
+      //val cs = n.children.collect { case c:Access => c; case c:FringeCommand => c }
+      //val cstr = cs.map(quote)
+      //if (cstr.nonEmpty) s"$q\n${cstr.mkString("\n")}" else q
+    //}
+  //}
 
 }

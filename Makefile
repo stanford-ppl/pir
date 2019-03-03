@@ -7,7 +7,7 @@ env:
 clean:
 	#rm -rf out
 	#rm -f docs/api
-	#sbt clean
+	sbt clean
 
 distclean: clean
 	make -C docs/manual clean
