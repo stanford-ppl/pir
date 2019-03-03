@@ -68,15 +68,23 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     }
   }
 
-  def emitVec(n:PIRNode)(rhs: => Any) = {
+  def emitToVec(lhs:String)(rhs:PIRNode) = {
+    if (rhs.getVec > 1) {
+      emitln(s"auto& $lhs = $rhs;")
+    } else {
+      emitln(s"${rhs.qtp} $lhs[] = {$rhs};")
+    }
+  }
+
+  def emitVec(n:PIRNode)(rhs: Option[String] => Any) = {
     val vec = n.getVec
     if (vec > 1) {
       emitln(s"${n.qtp} $n[${vec}] = {};")
       emitBlock(s"for (int i = 0; i < ${vec}; i++)") {
-        emitln(s"$n[i] = ${rhs};")
+        emitln(s"$n[i] = ${rhs(Some("i"))};")
       }
     } else {
-      emitln(s"${n.qtp} ${n} = ${rhs};")
+      emitln(s"${n.qtp} ${n} = ${rhs(None)};")
     }
   }
 
@@ -111,11 +119,17 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     case n => s"$n"
   }
 
-  implicit class PIRNodeGenOp(n:PIRNode) {
+  implicit class AnyGenOp(n:Any) {
     def qref:String = quoteRef(n)
-    def qref(i:Any):String = {
+  }
+
+  implicit class PIRNodeGenOp(n:PIRNode) {
+    def qidx(i:String):String = {
+      qidx(Some(i))
+    }
+    def qidx(i:Option[String]):String = {
       val q = quoteRef(n)
-      if (n.getVec==1) q else s"$q[$i]"
+      i.fold(q) { i => if (n.getVec > 1) s"$q[$i]" else s"$q" }
     }
     def qtp:String = n.getTp match {
       case Fix(true, 32, 0) => "int"
@@ -135,14 +149,6 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       case "float" if n.getVec > 1 => "TT_FLOATVEC"
       case "bool" if n.getVec == 1 => "TT_BOOL"
     }
-  }
-
-  implicit class PIRInputGenOp(n:Input[PIRNode]) {
-    def qref = quoteRef(n)
-  }
-
-  implicit class PIROutputGenOp(n:Output[PIRNode]) {
-    def qref = quoteRef(n)
   }
 
 }
