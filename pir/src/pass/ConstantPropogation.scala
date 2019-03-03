@@ -48,31 +48,25 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
     }
   }
 
-  val CounterRange = MatchRule[Counter, (Counter, Range)] { counter =>
+  // Counter valids with par < maxValid should be always true
+  val CounterConstValid = MatchRule[Counter, (Counter, Int)] { counter =>
     val min = counter.min.T
     val step = counter.step.T
     val max = counter.max.T
     val par = counter.par
-    dbg(s"isInner=${counter.isInner}")
-    val range = (min, step, max) match {
-      case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) if config.forceAlign =>
-        val bound = if (counter.isInner) 1 else par
-        (0 until bound)
+    val maxValid = (min, step, max) match {
       case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) =>
         var bound = ((max - min) /! step) % par
         if (bound == 0) {
-          if (counter.isInner) bound = 1 else bound = par
-        }
-        if (bound > counter.valids.size) {
-          bound = 0 // vectorized valid. Cannot eliminate
+          bound = par
         }
         dbg(s"Constant loop bounds min=$min, step=$step, max=$max, par=$par (0 until $bound)")
-        (0 until bound)
+        bound
       case _ =>
         dbg(s"None constant loop bounds min=$min, step=$step, max=$max, par=$par (0 until 1)")
-        (0 until 1)
+        1
     }
-    if (range.nonEmpty) Some((counter, range)) else None
+    Some((counter, maxValid))
   }
 
   val RouteThrough1 = MatchRule[MemWrite, (MemWrite, MemRead, MemWrite)] { n =>
@@ -151,13 +145,15 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
           swapOutput(n.out, const.out)
           addAndVisitNode(const, ())
         }
-      case CounterRange(counter, range) => 
-        dbgblk(s"CounterRange($counter)") {
+      case CounterConstValid(counter, maxValid) => 
+        dbgblk(s"CounterConstValid($counter, $maxValid)") {
           val ctrler = counter.parent.get
           val const = within(ctrler.parent.get, counter.ctrl.get) { allocConst(true) }
-          range.foreach { i =>
-            val out = counter.valids(i).out
-            swapOutput(out, const.out)
+          counter.valids.foreach { case valid@CounterValid(is) =>
+            if (is.forall(_ < maxValid)) {
+              dbg(s"Set $valid with is=$is to true")
+              swapOutput(valid.out, const.out)
+            }
           }
           addAndVisitNode(const, ())
         }

@@ -71,7 +71,9 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
               emitln(s"$name->Push(init_$n);")
             }
           }
-          emitVec(n)(s"toT<${n.qtp}>($name->Read(), ${if (n.getVec==1) "0" else "i" })")
+          emitVec(n) { i =>
+            s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
+          }
           genCtxComputeEnd {
             emitIf(s"${n.done.qref}") {
               emitln(s"$name->Pop();")

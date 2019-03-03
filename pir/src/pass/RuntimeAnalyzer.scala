@@ -184,8 +184,8 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
 
   def compVec(n:ND):Int = /*dbgblk(s"compVec($n)")*/{
     n match {
-      case n:CounterIter if n.i.nonEmpty => 1
-      case n:CounterValid if n.i.nonEmpty => 1
+      case n:CounterIter => n.is.size
+      case n:CounterValid => n.is.size
       case n:RegAccumOp => 1
       case n:TokenWrite => 1
       case n:TokenRead => 1

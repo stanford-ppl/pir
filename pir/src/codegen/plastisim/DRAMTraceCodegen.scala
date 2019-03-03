@@ -117,12 +117,12 @@ class DRAMTraceCodegen(implicit compiler:PIR) extends ProgramOrderTraversal with
     case n@Const(v) => 
       emitln(s"val $n = $v")
     case n:CounterValid =>
-    case n@CounterIter(Some(i)) if !n.counter.T.isForever =>
+    case n@CounterIter(List(i)) if !n.counter.T.isForever =>
       val ctr = n.counter.T
       emitln(s"val $n = iter_$ctr + $i * ${ctr.step.T.get}")
-    case n@CounterIter(None) if !n.counter.T.isForever =>
+    case n@CounterIter(is) if !n.counter.T.isForever =>
       val ctr = n.counter.T
-      emitln(s"val $n = List.tabulate(${ctr.par}) { i => iter_$ctr + i * ${ctr.step.T.get} }")
+      emitln(s"val $n = $is.map { i => iter_$ctr + i * ${ctr.step.T.get} }")
     case n:FringeDenseLoad =>
       emitln(s"// $n")
       emitln(s"""trace("${n}_size.trace", ${n.size.T.as[MemRead].mem.T.inAccesses.head})""")

@@ -59,21 +59,13 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       emitln(s"$n->setMax(${n.max.T.get});")
       emitln(s"$n->Eval();")
 
-    case n@CounterIter(None) =>
+    case n@CounterIter(is) =>
       val ctr = n.counter.T
-      emitln(s"auto $n = $ctr->Iters()${if (n.getVec==1) "[0]" else ""};")
+      emitVec(n, is.map { i => s"$ctr->Iters()[$i]" })
 
-    case n@CounterIter(Some(i)) =>
+    case n@CounterValid(is) =>
       val ctr = n.counter.T
-      emitln(s"int $n = $ctr->Iters()[$i];")
-
-    case n@CounterValid(None) =>
-      val ctr = n.counter.T
-      emitln(s"auto $n = $ctr->Valids()${if (n.getVec==1) "[0]" else ""};")
-
-    case n@CounterValid(Some(i)) =>
-      val ctr = n.counter.T
-      emitln(s"bool $n = $ctr->Valids()[$i];")
+      emitVec(n, is.map { i => s"$ctr->Valids()[$i]" })
 
     case n@Const(v:List[_]) => emitVec(n, v)
 
@@ -97,7 +89,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       emitIf(s"${n.en.qref}") {
         emitBlock(s"for (int i = 0; i < ${firstVec}; i++)") {
           emitIf(s"laneValids[i]") {
-            emitln(s"$n = (${n.first.T.qref("i")}) ? ${in.qref("i")} : $accumOp($n, ${in.qref("i")});")
+            emitln(s"$n = (${n.first.T.qref}[i]) ? ${in.qref}[i] : $accumOp($n, ${in.qref}[i]);")
           }
         }
       }
@@ -106,9 +98,9 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       val from = n.from.T
       val base = n.base.T
       val to = n.to.T
-      emitln(s"${from.qtp} ${n}_vfrom[] = ${if (from.getVec==1) s"{$from}" else from};")
-      emitln(s"${to.qtp} ${n}_vto[] = ${if (to.getVec==1) s"{$to}" else to};")
-      emitln(s"${base.qtp} ${n}_vbase[] = ${if (base.getVec==1) s"{$base}" else base};")
+      emitToVec(s"${n}_vfrom")(from)
+      emitToVec(s"${n}_vto")(to)
+      emitToVec(s"${n}_vbase")(base)
       (0 until n.getVec).foreach { i =>
         emitln(s"int ${n}_idx_$i = find<${from.qtp}, ${from.getVec}>(${n}_vfrom, ${n}_vto[$i]);")
         emitln(s"${n.qtp} ${n}_$i = (${n}_idx_$i < 0) ? INVALID : ${n}_vbase[${n}_idx_$i];")
@@ -117,14 +109,14 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
     case n@OpDef(FixToFix) =>
       val inputs = n.input.T
-      emitVec(n) {
-        s"(${n.qtp}) ${inputs.head.qref("i")}" 
+      emitVec(n) { i =>
+        s"(${n.qtp}) ${inputs.head.qidx(i)}" 
       }
 
     case n:OpDef =>
       val inputs = n.input.T
-      emitVec(n) {
-        s"${n.op}(${inputs.map(in => s"${in.qref("i")}").mkString(",")})" 
+      emitVec(n) { i =>
+        s"${n.op}(${inputs.map(in => s"${in.qidx(i)}").mkString(",")})" 
       }
 
     case n:TokenRead =>

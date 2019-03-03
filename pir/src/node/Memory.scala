@@ -108,17 +108,15 @@ case class Counter(par:Int, isForever:Boolean=false)(implicit env:Env) extends D
   val max = new InputField[Option[PIRNode]]("max")
   val isFirstIter = new OutputField[List[PIRNode]]("isFirstIter")
 
-  def iters = this.collectOut[CounterIter]().sortBy { _.i }
-  def valids = this.collectOut[CounterValid]().sortBy { _.i }
-  def isInner = iters.forall { _.i.isEmpty } && iters.size == 1
-
+  def iters = this.collectOut[CounterIter]()
+  def valids = this.collectOut[CounterValid]()
   def ctrler = this.collectUp[Controller]().head
 }
 
-case class CounterIter(i:Option[Int])(implicit env:Env) extends Def {
+case class CounterIter(is:List[Int])(implicit env:Env) extends Def {
   val counter = new InputField[Counter]("counter")
 }
-case class CounterValid(i:Option[Int])(implicit env:Env) extends Def {
+case class CounterValid(is:List[Int])(implicit env:Env) extends Def {
   val counter = new InputField[Counter]("counter")
 }
 
