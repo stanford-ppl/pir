@@ -18,7 +18,9 @@ class OuterProduct_2 extends OuterProduct {override lazy val param = OuterProduc
 class OuterProduct_3 extends OuterProduct {override lazy val param = OuterProductParam(ip=1, op1=2)}
 class OuterProduct_4 extends OuterProduct {override lazy val param = OuterProductParam(ip=1, op1=2, op2=2)}
 class OuterProduct_5 extends OuterProduct {override lazy val param = OuterProductParam(ip=16, op1=2, op2=2)}
-class OuterProduct_6 extends OuterProduct {override lazy val param = OuterProductParam(ip=16, op2=2, ip1=2, ip2=8)}
+class OuterProduct_6 extends OuterProduct {override lazy val param = OuterProductParam(ip=16, op2=1, ip1=2, ip2=8)}
+class OuterProduct_7 extends OuterProduct {override lazy val param = OuterProductParam(ip=16, op2=2, ip1=2, ip2=8)}
+class OuterProduct_8 extends OuterProduct {override lazy val param = OuterProductParam(ip=16, op2=2, ip1=4, ip2=4)}
 //class OuterProduct_2 extends OuterProduct {override lazy val param = OuterProductParam(op2=4)}
 //class OuterProduct_3 extends OuterProduct {override lazy val param = OuterProductParam(op2=6)}
 //class OuterProduct_4 extends OuterProduct {override lazy val param = OuterProductParam(op2=8)}
@@ -57,7 +59,7 @@ class OuterProduct_6 extends OuterProduct {override lazy val param = OuterProduc
           b2 load vec2(j::j+ts2 par ip)
           val outTile = SRAM[T](ts1, ts2)
           // (64, 32)
-          Foreach(ts1 by ip2, ts2 par ip1){ (ii,jj) => outTile(ii, jj) = b1(ii) * b2(jj) } // 2
+          Foreach(ts1 par ip2, ts2 par ip1){ (ii,jj) => outTile(ii, jj) = b1(ii) * b2(jj) } // 2
           out(i::i+ts1, j::j+ts2 par ip) store outTile
         }
       }
