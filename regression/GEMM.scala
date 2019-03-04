@@ -1,18 +1,20 @@
 import spatial.dsl._
 
 case class GEMMParam(
-  dim:scala.Int = 256,
-  ts:scala.Int = 128,
-  its:scala.Int = 128,
+  dim:scala.Int = 128,
+  ts:scala.Int = 32,
+  its:scala.Int = 32,
   loop_ii:scala.Int = 1,
   loop_jj:scala.Int = 1,
   loop_kk:scala.Int = 1,
   loop_i:scala.Int = 1,
   loop_j:scala.Int = 1
+  ip:scala.Int = 16
 ) extends Param[GEMMParam]
 
 class GEMM_0 extends GEMM
-class GEMM_1 extends GEMM {override lazy val param = GEMMParam(loop_kk = 2,loop_i = 2,loop_j = 2)}
+class GEMM_1 extends GEMM {override lazy val param = GEMMParam(ip=1)}
+//class GEMM_1 extends GEMM {override lazy val param = GEMMParam(loop_kk = 2,loop_i = 2,loop_j = 2)}
 //class GEMM_2 extends GEMM {override lazy val param = GEMMParam(loop_j = 8)}
 //class GEMM_3 extends GEMM {override lazy val param = GEMMParam(loop_i = 4,loop_j = 4)}
 //class GEMM_4 extends GEMM {override lazy val param = GEMMParam(loop_i = 2,loop_j = 2)}
@@ -28,7 +30,6 @@ class GEMM_1 extends GEMM {override lazy val param = GEMMParam(loop_kk = 2,loop_
   lazy val param = GEMMParam()
   import param._
 
-  val ip = 16
   type T = FixPt[TRUE,_16,_16] // Fatter type so that ts is burst aligned
 
   def gemm(a_data:Matrix[T], b_data:Matrix[T], c_init:Matrix[T]) = {
