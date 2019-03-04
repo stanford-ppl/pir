@@ -83,6 +83,20 @@ trait OpNode extends PIRNode
 case class OpDef(op:Opcode)(implicit env:Env) extends OpNode with Def {
   val input = new InputField[List[PIRNode]]("input")
 }
+case class PrintIf()(implicit env:Env) extends OpNode with Def {
+  val en = new InputField[List[PIRNode]]("en")
+  val msg = new InputField[PIRNode]("mgs")
+}
+case class AssertIf()(implicit env:Env) extends OpNode with Def {
+  val en = new InputField[List[PIRNode]]("en")
+  val cond = new InputField[List[PIRNode]]("cond")
+  val msg = new InputField[PIRNode]("mgs")
+}
+case class ExitIf()(implicit env:Env) extends OpNode with Def {
+  val en = new InputField[List[PIRNode]]("en")
+  val cond = new InputField[List[PIRNode]]("cond")
+  val msg = new InputField[PIRNode]("mgs")
+}
 case class RegAccumOp(op:String)(implicit env:Env) extends OpNode with Def {
   val in = new InputField[PIRNode]("input")
   val en = new InputField[Set[PIRNode]]("en")

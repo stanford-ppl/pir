@@ -8,7 +8,9 @@ case class TPCHQ6Param(
 ) extends Param[TPCHQ6Param]
 
 class TPCHQ6_0 extends TPCHQ6
-class TPCHQ6_1 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=2) }
+class TPCHQ6_1 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=1, ip=1) }
+class TPCHQ6_2 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=2, ip=16) }
+class TPCHQ6_3 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=2, ip=1) }
 //class TPCHQ6_2 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=3) }
 //class TPCHQ6_3 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=4) }
 //class TPCHQ6_4 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=5) }
@@ -70,6 +72,7 @@ class TPCHQ6_1 extends TPCHQ6 { override lazy val param = TPCHQ6Param(op=2) }
           val quant = quantsTile(j)
           val price = pricesTile(j)
           val valid = date > minDate && date < maxDate && disct >= MIN_DISC.to[T] && disct <= MAX_DISC.to[T] && quant < 24
+          //println(r"date:$date disct:$disct quant:$quant price:$price valid:$valid")
           mux(valid, price * disct, 0.to[T])
         }{_+_}
       }{_+_}

@@ -28,6 +28,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
     case n@Const(v:List[_]) => emitVec(n, v)
 
+    case n@Const(v:String) => emitVec(n, List.fill(n.getVec)(s""""${v.replace("\n", "\\n")}""""))
     case n@Const(v) => emitVec(n, List.fill(n.getVec)(v))
 
     case n@RegAccumOp(op) =>
@@ -109,6 +110,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
           case FixMin       => s"fmin($a,$b)" 
           case FixToFix     => s"(${n.qtp}) $a"
           case FixToFlt     => s"(${n.qtp}) $a"
+          case FixToText     => s"to_string($a)"
           //case FixRandom    => s"-$a"
           case FixAbs       => s"abs($a)" 
           case FixFloor     => s"floor($a)" 
@@ -148,7 +150,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
           case FltToFlt     => s"(${n.qtp}) $a"
           case FltToFix     => s"(${n.qtp}) $a"
           //case TextToFlt    =>
-          //case FltToText    =>
+          case FltToText    => s"to_string($a)"
           //case FltRandom    =>
           case FltAbs       => s"abs($a)" 
           case FltFloor     => s"$a.floor" 
@@ -176,11 +178,23 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
           case Xor       => s"$a ^ $b" 
           case Xnor      => s"$a == $b" 
           //case BitRandom =>
+          case BitToText => s"to_string($a)"
 
           case Mux => s"$a ? $b : $c"
+          case TextConcat => ins.reduce[String] { case (a,b) => s"$a + $b" }
+          case TextEql => s"$a == $b"
+          case TextNeq => s"$a != $b"
+          case TextLength => s"$a.size() / ${spadeParam.bytePerWord}"
+          case TextApply => s"$a[$b]"
+          //case CharArrayToText => 
           //case OneHotMux =>
           case op => throw PIRException(s"TODO: unsupported op $op")
         }
+      }
+
+    case n:PrintIf =>
+      emitIf(s"${n.en.qref}") {
+        emitln(s"cout << ${n.msg.T};")
       }
 
     case n => super.emitNode(n)

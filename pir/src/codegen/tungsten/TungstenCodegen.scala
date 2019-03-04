@@ -141,6 +141,7 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       case Fix(true, i, f) if f > 0 && i + f <= 64 => "double"
       case Flt(m,f) => "float"
       case Bool => "bool"
+      case Text => "string"
     }
     def tokenTp = qtp match {
       case "int" if n.getVec == 1 => "TT_INT"

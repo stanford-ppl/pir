@@ -68,8 +68,9 @@ trait Ops extends Enumeration {
   val FixEql       = new FixOp with Op2 { override def eval(ins:List[Any]) = tf(ins) { case Some(a)::Some(b)::Nil => a == b } }
   val FixMax       = new FixOp with Op2 { override def eval(ins:List[Any]) = tf(ins) { case Some(a:Float)::Some(b:Float)::Nil => Math.max(a,b) } }
   val FixMin       = new FixOp with Op2 { override def eval(ins:List[Any]) = tf(ins) { case Some(a:Float)::Some(b:Float)::Nil => Math.min(a,b) } }
-  val FixToFix     = new FixOp with Op2 /*{ override def eval(ins:List[Any]) = tf(ins) { case (a:Int)::Nil => -a } }*/
-  val FixToFlt     = new FixOp with Op2 /*{ override def eval(ins:List[Any]) = tf(ins) { case (a:Int)::Nil => -a } }*/
+  val FixToFix     = new FixOp with Op1 /*{ override def eval(ins:List[Any]) = tf(ins) { case (a:Int)::Nil => -a } }*/
+  val FixToFlt     = new FixOp with Op1 /*{ override def eval(ins:List[Any]) = tf(ins) { case (a:Int)::Nil => -a } }*/
+  val FixToText     = new FixOp with Op1 /*{ override def eval(ins:List[Any]) = tf(ins) { case (a:Int)::Nil => -a } }*/
   val FixRandom    = new FixOp with Op1 /*{ override def eval(ins:List[Any]) = tf(ins) { case (a:Int)::Nil => -a } }*/
   val FixAbs       = new FixOp with Op1 { override def eval(ins:List[Any]) = tf(ins) { case (AsNumeric(a, n)) => n.abs(a) } }
   val FixFloor     = new FixOp with Op1 { override def eval(ins:List[Any]) = tf(ins) { case Some(a:Float)::Nil => a.floor } }
@@ -107,10 +108,10 @@ trait Ops extends Enumeration {
   val FltEql       = new FltOp with Op2 { override def eval(ins:List[Any]) = m(ins) { case Some(a:Float)::Some(b:Float)::Nil => a == b } }
   val FltMax       = new FltOp with Op2 { override def eval(ins:List[Any]) = m(ins) { case Some(a:Float)::Some(b:Float)::Nil => Math.max(a,b) } }
   val FltMin       = new FltOp with Op2 { override def eval(ins:List[Any]) = m(ins) { case Some(a:Float)::Some(b:Float)::Nil => Math.min(a,b) } }
-  val FltToFlt     = new FltOp with Op2 
-  val FltToFix     = new FltOp with Op2 
+  val FltToFlt     = new FltOp with Op1
+  val FltToFix     = new FltOp with Op1
+  val FltToText     = new FltOp with Op1
   val TextToFlt    = new FltOp with Op2 
-  val FltToText    = new FltOp with Op1 
   val FltRandom    = new FltOp with Op1 
   val FltAbs       = new FltOp with Op1 { override def eval(ins:List[Any]) = m(ins) { case Some(a:Float)::Nil => Math.abs(a) } }
   val FltFloor     = new FltOp with Op1 { override def eval(ins:List[Any]) = m(ins) { case Some(a:Float)::Nil => a.floor } }
@@ -138,9 +139,17 @@ trait Ops extends Enumeration {
   val Xor       = new BitOp with Op2 { override def eval(ins:List[Any]) = m(ins) { case Some(a:Boolean)::Some(b:Boolean)::Nil => a ^ b } }
   val Xnor      = new BitOp with Op2 { override def eval(ins:List[Any]) = m(ins) { case Some(a:Boolean)::Some(b:Boolean)::Nil => a == b } }
   val BitRandom = new BitOp with Op1
+  val BitToText = new BitOp with Op1
 
   val Mux       = new OtherOp with Op3 { override def eval(ins:List[Any]) = m(ins) { case Some(a:Boolean)::Some(b)::Some(c)::Nil => if (a) b else c } }
   val OneHotMux = new OtherOp with Op2
+
+  val TextConcat = new OtherOp with Opcode
+  val TextEql = new OtherOp with Op2
+  val TextNeq = new OtherOp with Op2
+  val TextLength = new OtherOp with Op1
+  val TextApply = new OtherOp with Op2
+  val CharArrayToText = new OtherOp with Opcode
 
   // Not sure why a val here will fail serialzation test
   def allOps:Set[Opcode] = values.toSet[Value].collect { case op:Opcode => op }

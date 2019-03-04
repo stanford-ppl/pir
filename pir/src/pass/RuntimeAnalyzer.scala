@@ -224,6 +224,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case Const(_:Int) => Some(Fix(true, 32, 0))
       case Const(_:Float) => Some(Flt(23, 8))
       case Const((i:Int) :: _) => Some(Fix(true, 32, 0))
+      case Const(_:String) => Some(Text)
       case OutputField(n:Controller, "valid") => Some(Bool)
       case OutputField(n:Controller, "done") => Some(Bool)
       case n:Edge[_,_,_] => inferType(n.src.as[PIRNode])
