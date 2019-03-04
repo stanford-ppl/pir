@@ -191,12 +191,13 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:TokenRead => 1
       case n:GlobalOutput => n.in.T.getVec
       case n:GlobalInput => assertUnify(n.out.T, s"$n.out.T") { _.getVec }.get
+      case n:BankedRead => n.mem.bankids.get.size
       case n:BufferWrite if n.getCtrl.schedule=="Streaming" =>
         assertUnify(n.outAccesses, s"$n.outAccesses.bank") { _.banks.get.head }.get
       case n:BufferWrite => n.data.T.getVec // Account for reduction
       case n:MemWrite if n.getCtrl.schedule=="Streaming" =>
         n.mem.banks.get.head
-      case n:BufferRead if n.getCtrl.schedule=="Streaming" =>
+      case n:BufferRead =>
         n.banks.get.head
       case n:MemRead if n.getCtrl.schedule=="Streaming" =>
         n.mem.banks.get.head
@@ -224,6 +225,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case Const(_:Int) => Some(Fix(true, 32, 0))
       case Const(_:Float) => Some(Flt(23, 8))
       case Const((i:Int) :: _) => Some(Fix(true, 32, 0))
+      case Const(_:String) => Some(Text)
       case OutputField(n:Controller, "valid") => Some(Bool)
       case OutputField(n:Controller, "done") => Some(Bool)
       case n:Edge[_,_,_] => inferType(n.src.as[PIRNode])

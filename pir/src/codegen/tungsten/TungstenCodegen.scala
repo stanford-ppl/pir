@@ -10,6 +10,7 @@ class TungstenPIRGen(implicit design:PIR) extends TungstenCodegen
   with TungstenTopGen 
   with TungstenCtxGen 
   with TungstenDRAMGen 
+  with TungstenControllerGen
   with TungstenOpGen
   with TungstenMemGen
 
@@ -68,11 +69,25 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     }
   }
 
+  /*
+   * Emit rhs as a vector
+   * */
   def emitToVec(lhs:String)(rhs:PIRNode) = {
     if (rhs.getVec > 1) {
       emitln(s"auto& $lhs = $rhs;")
     } else {
       emitln(s"${rhs.qtp} $lhs[] = {$rhs};")
+    }
+  }
+
+  /*
+   * Right hand side is a vector. Emit lhs as vector if vec > 1, otherwise as scalar
+   * */
+  def emitUnVec(lhs:PIRNode)(rhs:String) = {
+    if (lhs.getVec > 1) {
+      emitln(s"auto& $lhs = $rhs;")
+    } else {
+      emitln(s"${lhs.qtp} $lhs = $rhs[0];")
     }
   }
 
@@ -94,18 +109,6 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       emitln(s"${n.qtp} ${n} = ${rhs.head};")
     } else {
       emitln(s"${n.qtp} ${n}[] = {${rhs.mkString(",")}};")
-    }
-  }
-
-  def emitToken(name:Any, vec:Int, value:List[Any]) = {
-    emitln(s"Token $name;")
-    if (vec == 1) {
-      emitln(s"$name.type = TT_INT;") //TODO
-      emitln(s"$name.int_ = ${assertOne(value, s"$name.value")};") 
-    } else {
-      emitln(s"$name.type = TT_INTVEC;")
-      val vs = value ++ List.fill(spadeParam.vecWidth - vec)(0)
-      emitln(s"$name.intVec_ = {${vs.mkString(",")}};") 
     }
   }
 
@@ -140,6 +143,7 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       case Fix(true, i, f) if f > 0 && i + f <= 64 => "double"
       case Flt(m,f) => "float"
       case Bool => "bool"
+      case Text => "string"
     }
     def tokenTp = qtp match {
       case "int" if n.getVec == 1 => "TT_INT"

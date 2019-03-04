@@ -111,8 +111,8 @@ trait PIRApp extends PIR with Logging {
     addPass(enableDot, new PIRIRDotGen(s"top9.dot"))
     addPass(enableIgraph, igraphGen).dependsOn(psimAnalyzer)
     addPass(genTungsten, tungstenPIRGen).dependsOn(placerAndRouter)
-    addPass(genPsim, prouteLinkGen).dependsOn(psimAnalyzer)
-    addPass(genPsim, prouteNodeGen).dependsOn(placerAndRouter, psimAnalyzer)
+    addPass(genPsim || genTungsten, prouteLinkGen).dependsOn(psimAnalyzer)
+    addPass(genPsim || genTungsten, prouteNodeGen).dependsOn(placerAndRouter, psimAnalyzer)
     addPass(genPsim, psimConfigGen).dependsOn(placerAndRouter, psimAnalyzer, prouteLinkGen) ==>
     addPass(genPsim && runPsim, psimRunner)
     addPass(psimParser)
