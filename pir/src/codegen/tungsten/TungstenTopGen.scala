@@ -41,6 +41,8 @@ using namespace std;
     if (!noPlaceAndRoute) { //TODO: use spade parameter
       emitln("""DynamicNetwork<4, 4> net({16, 12}, "net");""")
       dutArgs += "net"
+      emitln("""DynamicNetwork<4, 4> statnet({16, 12}, "statnet");""")
+      dutArgs += "statnet"
     }
 
   }

@@ -36,13 +36,13 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
     case n:GlobalOutput =>
       val (tp, name) = varOf(n)
       val bcArgs = n.out.T.map { out => varOf(out)._2.& }
-      emitln(s"""$tp $name("$n", &net);""")
+      emitln(s"""$tp $name("$n", &net, &statnet);""")
       emitln(s"""// dst = ${bcArgs.mkString(",")}""")
       dutArgs += name
       
     case n:GlobalInput =>
       val (tp, name) = varOf(n)
-      emitln(s"""$tp $name("$n", &net);""")
+      emitln(s"""$tp $name("$n", &net, &statnet);""")
       dutArgs += name
 
       genTopEnd {

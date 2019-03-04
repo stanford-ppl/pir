@@ -29,10 +29,13 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       emitln(s"TUNGSTEN_HOME=${config.tstHome}")
       getLines(buildPath(config.tstHome, "plasticine", "resources", "Makefile")).foreach { emitln }
     }
-    //withOpen(buildPath(dirName, ".."),"script",true) {
+    withOpen(buildPath(dirName, ".."),"script",true) {
+      if (!noPlaceAndRoute) {
+        emitln(s"source place")
+      }
       //emitln(s"logon")
       //emitln(s"log2files")
-    //}
+    }
     super.initPass
   }
 
