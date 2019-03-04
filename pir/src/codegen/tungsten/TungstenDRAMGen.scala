@@ -13,8 +13,8 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
     genTopEnd {
       val cmds = addrgens.map{ i => s"&$i.burstcmd" }.mkString(",")
       val resps = addrgens.map{ i => s"&$i.burstrsp" }.mkString(",")
-      val dramFile = buildPath(tungstenHome, "ini", "DRAM.ini")
-      val systemFile = buildPath(tungstenHome, "ini", "system.ini")
+      val dramFile = buildPath(config.tstHome, "ini", "DRAM.ini")
+      val systemFile = buildPath(config.tstHome, "ini", "system.ini")
       emitln(s"""DRAMController DRAM("DRAM", "$dramFile", "$systemFile", ".", {$cmds}, {$resps});""")
       dutArgs += "DRAM"
     }

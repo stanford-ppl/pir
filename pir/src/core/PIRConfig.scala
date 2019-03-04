@@ -24,41 +24,9 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def forceAlign = option[Boolean]("force-align")
   def enableIgraph = option[Boolean]("igraph")
 
-  /* ------------------- Plastisim --------------------  */
-  register[String]("psim-home", default=sys.env.get("PLASTISIM_HOME"), info="Plastisim Home")
-  register[String]("proute-home", default=sys.env.get("PLASTIROUTE_HOME"), info="Plastiroute Home")
-  register[String]("tungsten-home", default=sys.env.get("TUNGSTEN_HOME"), info="Tungsten Home")
-  register("psim", default=false, info="Enable code generations for plastisim")
-  register("run-psim", default=false, info="Launch Plastisim simulation")
-  register[String]("load-psim", info="Path to load psim log")
-  register[Long]("psim-timeout", info="Maximum time out for psim")
-  register[String]("psim-out", info="Directory to copy psim files over")
-  register[Int]("psim-q", default=1, info="VC slowdown parameter")
-  register("trace", default=false, info="Enable trace generation for simulation")
-  register[String]("count", info="Annotation on count values")
-
-  def genPsim = option[Boolean]("psim") && enableCodegen
-  def runPsim = option[Boolean]("run-psim") && genPsim
-  def loadPsim = getOption[String]("load-psim")
-  def enableTrace = genPsim && option[Boolean]("trace")
-  def psimHome = getOption[String]("psim-home").getOrElse(throw PIRException(s"psim-home is not set"))
-  def prouteHome = getOption[String]("proute-home").getOrElse(throw PIRException(s"proute-home is not set"))
-  def psimOut = getOption[String]("psim-out").getOrElse {
-    buildPath(outDir, s"../plastisim")
-  }
-
-  /* ------------------- Tungsten --------------------  */
-  register("tungsten", default=false, info="Enable tungsten codegen")
-  def genTungsten = enableCodegen && option[Boolean]("tungsten")
-
   /* ------------------- Routing --------------------  */
   register("routing-algo", default="dor", info="If net=[dynamic] - [dor, planed, proute]. Option ignored for other network. dor - dimention order routing. planed - arbitrary source routing, proute - use plastiroute for place and route. If proute is chosen plastiroute will be launched from pir if $PLASTIROUTE_HOME is set") 
   register("routing-cost", default="H-hop", info="Routing cost [hop, balanced, H-hop, H-balanced]. hop - use hop count only for cost in search, balanced - use traffic load + hop count as cost, H-hop: use Manhattan distance as heurisc cost and use hop count for cost. H-balanced: use Manhattan distance as heurisc cost and use hop count and traffic load for cost.") 
-  register("proute-algo", default="route_dor_YX", info="Plastiroute routing algorithm") 
-  register("proute-q", default=1, info="Maximum number of vc") 
-  register("proute-opts", default="-i1000 -p100 -t1 -d100", info="Plastiroute options") 
-  register("proute-seed", default=0, info="Plastiroute seed") 
-  register("rerun-proute", default=true, info="Run Plastiroute") 
   def enableHopCountCost = option[String]("routing-cost") match {
     case "hop" => true
     case "balanced" => false
@@ -80,6 +48,44 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
     case "H-balanced" => true
   }
   def routingAlgo = option[String]("routing-algo")
+
+  /* ------------------- Plastisim --------------------  */
+  register[String]("psim-home", default=sys.env.get("PLASTISIM_HOME"), info="Plastisim Home")
+  register("psim", default=false, info="Enable code generations for plastisim")
+  register("run-psim", default=false, info="Launch Plastisim simulation")
+  register[String]("load-psim", info="Path to load psim log")
+  register[Long]("psim-timeout", info="Maximum time out for psim")
+  register[String]("psim-out", info="Directory to copy psim files over")
+  register[Int]("psim-q", default=1, info="VC slowdown parameter")
+  register("trace", default=false, info="Enable trace generation for simulation")
+  register[String]("count", info="Annotation on count values")
+
+  def genPsim = option[Boolean]("psim") && enableCodegen
+  def runPsim = option[Boolean]("run-psim") && genPsim
+  def loadPsim = getOption[String]("load-psim")
+  def enableTrace = genPsim && option[Boolean]("trace")
+  def psimHome = getOption[String]("psim-home").getOrElse(throw PIRException(s"psim-home is not set"))
+  def psimOut = getOption[String]("psim-out").getOrElse { buildPath(cwd, s"plastisim") }
+
+  /* ------------------- Plastiroute --------------------  */
+  register[String]("proute-home", default=sys.env.get("PLASTIROUTE_HOME"), info="Plastiroute Home")
+  register("proute-algo", default="route_dor_YX", info="Plastiroute routing algorithm") 
+  register("proute-q", default=1, info="Maximum number of vc") 
+  register("proute-opts", default="-i1000 -p100 -t1 -d100", info="Plastiroute options") 
+  register("proute-seed", default=0, info="Plastiroute seed") 
+  register("rerun-proute", default=true, info="Run Plastiroute") 
+  def prouteHome = getOption[String]("proute-home").getOrElse(throw PIRException(s"proute-home is not set"))
+  def genProute = genPsim || genTungsten
+  def runproute = runPsim || runTst 
+
+  /* ------------------- Tungsten --------------------  */
+  register[String]("tungsten-home", default=sys.env.get("TUNGSTEN_HOME"), info="Tungsten Home")
+  register("run-tst", default=false, info="Launch Tungsten simulation")
+  register("tungsten", default=false, info="Enable tungsten codegen")
+  def genTungsten = enableCodegen && option[Boolean]("tungsten")
+  def runTst = option[Boolean]("run-tst")
+  def tstOutDir = buildPath(cwd, "tungsten")
+  def tstHome = getOption[String]("tungsten-home").getOrElse(throw PIRException(s"tungsten-home is not set"))
 
   /* ------------------- Debugging --------------------  */
   register("bp-split", default=false, info="Enable break point for splitting")
