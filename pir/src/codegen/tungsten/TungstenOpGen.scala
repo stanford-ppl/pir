@@ -194,7 +194,9 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:PrintIf =>
       emitIf(s"${n.en.qref}") {
-        emitln(s"cout << ${n.msg.T};")
+        emitBlock(s"for (int i = 0; i < ${n.msg.T.getVec}; i++)") {
+          emitln(s"cout << ${n.msg.T.qidx("i")};")
+        }
       }
 
     case n => super.emitNode(n)

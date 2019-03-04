@@ -67,8 +67,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
           genCtxInits {
             emitln(s"""inputs.push_back($name);""")
             if (n.initToken.get) {
-              emitToken(s"init_$n", n.getVec, n.inits.get)
-              emitln(s"$name->Push(init_$n);")
+              emitln(s"$name->Push(make_token(${assertOne(n.inits.get, s"$n.inits")}));")
             }
           }
           emitVec(n) { i =>

@@ -98,18 +98,6 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     }
   }
 
-  def emitToken(name:Any, vec:Int, value:List[Any]) = {
-    emitln(s"Token $name;")
-    if (vec == 1) {
-      emitln(s"$name.type = TT_INT;") //TODO
-      emitln(s"$name.int_ = ${assertOne(value, s"$name.value")};") 
-    } else {
-      emitln(s"$name.type = TT_INTVEC;")
-      val vs = value ++ List.fill(spadeParam.vecWidth - vec)(0)
-      emitln(s"$name.intVec_ = {${vs.mkString(",")}};") 
-    }
-  }
-
   def quoteRef(n:Any):String = n match {
     case n@InputField(_, name) if name == "en" | name == "parentEn" =>
       val ens = n.as[Input[PIRNode]].connected
