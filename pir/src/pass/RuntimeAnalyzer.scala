@@ -191,12 +191,13 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:TokenRead => 1
       case n:GlobalOutput => n.in.T.getVec
       case n:GlobalInput => assertUnify(n.out.T, s"$n.out.T") { _.getVec }.get
+      case n:BankedRead => n.mem.bankids.get.size
       case n:BufferWrite if n.getCtrl.schedule=="Streaming" =>
         assertUnify(n.outAccesses, s"$n.outAccesses.bank") { _.banks.get.head }.get
       case n:BufferWrite => n.data.T.getVec // Account for reduction
       case n:MemWrite if n.getCtrl.schedule=="Streaming" =>
         n.mem.banks.get.head
-      case n:BufferRead if n.getCtrl.schedule=="Streaming" =>
+      case n:BufferRead =>
         n.banks.get.head
       case n:MemRead if n.getCtrl.schedule=="Streaming" =>
         n.mem.banks.get.head

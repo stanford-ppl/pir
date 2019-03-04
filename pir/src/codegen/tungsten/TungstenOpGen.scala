@@ -61,11 +61,9 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       emitToVec(s"${n}_vfrom")(from)
       emitToVec(s"${n}_vto")(to)
       emitToVec(s"${n}_vbase")(base)
-      (0 until n.getVec).foreach { i =>
-        emitln(s"int ${n}_idx_$i = find<${from.qtp}, ${from.getVec}>(${n}_vfrom, ${n}_vto[$i]);")
-        emitln(s"${n.qtp} ${n}_$i = (${n}_idx_$i < 0) ? INVALID : ${n}_vbase[${n}_idx_$i];")
-      }
-      emitVec(n, List.tabulate(n.getVec) { i => s"${n}_$i"} )
+      emitln(s"${n.qtp} ${n}_shuffled[${n.getVec}];")
+      emitln(s"shuffle<${n.qtp}, ${from.getVec}, ${to.getVec}>(${n}_vfrom, ${n}_vto, ${n}_vbase, ${n}_shuffled);")
+      emitUnVec(n)(s"${n}_shuffled")
 
     case n@OpDef(FixToFix) =>
       val inputs = n.input.T
