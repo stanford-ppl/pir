@@ -19,10 +19,7 @@ trait PlastisimUtil extends PIRPass {
   lazy val traceName = "gen_trace.scala"
   lazy val traceRelativePath = s"trace"
   lazy val tracePath = buildPath(psimOut, traceRelativePath)
-  lazy val summaryName = "summary.csv"
-  lazy val summaryPath = buildPath(psimOut, summaryName)
-  lazy val psimLog = buildPath(psimOut, "psim.log")
-  lazy val prouteLog = buildPath(psimOut, "proute.log")
+  lazy val psimLog = buildPath(config.cwd, "psim.log")
 
   val infCount = 1000000
 

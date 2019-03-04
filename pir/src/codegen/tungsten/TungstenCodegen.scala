@@ -15,20 +15,19 @@ class TungstenPIRGen(implicit design:PIR) extends TungstenCodegen
   with TungstenMemGen
 
 trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal with CppCodegen {
-  override def dirName = buildPath(super.dirName, s"..", "..", "tungsten", "src") 
+
+  override def dirName = buildPath(config.tstOutDir, s"src")
   val forward = true
   val fileName = "Top.h"
 
-  def tungstenHome = config.option[String]("tungsten-home")
-
   override def initPass = {
     clearDir(dirName, { fileName => fileName.contains("Context") })
-    clearDir(buildPath(dirName, "..", "build"))
-    clearDir(buildPath(dirName, "..", "logs"))
-    copyFiles(buildPath(tungstenHome, "plasticine", "resources"), buildPath(dirName, ".."))
-    withOpen(buildPath(dirName, ".."),"Makefile",false) {
-      emitln(s"TUNGSTEN_HOME=${tungstenHome}")
-      getLines(buildPath(tungstenHome, "plasticine", "resources", "Makefile")).foreach { emitln }
+    clearDir(buildPath(config.tstOutDir, "build"))
+    clearDir(buildPath(config.tstOutDir, "logs"))
+    copyFiles(buildPath(config.tstHome, "plasticine", "resources"), config.tstOutDir)
+    withOpen(config.tstOutDir,"Makefile",false) {
+      emitln(s"TUNGSTEN_HOME=${config.tstHome}")
+      getLines(buildPath(config.tstHome, "plasticine", "resources", "Makefile")).foreach { emitln }
     }
     //withOpen(buildPath(dirName, ".."),"script",true) {
       //emitln(s"logon")

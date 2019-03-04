@@ -49,6 +49,8 @@ trait PIRApp extends PIR with Logging {
   
   /* Simulation */
   lazy val psimRunner = new PlastisimRunner()
+  lazy val prouteRunner = new PlastirouteRunner()
+  lazy val tstRunner = new TungstenRunner()
 
   override def initSession = {
     import config._
@@ -109,12 +111,18 @@ trait PIRApp extends PIR with Logging {
     addPass(psimAnalyzer).dependsOn(placerAndRouter) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple9.dot")) ==>
     addPass(enableDot, new PIRIRDotGen(s"top9.dot"))
+    // Igraph
     addPass(enableIgraph, igraphGen).dependsOn(psimAnalyzer)
-    addPass(genTungsten, tungstenPIRGen).dependsOn(placerAndRouter)
-    addPass(genPsim || genTungsten, prouteLinkGen).dependsOn(psimAnalyzer)
-    addPass(genPsim || genTungsten, prouteNodeGen).dependsOn(placerAndRouter, psimAnalyzer)
+    // Plastiroute
+    addPass(genProute, prouteLinkGen).dependsOn(psimAnalyzer)
+    addPass(genProute, prouteNodeGen).dependsOn(placerAndRouter, psimAnalyzer) ==>
+    addPass(genProute, prouteRunner)
+    // Tungsten
+    addPass(genTungsten, tungstenPIRGen).dependsOn(placerAndRouter) ==>
+    addPass(genTungsten && runTst, tstRunner).dependsOn(prouteRunner)
+    // Plastisim
     addPass(genPsim, psimConfigGen).dependsOn(placerAndRouter, psimAnalyzer, prouteLinkGen) ==>
-    addPass(genPsim && runPsim, psimRunner)
+    addPass(genPsim && runPsim, psimRunner).dependsOn(prouteRunner)
     addPass(psimParser)
     addPass(enableDot, new PIRIRDotGen(s"top10.dot"))
     addPass(enableDot, new PIRCtxDotGen(s"simple10.dot"))

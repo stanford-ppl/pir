@@ -16,7 +16,7 @@ def main():
     for backend in opts.backend:
         apps = []
         if backend == 'Tst':
-            apps = ['SumSquare*', 'SimpleDotProduct*', 'DotProduct_*', "OuterProduct_*"]
+            apps = ['SumSquare*', 'SimpleDotProduct*', 'DotProduct_*', "OuterProduct_*", "TPCHQ6_*"]
         starttime = time.strftime('%y%m%d_%H%M%S')
         sha = subprocess.check_output("git log --pretty=format:'%h' -n 1".split(" ")).replace("'","")
         log = "logs/{}_{}_{}_{}.log".format(starttime, backend, opts.project, sha)
