@@ -31,6 +31,7 @@ trait TungstenTopGen extends TungstenCodegen {
 #include "nbuffer.h"
 #include "dramag.h"
 #include "network.h"
+#include "staticnetwork.h"
 
 #include "hostio.h"
 
@@ -41,7 +42,7 @@ using namespace std;
     if (!noPlaceAndRoute) { //TODO: use spade parameter
       emitln("""DynamicNetwork<4, 4> net({16, 12}, "net");""")
       dutArgs += "net"
-      emitln("""DynamicNetwork<4, 4> statnet({16, 12}, "statnet");""")
+      emitln("""StaticNetwork<2, 1> statnet("statnet");""")
       dutArgs += "statnet"
     }
 
