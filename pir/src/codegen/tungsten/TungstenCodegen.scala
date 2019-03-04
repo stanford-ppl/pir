@@ -21,6 +21,8 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   val fileName = "Top.h"
 
   override def initPass = {
+    println(dirName)
+    println("tstOutDir", config.tstOutDir)
     clearDir(dirName, { fileName => fileName.contains("Context") })
     clearDir(buildPath(config.tstOutDir, "build"))
     clearDir(buildPath(config.tstOutDir, "logs"))
@@ -137,6 +139,7 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       i.fold(q) { i => if (n.getVec > 1) s"$q[$i]" else s"$q" }
     }
     def qtp:String = n.getTp match {
+      case Fix(true, 16, 0) => "int"
       case Fix(true, 32, 0) => "int"
       case Fix(true, 64, 0) => "long"
       case Fix(false, 32, 0) => "uint32_t"

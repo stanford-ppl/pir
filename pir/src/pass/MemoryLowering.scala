@@ -269,6 +269,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           if (inAccess.order.get > outAccess.order.get) {
             dbg(s"$token.initToken = true")
             token.initToken := true
+            token.inits := List(true)
           }
         }
       }
@@ -304,6 +305,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
               val token = insertToken(w.ctx.get, r.ctx.get)
               dbg(s"$token.initToken = true")
               token.initToken := true
+              token.inits := List(true)
             }
           }
         }

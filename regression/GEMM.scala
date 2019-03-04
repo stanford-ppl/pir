@@ -8,7 +8,7 @@ case class GEMMParam(
   loop_jj:scala.Int = 1,
   loop_kk:scala.Int = 1,
   loop_i:scala.Int = 1,
-  loop_j:scala.Int = 1
+  loop_j:scala.Int = 1,
   ip:scala.Int = 16
 ) extends Param[GEMMParam]
 
