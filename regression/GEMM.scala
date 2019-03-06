@@ -1,15 +1,15 @@
 import spatial.dsl._
 
 case class GEMMParam(
-  dim:scala.Int = 128,
-  ts:scala.Int = 32,
-  its:scala.Int = 32,
+  dim:scala.Int = 32,
+  ts:scala.Int = 16,
+  its:scala.Int = 16,
   loop_ii:scala.Int = 1,
   loop_jj:scala.Int = 1,
   loop_kk:scala.Int = 1,
   loop_i:scala.Int = 1,
   loop_j:scala.Int = 1,
-  ip:scala.Int = 16
+  ip:scala.Int = 4
 ) extends Param[GEMMParam]
 
 class GEMM_0 extends GEMM
@@ -30,7 +30,7 @@ class GEMM_1 extends GEMM {override lazy val param = GEMMParam(ip=1)}
   lazy val param = GEMMParam()
   import param._
 
-  type T = FixPt[TRUE,_16,_16] // Fatter type so that ts is burst aligned
+  type T = Float
 
   def gemm(a_data:Matrix[T], b_data:Matrix[T], c_init:Matrix[T]) = {
 
@@ -69,12 +69,11 @@ class GEMM_1 extends GEMM {override lazy val param = GEMMParam(ip=1)}
 
   def main(args: Array[String]): Unit = {
 
+    //val a_data = (0::dim,0::dim){(i,j) => i*dim+j}
+    //val b_data = (0::dim,0::dim){(i,j) => i*dim+j}
     val a_data = (0::dim,0::dim){(i,j) => random[T](5)}
     val b_data = (0::dim,0::dim){(i,j) => random[T](5)}
-    // val a_data = loadCSV1D[T](sys.env("SPATIAL_HOME") + "/apps/data/gemm/gemm_a.csv", "\n").reshape(dim,dim)
-    // val b_data = loadCSV1D[T](sys.env("SPATIAL_HOME") + "/apps/data/gemm/gemm_b.csv", "\n").reshape(dim,dim)
     val c_init = (0::dim, 0::dim){(i,j) => 0.to[T]}
-
 
     // val c_gold = loadCSV1D[T](sys.env("SPATIAL_HOME") + "/apps/data/gemm/gemm_gold.csv", "\n").reshape(dim,dim)
     val c_gold = (0::dim,0::dim){(i,j) => 
