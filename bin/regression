@@ -15,10 +15,12 @@ def main():
         opts.backend = ['P14x14']
     for backend in opts.backend:
         apps = []
-        if backend == 'Tst':
-            apps = ['SumSquare*', 'SimpleDotProduct*', 'DotProduct_*', "OuterProduct_*", "TPCHQ6_*"]
-            apps += ["BlackScholes_*"]
+        # if backend == 'Tst':
+            # apps = ['SumSquare*', 'SimpleDotProduct*', 'DotProduct_*', "OuterProduct_*", "TPCHQ6_*"]
+            # apps += ["BlackScholes_*"]
             # apps += ["GEMM_*"]
+            # apps += ["GDA_*"]
+            # apps += ["LogReg_*"]
         starttime = time.strftime('%y%m%d_%H%M%S')
         sha = subprocess.check_output("git log --pretty=format:'%h' -n 1".split(" ")).replace("'","")
         log = "logs/{}_{}_{}_{}.log".format(starttime, backend, opts.project, sha)

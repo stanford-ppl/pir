@@ -1,21 +1,24 @@
 import spatial.dsl._
 
 case class GEMMParam(
-  dim:scala.Int = 32,
-  ts:scala.Int = 16,
-  its:scala.Int = 16,
+  dim:scala.Int = 128,
+  ts:scala.Int = 64,
+  its:scala.Int = 64,
   loop_ii:scala.Int = 1,
   loop_jj:scala.Int = 1,
   loop_kk:scala.Int = 1,
   loop_i:scala.Int = 1,
   loop_j:scala.Int = 1,
-  ip:scala.Int = 4
+  ip:scala.Int = 16 
 ) extends Param[GEMMParam]
 
 class GEMM_0 extends GEMM
 class GEMM_1 extends GEMM {override lazy val param = GEMMParam(ip=1)}
-//class GEMM_1 extends GEMM {override lazy val param = GEMMParam(loop_kk = 2,loop_i = 2,loop_j = 2)}
-//class GEMM_2 extends GEMM {override lazy val param = GEMMParam(loop_j = 8)}
+class GEMM_2 extends GEMM {override lazy val param = GEMMParam(loop_j = 2)}
+class GEMM_3 extends GEMM {override lazy val param = GEMMParam(loop_kk = 2)}
+class GEMM_4 extends GEMM {override lazy val param = GEMMParam(loop_i = 2)}
+class GEMM_5 extends GEMM {override lazy val param = GEMMParam(loop_i = 1,loop_j = 2)}
+class GEMM_6 extends GEMM {override lazy val param = GEMMParam(loop_kk = 2,loop_i = 2,loop_j = 2)}
 //class GEMM_3 extends GEMM {override lazy val param = GEMMParam(loop_i = 4,loop_j = 4)}
 //class GEMM_4 extends GEMM {override lazy val param = GEMMParam(loop_i = 2,loop_j = 2)}
 //class GEMM_5 extends GEMM {override lazy val param = GEMMParam(loop_i = 1,loop_j = 2)}
