@@ -125,10 +125,10 @@ def removeRules(conf, opts):
             remove(conf['AccelMain'], opts)
         elif p == 'runproute':
             remove(conf['prouteSummary'], opts)
-        elif p == 'runtst':
-            remove(conf['gentstlog'], opts)
-            remove(conf['maketstlog'], opts)
-            remove(conf['runtstlog'], opts)
+        # elif p == 'runtst':
+            # remove(conf['gentstlog'], opts)
+            # remove(conf['maketstlog'], opts)
+            # remove(conf['runtstlog'], opts)
         elif p == 'runpsim':
             remove(conf['gentracelog'], opts)
             remove(conf['genpsimlog'], opts)

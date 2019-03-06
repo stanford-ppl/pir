@@ -8,7 +8,7 @@ case class BlackScholesParam(
 ) extends Param[BlackScholesParam]
 
 class BlackScholes_0 extends BlackScholes
-//class BlackScholes_1 extends BlackScholes { override lazy val param = BlackScholesParam(op=2) }
+class BlackScholes_1 extends BlackScholes { override lazy val param = BlackScholesParam(ip=1) }
 
 @spatial abstract class BlackScholes extends DSETest {
 

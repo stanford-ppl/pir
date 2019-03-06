@@ -17,9 +17,9 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
   override def emitNode(n:N) = n match {
     case n:ControlBlock =>
       super.visitNode(n)
-      n.ctx.get.collectDown[Controller]().foreach { ctrler =>
-        emitln(s"$ctrler->Eval();")
-      }
+      emitln(s"EvalControllers();")
+
+      // If last level controller is loop controller, generate lane valids
       n.ctrlers.last.to[LoopController].foreach { ctrler =>
         val laneValids = ctrler.cchain.T.foldLeft(List[String]()) { 
           case (Nil, ctr) => List.tabulate(ctr.par) { i => s"$ctr->Valids()[$i]" }

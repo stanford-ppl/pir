@@ -66,7 +66,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
           addEscapeVar(n)
           genCtxInits {
             emitln(s"""inputs.push_back($name);""")
-            if (n.initToken.get || n.inits.nonEmpty) {
+            if (n.initToken.get) {
               emitln(s"$name->Push(make_token((${n.qtp}) ${assertOne(n.inits.get, s"$n.inits")}));")
             }
           }
