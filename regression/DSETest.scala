@@ -30,7 +30,7 @@ trait DSETest extends PlasticineTest { test =>
       genpir() >>
       pirpass("gentst", s"--mapping=true --codegen=true --net=p2p --row=$row --col=$col --tungsten --psim=false".split(" ").toList) >>
       scommand(s"maketst", "make -C tungsten/".split(" "), timeout=3000, parseMake, MakeError.apply) >>
-      scommand(s"runtst", "./tungsten/tungsten".split(" "), timeout=10, parseTst, RunError.apply)
+      scommand(s"runtst", "./tungsten/tungsten".split(" "), timeout=1000, parseTst, RunError.apply)
     }
   }
 
