@@ -46,9 +46,10 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     }
     sequencedScheduleBarrierInsertion(mem)
     multiBufferBarrierInsertion(mem)
+    //enforceDataDependencyInSameController(mem)
     fifoBarrierInsertion(mem)
     //enforceProgramOrder(mem)
-    enforceDataDependency(mem)
+    //enforceDataDependency(mem)
   }
 
   def groupAccess(mem:Memory, accesses:List[Access]):List[Set[Access]] = dbgblk(s"groupAccess($mem)") {
@@ -252,29 +253,59 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     }
   }
 
-  def enforceDataDependency(mem:Memory):Unit = dbgblk(s"enforceDataDependency($mem)"){
-    val accesses = mem.accesses.filter { _.port.nonEmpty }
-    accesses.groupBy { _.port.get }.foreach { case (port, accesses) =>
-      val (inAccesses, outAccesses) =  accesses.partition { _.isInstanceOf[InAccess] }
-      inAccesses.foreach { inAccess =>
-        outAccesses.foreach { outAccess =>
-          dbg(s"Insert token for data dependency between $inAccess and $outAccess")
-          val token = insertToken(
-            inAccess.ctx.get, 
-            outAccess.ctx.get
-          )
-          if (token.depth.isEmpty) {
-            token.depth(1)
-          }
-          if (inAccess.order.get > outAccess.order.get) {
-            dbg(s"$token.initToken = true")
-            token.initToken := true
-            token.inits := List(true)
-          }
-        }
-      }
-    }
-  }
+  /*
+   * If write => read are not in the same loop, they should be handled in multibuffer or sequential
+   * controller. This is to handle the case where write and read are 
+   * */
+  //def enforceDataDependencyInSameController(mem:Memory):Unit = dbgblk(s"enforceDataDependencyInSameController($mem)"){
+    //val accesses = mem.accesses.filter { _.port.nonEmpty }
+    //accesses.groupBy { _.port.get }.foreach { case (port, accesses) =>
+      //val (inAccesses, outAccesses) =  accesses.partition { _.isInstanceOf[InAccess] }
+      //inAccesses.foreach { inAccess =>
+        //outAccesses.foreach { outAccess =>
+          //if (inAccess.getCtrl == outAccess.getCtrl) {
+            //dbg(s"Insert token for same loop data dependency between $inAccess and $outAccess")
+            //val token = insertToken(
+              //inAccess.ctx.get, 
+              //outAccess.ctx.get
+            //)
+            //if (token.depth.isEmpty) {
+              //token.depth(1)
+            //}
+            //if (inAccess.order.get > outAccess.order.get) {
+              //dbg(s"$token.initToken = true")
+              //token.initToken := true
+              //token.inits := List(true)
+            //}
+          //}
+        //}
+      //}
+    //}
+  //}
+
+  //def enforceDataDependency(mem:Memory):Unit = dbgblk(s"enforceDataDependency($mem)"){
+    //val accesses = mem.accesses.filter { _.port.nonEmpty }
+    //accesses.groupBy { _.port.get }.foreach { case (port, accesses) =>
+      //val (inAccesses, outAccesses) =  accesses.partition { _.isInstanceOf[InAccess] }
+      //inAccesses.foreach { inAccess =>
+        //outAccesses.foreach { outAccess =>
+          //dbg(s"Insert token for data dependency between $inAccess and $outAccess")
+          //val token = insertToken(
+            //inAccess.ctx.get, 
+            //outAccess.ctx.get
+          //)
+          //if (token.depth.isEmpty) {
+            //token.depth(1)
+          //}
+          //if (inAccess.order.get > outAccess.order.get) {
+            //dbg(s"$token.initToken = true")
+            //token.initToken := true
+            //token.inits := List(true)
+          //}
+        //}
+      //}
+    //}
+  //}
 
   def fifoBarrierInsertion(mem:Memory):Unit = {
     if (!mem.isFIFO) return

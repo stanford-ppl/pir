@@ -158,7 +158,7 @@ def logApp(backend, app, show, opts):
         if os.path.exists(igraph):
             shutil.copyfile(igraph, "data/igraph/{}__{}.py".format(backend, app))
     if opts.summarize and backend in ['H14x14v3s4', 'H14x14v3s4c4w']:
-        link = os.path.join(opts.gendir,backend,app,"pir/plastisim/link.csv")
+        link = os.path.join(opts.gendir,backend,app,"plastisim/link.csv")
         if os.path.exists(link):
             shutil.copyfile(link, "data/link/{}__{}.csv".format(backend, app))
     if show:
@@ -186,7 +186,7 @@ def parse(backend, app, opts):
     conf['psimsh'] = os.path.join(opts.gendir,backend,app,"log/runpsim.sh")
     conf['runproutelog'] = os.path.join(opts.gendir,backend,app,"log/runproute.log")
     conf['proutesh'] = os.path.join(opts.gendir,backend,app,"log/runproute.sh")
-    conf['prouteSummary'] = os.path.join(opts.gendir,backend,app,"pir","plastisim","summary.csv")
+    conf['prouteSummary'] = os.path.join(opts.gendir,backend,app,"plastisim","summary.csv")
     conf['AccelMain'] = os.path.join(opts.gendir,backend,app,"pir","AccelMain.scala")
     conf['gentstlog'] = os.path.join(opts.gendir,backend,app,"log/gentst.log")
     conf['maketstlog'] = os.path.join(opts.gendir,backend,app,"log/maketst.log")
