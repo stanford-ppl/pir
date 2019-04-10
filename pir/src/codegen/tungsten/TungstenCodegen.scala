@@ -33,8 +33,9 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       if (!noPlaceAndRoute) {
         emitln(s"source place")
       }
+      emitln(s"timeout -1")
+      emitln(s"log2files")
       //emitln(s"logon")
-      //emitln(s"log2files")
     }
     super.initPass
   }

@@ -35,12 +35,13 @@ class GEMM_7 extends GEMM {override lazy val param = GEMMParam(loop_j = 2, ip = 
   import param._
 
   type T = Float
+  //type T = Int
 
   def gemm(a_data:Matrix[T], b_data:Matrix[T], c_init:Matrix[T]) = {
 
-    val a_dram = DRAM[T](dim,dim)
-    val b_dram = DRAM[T](dim,dim)
-    val c_dram = DRAM[T](dim,dim)
+    val a_dram = DRAM[T](dim,dim) // i, k
+    val b_dram = DRAM[T](dim,dim) // j, k
+    val c_dram = DRAM[T](dim,dim) // i, j
 
     setMem(a_dram, a_data)
     setMem(b_dram, b_data)
@@ -73,13 +74,12 @@ class GEMM_7 extends GEMM {override lazy val param = GEMMParam(loop_j = 2, ip = 
 
   def main(args: Array[String]): Unit = {
 
-    //val a_data = (0::dim,0::dim){(i,j) => i*dim+j}
-    //val b_data = (0::dim,0::dim){(i,j) => i*dim+j}
-    val a_data = (0::dim,0::dim){(i,j) => random[T](5)}
-    val b_data = (0::dim,0::dim){(i,j) => random[T](5)}
+    val a_data = (0::dim,0::dim){(i,j) => (i*dim+j).to[T]}
+    val b_data = (0::dim,0::dim){(i,j) => (i*dim+j).to[T]}
+    //val a_data = (0::dim,0::dim){(i,j) => random[T](5)}
+    //val b_data = (0::dim,0::dim){(i,j) => random[T](5)}
     val c_init = (0::dim, 0::dim){(i,j) => 0.to[T]}
 
-    // val c_gold = loadCSV1D[T](sys.env("SPATIAL_HOME") + "/apps/data/gemm/gemm_gold.csv", "\n").reshape(dim,dim)
     val c_gold = (0::dim,0::dim){(i,j) => 
       Array.tabulate(dim){k => a_data(i,k) * b_data(k,j)}.reduce{_+_}
     }
@@ -89,7 +89,7 @@ class GEMM_7 extends GEMM {override lazy val param = GEMMParam(loop_j = 2, ip = 
     printMatrix(c_result, "C Result: ")
 
     val margin = 0.5.to[T]
-    val cksum = c_gold.zip(c_result){(a,b) => abs(a-b) < margin}.reduce{_&&_}
+    val cksum = c_gold.zip(c_result){(a,b) => abs(a-b) <= margin}.reduce{_&&_}
     println("PASS: " + cksum + " (GEMM)")
     assert(cksum)
   }
