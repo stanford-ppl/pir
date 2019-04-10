@@ -18,31 +18,39 @@ tag:
 
 install: pir psim proute tungsten
 
+update: pir psim-update proute-update tungsten-update
+
 spatial:
 	cd ../ && sbt "; project pirTest; compile"
 
 pir:
 	sbt publishAll
 
-psim:
+psim-update:
 	git submodule update plastisim
 	mkdir -p plastisim/build
 	cd plastisim && make CC=gcc Cpp=g++ CXX=g++
+
+psim: psim-update
 	bin/pconf --psim-home=$(shell pwd)/plastisim
 
-proute:
+proute-update:
 	git submodule update plastiroute
 	cd plastiroute && make CC=gcc Cpp=g++ CXX=g++ 
+
+proute: proute-update
 	bin/pconf --proute-home=$(shell pwd)/plastiroute
 
-tungsten:
+tungsten-update:
 	git submodule update tungsten
 	cd tungsten && make Cpp=g++ CXX=g++ 
+
+tungsten: tungsten-update
 	bin/pconf --tungsten-home=$(shell pwd)/tungsten
 
 pull:
 	cd plastisim && git pull && git submodule update --init
 	cd plastiroute && git pull
 
-.PHONY: all spatial pir psim proute init pull install env tungsten
+.PHONY: all spatial pir psim proute init pull install env tungsten update
 
