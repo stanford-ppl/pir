@@ -20,6 +20,7 @@ class GEMM_4 extends GEMM {override lazy val param = GEMMParam(loop_i = 2)}
 class GEMM_5 extends GEMM {override lazy val param = GEMMParam(loop_i = 1,loop_j = 2)}
 class GEMM_6 extends GEMM {override lazy val param = GEMMParam(loop_kk = 2,loop_i = 2,loop_j = 2)}
 class GEMM_7 extends GEMM {override lazy val param = GEMMParam(loop_j = 2, ip = 1, ts=16, its=16, dim=32)}
+class GEMM_8 extends GEMM {override lazy val param = GEMMParam(loop_j = 2, ip = 8, ts=16, its=16, dim=32)}
 //class GEMM_3 extends GEMM {override lazy val param = GEMMParam(loop_i = 4,loop_j = 4)}
 //class GEMM_4 extends GEMM {override lazy val param = GEMMParam(loop_i = 2,loop_j = 2)}
 //class GEMM_5 extends GEMM {override lazy val param = GEMMParam(loop_i = 1,loop_j = 2)}
@@ -34,8 +35,8 @@ class GEMM_7 extends GEMM {override lazy val param = GEMMParam(loop_j = 2, ip = 
   lazy val param = GEMMParam()
   import param._
 
-  type T = Float
-  //type T = Int
+  //type T = Float
+  type T = Int
 
   def gemm(a_data:Matrix[T], b_data:Matrix[T], c_init:Matrix[T]) = {
 
