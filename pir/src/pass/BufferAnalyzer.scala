@@ -62,12 +62,13 @@ trait BufferAnalyzer extends MemoryAnalyzer {
       val read = dbgblk(s"bufferInput(depOut=$dep.$depOut, depedIn=$deped.$depedIn)") {
         val depCtx = dep.ctx.get
         val (enq, deq) = compEnqDeq(isFIFO=true, depCtx, depedCtx, Some(depOut), List(depedIn))
+        val tp = compType(depOut)
         val write = within(depCtx, dep.getCtrl) {
           allocate[BufferWrite] { write => 
             write.data.canReach(depOut, visitEdges=visitInEdges _) &&
             write.done.canReach(enq, visitEdges=visitInEdges _)
           } {
-            BufferWrite().data(depOut).done(enq)
+            stage(BufferWrite().data(depOut).done(enq))
           }
         }
         val read = within(depedCtx, deped.getCtrl) {
@@ -75,7 +76,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
             read.in.canReach(write.out, visitEdges=visitInEdges _) &&
             read.done.canReach(deq, visitEdges=visitInEdges _)
           } {
-            BufferRead().in(write.out).done(deq).banks(List(dep.getVec)).tp(compType(depOut))
+            stage(BufferRead().in(write.out).done(deq).vec(dep.getVec).banks(List(dep.getVec)).tp(tp))
           }
         }
         swapConnection(depedIn, depOut, read.out)
@@ -106,7 +107,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
           insertGlobalInput(global, dep.in.T.out, ins)
         case dep =>
           val gin = within(global) { 
-            allocate[GlobalInput] { _.in.isConnectedTo(out) } { GlobalInput().in(out) } 
+            allocate[GlobalInput] { _.in.isConnectedTo(out) } { stage(GlobalInput().in(out)) } 
           }
           ins.foreach { in => swapConnection(in, out, gin.out) }
           gin
@@ -132,7 +133,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
       case depedFrom:GlobalOutput => throw PIRException(s"impossible case insertGlobalOutput")
       case depedFrom =>
         val gout = within(global) { 
-          allocate[GlobalOutput]{ _.in.isConnectedTo(out) } { GlobalOutput().in(out) }
+          allocate[GlobalOutput]{ _.in.isConnectedTo(out) } { stage(GlobalOutput().in(out)) }
         }
         ins.foreach { in => swapConnection(in, out, gout.out) }
         gout

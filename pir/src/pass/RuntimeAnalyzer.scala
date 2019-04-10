@@ -4,7 +4,7 @@ package pass
 import pir.node._
 import prism.graph._
 import prism.util._
-import spade.param.FixOp
+import spade.param.{FixOp, FltOp}
 import scala.collection.mutable
 
 trait RuntimeAnalyzer extends Logging { self:PIRPass =>
@@ -43,10 +43,12 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
 
     def psimState(s:String) = n.getMeta[Float]("psimState").update(s)
     def psimState = n.getMeta[String]("psimState").v
-    def getTp:BitType = inferType(n).getOrElse(throw PIRException(s"Don't know type of $n"))
+    def getTp:BitType = n.inferTp.getOrElse(throw PIRException(s"Don't know how to infer type of $n"))
+    def inferTp:Option[BitType] = n.tp.orElseUpdate { compType(n) }
   }
   implicit class NodeRuntimeOp(n:ND) {
-    def getVec:Int = n.getMeta[Int]("vec").getOrElseUpdate(compVec(n))
+    def inferVec:Option[Int] = n.getMeta[Int]("vec").orElseUpdate { compVec(n) }
+    def getVec:Int = n.inferVec.getOrElse(throw PIRException(s"Don't know how to infer vec of $n"))
   }
 
   val StreamWriteContext = MatchRule[Context, FringeStreamWrite] { n =>
@@ -182,45 +184,35 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     }
   }
 
-  def compVec(n:ND):Int = /*dbgblk(s"compVec($n)")*/{
+  def compVec(n:ND):Option[Int] = dbgblk(s"compVec($n)") {
     n match {
-      case n:CounterIter => n.is.size
-      case n:CounterValid => n.is.size
-      case n:RegAccumOp => 1
-      case n:TokenWrite => 1
-      case n:TokenRead => 1
-      case n:GlobalOutput => n.in.T.getVec
-      case n:GlobalInput => assertUnify(n.out.T, s"$n.out.T") { _.getVec }.get
-      case n:BankedRead => n.mem.bankids.get.size
-      case n:BufferWrite if n.getCtrl.schedule=="Streaming" =>
-        assertUnify(n.outAccesses, s"$n.outAccesses.bank") { _.banks.get.head }.get
-      case n:BufferWrite => n.data.T.getVec // Account for reduction
-      case n:MemWrite if n.getCtrl.schedule=="Streaming" =>
-        n.mem.banks.get.head
-      case n:BufferRead =>
-        n.banks.get.head
-      case n:MemRead if n.getCtrl.schedule=="Streaming" =>
-        n.mem.banks.get.head
-      case n:Shuffle => n.to.T.getVec
-      case Const(v:List[_]) => v.size
-      case Const(v) => 1
-      case n:PIRNode => n.getCtrl.getVec
-      case n:ControlTree =>
-        if (n.children.isEmpty) n.par.get else 1
+      case Const(v:List[_]) => Some(v.size)
+      case Const(v) => Some(1)
+      case n:TokenWrite => Some(1)
+      case n:TokenRead => Some(1)
+      case WithMem(access, mem:Reg) => Some(1)
+      case WithMem(access, mem:FIFO) if access.getCtrl.schedule=="Streaming" => Some(mem.banks.get.head)
+      case n:BufferWrite => n.data.T.inferVec
+      case n:RegAccumOp => Some(1)
+      case n@OpDef(_:FixOp) => flatReduce(n.input.T.map{_.inferVec}) { case (a,b) => Math.max(a,b) }
+      case n@OpDef(_:FltOp) => flatReduce(n.input.T.map{_.inferVec}) { case (a,b) => Math.max(a,b) }
+      case n:Shuffle => n.to.T.inferVec
+      case n:GlobalOutput => n.in.T.inferVec
+      // During staging time GlobalInput might temporarily not connect to GlobalOutput
+      case n:GlobalInput => n.in.singleConnected.get.src.inferVec
+      case n:ControlTree => if (n.children.isEmpty) Some(n.par.get) else Some(1)
+      case n => None
     }
-  }
-
-  def inferType(n:PIRNode) = n.tp.v orElse {
-    compType(n)
   }
 
   def compType(n:Any):Option[BitType] = dbgblk(s"compType($n)") {
     n match {
-      case n:DRAMAddr => inferType(n.out.T.head)
-      case n:Shuffle => inferType(n.base.T)
-      case n:LocalInAccess => assertUnify(n.outAccesses, s"$n.outAccesses.tp") { inferType(_) }.get
+      case n:Shuffle => n.base.T.inferTp
       case n:TokenRead => Some(Bool)
-      case n@OpDef(_:FixOp) => assertUnify(n.input.T, s"$n.tp") { inferType(_) }.get
+      case n:TokenWrite => Some(Bool)
+      case n:BufferWrite => n.data.T.inferTp
+      case n@OpDef(_:FixOp) => assertUnify(n.input.T, s"$n.tp") { _.inferTp }.get
+      case n@OpDef(_:FltOp) => assertUnify(n.input.T, s"$n.tp") { _.inferTp }.get
       case Const(_:Boolean) => Some(Bool)
       case Const(_:Int) => Some(Fix(true, 32, 0))
       case Const(_:Float) => Some(Flt(23, 8))
@@ -228,15 +220,16 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case Const(_:String) => Some(Text)
       case OutputField(n:Controller, "valid") => Some(Bool)
       case OutputField(n:Controller, "done") => Some(Bool)
-      case n:Edge[_,_,_] => inferType(n.src.as[PIRNode])
+      case n:Edge[_,_,_] => n.src.as[PIRNode].inferTp
       case n:Any => None
     }
   }
 
   def stage[T<:PIRNode](n:T):T = {
-    val tp = inferType(n)
+    val tp = n.inferTp
+    val vec = n.inferVec
     val fields = n.fedges.map { e => s".${e.name}(${e.connected.map { dquote }})" }.mkString
-    dbg(s"Create $n$fields in ${n.parent} with tp=$tp")
+    dbg(s"Create $n$fields in ${n.parent} with tp=$tp vec=$vec")
     n
   }
 

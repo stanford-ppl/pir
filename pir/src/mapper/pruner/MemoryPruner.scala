@@ -49,6 +49,10 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
       }
       mmem.bankids.reset
       mmem.bankids := bankids.toList
+      mmem.inAccesses.foreach { br => 
+        br.vec.reset
+        br.vec := bankids.size
+      }
     }
 
     // Update Shuffles within new memory partitions
@@ -114,7 +118,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
                   if (fromBanks == toBanks) {
                     mbr.out
                   } else {
-                    stage(Shuffle().base(mbr.out).from(allocConst(fromBanks)).to(allocConst(toBanks))).out
+                    stage(Shuffle(0).base(mbr.out).from(allocConst(fromBanks)).to(allocConst(toBanks))).out
                   }
                 }
                 (shuffle.out, toMerge)
@@ -130,7 +134,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
                   }
                   val mto = mbankAddr.getOrElse { to }
                   dbg(s"mbankAddr=$mbankAddr, mto=$mto")
-                  val mshuffle = stage(Shuffle().base(mbr.out).from(allocConst(fromBanks)).to(mto))
+                  val mshuffle = stage(Shuffle(0).base(mbr.out).from(allocConst(fromBanks)).to(mto))
                   mshuffle.out
                 }
                 (shuffle.out, toMerge)
@@ -143,7 +147,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
                   val mbr = mapping(br).as[BankedRead]
                   val fromBanks = mmem.bankids.get
                   val toBanks = mem.bankids.get
-                  stage(Shuffle().base(mbr.out).from(allocConst(fromBanks)).to(allocConst(toBanks))).out
+                  stage(Shuffle(0).base(mbr.out).from(allocConst(fromBanks)).to(allocConst(toBanks))).out
                 }
                 (read.out, toMerge)
             }

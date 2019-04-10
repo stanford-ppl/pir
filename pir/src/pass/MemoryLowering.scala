@@ -100,7 +100,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       val requests = accesses.map { access =>
         val addrCtx = access match {
           case access if accesses.size == 1 => mergeCtx
-          case access:BankedRead => within(pirTop, access.ctx.get.getCtrl) { Context() }
+          case access:BankedRead => within(memCU, access.ctx.get.getCtrl) { Context() }
           case access:BankedWrite => access.ctx.get
         }
         addrCtxs += access -> addrCtx
@@ -109,11 +109,11 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
         within(addrCtx, access.getCtrl) {
           flattenBankAddr(access)
           val bank = access.bank.connected
-          val ofs = stage(Shuffle().from(bank).to(allocConst(mem.bankids.get)).base(access.offset.connected))
+          val ofs = stage(Shuffle(-1).from(bank).to(allocConst(mem.bankids.get)).base(access.offset.connected))
           dbg(s"val $ofs = Shuffle() //ofs")
           val data = access match {
             case access:BankedWrite => 
-              val data = stage(Shuffle().from(bank).to(allocConst(mem.bankids.get)).base(access.data.connected))
+              val data = stage(Shuffle(0).from(bank).to(allocConst(mem.bankids.get)).base(access.data.connected))
               bufferInput(data.base) // Force fifo control among unrolled controllers
               dbg(s"val $data = Shuffle() //data")
               Some(data)
@@ -141,10 +141,12 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       val List((ofs, data)) = red
       data.fold[Unit]{
         val newRead = stage(BankedRead().offset(ofs).mem(mem).mirrorMetas(headAccess))
+        newRead.vec.reset
+        newRead.vec := mem.nBanks
         accesses.asInstanceOf[Set[BankedRead]].foreach { access =>
           access.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx, ins) =>
             val shuffle = within(inCtx, inCtx.getCtrl)  {
-              stage(Shuffle().from(allocConst(mem.bankids.get)).to(access.bank.connected).base(newRead.out))
+              stage(Shuffle(0).from(allocConst(mem.bankids.get)).to(access.bank.connected).base(newRead.out))
             }
             dbg(s"val $shuffle = Shuffle() // bankRead")
             bufferInput(shuffle.base)
@@ -332,9 +334,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
             write.en.evalTo(inAccess.en.connected) && 
             write.done.isConnectedTo(enq)
           } {
-            val write = BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(inAccess.en.connected).done(enq)
-            dbg(s"create $write.data(${inAccess.data.connected}).done(${write.done.T})")
-            write
+            stage(BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(inAccess.en.connected).done(enq))
           }
         }
         val read = within(outAccess.parent.get, outAccess.ctrl.get) {

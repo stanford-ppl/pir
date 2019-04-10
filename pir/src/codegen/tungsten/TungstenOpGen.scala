@@ -27,7 +27,6 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       emitln(s"""cout << "Set ArgIn ${n.sid} " << ${n} << endl;""")
 
     case n@Const(v:List[_]) => emitVec(n, v)
-
     case n@Const(v:String) => emitVec(n, List.fill(n.getVec)(s""""${v.replace("\n", "\\n")}""""))
     case n@Const(v) => emitVec(n, List.fill(n.getVec)(v))
 
@@ -54,7 +53,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
         }
       }
 
-    case n:Shuffle =>
+    case n@Shuffle(filled) =>
       val from = n.from.T
       val base = n.base.T
       val to = n.to.T
@@ -62,13 +61,24 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       emitToVec(s"${n}_vto")(to)
       emitToVec(s"${n}_vbase")(base)
       emitln(s"${n.qtp} ${n}_shuffled[${n.getVec}];")
-      emitln(s"shuffle<${n.qtp}, ${from.getVec}, ${to.getVec}>(${n}_vfrom, ${n}_vto, ${n}_vbase, ${n}_shuffled);")
+      filled match {
+        case 0 => emitln(s"shuffleData<${n.qtp}, ${from.getVec}, ${to.getVec}>(${n}_vfrom, ${n}_vto, ${n}_vbase, ${n}_shuffled);")
+        case -1 => emitln(s"shuffleAddr<${from.getVec}, ${to.getVec}>(${n}_vfrom, ${n}_vto, ${n}_vbase, ${n}_shuffled);")
+      }
       emitUnVec(n)(s"${n}_shuffled")
 
     case n@OpDef(FixToFix) =>
       val inputs = n.input.T
       emitVec(n) { i =>
         s"(${n.qtp}) ${inputs.head.qidx(i)}" 
+      }
+
+    case n@OpDef(FixOr) if n.getTp.isInstanceOf[Flt] =>
+      emitVec(n) { i =>
+        val ins = n.input.T.map { _.qidx(i) }
+        def a = ins(0)
+        def b = ins(1)
+        s"FloatOr($a,$b)"
       }
 
     case n:OpDef =>

@@ -137,7 +137,7 @@ trait CUCostUtil extends PIRPass with CostUtil with RuntimeAnalyzer with Memoriz
         ctxs.map { _.getCost[LaneCost] }.fold(LaneCost()) { _ + _ }
       case n:Context =>
         val lane = assertUnify(n.collectDown[Controller]().flatMap { _.leaves }.distinct, s"$n.lane") {
-          _.getVec
+          _.getCtrl.getVec
         }.getOrElse(1)
         LaneCost(lane)
       case n:CUParam => LaneCost(n.numLane)

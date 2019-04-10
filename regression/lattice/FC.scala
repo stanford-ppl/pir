@@ -73,7 +73,8 @@ protected object Defs {
   }
 
   def main(args: Array[String]): Unit = {
-    val layers_dims = loadCSVNow[scala.Int](s"${System.getProperty("user.dir")}/tf-src/dnn-nids/DNN-NIDS_LUTs/DIMS.csv", ","){_.toInt}
+    //val layers_dims = loadCSVNow[scala.Int](s"${System.getProperty("user.dir")}/tf-src/dnn-nids/DNN-NIDS_LUTs/DIMS.csv", ","){_.toInt}
+    val layers_dims = List(10,2,1) //TODO:
     val input = loadCSV2D[T](s"${System.getProperty("user.dir")}/tf-src/dnn-nids/DNN-NIDS_LUTs/INPUT_LUT.csv")
     val total_samples = input.rows // Transposed so single image is along leading dimension in memory
     val parameters = Seq.tabulate(layers_dims.size - 1){i => 

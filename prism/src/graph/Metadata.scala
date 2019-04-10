@@ -54,6 +54,12 @@ abstract class MetadataLike[T] extends Serializable {
     if (value.isEmpty) :=(v)
     get
   }
+  def orElseUpdate(vopt: => Option[T]):Option[T] = {
+    if (value.isEmpty) {
+      vopt.foreach { v => :=(v) }
+    }
+    v
+  }
   def reset = value = default
   def mirror(from:MetadataIR, to:MetadataIR, frommeta:MetadataLike[_]):Unit = mirror(frommeta)
   def mirror(frommeta:MetadataLike[_]) = frommeta.value.foreach { v => update(v) }
