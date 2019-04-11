@@ -93,8 +93,9 @@ trait PIRApp extends PIR with Logging {
     // ------- Mapping  --------
     addPass(enableMapping, hardPruner).dependsOn(initializer) ==>
     addPass(enableMapping, memoryPruner) ==>
+    addPass(constProp) ==> // Remove unused shuffle
     addPass(enableMapping, memoryComputePruner) ==>
-    addPass(enableMapping, hardPruner) ==>
+    addPass(enableMapping, hardPruner) ==> // prune on newly created CUs by memoryComputePruner
     addPass(enableMapping, computePruner) ==>
     addPass(enableMapping, dagPruner) ==>
     addPass(sanityCheck) ==>

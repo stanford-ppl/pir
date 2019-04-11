@@ -139,10 +139,8 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       }
       //TODO: handle en
       val List((ofs, data)) = red
-      data.fold[Unit]{
+      val newAccess = data.fold[BankedAccess]{
         val newRead = stage(BankedRead().offset(ofs).mem(mem).mirrorMetas(headAccess))
-        newRead.vec.reset
-        newRead.vec := mem.nBanks
         accesses.asInstanceOf[Set[BankedRead]].foreach { access =>
           access.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx, ins) =>
             val shuffle = within(inCtx, inCtx.getCtrl)  {
@@ -160,9 +158,12 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
             }
           }
         }
+        newRead
       } { data => 
         stage(BankedWrite().offset(ofs).data(data).mem(mem).mirrorMetas(headAccess))
       }
+      newAccess.vec.reset
+      newAccess.vec := mem.nBanks
     }
     removeNodes(accesses)
   }

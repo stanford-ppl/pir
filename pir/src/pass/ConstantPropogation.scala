@@ -17,11 +17,15 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
   var memLowerHasRun = false
   var memPrunerHasRun = false
   var globalInsertHasRun = false
+  var initializerHasRun = false
+  var memoryPrunerHashRun = false
 
   override def initPass = {
     super.initPass
     memLowerHasRun = compiler.hasRun[MemoryLowering]
     globalInsertHasRun = compiler.hasRun[GlobalInsertion]
+    initializerHasRun = compiler.hasRun[TargetInitializer]
+    memoryPrunerHashRun = compiler.hasRun[MemoryPruner]
   }
 
   val WrittenByConstData = MatchRule[MemRead, (MemRead, Const)] { read =>
@@ -70,7 +74,7 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
   }
 
   val RouteThrough1 = MatchRule[MemWrite, (MemWrite, MemRead, MemWrite)] { n =>
-    if (!memLowerHasRun && !globalInsertHasRun && n.en.isConnected) {
+    if (!initializerHasRun && !memLowerHasRun && !globalInsertHasRun && n.en.isConnected) {
       n.data.T match {
         case r1:MemRead if !r1.en.isConnected =>
           val w1s = r1.mem.T.inAccesses
@@ -86,7 +90,7 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
   // (W) => r1 (R) => n (W)
   val RouteThrough2 = MatchRule[BufferWrite, (BufferWrite, BufferRead, BufferWrite)] { n =>
     n.data.T match {
-      case r1:BufferRead => Some((r1.inAccess.as[BufferWrite], r1, n))
+      case r1:BufferRead if !initializerHasRun => Some((r1.inAccess.as[BufferWrite], r1, n))
       case _ =>  None
     }
   }
@@ -105,6 +109,7 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
 
   val ShuffleMatch = MatchRule[Shuffle, Shuffle] { n =>
     (n.from.T, n.to.T) match {
+      case (from, to) if !memoryPrunerHashRun => None
       case (from, to) if from == to => Some(n)
       case (Const(from), Const(to)) if from == to => Some(n)
       case (Const(List(from:Int)), Const(to:Int)) if from == to => Some(n)
@@ -159,19 +164,19 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
         }
       case RouteThrough1(w1, r1, w2) =>
         val mem = w2.mem.T
+        dbg(s"Route through $w1 -> $r1 -> $w2 -> $mem detected")
         disconnect(w2.mem, mem)
         val mw1 = within(w1.parent.get) {
           mirrorAll(List(w1))(w1).as[MemWrite]
         }
-        mw1.mem(mem)
-        dbg(s"Route through $w1 -> $r1 -> $w2 -> $mem detected")
         dbg(s" => $mw1 -> $mem")
+        mw1.mem(mem)
       case RouteThrough2(w1, r1, w2) =>
         val outs = w2.outAccesses
-        outs.foreach { out => disconnect(w2.out, out) }
-        w1.out(outs.map { _.in })
         dbg(s"Route through $w1 -> $r1 -> $w2 -> $outs detected")
         dbg(s" => $w1 -> $outs")
+        outs.foreach { out => disconnect(w2.out, out) }
+        w1.out(outs.map { _.in })
       case n => 
     }
 

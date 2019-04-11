@@ -129,9 +129,9 @@ trait Transformer extends Logging {
   }
 
   def disconnect[N<:Node[N],A<:Edge[N,A,B],B<:Edge[N,B,A]](a:Edge[N,A,B], b:Node[N]) = {
-    dbg(s"disconnect($a, $b)")
+    dbg(s"disconnect(${a.src}.$a, $b)")
     val bios = a.connected.filter { _.src == b }
-    assert(bios.nonEmpty, s"$a is not connected to $b, a.connected=${a.neighbors}")
+    assert(bios.nonEmpty, s"${a.src}.$a is not connected to $b, a.connected=${a.neighbors}")
     bios.foreach { bio => a.disconnectFrom(bio) }
   }
 
