@@ -100,8 +100,9 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       val requests = accesses.map { access =>
         val addrCtx = access match {
           case access if accesses.size == 1 => mergeCtx
-          case access:BankedRead => within(memCU, access.ctx.get.getCtrl) { Context() }
-          case access:BankedWrite => access.ctx.get
+          case access => within(memCU, access.ctx.get.getCtrl) { Context() }
+          //case access:BankedWrite => access.ctx.get // Writer also have new context per access
+          //inside PMU so when splitting PMU the shuffles are duplicated
         }
         addrCtxs += access -> addrCtx
         dbg(s"addrCtx for $access = $addrCtx")
