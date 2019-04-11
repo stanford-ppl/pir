@@ -42,21 +42,8 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
 
     // Update metadata of new partitions
     (mappings, parts).zipped.foreach { case (mapping, bankids) =>
-      val mmem = mapping(mem).as[Memory]
-      if (bankMult != 1) {
-        mmem.banks.reset
-        mmem.banks := mem.banks.get :+ bankMult
-      }
-      mmem.bankids.reset
-      mmem.bankids := bankids.toList
-      mmem.inAccesses.foreach { br => 
-        br.vec.reset
-        br.vec := bankids.size
-      }
+      updateMetadata(k, mem, mapping, bankMult, bankids)
     }
-
-    // Update Shuffles within new memory partitions
-    updateShuffle(k, mem, mappings) 
 
     // TODO: update bank address calculation if bankMult is not one
     if (bankMult > 1) {
@@ -85,20 +72,53 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     removeNodes(consts)
   }
 
-  def updateShuffle(k:CUMap.K, mem:Memory, mappings:List[mutable.Map[ND, ND]]) = {
-    val shuffles = k.collectDown[Shuffle]()
-    mappings.foreach { mapping =>
-      val mk = mapping(k).as[CUMap.K]
-      val mmem = mapping(mem).as[Memory]
-      shuffles.foreach { shuffle =>
-        val mshuffle = mapping(shuffle).as[Shuffle]
-        within(mshuffle.parent.get, mshuffle.ctrl.get) {
-          mshuffle.to.disconnect
-          mshuffle.to(allocConst(mmem.bankids.get).out)
+  def updateMetadata(k:CUMap.K, mem:Memory, mapping:mutable.Map[ND, ND], bankMult:Int, bankids:Iterable[Int]) = {
+    val mmem = mapping(mem).as[Memory]
+    if (bankMult != 1) {
+      mmem.banks.reset
+      mmem.banks := mem.banks.get :+ bankMult
+    }
+    mmem.bankids.reset
+    mmem.bankids := bankids.toList
+
+    def visitFunc(n:PIRNode) = n match {
+      case n:BufferRead => n.in.neighbors.toList
+      case n:BufferWrite => n.data.neighbors.toList
+      case n => visitGlobalIn(n)
+    }
+
+    mmem.accesses.foreach { access =>
+      // From access to memory bank shuffle
+      var nodes = access match {
+        case access:BankedRead =>
+          access.offset.accumTill[Shuffle](visitFunc=visitFunc)
+        case access:BankedWrite =>
+          access.offset.accumTill[Shuffle](visitFunc=visitFunc) ++
+          access.data.accumTill[Shuffle](visitFunc=visitFunc)
+      }
+      nodes = nodes.distinct
+      nodes :+= access
+      dbgblk(s"updateVec(access=$access)") {
+        nodes.foreach { node =>
+          dbg(s"$node vec=${node.vec.v}")
+          assert(node.vec.get == mem.nBanks, s"${node}.vec=${node.vec} != mem.nBanks=${mem.nBanks}")
+          node.vec.reset
+          node.vec := mmem.nBanks
+          node.to[BufferRead].foreach { br =>
+            br.banks.reset
+            br.banks := List(mmem.nBanks)
+          }
         }
       }
-      removeUnusedConst(mk)
+      val shuffles = nodes.collect { case n: Shuffle => n }
+      shuffles.foreach { shuffle =>
+        within(shuffle.parent.get, shuffle.ctrl.get) {
+          shuffle.to.disconnect
+          shuffle.to(allocConst(mmem.bankids.get).out)
+        }
+      }
     }
+    removeUnusedConst(mapping(k).as[CUMap.K])
   }
 
   def mergeReads(k:CUMap.K, mem:Memory, br:BankedRead, mappings:List[mutable.Map[ND, ND]]) = dbgblk(s"mergeReads($k, $br)") {

@@ -112,7 +112,7 @@ trait CollectorImplicit {
         def accumulate(prev:List[M], n:N) = {
           if (!prev.contains(n) && prefix(n)) (prev :+ n.asInstanceOf[M]) else prev
         }
-        val nodes = edge.neighbors.map { n => (n, depth) }.toList //TODO
+        val nodes = edge.neighbors.map { n => (n, depth) }.toList
         new PrefixTraversal[N,List[M]](prefix, visitFunc, accumulate _, Nil, logger).traverseNodes(nodes, Nil)
       }
 
@@ -121,10 +121,26 @@ trait CollectorImplicit {
         def prefix(n:N) = visitEdges(n).exists { _.connected.contains(target) }
         def accumulate(prev:Boolean, n:N) = prefix(n) || prev
         def vf(n:N):List[N] = visitEdges(n).flatMap { _.neighbors }.distinct
-        val nodes = edge.neighbors.map { n => (n, depth) }.toList //TODO
+        val nodes = edge.neighbors.map { n => (n, depth) }.toList
         edge.isConnectedTo(target) || 
         new PrefixTraversal[N,Boolean](prefix, vf _, accumulate _, false, logger).traverseNodes(nodes, false)
       }
+
+    def accum(prefix:N => Boolean={n:N => false } , visitFunc:N => List[N], depth:Int= -1, logger:Option[Logging]=None):List[N] = 
+      dbgblk(logger, s"accum(depth=$depth)"){
+        def accumulate(prev:List[N], n:N) = {
+          if (!prev.contains(n)) (prev :+ n) else prev
+        }
+        val nodes = edge.neighbors.map { n => (n, depth) }.toList
+        new PrefixTraversal[N,List[N]](prefix, visitFunc, accumulate _, Nil, logger).traverseNodes(nodes, Nil)
+      }
+
+    def accumTill[M<:N:ClassTag](visitFunc:N => List[N]=visitLocalIn _, depth:Int= -1, logger:Option[Logging]=None):List[N] = {
+      def prefix(n:N) = n match { case n:M => true; case _ => false }
+      dbgblk(logger, s"accumTill[${classTag[M]}](depth=$depth)"){
+        accum(prefix _, visitFunc, depth, logger)
+      }
+    }
   }
 
 }
