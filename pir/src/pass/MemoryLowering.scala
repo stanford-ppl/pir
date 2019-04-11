@@ -139,8 +139,10 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       }
       //TODO: handle en
       val List((ofs, data)) = red
-      val newAccess = data.fold[BankedAccess]{
+      data.fold[Unit]{
         val newRead = stage(BankedRead().offset(ofs).mem(mem).mirrorMetas(headAccess))
+        newRead.vec.reset
+        newRead.vec := mem.nBanks
         accesses.asInstanceOf[Set[BankedRead]].foreach { access =>
           access.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx, ins) =>
             val shuffle = within(inCtx, inCtx.getCtrl)  {
@@ -148,7 +150,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
             }
             dbg(s"val $shuffle = Shuffle() // bankRead")
             bufferInput(shuffle.base)
-             //TODO: to can also not buffer if not expensive to duplicate calculation.
+             //TODO: Potential optimization: to can also not buffer if not expensive to duplicate calculation.
             bufferInput(shuffle.to).foreach { read =>
               swapParent(read.inAccess, addrCtxs(access))
             }
@@ -158,12 +160,11 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
             }
           }
         }
-        newRead
       } { data => 
-        stage(BankedWrite().offset(ofs).data(data).mem(mem).mirrorMetas(headAccess))
+        val newWrite = stage(BankedWrite().offset(ofs).data(data).mem(mem).mirrorMetas(headAccess))
+        newWrite.vec.reset
+        newWrite.vec := mem.nBanks
       }
-      newAccess.vec.reset
-      newAccess.vec := mem.nBanks
     }
     removeNodes(accesses)
   }

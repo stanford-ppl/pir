@@ -81,7 +81,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     mmem.bankids.reset
     mmem.bankids := bankids.toList
 
-    def visitFunc(n:PIRNode) = n match {
+    def visitIn(n:PIRNode) = n match {
       case n:BufferRead => n.in.neighbors.toList
       case n:BufferWrite => n.data.neighbors.toList
       case n => visitGlobalIn(n)
@@ -91,14 +91,14 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
       // From access to memory bank shuffle
       var nodes = access match {
         case access:BankedRead =>
-          access.offset.accumTill[Shuffle](visitFunc=visitFunc)
+          access.offset.accumTill[Shuffle](visitFunc=visitIn)
         case access:BankedWrite =>
-          access.offset.accumTill[Shuffle](visitFunc=visitFunc) ++
-          access.data.accumTill[Shuffle](visitFunc=visitFunc)
+          access.offset.accumTill[Shuffle](visitFunc=visitIn) ++
+          access.data.accumTill[Shuffle](visitFunc=visitIn)
       }
       nodes = nodes.distinct
       nodes :+= access
-      dbgblk(s"updateVec(access=$access)") {
+      dbgblk(s"updateRequestVec(access=$access)") {
         nodes.foreach { node =>
           dbg(s"$node vec=${node.vec.v}")
           assert(node.vec.get == mem.nBanks, s"${node}.vec=${node.vec.v} != mem.nBanks=${mem.nBanks}")
@@ -116,6 +116,26 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
           shuffle.to.disconnect
           shuffle.to(allocConst(mmem.bankids.get).out)
         }
+      }
+
+      // From memory bank shuffle to access
+      access match {
+        case access:BankedRead =>
+          var nodes = access.out.accumTill[Shuffle](visitFunc=visitGlobalOut)
+          nodes = nodes.filterNot { case n:Shuffle => true; case _ => false }
+          dbgblk(s"updateDataVec(access=$access)") {
+            nodes.foreach { node =>
+              dbg(s"$node vec=${node.vec.v}")
+              assert(node.vec.get == mem.nBanks, s"${node}.vec=${node.vec.v} != mem.nBanks=${mem.nBanks}")
+              node.vec.reset
+              node.vec := mmem.nBanks
+              node.to[BufferRead].foreach { br =>
+                br.banks.reset
+                br.banks := List(mmem.nBanks)
+              }
+            }
+          }
+        case access =>
       }
     }
     removeUnusedConst(mapping(k).as[CUMap.K])
