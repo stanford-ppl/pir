@@ -75,11 +75,12 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   /*
    * Emit rhs as a vector
    * */
-  def emitToVec(lhs:String)(rhs:PIRNode) = {
+  def emitToVec(lhs:String, vec:Option[Int]=None)(rhs:PIRNode) = {
     if (rhs.getVec > 1) {
       emitln(s"auto& $lhs = $rhs;")
     } else {
-      emitln(s"${rhs.qtp} $lhs[] = {$rhs};")
+      val vecWidth = vec.getOrElse(rhs.getVec)
+      emitln(s"${rhs.qtp} $lhs[] = {${List.fill(vecWidth)(rhs.toString).mkString(",")}};")
     }
   }
 

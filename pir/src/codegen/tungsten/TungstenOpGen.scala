@@ -57,13 +57,13 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       val from = n.from.T
       val base = n.base.T
       val to = n.to.T
-      emitToVec(s"${n}_vfrom")(from)
+      emitToVec(s"${n}_vfrom", vec=Some(base.getVec))(from)
       emitToVec(s"${n}_vto")(to)
       emitToVec(s"${n}_vbase")(base)
       emitln(s"${n.qtp} ${n}_shuffled[${n.getVec}];")
       filled match {
-        case 0 => emitln(s"shuffleData<${n.qtp}, ${from.getVec}, ${to.getVec}>(${n}_vfrom, ${n}_vto, ${n}_vbase, ${n}_shuffled);")
-        case -1 => emitln(s"shuffleAddr<${from.getVec}, ${to.getVec}>(${n}_vfrom, ${n}_vto, ${n}_vbase, ${n}_shuffled);")
+        case 0 => emitln(s"shuffleData<${n.qtp}, ${base.getVec}, ${to.getVec}>(${n}_vfrom, ${n}_vto, ${n}_vbase, ${n}_shuffled);")
+        case -1 => emitln(s"shuffleAddr<${base.getVec}, ${to.getVec}>(${n}_vfrom, ${n}_vto, ${n}_vbase, ${n}_shuffled);")
       }
       emitUnVec(n)(s"${n}_shuffled")
 

@@ -37,7 +37,7 @@ class GraphRectification(implicit compiler:PIR) extends PIRTraversal with Siblin
         }
       }
     }
-    n.to[Def].foreach { _.getVec }
+    n.to[Def].foreach { _.getVec } // TODO: shouldn't this happen before reset control??
     n.to[Access].foreach { _.getVec }
     n.to[DRAMAddr].foreach { n =>
       val read = n.collect[MemRead](visitFunc=visitGlobalOut _).head
