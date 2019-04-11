@@ -101,7 +101,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
       dbgblk(s"updateVec(access=$access)") {
         nodes.foreach { node =>
           dbg(s"$node vec=${node.vec.v}")
-          assert(node.vec.get == mem.nBanks, s"${node}.vec=${node.vec} != mem.nBanks=${mem.nBanks}")
+          assert(node.vec.get == mem.nBanks, s"${node}.vec=${node.vec.v} != mem.nBanks=${mem.nBanks}")
           node.vec.reset
           node.vec := mmem.nBanks
           node.to[BufferRead].foreach { br =>
