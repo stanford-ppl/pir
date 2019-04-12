@@ -146,8 +146,6 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:BankedRead =>
       addEscapeVar(n.mem.T)
-      val (tp, name) = varOf(n)
-      emitNewMember(tp, name)
       emitln(s"""${n.mem.T}->SetupRead("$n",make_token(${n.offset.qref}));""")
       genCtxComputeEnd {
         emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
@@ -232,8 +230,6 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       (s"NBufferSRAM<${n.getDepth}, ${n.qtp}, ${n.bankSize}, ${n.nBanks}>", s"$n")
     case n:Reg =>
       (s"NBufferReg<${n.getDepth}, ${n.qtp}>", s"$n")
-    case n:BankedRead =>
-      (s"FIFO<Token,2>", s"$n")
     case n => super.varOf(n)
   }
 
