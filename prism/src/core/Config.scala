@@ -5,7 +5,8 @@ import scala.collection.mutable
 
 class Config(compiler:Compiler) extends ArgParser {
 
-  var cwd: String = new java.io.File(".").getAbsolutePath
+  def cwd: String = new java.io.File(".").getAbsolutePath
+  def setCwd(path:String) = System.setProperty("user.dir", path)
 
   def defaultName = compiler.getClass.getSimpleName.replace("$","")
 

@@ -33,8 +33,9 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       if (!noPlaceAndRoute) {
         emitln(s"source place")
       }
+      emitln(s"timeout -1")
+      emitln(s"log2files")
       //emitln(s"logon")
-      //emitln(s"log2files")
     }
     super.initPass
   }
@@ -74,11 +75,12 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   /*
    * Emit rhs as a vector
    * */
-  def emitToVec(lhs:String)(rhs:PIRNode) = {
+  def emitToVec(lhs:String, vec:Option[Int]=None)(rhs:PIRNode) = {
     if (rhs.getVec > 1) {
       emitln(s"auto& $lhs = $rhs;")
     } else {
-      emitln(s"${rhs.qtp} $lhs[] = {$rhs};")
+      val vecWidth = vec.getOrElse(rhs.getVec)
+      emitln(s"${rhs.qtp} $lhs[] = {${List.fill(vecWidth)(rhs.toString).mkString(",")}};")
     }
   }
 
@@ -137,6 +139,7 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       i.fold(q) { i => if (n.getVec > 1) s"$q[$i]" else s"$q" }
     }
     def qtp:String = n.getTp match {
+      case Fix(true, 16, 0) => "int"
       case Fix(true, 32, 0) => "int"
       case Fix(true, 64, 0) => "long"
       case Fix(false, 32, 0) => "uint32_t"

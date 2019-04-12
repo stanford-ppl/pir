@@ -10,6 +10,7 @@ case class GDAParam(
 ) extends Param[GDAParam]
 
 class GDA_0 extends GDA
+class GDA_1 extends GDA {override lazy val param = GDAParam(C=32, R=64, ts=32)}
 //class GDA_1 extends GDA {override lazy val param = GDAParam(mp1 = 8,mp2 = 1)}
 //class GDA_2 extends GDA {override lazy val param = GDAParam(mp1 = 4,mp2 = 2)}
 //class GDA_3 extends GDA {override lazy val param = GDAParam(mp1 = 2,mp2 = 4)}
@@ -20,7 +21,7 @@ class GDA_0 extends GDA
 //class GDA_8 extends GDA {override lazy val param = GDAParam(mp1 = 1,mp2 = 2)}
 //class GDA_9 extends GDA {override lazy val param = GDAParam(mp1 = 2,mp2 = 1)}
 //class GDA_11 extends GDA {override lazy val param = GDAParam(mp1 = 3,mp2 = 1)}
-class GDA_12 extends GDA {override lazy val param = GDAParam(mp1 = 1,mp2 = 3)}
+//class GDA_12 extends GDA {override lazy val param = GDAParam(mp1 = 1,mp2 = 3)}
 //class GDA_13 extends GDA {override lazy val param = GDAParam(op = 2,mp1 = 1,mp2 = 1)}
 class GDA_14 extends GDA {override lazy val param = GDAParam(mp1 = 2,mp2 = 2)}
 
@@ -114,7 +115,7 @@ class GDA_14 extends GDA {override lazy val param = GDAParam(mp1 = 2,mp2 = 2)}
     printArray(gold, "gold: ")
     printArray(result, "result: ")
 
-    val cksum = gold.zip(result){ case (a,b) => a < b + margin && a > b - margin }.reduce{_&&_}
+    val cksum = gold.zip(result){(a,b) => abs(a-b) <= margin}.reduce{_&&_}
     println("PASS: " + cksum  + " (GDA)")
     assert(cksum)
   }

@@ -19,7 +19,8 @@ trait MemoryNode extends PIRNode {
   def totalBanks = banks.get.product
   def nBanks:Int = bankids.get.size
   def size:Int = dims.get.product // User declared size
-  def capacity:Int = getDepth * size * nBanks /! totalBanks // Total capacity of this memory.
+  def bankSize:Int = size /! totalBanks
+  def capacity:Int = getDepth * bankSize * nBanks // Total capacity of this memory.
 }
 
 abstract class Memory(implicit env:Env) extends MemoryNode with DefNode[PIRNode] {
@@ -102,7 +103,8 @@ case class RegAccumOp(op:String)(implicit env:Env) extends OpNode with Def {
   val en = new InputField[Set[PIRNode]]("en")
   val first = new InputField[PIRNode]("first")
 }
-case class Shuffle()(implicit env:Env) extends OpNode with Def {
+// Filled can be "0" or "-0". based on shuffling address or data
+case class Shuffle(filled:Any)(implicit env:Env) extends OpNode with Def {
   val from = new InputField[PIRNode]("from")
   val to = new InputField[PIRNode]("to")
   val base = new InputField[PIRNode]("base")
@@ -115,12 +117,14 @@ case class DRAMAddr(dram:DRAM)(implicit env:Env) extends Def
 case class CountAck()(implicit env:Env) extends Def {
   val input = new InputField[List[PIRNode]]("input")
 }
-case class Counter(par:Int, isForever:Boolean=false)(implicit env:Env) extends Def {
+case class Counter(par:Int, isForever:Boolean=false)(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
   val min = new InputField[Option[PIRNode]]("min")
   val step = new InputField[Option[PIRNode]]("step")
   val max = new InputField[Option[PIRNode]]("max")
+  val out = new OutputField[List[PIRNode]]("out")
   val isFirstIter = new OutputField[List[PIRNode]]("isFirstIter")
+  override def asOutput = Some(out)
 
   def iters = this.collectOut[CounterIter]()
   def valids = this.collectOut[CounterValid]()

@@ -93,8 +93,9 @@ trait PIRApp extends PIR with Logging {
     // ------- Mapping  --------
     addPass(enableMapping, hardPruner).dependsOn(initializer) ==>
     addPass(enableMapping, memoryPruner) ==>
+    addPass(constProp) ==> // Remove unused shuffle
     addPass(enableMapping, memoryComputePruner) ==>
-    addPass(enableMapping, hardPruner) ==>
+    addPass(enableMapping, hardPruner) ==> // prune on newly created CUs by memoryComputePruner
     addPass(enableMapping, computePruner) ==>
     addPass(enableMapping, dagPruner) ==>
     addPass(sanityCheck) ==>
@@ -140,18 +141,18 @@ trait PIRApp extends PIR with Logging {
       states.pirTop = top
       import top._
       within(top) {
-        val topCtrler = create("Sequenced") { TopController() }
+        val topCtrler = createCtrl("Sequenced") { TopController() }
         top.topCtrl = topCtrler.ctrl.get
         topCtrl.ctrler := topCtrler
         top.argFringe = ArgFringe()
         within(argFringe) {
-          val hostInCtrler = create("Sequenced") { HostInController() }
+          val hostInCtrler = createCtrl("Sequenced") { HostInController() }
           top.hostInCtrl = hostInCtrler.ctrl.get
           endState[Ctrl]
         }
         staging(top)
         within(argFringe) {
-          val hostOutCtrler = create("Sequenced") { HostOutController() }
+          val hostOutCtrler = createCtrl("Sequenced") { HostOutController() }
           top.hostOutCtrl = hostOutCtrler.ctrl.get
           argOuts.foreach { mem =>
             HostRead(mem.name.v.getOrElse(mem.sname.get)).input(MemRead().setMem(mem))
@@ -221,10 +222,15 @@ trait PIRApp extends PIR with Logging {
     x
   }
 
-  def create[T<:Controller](schedule:String)(newCtrler: => T):T = {
+  def createCtrl[T<:Controller](schedule:String)(newCtrler: => T):T = {
     val tree = ControlTree(schedule)
     beginState(tree)
     val ctrler = newCtrler
+    val par = ctrler match {
+      case ctrler:LoopController => ctrler.cchain.T.map { _.par }.product
+      case ctrler => 1
+    }
+    tree.par := par
     tree.ctrler(ctrler)
     tree.parent.foreach { parent =>
       parent.ctrler.v.foreach { pctrler =>

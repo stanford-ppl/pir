@@ -91,6 +91,7 @@ trait Ops extends Enumeration {
   val FixFMA       = new FixOp with Op3 { override def eval(ins:List[Any]) = tf(ins) { case Some(a:Float)::Some(b:Float)::Some(c:Float)::Nil => a * b + c } }
   val FixRecipSqrt = new FixOp with Op1 /*{ override def eval(ins:List[Any]) = tf(ins) { case (a:Int)::Nil => -a } }*/
   val FixSigmoid   = new FixOp with Op1 /*{ override def eval(ins:List[Any]) = tf(ins) { case (a:Int)::Nil => -a } }*/
+  val SelectNonNeg    = new FixOp with Op2 { override def eval(ins:List[Any]) = m(ins) { case Some(a:Int)::Some(b:Int)::Nil => if (a < 0) b else a } }
 
   val FltIsPosInf  = new FltOp with Op1
   val FltIsNegInf  = new FltOp with Op1

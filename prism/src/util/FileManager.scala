@@ -70,12 +70,12 @@ trait FileManager {
   def copyFiles(srcDirFile: File, dstDirFile:File): Unit = {
     for (f <- srcDirFile.listFiles) {
       if (f.isDirectory) {
-        val dstDir = new File(s"${dstDirFile.getAbsolutePath}${separator}${f.getName}")
+        val dstDir = new File(s"${dstDirFile.getCanonicalPath()}${separator}${f.getName}")
         dstDir.mkdirs()
         copyFiles(f, dstDir)
       } else {
-        val dst = s"${dstDirFile.getAbsolutePath()}${separator}${f.getName}"
-        val src = f.getAbsolutePath()
+        val dst = s"${dstDirFile.getCanonicalPath()}${separator}${f.getName}"
+        val src = f.getCanonicalPath()
         copyFile(src, dst)
       }
     }

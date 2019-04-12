@@ -85,3 +85,16 @@ trait AccessUtil {
     def gin:Option[GlobalInput] = n.in.T.to[GlobalInput]
   }
 }
+object WithMem {
+  def unapply(x:Any) = x match {
+    case x:Access => Some((x, x.mem.T))
+    case x => None
+  }
+}
+object WithData {
+  def unapply(x:Any) = x match {
+    case x:WriteAccess => Some((x, x.data.T))
+    case x:BufferWrite => Some((x, x.data.T))
+    case x => None
+  }
+}

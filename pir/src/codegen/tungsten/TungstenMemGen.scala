@@ -80,20 +80,14 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
           }
       }
 
-    case n:BufferWrite if n.data.T.isInstanceOf[DRAMCommand] =>
+    case WithData(n:BufferWrite, data:DRAMCommand) =>
 
-    case n:BufferWrite if n.data.T.isInstanceOf[BankedRead] =>
+    case WithData(n:BufferWrite, data:BankedRead) =>
       n.out.T.foreach { send =>
         addEscapeVar(send)
         genCtxInits {
           emitln(s"AddSend(${nameOf(send)});");
-        }
-        genCtxEval {
-          val data = nameOf(n.data.T)
-          emitIf(s"$data->Valid() && ${nameOf(send)}->Ready()") {
-            emitln(s"${nameOf(send)}->Push($data->Read());")
-            emitln(s"$data->Pop();")
-          }
+          emitln(s"""${data.mem.T}->SetSend("$data", $send);""")
         }
       }
 
@@ -126,8 +120,8 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:Memory =>
       val (tp, name) = varOf(n)
-      val accesses = n.accesses.filterNot { _.port.isEmpty }
-      emitln(s"""$tp $name("$n", {${accesses.map { a => s""""$a"""" }.mkString(",")}});""")
+      val accesses = n.accesses.map { a => s"""make_tuple("$a", ${a.port.isEmpty})""" }.mkString(",")
+      emitln(s"""$tp $name("$n", {$accesses});""")
       dutArgs += name
 
     case n:MemRead if n.mem.T.isFIFO =>
@@ -152,42 +146,33 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:BankedRead =>
       addEscapeVar(n.mem.T)
-      val (tp, name) = varOf(n)
-      emitNewMember(tp, name)
-      emitAccess(n) { mem =>
-        emitln(s"${mem}->SetupRead(make_token(${n.offset.qref}));")
-      }
+      emitln(s"""${n.mem.T}->SetupRead("$n",make_token(${n.offset.qref}));""")
       genCtxComputeEnd {
         emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
-      }
-      genCtxEval {
-        emitAccess(n, prev=true) { buffer =>
-          emitIf(s"$buffer->ReadValid()") {
-            emitln(s"$name->Push($buffer->ReadData());");
-          }
-        }
       }
 
     case n:BankedWrite =>
       addEscapeVar(n.mem.T)
       emitIf(s"${n.en.qref}") {
-        emitAccess(n) { mem =>
-          emitln(s"${mem}->Write(make_token(${n.data.qref}), make_token(${n.offset.qref}));")
-        }
+        emitln(s"""${n.mem.T}->Write("$n", make_token(${n.data.qref}), make_token(${n.offset.qref}));""")
       }
       genCtxComputeEnd {
         emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
       }
 
-    //case n:MemRead =>
-      //emitAccess(n) { mem =>
-        //emitln(s"auto $n = ${mem}->Read();")
-      //}
+    case n:MemRead =>
+      addEscapeVar(n.mem.T)
+      emitln(s"""auto $n = ${n.mem.T}->Read("$n");""")
+      genCtxComputeEnd {
+        emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
+      }
 
-    //case n:MemWrite =>
-      //emitAccess(n) { mem =>
-        //emitln(s"if (${n.en.qref}) ${mem}->Write(${n.data.T});")
-      //}
+    case n:MemWrite =>
+      addEscapeVar(n.mem.T)
+      emitln(s"""if (${n.en.qref}) ${n.mem.T}->Write("$n", ${n.data.T});""")
+      genCtxComputeEnd {
+        emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
+      }
 
     case n => super.emitNode(n)
   }
@@ -240,13 +225,11 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       (s"FIFO<${n.qtp}, ${n.getDepth}>", s"$n")
     case n:SRAM =>
       val numBanks = n.getBanks.product
-      (s"NBuffer<BankedSRAM<${n.qtp}, ${n.capacity/n.getDepth}, ${n.nBanks}>, ${n.getDepth}>", s"$n")
+      (s"NBufferSRAM<${n.getDepth}, ${n.qtp}, ${n.bankSize}, ${n.nBanks}>", s"$n")
     case n:LUT =>
-      (s"NBuffer<BankedSRAM<${n.qtp}, ${n.capacity/n.getDepth}, ${n.nBanks}>, ${n.getDepth}>", s"$n")
+      (s"NBufferSRAM<${n.getDepth}, ${n.qtp}, ${n.bankSize}, ${n.nBanks}>", s"$n")
     case n:Reg =>
-      (s"NBuffer<Register<${n.qtp}>, ${n.getDepth}>", s"$n")
-    case n:BankedRead =>
-      (s"FIFO<Token,2>", s"$n")
+      (s"NBufferReg<${n.getDepth}, ${n.qtp}>", s"$n")
     case n => super.varOf(n)
   }
 

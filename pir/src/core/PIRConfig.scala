@@ -65,7 +65,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def loadPsim = getOption[String]("load-psim")
   def enableTrace = genPsim && option[Boolean]("trace")
   def psimHome = getOption[String]("psim-home").getOrElse(throw PIRException(s"psim-home is not set"))
-  def psimOut = getOption[String]("psim-out").getOrElse { buildPath(cwd, s"plastisim") }
+  def psimOut = getOption[String]("psim-out").getOrElse { buildPath(outDir, ".." , "..", s"plastisim") }
 
   /* ------------------- Plastiroute --------------------  */
   register[String]("proute-home", default=sys.env.get("PLASTIROUTE_HOME"), info="Plastiroute Home")
@@ -84,7 +84,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("tungsten", default=false, info="Enable tungsten codegen")
   def genTungsten = enableCodegen && option[Boolean]("tungsten")
   def runTst = option[Boolean]("run-tst")
-  def tstOutDir = buildPath(cwd, "tungsten")
+  def tstOutDir = buildPath(outDir, "..", "..", "tungsten")
   def tstHome = getOption[String]("tungsten-home").getOrElse(throw PIRException(s"tungsten-home is not set"))
 
   /* ------------------- Debugging --------------------  */

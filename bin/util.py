@@ -4,6 +4,7 @@ import time
 import pickle
 import os, sys
 import csv
+import fnmatch
 
 global parser
 parser = argparse.ArgumentParser(description='Run experiments')
@@ -61,14 +62,15 @@ def parseLog(log, parsers, conf):
 
 def getApps(backend, opts):
     apps = []
-    if opts.app is not None:
-        return opts.app
     gendir = "{}/{}".format(opts.gendir, backend)
     for app in os.listdir(gendir):
         path = os.path.join(gendir, app)
         if os.path.isdir(path):
             apps.append(app)
-    return sorted(apps)
+    apps = sorted(apps)
+    if opts.app is not None:
+        apps = [app for app in apps if any([fnmatch.fnmatch(app, pat) for pat in opts.app])]
+    return apps
 
 def getBackends():
     backends = []

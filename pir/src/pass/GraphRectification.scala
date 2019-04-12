@@ -6,9 +6,8 @@ import prism.graph._
 
 class GraphRectification(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal {
 
-  override def visitNode(n:N) = n match {
-    case n:Controller =>
-      setCtrl(n)
+  override def visitNode(n:N) = {
+    n.to[Controller].foreach { n =>
       n.srcCtx.v.foreach { v => n.ctrl.get.srcCtx := v }
       n.descendents.foreach { d =>
         dbgblk(s"descendents=$d") {
@@ -27,27 +26,32 @@ class GraphRectification(implicit compiler:PIR) extends PIRTraversal with Siblin
           }
         }
       }
-      super.visitNode(n)
-    case n:RegAccumOp =>
-      n.en(n.getCtrl.ctrler.get.valid)
-      super.visitNode(n)
-    case n:InAccess if n.ctrl.get.schedule != "Streaming" =>
-      n.getCtrl.ctrler.v.foreach { ctrler =>
-        n.en(ctrler.valid)
-      }
-      super.visitNode(n)
-    case n =>
-      super.visitNode(n)
-  }
-
-  def setCtrl(ctrler:Controller) = {
-    val ctrl = ctrler.ctrl.get
-    val par = ctrler match {
-      case ctrler:LoopController => ctrler.cchain.T.map { _.par }.product
-      case ctrler => 1
     }
-    ctrl.par := par
-    dbg(s"$ctrl.par = $par")
+    n.to[RegAccumOp].foreach { n =>
+      n.en(n.getCtrl.ctrler.get.valid)
+    }
+    n.to[InAccess].foreach { n =>
+      if (n.ctrl.get.schedule != "Streaming") {
+        n.getCtrl.ctrler.v.foreach { ctrler =>
+          n.en(ctrler.valid)
+        }
+      }
+    }
+    n.to[Def].foreach { _.getVec } // TODO: shouldn't this happen before reset control??
+    n.to[Access].foreach { _.getVec }
+    n.to[DRAMAddr].foreach { n =>
+      val read = n.collect[MemRead](visitFunc=visitGlobalOut _).head
+      n.tp.mirror(read.tp)
+      read.mem.T.tp.mirror(read.tp)
+    }
+    n.to[InAccess].foreach { n =>
+      n.tp.mirror(n.mem.T.tp)
+    }
+    super.visitNode(n)
+  } 
+
+  override def compVec(n:ND):Option[Int] = {
+    super.compVec(n).orElse { n.to[PIRNode].flatMap{ _.getCtrl.inferVec } }
   }
 
 }
