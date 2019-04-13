@@ -46,7 +46,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     }
     sequencedScheduleBarrierInsertion(mem)
     multiBufferBarrierInsertion(mem)
-    //enforceDataDependencyInSameController(mem)
+    enforceDataDependencyInSameController(mem)
     fifoBarrierInsertion(mem)
     //enforceProgramOrder(mem)
     //enforceDataDependency(mem)
@@ -254,6 +254,39 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
             }
           }
         case _ =>
+      }
+    }
+  }
+
+  /*
+   * If write => read are not in the same loop, they should be handled in multibuffer or sequential
+   * controller. This is to handle the case where write and read are in the same controller
+   * */
+  def enforceDataDependencyInSameController(mem:Memory):Unit = dbgblk(s"enforceDataDependencyInSameController($mem)"){
+    val accesses = mem.accesses.filter { _.port.nonEmpty }
+    accesses.groupBy { _.port.get }.foreach { case (port, accesses) =>
+      val (inAccesses, outAccesses) =  accesses.partition { _.isInstanceOf[InAccess] }
+      inAccesses.foreach { inAccess =>
+        outAccesses.foreach { outAccess =>
+          if (inAccess.getCtrl == outAccess.getCtrl) {
+            dbg(s"Insert token for same loop data dependency between $inAccess and $outAccess")
+            val token = insertToken(
+              inAccess.ctx.get, 
+              outAccess.ctx.get
+            )
+            if (token.depth.isEmpty) {
+              token.depth(1)
+            }
+            if (inAccess.order.get > outAccess.order.get) {
+              dbg(s"$token.initToken = true")
+              token.initToken := true
+              token.inits := List(true)
+              token.depth.reset // HACK to mem reduce. 
+                                // if token.depth = 1, write is blocked since ready is low. 
+              token.depth := 2
+            }
+          }
+        }
       }
     }
   }
