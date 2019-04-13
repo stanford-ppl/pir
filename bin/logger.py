@@ -79,7 +79,7 @@ def getMessage(backend, app, conf):
     else:
         msg.append(cstr(GREEN,'vc:{}'.format(conf['NetVC'])))
 
-    if conf['deadlock']:
+    if conf['psim_deadlock']:
         msg.append(cstr(RED, 'DEADLOCK'))
     elif conf['gentrace_err'] is not None:
         msg.append(cstr(RED, 'gentrace') + ": " + conf['gentrace_err'].strip())
@@ -94,6 +94,8 @@ def getMessage(backend, app, conf):
         msg.append(cstr(RED, 'gentst') + ": "+ conf['gentst_err'].strip())
     elif conf['maketst_err'] is not None:
         msg.append(cstr(RED, 'maketst') + ": " + conf['maketst_err'].strip())
+    elif conf['tst_deadlock']:
+        msg.append(cstr(RED, 'runtst: DEADLOCK'))
     elif conf['runtst_err'] is not None:
         msg.append(cstr(RED, 'runtst') + ": " + conf['runtst_err'].strip())
     elif conf['tstcycle'] is None:
@@ -235,7 +237,7 @@ def parse_runpsim(log, conf, opts):
     ))
     parsers.append(Parser(
         conf,
-        'deadlock', 
+        'psim_deadlock', 
         'POSSIBLE DEADLOCK',
          lambda lines: True,
          default=False
@@ -248,7 +250,7 @@ def parse_runtst(log, conf, opts):
         conf,
         'tstcycle', 
         'Simulation complete at cycle ',
-        lambda lines: int(lines[0].split('Simulation complete at cycle ')[1])
+        lambda lines: int(lines[0].split('Simulation complete at cycle ')[1].split(" ")[0])
     ))
     parsers.append(Parser(
         conf,
@@ -261,6 +263,13 @@ def parse_runtst(log, conf, opts):
         'runtst_pass', 
         ["PASS: "],
         lambda lines: bool(lines[0].split('PASS: ')[1].split(" (")[0])
+    ))
+    parsers.append(Parser(
+        conf,
+        'tst_deadlock', 
+        'DEADLOCK',
+         lambda lines: True,
+         default=False
     ))
     parseLog(log, parsers, conf)
 
