@@ -25,16 +25,16 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     clearDir(buildPath(config.tstOutDir, "build"))
     clearDir(buildPath(config.tstOutDir, "logs"))
     copyFiles(buildPath(config.tstHome, "plasticine", "resources"), config.tstOutDir)
-    withOpen(config.tstOutDir,"Makefile",false) {
-      emitln(s"TUNGSTEN_HOME=${config.tstHome}")
-      getLines(buildPath(config.tstHome, "plasticine", "resources", "Makefile")).foreach { emitln }
+    withOpen(config.tstOutDir,"TUNGSTEN_HOME",false) {
+      emitln(config.tstHome)
     }
-    withOpen(buildPath(dirName, ".."),"script",true) {
+    withOpen(buildPath(dirName, ".."),"script",false) {
       if (!noPlaceAndRoute) {
         emitln(s"source place")
       }
-      emitln(s"timeout -1")
       emitln(s"log2files")
+      emitln(s"stepall")
+      emitln(s"dumpstate logs/state.json")
       //emitln(s"logon")
     }
     super.initPass

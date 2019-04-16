@@ -22,6 +22,15 @@ class GEMM_6 extends GEMM {override lazy val param = GEMMParam(loop_kk = 2,loop_
 class GEMM_7 extends GEMM {override lazy val param = GEMMParam(loop_j = 2, ip = 1, ts=16, its=16, dim=32)}
 class GEMM_8 extends GEMM {override lazy val param = GEMMParam(loop_j = 2, ip = 8, ts=16, its=16, dim=32)}
 class GEMM_9 extends GEMM {override lazy val param = GEMMParam(loop_j = 2, ip = 16, ts=32, its=32, dim=64)}
+class GEMM_10 extends GEMM {override lazy val param = GEMMParam(loop_i = 2,loop_j = 2, ip=1, ts=16, its=16, dim=32)}
+class GEMM_11 extends GEMM {override lazy val param = GEMMParam(loop_kk = 2,loop_i = 2, ip=1, ts=16, its=16, dim=32)}
+class GEMM_12 extends GEMM {override lazy val param = GEMMParam(loop_kk = 2,loop_j = 2, ip=1, ts=16, its=16, dim=32)}
+class GEMM_13 extends GEMM {override lazy val param = GEMMParam(loop_ii = 2,loop_jj = 2, ip=1, ts=16, its=16, dim=32)}
+class GEMM_14 extends GEMM {override lazy val param = GEMMParam(loop_ii = 2,loop_kk = 2, ip=1, ts=16, its=16, dim=32)}
+class GEMM_15 extends GEMM {override lazy val param = GEMMParam(loop_kk = 2,loop_i = 2,loop_j = 2, ip=1, ts=16, its=16, dim=32)}
+class GEMM_16 extends GEMM {override lazy val param = GEMMParam(loop_ii = 2,loop_jj = 2, loop_kk=2, ip=1, ts=16, its=16, dim=32)}
+class GEMM_17 extends GEMM {override lazy val param = GEMMParam(loop_kk = 2,loop_i = 2,loop_j = 2, ip=16, ts=32, its=32, dim=64)}
+class GEMM_18 extends GEMM {override lazy val param = GEMMParam(loop_ii = 2,loop_jj = 2, loop_kk=2, ip=16, ts=32, its=32, dim=64)}
 //class GEMM_3 extends GEMM {override lazy val param = GEMMParam(loop_i = 4,loop_j = 4)}
 //class GEMM_4 extends GEMM {override lazy val param = GEMMParam(loop_i = 2,loop_j = 2)}
 //class GEMM_5 extends GEMM {override lazy val param = GEMMParam(loop_i = 1,loop_j = 2)}
