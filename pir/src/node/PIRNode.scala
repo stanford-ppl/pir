@@ -57,6 +57,7 @@ object PIRNode extends MemoryUtil with AccessUtil {
 case class ControlTree(schedule:String)(implicit env:Env) extends EnvNode[ControlTree] with FieldNode[ControlTree] with Ordered[ControlTree] { self =>
   lazy val Nct = classTag[ControlTree]
 
+  val sname = new Metadata[String]("sname")
   val ctrler = new Metadata[Controller]("ctrler")
   val par = new Metadata[Int]("par")
   val srcCtx = new Metadata[String]("srcCtx")

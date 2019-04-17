@@ -156,7 +156,6 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
               swapParent(read.inAccess, addrCtxs(access))
             }
             ins.foreach { in =>
-              dbg(s"${in.src}.$in.swapInput($access.out, $shuffle.out)")
               swapConnection(in, access.out, shuffle.out)
             }
           }

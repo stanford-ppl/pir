@@ -48,7 +48,7 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
     }
   }
 
-  def split(k:GlobalContainer):Set[CUMap.K] = {
+  def split(k:GlobalContainer):Set[CUMap.K] = dbgblk(s"split($k)"){
     val ctxs = k.collectDown[Context]().filter { ctx => ctx.collectDown[Access]().isEmpty }
     val globals = ctxs.map { ctx =>
       val global = within(pirTop) { ComputeContainer() }
