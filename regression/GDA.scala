@@ -16,6 +16,7 @@ class GDA_2 extends GDA {override lazy val param = GDAParam(mp1=2, C=32, R=64, t
 class GDA_3 extends GDA {override lazy val param = GDAParam(mp2=2, C=32, R=64, ts=32)}
 class GDA_4 extends GDA {override lazy val param = GDAParam(mp1=2, mp2=2, C=32, R=64, ts=32)}
 class GDA_5 extends GDA {override lazy val param = GDAParam(mp2=2, C=32, R=64, ts=32, ip=8)}
+class GDA_6 extends GDA {override lazy val param = GDAParam(mp2=4)}
 //class GDA_1 extends GDA {override lazy val param = GDAParam(mp1 = 8,mp2 = 1)}
 //class GDA_2 extends GDA {override lazy val param = GDAParam(mp1 = 4,mp2 = 2)}
 //class GDA_3 extends GDA {override lazy val param = GDAParam(mp1 = 2,mp2 = 4)}
@@ -83,7 +84,7 @@ class GDA_14 extends GDA {override lazy val param = GDAParam(mp1 = 2,mp2 = 2)}
           }
           Foreach(C by 1 par mp2) { ii =>
             Foreach(C par ip) { jj =>
-              sigmaTile(ii, jj) = subTile(ii) * su4bTile(jj)
+              sigmaTile(ii, jj) = subTile(ii) * subTile(jj)
             }
           }
           sigmaTile
