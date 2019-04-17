@@ -3,7 +3,7 @@ import spatial.dsl._
 case class LogRegParam(
   iters:scala.Int = 2,
   D:scala.Int = 32,
-  N:scala.Int = 128,
+  N:scala.Int = 256,
   ts:scala.Int = 32,
   op:scala.Int = 1,
   mp:scala.Int = 1
@@ -14,6 +14,8 @@ class LogReg_0 extends LogReg
 class LogReg_1 extends LogReg {override lazy val param = LogRegParam(mp=2)}
 class LogReg_2 extends LogReg {override lazy val param = LogRegParam(op=2)}
 class LogReg_3 extends LogReg {override lazy val param = LogRegParam(op=2, mp=2)}
+class LogReg_4 extends LogReg {override lazy val param = LogRegParam(op=2, mp=4)}
+class LogReg_5 extends LogReg {override lazy val param = LogRegParam(op=4, mp=2)}
 //class LogReg_2 extends LogReg {override lazy val param = LogRegParam(mp=3)}
 //class LogReg_3 extends LogReg {override lazy val param = LogRegParam(mp=4)}
 //class LogReg_4 extends LogReg {override lazy val param = LogRegParam(mp=5)}
