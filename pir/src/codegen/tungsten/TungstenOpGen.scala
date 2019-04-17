@@ -138,7 +138,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
           case FixPow       => s"pow($a, $b)"
           case FixFMA       => s"$a * $b + $c" 
           //case FixRecipSqrt => s"-$a"
-          //case FixSigmoid   => s"-$a"
+          case FltSigmoid => s"1.0 / (exp(-$a) + 1)"
           case SelectNonNeg        => s"($a<0) ? $b : $a" 
           //case FltIsPosInf  =>
           //case FltIsNegInf  =>
