@@ -34,12 +34,12 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       genCtxFields {
         emitln(s"${n.qtp} $n = 0;")
       }
-      val accumOp = op match {
-        case "AccumAdd" => s"FixAdd"
-        case "AccumMul" => s"FixMul"
-        case "AccumMax" => s"FixMax"
-        case "AccumMin" => s"FixMin"
-        case "AccumFMA" => s"FixFMA"
+      def accumOp(a:Any, b:Any) = op match {
+        case "AccumAdd" => s"$a + $b"
+        case "AccumMul" => s"$a * $b"
+        case "AccumMax" => s"max($a,$b)"
+        case "AccumMin" => s"min($a,$b)"
+        //case "AccumFMA" => s"FixFMA"
         //case "AccumUnk" => s"" //TODO
       }
       val in = n.in.T
@@ -48,7 +48,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       emitIf(s"${n.en.qref}") {
         emitBlock(s"for (int i = 0; i < ${firstVec}; i++)") {
           emitIf(s"laneValids[i]") {
-            emitln(s"$n = (${n.first.T.qidx("i")}) ? ${in.qidx("i")} : $accumOp($n, ${in.qidx("i")});")
+            emitln(s"$n = (${n.first.T.qidx("i")}) ? ${in.qidx("i")} : ${accumOp(n, in.qidx("i"))};")
           }
         }
       }
