@@ -224,6 +224,12 @@ sealed abstract class Value[+A] extends Product with Serializable {
   def toList: List[A] =
     if (isEmpty) List() else new ::(this.get, Nil)
 
+  def zip[B](v:Value[B]) = (this, v) match {
+    case (Unknown,_) => None
+    case (_,Unknown) => None
+    case (t,v) => Some(t,v)
+  }
+
   def zipMap[B, C](v:Value[B])(f:(A,B) => C):Value[C] = (this, v) match {
     case (Infinite, _) => Infinite
     case (_, Infinite) => Infinite
