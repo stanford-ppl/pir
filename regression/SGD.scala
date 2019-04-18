@@ -1,17 +1,18 @@
 import spatial.dsl._
 
 case class SGDParam(
-  D:scala.Int=64,
-  N:scala.Int=16384,
+  D:scala.Int=32,
+  N:scala.Int=128,
   E:scala.Int=2,
-  ts:scala.Int=1024,
+  ts:scala.Int=32,
   mp1:scala.Int=1,
-  mp2:scala.Int=1
+  mp2:scala.Int=1,
+  ip:scala.Int=16
 ) extends Param[SGDParam]
 
 class SGD_0 extends SGD
-//class SGD_1 extends SGD { override lazy val param = SGDParam(mp1=1, mp2=2) }
-//class SGD_2 extends SGD { override lazy val param = SGDParam(mp1=2, mp2=1) }
+class SGD_1 extends SGD { override lazy val param = SGDParam(mp1=1, mp2=2) }
+class SGD_2 extends SGD { override lazy val param = SGDParam(mp1=2, mp2=1) }
 class SGD_3 extends SGD { override lazy val param = SGDParam(mp1=2, mp2=2) }
 //class SGD_4 extends SGD { override lazy val param = SGDParam(mp1=1, mp2=4) }
 //class SGD_5 extends SGD { override lazy val param = SGDParam(mp1=4, mp2=1) }
@@ -30,7 +31,6 @@ class SGD_3 extends SGD { override lazy val param = SGDParam(mp1=2, mp2=2) }
   import param._
 
   val A = 0.0001f
-  val ip = 16
 
   type TM = FixPt[TRUE,_16,_16]
   type TX = FixPt[TRUE,_16,_16]

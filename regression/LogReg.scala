@@ -1,10 +1,10 @@
 import spatial.dsl._
 
 case class LogRegParam(
-  iters:scala.Int = 4,
-  D:scala.Int = 128,
-  N:scala.Int = 8192,
-  ts:scala.Int = 512,
+  iters:scala.Int = 2,
+  D:scala.Int = 32,
+  N:scala.Int = 256,
+  ts:scala.Int = 32,
   op:scala.Int = 1,
   mp:scala.Int = 1
 ) extends Param[LogRegParam]
@@ -12,6 +12,10 @@ case class LogRegParam(
 class LogReg_0 extends LogReg
 
 class LogReg_1 extends LogReg {override lazy val param = LogRegParam(mp=2)}
+class LogReg_2 extends LogReg {override lazy val param = LogRegParam(op=2)}
+class LogReg_3 extends LogReg {override lazy val param = LogRegParam(op=2, mp=2)}
+class LogReg_4 extends LogReg {override lazy val param = LogRegParam(op=2, mp=4)}
+class LogReg_5 extends LogReg {override lazy val param = LogRegParam(op=4, mp=2)}
 //class LogReg_2 extends LogReg {override lazy val param = LogRegParam(mp=3)}
 //class LogReg_3 extends LogReg {override lazy val param = LogRegParam(mp=4)}
 //class LogReg_4 extends LogReg {override lazy val param = LogRegParam(mp=5)}
@@ -68,7 +72,7 @@ class LogReg_1 extends LogReg {override lazy val param = LogRegParam(mp=2)}
               sub := yTile(ii) - sigmoid[T](dot.value)
             }
             val gradRow = SRAM[T](D)
-            Foreach(D by 1 par ip) { d => gradRow(d) = xTile(ii, d) * sub.value }
+            Foreach(D by 1 par ip) { d => gradRow(d) = xTile(ii, d) - sub.value }
             gradRow
           } { _ + _ }
         } { _ + _ }
@@ -86,8 +90,8 @@ class LogReg_1 extends LogReg {override lazy val param = LogRegParam(mp=2)}
 
 
   def main(args: Array[String]): Unit = {
-    val iters = args(0).to[Int]
-    val N = args(1).to[Int]
+    //val iters = args(0).to[Int]
+    //val N = args(1).to[Int]
 
     val sX = Array.fill(N){ Array.fill(D){ random[X](10.to[X])} }
     val sY = Array.tabulate(N){ i => i.to[X]} //fill(N)( random[T](10.0) )
@@ -96,19 +100,15 @@ class LogReg_1 extends LogReg {override lazy val param = LogRegParam(mp=2)}
     val result = logreg(sX.flatten,sY, theta, N, iters)
 
     val gold = Array.empty[X](D)
-    val ids = Array.tabulate(D){i => i}
     for (i <- 0 until D) {
       gold(i) = theta(i)
     }
+    val ids = Array.tabulate(D){i => i}
     for (i <- 0 until iters) {
       val next = sX.zip(sY) {case (row, y) =>
-        // println("sigmoid for " + y + " is " + sigmoid(row.zip(gold){_*_}.reduce{_+_}))
-        val sub = y - sigmoid(row.zip(gold){(a,b) =>
-          // println("doing " + a + " * " + b + " on row " + y)
-          a*b}.reduce{_+_})
-        row.map{a =>
-          // println("subtraction for " + y + " is " + (a - sub))
-          a - sub}
+        val dot = row.zip(gold){(a,b) =>a*b}.reduce{_+_}
+        val sub = y - sigmoid(dot)
+        row.map{a =>a - sub}
       }.reduce{(a,b) => a.zip(b){_+_}}
       for (i <- 0 until D) {
         gold(i) = gold(i) + next(i)
@@ -120,7 +120,7 @@ class LogReg_1 extends LogReg {override lazy val param = LogRegParam(mp=2)}
     printArray(gold, "gold: ")
     printArray(result, "result: ")
 
-    val cksum = result.zip(gold){ (a,b) => a > b-margin && a < b+margin}.reduce{_&&_}
+    val cksum = result.zip(gold){ (a,b) => abs(a-b)<=margin }.reduce{_&&_}
     println("PASS: " + cksum  + " (LogReg)")
     assert(cksum)
 

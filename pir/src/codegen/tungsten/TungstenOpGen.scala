@@ -34,12 +34,12 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       genCtxFields {
         emitln(s"${n.qtp} $n = 0;")
       }
-      val accumOp = op match {
-        case "AccumAdd" => s"FixAdd"
-        case "AccumMul" => s"FixMul"
-        case "AccumMax" => s"FixMax"
-        case "AccumMin" => s"FixMin"
-        case "AccumFMA" => s"FixFMA"
+      def accumOp(a:Any, b:Any) = op match {
+        case "AccumAdd" => s"$a + $b"
+        case "AccumMul" => s"$a * $b"
+        case "AccumMax" => s"max($a,$b)"
+        case "AccumMin" => s"min($a,$b)"
+        //case "AccumFMA" => s"FixFMA"
         //case "AccumUnk" => s"" //TODO
       }
       val in = n.in.T
@@ -48,7 +48,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       emitIf(s"${n.en.qref}") {
         emitBlock(s"for (int i = 0; i < ${firstVec}; i++)") {
           emitIf(s"laneValids[i]") {
-            emitln(s"$n = (${n.first.T.qidx("i")}) ? ${in.qidx("i")} : $accumOp($n, ${in.qidx("i")});")
+            emitln(s"$n = (${n.first.T.qidx("i")}) ? ${in.qidx("i")} : ${accumOp(n, in.qidx("i"))};")
           }
         }
       }
@@ -73,7 +73,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
         s"(${n.qtp}) ${inputs.head.qidx(i)}" 
       }
 
-    case n@OpDef(FixOr) if n.getTp.isInstanceOf[Flt] =>
+    case n@OpDef(FixOr) if n.getTp.isFloat =>
       emitVec(n) { i =>
         val ins = n.input.T.map { _.qidx(i) }
         def a = ins(0)
@@ -138,7 +138,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
           case FixPow       => s"pow($a, $b)"
           case FixFMA       => s"$a * $b + $c" 
           //case FixRecipSqrt => s"-$a"
-          //case FixSigmoid   => s"-$a"
+          case FltSigmoid => s"1.0 / (exp(-$a) + 1)"
           case SelectNonNeg        => s"($a<0) ? $b : $a" 
           //case FltIsPosInf  =>
           //case FltIsNegInf  =>
@@ -209,6 +209,18 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       }
 
     case n => super.emitNode(n)
+  }
+
+  implicit class TpOp(tp:BitType) {
+    def isInt = tp match {
+      case Fix(s, i,0) => true
+      case _ => false
+    }
+    def isFloat = tp match {
+      case Fix(s, i,f) if f != 0 => true
+      case Flt(m,f) => true
+      case _ => false
+    }
   }
 
 }
