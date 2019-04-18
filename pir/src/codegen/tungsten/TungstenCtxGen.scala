@@ -9,18 +9,16 @@ import spade.param._
 
 trait TungstenCtxGen extends TungstenCodegen with TungstenTopGen {
 
-  def paramOf(n:Context):Parameter = {
-    val global = n.global.get
-    topMap.right.get.cumap.usedMap(global).params.get
-  }
-
   def numStagesOf(ctx:Context) = ctx.global.get match {
     case g:ArgFringe => 1
     case g:DRAMFringe => 100
     case g:GlobalContainer if spadeParam.isAsic =>
       Math.max(ctx.collectDown[OpNode]().size, 1)
+    case g:GlobalContainer if spadeParam.isInf =>
+      val cuParam = topMap.right.get.cumap(g).head.params.get.as[CUParam]
+      if (cuParam.trace[TopParam].scheduled) 1 else cuParam.numStage
     case g:GlobalContainer =>
-      val cuParam = paramOf(ctx).as[CUParam]
+      val cuParam = topMap.right.get.cumap.usedMap(g).params.get.as[CUParam]
       if (cuParam.trace[TopParam].scheduled) 1 else cuParam.numStage
   }
 

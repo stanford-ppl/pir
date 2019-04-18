@@ -48,6 +48,7 @@ class ResourceReport(implicit design:PIR) extends PIRTraversal with CSVCodegen w
     case x:MCParam => s"MC"
     case x:Checkerboard => s"${x.row} x ${x.col} checkerboard"
     case x:AsicPattern => s"asic"
+    case x:InfinatePattern => "infinite"
   }
 
   def pct(nom:Int, den:Int) =  if (den == 0) 0 else nom * 100.0f / den

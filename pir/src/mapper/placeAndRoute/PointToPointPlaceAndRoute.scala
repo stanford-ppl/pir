@@ -11,7 +11,7 @@ trait PointToPointPlaceAndRoute extends Mapper {
   }
 
   override def bind[T](x:T):EOption[T] = x match {
-    case x:CUMap if !spadeParam.isAsic =>
+    case x:CUMap if !spadeParam.isAsic & !spadeParam.isInf =>
       bind[CUMap.K, CUMap.V, CUMap, Int,Int](
         pnodes=x.freeKeys.toSeq,
         snodes=(cuP:CUMap.K, m:CUMap) => m.freeValuesOf(cuP).toList,
