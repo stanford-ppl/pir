@@ -73,7 +73,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
         s"(${n.qtp}) ${inputs.head.qidx(i)}" 
       }
 
-    case n@OpDef(FixOr) if n.getTp.isInstanceOf[Flt] =>
+    case n@OpDef(FixOr) if n.getTp.isFloat =>
       emitVec(n) { i =>
         val ins = n.input.T.map { _.qidx(i) }
         def a = ins(0)
@@ -209,6 +209,18 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       }
 
     case n => super.emitNode(n)
+  }
+
+  implicit class TpOp(tp:BitType) {
+    def isInt = tp match {
+      case Fix(s, i,0) => true
+      case _ => false
+    }
+    def isFloat = tp match {
+      case Fix(s, i,f) if f != 0 => true
+      case Flt(m,f) => true
+      case _ => false
+    }
   }
 
 }
