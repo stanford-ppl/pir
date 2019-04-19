@@ -80,6 +80,15 @@ trait ScalaUtilFunc {
     (a,b,c).zipped.map { case (a,b,c) => lambda(a,b,c) }.headOption
   }
 
+  def zipReduce[A](a:Option[A], b:Option[A])(lambda:(A,A)=>A):Option[A] = {
+    (a, b) match {
+      case (Some(a), Some(b)) => Some(lambda(a,b))
+      case (Some(a), None) => Some(a)
+      case (None, Some(b)) => Some(b)
+      case (None, None) => None
+    }
+  }
+
   def reverseMap[K,V](map:scala.collection.Map[K,V]):Map[V,Set[K]] = {
     map.groupBy(_._2).mapValues(_.keys.toSet)
   }

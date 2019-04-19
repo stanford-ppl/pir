@@ -12,7 +12,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     pirTop.collectDown[Memory]().foreach(lowerMem)
   }
 
-  def lowerMem(mem:Memory):Unit = dbgblk(s"lowerMem($mem)"){
+  def lowerMem(mem:Memory):Unit = dbgblk(s"lowerMem(${dquote(mem)})"){
     val accesses = mem.accesses
     accesses.foreach { access =>
       dbg(s"access=$access order=${access.order.v}")
@@ -232,7 +232,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       // Connect access.done
       accesses.foreach { access =>
         val ctrl = ctrlMap(access.getCtrl)
-        access.done(ctrlDone(ctrl, access.ctx.get))
+        access.done(done(ctrl, access.ctx.get))
       }
       val portMap = mem.accesses.groupBy { access =>
         access.port.v.get.get

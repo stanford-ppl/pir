@@ -19,13 +19,13 @@ object Field {
 }
 object InputField {
   def unapply(x:Any):Option[(ND, String)] = x match {
-    case x:Field[_] with Input[_] => Some((x.node, x.name))
+    case x:Input[_] with Field[_] => Some((x.node, x.name))
     case _ => None
   }
 }
 object OutputField {
   def unapply(x:Any):Option[(ND, String)] = x match {
-    case x:Field[_] with Output[_] => Some((x.node, x.name))
+    case x:Output[_] with Field[_] => Some((x.node, x.name))
     case _ => None
   }
 }

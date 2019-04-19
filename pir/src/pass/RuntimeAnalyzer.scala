@@ -115,13 +115,16 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case OutputField(n:FringeStreamWrite, "dataValid") => Finite(n.ctx.get.getScheduleFactor)
       case OutputField(n:FringeStreamRead, "deqData") => Finite(n.ctx.get.getScheduleFactor)
       case OutputField(n:OutAccess, "valid") => Finite(n.ctx.get.getScheduleFactor)
-      case OutputField(ctrler:Controller, "done") => 
-        ctrler.getIter *  compScale(ctrler.valid)
-      case OutputField(ctrler:Controller, "valid") => 
+      case OutputField(ctrler:Controller, "done") => ctrler.getIter *  compScale(ctrler.valid)
+      case OutputField(ctrler:Controller, f) if f == "valid" | f == "childDone" => 
         val children = ctrler.valid.connected.filter { _.asInstanceOf[Field[_]].name == "parentEn" }.map { _.src.as[Controller] }
         assertUnify(children, s"$ctrler.valid.scale") { child => compScale(child.done) }.getOrElse(Finite(ctrler.ctx.get.getScheduleFactor))
       case OutputField(n:PIRNode, _) => n.getScale 
-      case n:LocalAccess => compScale(assertOne(n.done.connected, s"$n.done.connected"))
+      case n:LocalAccess => 
+        n.done.singleConnected.get match {
+          case OutputField(n:BufferRead, _) => compScale(n.inAccess.as[BufferWrite].data.singleConnected.get)
+          case done => compScale(done)
+        }
       case n@Const(true) => Finite(n.ctx.get.getScheduleFactor)
       case n => throw PIRException(s"Don't know how to compute scale of $n")
     }
@@ -184,22 +187,27 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     }
   }
 
-  def compVec(n:ND):Option[Int] = dbgblk(s"compVec($n)") {
+  def compVec(n:Any):Option[Int] = dbgblk(s"compVec($n)") {
     n match {
+      case n:Input[_] => compVec(n.singleConnected.get)
+      case OutputField(n:Controller, "done") => Some(1)
+      case OutputField(n:Controller, "childDone") => Some(1)
+      case OutputField(n:Controller, "valid") => Some(1)
+      case n:Output[_] => n.src.as[PIRNode].inferVec
       case Const(v:List[_]) => Some(v.size)
       case Const(v) => Some(1)
       case n:TokenWrite => Some(1)
       case n:TokenRead => Some(1)
       case WithMem(access, mem:Reg) => Some(1)
       case WithMem(access, mem:FIFO) if access.getCtrl.schedule=="Streaming" => Some(mem.banks.get.head)
-      case n:BufferWrite => n.data.T.inferVec
+      case n:BufferWrite => compVec(n.data)
       case n:RegAccumOp => Some(1)
       case n@OpDef(_:FixOp) => flatReduce(n.input.T.map{_.inferVec}) { case (a,b) => Math.max(a,b) }
       case n@OpDef(_:FltOp) => flatReduce(n.input.T.map{_.inferVec}) { case (a,b) => Math.max(a,b) }
       case n:Shuffle => n.to.T.inferVec
       case n:GlobalOutput => n.in.T.inferVec
       // During staging time GlobalInput might temporarily not connect to GlobalOutput
-      case n:GlobalInput => n.in.singleConnected.get.src.inferVec
+      case n:GlobalInput => compVec(n.in)
       case n:ControlTree => if (n.children.isEmpty) Some(n.par.get) else Some(1)
       case n => None
     }
@@ -220,6 +228,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case Const(_:String) => Some(Text)
       case OutputField(n:Controller, "valid") => Some(Bool)
       case OutputField(n:Controller, "done") => Some(Bool)
+      case OutputField(n:Controller, "childDone") => Some(Bool)
       case n:Edge[_,_,_] => n.src.as[PIRNode].inferTp
       case n:Any => None
     }
@@ -231,13 +240,6 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     val fields = n.fedges.map { e => s".${e.name}(${e.connected.map { dquote }})" }.mkString
     dbg(s"Create $n$fields in ${n.parent} with tp=$tp vec=$vec")
     n
-  }
-
-  override def dquote(x:Any) = x match {
-    case Const(v) => s"${super.dquote(x)}($v)"
-    case OpDef(op) => s"${super.dquote(x)}($op)"
-    case x:Edge[n,_,_] => s"${dquote(x.src)}.$x"
-    case x => super.dquote(x)
   }
 
 }

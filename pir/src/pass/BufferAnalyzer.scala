@@ -10,9 +10,9 @@ trait BufferAnalyzer extends MemoryAnalyzer {
    * */
   def escape(dep:PIRNode, depedIn:Input[PIRNode], depedCtx:Context) = {
     (dep, depedIn, depedCtx) match {
-      case (_, InputField(deped:Access, "mem"), _) => false
-      case (_, InputField(deped:LocalOutAccess, "in"), _) => false
       case (dep, _, _) if dep.isDescendentOf(depedCtx) => false
+      case (dep, _, _) if !dep.isUnder[Context] => false
+      case (_, InputField(deped:LocalOutAccess, "in"), _) => false
 
       case (_,_,DRAMContext(cmd)) => true
 
@@ -76,7 +76,8 @@ trait BufferAnalyzer extends MemoryAnalyzer {
             read.in.canReach(write.out, visitEdges=visitInEdges _) &&
             read.done.canReach(deq, visitEdges=visitInEdges _)
           } {
-            stage(BufferRead().in(write.out).done(deq).vec(dep.getVec).banks(List(dep.getVec)).tp(tp))
+            val v = compVec(depOut).getOrElse(throw PIRException(s"Don't know how to compVec for ${dquote(depOut)}"))
+            stage(BufferRead().in(write.out).done(deq).vec(v).banks(List(v)).tp(tp))
           }
         }
         swapConnection(depedIn, depOut, read.out)

@@ -145,6 +145,7 @@ abstract class Controller(implicit env:Env) extends PIRNode {
 
   val valid = new OutputField[List[PIRNode]]("valid")
   val done = new OutputField[List[PIRNode]]("done")
+  val childDone = new OutputField[List[PIRNode]]("childDone")
 
   def isForever = this.collectDown[Counter]().exists { _.isForever }
 }

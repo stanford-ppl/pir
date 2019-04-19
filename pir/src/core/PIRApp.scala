@@ -58,12 +58,12 @@ trait PIRApp extends PIR with Logging {
     saveSession(buildPath(config.outDir,"pir0.ckpt"))
 
     // ------- Analysis and Transformations --------
-    addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
-    addPass(enableDot, new ControlTreeHtmlIRPrinter(s"ctrl.html"))
     addPass(enableDot, new PIRIRDotGen(s"top1.dot"))
     addPass(enableTrace && genPsim, dramTraceGen)
     addPass(graphCorrector) ==>
     addPass(enableDot, new PIRIRDotGen(s"top2.dot"))
+    addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
+    addPass(enableDot, new ControlTreeHtmlIRPrinter(s"ctrl.html"))
     addPass(constProp).dependsOn(graphCorrector) ==>
     addPass(deadCodeEliminator) ==>
     addPass(contextInsertion) ==>

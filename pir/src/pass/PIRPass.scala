@@ -32,6 +32,14 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
     }
   }
 
+  override def dquote(x:Any) = x match {
+    case x:PIRNode if x.sname.nonEmpty => s"$x[${x.sname.get}]"
+    case x:ControlTree if x.sname.nonEmpty => s"$x[${x.sname.get}]"
+    case Const(v) => s"${super.dquote(x)}($v)"
+    case OpDef(op) => s"${super.dquote(x)}($op)"
+    case x:Edge[n,_,_] => s"${dquote(x.src)}.$x"
+    case x => super.dquote(x)
+  }
 }
 trait PIRTraversal extends PIRPass {
   type N = PIRNode
