@@ -31,7 +31,9 @@ class PlastisimAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFS
         }
       }
       countByReads(n).foreach { c =>
-        assert(c == count, s"${n.reads}.count($c) * scale != $n.count($count)")
+        c.zip(count).foreach { case (c, count) =>
+          assert(c == count, s"${n.reads}.count($c) * scale != $n.count($count)")
+        }
       }
     }
     super.finPass

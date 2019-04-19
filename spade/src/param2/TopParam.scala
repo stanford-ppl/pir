@@ -17,6 +17,12 @@ case class TopParam(
   val burstSizeWord = burstSize / wordWidth
   val burstSizeByte = burstSize / 8 
 }
+object WithPattern {
+  def unapply(x:Any) = x match {
+    case param:TopParam => Some(param.pattern) 
+    case _ => None
+  }
+}
 
 trait Pattern extends Parameter {
   def cuParams = this.collectIn[CUParam]()
@@ -24,6 +30,12 @@ trait Pattern extends Parameter {
 
 case class AsicPattern(
   networkParam:NetworkParam=NetworkParam("vec")
+) extends Pattern
+
+case class InfinatePattern(
+  cu1:CUParam=PCUParam(),
+  cu2:CUParam=PMUParam(),
+  fringePattern:FringePattern=FringePattern()
 ) extends Pattern
 
 /*

@@ -43,6 +43,12 @@ trait TopFactory extends Factory {
       }
       top
     case param:AsicPattern => None
+    case param:InfinatePattern =>
+      val pcu = visitNodeAs[CU](param.cu1, None)
+      val pmu = visitNodeAs[CU](param.cu2, None)
+      val center = List.tabulate(1,2) { case (0,0) => ListBuffer(pcu); case (0,1) => ListBuffer(pmu); case _ => ListBuffer(pcu) }
+      val array = visitNodeAs[CUArray](param.fringePattern, center)
+      (array, center)
     case param@Checkerboard(row, col, cu1, cu2, fringePattern, networkParams) =>
       val center = List.tabulate(col, row) { case (x,y) =>
         ListBuffer(visitNodeAs[CU](param.cuAt(x,y), None))

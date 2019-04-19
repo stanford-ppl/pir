@@ -44,6 +44,11 @@ class GraphRectification(implicit compiler:PIR) extends PIRTraversal with Siblin
       n.tp.mirror(read.tp)
       read.mem.T.tp.mirror(read.tp)
     }
+    n.to[HostWrite].foreach { n =>
+      val mem = n.collect[Memory](visitFunc=visitGlobalOut _).head
+      n.tp.mirror(mem.tp)
+      n.sname.mirror(mem.sname)
+    }
     n.to[InAccess].foreach { n =>
       n.tp.mirror(n.mem.T.tp)
     }

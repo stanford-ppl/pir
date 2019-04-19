@@ -20,11 +20,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       }
 
     case n:HostWrite =>
-      emitln(s"${n.qtp} $n;")
-      emitln(s"""std::ifstream stream_$n("${n.sid}.txt");""")
-      emitln(s"""stream_$n << $n;""")
-      emitln(s"""stream_$n.close();""")
-      emitln(s"""cout << "Set ArgIn ${n.sid} " << ${n} << endl;""")
+      emitln(s"auto& $n = ${n.sname.get};")
 
     case n@Const(v:List[_]) => emitVec(n, v)
     case n@Const(v:String) => emitVec(n, List.fill(n.getVec)(s""""${v.replace("\n", "\\n")}""""))

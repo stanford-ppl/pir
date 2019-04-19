@@ -9,7 +9,7 @@ import scala.collection.mutable
 
 trait RuntimeAnalyzer extends Logging { self:PIRPass =>
 
-  def noPlaceAndRoute = spadeParam.isAsic || spadeParam.isP2P 
+  def noPlaceAndRoute = spadeParam.isAsic || spadeParam.isP2P || spadeParam.isInf
 
   implicit class CtxUtil(ctx:Context) {
     def reads:Seq[LocalOutAccess] = ctx.collectChildren[LocalOutAccess].filterNot { _.isLocal }
