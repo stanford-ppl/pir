@@ -72,7 +72,7 @@ trait MappingLogger extends Logging {
         val params = x.flatMap { _.asInstanceOf[Routable].params }
         s"[${params.mkString(",")}] (${x.size})"
       } else super.dquote(x)
-    case x:Routable =>
+    case x:Routable if x.params.nonEmpty =>
       s"$x(${x.params.get})"
     case _ => super.dquote(x)
   }

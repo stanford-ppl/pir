@@ -16,7 +16,7 @@ class AccessContextCreation(implicit compiler:PIR) extends PIRPass with Transfor
     if (ctx.collectDown[OpNode]().isEmpty) return
     dbgblk(s"split($ctx)") {
       val k = ctx.global.get
-      val newCtx = within(k, ctx.ctrl.get) { Context() }
+      val newCtx = within(k, ctx.ctrl.get) { Context().streaming(true) }
       dbg(s"newCtx=$newCtx")
       var localNnodes:List[PIRNode] = ctx.collectDown[Access]() 
       localNnodes ++= localNnodes.flatMap { _.accum(visitFunc=visitLocalOut _) }.distinct

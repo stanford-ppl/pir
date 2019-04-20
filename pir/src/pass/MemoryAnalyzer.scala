@@ -5,7 +5,7 @@ import pir.node._
 import pir.mapper._
 import prism.graph._
 
-trait MemoryAnalyzer extends PIRPass with Transformer {
+trait MemoryAnalyzer extends PIRPass with Transformer { self:BufferAnalyzer =>
 
   def insertToken(fctx:Context, tctx:Context):TokenRead = {
     val fctrl = fctx.ctrl.get
@@ -28,31 +28,13 @@ trait MemoryAnalyzer extends PIRPass with Transformer {
 
   def compEnqDeq(isFIFO:Boolean, octx:Context, ictx:Context, out:Option[Output[PIRNode]], ins:Seq[Input[PIRNode]]):(Output[PIRNode], Output[PIRNode]) = {
     val from = out.map { _.src }
-    val to = ins.map { _.src }.distinct
     val o = octx.ctrl.get
     val i = ictx.ctrl.get
     dbgblk(s"compEnqDeq(isFIFO=$isFIFO, o=${dquote(o)}, i=${dquote(i)})") {
       dbg(s"out=$from.$out")
       dbg(s"ins=${ins.map { in => s"${in.src}.$in"}.mkString(",")}")
-      val enq = out match {
-        case Some(OutputField(from:BankedRead, _)) => Some(from.valid)
-        case Some(OutputField(from:DRAMLoadCommand, "data")) => Some(from.dataValid)
-        case Some(OutputField(from:DRAMStoreCommand, "ack")) => Some(from.ackValid)
-        case Some(OutputField(from:FringeStreamWrite, "stream")) => Some(from.dataValid)
-        case _ => None
-      }
-      val deq = ins match {
-        case List(InputField(to:DRAMDenseCommand, "offset")) => Some(to.deqCmd)
-        case List(InputField(to:DRAMDenseCommand, "size")) => Some(to.deqCmd)
-        case List(InputField(to:DRAMSparseCommand, "addr")) => Some(to.deqCmd)
-        case List(InputField(to:DRAMStoreCommand, "data")) => Some(to.deqData)
-        case List(InputField(to:FringeDenseStore, "valid")) => Some(to.deqData)
-        case List(InputField(to:FringeStreamRead, "stream")) => Some(to.deqData)
-        //case List(InputField(to:Access, _)) => Some(within(i, ictx) { allocConst(true).out })
-        case List(InputField(to:TokenWrite, _)) => Some(within(i, ictx) { allocConst(true).out })
-        case List(InputField(to:TokenRead, _)) => Some(within(i, ictx) { allocConst(true).out })
-        case ins => None
-      }
+      val enq = if (octx.streaming.get && isFIFO) Some(within(octx, o) { allocConst(true).out }) else None
+      val deq = if (ictx.streaming.get && isFIFO) Some(within(ictx, i) { allocConst(true).out }) else None
       (o, i) match {
         case (o,i) if isFIFO => (enq.getOrElse(valid(o, octx)), deq.getOrElse(valid(i, ictx)))
         case (o,i) if o == i => (enq.getOrElse(done(o, octx)), deq.getOrElse(done(i, ictx))) // TODO: should this be valid?

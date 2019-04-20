@@ -22,6 +22,7 @@ class ContextInsertion(implicit compiler:PIR) extends PIRTraversal with SiblingF
     val ctx = within(parent, ctrl) { 
       ctxMap.getOrElseUpdate(n.ctrl.get, Context())
     }
+    n.to[FringeCommand].foreach { n => ctx.streaming := true }
     val belowParent = n.ancestorSlice(parent).dropRight(1).last
     dbg(s"$n parent=$parent, ctx=$ctx belowParent=$belowParent")
     swapParent(belowParent, ctx)

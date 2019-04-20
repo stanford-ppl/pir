@@ -10,7 +10,7 @@ class DependencyDuplication(implicit compiler:PIR) extends DependencyAnalyzer wi
     val ctxs = pirTop.collectDown[Context]()
     // Compute and mirror in two passes to avoid duplication in mirroring
     ctxs.foreach {
-      case ctx@DRAMContext(cmd) => cmd.localIns.foreach { bufferInput }
+      case ctx@DRAMContext(cmd) => cmd.localIns.foreach { in => bufferInput(in) }
       case _ =>
     }
     dupDeps(ctxs)
@@ -81,6 +81,10 @@ trait DependencyAnalyzer extends PIRPass with Transformer {
 
   def mirrorDeps(to:Context, from:Option[Context]):Map[PIRNode,PIRNode] = dbgblk(s"mirrorDeps($to, $from)") {
     val deps = getDeps(to, from, Some(to))
+    //if (to.streaming.get) {
+      //dbg(s"unexpected deps=${deps}")
+      //if (deps.nonEmpty) throw PIRException(s"Duplicate dependency in streaming context $to")
+    //}
     within(to) { mirrorAll(deps).toMap }.as[Map[PIRNode, PIRNode]]
   }
 

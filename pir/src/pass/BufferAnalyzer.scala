@@ -14,7 +14,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
       case (dep, _, _) if !dep.isUnder[Context] => false
       case (_, InputField(deped:LocalOutAccess, "in"), _) => false
 
-      case (_,_,DRAMContext(cmd)) => true
+      case (_,_,ctx) if ctx.streaming.get => true
 
       case (dep:Const, _, _) => false // duplicate later
       case (dep:CounterIter, _, _) => false // duplicate later
@@ -34,15 +34,15 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     deped.localIns.flatMap { in => bufferInput(in) }
   }
 
-  def bufferInput(in:Input[PIRNode]):Seq[BufferRead] = {
+  def bufferInput(in:Input[PIRNode], fromCtx:Option[Context]=None):Seq[BufferRead] = {
     in.connected.distinct.flatMap { out =>
-      bufferInput(out, in)
+      insertBuffer(out, in, fromCtx)
     }
   }
 
   def bufferOutput(out:Output[PIRNode]):Seq[BufferRead] = {
     out.connected.distinct.flatMap { in =>
-      bufferInput(out, in)
+      insertBuffer(out, in)
     }
   }
 
@@ -54,16 +54,16 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     case n => Nil
   }
 
-  private def bufferInput(depOut:Output[PIRNode], depedIn:Input[PIRNode]):Option[BufferRead] = {
+  private def insertBuffer(depOut:Output[PIRNode], depedIn:Input[PIRNode], fromCtx:Option[Context]=None):Option[BufferRead] = {
     val dep = depOut.src
     val deped = depedIn.src
     val depedCtx = deped.ctx.get
     if (escape(dep, depedIn, depedCtx)) {
-      val read = dbgblk(s"bufferInput(depOut=$dep.$depOut, depedIn=$deped.$depedIn)") {
-        val depCtx = dep.ctx.get
+      val read = dbgblk(s"insertBuffer(depOut=$dep.$depOut, depedIn=$deped.$depedIn)") {
+        val depCtx = fromCtx.getOrElse { dep.ctx.get }
         val (enq, deq) = compEnqDeq(isFIFO=true, depCtx, depedCtx, Some(depOut), List(depedIn))
         val tp = compType(depOut)
-        val write = within(depCtx, dep.getCtrl) {
+        val write = within(depCtx, depCtx.getCtrl) {
           allocate[BufferWrite] { write => 
             write.data.canReach(depOut, visitEdges=visitInEdges _) &&
             write.done.canReach(enq, visitEdges=visitInEdges _)
@@ -71,7 +71,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
             stage(BufferWrite().data(depOut).done(enq))
           }
         }
-        val read = within(depedCtx, deped.getCtrl) {
+        val read = within(depedCtx, depedCtx.getCtrl) {
           allocate[BufferRead] { read => 
             read.in.canReach(write.out, visitEdges=visitInEdges _) &&
             read.done.canReach(deq, visitEdges=visitInEdges _)

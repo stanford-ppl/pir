@@ -47,7 +47,7 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
    * Recursively split k by first remove out the largest addr calculation stage.
    * */
   def split(k:GlobalContainer, vcost:List[Cost[_]]):Set[CUMap.K] = dbgblk(s"split($k)"){
-    val addrCtxs = k.collectDown[Context]().filter { ctx => ctx.collectDown[Access]().isEmpty }
+    val addrCtxs = k.collectDown[Context]().filterNot { ctx => ctx.streaming.get }
     if (addrCtxs.isEmpty) return Set.empty
 
     val addrCtx = addrCtxs.maxBy { _.getCost[StageCost].quantity }

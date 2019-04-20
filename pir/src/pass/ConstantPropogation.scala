@@ -94,8 +94,7 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
     w2.data.T match {
       case r1:BufferRead if !initializerHasRun =>
         val doneMatch = (r1.done.singleConnected.get, w2.done.singleConnected.get) match {
-          case (OutputField(c1:UnitController, f1), OutputField(c2:UnitController, f2)) if c1 == c2 =>
-            (f1 == "valid" || f1 == "done") && (f2 == "valid" || f2 == "done")
+          case (OutputField(c1:UnitController, "valid" | "done"), OutputField(c2:UnitController, "valid" | "done")) => c1 == c2
           case (r1done, w2done) => r1done == w2done
         }
         if (doneMatch) Some((r1.inAccess.as[BufferWrite], r1, w2))

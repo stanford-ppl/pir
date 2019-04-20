@@ -5,7 +5,6 @@ trait FringeCommand extends PIRNode
 
 trait DRAMCommand extends FringeCommand {
   def dram:DRAM
-  val deqCmd = new OutputField[List[PIRNode]]("deqCmd")
   val data:NodeField[PIRNode]
 }
 
@@ -18,13 +17,10 @@ trait DRAMSparseCommand extends DRAMCommand {
 }
 trait DRAMLoadCommand extends DRAMCommand {
   val data = new OutputField[PIRNode]("data")
-  val dataValid = new OutputField[List[PIRNode]]("dataValid")
 }
 trait DRAMStoreCommand extends DRAMCommand {
   val data = new InputField[PIRNode]("data")
   val ack = new OutputField[PIRNode]("ack")
-  val deqData = new OutputField[List[PIRNode]]("deqData")
-  val ackValid = new OutputField[List[PIRNode]]("ackValid")
 }
 
 case class FringeDenseLoad(dram:DRAM)(implicit env:Env) extends DRAMDenseCommand with DRAMLoadCommand
@@ -47,9 +43,7 @@ trait StreamCommand extends FringeCommand
 
 case class FringeStreamWrite()(implicit env:Env) extends StreamCommand {
   val stream = new OutputField[PIRNode]("stream")
-  val dataValid = new OutputField[List[PIRNode]]("dataValid")
 }
 case class FringeStreamRead()(implicit env:Env) extends StreamCommand {
   val stream = new InputField[PIRNode]("stream")
-  val deqData = new OutputField[List[PIRNode]]("deqData")
 }

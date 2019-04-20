@@ -106,26 +106,32 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
 
   def compScale(n:Any):Value[Long] = dbgblk(s"compScale($n)"){
     n match {
-      case OutputField(n:DRAMDenseCommand, "deqCmd") => n.getIter * n.ctx.get.getScheduleFactor
-      case OutputField(n:FringeSparseLoad, "deqCmd") => Finite(n.ctx.get.getScheduleFactor)
-      case OutputField(n:DRAMLoadCommand, "dataValid") => Finite(n.ctx.get.getScheduleFactor)
-      case OutputField(n:DRAMStoreCommand, "deqData") => Finite(n.ctx.get.getScheduleFactor)
-      case OutputField(n:DRAMDenseCommand, "ackValid") => n.getIter * n.ctx.get.getScheduleFactor
-      case OutputField(n:DRAMSparseCommand, "ackValid") => Finite(n.ctx.get.getScheduleFactor)
-      case OutputField(n:FringeStreamWrite, "dataValid") => Finite(n.ctx.get.getScheduleFactor)
-      case OutputField(n:FringeStreamRead, "deqData") => Finite(n.ctx.get.getScheduleFactor)
-      case OutputField(n:OutAccess, "valid") => Finite(n.ctx.get.getScheduleFactor)
       case OutputField(ctrler:Controller, "done") => ctrler.getIter *  compScale(ctrler.valid)
-      case OutputField(ctrler:Controller, f) if f == "valid" | f == "childDone" => 
+      case OutputField(ctrler:Controller, "valid" | "childDone") => 
         val children = ctrler.valid.connected.filter { _.asInstanceOf[Field[_]].name == "parentEn" }.map { _.src.as[Controller] }
         assertUnify(children, s"$ctrler.valid.scale") { child => compScale(child.done) }.getOrElse(Finite(ctrler.ctx.get.getScheduleFactor))
-      case OutputField(n:PIRNode, _) => n.getScale 
+      case OutputField(n:Const, _) => Finite(n.ctx.get.getScheduleFactor)
       case n:LocalAccess => 
-        n.done.singleConnected.get match {
-          case OutputField(n:BufferRead, _) => compScale(n.inAccess.as[BufferWrite].data.singleConnected.get)
-          case done => compScale(done)
+        (n, n.done.singleConnected.get) match {
+          case (n:TokenAccess, OutputField(r:BufferRead, _)) => compScale(r.inAccess.as[BufferWrite].data.singleConnected.get)
+          case (n:BufferWrite, done) if n.ctx.get.streaming.get =>
+            n.data.singleConnected.get match {
+              case OutputField(n:Access, "out") => Finite(n.ctx.get.getScheduleFactor)
+              case OutputField(n:FringeDenseStore, "ack") => n.getIter * n.ctx.get.getScheduleFactor
+              case OutputField(_:StreamCommand | _:DRAMSparseCommand | _:DRAMDenseCommand, field) => Finite(n.ctx.get.getScheduleFactor)
+              case out => throw PIRException(s"Don't know how to compute scale of ${dquote(out)}")
+            }
+          case (n:BufferRead, done) if n.ctx.get.streaming.get =>
+            n.out.connected.head match {
+              case InputField(n:Access, field) => Finite(n.ctx.get.getScheduleFactor)
+              case InputField(n:LocalAccess, "done") => Finite(n.ctx.get.getScheduleFactor)
+              case InputField(n:DRAMDenseCommand, "size" | "offset") => n.getIter * n.ctx.get.getScheduleFactor
+              case InputField(n:DRAMStoreCommand, "data" | "valid") => Finite(n.ctx.get.getScheduleFactor)
+              case InputField(_:StreamCommand | _:DRAMSparseCommand, field) => Finite(n.ctx.get.getScheduleFactor)
+              case in => throw PIRException(s"Don't know how to compute scale of ${dquote(in)}")
+            }
+          case (n, done) => compScale(done) 
         }
-      case n@Const(true) => Finite(n.ctx.get.getScheduleFactor)
       case n => throw PIRException(s"Don't know how to compute scale of $n")
     }
   }
@@ -171,9 +177,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case StreamWriteContext(sw) => sw.count.v.getOrElse(throw PIRException(s"${sw.name.v.getOrElse(sw.sname.get)} is not annotated with count"))
       case n:Context =>
         val ctrlers = n.ctrlers
-        val cmds = n.collectFirstChild[FringeCommand]
-        val reads = n.reads
-        if (ctrlers.isEmpty || cmds.nonEmpty || ctrlers.exists { _.isForever }) countByReads(n).get
+        if (n.streaming.get || ctrlers.exists { _.isForever }) countByReads(n).get
         else ctrlers.map { _.getIter }.reduce { _ * _ }
       case n:LocalOutAccess =>
         n.in.T.getCount
@@ -238,7 +242,8 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     val tp = n.inferTp
     val vec = n.inferVec
     val fields = n.fedges.map { e => s".${e.name}(${e.connected.map { dquote }})" }.mkString
-    dbg(s"Create $n$fields in ${n.parent} with tp=$tp vec=$vec")
+    dbg(s"Create $n")
+    dbgn(n)
     n
   }
 

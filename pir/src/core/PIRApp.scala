@@ -75,7 +75,7 @@ trait PIRApp extends PIR with Logging {
     addPass(depDuplications).dependsOn(memLowering)
     addPass(enableDot, new PIRIRDotGen(s"top5.dot")) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple5.dot"))
-    addPass(accessCtxCreation).dependsOn(depDuplications) ==>
+    //addPass(accessCtxCreation).dependsOn(depDuplications) ==>
     addPass(constProp) ==>
     addPass(deadCodeEliminator) ==>
     //addPass(contextAnalyzer) ==>
