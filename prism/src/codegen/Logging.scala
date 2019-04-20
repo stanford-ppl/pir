@@ -32,7 +32,11 @@ trait Logging extends Serializable {
     } else block
   }
 
-  def dquote(n:Any):String = n.toString
+  def dquote(n:Any):String = n match {
+    case (a,b) => s"(${dquote(a)}, ${dquote(b)})"
+    case n:Iterable[_] => n.map(dquote).toString
+    case n => n.toString
+  }
 
   private def promp(header:Option[String], s:Any) = s"${header.fold("") { h => s"[$h] "}}$s"
 
@@ -52,5 +56,28 @@ trait Logging extends Serializable {
   def withLog[T](outDir:String, logFile:String, append:Boolean=false)(lambda: => T):T = {
     if (logger.isOpen) lambda 
     else logger.withOpen[T](outDir, logFile, append) { lambda }
+  }
+
+  def dbgn(n:ND) = {
+    dbgblk(dquote(n)) {
+      dbg(s"parent=${n.parent.map(dquote)}")
+      //metadata.foreach { _.summary(n).foreach(dbg) }
+      if (n.children.nonEmpty) {
+        if (n.children.size > 10)
+          dbg(s"children=${n.children.slice(0,10).map(dquote)} ...")
+        else
+          dbg(s"children=${n.children.map(dquote)}")
+      }
+      n.localEdges.foreach { edge =>
+        dbg(s"$edge=[${dquote(edge.connected)}]")
+      }
+      dbg(s"deps=${n.deps.toList.map(dquote)}")
+      dbg(s"depeds=${n.depeds.toList.map(dquote)}")
+      n.metadata.values.foreach { metadata =>
+        metadata.v.foreach { v =>
+          dbg(s"${metadata.name} = $v")
+        }
+      }
+    }
   }
 }

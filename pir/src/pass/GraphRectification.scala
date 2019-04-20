@@ -9,22 +9,12 @@ class GraphRectification(implicit compiler:PIR) extends PIRTraversal with Siblin
   override def visitNode(n:N) = {
     n.to[Controller].foreach { n =>
       n.srcCtx.v.foreach { v => n.ctrl.get.srcCtx := v }
+      n.sname.v.foreach { v => n.ctrl.get.sname := v }
       n.descendents.foreach { d =>
-        dbgblk(s"descendents=$d") {
-          var inputs = d.accumTill[Memory](visitGlobalIn _)
-          inputs = inputs.filterNot { 
-            case mem:Memory => true
-            case n => n.ancestors.exists { _.isInstanceOf[Controller] }
-          }
-          dbg(s"inputs=$inputs")
-          (d :: inputs).foreach { n =>
-            val node = n
-            val ctrl = n.ctrl.get
-            node.ctrl.reset
-            node.ctrl := ctrl
-            dbg(s"Resetting $node.ctrl = $ctrl")
-          }
-        }
+        val ctrl = n.ctrl.get
+        d.ctrl.reset
+        d.ctrl := ctrl
+        dbg(s"Resetting $d.ctrl = $ctrl")
       }
     }
     n.to[RegAccumOp].foreach { n =>
@@ -37,7 +27,7 @@ class GraphRectification(implicit compiler:PIR) extends PIRTraversal with Siblin
         }
       }
     }
-    n.to[Def].foreach { _.getVec } // TODO: shouldn't this happen before reset control??
+    n.to[Def].foreach { _.getVec }
     n.to[Access].foreach { _.getVec }
     n.to[DRAMAddr].foreach { n =>
       val read = n.collect[MemRead](visitFunc=visitGlobalOut _).head
@@ -55,7 +45,7 @@ class GraphRectification(implicit compiler:PIR) extends PIRTraversal with Siblin
     super.visitNode(n)
   } 
 
-  override def compVec(n:ND):Option[Int] = {
+  override def compVec(n:Any):Option[Int] = {
     super.compVec(n).orElse { n.to[PIRNode].flatMap{ _.getCtrl.inferVec } }
   }
 

@@ -145,7 +145,8 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       case Fix(false, 32, 0) => "uint32_t"
       case Fix(false, 64, 0) => "uint64_t"
       case Fix(true, i, f) if f > 0 && i + f <= 32 => "float"
-      case Fix(true, i, f) if f > 0 && i + f <= 64 => "double"
+      //case Fix(true, i, f) if f > 0 && i + f <= 64 => "double"
+      case Fix(true, i, f) if f > 0 && i + f <= 64 => "float" // Executing double as float for now
       case Flt(m,f) => "float"
       case Bool => "bool"
       case Text => "string"
@@ -157,6 +158,7 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       case "float" if n.getVec == 1 => "TT_FLOAT"
       case "float" if n.getVec > 1 => "TT_FLOATVEC"
       case "bool" if n.getVec == 1 => "TT_BOOL"
+      case _ => throw PIRException(s"Unsupported token type $n")
     }
   }
 

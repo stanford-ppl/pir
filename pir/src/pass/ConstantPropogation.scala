@@ -73,24 +73,32 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
     Some((counter, maxValid))
   }
 
-  val RouteThrough1 = MatchRule[MemWrite, (MemWrite, MemRead, MemWrite)] { n =>
-    if (!initializerHasRun && !memLowerHasRun && !globalInsertHasRun && n.en.isConnected) {
-      n.data.T match {
+  val RouteThrough1 = MatchRule[MemWrite, (MemWrite, Memory, MemRead, MemWrite, Memory)] { w2 =>
+    if (!initializerHasRun && !memLowerHasRun && !globalInsertHasRun && w2.en.isConnected) {
+      w2.data.T match {
         case r1:MemRead if !r1.en.isConnected =>
-          val w1s = r1.mem.T.inAccesses
-          if (w1s.size == 1 && r1.mem.T.isFIFO == n.mem.T.isFIFO) {
+          val m1 = r1.mem.T
+          val m2 = w2.mem.T
+          val w1s = m1.inAccesses
+          if (w1s.size == 1 && m1.isFIFO == m2.isFIFO) {
             val w1 = w1s.head.as[MemWrite]
-            Some((w1, r1, n))
+            Some((w1, m1, r1, w2, m2))
           } else None
         case _ => None
       }
     } else None
   }
 
-  // (W) => r1 (R) => n (W)
-  val RouteThrough2 = MatchRule[BufferWrite, (BufferWrite, BufferRead, BufferWrite)] { n =>
-    n.data.T match {
-      case r1:BufferRead if !initializerHasRun => Some((r1.inAccess.as[BufferWrite], r1, n))
+  // w1 -> r1 -> w2 -> r2s => w1 -> r2s
+  val RouteThrough2 = MatchRule[BufferWrite, (BufferWrite, BufferRead, BufferWrite)] { w2 =>
+    w2.data.T match {
+      case r1:BufferRead if !initializerHasRun =>
+        val doneMatch = (r1.done.singleConnected.get, w2.done.singleConnected.get) match {
+          case (OutputField(c1:UnitController, "valid" | "done"), OutputField(c2:UnitController, "valid" | "done")) => c1 == c2
+          case (r1done, w2done) => r1done == w2done
+        }
+        if (doneMatch) Some((r1.inAccess.as[BufferWrite], r1, w2))
+        else None
       case _ =>  None
     }
   }
@@ -162,21 +170,26 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
           }
           addAndVisitNode(const, ())
         }
-      case RouteThrough1(w1, r1, w2) =>
-        val mem = w2.mem.T
-        dbg(s"Route through $w1 -> $r1 -> $w2 -> $mem detected")
-        disconnect(w2.mem, mem)
-        val mw1 = within(w1.parent.get) {
-          mirrorAll(List(w1))(w1).as[MemWrite]
-        }
-        dbg(s" => $mw1 -> $mem")
-        mw1.mem(mem)
+      case RouteThrough1(w1, m1, r1, w2, m2) =>
+        dbg(s"Route through $w1 -> $m1 -> $r1 -> $w2 -> $m2 detected")
+        disconnect(w2.mem, m2)
+        val mw1 = within(w1.parent.get) { mirrorAll(List(w1))(w1).as[MemWrite] }
+        dbg(s" => $mw1 -> $m2")
+        mw1.mem(m2)
+        val name = zipReduce(m1.name.v, m2.name.v) { _ + "/" + _ }
+        m2.name.reset
+        m2.name.apply(name)
       case RouteThrough2(w1, r1, w2) =>
-        val outs = w2.outAccesses
-        dbg(s"Route through $w1 -> $r1 -> $w2 -> $outs detected")
-        dbg(s" => $w1 -> $outs")
-        outs.foreach { out => disconnect(w2.out, out) }
-        w1.out(outs.map { _.in })
+        val r2s = w2.outAccesses
+        dbg(s"Route through $w1 -> $r1 -> $w2 -> $r2s detected")
+        dbg(s" => $w1 -> $r2s")
+        r2s.foreach { out => disconnect(w2.out, out) }
+        w1.out(r2s.map { _.in })
+        r2s.foreach { r2 =>
+          val name = zipReduce(r1.name.v, r2.name.v) { _ + "/" + _ }
+          r2.name.reset
+          r2.name.apply(name)
+        }
       case n => 
     }
 

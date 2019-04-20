@@ -171,7 +171,7 @@ case class DramAGParam(
 case class PCUParam(
   fifoParams:List[FIFOParam]=List(
     FIFOParam("bit",count=16,depth=1000),
-    FIFOParam("word",count=4,depth=4),
+    FIFOParam("word",count=8,depth=4),
     FIFOParam("vec",count=4,depth=4)
   ),
   numCounters:Int=16,
@@ -188,7 +188,7 @@ case class PCUParam(
 case class PMUParam(
   fifoParams:List[FIFOParam]=List(
     FIFOParam("bit",count=16,depth=1000),
-    FIFOParam("word",count=4,depth=4),
+    FIFOParam("word",count=8,depth=4),
     FIFOParam("vec",count=4,depth=4)
   ),
   numCounters:Int=16,

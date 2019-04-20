@@ -70,6 +70,7 @@ case class GlobalOutput()(implicit env:Env) extends GlobalIO {
 }
 
 case class Context()(implicit env:Env) extends PIRNode {
+  val streaming = new Metadata[Boolean]("streaming", default=Some(false))
   val active = new Metadata[Long]("active")
   val state = new Metadata[String]("state")
 }
@@ -145,6 +146,7 @@ abstract class Controller(implicit env:Env) extends PIRNode {
 
   val valid = new OutputField[List[PIRNode]]("valid")
   val done = new OutputField[List[PIRNode]]("done")
+  val childDone = new OutputField[List[PIRNode]]("childDone")
 
   def isForever = this.collectDown[Counter]().exists { _.isForever }
 }

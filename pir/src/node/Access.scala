@@ -29,9 +29,7 @@ trait WriteAccess extends InAccess {
   val data = new InputField[PIRNode]("data")
 }
 trait ReadAccess extends OutAccess
-case class BankedRead()(implicit env:Env) extends ReadAccess with BankedAccess {
-  val valid = new OutputField[List[PIRNode]]("valid")
-}
+case class BankedRead()(implicit env:Env) extends ReadAccess with BankedAccess
 case class BankedWrite()(implicit env:Env) extends WriteAccess with BankedAccess
 case class MemRead()(implicit env:Env) extends ReadAccess
 case class MemWrite()(implicit env:Env) extends WriteAccess
@@ -50,8 +48,9 @@ case class BufferWrite()(implicit env:Env) extends LocalInAccess {
   val en = new InputField[List[PIRNode]]("en")
 }
 case class BufferRead()(implicit env:Env) extends LocalOutAccess
-case class TokenWrite()(implicit env:Env) extends LocalInAccess
-case class TokenRead()(implicit env:Env) extends LocalOutAccess
+trait TokenAccess extends LocalAccess
+case class TokenWrite()(implicit env:Env) extends TokenAccess with LocalInAccess
+case class TokenRead()(implicit env:Env) extends TokenAccess with LocalOutAccess
 
 trait AccessUtil {
   implicit class AccessOp(x:PIRNode) {

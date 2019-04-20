@@ -16,7 +16,7 @@ class AccessContextCreation(implicit compiler:PIR) extends PIRPass with Transfor
     if (ctx.collectDown[OpNode]().isEmpty) return
     dbgblk(s"split($ctx)") {
       val k = ctx.global.get
-      val newCtx = within(k, ctx.ctrl.get) { Context() }
+      val newCtx = within(k, ctx.ctrl.get) { Context().streaming(true) }
       dbg(s"newCtx=$newCtx")
       var localNnodes:List[PIRNode] = ctx.collectDown[Access]() 
       localNnodes ++= localNnodes.flatMap { _.accum(visitFunc=visitLocalOut _) }.distinct
@@ -24,8 +24,18 @@ class AccessContextCreation(implicit compiler:PIR) extends PIRPass with Transfor
       localNnodes ++= ctx.collectDown[TokenRead]()
       localNnodes.foreach { local => swapParent(local, newCtx) }
       bufferInput(newCtx)
-      dupDeps(newCtx, ctx)
+      //dupDeps(newCtx, ctx)
       //breakPoint(s"split $ctx")
+    }
+  }
+
+  // Buffer everything
+  override def escape(dep:PIRNode, depedIn:Input[PIRNode], depedCtx:Context) = {
+    (dep, depedIn, depedCtx) match {
+      case (dep, _, _) if dep.isDescendentOf(depedCtx) => false
+      case (dep, _, _) if !dep.isUnder[Context] => false
+      case (_, InputField(deped:LocalOutAccess, "in"), _) => false
+      case _ => true
     }
   }
 

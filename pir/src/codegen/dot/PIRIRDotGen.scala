@@ -69,13 +69,14 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     case n:GlobalOutput if n.psimState == Some(".") => attr.setNode.fillcolor("goldenrod1").style(filled)
     case n:Context => 
       val color = zipOption(n.active.v, n.psimState).fold {
-        "palevioletred1"
+        if (n.streaming.get) "deepskyblue1" else "palevioletred1"
       } { case (active, state) =>
         n.count.get match {
           case Finite(expected) if active < expected =>
             if (state == "STARVE") "firebrick1"
             else if (state == "STALL") "goldenrod1"
             else if (state == "BOTH") "darkorange"
+            else if (n.streaming.get) "deepskyblue1" 
             else "palevioletred1"
           case _ =>
             val G = Math.round((1 - n.activeRate.get / 100) * (255 - 50) + 50).toInt
@@ -89,7 +90,6 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     //case n:CUContainer => attr.fillcolor(deepskyblue).style(filled)
     case n:DRAMCommand => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
     case n:StreamCommand => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
-    case n:DRAMFringe => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
     //case n:StreamFringe => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
 
     case n:OpNode => attr.fillcolor("mediumorchid1").style(filled)

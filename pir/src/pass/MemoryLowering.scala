@@ -12,7 +12,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     pirTop.collectDown[Memory]().foreach(lowerMem)
   }
 
-  def lowerMem(mem:Memory):Unit = dbgblk(s"lowerMem($mem)"){
+  def lowerMem(mem:Memory):Unit = dbgblk(s"lowerMem(${dquote(mem)})"){
     val accesses = mem.accesses
     accesses.foreach { access =>
       dbg(s"access=$access order=${access.order.v}")
@@ -96,7 +96,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     dbg(s"mergeCtrl = $mergeCtrl")
     dbg(s"mergeCtx=$mergeCtx")
     val addrCtxs = mutable.Map[BankedAccess, Context]()
-    within(mergeCtx, mergeCtrl) {
+    val red = within(mergeCtx, mergeCtrl) {
       val requests = accesses.map { access =>
         val addrCtx = access match {
           case access if accesses.size == 1 => mergeCtx
@@ -138,35 +138,50 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           case List((o1, d1)) => (o1, d1)
         }.toList
       }
-      //TODO: handle en
-      val List((ofs, data)) = red
-      data.fold[Unit]{
-        val newRead = stage(BankedRead().offset(ofs).mem(mem).mirrorMetas(headAccess))
-        newRead.vec.reset
-        newRead.vec := mem.nBanks
-        accesses.asInstanceOf[Set[BankedRead]].foreach { access =>
-          access.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx, ins) =>
-            val shuffle = within(inCtx, inCtx.getCtrl)  {
-              stage(Shuffle(0).from(allocConst(mem.bankids.get)).to(access.bank.connected).base(newRead.out))
-            }
-            dbg(s"val $shuffle = Shuffle() // bankRead")
-            bufferInput(shuffle.base)
-             //TODO: Potential optimization: to can also not buffer if not expensive to duplicate calculation.
-            bufferInput(shuffle.to).foreach { read =>
-              swapParent(read.inAccess, addrCtxs(access))
-            }
-            ins.foreach { in =>
-              swapConnection(in, access.out, shuffle.out)
-            }
-          }
-        }
+      red
+    }
+
+    val List((ofs, data)) = red
+    //TODO: handle en
+    val accessCtx = within(memCU, headAccess.ctx.get.getCtrl) { Context().streaming(true) }
+    val newAccess = within(accessCtx) {
+      data.fold[BankedAccess]{
+        stage(BankedRead().offset(ofs).mem(mem).mirrorMetas(headAccess))
       } { data => 
-        val newWrite = stage(BankedWrite().offset(ofs).data(data).mem(mem).mirrorMetas(headAccess))
-        newWrite.vec.reset
-        newWrite.vec := mem.nBanks
+        stage(BankedWrite().offset(ofs).data(data).mem(mem).mirrorMetas(headAccess))
       }
     }
+    newAccess.vec.reset
+    newAccess.vec := mem.nBanks
+    bufferInput(accessCtx)
+
+    // Connect access.done
+    if (mem.depth.get > 1) {
+      val ctrlMap = leastMatchedPeers(mem.accesses.map { _.getCtrl} ).get
+      val ctrl = ctrlMap(mergeCtrl)
+      newAccess.done(done(ctrl, accessCtx))
+      bufferInput(newAccess.done, fromCtx=Some(depCtx(accessCtx)))
+    }
+
+    newAccess.to[BankedRead].foreach { newAccess =>
+      accesses.asInstanceOf[Set[BankedRead]].foreach { access =>
+        access.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx, ins) =>
+          val shuffle = within(inCtx, inCtx.getCtrl)  {
+            stage(Shuffle(0).from(allocConst(mem.bankids.get)).to(access.bank.connected).base(newAccess.out))
+          }
+          dbg(s"val $shuffle = Shuffle() // bankRead")
+          bufferInput(shuffle.base)
+           //TODO: Potential optimization: to can also not buffer if not expensive to duplicate calculation.
+          bufferInput(shuffle.to, fromCtx=Some(addrCtxs(access)))
+          ins.foreach { in =>
+            swapConnection(in, access.out, shuffle.out)
+          }
+        }
+      }
+    }
+
     removeNodes(accesses)
+    //breakPoint(s"lowerBankedAccesses $mem")
   }
 
   def flattenBankAddr(access:BankedAccess):Unit = {
@@ -229,11 +244,6 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     dbgblk(s"multiBufferBarrierInsertion($mem)") {
       val accesses = mem.accesses.filter { _.port.nonEmpty }
       val ctrlMap = leastMatchedPeers(accesses.map { _.getCtrl} ).get
-      // Connect access.done
-      accesses.foreach { access =>
-        val ctrl = ctrlMap(access.getCtrl)
-        access.done(ctrlDone(ctrl, access.ctx.get))
-      }
       val portMap = mem.accesses.groupBy { access =>
         access.port.v.get.get
       }
@@ -386,6 +396,17 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       }
     }
     removeNodes(mem.accesses :+ mem)
+  }
+
+  override def insertToken(fctx:Context, tctx:Context):TokenRead = {
+    val read = super.insertToken(fctx, tctx)
+    bufferInput(read.inAccess.done, fromCtx=Some(depCtx(fctx)))
+    bufferInput(read.done, fromCtx=Some(depCtx(tctx)))
+    read
+  }
+
+  def depCtx(streamCtx:Context) = {
+    streamCtx.collectDown[LocalOutAccess]().head.inAccess.ctx.get
   }
 
 }

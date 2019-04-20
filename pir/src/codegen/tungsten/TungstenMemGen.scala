@@ -179,7 +179,6 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
   override def quoteRef(n:Any):String = n match {
     case n@InputField(access:Access, "done") if !n.as[Input[PIRNode]].isConnected => "false"
-    case n@OutputField(access:BankedRead, "valid") => s"${access}_buffer->ReadValid()"
     case n => super.quoteRef(n)
   }
 
