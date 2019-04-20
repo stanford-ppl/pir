@@ -79,7 +79,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:OpDef =>
       emitVec(n) { i =>
-        val ins = n.input.T.map { _.qidx(i) }
+        val ins = n.input.connected.map { _.qidx(i) }
         def a = ins(0)
         def b = ins(1)
         def c = ins(2)

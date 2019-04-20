@@ -4,7 +4,7 @@ package pass
 import pir.node._
 import prism.graph._
 import prism.util._
-import spade.param.{FixOp, FltOp}
+import spade.param.{FixOp, FltOp, BitOp}
 import scala.collection.mutable
 
 trait RuntimeAnalyzer extends Logging { self:PIRPass =>
@@ -46,7 +46,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     def getTp:BitType = n.inferTp.getOrElse(throw PIRException(s"Don't know how to infer type of $n"))
     def inferTp:Option[BitType] = n.tp.orElseUpdate { compType(n) }
   }
-  implicit class NodeRuntimeOp(n:ND) {
+  implicit class NodeRuntimeOp(n:IR) {
     def inferVec:Option[Int] = n.getMeta[Int]("vec").orElseUpdate { compVec(n) }
     def getVec:Int = n.inferVec.getOrElse(throw PIRException(s"Don't know how to infer vec of $n"))
   }
@@ -193,7 +193,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
 
   def compVec(n:Any):Option[Int] = dbgblk(s"compVec($n)") {
     n match {
-      case n:Input[_] => compVec(n.singleConnected.get)
+      case n:Input[_] => n.singleConnected.get.inferVec
       case OutputField(n:Controller, "done") => Some(1)
       case OutputField(n:Controller, "childDone") => Some(1)
       case OutputField(n:Controller, "valid") => Some(1)
@@ -204,14 +204,13 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:TokenRead => Some(1)
       case WithMem(access, mem:Reg) => Some(1)
       case WithMem(access, mem:FIFO) if access.getCtrl.schedule=="Streaming" => Some(mem.banks.get.head)
-      case n:BufferWrite => compVec(n.data)
+      case n:BufferWrite => n.data.inferVec
       case n:RegAccumOp => Some(1)
-      case n@OpDef(_:FixOp) => flatReduce(n.input.T.map{_.inferVec}) { case (a,b) => Math.max(a,b) }
-      case n@OpDef(_:FltOp) => flatReduce(n.input.T.map{_.inferVec}) { case (a,b) => Math.max(a,b) }
+      case n@OpDef(_:FixOp | _:FltOp | _:BitOp) => flatReduce(n.input.connected.map{ out => out.inferVec}) { case (a,b) => Math.max(a,b) }
       case n:Shuffle => n.to.T.inferVec
       case n:GlobalOutput => n.in.T.inferVec
       // During staging time GlobalInput might temporarily not connect to GlobalOutput
-      case n:GlobalInput => compVec(n.in)
+      case n:GlobalInput => n.in.inferVec
       case n:ControlTree => if (n.children.isEmpty) Some(n.par.get) else Some(1)
       case n => None
     }
@@ -223,8 +222,8 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:TokenRead => Some(Bool)
       case n:TokenWrite => Some(Bool)
       case n:BufferWrite => n.data.T.inferTp
-      case n@OpDef(_:FixOp) => assertUnify(n.input.T, s"$n.tp") { _.inferTp }.get
-      case n@OpDef(_:FltOp) => assertUnify(n.input.T, s"$n.tp") { _.inferTp }.get
+      case n@OpDef(_:BitOp) => Some(Bool)
+      case n@OpDef(_:FixOp | _:FltOp) => assertUnify(n.input.T, s"$n.tp") { _.inferTp }.get
       case Const(_:Boolean) => Some(Bool)
       case Const(_:Int) => Some(Fix(true, 32, 0))
       case Const(_:Float) => Some(Flt(23, 8))
