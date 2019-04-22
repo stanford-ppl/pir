@@ -255,7 +255,7 @@ def parse_runtst(log, conf, opts):
     parsers.append(Parser(
         conf,
         'runtst_err', 
-        ["error", "fail"],
+        ["error", "fail", "exception"],
         lambda lines: lines[0] 
     ))
     parsers.append(Parser(
