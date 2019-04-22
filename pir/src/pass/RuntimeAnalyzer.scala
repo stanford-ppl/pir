@@ -122,19 +122,13 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
           case (n:TokenAccess, OutputField(r:BufferRead, _)) => compScale(r.inAccess.as[BufferWrite].data.singleConnected.get)
           case (n:BufferWrite, done) if n.ctx.get.streaming.get =>
             n.data.singleConnected.get match {
-              case OutputField(n:Access, "out") => Finite(n.ctx.get.getScheduleFactor)
               case OutputField(n:FringeDenseStore, "ack") => n.getIter * n.ctx.get.getScheduleFactor
-              case OutputField(_:StreamCommand | _:DRAMSparseCommand | _:DRAMDenseCommand, field) => Finite(n.ctx.get.getScheduleFactor)
-              case out => throw PIRException(s"Don't know how to compute scale of ${dquote(out)}")
+              case out => Finite(n.ctx.get.getScheduleFactor)
             }
           case (n:BufferRead, done) if n.ctx.get.streaming.get =>
             n.out.connected.head match {
-              case InputField(n:Access, field) => Finite(n.ctx.get.getScheduleFactor)
-              case InputField(n:LocalAccess, "done") => Finite(n.ctx.get.getScheduleFactor)
               case InputField(n:DRAMDenseCommand, "size" | "offset") => n.getIter * n.ctx.get.getScheduleFactor
-              case InputField(n:DRAMStoreCommand, "data" | "valid") => Finite(n.ctx.get.getScheduleFactor)
-              case InputField(_:StreamCommand | _:DRAMSparseCommand, field) => Finite(n.ctx.get.getScheduleFactor)
-              case in => throw PIRException(s"Don't know how to compute scale of ${dquote(in)}")
+              case in => Finite(n.ctx.get.getScheduleFactor)
             }
           case (n, done) => compScale(done) 
         }
