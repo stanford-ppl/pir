@@ -197,6 +197,7 @@ trait Transformer extends Logging {
       val m = n.newInstance[N](margs)
       dbg(s"mirror $n -> $m")
       m.mirrorMetas(n)
+      m.localEdges.zip(n.localEdges).foreach { case (medge, nedge) => medge.mirrorMetas(nedge) }
       m
     }).as[N]
   }

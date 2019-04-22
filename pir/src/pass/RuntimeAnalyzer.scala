@@ -18,6 +18,12 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     def cb = ctx.collectFirstChild[ControlBlock]
     def ctrlers = ctx.cb.map { _.collectChildren[Controller] }.getOrElse(Nil)
     def ctrler(ctrl:ControlTree) = {
+      assertOneOrLess(
+        ctx.ctrlers.filter { _.ctrl.get == ctrl }, 
+        s"$ctx.ctrler with ($ctrl)"
+      )
+    }
+    def getCtrler(ctrl:ControlTree) = {
       assertOne(
         ctx.ctrlers.filter { _.ctrl.get == ctrl }, 
         s"$ctx.ctrler with ($ctrl)"
@@ -43,12 +49,12 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
 
     def psimState(s:String) = n.getMeta[Float]("psimState").update(s)
     def psimState = n.getMeta[String]("psimState").v
-    def getTp:BitType = n.inferTp.getOrElse(throw PIRException(s"Don't know how to infer type of $n"))
-    def inferTp:Option[BitType] = n.tp.orElseUpdate { compType(n) }
   }
   implicit class NodeRuntimeOp(n:IR) {
     def inferVec:Option[Int] = n.getMeta[Int]("vec").orElseUpdate { compVec(n) }
     def getVec:Int = n.inferVec.getOrElse(throw PIRException(s"Don't know how to infer vec of $n"))
+    def inferTp:Option[BitType] = n.getMeta[BitType]("tp").orElseUpdate { compType(n) }
+    def getTp:BitType = n.inferTp.getOrElse(throw PIRException(s"Don't know how to infer type of $n"))
   }
 
   val StreamWriteContext = MatchRule[Context, FringeStreamWrite] { n =>
@@ -191,13 +197,8 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     }
   }
 
-  def compVec(n:Any):Option[Int] = dbgblk(s"compVec($n)") {
+  def compVec(n:IR):Option[Int] = dbgblk(s"compVec($n)") {
     n match {
-      case n:Input[_] => n.singleConnected.get.inferVec
-      case OutputField(n:Controller, "done") => Some(1)
-      case OutputField(n:Controller, "childDone") => Some(1)
-      case OutputField(n:Controller, "valid") => Some(1)
-      case n:Output[_] => n.src.as[PIRNode].inferVec
       case Const(v:List[_]) => Some(v.size)
       case Const(v) => Some(1)
       case n:TokenWrite => Some(1)
@@ -211,17 +212,31 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:GlobalOutput => n.in.T.inferVec
       // During staging time GlobalInput might temporarily not connect to GlobalOutput
       case n:GlobalInput => n.in.inferVec
+      case InputField(n:OpDef, "input") => None
+      case InputField(n:Shuffle, "from" | "base") => zipMap(n.base.singleConnected.get.inferVec, n.from.singleConnected.get.inferVec) { case (a,b) => Math.max(a,b) }
+      case InputField(n:BufferWrite, "en") => Some(1)
+      case InputField(n:BankedAccess, "en") if n.mem.bankids.nonEmpty => Some(n.mem.nBanks)
+      case InputField(n:Controller, "en" | "parentEn") => Some(1)
+      case n:Input[_] if n.isConnected => n.singleConnected.get.inferVec
+      case OutputField(n:Controller, "done") => Some(1)
+      case OutputField(n:Controller, "childDone") => Some(1)
+      case OutputField(n:Controller, "valid") => Some(1)
+      case OutputField(n:BankedRead, "out") if n.mem.bankids.nonEmpty => Some(n.mem.nBanks)
+      case n:Output[_] => n.src.as[PIRNode].inferVec
       case n:ControlTree => if (n.children.isEmpty) Some(n.par.get) else Some(1)
       case n => None
     }
   }
 
-  def compType(n:Any):Option[BitType] = dbgblk(s"compType($n)") {
+  def compType(n:IR):Option[BitType] = dbgblk(s"compType($n)") {
     n match {
-      case n:Shuffle => n.base.T.inferTp
+      case n:Shuffle => n.base.inferTp
       case n:TokenRead => Some(Bool)
       case n:TokenWrite => Some(Bool)
-      case n:BufferWrite => n.data.T.inferTp
+      case n:BufferWrite => n.data.inferTp
+      case n:BufferRead => n.in.inferTp
+      case n:GlobalInput => n.in.inferTp
+      case n:GlobalOutput => n.in.inferTp
       case n@OpDef(_:BitOp) => Some(Bool)
       case n@OpDef(_:FixOp | _:FltOp) => assertUnify(n.input.T, s"$n.tp") { _.inferTp }.get
       case Const(_:Boolean) => Some(Bool)
@@ -229,16 +244,23 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case Const(_:Float) => Some(Flt(23, 8))
       case Const((i:Int) :: _) => Some(Fix(true, 32, 0))
       case Const(_:String) => Some(Text)
+      case InputField(n:OpDef, "input") => None
+      case InputField(n, "en" | "parentEn") => Some(Bool)
+      case n:Input[_] if n.isConnected => n.singleConnected.get.inferTp
       case OutputField(n:Controller, "valid") => Some(Bool)
       case OutputField(n:Controller, "done") => Some(Bool)
       case OutputField(n:Controller, "childDone") => Some(Bool)
-      case n:Edge[_,_,_] => n.src.as[PIRNode].inferTp
+      case n:Output[_] => n.src.as[PIRNode].inferTp
       case n:Any => None
     }
   }
 
   def stage[T<:PIRNode](n:T):T = {
     val tp = n.inferTp
+    n.localIns.foreach { in => 
+      in.inferVec
+      in.inferTp
+    }
     val vec = n.inferVec
     val fields = n.fedges.map { e => s".${e.name}(${e.connected.map { dquote }})" }.mkString
     dbg(s"Create $n")

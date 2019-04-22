@@ -103,6 +103,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
           dbg(s"$node vec=${node.vec.v}")
           assert(node.vec.get == mem.nBanks, s"${node}.vec=${node.vec.v} != mem.nBanks=${mem.nBanks}")
           node.vec.reset
+          node.localEdges.foreach { _.resetMeta("vec") }
           node.vec := mmem.nBanks
           node.to[BufferRead].foreach { br =>
             br.banks.reset
@@ -129,6 +130,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
               assert(node.vec.get == mem.nBanks, s"${node}.vec=${node.vec.v} != mem.nBanks=${mem.nBanks}")
               node.vec.reset
               node.vec := mmem.nBanks
+              node.localEdges.foreach { _.resetMeta("vec") }
               node.to[BufferRead].foreach { br =>
                 br.banks.reset
                 br.banks := List(mmem.nBanks)

@@ -76,7 +76,7 @@ trait MemoryAnalyzer extends PIRPass with Transformer { self:BufferAnalyzer =>
       ctrl.ctrler.get.done
     } else {
       //Distributed controller
-      ctx.ctrler(ctrl).done
+      ctx.getCtrler(ctrl).done
     }
   }
 
@@ -86,7 +86,7 @@ trait MemoryAnalyzer extends PIRPass with Transformer { self:BufferAnalyzer =>
       ctrl.ctrler.get.childDone
     } else {
       //Distributed controller
-      ctx.ctrler(ctrl).childDone
+      ctx.getCtrler(ctrl).childDone
     }
   }
 

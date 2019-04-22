@@ -45,7 +45,7 @@ class GraphRectification(implicit compiler:PIR) extends PIRTraversal with Siblin
     super.visitNode(n)
   } 
 
-  override def compVec(n:Any):Option[Int] = {
+  override def compVec(n:IR):Option[Int] = dbgblk(s"compVec($n)") {
     super.compVec(n).orElse { n.to[PIRNode].flatMap{ _.getCtrl.inferVec } }
   }
 

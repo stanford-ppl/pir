@@ -34,6 +34,10 @@ trait MetadataIR extends Serializable { self =>
   def getMeta[T](name:String, default:Option[T]=None):Metadata[T] = {
     metadata.getOrElseUpdate(name, Metadata[T](name, default)).asInstanceOf[Metadata[T]]
   }
+  
+  def resetMeta(name:String) = {
+    metadata.get(name).foreach { _.reset }
+  }
 
 }
 
