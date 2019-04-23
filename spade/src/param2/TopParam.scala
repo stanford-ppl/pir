@@ -196,7 +196,7 @@ case class PMUParam(
   ops:Set[Opcode]=noFltOps,
   numReg:Int=16,
   sramParam:SRAMParam=SRAMParam(count=1),
-  numSin:Int=8,
+  numSin:Int=16,
   numSout:Int=8,
   numVin:Int=8,
   numVout:Int=8,

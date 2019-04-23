@@ -101,7 +101,9 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
           emitln(s"AddSend(${nameOf(send)}, $name);")
         }
       }
-      emitIf(s"${n.done.qref} && ${n.en.qref}") {
+      var ens = n.done.qref :: n.en.qref :: Nil
+      n.ctx.get.ctrler(n.ctrl.get).foreach { ctrler => ens +:= ctrler.valid.qref }
+      emitIf(s"${ens.distinct.reduce { _ + " && " + _ }}") {
         emitln(s"$name->Push(make_token(${n.data.qref}));")
       }
 
@@ -112,7 +114,9 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
           emitln(s"AddSend(${nameOf(send)});");
         }
         genCtxComputeEnd {
-          emitIf(s"${n.done.qref}") {
+          var ens = n.done.qref :: Nil
+          n.ctx.get.ctrler(n.ctrl.get).foreach { ctrler => ens +:= ctrler.valid.qref }
+          emitIf(s"${ens.distinct.reduce { _ + " && " + _ }}") {
             emitln(s"${nameOf(send)}->Push(make_token(true));")
           }
         }
