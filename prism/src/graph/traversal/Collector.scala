@@ -58,6 +58,9 @@ trait CollectorImplicit {
         new PrefixTraversal[N,List[M]](prefix, visitFunc, accumulate _, Nil, logger).traverseNode((node, depth), Nil)
       }
 
+    def collectFirst[M<:N:ClassTag](visitFunc:Node[N] => List[N], depth:Int = -1, logger:Option[Logging]=None):M = 
+      assertOne(collect(visitFunc, depth, logger), s"collectFirst(${node})")
+
     def collectUp[M<:N:ClassTag](depth:Int= -1, logger:Option[Logging]=None):List[M] =
       collect[M](visitUp _, depth, logger)
 
@@ -115,6 +118,9 @@ trait CollectorImplicit {
         val nodes = edge.neighbors.map { n => (n, depth) }.toList
         new PrefixTraversal[N,List[M]](prefix, visitFunc, accumulate _, Nil, logger).traverseNodes(nodes, Nil)
       }
+
+    def collectFirst[M<:N:ClassTag](visitFunc:Node[N] => List[N], depth:Int = -1, logger:Option[Logging]=None):M = 
+      assertOne(collect(visitFunc, depth, logger), s"collectFirst(${edge.src}.${edge})")
 
     def canReach(target:Edge[N,B,A], visitEdges:Node[N] => List[EN[N]], depth:Int= -1, logger:Option[Logging]=None):Boolean = 
       dbgblk(logger, s"canReach($target, depth=$depth)"){

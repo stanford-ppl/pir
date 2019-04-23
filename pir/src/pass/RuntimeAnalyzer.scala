@@ -50,11 +50,14 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     def psimState(s:String) = n.getMeta[Float]("psimState").update(s)
     def psimState = n.getMeta[String]("psimState").v
   }
-  implicit class NodeRuntimeOp(n:IR) {
+  implicit class NodeRuntimeOp[N<:IR](n:N) {
     def inferVec:Option[Int] = n.getMeta[Int]("vec").orElseUpdate { compVec(n) }
     def getVec:Int = n.inferVec.getOrElse(throw PIRException(s"Don't know how to infer vec of $n"))
+    def setVec(v:Int) = n.getMeta[Int]("vec").apply(v)
     def inferTp:Option[BitType] = n.getMeta[BitType]("tp").orElseUpdate { compType(n) }
     def getTp:BitType = n.inferTp.getOrElse(throw PIRException(s"Don't know how to infer type of $n"))
+    def setTp(v:BitType) = n.getMeta[BitType]("tp").apply(v)
+    def setTp(v:Option[BitType]) = n.getMeta[BitType]("tp").apply(v)
   }
 
   val StreamWriteContext = MatchRule[Context, FringeStreamWrite] { n =>
@@ -191,7 +194,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     }
   }
 
-  def compVec(n:IR):Option[Int] = dbgblk(s"compVec($n)") {
+  def compVec(n:IR):Option[Int] = dbgblk(s"compVec(${dquote(n)})") {
     n match {
       case Const(v:List[_]) => Some(v.size)
       case Const(v) => Some(1)
@@ -222,7 +225,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     }
   }
 
-  def compType(n:IR):Option[BitType] = dbgblk(s"compType($n)") {
+  def compType(n:IR):Option[BitType] = dbgblk(s"compType(${dquote(n)})") {
     n match {
       case n:Shuffle => n.base.inferTp
       case n:TokenRead => Some(Bool)

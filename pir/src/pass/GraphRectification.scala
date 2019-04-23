@@ -36,7 +36,9 @@ class GraphRectification(implicit compiler:PIR) extends PIRTraversal with Siblin
       n.tp.mirror(n.mem.T.tp)
     }
     n.to[DRAMLoadCommand].foreach { n =>
-      n.data.vec(n.data.collectFirst[FIFO](visitGlobalOut _).banks.head)
+      val data = n.data.collectFirst[FIFO](visitGlobalOut _)
+      n.data.setVec(data.banks.get.head)
+      n.data.setTp(data.tp.v)
     }
     super.visitNode(n)
   } 
