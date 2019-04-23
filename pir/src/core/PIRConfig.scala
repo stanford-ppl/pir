@@ -82,10 +82,12 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register[String]("tungsten-home", default=sys.env.get("TUNGSTEN_HOME"), info="Tungsten Home")
   register("run-tst", default=false, info="Launch Tungsten simulation")
   register("tungsten", default=false, info="Enable tungsten codegen")
+  register("debug-tst", default=false, info="Enable debu print in simulation in tungsten")
   def genTungsten = enableCodegen && option[Boolean]("tungsten")
   def runTst = option[Boolean]("run-tst")
   def tstOutDir = buildPath(outDir, "..", "..", "tungsten")
   def tstHome = getOption[String]("tungsten-home").getOrElse(throw PIRException(s"tungsten-home is not set"))
+  def enableSimDebug = option[Boolean]("debug-tst")
 
   /* ------------------- Debugging --------------------  */
   register("bp-split", default=false, info="Enable break point for splitting")

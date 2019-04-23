@@ -15,6 +15,7 @@ def main():
             java_cmd += "-Drerun.{}=true ".format(p)
     else:
         java_cmd += "-Dci=true "
+    java_cmd += "-Dproject={} ".format(opts.project)
     java_cmd += "\"; "
     java_cmd += " project {}; testOnly {}".format(opts.project, ' '.join(opts.app))
     java_cmd += "\""

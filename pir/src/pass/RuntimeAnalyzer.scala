@@ -204,6 +204,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case WithMem(access, mem:FIFO) if access.getCtrl.schedule=="Streaming" => Some(mem.banks.get.head)
       case n:BufferWrite => n.data.inferVec
       case n:RegAccumOp => Some(1)
+      case n:PrintIf => Some(1)
       case n@OpDef(_:FixOp | _:FltOp | _:BitOp) => flatReduce(n.input.connected.map{ out => out.inferVec}) { case (a,b) => Math.max(a,b) }
       case n:Shuffle => n.to.T.inferVec
       case n:GlobalOutput => n.in.T.inferVec
@@ -227,6 +228,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
 
   def compType(n:IR):Option[BitType] = dbgblk(s"compType(${dquote(n)})") {
     n match {
+      case n:PrintIf => Some(Bool)
       case n:Shuffle => n.base.inferTp
       case n:TokenRead => Some(Bool)
       case n:TokenWrite => Some(Bool)

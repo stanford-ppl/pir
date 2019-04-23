@@ -8,7 +8,7 @@ trait UnitTraversal extends Traversal {
 
   def zero:T = ()
 
-  final def traverseNode(n:N):T = traverseNode(n, ()) 
+  final override def traverseNode(n:N):T = traverseNode(n, ()) 
 
   override def visitNode(n:N, prev:T) = visitNode(n)
 
@@ -55,7 +55,9 @@ trait Traversal extends Logging {
   def visitNode(n:N, prev:T):T = prev
 
   final def traverseNode(n:N, zero:T):T = traverseNodes(List(n), zero)
+  def traverseNode(n:N):T = traverseNodes(List(n), zero)
   def traverseNodes(ns: => List[N], zero:T):T
+  def traverseNodes(ns: => List[N]):T = traverseNodes(ns, zero)
 
   final def traverseNodesInScope(scope:List[N], ns: => List[N], zero:T) = {
     _scope = Some(mutable.HashSet.empty ++ scope)

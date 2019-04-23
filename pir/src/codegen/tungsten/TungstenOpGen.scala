@@ -15,8 +15,8 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       emitln(s"// TokenRead $n")
 
     case n:HostRead =>
-      n.input.T.as[BufferRead].sname.v.foreach { sname =>
-        emitln(s"${sname} = ${n.input.T};")
+      n.sname.v.foreach { sname =>
+        emitln(s"$sname = ${n.input.T};")
       }
 
     case n:HostWrite =>
@@ -197,11 +197,14 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       }
 
     case n:PrintIf =>
-      emitIf(s"${n.en.qref}") {
+      var ens = n.en.qref :: Nil
+      n.ctx.get.ctrler(n.ctrl.get).foreach { ctrler => ens +:= ctrler.valid.qref }
+      emitIf(s"${ens.distinct.reduce { _ + " && " + _ }}") {
         emitBlock(s"for (int i = 0; i < ${n.msg.T.getVec}; i++)") {
           emitln(s"cout << ${n.msg.T.qidx("i")};")
         }
       }
+      emitVec(n) { i => "true" }
 
     case n => super.emitNode(n)
   }
@@ -220,7 +223,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
   override def quoteRef(n:Any):String = n match {
     case InputField(n:Shuffle, field) => s"${n}_$field"
-    case n@InputField(_:RegAccumOp, "en") => quoteEn(n.as[Input[PIRNode]], None)
+    case n@InputField(_:OpNode, "en") => quoteEn(n.as[Input[PIRNode]], None)
     case n => super.quoteRef(n)
   }
 }

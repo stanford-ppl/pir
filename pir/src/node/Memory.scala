@@ -110,10 +110,10 @@ case class Shuffle(filled:Any)(implicit env:Env) extends OpNode with Def {
   val to = new InputField[PIRNode]("to")
   val base = new InputField[PIRNode]("base")
 }
-case class HostRead(sid:String)(implicit env:Env) extends Def {
+case class HostRead()(implicit env:Env) extends Def {
   val input = new InputField[PIRNode]("input")
 }
-case class HostWrite(sid:String)(implicit env:Env) extends Def
+case class HostWrite()(implicit env:Env) extends Def
 case class DRAMAddr(dram:DRAM)(implicit env:Env) extends Def
 case class CountAck()(implicit env:Env) extends Def {
   val input = new InputField[List[PIRNode]]("input")

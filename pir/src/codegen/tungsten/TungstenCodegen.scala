@@ -121,7 +121,7 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   }
 
   def quoteRef(n:Any):String = n match {
-    case n:Input[_] => quoteRef(n.singleConnected.get)
+    case n:Input[_] => quoteRef(n.singleConnected.getOrElse(throw PIRException(s"Don't know how to quoteRef for ${dquote(n)}")))
     case n:Output[_] => quoteRef(n.src)
     //case n:PIRNode => if (n.getVec > 1) s"${n}[i]" else s"${n}"
     case n => s"$n"
