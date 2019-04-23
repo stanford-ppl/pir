@@ -100,8 +100,8 @@ def getMessage(backend, app, conf):
         msg.append(cstr(RED, 'runtst') + ": " + conf['runtst_err'].strip())
     elif conf['tstcycle'] is None:
         msg.append(cstr(RED, 'runtst'))
-    elif conf['runtst_pass'] is None:
-        msg.append(cstr(RED, 'runtst'))
+    elif conf['runtst_pass'] is None and conf['tstcycle'] is not None:
+        msg.append(cstr(GREEN, 'tstcycle:{}'.format(conf['tstcycle'])))
     elif not conf['runtst_pass']:
         msg.append(cstr(RED, 'tstcycle:{} PASS:false'.format(conf['tstcycle'])))
     else:
