@@ -121,6 +121,10 @@ def removeRules(conf, opts):
     # if conf['runpir_err'] is not None and 'value addr is not a member of pir.node.FringeDenseStore' in conf['runpir_err']:
         # print(conf['runpir_err'].strip())
         # reruns.append('genpir')
+    # if conf['runtst_err'] is not None and 'Assertion fail' in conf['runtst_err']:
+        # reruns.append('gentst')
+        # reruns.append('maketst')
+        # reruns.append('runtst')
 
     for p in reruns:
         if p == 'genpir':

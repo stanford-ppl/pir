@@ -119,6 +119,8 @@ def remove(path, opts):
             ans = raw_input('remove {}? y/n '.format(path))
             if ans == 'y':
                 os.remove(path)
+            elif ans == 'q':
+                exit(0)
 
 def loadSimData(datapath, backends=None):
     if backends is None:
