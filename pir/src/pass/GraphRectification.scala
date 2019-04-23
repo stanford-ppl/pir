@@ -17,15 +17,8 @@ class GraphRectification(implicit compiler:PIR) extends PIRTraversal with Siblin
         dbg(s"Resetting $d.ctrl = $ctrl")
       }
     }
-    n.to[RegAccumOp].foreach { n =>
-      n.en(n.getCtrl.ctrler.get.valid)
-    }
-    //n.to[InAccess].foreach { n =>
-      //if (n.ctrl.get.schedule != "Streaming") {
-        //n.getCtrl.ctrler.v.foreach { ctrler =>
-          //n.en(ctrler.valid)
-        //}
-      //}
+    //n.to[RegAccumOp].foreach { n =>
+      //n.en(n.getCtrl.ctrler.get.valid)
     //}
     n.to[Def].foreach { _.getVec }
     n.to[Access].foreach { _.getVec }
@@ -41,6 +34,9 @@ class GraphRectification(implicit compiler:PIR) extends PIRTraversal with Siblin
     }
     n.to[InAccess].foreach { n =>
       n.tp.mirror(n.mem.T.tp)
+    }
+    n.to[DRAMLoadCommand].foreach { n =>
+      n.data.vec(n.data.collectFirst[FIFO](visitGlobalOut _).banks.head)
     }
     super.visitNode(n)
   } 

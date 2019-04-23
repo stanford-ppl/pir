@@ -40,8 +40,9 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       }
       val in = n.in.T
       val firstVec = n.first.T.getVec
-      val ctrler = n.ctx.get.ctrler(n.getCtrl)
-      emitIf(s"${n.en.qref}") {
+      var ens = n.en.qref :: Nil
+      n.ctx.get.ctrler(n.ctrl.get).foreach { ctrler => ens +:= ctrler.valid.qref }
+      emitIf(s"${ens.distinct.reduce { _ + " && " + _ }}") {
         emitBlock(s"for (int i = 0; i < ${firstVec}; i++)") {
           emitIf(s"laneValids[i]") {
             emitln(s"$n = (${n.first.T.qidx("i")}) ? ${in.qidx("i")} : ${accumOp(n, in.qidx("i"))};")
