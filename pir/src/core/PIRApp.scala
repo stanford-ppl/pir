@@ -21,7 +21,7 @@ trait PIRApp extends PIR with Logging {
   lazy val accessCtxCreation = new AccessContextCreation()
   lazy val bufferInsertion = new BufferInsertion()
   lazy val globalInsertion = new GlobalInsertion()
-  lazy val graphCorrector = new GraphRectification()
+  lazy val graphInit = new GraphInitialization()
   lazy val psimAnalyzer = new PlastisimAnalyzer()
   lazy val ctxMerging = new ContextMerging()
   lazy val psimParser = new PlastisimLogParser()
@@ -60,11 +60,11 @@ trait PIRApp extends PIR with Logging {
     // ------- Analysis and Transformations --------
     addPass(enableDot, new PIRIRDotGen(s"top1.dot"))
     addPass(enableTrace && genPsim, dramTraceGen)
-    addPass(graphCorrector) ==>
+    addPass(graphInit) ==>
     addPass(enableDot, new PIRIRDotGen(s"top2.dot"))
     addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
     addPass(enableDot, new ControlTreeHtmlIRPrinter(s"ctrl.html"))
-    addPass(constProp).dependsOn(graphCorrector) ==>
+    addPass(constProp).dependsOn(graphInit) ==>
     addPass(deadCodeEliminator) ==>
     addPass(contextInsertion) ==>
     addPass(enableDot, new PIRIRDotGen(s"top3.dot")) ==>
@@ -155,7 +155,7 @@ trait PIRApp extends PIR with Logging {
           val hostOutCtrler = createCtrl("Sequenced") { HostOutController() }
           top.hostOutCtrl = hostOutCtrler.ctrl.get
           argOuts.foreach { mem =>
-            HostRead(mem.name.v.getOrElse(mem.sname.get)).input(MemRead().setMem(mem))
+            HostRead().input(MemRead().setMem(mem))
           }
           endState[Ctrl]
         }
@@ -255,7 +255,7 @@ trait PIRApp extends PIR with Logging {
   def argIn(name:String) = {
     val mem = Reg().name(name)
     within(pirTop.argFringe, pirTop.hostInCtrl) {
-      MemWrite().setMem(mem).data(HostWrite(name).name(name))
+      MemWrite().setMem(mem).data(HostWrite().name(name))
     }
     mem
   }

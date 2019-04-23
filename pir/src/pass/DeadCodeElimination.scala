@@ -78,11 +78,11 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with Trans
     case n:HostRead => Some(true)
     case n:HostWrite => Some(true)
     case n:TokenRead => Some(true)
-    case n:PrintIf => Some(true)
     case n:AssertIf => Some(true)
     case n:ExitIf => Some(true)
     case n:FringeStreamRead => Some(true)
     case n:HostInController => Some(true)
+    case n:HostOutController => Some(true)
     case n:Controller if !depDupHasRun => Some(true)
     case n if n.isUnder[Controller] && !depDupHasRun => Some(true)
     case n => None
