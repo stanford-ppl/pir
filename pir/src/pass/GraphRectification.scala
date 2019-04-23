@@ -20,13 +20,13 @@ class GraphRectification(implicit compiler:PIR) extends PIRTraversal with Siblin
     n.to[RegAccumOp].foreach { n =>
       n.en(n.getCtrl.ctrler.get.valid)
     }
-    n.to[InAccess].foreach { n =>
-      if (n.ctrl.get.schedule != "Streaming") {
-        n.getCtrl.ctrler.v.foreach { ctrler =>
-          n.en(ctrler.valid)
-        }
-      }
-    }
+    //n.to[InAccess].foreach { n =>
+      //if (n.ctrl.get.schedule != "Streaming") {
+        //n.getCtrl.ctrler.v.foreach { ctrler =>
+          //n.en(ctrler.valid)
+        //}
+      //}
+    //}
     n.to[Def].foreach { _.getVec }
     n.to[Access].foreach { _.getVec }
     n.to[DRAMAddr].foreach { n =>
