@@ -94,7 +94,8 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
           access.offset.accumTill[Shuffle](visitFunc=visitIn)
         case access:BankedWrite =>
           access.offset.accumTill[Shuffle](visitFunc=visitIn) ++
-          access.data.accumTill[Shuffle](visitFunc=visitIn)
+          access.data.accumTill[Shuffle](visitFunc=visitIn) ++
+          access.en.accumTill[Shuffle](visitFunc=visitIn)
       }
       nodes = nodes.distinct
       nodes :+= access

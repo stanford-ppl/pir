@@ -17,7 +17,6 @@ class GEMM_1 extends GEMM {override lazy val param = GEMMParam(ip=1)}
 class GEMM_2 extends GEMM {override lazy val param = GEMMParam(loop_j = 2)}
 class GEMM_3 extends GEMM {override lazy val param = GEMMParam(loop_kk = 2)}
 class GEMM_4 extends GEMM {override lazy val param = GEMMParam(loop_i = 2)}
-class GEMM_5 extends GEMM {override lazy val param = GEMMParam(loop_i = 1,loop_j = 2)}
 class GEMM_6 extends GEMM {override lazy val param = GEMMParam(loop_kk = 2,loop_i = 2,loop_j = 2)}
 class GEMM_7 extends GEMM {override lazy val param = GEMMParam(loop_j = 2, ip = 1, ts=16, its=16, dim=32)}
 class GEMM_8 extends GEMM {override lazy val param = GEMMParam(loop_j = 2, ip = 8, ts=16, its=16, dim=32)}
@@ -40,7 +39,7 @@ class GEMM_18 extends GEMM {override lazy val param = GEMMParam(loop_ii = 2,loop
 //class GEMM_9 extends GEMM {override lazy val param = GEMMParam(loop_j = 3)}
 //class GEMM_10 extends GEMM {override lazy val param = GEMMParam(loop_i = 3,loop_j = 3)}
 
-@spatial abstract class GEMM extends DSETest { // Regression (Dense) // Args: 128
+@spatial abstract class GEMM extends SpatialTest with DSETest { // Regression (Dense) // Args: 128
                                                                                                   
   lazy val param = GEMMParam()
   import param._
