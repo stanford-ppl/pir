@@ -157,8 +157,8 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
           case FltToText    => s"to_string($a)"
           //case FltRandom    =>
           case FltAbs       => s"abs($a)" 
-          case FltFloor     => s"$a.floor" 
-          case FltCeil      => s"$a.ceil" 
+          case FltFloor     => s"floor($a)" 
+          case FltCeil      => s"ceil($a)" 
           case FltLn        => s"log($a)" 
           case FltExp       => s"exp($a)" 
           case FltSqrt      => s"sqrt($a)" 
