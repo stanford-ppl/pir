@@ -49,6 +49,7 @@ trait ComputePartitioner extends CUPruner {
         dupDeps(ctxs, from=Some(k))
         (part::parts).foreach { removeCache }
         removeNodes(k.descendentTree)
+        ctxs.foreach { ctx => if (ctx.ctrlers.isEmpty) ctx.streaming := true }
         ctxs
       case k:Partition =>
         if (fit(kcost, vcost)) List(k)

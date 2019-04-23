@@ -76,7 +76,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
             read.in.canReach(write.out, visitEdges=visitInEdges _) &&
             read.done.canReach(deq, visitEdges=visitInEdges _)
           } {
-            val v = compVec(depOut).getOrElse(throw PIRException(s"Don't know how to compVec for ${dquote(depOut)}"))
+            val v = depOut.getVec
             stage(BufferRead().in(write.out).done(deq).vec(v).banks(List(v)).tp(tp))
           }
         }

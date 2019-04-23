@@ -69,7 +69,13 @@ trait Logging extends Serializable {
           dbg(s"children=${n.children.map(dquote)}")
       }
       n.localEdges.foreach { edge =>
-        dbg(s"$edge=[${dquote(edge.connected)}]")
+        dbgblk(s"$edge=[${dquote(edge.connected)}]") {
+          edge.metadata.values.foreach { metadata =>
+            metadata.v.foreach { v =>
+              dbg(s"${metadata.name} = $v")
+            }
+          }
+        }
       }
       dbg(s"deps=${n.deps.toList.map(dquote)}")
       dbg(s"depeds=${n.depeds.toList.map(dquote)}")

@@ -9,6 +9,7 @@ import scala.collection.mutable
 
 trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
   override def quoteRef(n:Any):String = n match {
+    case n@InputField(_:Controller, "en" | "parentEn") => quoteEn(n.as[Input[PIRNode]], None)
     case OutputField(ctrler:Controller, "done") => s"$ctrler->Done()"
     case OutputField(ctrler:Controller, "childDone") => s"$ctrler->ChildDone()"
     case OutputField(ctrler:Controller, "valid") => s"$ctrler->Valid()"

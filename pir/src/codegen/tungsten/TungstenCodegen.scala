@@ -56,38 +56,41 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     case n => super.visitOut(n)
   }
 
-  def emitEn(en:Input[PIRNode] with Field[_]):Unit = {
-    val src = en.src
-    val ens = en.neighbors
-    val enName = s"${src}_${en.name}"
-    emitln(s"bool $enName = ${ens.map { _.toString}.foldLeft("true"){ case (prev,b) => s"$prev & $b" }};")
+  def quoteEn(en:Input[PIRNode], i:Option[String]):String = {
+    var ens = en.connected.map { _.qidx(i) }
     en.src match {
-      case n:BufferWrite if n.getCtrl.schedule != "Streaming" =>
-        emitln(s"${enName} &= ${n.ctx.get.ctrler(n.getCtrl).valid.T};")
-      case n:InAccess if n.getCtrl.schedule != "Streaming" =>
-        emitln(s"${enName} &= ${n.ctx.get.ctrler(n.getCtrl).valid.T};")
-      case n:RegAccumOp =>
-        emitln(s"${enName} &= ${n.ctx.get.ctrler(n.getCtrl).valid.T};")
+      case n@(_:BufferWrite | _:InAccess | _:RegAccumOp) =>
+        n.ctx.get.ctrler(n.getCtrl).foreach { ctrler =>
+          ens :+= ctrler.valid.qidx(i)
+        }
       case _ =>
     }
+    ens.reduceOption[String]{ _ + " & " + _ }.getOrElse("true")
+  }
+
+  def emitEn(en:Input[PIRNode]):Unit = {
+    emitVec(en) { i => quoteEn(en, i) }
   }
 
   /*
-   * Emit rhs as a vector
+   * Emit n as a vector even when n.getVec is 1
    * */
-  def emitToVec(lhs:String, vec:Option[Int]=None)(rhs:PIRNode) = {
-    if (rhs.getVec > 1) {
-      emitln(s"auto& $lhs = $rhs;")
+  def emitToVec(n:IR)(rhs: Option[String] => Any) = {
+    val vec = n.getVec
+    if (vec > 1) {
+      emitln(s"${n.qtp} ${n.qref}[${vec}] = {};")
+      emitBlock(s"for (int i = 0; i < ${vec}; i++)") {
+        emitln(s"${n.qref}[i] = ${rhs(Some("i"))};")
+      }
     } else {
-      val vecWidth = vec.getOrElse(rhs.getVec)
-      emitln(s"${rhs.qtp} $lhs[] = {${List.fill(vecWidth)(rhs.toString).mkString(",")}};")
+      emitln(s"${n.qtp} ${n.qref}[] = {${rhs(None)}};")
     }
   }
 
   /*
    * Right hand side is a vector. Emit lhs as vector if vec > 1, otherwise as scalar
    * */
-  def emitUnVec(lhs:PIRNode)(rhs:String) = {
+  def emitUnVec(lhs:IR)(rhs:Any) = {
     if (lhs.getVec > 1) {
       emitln(s"auto& $lhs = $rhs;")
     } else {
@@ -95,19 +98,19 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     }
   }
 
-  def emitVec(n:PIRNode)(rhs: Option[String] => Any) = {
+  def emitVec(n:IR)(rhs: Option[String] => Any) = {
     val vec = n.getVec
     if (vec > 1) {
-      emitln(s"${n.qtp} $n[${vec}] = {};")
+      emitln(s"${n.qtp} ${n.qref}[${vec}] = {};")
       emitBlock(s"for (int i = 0; i < ${vec}; i++)") {
-        emitln(s"$n[i] = ${rhs(Some("i"))};")
+        emitln(s"${n.qref}[i] = ${rhs(Some("i"))};")
       }
     } else {
-      emitln(s"${n.qtp} ${n} = ${rhs(None)};")
+      emitln(s"${n.qtp} ${n.qref} = ${rhs(None)};")
     }
   }
 
-  def emitVec(n:PIRNode, rhs:List[Any]) = {
+  def emitVec(n:IR, rhs:List[Any]) = {
     assert(n.getVec == rhs.size)
     if (n.getVec==1) {
       emitln(s"${n.qtp} ${n} = ${rhs.head};")
@@ -117,26 +120,23 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   }
 
   def quoteRef(n:Any):String = n match {
-    case n@InputField(_, name) if name == "en" | name == "parentEn" =>
-      val ens = n.as[Input[PIRNode]].connected
-      s"${ens.foldLeft("true"){ case (prev,b) => s"$prev & ${quoteRef(b)}" }}"
     case n:Input[_] => quoteRef(assertOne(n.connected, s"${n.src}.$n.connected"))
     case n:Output[_] => quoteRef(n.src)
     //case n:PIRNode => if (n.getVec > 1) s"${n}[i]" else s"${n}"
     case n => s"$n"
   }
 
-  implicit class AnyGenOp(n:Any) {
+  implicit class IRGenOp(n:IR) {
     def qref:String = quoteRef(n)
-  }
-
-  implicit class PIRNodeGenOp(n:PIRNode) {
     def qidx(i:String):String = {
       qidx(Some(i))
     }
     def qidx(i:Option[String]):String = {
       val q = quoteRef(n)
-      i.fold(q) { i => if (n.getVec > 1) s"$q[$i]" else s"$q" }
+      i.fold(q) { i => 
+        val vec = n.as[IR].getVec
+        if (vec > 1) s"$q[$i]" else s"$q"
+      }
     }
     def qtp:String = n.getTp match {
       case Fix(true, 16, 0) => "int"

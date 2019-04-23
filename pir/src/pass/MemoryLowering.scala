@@ -19,7 +19,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     }
     var cannotToBuffer = accesses.exists { _.isInstanceOf[BankedAccess] }
     // If read access is branch dependent, the ctx cannot block on the input for its activation
-    cannotToBuffer |= mem.outAccesses.exists { _.en.T.nonEmpty }
+    cannotToBuffer |= mem.outAccesses.exists { _.en.isConnected }
     cannotToBuffer |= mem.inAccesses.size > 1
     if (mem.isFIFO) cannotToBuffer |= mem.outAccesses.size > 1
     if (cannotToBuffer) {
@@ -114,19 +114,24 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           dbg(s"val $ofs = Shuffle() //ofs")
           val data = access match {
             case access:BankedWrite => 
-              val data = stage(Shuffle(0).from(bank).to(allocConst(mem.bankids.get)).base(access.data.connected))
-              bufferInput(data.base) // Force fifo control among unrolled controllers
-              dbg(s"val $data = Shuffle() //data")
-              Some(data)
+              val shuffle = stage(Shuffle(0).from(bank).to(allocConst(mem.bankids.get)).base(access.data.connected))
+              bufferInput(shuffle.base) // Prevent copying data producer into addrCtx
+              dbg(s"val $shuffle = Shuffle() //data")
+              Some(shuffle)
             case access => None
           }
-          (ofs.out, data.map{_.out})
+          val en = access.en.singleConnected.map { en =>
+            val shuffle = stage(Shuffle(false).from(bank).to(allocConst(mem.bankids.get)).base(en))
+            dbg(s"val $shuffle = Shuffle() //en")
+            shuffle
+          }
+          (ofs.out, data.map{_.out}, en.map { _.out })
         }
       }
-      var red:List[(Output[PIRNode], Option[Output[PIRNode]])] = requests.toList
+      var red:List[(Output[PIRNode], Option[Output[PIRNode]], Option[Output[PIRNode]])] = requests.toList
       while(red.size > 1) {
         red = red.sliding(2,2).map{ 
-          case List((o1, d1),(o2, d2)) =>
+          case List((o1, d1, e1),(o2, d2, e2)) =>
             val of = stage(OpDef(SelectNonNeg).input(o1, o2))
             bufferInput(of.input)
             val dt = zipOption(d1, d2).map { case (d1, d2) =>
@@ -134,21 +139,26 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
               bufferInput(dt.input)
               dt
             }
-            (of.out, dt.map { _.out })
-          case List((o1, d1)) => (o1, d1)
+            val en = zipOption(e1, e2).map { case (e1,e2) =>
+              val en = stage(OpDef(Or).input(e1,e2))
+              bufferInput(en.input)
+              en 
+            }
+            (of.out, dt.map { _.out }, en.map{ _.out })
+          case List((o1, d1,e1)) => (o1, d1, e1)
         }.toList
       }
       red
     }
 
-    val List((ofs, data)) = red
+    val List((ofs, data, en)) = red
     //TODO: handle en
     val accessCtx = within(memCU, headAccess.ctx.get.getCtrl) { Context().streaming(true) }
     val newAccess = within(accessCtx) {
       data.fold[BankedAccess]{
-        stage(BankedRead().offset(ofs).mem(mem).mirrorMetas(headAccess))
+        stage(BankedRead().offset(ofs).en(en).mem(mem).mirrorMetas(headAccess))
       } { data => 
-        stage(BankedWrite().offset(ofs).data(data).mem(mem).mirrorMetas(headAccess))
+        stage(BankedWrite().offset(ofs).data(data).en(en).mem(mem).mirrorMetas(headAccess))
       }
     }
     newAccess.vec.reset
@@ -184,26 +194,44 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     //breakPoint(s"lowerBankedAccesses $mem")
   }
 
-  def flattenBankAddr(access:BankedAccess):Unit = {
-    if (access.bank.T.size == 1) return
+  def flattenBankAddr(access:BankedAccess):Unit = dbgblk(s"flattenBankAddr($access)"){
     val mem = access.mem.T
     val parent = access.parent.get
     within(parent, access.getCtrl) {
-      def flattenND(inds:List[Output[PIRNode]], dims:List[Int]):Output[PIRNode] = {
-        if (inds.size==1) return inds.head
-        assert(inds.size == dims.size, s"flattenND inds=$inds dims=$dims have different size for access=$access")
-        val i::irest = inds
-        val d::drest = dims
-        stage(OpDef(FixFMA).input(i,allocConst(drest.product), flattenND(irest, drest))).out
+      // Flatten BankeAddress
+      if (access.bank.T.size > 1) {
+        def flattenND(inds:List[Output[PIRNode]], dims:List[Int]):Output[PIRNode] = {
+          if (inds.size==1) return inds.head
+          assert(inds.size == dims.size, s"flattenND inds=$inds dims=$dims have different size for access=$access")
+          val i::irest = inds
+          val d::drest = dims
+          stage(OpDef(FixFMA).input(i,allocConst(drest.product), flattenND(irest, drest))).out
+        }
+        val dims = mem match {
+          case mem:SRAM => mem.banks.get
+          case mem:LUT => mem.dims.get
+        }
+        val fbank = flattenND(access.bank.connected.toList, dims)
+        dbg(s"flattenBankAddr ${access.bank.T} => $fbank in $parent")
+        access.bank.disconnect
+        access.bank(fbank)
       }
-      val dims = mem match {
-        case mem:SRAM => mem.banks.get
-        case mem:LUT => mem.dims.get
+
+      // And enable signals
+      val ens = access.en.connected
+      if (ens.size > 1) {
+        var red:List[Output[PIRNode]] = ens.toList
+        while (red.size > 1) {
+          red = red.sliding(2,2).map{ 
+            case List(en1, en2) => stage(OpDef(And).input(en1,en2)).out
+            case List(en1) => en1
+          }.toList
+        }
+        val en = red.head
+        dbg(s"And enable signals $ens => $en")
+        access.en.disconnect
+        access.en(en)
       }
-      val fbank = flattenND(access.bank.connected.toList, dims)
-      dbg(s"flattenBankAddr ${access.bank.T} => $fbank in $parent")
-      access.bank.disconnect
-      access.bank(fbank)
     }
   }
 
