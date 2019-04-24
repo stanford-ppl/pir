@@ -44,7 +44,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       n.to[PrintIf].foreach { n =>
         n.tp.reset
         n.tp := Bool
-        val reg = within(pirTop.argFringe) { stage(Reg().depth(1).tp(Bool)) }
+        val reg = within(pirTop.argFringe, pirTop.topCtrl) { stage(Reg().depth(1).tp(Bool)) }
         within(n.parent.get, n.getCtrl) { stage(MemWrite().data(n.out).mem(reg).order(0)) }
         within(pirTop, pirTop.hostOutCtrl) {
           val read = stage(MemRead().mem(reg).order(1))
