@@ -4,7 +4,7 @@ package pass
 import pir.node._
 import prism.graph._
 import prism.util._
-import spade.param.{FixOp, FltOp, BitOp}
+import spade.param.{FixOp, FltOp, BitOp, BitsAsData}
 import scala.collection.mutable
 
 trait RuntimeAnalyzer extends Logging { self:PIRPass =>
@@ -205,7 +205,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:BufferWrite => n.data.inferVec
       case n:RegAccumOp => Some(1)
       case n:PrintIf => Some(1)
-      case n@OpDef(_:FixOp | _:FltOp | _:BitOp) => flatReduce(n.input.connected.map{ out => out.inferVec}) { case (a,b) => Math.max(a,b) }
+      case n@OpDef(_:FixOp | _:FltOp | _:BitOp | BitsAsData) => flatReduce(n.input.connected.map{ out => out.inferVec}) { case (a,b) => Math.max(a,b) }
       case n:Shuffle => n.to.T.inferVec
       case n:GlobalOutput => n.in.T.inferVec
       // During staging time GlobalInput might temporarily not connect to GlobalOutput

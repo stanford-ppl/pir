@@ -69,6 +69,7 @@ trait Ops extends Enumeration {
   val FixMax       = new FixOp with Op2 { override def eval(ins:List[Any]) = tf(ins) { case Some(a:Float)::Some(b:Float)::Nil => Math.max(a,b) } }
   val FixMin       = new FixOp with Op2 { override def eval(ins:List[Any]) = tf(ins) { case Some(a:Float)::Some(b:Float)::Nil => Math.min(a,b) } }
   val FixToFix     = new FixOp with Op1 /*{ override def eval(ins:List[Any]) = tf(ins) { case (a:Int)::Nil => -a } }*/
+  val FixToFixSat     = new FixOp with Op1 /*{ override def eval(ins:List[Any]) = tf(ins) { case (a:Int)::Nil => -a } }*/
   val FixToFlt     = new FixOp with Op1 /*{ override def eval(ins:List[Any]) = tf(ins) { case (a:Int)::Nil => -a } }*/
   val FixToText     = new FixOp with Op1 /*{ override def eval(ins:List[Any]) = tf(ins) { case (a:Int)::Nil => -a } }*/
   val FixRandom    = new FixOp with Op1 /*{ override def eval(ins:List[Any]) = tf(ins) { case (a:Int)::Nil => -a } }*/
@@ -142,6 +143,7 @@ trait Ops extends Enumeration {
   val BitRandom = new BitOp with Op1
   val BitToText = new BitOp with Op1
 
+  val BitsAsData = new OtherOp with Op1
   val Mux       = new OtherOp with Op3 { override def eval(ins:List[Any]) = m(ins) { case Some(a:Boolean)::Some(b)::Some(c)::Nil => if (a) b else c } }
   val OneHotMux = new OtherOp with Op2
 
