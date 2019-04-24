@@ -161,7 +161,7 @@ trait PIRApp extends PIR with Logging {
         }
         streamOuts.foreach { streamOut =>
           within(ControlTree("Streaming")) {
-            FringeStreamRead().name(streamOut.name.v).stream(MemRead().setMem(streamOut).out)
+            FringeStreamRead().name.mirror(streamOut.name).stream(MemRead().setMem(streamOut).out)
           }
         }
         endState[Ctrl]
@@ -270,7 +270,7 @@ trait PIRApp extends PIR with Logging {
 
   def streamIn(fifo:FIFO) = {
     within(ControlTree("Streaming")) {
-      FringeStreamWrite().name(fifo.name.v).stream(MemWrite().setMem(fifo).data)
+      FringeStreamWrite().name.mirror(fifo.name).stream(MemWrite().setMem(fifo).data)
     }
   }
 

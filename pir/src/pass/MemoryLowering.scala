@@ -210,6 +210,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
         val dims = mem match {
           case mem:SRAM => mem.banks.get
           case mem:LUT => mem.dims.get
+          case mem:RegFile => mem.dims.get
         }
         val fbank = flattenND(access.bank.connected.toList, dims)
         dbg(s"flattenBankAddr ${access.bank.T} => $fbank in $parent")

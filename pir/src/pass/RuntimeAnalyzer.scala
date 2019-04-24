@@ -57,7 +57,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     def inferTp:Option[BitType] = n.getMeta[BitType]("tp").orElseUpdate { compType(n) }
     def getTp:BitType = n.inferTp.getOrElse(throw PIRException(s"Don't know how to infer type of $n"))
     def setTp(v:BitType) = n.getMeta[BitType]("tp").apply(v)
-    def setTp(v:Option[BitType]) = n.getMeta[BitType]("tp").apply(v)
+    def setTp(v:Option[BitType]) = n.getMeta[BitType]("tp").update(v)
   }
 
   val StreamWriteContext = MatchRule[Context, FringeStreamWrite] { n =>

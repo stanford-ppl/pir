@@ -14,8 +14,10 @@ trait MetadataIR extends Serializable { self =>
     override def toString = s"$self.$name"
     def getSelf:self.type = self
     def apply(value:T):self.type = { :=(value); self }
-    def apply(value:Option[T]):self.type = { value.foreach(apply); self }
+    def update(value:Option[T]):self.type = { value.foreach(apply); self }
     def get:T = value.getOrElse(throw PIRException(s"$self.$name is empty"))
+    override def mirror(frommeta:MetadataLike[_]):self.type = { super.mirror(frommeta); self }
+
   }
   object Metadata {
     def apply[T](name:String):Metadata[T] = Metadata[T](name, None)
@@ -66,5 +68,5 @@ abstract class MetadataLike[T] extends Serializable {
   }
   def reset = value = default
   def mirror(from:MetadataIR, to:MetadataIR, frommeta:MetadataLike[_]):Unit = mirror(frommeta)
-  def mirror(frommeta:MetadataLike[_]) = frommeta.value.foreach { v => update(v) }
+  def mirror(frommeta:MetadataLike[_]):Any = { frommeta.value.foreach { v => update(v) } }
 }

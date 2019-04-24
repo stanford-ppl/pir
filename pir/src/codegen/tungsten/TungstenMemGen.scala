@@ -153,7 +153,8 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:BankedRead =>
       addEscapeVar(n.mem.T)
-      emitln(s"""${n.mem.T}->SetupRead("$n",make_token(${n.offset.qref}));""")
+      emitEn(n.en)
+      emitln(s"""${n.mem.T}->SetupRead("$n",make_token(${n.offset.qref}), make_token(${n.en.qref}));""")
       genCtxComputeEnd {
         emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
       }

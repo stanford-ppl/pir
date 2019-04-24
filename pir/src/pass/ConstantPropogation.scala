@@ -178,7 +178,7 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
         mw1.mem(m2)
         val name = zipReduce(m1.name.v, m2.name.v) { _ + "/" + _ }
         m2.name.reset
-        m2.name.apply(name)
+        m2.name.update(name)
       case RouteThrough2(w1, r1, w2) =>
         val r2s = w2.outAccesses
         dbg(s"Route through $w1 -> $r1 -> $w2 -> $r2s detected")
@@ -188,7 +188,7 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
         r2s.foreach { r2 =>
           val name = zipReduce(r1.name.v, r2.name.v) { _ + "/" + _ }
           r2.name.reset
-          r2.name.apply(name)
+          r2.name.update(name)
         }
       case n => 
     }
