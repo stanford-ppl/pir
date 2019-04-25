@@ -129,7 +129,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:Memory =>
       val (tp, name) = varOf(n)
-      val accesses = n.accesses.map { a => s"""make_tuple("$a", ${a.port.isEmpty})""" }.mkString(",")
+      val accesses = n.accesses.map { a => s"""make_tuple("$a", ${a.port.get.isEmpty})""" }.mkString(",")
       emitln(s"""$tp $name("$n", {$accesses});""")
       dutArgs += name
 

@@ -166,8 +166,8 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     bufferInput(accessCtx)
 
     // Connect access.done
-    if (mem.depth.get > 1) {
-      val ctrlMap = leastMatchedPeers(mem.accesses.map { _.getCtrl} ).get
+    if (mem.depth.get > 1 && newAccess.port.get.nonEmpty) {
+      val ctrlMap = leastMatchedPeers(mem.accesses.filterNot{_.port.get.isEmpty}.map { _.getCtrl} ).get
       val ctrl = ctrlMap(mergeCtrl)
       newAccess.done(done(ctrl, accessCtx))
       bufferInput(newAccess.done, fromCtx=Some(depCtx(accessCtx)))
@@ -273,7 +273,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     dbgblk(s"multiBufferBarrierInsertion($mem)") {
       val accesses = mem.accesses.filter { _.port.nonEmpty }
       val ctrlMap = leastMatchedPeers(accesses.map { _.getCtrl} ).get
-      val portMap = mem.accesses.groupBy { access =>
+      val portMap = mem.accesses.filter { _.port.v.get.nonEmpty }.groupBy { access =>
         access.port.v.get.get
       }
       val portIds = portMap.keys.toList.sorted
