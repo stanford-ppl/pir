@@ -37,6 +37,11 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       n.data.setVec(data.banks.get.head)
       n.data.setTp(data.tp.v)
     }
+    n.to[DRAMStoreCommand].foreach { n =>
+      val data = n.data.collectFirst[FIFO](visitGlobalIn _)
+      n.data.setVec(data.banks.get.head)
+      n.data.setTp(data.tp.v)
+    }
     n.to[HostRead].foreach { n =>
       n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
     }

@@ -102,11 +102,11 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:FringeDenseLoad =>
         val size = n.size.T.getBound.toValue
         val dataPar = n.data.T.getVec
-        size /! (spadeParam.bytePerWord * dataPar)
+        size /! (n.data.getTp.bytePerWord.get * dataPar)
       case n:FringeDenseStore =>
         val size = n.size.T.getBound.toValue
         val dataPar = n.data.T.getVec
-        size /! (spadeParam.bytePerWord * dataPar)
+        size /! (n.data.getTp.bytePerWord.get * dataPar)
       case n:FringeSparseLoad => Finite(1l)
       case n:FringeSparseStore => Finite(1l)
       case n => Unknown

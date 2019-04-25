@@ -11,9 +11,6 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
   override def emitNode(n:N) = n match {
 
-    case n:TokenRead =>
-      emitln(s"// TokenRead $n")
-
     case n:HostRead =>
       n.sname.v.foreach { sname =>
         emitln(s"$sname = ${n.input.T};")
@@ -33,8 +30,8 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       def accumOp(a:Any, b:Any) = op match {
         case "AccumAdd" => s"$a + $b"
         case "AccumMul" => s"$a * $b"
-        case "AccumMax" => s"max($a,$b)"
-        case "AccumMin" => s"min($a,$b)"
+        case "AccumMax" => s"fmax($a,$b)"
+        case "AccumMin" => s"fmin($a,$b)"
         //case "AccumFMA" => s"FixFMA"
         //case "AccumUnk" => s"" //TODO
       }
@@ -76,13 +73,18 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
           case FixMul                   => s"$a * $b"
           case FixDiv                   => s"$a / $b"
           case FixRecip                 => s"1 / $a"
+          case FixMod if n.getTp.isFraction =>
+            val Fix(s,i,f) = n.getTp
+            s"(float) (((int) ($a * pow(2,$f))) % ((int) ($b * pow(2,$f)))) / pow(2,$f)"
           case FixMod                   => s"$a % $b"
           case FixAnd                   => s"$a & $b"
-          case FixOr if n.getTp.isFloat => s"FloatOr($a,$b)"
+          case FixOr if n.getTp.isFraction => s"asT<float,int>(asT<int,float>($a) | asT<int,float>($b))"
           case FixOr                    => s"$a | $b"
           case FixLst                   => s"$a < $b"
           case FixLeq                   => s"$a <= $b"
           case FixXor                   => s"$a ^ $b"
+          case FixSLA if n.getTp.isFraction => s"$a * pow(2,$b)"
+          case FixSRA if n.getTp.isFraction => s"$a / pow(2,$b)"
           case FixSLA                   => s"$a << $b"
           case FixSRA                   => s"$a >> $b"
           //case FixSRU                 => s"$a >> $b"  // TODO
@@ -99,10 +101,22 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
           case FixMax                   => s"fmax($a,$b)"
           case FixMin                   => s"fmin($a,$b)"
           case FixToFix                 => s"(${n.qtp}) $a"
-          case FixToFixSat              => s"(${n.qtp}) max(min($a, ${n.getTp.fixTpMax}), ${n.getTp.fixTpMin})"
+          case FixToFixSat              => 
+            val Fix(_,_,af) = n.input.T.head.getTp
+            val Fix(_,_,nf) = n.getTp
+            var res = s"(${n.qtp}) fmax(fmin($a, ${n.getTp.fixTpMax}), ${n.getTp.fixTpMin})"
+            if (nf < af)
+              s"(${n.qtp}) ((int) ($res * pow(2,$af)) >> (${af - nf})) / pow(2,$nf)"
+            res
           case FixToFlt                 => s"(${n.qtp}) $a"
           case FixToText                => s"to_string($a)"
-          //case FixRandom              => s"-$a"
+          case FixRandom                => 
+            val Fix(s,i,f) = n.getTp
+            var max = Integer.parseInt("1" * (i+f-1),2).toString
+            n.input.T.headOption.foreach { m => max = s"min($max, (int) ($m * pow(2,$f)))"}
+            var res = s"(rand() % $max)"
+            if (f > 0) res = s"$res * 1.0 / pow(2,${f})"
+            res
           case FixAbs                   => s"abs($a)"
           case FixFloor                 => s"floor($a)"
           case FixCeil                  => s"ceil($a)"
@@ -171,13 +185,13 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
           case Xnor                     => s"$a == $b"
           //case BitRandom              =>
           case BitToText                => s"to_string($a)"
-          case BitsAsData               => s"*(${n.qtp}*) &$a"
+          case BitsAsData               => a.asTp(n.qtp)
 
           case Mux                      => s"$a ? $b : $c"
           case TextConcat               => ins.reduce[String] { case (a,b)                 => s"$a + $b" }
           case TextEql                  => s"$a == $b"
           case TextNeq                  => s"$a != $b"
-          case TextLength               => s"$a.size() / ${spadeParam.bytePerWord}"
+          case TextLength               => s"$a.size() / ${n.input.T.head.getTp.bytePerWord.get}"
           case TextApply                => s"$a[$b]"
           //case CharArrayToText        =>
           //case OneHotMux              =>
@@ -198,31 +212,14 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
     case n => super.emitNode(n)
   }
 
-  implicit class TpOp(tp:BitType) {
-    def isInt = tp match {
-      case Fix(s, i,0) => true
-      case _ => false
-    }
-    def isFloat = tp match {
-      case Fix(s, i,f) if f != 0 => true
-      case Flt(m,f) => true
-      case _ => false
-    }
-    def fixTpMax = tp match {
-      case Fix(s,i,f) => (Math.pow(2, (i+f)) - 1) / Math.pow(2,f)
-      case tp => throw PIRException(s"Unexpected tp for fixTpMax $tp")
-    }
-    def fixTpMin = tp match {
-      case Fix(false,i,f) => 0
-      case Fix(true,i,f) => - Math.pow(2,i-1)
-      case tp => throw PIRException(s"Unexpected tp for fixTpMin $tp")
-    }
-  }
-
   override def quoteRef(n:Any):String = n match {
     case InputField(n:Shuffle, field) => s"${n}_$field"
     case n@InputField(_:OpNode, "en") => quoteEn(n.as[Input[PIRNode]], None)
     case n => super.quoteRef(n)
+  }
+
+  implicit class StringOp(x:String) {
+    def asTp(tp:String) = s"(*($tp*) &$x)"
   }
 
 }

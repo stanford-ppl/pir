@@ -140,7 +140,8 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       }
     }
     def qtp:String = n.getTp match {
-      case Fix(true, 16, 0) => "int"
+      case Fix(true, 8, 0) => "int8_t"
+      case Fix(true, 16, 0) => "int16_t"
       case Fix(true, 32, 0) => "int"
       case Fix(true, 64, 0) => "long"
       case Fix(false, 32, 0) => "uint32_t"
@@ -153,8 +154,8 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       case Text => "string"
     }
     def tokenTp = qtp match {
-      case "int" if n.getVec == 1 => "TT_INT"
-      case "int" if n.getVec > 1 => "TT_INTVEC"
+      case "int" | "int8_t" | "int16_t" if n.getVec == 1 => "TT_INT"
+      case "int" | "int8_t" | "int16_t" if n.getVec > 1 => "TT_INTVEC"
       case "uint64_t" if n.getVec == 1 => "TT_UINT64"
       case "float" if n.getVec == 1 => "TT_FLOAT"
       case "float" if n.getVec > 1 => "TT_FLOATVEC"
