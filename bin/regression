@@ -19,16 +19,13 @@ def main():
     for backend in opts.backend:
         apps = opts.app
         if apps is None: apps = []
-        starttime = time.strftime('%y%m%d_%H%M%S')
-        sha = subprocess.check_output("git log --pretty=format:'%h' -n 1".split(" ")).replace("'","")
-        log = "logs/{}_{}_{}_{}.log".format(starttime, backend, opts.project, sha)
         os.system('bin/spatial -t {} -p {} -b {} {}'.format(opts.thread, opts.project,backend,
             ' '.join(['-a ' + a for a in apps])))
-        os.system('echo {}\n > {}'.format(sha, log))
         gendir = backend
         if backend == "Tst":
             gendir = backend + "_" + opts.project
-        os.system('bin/log ../gen/{} | tee -a {}'.format(gendir, log))
+        os.system('bin/log ../gen/{} -s -p {} -b {}'.format(gendir, opts.project,
+            opts.backend))
 
 if __name__ == "__main__":
     main()
