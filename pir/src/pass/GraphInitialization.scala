@@ -3,8 +3,9 @@ package pass
 
 import pir.node._
 import prism.graph._
+import spade.param._
 
-class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal {
+class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with Transformer {
 
   override def visitNode(n:N) = {
     n.to[Controller].foreach { n =>
@@ -54,6 +55,36 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         within(pirTop, pirTop.hostOutCtrl) {
           val read = stage(MemRead().mem(reg).order(1))
           stage(HostRead().input(read))
+        }
+      }
+    }
+    // Convert reduction not expressed as RegAccumOp to RegAccumOp
+    // val read = accum.read
+    // val reduceOp = func(read, input)
+    n.to[Memory].foreach { n =>
+      if (n.isInnerAccum.get && n.inAccesses.nonEmpty) {
+        dbgblk(s"InnerAccum($n)"){
+          val writer = assertOne(n.inAccesses, s"writer of inner accum $n").as[MemWrite]
+          val reader = assertOne(n.outAccesses, s"reader of inner accum $n")
+          val mux = writer.data.T match {
+            case m@OpDef(Mux) => m
+            case mux => throw PIRException(s"inner accum ($n)'s writer data is not Mux $mux")
+          }
+          // RegAccumOp will empty inAccesses 
+          var reduceOps = reader.accum(
+            prefix={ case OpDef(Mux) => true; case _ => false }, 
+            visitFunc=visitGlobalOut _
+          )
+          reduceOps = reduceOps.filterNot { case x:Access => true; case OpDef(Mux) => true; case _ => false }
+          dbg(s"reduceOps:$reduceOps")
+          val newOp = within(mux.parent.get, mux.getCtrl) {
+            val in = reduceOps.head.localIns.flatMap { _.connected }.filterNot { _ == reader.out }
+            val first = mux.input.connected.head
+            val en = writer.en.connected
+            stage(RegAccumOp(reduceOps).in(in).en(en).first(first))
+          }
+          val writer2 = assertOne(mux.out.T.filterNot { _ == writer }, s"writer2 for after mux $mux").asInstanceOf[MemWrite]
+          swapConnection(writer2.data, mux.out, newOp.out)
         }
       }
     }

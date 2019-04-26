@@ -13,6 +13,7 @@ trait MemoryNode extends PIRNode {
   // Assigned bank ids for this memory. Before splitting, it's List(0 until totlBanks)
   val bankids = Metadata[List[Int]]("bankids") 
   val depth = Metadata[Int]("depth", default=1)
+  val isInnerAccum = Metadata[Boolean]("isInnerAccum", default=false)
   def getBanks = banks.get
   def getDepth = depth.get
   def bankDims = getBanks.size
@@ -99,7 +100,9 @@ case class ExitIf()(implicit env:Env) extends OpNode with Def {
   val cond = new InputField[List[PIRNode]]("cond")
   val msg = new InputField[PIRNode]("mgs")
 }
-case class RegAccumOp(op:String)(implicit env:Env) extends OpNode with Def {
+// op can be eigher a string, if from spatial, or a list of reduction op if
+// transformed in graph initialization
+case class RegAccumOp(op:Any)(implicit env:Env) extends OpNode with Def {
   val in = new InputField[PIRNode]("input")
   val en = new InputField[Set[PIRNode]]("en")
   val first = new InputField[PIRNode]("first")

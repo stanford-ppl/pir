@@ -236,6 +236,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:BufferRead => n.in.inferTp
       case n:GlobalInput => n.in.inferTp
       case n:GlobalOutput => n.in.inferTp
+      case n:RegAccumOp => n.in.inferTp
       case n@OpDef(_:BitOp) => Some(Bool)
       case n@OpDef(_:FixOp | _:FltOp) => assertUnify(n.input.T, s"$n.tp") { _.inferTp }.get
       case Const(_:Boolean) => Some(Bool)
