@@ -21,8 +21,6 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
     super.finPass
   }
 
-  def wordPerBurst = spadeParam.burstSizeWord
-
   override def emitNode(n:N) = n match {
     case DRAMContext(cmd) => super.visitNode(n)
 
@@ -60,8 +58,8 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
   }
 
   override def varOf(n:PIRNode):(String,String) = n match {
-    case n:FringeDenseLoad => (s"DenseLoadAG<${n.data.T.getVec}, $wordPerBurst>", s"${n}")
-    case n:FringeDenseStore => (s"DenseStoreAG<${n.data.T.getVec}, $wordPerBurst>", s"${n}")
+    case n:FringeDenseLoad => (s"DenseLoadAG<${n.data.T.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
+    case n:FringeDenseStore => (s"DenseStoreAG<${n.data.T.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
     case n => super.varOf(n)
   }
 

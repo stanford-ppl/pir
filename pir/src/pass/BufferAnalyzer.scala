@@ -77,7 +77,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
             read.done.canReach(deq, visitEdges=visitInEdges _)
           } {
             val v = depOut.getVec
-            stage(BufferRead().in(write.out).done(deq).vec(v).banks(List(v)).tp(tp))
+            stage(BufferRead().in(write.out).done(deq).vec(v).banks(List(v)).tp.update(tp))
           }
         }
         swapConnection(depedIn, depOut, read.out)

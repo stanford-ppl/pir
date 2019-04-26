@@ -22,9 +22,10 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
       q
     .foldAt(n.to[Const]) { (q,n) =>
       n.value match {
-        case v:List[_] if v.size > 1 => 
+        case v@((e:Int)::rest) => 
           val l = v.as[List[Int]]
           s"$q[${l.min}-${l.max}]"
+        case v@((e:Boolean)::rest) => s"$q($e...)"
         case v => s"$q($v)"
       }
     }.foldAt(n.sname.v) { (q, v) => s"$q[$v]" }
@@ -126,16 +127,5 @@ class PIRCtxDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fil
     case n:Context => n.children.collect { case n:LocalAccess => n; case n:Access => n; case c:FringeCommand => c }
     case n => super.visitFunc(n)
   }
-  //override def emitNode(n:N) = n match {
-    //case _:Context => emitSingleNode(n)
-    //case n => super.emitNode(n)
-  //}
-  //override def quote(n:Any) = {
-    //super.quote(n).foldAt(n.to[Context]) { (q,n) =>
-      //val cs = n.children.collect { case c:Access => c; case c:FringeCommand => c }
-      //val cstr = cs.map(quote)
-      //if (cstr.nonEmpty) s"$q\n${cstr.mkString("\n")}" else q
-    //}
-  //}
 
 }

@@ -11,12 +11,9 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
   override def emitNode(n:N) = n match {
 
-    case n:TokenRead =>
-      emitln(s"// TokenRead $n")
-
     case n:HostRead =>
-      n.input.T.as[BufferRead].sname.v.foreach { sname =>
-        emitln(s"${sname} = ${n.input.T};")
+      n.sname.v.foreach { sname =>
+        emitln(s"$sname = ${n.input.T};")
       }
 
     case n:HostWrite =>
@@ -33,15 +30,17 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       def accumOp(a:Any, b:Any) = op match {
         case "AccumAdd" => s"$a + $b"
         case "AccumMul" => s"$a * $b"
-        case "AccumMax" => s"max($a,$b)"
-        case "AccumMin" => s"min($a,$b)"
+        case "AccumMax" => s"fmax($a,$b)"
+        case "AccumMin" => s"fmin($a,$b)"
         //case "AccumFMA" => s"FixFMA"
         //case "AccumUnk" => s"" //TODO
+        case List(op:OpDef) => quoteOp(op, List(a.toString,b.toString))
       }
       val in = n.in.T
       val firstVec = n.first.T.getVec
-      val ctrler = n.ctx.get.ctrler(n.getCtrl)
-      emitIf(s"${n.en.qref}") {
+      var ens = n.en.qref :: Nil
+      n.ctx.get.ctrler(n.ctrl.get).foreach { ctrler => ens +:= ctrler.valid.qref }
+      emitIf(s"${ens.distinct.reduce { _ + " && " + _ }}") {
         emitBlock(s"for (int i = 0; i < ${firstVec}; i++)") {
           emitIf(s"laneValids[i]") {
             emitln(s"$n = (${n.first.T.qidx("i")}) ? ${in.qidx("i")} : ${accumOp(n, in.qidx("i"))};")
@@ -61,164 +60,170 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       }
       emitUnVec(n)(s"${n}_shuffled")
 
-    case n@OpDef(FixToFix) =>
-      val inputs = n.input.T
-      emitVec(n) { i =>
-        s"(${n.qtp}) ${inputs.head.qidx(i)}" 
-      }
-
-    case n@OpDef(FixOr) if n.getTp.isFloat =>
-      emitVec(n) { i =>
-        val ins = n.input.T.map { _.qidx(i) }
-        def a = ins(0)
-        def b = ins(1)
-        s"FloatOr($a,$b)"
-      }
-
-    case n:OpDef =>
-      emitVec(n) { i =>
-        val ins = n.input.connected.map { _.qidx(i) }
-        def a = ins(0)
-        def b = ins(1)
-        def c = ins(2)
-        n.op match {
-          //case FixInv       => s"1/$a"  // TODO: same as Recip?
-          case FixNeg       => s"- $a" 
-          case FixAdd       => s"$a + $b" 
-          case FixSub       => s"$a - $b" 
-          case FixMul       => s"$a * $b" 
-          case FixDiv       => s"$a / $b" 
-          case FixRecip     => s"1 / $a"  
-          case FixMod       => s"$a % $b" 
-          case FixAnd       => s"$a & $b" 
-          case FixOr        => s"$a | $b" 
-          case FixLst       => s"$a < $b" 
-          case FixLeq       => s"$a <= $b" 
-          case FixXor       => s"$a ^ $b" 
-          case FixSLA       => s"$a << $b" 
-          case FixSRA       => s"$a >> $b" 
-          //case FixSRU       => s"$a >> $b"  // TODO
-          case SatAdd       => s"$a + $b" 
-          case SatSub       => s"$a - $b" 
-          case SatMul       => s"$a * $b" 
-          case SatDiv       => s"$a / $b" 
-          case UnbMul       => s"$a * $b" 
-          case UnbDiv       => s"$a / $b" 
-          case UnbSatMul    => s"$a * $b" 
-          case UnbSatDiv    => s"$a / $b" 
-          case FixNeq       => s"$a != $b" 
-          case FixEql       => s"$a == $b" 
-          case FixMax       => s"max($a,$b)" 
-          case FixMin       => s"fmin($a,$b)" 
-          case FixToFix     => s"(${n.qtp}) $a"
-          case FixToFlt     => s"(${n.qtp}) $a"
-          case FixToText     => s"to_string($a)"
-          //case FixRandom    => s"-$a"
-          case FixAbs       => s"abs($a)" 
-          case FixFloor     => s"floor($a)" 
-          case FixCeil      => s"ceil($a)" 
-          case FixLn        => s"log($a)" 
-          case FixExp       => s"exp($a)" 
-          case FixSqrt      => s"sqrt($a)" 
-          case FixSin       => s"sin($a)" 
-          case FixCos       => s"cos($a)" 
-          case FixTan       => s"tan($a)" 
-          case FixSinh      => s"sinh($a)"
-          case FixCosh      => s"sinh($a)"
-          case FixTanh      => s"sinh($a)"
-          case FixAsin      => s"asin($a)"
-          case FixAcos      => s"acos($a)"
-          case FixAtan      => s"atan($a)"
-          case FixPow       => s"pow($a, $b)"
-          case FixFMA       => s"$a * $b + $c" 
-          //case FixRecipSqrt => s"-$a"
-          case FltSigmoid => s"1.0 / (exp(-$a) + 1)"
-          case SelectNonNeg        => s"($a<0) ? $b : $a" 
-          //case FltIsPosInf  =>
-          //case FltIsNegInf  =>
-          //case FltIsNaN     =>
-          case FltNeg       => s"-$a" 
-          case FltAdd       => s"$a + $b" 
-          case FltSub       => s"$a - $b" 
-          case FltMul       => s"$a * $b" 
-          case FltDiv       => s"$a / $b" 
-          //case FltMod       => 
-          case FltRecip     => s"1/$a" 
-          case FltLst       => s"$a < $b" 
-          case FltLeq       => s"$a <= $b" 
-          case FltNeq       => s"$a != $b" 
-          case FltEql       => s"$a == $b" 
-          case FltMax       => s"fmax($a,$b)" 
-          case FltMin       => s"fmin($a,$b)" 
-          case FltToFlt     => s"(${n.qtp}) $a"
-          case FltToFix     => s"(${n.qtp}) $a"
-          //case TextToFlt    =>
-          case FltToText    => s"to_string($a)"
-          //case FltRandom    =>
-          case FltAbs       => s"abs($a)" 
-          case FltFloor     => s"$a.floor" 
-          case FltCeil      => s"$a.ceil" 
-          case FltLn        => s"log($a)" 
-          case FltExp       => s"exp($a)" 
-          case FltSqrt      => s"sqrt($a)" 
-          case FltSin       => s"sin($a)" 
-          case FltCos       => s"cos($a)" 
-          case FltTan       => s"tan($a)" 
-          case FltSinh      => s"sinh($a)"
-          case FltCosh      => s"cosh($a)"
-          case FltTanh      => s"tanh($a)"
-          case FltAsin      => s"asin($a)"
-          case FltAcos      => s"acos($a)"
-          case FltAtan      => s"atan($a)"
-          case FltPow       => s"pow($a, $b)"
-          case FltFMA       => s"$a * $b + $c" 
-          //case FltRecipSqrt =>
-          //case FltSigmoid   =>
-
-          case Not       => s"!$a" 
-          case And       => s"$a & $b" 
-          case Or        => s"$a | $b" 
-          case Xor       => s"$a ^ $b" 
-          case Xnor      => s"$a == $b" 
-          //case BitRandom =>
-          case BitToText => s"to_string($a)"
-
-          case Mux => s"$a ? $b : $c"
-          case TextConcat => ins.reduce[String] { case (a,b) => s"$a + $b" }
-          case TextEql => s"$a == $b"
-          case TextNeq => s"$a != $b"
-          case TextLength => s"$a.size() / ${spadeParam.bytePerWord}"
-          case TextApply => s"$a[$b]"
-          //case CharArrayToText => 
-          //case OneHotMux =>
-          case op => throw PIRException(s"TODO: unsupported op $op")
-        }
-      }
+    case n:OpDef => emitVec(n) { i => 
+      val ins = n.input.connected.map { _.qidx(i) }
+      quoteOp(n, ins)
+    }
 
     case n:PrintIf =>
-      emitIf(s"${n.en.qref}") {
+      var ens = n.en.qref :: Nil
+      n.ctx.get.ctrler(n.ctrl.get).foreach { ctrler => ens +:= ctrler.valid.qref }
+      emitIf(s"${ens.distinct.reduce { _ + " && " + _ }}") {
         emitBlock(s"for (int i = 0; i < ${n.msg.T.getVec}; i++)") {
           emitln(s"cout << ${n.msg.T.qidx("i")};")
         }
       }
+      emitVec(n) { i => "true" }
 
     case n => super.emitNode(n)
   }
 
-  implicit class TpOp(tp:BitType) {
-    def isInt = tp match {
-      case Fix(s, i,0) => true
-      case _ => false
-    }
-    def isFloat = tp match {
-      case Fix(s, i,f) if f != 0 => true
-      case Flt(m,f) => true
-      case _ => false
+  def quoteOp(n:OpDef, ins:List[String]) = {
+    def a = ins(0)
+    def b = ins(1)
+    def c = ins(2)
+    n.op match {
+      //case FixInv                 => s"1/$a"  // TODO: same as Recip?
+      case FixNeg                   => s"- $a"
+      case FixAdd                   => s"$a + $b"
+      case FixSub                   => s"$a - $b"
+      case FixMul                   => s"$a * $b"
+      case FixDiv                   => s"$a / $b"
+      case FixRecip                 => s"1 / $a"
+      case FixMod if n.getTp.isFraction =>
+        val Fix(s,i,f) = n.getTp
+        s"(float) (((int) ($a * pow(2,$f))) % ((int) ($b * pow(2,$f)))) / pow(2,$f)"
+      case FixMod                   => s"$a % $b"
+      case FixAnd                   => s"$a & $b"
+      case FixOr if n.getTp.isFraction => s"asT<float,int>(asT<int,float>($a) | asT<int,float>($b))"
+      case FixOr                    => s"$a | $b"
+      case FixLst                   => s"$a < $b"
+      case FixLeq                   => s"$a <= $b"
+      case FixXor                   => s"$a ^ $b"
+      case FixSLA if n.getTp.isFraction => s"$a * pow(2,$b)"
+      case FixSRA if n.getTp.isFraction => s"$a / pow(2,$b)"
+      case FixSLA                   => s"$a << $b"
+      case FixSRA                   => s"$a >> $b"
+      //case FixSRU                 => s"$a >> $b"  // TODO
+      case SatAdd                   => s"$a + $b"
+      case SatSub                   => s"$a - $b"
+      case SatMul                   => s"$a * $b"
+      case SatDiv                   => s"$a / $b"
+      case UnbMul                   => s"$a * $b"
+      case UnbDiv                   => s"$a / $b"
+      case UnbSatMul                => s"$a * $b"
+      case UnbSatDiv                => s"$a / $b"
+      case FixNeq                   => s"$a != $b"
+      case FixEql                   => s"$a == $b"
+      case FixMax                   => s"fmax($a,$b)"
+      case FixMin                   => s"fmin($a,$b)"
+      case FixToFix                 => s"(${n.qtp}) $a"
+      case FixToFixSat              => 
+        val Fix(_,_,af) = n.input.T.head.getTp
+        val Fix(_,_,nf) = n.getTp
+        var res = s"(${n.qtp}) fmax(fmin($a, ${n.getTp.fixTpMax}), ${n.getTp.fixTpMin})"
+        if (nf < af)
+          s"(${n.qtp}) ((int) ($res * pow(2,$af)) >> (${af - nf})) / pow(2,$nf)"
+        res
+      case FixToFlt                 => s"(${n.qtp}) $a"
+      case FixToText                => s"to_string($a)"
+      case FixRandom                => 
+        val Fix(s,i,f) = n.getTp
+        var max = Integer.parseInt("1" * (i+f-1),2).toString
+        n.input.T.headOption.foreach { m => max = s"min($max, (int) ($m * pow(2,$f)))"}
+        var res = s"(rand() % $max)"
+        if (f > 0) res = s"$res * 1.0 / pow(2,${f})"
+        res
+      case FixAbs                   => s"abs($a)"
+      case FixFloor                 => s"floor($a)"
+      case FixCeil                  => s"ceil($a)"
+      case FixLn                    => s"log($a)"
+      case FixExp                   => s"exp($a)"
+      case FixSqrt                  => s"sqrt($a)"
+      case FixSin                   => s"sin($a)"
+      case FixCos                   => s"cos($a)"
+      case FixTan                   => s"tan($a)"
+      case FixSinh                  => s"sinh($a)"
+      case FixCosh                  => s"sinh($a)"
+      case FixTanh                  => s"sinh($a)"
+      case FixAsin                  => s"asin($a)"
+      case FixAcos                  => s"acos($a)"
+      case FixAtan                  => s"atan($a)"
+      case FixPow                   => s"pow($a, $b)"
+      case FixFMA                   => s"$a * $b + $c"
+      //case FixRecipSqrt           => s"-$a"
+      case FltSigmoid               => s"1.0 / (exp(-$a) + 1)"
+      case SelectNonNeg             => s"($a<0) ? $b : $a"
+      //case FltIsPosInf            =>
+      //case FltIsNegInf            =>
+      //case FltIsNaN               =>
+      case FltNeg                   => s"-$a"
+      case FltAdd                   => s"$a + $b"
+      case FltSub                   => s"$a - $b"
+      case FltMul                   => s"$a * $b"
+      case FltDiv                   => s"$a / $b"
+      //case FltMod                 =>
+      case FltRecip                 => s"1/$a"
+      case FltLst                   => s"$a < $b"
+      case FltLeq                   => s"$a <= $b"
+      case FltNeq                   => s"$a != $b"
+      case FltEql                   => s"$a == $b"
+      case FltMax                   => s"fmax($a,$b)"
+      case FltMin                   => s"fmin($a,$b)"
+      case FltToFlt                 => s"(${n.qtp}) $a"
+      case FltToFix                 => s"(${n.qtp}) $a"
+      //case TextToFlt              =>
+      case FltToText                => s"to_string($a)"
+      //case FltRandom              =>
+      case FltAbs                   => s"abs($a)"
+      case FltFloor                 => s"floor($a)"
+      case FltCeil                  => s"ceil($a)"
+      case FltLn                    => s"log($a)"
+      case FltExp                   => s"exp($a)"
+      case FltSqrt                  => s"sqrt($a)"
+      case FltSin                   => s"sin($a)"
+      case FltCos                   => s"cos($a)"
+      case FltTan                   => s"tan($a)"
+      case FltSinh                  => s"sinh($a)"
+      case FltCosh                  => s"cosh($a)"
+      case FltTanh                  => s"tanh($a)"
+      case FltAsin                  => s"asin($a)"
+      case FltAcos                  => s"acos($a)"
+      case FltAtan                  => s"atan($a)"
+      case FltPow                   => s"pow($a, $b)"
+      case FltFMA                   => s"$a * $b + $c"
+      //case FltRecipSqrt           =>
+      //case FltSigmoid             =>
+
+      case Not                      => s"!$a"
+      case And                      => s"$a & $b"
+      case Or                       => s"$a | $b"
+      case Xor                      => s"$a ^ $b"
+      case Xnor                     => s"$a == $b"
+      //case BitRandom              =>
+      case BitToText                => s"to_string($a)"
+      case BitsAsData               => a.asTp(n.qtp)
+
+      case Mux                      => s"$a ? $b : $c"
+      case TextConcat               => ins.reduce[String] { case (a,b) => s"$a + $b" }
+      case TextEql                  => s"$a == $b"
+      case TextNeq                  => s"$a != $b"
+      case TextLength               => s"$a.size() / ${n.input.T.head.getTp.bytePerWord.get}"
+      case TextApply                => s"$a[$b]"
+      //case CharArrayToText        =>
+      //case OneHotMux              =>
+      case op                       => throw PIRException(s"TODO: unsupported op $op")
     }
   }
 
   override def quoteRef(n:Any):String = n match {
     case InputField(n:Shuffle, field) => s"${n}_$field"
+    case n@InputField(_:OpNode, "en") => quoteEn(n.as[Input[PIRNode]], None)
     case n => super.quoteRef(n)
   }
+
+  implicit class StringOp(x:String) {
+    def asTp(tp:String) = s"(*($tp*) &$x)"
+  }
+
 }

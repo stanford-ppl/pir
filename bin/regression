@@ -7,29 +7,28 @@ import os
 
 def main():
     parser = argparse.ArgumentParser(description='Run experiments')
-    parser.add_argument('-b', '--backend', type=str, action="append", help='Testing Backend')
+    parser.add_argument('-b', '--backend', type=str, action="append", default=['Tst'], help='Testing Backend')
     parser.add_argument('-t', '--thread', type=int, default=30, help='Number of threads to run')
     parser.add_argument('-p', '--project', type=str, default="pirTest", help='project name')
+    parser.add_argument('-a', '--app', action='append', help='name of application to run')
     (opts, args) = parser.parse_known_args()
     if (opts.backend is None):
-        opts.backend = ['P14x14']
+        opts.backend = ['pirTest']
+    os.system('mkdir -p logs/')
+    os.system('sbt "; project pir; publishAll"')
     for backend in opts.backend:
-        apps = []
-        # if backend == 'Tst':
-            # apps = ['SumSquare*', 'SimpleDotProduct*', 'DotProduct_*', "OuterProduct_*", "TPCHQ6_*"]
-            # apps += ["BlackScholes_*"]
-            # apps += ["GEMM_*"]
-            # apps += ["GDA_*"]
-            # apps += ["LogReg_*"]
+        apps = opts.app
+        if apps is None: apps = []
         starttime = time.strftime('%y%m%d_%H%M%S')
         sha = subprocess.check_output("git log --pretty=format:'%h' -n 1".split(" ")).replace("'","")
         log = "logs/{}_{}_{}_{}.log".format(starttime, backend, opts.project, sha)
-        os.system('mkdir -p logs/')
-        os.system('sbt "; project pir; publishAll"')
         os.system('bin/spatial -t {} -p {} -b {} {}'.format(opts.thread, opts.project,backend,
             ' '.join(['-a ' + a for a in apps])))
         os.system('echo {}\n > {}'.format(sha, log))
-        os.system('bin/log ../gen/P14x14 | tee -a {}'.format(log))
+        gendir = backend
+        if backend == "Tst":
+            gendir = backend + "_" + opts.project
+        os.system('bin/log ../gen/{} | tee -a {}'.format(gendir, log))
 
 if __name__ == "__main__":
     main()

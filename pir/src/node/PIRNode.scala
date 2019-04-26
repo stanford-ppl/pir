@@ -36,7 +36,7 @@ abstract class PIRNode(implicit env:BuildEnvironment)
 
   // Scale is relative rate of a node active to ctx enable
   val scale = new Metadata[Value[Long]]("scale") {
-    override def mirror(frommeta:MetadataLike[_]) = {}
+    override def mirror(frommeta:MetadataLike[_]) = self
   }
   // Count is total number of time a node is active
   val count = new Metadata[Value[Long]]("count")

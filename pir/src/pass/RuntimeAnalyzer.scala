@@ -4,7 +4,7 @@ package pass
 import pir.node._
 import prism.graph._
 import prism.util._
-import spade.param.{FixOp, FltOp, BitOp}
+import spade.param.{FixOp, FltOp, BitOp, BitsAsData}
 import scala.collection.mutable
 
 trait RuntimeAnalyzer extends Logging { self:PIRPass =>
@@ -50,11 +50,14 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     def psimState(s:String) = n.getMeta[Float]("psimState").update(s)
     def psimState = n.getMeta[String]("psimState").v
   }
-  implicit class NodeRuntimeOp(n:IR) {
+  implicit class NodeRuntimeOp[N<:IR](n:N) {
     def inferVec:Option[Int] = n.getMeta[Int]("vec").orElseUpdate { compVec(n) }
     def getVec:Int = n.inferVec.getOrElse(throw PIRException(s"Don't know how to infer vec of $n"))
+    def setVec(v:Int) = n.getMeta[Int]("vec").apply(v)
     def inferTp:Option[BitType] = n.getMeta[BitType]("tp").orElseUpdate { compType(n) }
     def getTp:BitType = n.inferTp.getOrElse(throw PIRException(s"Don't know how to infer type of $n"))
+    def setTp(v:BitType) = n.getMeta[BitType]("tp").apply(v)
+    def setTp(v:Option[BitType]) = n.getMeta[BitType]("tp").update(v)
   }
 
   val StreamWriteContext = MatchRule[Context, FringeStreamWrite] { n =>
@@ -99,11 +102,11 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:FringeDenseLoad =>
         val size = n.size.T.getBound.toValue
         val dataPar = n.data.T.getVec
-        size /! (spadeParam.bytePerWord * dataPar)
+        size /! (n.data.getTp.bytePerWord.get * dataPar)
       case n:FringeDenseStore =>
         val size = n.size.T.getBound.toValue
         val dataPar = n.data.T.getVec
-        size /! (spadeParam.bytePerWord * dataPar)
+        size /! (n.data.getTp.bytePerWord.get * dataPar)
       case n:FringeSparseLoad => Finite(1l)
       case n:FringeSparseStore => Finite(1l)
       case n => Unknown
@@ -191,7 +194,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     }
   }
 
-  def compVec(n:IR):Option[Int] = dbgblk(s"compVec($n)") {
+  def compVec(n:IR):Option[Int] = dbgblk(s"compVec(${dquote(n)})") {
     n match {
       case Const(v:List[_]) => Some(v.size)
       case Const(v) => Some(1)
@@ -201,7 +204,8 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case WithMem(access, mem:FIFO) if access.getCtrl.schedule=="Streaming" => Some(mem.banks.get.head)
       case n:BufferWrite => n.data.inferVec
       case n:RegAccumOp => Some(1)
-      case n@OpDef(_:FixOp | _:FltOp | _:BitOp) => flatReduce(n.input.connected.map{ out => out.inferVec}) { case (a,b) => Math.max(a,b) }
+      case n:PrintIf => Some(1)
+      case n@OpDef(_:FixOp | _:FltOp | _:BitOp | BitsAsData) => flatReduce(n.input.connected.map{ out => out.inferVec}) { case (a,b) => Math.max(a,b) }
       case n:Shuffle => n.to.T.inferVec
       case n:GlobalOutput => n.in.T.inferVec
       // During staging time GlobalInput might temporarily not connect to GlobalOutput
@@ -222,8 +226,9 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     }
   }
 
-  def compType(n:IR):Option[BitType] = dbgblk(s"compType($n)") {
+  def compType(n:IR):Option[BitType] = dbgblk(s"compType(${dquote(n)})") {
     n match {
+      case n:PrintIf => Some(Bool)
       case n:Shuffle => n.base.inferTp
       case n:TokenRead => Some(Bool)
       case n:TokenWrite => Some(Bool)
@@ -231,6 +236,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:BufferRead => n.in.inferTp
       case n:GlobalInput => n.in.inferTp
       case n:GlobalOutput => n.in.inferTp
+      case n:RegAccumOp => n.in.inferTp
       case n@OpDef(_:BitOp) => Some(Bool)
       case n@OpDef(_:FixOp | _:FltOp) => assertUnify(n.input.T, s"$n.tp") { _.inferTp }.get
       case Const(_:Boolean) => Some(Bool)

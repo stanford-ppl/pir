@@ -67,7 +67,13 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
           genCtxInits {
             emitln(s"""inputs.push_back($name);""")
             if (n.initToken.get) {
-              emitln(s"$name->Push(make_token((${n.qtp}) ${assertOne(n.inits.get, s"$n.inits")}));")
+              val initVal = assertOne(n.inits.get, s"$n.inits")
+              val init = if (n.banks.get.head > 1) {
+                emitln(s"${n.qtp} ${n}_init[${n.banks.get.head}] = {${List.fill(n.banks.get.head)(initVal).mkString(",")}};")
+              } else {
+                s"(${n.qtp}) $initVal"
+              }
+              emitln(s"$name->Push(make_token($init));")
             }
           }
           emitVec(n) { i =>
@@ -122,9 +128,14 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         }
       }
 
+    case n:FIFO =>
+      val (tp, name) = varOf(n)
+      emitln(s"""$tp $name("$n");""")
+      dutArgs += name
+
     case n:Memory =>
       val (tp, name) = varOf(n)
-      val accesses = n.accesses.map { a => s"""make_tuple("$a", ${a.port.isEmpty})""" }.mkString(",")
+      val accesses = n.accesses.map { a => s"""make_tuple("$a", ${a.port.get.isEmpty})""" }.mkString(",")
       emitln(s"""$tp $name("$n", {$accesses});""")
       dutArgs += name
 
@@ -133,22 +144,23 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       addEscapeVar(mem)
       emitln(s"int $n = 0;")
       emitIf(n.en.qref){
-        emitln(s"${n} = $mem->Read();")
-        emitIf(n.done.T) {
-          emitln(s"${mem}.Pop();")
+        emitln(s"${n} = toT<${n.qtp}>($mem->Read(), 0);")
+        emitIf(n.done.qref) {
+          emitln(s"${mem}->Pop();")
         }
       }
 
     case n:MemWrite if n.mem.T.isFIFO =>
       val mem = n.mem.T
       addEscapeVar(mem)
-      emitIf(s"${n.en.qref} && ${n.done.T}"){
-        emitln(s"$mem->Push(${n.data.qref});")
+      emitIf(s"${n.en.qref} && ${n.done.qref}"){
+        emitln(s"$mem->Push(make_token(${n.data.qref}));")
       }
 
     case n:BankedRead =>
       addEscapeVar(n.mem.T)
-      emitln(s"""${n.mem.T}->SetupRead("$n",make_token(${n.offset.qref}));""")
+      emitEn(n.en)
+      emitln(s"""${n.mem.T}->SetupRead("$n",make_token(${n.offset.qref}), make_token(${n.en.qref}));""")
       genCtxComputeEnd {
         emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
       }
@@ -179,8 +191,9 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
   }
 
   override def quoteRef(n:Any):String = n match {
-    case n@InputField(_:BufferWrite, "en") => quoteEn(n.as[Input[PIRNode]], None)
+    case n@InputField(_:BufferWrite, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
     case InputField(n:BankedAccess, "en") => s"${n}_en"
+    case n@InputField(_:MemWrite, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
     case n@InputField(access:Access, "done") if !n.as[Input[PIRNode]].isConnected => "false"
     case n => super.quoteRef(n)
   }
@@ -224,7 +237,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       }
       (s"ValPipeline<Token, $pipeDepth>", s"pipe_$n")
     case n:FIFO =>
-      (s"FIFO<${n.qtp}, ${n.getDepth}>", s"$n")
+      (s"FIFO<Token, 4>", s"$n") //TODO:
     case n:SRAM =>
       val numBanks = n.getBanks.product
       (s"NBufferSRAM<${n.getDepth}, ${n.qtp}, ${n.bankSize}, ${n.nBanks}>", s"$n")

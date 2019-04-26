@@ -46,28 +46,22 @@ def getMessage(backend, app, conf):
         msg.append(cstr(GREEN, 'genpir'))
     else:
         msg.append(cstr(RED, 'genpir'))
-        # return msg,succeeded
 
     if conf['runpir_err'] is not None:
         msg.append(cstr(RED,'runpir'))
         msg.append(conf['runpir_err'].strip())
-        # return msg,succeeded
     elif conf['runpir_time'] is None:
         msg.append(cstr(YELLOW,'runpir'))
-        # return msg,succeeded
     else:
         msg.append(cstr(GREEN,'runpir[{:.2f}s]'.format(conf['runpir_time'])))
 
     if conf['mappir_err'] is not None:
         msg.append(cstr(RED,'mappir'))
         msg.append(conf['mappir_err'].strip())
-        # return msg,succeeded
     elif conf['notFit'] is not None:
         msg.append(cstr(YELLOW, 'notFit'))
-        # return msg,succeeded
     elif conf['mappir_time'] is None:
         msg.append(cstr(YELLOW,'mappir'))
-        # return msg,succeeded
     elif conf['PCU'] is not None:
         msg.append(cstr(GREEN, "mappir[{:.1f}s]".format(conf['mappir_time'])))
         msg.append(cstr(GREEN,' '.join(['{}:{}'.format(k,conf[k]) for k in ['PCU', "PMU"]])))
@@ -100,17 +94,18 @@ def getMessage(backend, app, conf):
         msg.append(cstr(RED, 'runtst') + ": " + conf['runtst_err'].strip())
     elif conf['tstcycle'] is None:
         msg.append(cstr(RED, 'runtst'))
-    elif conf['runtst_pass'] is None:
-        msg.append(cstr(RED, 'runtst'))
+    elif conf['runtst_pass'] is None and conf['tstcycle'] is not None:
+        msg.append(cstr(GREEN, 'tstcycle:{}'.format(conf['tstcycle'])))
+        succeeded = True
     elif not conf['runtst_pass']:
         msg.append(cstr(RED, 'tstcycle:{} PASS:false'.format(conf['tstcycle'])))
     else:
         msg.append(cstr(GREEN, 'tstcycle:{} PASS:true'.format(conf['tstcycle'])))
+        succeeded = True
 
-    succeeded = True
     return msg,succeeded
 
-def removeRules(conf, opts):
+def removeRules(conf, opts, succeeded):
     reruns = [] + opts.rerun
     # if conf['runpir_err'] is not None and 'not found: value x' in conf['runpir_err']:
         # print(conf['runpir_err'].strip())
@@ -122,6 +117,11 @@ def removeRules(conf, opts):
         # print(conf['runpir_err'].strip())
         # reruns.append('genpir')
     # if conf['runtst_err'] is not None and 'Assertion fail' in conf['runtst_err']:
+        # reruns.append('gentst')
+        # reruns.append('maketst')
+        # reruns.append('runtst')
+    # if not succeeded:
+        # reruns.append('genpir')
         # reruns.append('gentst')
         # reruns.append('maketst')
         # reruns.append('runtst')
@@ -148,7 +148,7 @@ def logApp(backend, app, show, opts):
 
     msg, succeeded = getMessage(backend, app, conf)
 
-    reruns = removeRules(conf, opts)
+    reruns = removeRules(conf, opts, succeeded)
     if len(reruns) != 0:
         return
 
@@ -177,6 +177,8 @@ def logApp(backend, app, show, opts):
         tail(conf['gentstlog'])
         tail(conf['maketstlog'])
         tail(conf['runtstlog'])
+
+    return succeeded
 
 def parse(backend, app, opts):
     conf = {}
@@ -501,10 +503,18 @@ def main():
         opts.gendir = path
         opts.backend = getBackends(opts)
 
+    numRun = 0
+    numSucc = 0
+
     for backend in opts.backend:
         initSummary(backend, opts)
         apps = getApps(backend, opts)
         for app in apps:
-            logApp(backend, app, len(apps)==1 and not opts.summarize, opts)
+            succeeded = logApp(backend, app, len(apps)==1 and not opts.summarize, opts)
+            numRun += 1
+            if succeeded: numSucc += 1
         if opts.summarize:
             opts.sfile.close()
+
+    if numRun != 0:
+        print('Succeeded {} / {} ({:0.2f}) %'.format(numSucc, numRun, numSucc*100.0/numRun))

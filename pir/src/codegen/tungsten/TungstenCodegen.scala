@@ -58,8 +58,9 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
 
   def quoteEn(en:Input[PIRNode], i:Option[String]):String = {
     var ens = en.connected.map { _.qidx(i) }
-    en.src match {
-      case n@(_:BufferWrite | _:InAccess | _:RegAccumOp) =>
+    en match {
+      case InputField(_:BufferWrite | _:InAccess | _:RegAccumOp, "en") =>
+        val n = en.src
         n.ctx.get.ctrler(n.getCtrl).foreach { ctrler =>
           ens :+= ctrler.valid.qidx(i)
         }
@@ -120,7 +121,7 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   }
 
   def quoteRef(n:Any):String = n match {
-    case n:Input[_] => quoteRef(assertOne(n.connected, s"${n.src}.$n.connected"))
+    case n:Input[_] => quoteRef(n.singleConnected.getOrElse(throw PIRException(s"Don't know how to quoteRef for ${dquote(n)}")))
     case n:Output[_] => quoteRef(n.src)
     //case n:PIRNode => if (n.getVec > 1) s"${n}[i]" else s"${n}"
     case n => s"$n"
@@ -139,7 +140,8 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       }
     }
     def qtp:String = n.getTp match {
-      case Fix(true, 16, 0) => "int"
+      case Fix(true, 8, 0) => "int8_t"
+      case Fix(true, 16, 0) => "int16_t"
       case Fix(true, 32, 0) => "int"
       case Fix(true, 64, 0) => "long"
       case Fix(false, 32, 0) => "uint32_t"
@@ -152,8 +154,8 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       case Text => "string"
     }
     def tokenTp = qtp match {
-      case "int" if n.getVec == 1 => "TT_INT"
-      case "int" if n.getVec > 1 => "TT_INTVEC"
+      case "int" | "int8_t" | "int16_t" if n.getVec == 1 => "TT_INT"
+      case "int" | "int8_t" | "int16_t" if n.getVec > 1 => "TT_INTVEC"
       case "uint64_t" if n.getVec == 1 => "TT_UINT64"
       case "float" if n.getVec == 1 => "TT_FLOAT"
       case "float" if n.getVec > 1 => "TT_FLOATVEC"
