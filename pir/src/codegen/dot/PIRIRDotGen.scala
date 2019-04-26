@@ -22,9 +22,10 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
       q
     .foldAt(n.to[Const]) { (q,n) =>
       n.value match {
-        case v:List[_] if v.size > 1 => 
+        case v@((e:Int)::rest) => 
           val l = v.as[List[Int]]
           s"$q[${l.min}-${l.max}]"
+        case v@((e:Boolean)::rest) => s"$q($e...)"
         case v => s"$q($v)"
       }
     }.foldAt(n.sname.v) { (q, v) => s"$q[$v]" }
