@@ -105,7 +105,7 @@ def getMessage(backend, app, conf):
 
     return msg,succeeded
 
-def removeRules(conf, opts):
+def removeRules(conf, opts, succeeded):
     reruns = [] + opts.rerun
     # if conf['runpir_err'] is not None and 'not found: value x' in conf['runpir_err']:
         # print(conf['runpir_err'].strip())
@@ -117,6 +117,11 @@ def removeRules(conf, opts):
         # print(conf['runpir_err'].strip())
         # reruns.append('genpir')
     # if conf['runtst_err'] is not None and 'Assertion fail' in conf['runtst_err']:
+        # reruns.append('gentst')
+        # reruns.append('maketst')
+        # reruns.append('runtst')
+    # if not succeeded:
+        # reruns.append('genpir')
         # reruns.append('gentst')
         # reruns.append('maketst')
         # reruns.append('runtst')
@@ -143,7 +148,7 @@ def logApp(backend, app, show, opts):
 
     msg, succeeded = getMessage(backend, app, conf)
 
-    reruns = removeRules(conf, opts)
+    reruns = removeRules(conf, opts, succeeded)
     if len(reruns) != 0:
         return
 
