@@ -134,6 +134,9 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
           case out@OutputField(Const(true), "out") => 
             en.disconnectFrom(out)
             dbg(s"${en.src}.${en} disconnect ${out.src}.${out}")
+          case out@OutputField(Const(vs:List[_]), "out") if vs.forall { _ == true } => 
+            en.disconnectFrom(out)
+            dbg(s"${en.src}.${en} disconnect ${out.src}.${out}")
           case _ => 
         }
       }
