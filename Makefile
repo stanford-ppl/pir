@@ -1,5 +1,4 @@
-all:
-	sbt "; compile; project apps; compile"
+all: pir
 
 env:
 	virtualenv env
