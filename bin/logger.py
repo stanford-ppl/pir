@@ -4,6 +4,8 @@ import shutil
 from collections import OrderedDict
 import pandas as pd
 from pandautil import *
+import numpy as np
+import math
 
 from util import *
 
@@ -18,12 +20,17 @@ parser.add_argument('-d', '--diff', dest='show_diff', action='store_true', defau
 parser.add_argument('--logdir', default="{}/spatial/pir/logs/".format(os.environ['HOME']))
 
 def to_conf(tab, **kws):
-    return lookup(tab, drop=False, **kws).to_dict('records')[0]
+    tab = lookup(tab, drop=False, **kws)
+    conf = tab.to_dict()
+    for k in conf:
+        if type(conf[k]) in [float, np.float64] and math.isnan(conf[k]):
+            conf[k] = None
+    return conf
 
 def load_history(opts):
     if not opts.show_diff: return
     logs = os.listdir(opts.logdir)
-    logs = logs[-5:]
+    logs = logs[-10:]
 
     history = None
     for log in logs:
@@ -54,9 +61,10 @@ def show_diff(conf, opts):
     prevsucc = history[(history.app==conf['app']) & history.succeeded]
 
     if not conf['succeeded'] and prevsucc.shape[0] > 0:
-        pconf = to_conf(prevsucc.loc[prevsucc.maxidx('time'), :])
+        times = get_col(prevsucc, 'time')
+        pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
         print('{} {}'.format(msg, cstr(RED,'(Regression)')))
-        print('{} {} {}'.format(pconf['sha'], pconf['time'], getMessage(pconf, opts)))
+        print('{} {} {}'.format(getMessage(pconf, opts), pconf['sha'], pconf['time']))
     if conf['succeeded'] and prevsucc.shape[0] == 0:
         print('{} {}'.format(msg, cstr(GREEN,'(New)')))
 
