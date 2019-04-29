@@ -213,8 +213,6 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:TokenWrite => Some(1)
       case n:TokenRead => Some(1)
       case n:CountAck => Some(1)
-      case WithMem(access, mem:Reg) => Some(1)
-      case WithMem(access, mem:FIFO) if access.getCtrl.schedule=="Streaming" => Some(mem.banks.get.head)
       case n:MemWrite => n.data.inferVec
       case n:MemRead => n.getCtrl.inferVec
       case n:BankedWrite => zipMap(n.data.inferVec, n.offset.inferVec) { case (a,b) => Math.max(a,b) }
@@ -222,9 +220,11 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:BufferWrite => n.data.inferVec
       case n:BufferRead => n.in.inferVec //TODO: consider FIFO with unequal reader and writer parallelization factor
       case n:RegAccumOp => Some(1)
-      case n:PrintIf => Some(1)
+      case n:PrintIf => n.msg.inferVec
+      case n:AssertIf => n.msg.inferVec
+      case n:ExitIf => n.msg.inferVec
       case n@OpDef(Mux) => zipMap(n.input.connected(1).inferVec, n.input.connected(2).inferVec) { case (a,b) => Math.max(a,b) }
-      case n@OpDef(_:FixOp | _:FltOp | _:BitOp | BitsAsData) => flatReduce(n.input.connected.map{ out => out.inferVec}) { case (a,b) => Math.max(a,b) }
+      case n@OpDef(_:FixOp | _:FltOp | _:BitOp | _:TextOp) => flatReduce(n.input.connected.map{ out => out.inferVec}) { case (a,b) => Math.max(a,b) }
       case n:Shuffle => n.to.T.inferVec
       case n:GlobalOutput => n.in.T.inferVec
       // During staging time GlobalInput might temporarily not connect to GlobalOutput
@@ -258,6 +258,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:GlobalOutput => n.in.inferTp
       case n:RegAccumOp => n.in.inferTp
       case n@OpDef(_:BitOp) => Some(Bool)
+      case n@OpDef(_:TextOp) => Some(Text)
       case n@OpDef(_:FixOp | _:FltOp) => assertUnify(n.input.T, s"$n.tp") { _.inferTp }.get
       case Const(_:Boolean) => Some(Bool)
       case Const(_:Int) => Some(Fix(true, 32, 0))

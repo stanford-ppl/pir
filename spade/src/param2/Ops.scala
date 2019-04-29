@@ -12,6 +12,7 @@ trait Ops extends Enumeration {
   sealed class FixOp extends Opcode
   sealed class FltOp extends Opcode
   sealed class BitOp  extends Opcode
+  sealed class TextOp  extends Opcode
   sealed class OtherOp  extends Opcode
 
   private def m(x:Any)(f:PartialFunction[Any,Any]):Option[Any] = {
@@ -143,16 +144,16 @@ trait Ops extends Enumeration {
   val BitRandom = new BitOp with Op1
   val BitToText = new BitOp with Op1
 
+  val TextConcat = new TextOp with Opcode
+  val TextEql = new TextOp with Op2
+  val TextNeq = new TextOp with Op2
+  val TextLength = new TextOp with Op1
+  val TextApply = new TextOp with Op2
+  val CharArrayToText = new TextOp with Opcode
+
   val BitsAsData = new OtherOp with Op1
   val Mux       = new OtherOp with Op3 { override def eval(ins:List[Any]) = m(ins) { case Some(a:Boolean)::Some(b)::Some(c)::Nil => if (a) b else c } }
   val OneHotMux = new OtherOp with Op2
-
-  val TextConcat = new OtherOp with Opcode
-  val TextEql = new OtherOp with Op2
-  val TextNeq = new OtherOp with Op2
-  val TextLength = new OtherOp with Op1
-  val TextApply = new OtherOp with Op2
-  val CharArrayToText = new OtherOp with Opcode
 
   // Not sure why a val here will fail serialzation test
   def allOps:Set[Opcode] = values.toSet[Value].collect { case op:Opcode => op }
