@@ -31,27 +31,25 @@ trait Compiler extends FileManager with ArgLoader with Session with Logging {
 
   def main(args: Array[String]): Unit = {
     setArgs(args)
-    withLog(config.logDir, s"compiler.log") {
-      tic
-      Try {
-        loadSession
-        reset
-        info(s"Output directory set to ${cstr(Console.CYAN,config.outDir)}")
-        initSession
-        runSession
-      }.recoverWith { case e:Throwable =>
-        err(e, exception=false)
-        handle(e)
-      } match {
-        case Success(true) =>
-          info(s"Compilation succeed in ${toc("s")}s")
-        case Success(false) =>
-          err(s"Compilation failed in ${toc("s")}s", false)
-          System.exit(-1)
-        case Failure(e) =>
-          err(s"Compilation failed in ${toc("s")}s", false)
-          throw e
-      }
+    tic
+    Try {
+      loadSession
+      reset
+      info(s"Output directory set to ${cstr(Console.CYAN,config.outDir)}")
+      initSession
+      runSession
+    }.recoverWith { case e:Throwable =>
+      err(e, exception=false)
+      handle(e)
+    } match {
+      case Success(true) =>
+        info(s"Compilation succeed in ${toc("s")}s")
+      case Success(false) =>
+        err(s"Compilation failed in ${toc("s")}s", false)
+        System.exit(-1)
+      case Failure(e) =>
+        err(s"Compilation failed in ${toc("s")}s", false)
+        throw e
     }
   }
 

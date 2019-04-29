@@ -5,7 +5,7 @@ import pir.node._
 import prism.graph._
 import spade.param._
 
-class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with Transformer {
+class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with PIRTransformer {
 
   override def visitNode(n:N) = {
     n.to[Controller].foreach { n =>
@@ -94,13 +94,13 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     super.visitNode(n)
   } 
 
-  override def compVec(n:IR):Option[Int] = dbgblk(s"compVec($n)") {
-    n match {
-      case _:Def | _:Access =>
-        super.compVec(n).orElse { n.to[PIRNode].flatMap{ _.getCtrl.inferVec } }
-      case _ => super.compVec(n)
-    }
-  }
+  //override def compVec(n:IR):Option[Int] = dbgblk(s"compVec($n)") {
+    //n match {
+      //case _:Def | _:Access =>
+        //super.compVec(n).orElse { n.to[PIRNode].flatMap{ _.getCtrl.inferVec } }
+      //case _ => super.compVec(n)
+    //}
+  //}
 
 }
 

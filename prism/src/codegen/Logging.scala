@@ -58,8 +58,8 @@ trait Logging extends Serializable {
     else logger.withOpen[T](outDir, logFile, append) { lambda }
   }
 
-  def dbgn(n:ND) = {
-    dbgblk(dquote(n)) {
+  def dbgn(n:ND, msg:Option[String]=None) = {
+    dbgblk(msg.getOrElse(dquote(n))) {
       dbg(s"parent=${n.parent.map(dquote)}")
       //metadata.foreach { _.summary(n).foreach(dbg) }
       if (n.children.nonEmpty) {

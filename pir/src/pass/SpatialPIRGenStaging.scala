@@ -93,6 +93,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
       if (x.sname.isEmpty) x.sname(name)
     }
     x.to[DRAM].foreach { x => x.sname(name) }
+    x.to[PIRNode].foreach { x => stage(x) }
     x
   }
 
@@ -100,9 +101,11 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
     val tree = ControlTree(schedule)
     beginState(tree)
     val ctrler = newCtrler
-    val par = ctrler match {
-      case ctrler:LoopController => ctrler.cchain.T.map { _.par }.product
-      case ctrler => 1
+    val par = ctrler.par.getOrElseUpdate { 
+      ctrler match {
+        case ctrler:LoopController => ctrler.cchain.T.map { _.par }.product
+        case ctrler => 1
+      }
     }
     tree.par := par
     tree.ctrler(ctrler)
@@ -116,27 +119,27 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
 
   def dramAddress(dram:DRAM) = {
     val mem = dramAddrs.getOrElseUpdate(dram, {
-      val mem = Reg()
+      val mem = stage(Reg())
       within(pirTop.argFringe, pirTop.hostInCtrl) {
-        val dramAddr = DRAMAddr(dram).name(dram.sid)
-        MemWrite().setMem(mem).data(dramAddr) // DRAMDef
+        val dramAddr = stage(DRAMAddr(dram).name(dram.sid))
+        stage(MemWrite().setMem(mem).data(dramAddr)) // DRAMDef
       }
       mem
     })
-    MemRead().setMem(mem)
+    stage(MemRead().setMem(mem))
   }
   
   def argIn(name:String) = {
-    val mem = Reg().name(name)
+    val mem = stage(Reg().name(name))
     within(pirTop.argFringe, pirTop.hostInCtrl) {
-      MemWrite().setMem(mem).data(HostWrite().name(name))
+      stage(MemWrite().setMem(mem).data(stage(HostWrite().name(name))))
     }
     mem
   }
 
   def argOut() = {
     within(pirTop.argFringe) {
-      val mem = Reg()
+      val mem = stage(Reg())
       argOuts += mem
       mem
     }
@@ -144,7 +147,9 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
 
   def streamIn(fifo:FIFO) = {
     within(ControlTree("Streaming")) {
-      FringeStreamWrite().name.mirror(fifo.name).stream(MemWrite().setMem(fifo).data)
+      val sw = stage(FringeStreamWrite().name.mirror(fifo.name))
+      stage(MemWrite().setMem(fifo).data(sw.stream))
+      sw
     }
   }
 

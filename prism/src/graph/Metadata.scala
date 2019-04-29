@@ -25,10 +25,9 @@ trait MetadataIR extends Serializable { self =>
   }
 
   def mirrorMetas(from:MetadataIR):self.type = {
-    metadata.foreach { case (name, tometa) =>
-      from.metadata.get(name).foreach { frommeta =>
-        tometa.mirror(from, self, frommeta)
-      }
+    from.metadata.foreach { case (name, frommeta) =>
+      val tometa = getMeta(name, frommeta.default)
+      tometa.mirror(frommeta)
     }
     self
   }
@@ -67,6 +66,5 @@ abstract class MetadataLike[T] extends Serializable {
     v
   }
   def reset = value = default
-  def mirror(from:MetadataIR, to:MetadataIR, frommeta:MetadataLike[_]):Unit = mirror(frommeta)
   def mirror(frommeta:MetadataLike[_]):Any = { frommeta.value.foreach { v => update(v) } }
 }

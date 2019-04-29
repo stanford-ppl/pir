@@ -152,6 +152,8 @@ abstract class Controller(implicit env:Env) extends PIRNode {
   val childDone = new OutputField[List[PIRNode]]("childDone")
 
   def isForever = this.collectDown[Counter]().exists { _.isForever }
+
+  val par = new Metadata[Int]("par")
 }
 
 case class HostInController()(implicit env:Env) extends Controller

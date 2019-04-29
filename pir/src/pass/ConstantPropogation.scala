@@ -10,7 +10,7 @@ import spade.param._
 import scala.collection.mutable
 
 // BFS is slightly faster than DFS
-class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Transformer with BFSBottomUpTopologicalTraversal with UnitTraversal with BufferAnalyzer {
+class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with PIRTransformer with BFSBottomUpTopologicalTraversal with UnitTraversal with BufferAnalyzer {
 
   val forward = true
 

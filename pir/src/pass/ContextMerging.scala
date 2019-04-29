@@ -6,7 +6,7 @@ import prism.graph._
 import spade.param._
 import prism.collection.immutable._
 
-class ContextMerging(implicit compiler:PIR) extends PIRTraversal with Transformer {
+class ContextMerging(implicit compiler:PIR) extends PIRTraversal with PIRTransformer {
 
   override def runPass {
     val globals = pirTop.collectDown[GlobalContainer]().collect { case global:MemoryContainer => global }
