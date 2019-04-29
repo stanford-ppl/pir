@@ -1,6 +1,11 @@
 import os
 import csv
 import shutil
+from collections import OrderedDict
+import pandas as pd
+from pandautil import *
+import numpy as np
+import math
 
 from util import *
 
@@ -10,36 +15,78 @@ parser.add_argument('-A', '--isApp', dest="path_type", action='store_const', con
 parser.add_argument('-B', '--isBackend', dest="path_type", action='store_const', const='backend', default='backend')
 parser.add_argument('-G', '--isGen', dest="path_type", action='store_const', const='gen',
         default='backend')
-parser.add_argument('-s', '--summarize', dest="summarize", action='store_true', default=False, help='summarize log into csv')
-parser.add_argument('-ap', '--append', dest="append", action='store_true', default=False,
-        help='Append to previous summary')
+parser.add_argument('-s', '--summarize', action='store_true', default=False, help='summarize log into csv')
+parser.add_argument('-d', '--diff', dest='show_diff', action='store_true', default=False, help='showing difference')
+parser.add_argument('--logdir', default="{}/spatial/pir/logs/".format(os.environ['HOME']))
 
-def initSummary(backend, opts):
-    opts.sfile = None
-    opts.summary = None
-    if opts.summarize:
-        summary_path ="data/sims/{}.csv".format(backend)
-        append = opts.append
-        if append:
-            rows = []
-            with open(summary_path, "r") as f:
-                reader = csv.DictReader(f)
-                for row in reader:
-                    rows.append(row)
-        # create new csv
-        opts.sfile = open(summary_path, "w")
-        conf = parse('', '')
-        opts.summary = csv.DictWriter(opts.sfile, delimiter=',', fieldnames=conf.keys())
-        opts.summary.writeheader()
-        if append:
-            for row in rows:
-                opts.summary.writerow(row)
-    return opts.sfile,opts.summary
+def to_conf(tab, **kws):
+    tab = lookup(tab, drop=False, **kws)
+    conf = tab.to_dict()
+    for k in conf:
+        if type(conf[k]) in [float, np.float64] and math.isnan(conf[k]):
+            conf[k] = None
+    return conf
 
-def getMessage(backend, app, conf):
+def load_history(opts):
+    if not opts.show_diff: return
+    logs = os.listdir(opts.logdir)
+    logs = logs[-10:]
+
+    history = None
+    for log in logs:
+        tab = pd.read_csv(opts.logdir + log, header=0)
+        if history is None:
+            history = tab
+        else:
+            history = pd.concat([history, tab], axis=0, sort=False)  
+
+    if history is None:
+        print("No history to compare with")
+    else:
+        opts.history = history
+
+def show_diff(conf, opts):
+    msg = getMessage(conf, opts)
+    if not opts.show_message: return
+
+    if not opts.show_diff:
+        print(msg)
+        return
+
+    if opts.history is None:
+        print("No history to compare with")
+        return
+
+    history = opts.history
+    prevsucc = history[(history.app==conf['app']) & history.succeeded]
+
+    if not conf['succeeded'] and prevsucc.shape[0] > 0:
+        times = get_col(prevsucc, 'time')
+        pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
+        print('{} {}'.format(msg, cstr(RED,'(Regression)')))
+        print('{} {} {}'.format(getMessage(pconf, opts), pconf['sha'], pconf['time']))
+    if conf['succeeded'] and prevsucc.shape[0] == 0:
+        print('{} {}'.format(msg, cstr(GREEN,'(New)')))
+
+def summarize(backend, opts, confs):
+    if not opts.summarize: return
+    sha = confs[0]['sha']
+    time = confs[0]['time']
+    timeshort = time[2:].replace("-","").replace(" ","_").replace(":","")
+    summary_path = "{}/{}_{}_{}_{}.csv".format(opts.logdir, timeshort, backend, opts.project, sha)
+    # create new csv
+    conf = confs[0]
+    with open(summary_path, "w") as f:
+        summary = csv.DictWriter(f, delimiter=',', fieldnames=conf.keys())
+        summary.writeheader()
+        for conf in confs:
+            summary.writerow(conf)
+    print('Generate summary in {}'.format(summary_path))
+
+def getMessage(conf, opts):
     msg = []
-    msg.append(backend)
-    msg.append(app)
+    msg.append(conf['backend'])
+    msg.append(conf['app'])
     succeeded = False
 
     if conf['genpir']:
@@ -103,9 +150,11 @@ def getMessage(backend, app, conf):
         msg.append(cstr(GREEN, 'tstcycle:{} PASS:true'.format(conf['tstcycle'])))
         succeeded = True
 
-    return msg,succeeded
+    conf['succeeded'] = succeeded
 
-def removeRules(conf, opts, succeeded):
+    return ' '.join(msg)
+
+def removeRules(conf, opts):
     reruns = [] + opts.rerun
     # if conf['runpir_err'] is not None and 'not found: value x' in conf['runpir_err']:
         # print(conf['runpir_err'].strip())
@@ -120,7 +169,7 @@ def removeRules(conf, opts, succeeded):
         # reruns.append('gentst')
         # reruns.append('maketst')
         # reruns.append('runtst')
-    # if not succeeded:
+    # if not con['succeeded']:
         # reruns.append('genpir')
         # reruns.append('gentst')
         # reruns.append('maketst')
@@ -143,31 +192,11 @@ def removeRules(conf, opts, succeeded):
             remove(conf[p + 'log'], opts)
     return reruns
 
-def logApp(backend, app, show, opts):
-    conf = parse(backend, app, opts)
-
-    msg, succeeded = getMessage(backend, app, conf)
-
-    reruns = removeRules(conf, opts, succeeded)
-    if len(reruns) != 0:
-        return
-
-    if not opts.summarize:
-        print(' '.join(msg))
-
-
-    if succeeded and opts.summarize:
-        opts.summary.writerow(conf)
-
-    if opts.summarize and backend in ["P14x14", "Asic", 'H14x14v3s4c4w']:
-        igraph = os.path.join(opts.gendir,backend,app,"pir/igraph/graph.py")
-        if os.path.exists(igraph):
-            shutil.copyfile(igraph, "data/igraph/{}__{}.py".format(backend, app))
-    if opts.summarize and backend in ['H14x14v3s4', 'H14x14v3s4c4w']:
-        link = os.path.join(opts.gendir,backend,app,"plastisim/link.csv")
-        if os.path.exists(link):
-            shutil.copyfile(link, "data/link/{}__{}.csv".format(backend, app))
-    if show:
+def logApp(conf, opts):
+    parse(conf, opts)
+    show_diff(conf, opts)
+    reruns = removeRules(conf, opts)
+    if opts.show_app:
         tail(conf['runpirlog'])
         tail(conf['mappirlog'])
         tail(conf['runproutelog'])
@@ -178,13 +207,11 @@ def logApp(backend, app, show, opts):
         tail(conf['maketstlog'])
         tail(conf['runtstlog'])
 
-    return succeeded
-
-def parse(backend, app, opts):
-    conf = {}
-    conf["backend"] = backend
-    conf["app"] = app.split("_")[0]
-    conf["param"] = app
+def parse(conf, opts):
+    app = conf['app']
+    backend = conf['backend']
+    if backend == 'Tst':
+        backend = backend + "_" + conf['project']
     conf["freq"] = 1e9
     conf['mappirlog'] = os.path.join(opts.gendir,backend,app,"log/mappir.log")
     conf['runpirlog'] = os.path.join(opts.gendir,backend,app,"log/runpir.log")
@@ -220,8 +247,6 @@ def parse_genpir(log, conf, opts):
         conf['genpir'] = False
 
 def parse_runpsim(log, conf, opts):
-    if opts.summarize:
-        print(log)
     parsers = []
     parsers.append(Parser(
         conf,
@@ -485,7 +510,6 @@ def parse_gentrace(log, conf, opts):
     ))
     parseLog(log, parsers, conf)
 
-
 def main():
     (opts, args) = parser.parse_known_args()
     path = opts.path.rstrip('/')
@@ -503,18 +527,36 @@ def main():
         opts.gendir = path
         opts.backend = getBackends(opts)
 
-    numRun = 0
-    numSucc = 0
+    opts.show_message = not opts.summarize 
 
+    gitmsg = subprocess.check_output("git log --pretty=format:'%h,%ad' -n 1 --date=iso".split(" "),
+            cwd=opts.logdir + '../../').replace("'","")
+    sha = gitmsg.split(",")[0]
+    time = gitmsg.split(",")[1].split(" -")[0].strip()
+
+    load_history(opts)
     for backend in opts.backend:
-        initSummary(backend, opts)
+        numRun = 0
+        numSucc = 0
         apps = getApps(backend, opts)
+        confs = []
+        opts.show_app = len(apps)==1 and not opts.summarize
+        if 'Tst' in backend:
+            opts.project = backend.split("_")[1]
+            backend = 'Tst'
         for app in apps:
-            succeeded = logApp(backend, app, len(apps)==1 and not opts.summarize, opts)
+            conf = OrderedDict()
+            conf['sha'] = sha
+            conf['time'] = time
+            conf['app'] = app
+            conf['project'] = opts.project
+            conf['backend'] = backend
+            logApp(conf, opts)
+            confs.append(conf)
             numRun += 1
-            if succeeded: numSucc += 1
-        if opts.summarize:
-            opts.sfile.close()
+            if conf['succeeded']: numSucc += 1
+        summarize(backend, opts, confs)
+        if numRun != 0:
+            print('Succeeded {} / {} ({:0.2f}) %'.format(numSucc, numRun, numSucc*100.0/numRun))
 
-    if numRun != 0:
-        print('Succeeded {} / {} ({:0.2f}) %'.format(numSucc, numRun, numSucc*100.0/numRun))
+

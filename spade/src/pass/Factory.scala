@@ -1,9 +1,18 @@
 package spade
-package node
+package pass
 
+import spade.node._
+import spade.param._
 import prism.graph._
 
 import param._
+
+class SpadeBaseFactory(implicit compiler:Spade) extends SpadePass with BaseFactory {
+  override def runPass = {
+    compiler._spadeTop = Some(create(compiler.loadParam))
+  }
+
+}
 
 trait Factory extends Env with DFSTopologicalTraversal with ParamTraversal {
 
@@ -12,7 +21,10 @@ trait Factory extends Env with DFSTopologicalTraversal with ParamTraversal {
 
   val forward = false
 
-  def create[T](param:Parameter):T = traverseNode(param, None).asInstanceOf[T]
+  def create[T](param:Parameter):T = {
+    resetTraversal
+    traverseNode(param, None).asInstanceOf[T]
+  }
 
   type CUArray = List[List[ListBuffer[SpadeNode]]]
   type ConnectorArray = List[List[_]]

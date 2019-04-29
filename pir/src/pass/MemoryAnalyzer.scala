@@ -5,7 +5,7 @@ import pir.node._
 import pir.mapper._
 import prism.graph._
 
-trait MemoryAnalyzer extends PIRPass with Transformer { self:BufferAnalyzer =>
+trait MemoryAnalyzer extends PIRTransformer { self:BufferAnalyzer =>
 
   def insertToken(fctx:Context, tctx:Context):TokenRead = {
     val fctrl = fctx.ctrl.get

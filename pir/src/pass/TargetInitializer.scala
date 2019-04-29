@@ -7,6 +7,7 @@ import scala.collection.mutable
 
 import spade.param._
 import spade.node._
+import spade.pass._
 import pir.mapper._
 
 class TargetInitializer(implicit compiler:PIR) extends PIRPass with DefaultParamLoader with BaseFactory with MappingLogger {

@@ -19,7 +19,7 @@ class DependencyDuplication(implicit compiler:PIR) extends DependencyAnalyzer wi
 
 }
 
-trait DependencyAnalyzer extends PIRPass with Transformer {
+trait DependencyAnalyzer extends PIRTransformer {
   
   private def bound(from:Option[Context], to:Context,visitFunc:Node[PIRNode] => List[PIRNode]):Node[PIRNode] => List[PIRNode] = { n:Node[PIRNode] =>
     var deps = visitFunc(n)

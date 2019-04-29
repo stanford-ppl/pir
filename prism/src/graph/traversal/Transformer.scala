@@ -135,12 +135,16 @@ trait Transformer extends Logging {
     bios.foreach { bio => a.disconnectFrom(bio) }
   }
 
-  def mirrorAll(nodes:Iterable[ND], mapping:mutable.Map[ND,ND]=mutable.Map.empty):mutable.Map[ND,ND] = {
+  def mirrorAll(
+    nodes:Iterable[ND], 
+    mapping:mutable.Map[ND,ND]=mutable.Map.empty,
+    mirrorN:(ND, Seq[Any]) => ND = (n:ND, margs:Seq[Any]) => this.mirrorN(n, margs)
+  ):mutable.Map[ND,ND] = {
     type F = FN forSome { type FN <:FieldNode[FN] }
     if (nodes.nonEmpty) {
       nodes.head match {
-        case node:FieldNode[n] => mirrorField(nodes.as, mapping)
-        case node:ProductNode[n] => mirrorProduct(nodes, mapping)
+        case node:FieldNode[n] => mirrorField(nodes.as, mapping, mirrorN)
+        case node:ProductNode[n] => mirrorProduct(nodes, mapping, mirrorN)
         case _ => throw new Exception(s"Don't know thow to mirror $nodes")
       }
     }
@@ -154,9 +158,13 @@ trait Transformer extends Logging {
    * original nodes to build the hiearchy and connection. Only input connection order
    * is preserved
    * */
-  def mirrorField[N<:Node[N]](nodes:Iterable[FieldNode[N]], mapping:mutable.Map[ND,ND]) = {
+  def mirrorField[N<:Node[N]](
+    nodes:Iterable[FieldNode[N]], 
+    mapping:mutable.Map[ND,ND],
+    mirrorN:(ND, Seq[Any]) => ND = (n:ND, margs:Seq[Any]) => this.mirrorN(n, margs)
+  ) = {
     // First pass mirror all nodes and put in a map
-    nodes.foreach { n => mirror[N](n, mapping) }
+    nodes.foreach { n => mirror[N](n, mapping, mirrorN) }
 
     // Second pass build hiearchy and connection
     mapping.foreach { case (n,m) =>
@@ -179,27 +187,40 @@ trait Transformer extends Logging {
     }
   }
 
-  def mirrorProduct(nodes:Iterable[ND], mapping:mutable.Map[ND,ND]) = {
-    nodes.foreach { n => mirror(n, mapping) }
+  def mirrorProduct(
+    nodes:Iterable[ND], 
+    mapping:mutable.Map[ND,ND],
+    mirrorN:(ND, Seq[Any]) => ND = (n:ND, margs:Seq[Any]) => this.mirrorN(n, margs)
+  ) = {
+    nodes.foreach { n => mirror(n, mapping, mirrorN) }
   }
 
-  final def mirror[T](n:Any, mapping:mutable.Map[ND,ND]=mutable.Map.empty):T = {
+  final def mirror[T](
+    n:Any, 
+    mapping:mutable.Map[ND,ND]=mutable.Map.empty,
+    mirrorN:(ND, Seq[Any]) => ND = (n:ND, margs:Seq[Any]) => this.mirrorN(n, margs)
+  ):T = {
     (unpack(n) {
       case n:Node[n] => 
-        mapping.getOrElseUpdate(n, mirrorN[n](n.as[n]))
+        if (!mapping.contains(n)) {
+          val margs = newInstanceArgs(n, mapping)
+          mapping.getOrElseUpdate(n, mirrorN(n, margs)).as[T]
+        } else mapping(n)
       case n => n
     }).asInstanceOf[T]
   }
 
-  def mirrorN[N<:Node[N]](n:Node[N], mapping:mutable.Map[ND,ND]=mutable.Map.empty):N = {
-    val margs = newInstanceArgs(n, mapping)
-    mapping.getOrElseUpdate(n, {
-      val m = n.newInstance[N](margs)
-      dbg(s"mirror $n -> $m")
-      m.mirrorMetas(n)
-      m.localEdges.zip(n.localEdges).foreach { case (medge, nedge) => medge.mirrorMetas(nedge) }
-      m
-    }).as[N]
+  def mirrorN[N<:ND](
+    n:N, 
+    margs:Seq[Any]
+  ):N = {
+    val m = n.newInstance[N](margs)
+    dbg(s"mirror $n -> $m")
+    m.mirrorMetas(n)
+    // TODO: for now edge metadata is always recomputed since no way to override
+    // mirror behavior
+    //m.localEdges.zip(n.localEdges).foreach { case (medge, nedge) => medge.mirrorMetas(nedge) }
+    m
   }
 
   def newInstanceArgs(n:ND, mapping:mutable.Map[ND,ND]):Seq[Any] = n match {

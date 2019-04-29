@@ -412,9 +412,8 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           }
         }
         val read = within(outAccess.parent.get, outAccess.ctrl.get) {
-          BufferRead().in(write.out).mirrorMetas(mem).mirrorMetas(outAccess).done(deq)
+          stage(BufferRead().in(write.out).mirrorMetas(mem).mirrorMetas(outAccess).done(deq))
         }
-        dbg(s"create $read.in(${write}).done($deq)")
         if (inAccess.order.get > outAccess.order.get ) {
           dbg(s"$read.initToken = true")
           read.initToken := true

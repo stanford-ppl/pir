@@ -6,7 +6,7 @@ import prism.graph._
 import spade.param._
 import scala.collection.mutable
 
-class AccessContextCreation(implicit compiler:PIR) extends PIRPass with Transformer with BufferAnalyzer with DependencyAnalyzer {
+class AccessContextCreation(implicit compiler:PIR) extends PIRTransformer with BufferAnalyzer with DependencyAnalyzer {
 
   override def runPass = {
     pirTop.collectDown[MemoryContainer]().foreach { global => global.collectDown[Context]().foreach(split) }

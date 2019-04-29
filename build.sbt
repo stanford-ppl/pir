@@ -59,6 +59,7 @@ lazy val spade = Project("spade", file("spade/"))
 .settings(
   scalaSource in Compile := baseDirectory(_ / "src/core").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/param2").value,
+  unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/pass").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/codegen/dot/NetworkDotGen.scala").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/codegen/ParamIRPrinter.scala").value,
   unmanagedSourceDirectories in Compile += baseDirectory(_ / "src/node").value

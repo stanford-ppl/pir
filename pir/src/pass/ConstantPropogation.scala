@@ -10,7 +10,7 @@ import spade.param._
 import scala.collection.mutable
 
 // BFS is slightly faster than DFS
-class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Transformer with BFSBottomUpTopologicalTraversal with UnitTraversal with BufferAnalyzer {
+class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with PIRTransformer with BFSBottomUpTopologicalTraversal with UnitTraversal with BufferAnalyzer {
 
   val forward = true
 
@@ -132,6 +132,9 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with Trans
       n.localIns.filter { _.as[Field[_]].name == "en" }.foreach { en =>
         en.connected.distinct.foreach {
           case out@OutputField(Const(true), "out") => 
+            en.disconnectFrom(out)
+            dbg(s"${en.src}.${en} disconnect ${out.src}.${out}")
+          case out@OutputField(Const(vs:List[_]), "out") if vs.forall { _ == true } => 
             en.disconnectFrom(out)
             dbg(s"${en.src}.${en} disconnect ${out.src}.${out}")
           case _ => 

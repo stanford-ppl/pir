@@ -4,7 +4,6 @@ package pass
 import pir.node._
 import prism.graph._
 import prism.util._
-import spade.param.{FixOp, FltOp, BitOp, BitsAsData}
 import scala.collection.mutable
 
 trait RuntimeAnalyzer extends Logging { self:PIRPass =>
@@ -194,18 +193,38 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     }
   }
 
+  import spade.param._
   def compVec(n:IR):Option[Int] = dbgblk(s"compVec(${dquote(n)})") {
     n match {
+      case OutputField(n:Controller, "done") => Some(1)
+      case OutputField(n:Controller, "childDone") => Some(1)
+      case OutputField(n:Controller, "valid") => Some(1)
+      case OutputField(n:FringeDenseStore, "ack") => Some(1)
+      case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferVec
+      case n:Controller => None
+      case n:Memory => None
+      case n:CounterIter => Some(n.is.size)
+      case n:CounterValid => Some(n.is.size)
+      case n:DRAMAddr => Some(1)
+      case n:HostWrite => Some(1)
+      case n:HostRead => Some(1)
       case Const(v:List[_]) => Some(v.size)
       case Const(v) => Some(1)
       case n:TokenWrite => Some(1)
       case n:TokenRead => Some(1)
-      case WithMem(access, mem:Reg) => Some(1)
-      case WithMem(access, mem:FIFO) if access.getCtrl.schedule=="Streaming" => Some(mem.banks.get.head)
+      case n:CountAck => Some(1)
+      case n:MemWrite => n.data.inferVec
+      case n:MemRead => n.getCtrl.inferVec
+      case n:BankedWrite => zipMap(n.data.inferVec, n.offset.inferVec) { case (a,b) => Math.max(a,b) }
+      case n:BankedRead => n.offset.inferVec // Before lowering
       case n:BufferWrite => n.data.inferVec
+      case n:BufferRead => n.in.inferVec //TODO: consider FIFO with unequal reader and writer parallelization factor
       case n:RegAccumOp => Some(1)
-      case n:PrintIf => Some(1)
-      case n@OpDef(_:FixOp | _:FltOp | _:BitOp | BitsAsData) => flatReduce(n.input.connected.map{ out => out.inferVec}) { case (a,b) => Math.max(a,b) }
+      case n:PrintIf => n.msg.inferVec
+      case n:AssertIf => n.msg.inferVec
+      case n:ExitIf => n.msg.inferVec
+      case n@OpDef(Mux) => zipMap(n.input.connected(1).inferVec, n.input.connected(2).inferVec) { case (a,b) => Math.max(a,b) }
+      case n@OpDef(_:FixOp | _:FltOp | _:BitOp | _:TextOp) => flatReduce(n.input.connected.map{ out => out.inferVec}) { case (a,b) => Math.max(a,b) }
       case n:Shuffle => n.to.T.inferVec
       case n:GlobalOutput => n.in.T.inferVec
       // During staging time GlobalInput might temporarily not connect to GlobalOutput
@@ -215,12 +234,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case InputField(n:BufferWrite, "en") => Some(1)
       case InputField(n:BankedAccess, "en") if n.mem.bankids.nonEmpty => Some(n.mem.nBanks)
       case InputField(n:Controller, "en" | "parentEn") => Some(1)
-      case n:Input[_] if n.isConnected => n.singleConnected.get.inferVec
-      case OutputField(n:Controller, "done") => Some(1)
-      case OutputField(n:Controller, "childDone") => Some(1)
-      case OutputField(n:Controller, "valid") => Some(1)
-      case OutputField(n:BankedRead, "out") if n.mem.bankids.nonEmpty => Some(n.mem.nBanks)
-      case n:Output[_] => n.src.as[PIRNode].inferVec
+      case n:Input[_] if n.isConnected && n.connected.size==1 => n.singleConnected.get.inferVec
       case n:ControlTree => if (n.children.isEmpty) Some(n.par.get) else Some(1)
       case n => None
     }
@@ -228,6 +242,12 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
 
   def compType(n:IR):Option[BitType] = dbgblk(s"compType(${dquote(n)})") {
     n match {
+      case OutputField(n:Controller, "valid") => Some(Bool)
+      case OutputField(n:Controller, "done") => Some(Bool)
+      case OutputField(n:Controller, "childDone") => Some(Bool)
+      case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferTp
+      case n:CounterIter => Some(Fix(true, 32, 0))
+      case n:CounterValid => Some(Bool)
       case n:PrintIf => Some(Bool)
       case n:Shuffle => n.base.inferTp
       case n:TokenRead => Some(Bool)
@@ -238,6 +258,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:GlobalOutput => n.in.inferTp
       case n:RegAccumOp => n.in.inferTp
       case n@OpDef(_:BitOp) => Some(Bool)
+      case n@OpDef(_:TextOp) => Some(Text)
       case n@OpDef(_:FixOp | _:FltOp) => assertUnify(n.input.T, s"$n.tp") { _.inferTp }.get
       case Const(_:Boolean) => Some(Bool)
       case Const(_:Int) => Some(Fix(true, 32, 0))
@@ -246,24 +267,18 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case Const(_:String) => Some(Text)
       case InputField(n:OpDef, "input") => None
       case InputField(n, "en" | "parentEn") => Some(Bool)
-      case n:Input[_] if n.isConnected => n.singleConnected.get.inferTp
-      case OutputField(n:Controller, "valid") => Some(Bool)
-      case OutputField(n:Controller, "done") => Some(Bool)
-      case OutputField(n:Controller, "childDone") => Some(Bool)
-      case n:Output[_] => n.src.as[PIRNode].inferTp
+      case n:Input[_] if n.isConnected && n.connected.size == 1 => n.singleConnected.get.inferTp
       case n:Any => None
     }
   }
 
-  def stage[T<:PIRNode](n:T):T = {
+  def stage[T<:PIRNode](n:T):T = dbgblk(s"stage($n)"){
     val tp = n.inferTp
     n.localIns.foreach { in => 
       in.inferVec
       in.inferTp
     }
     val vec = n.inferVec
-    val fields = n.fedges.map { e => s".${e.name}(${e.connected.map { dquote }})" }.mkString
-    dbg(s"Create $n")
     dbgn(n)
     n
   }

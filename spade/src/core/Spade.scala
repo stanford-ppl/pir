@@ -2,12 +2,14 @@ package spade
 
 import spade.param._
 import spade.node._
+import spade.pass._
 import spade.codegen._
 
 import java.io._
 
-trait Spade extends Compiler with BaseFactory with DefaultParamLoader {
+trait Spade extends Compiler with DefaultParamLoader {
 
+  val env = new Env {}
   override lazy val config:SpadeConfig = new SpadeConfig(this)
 
   def handle(e:Throwable):Try[Boolean] = Failure(e)
@@ -31,8 +33,8 @@ trait Spade extends Compiler with BaseFactory with DefaultParamLoader {
   //lazy val spadePrinter = new SpadePrinter()
 
   override def initSession = {
-    //val sess = session
-    //import sess._
+
+    addPass(new SpadeBaseFactory())
 
     //// Pass
     ////addPass(areaModel)
@@ -54,13 +56,12 @@ trait Spade extends Compiler with BaseFactory with DefaultParamLoader {
     ////addPass(spadeNetworkCodegen)
     ////addPass(spadeParamCodegen)
   }
-  
-  override def loadSession:Unit = {
-    super.loadSession
-    if (_states.isEmpty) createNewState
-    _spadeTop = Some(create[Top](loadParam))
-  }
 
+  override def loadSession = {
+    super.loadSession
+    if (env._states.isEmpty) env.createNewState
+  }
+  
 }
 
 object Plasticine extends Spade
