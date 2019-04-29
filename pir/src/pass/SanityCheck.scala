@@ -6,7 +6,6 @@ import prism.graph._
 import scala.collection.mutable
 
 class SanityCheck(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal {
-  import compiler.env._
 
   override def visitNode(n:N) = {
     n match {

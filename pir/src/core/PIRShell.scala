@@ -10,7 +10,7 @@ import spade.codegen._
 import prism._
 
 trait PIRShell extends PIRApp with Logging {
-  def staging(top:Top):Unit = {}
+  def staging(top:Top) = {}
 
 }
 
@@ -21,11 +21,10 @@ object pload extends PIRShell with Session {
     args += s" --load --debug --dot --out=${dirName(option[String]("ckpt"))}"
     setOption(args.split(" ").map(_.trim).toList)
     super[Session].loadSession
-    if (_states.isEmpty) {
+    if (pirenv._states.isEmpty) {
       err(s"Load session failed", false)
       sys.exit(0)
     }
-    setAnnotation(pirTop)
   }
 }
   
@@ -38,11 +37,10 @@ object psh extends PIRShell with Session {
     setOption(args.split(" ").map(_.trim).toList)
     val start = getArgOption[Int]("start-id").flatMap { _.getValue }.getOrElse(-1)
     super[Session].loadSession
-    if (_states.isEmpty) {
+    if (pirenv._states.isEmpty) {
       err(s"Load session failed", false)
       sys.exit(0)
     }
-    setAnnotation(pirTop)
     args = s"--start-id=$start "
     setOption(args.split(" ").map(_.trim).toList)
   }

@@ -1,21 +1,24 @@
 package spade
-package pass
 
 import spade.node._
-
+import spade.param._
 import prism._
 
-import scala.collection.mutable
+abstract class SpadePass(implicit override val compiler:Spade) extends Pass with Env {
 
-abstract class SpadePass(implicit override val compiler:Spade) extends prism.Pass {
+  override def states = compiler.env.states
+  override def config:SpadeConfig = compiler.config
 
-  implicit val design:SpadeDesign = compiler.design
-  lazy val spademeta: SpadeMetadata = compiler.design.spademeta
-  import spademeta._
+  //override def dquote(n:Any):String = n match {
+    //case n:SpadeNode => n.qindex
+    //case _ => n.toString
+  //}
 
-  override def quote(n:Any):String = n match {
-    case n:SpadeNode => n.qindex
-    case _ => n.toString
-  }
+}
+trait SpadeTraversal {
+  type N = SpadeNode
+}
 
+trait ParamTraversal {
+  type N = Parameter
 }

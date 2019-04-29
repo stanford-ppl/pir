@@ -21,7 +21,7 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
   //with MappingLogger
   {
 
-  override def states = compiler.states
+  override def states = compiler.pirenv.states
   override def config:PIRConfig = compiler.config
 
   override def handle(e:Throwable) = {
@@ -43,9 +43,9 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
 }
 trait PIRTraversal extends PIRPass {
   type N = PIRNode
-  def top = compiler.pirTop
+  def top = compiler.pirenv.pirTop
 }
 trait ControlTreeTraversal extends PIRPass {
   type N = ControlTree
-  def top = compiler.pirTop.topCtrl
+  def top = compiler.pirenv.pirTop.topCtrl
 }

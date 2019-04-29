@@ -6,7 +6,6 @@ import prism.graph._
 import scala.collection.mutable
 
 class GlobalInsertion(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with BufferAnalyzer {
-  import compiler.env._
 
   val ctxMap = mutable.Map[ControlTree, Context]() 
 

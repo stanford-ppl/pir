@@ -6,7 +6,6 @@ import prism.graph._
 import scala.collection.mutable
 
 class ContextInsertion(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with Transformer with UnitTraversal with DependencyAnalyzer {
-  import compiler.env._
 
   val ctxMap = mutable.Map[ControlTree, Context]() 
 

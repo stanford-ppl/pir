@@ -5,13 +5,13 @@ import pir.pass._
 import pir.codegen._
 import pir.mapper._
 import prism.codegen._
-import prism.util._
 import spade.codegen._
 
 trait PIRApp extends PIR with Logging {
   
   /* Analysis and Transformations*/
 
+  lazy val pirgenStaging = new SpatialPIRGenStaging()
   lazy val deadCodeEliminator = new DeadCodeElimination()
   lazy val constProp = new ConstantPropogation()
   lazy val memLowering = new MemoryLowering()
@@ -55,11 +55,12 @@ trait PIRApp extends PIR with Logging {
   override def initSession = {
     import config._
 
+    addPass(pirgenStaging) ==>
     saveSession(buildPath(config.outDir,"pir0.ckpt"))
 
     // ------- Analysis and Transformations --------
     addPass(enableDot, new PIRIRDotGen(s"top1.dot"))
-    addPass(enableTrace && genPsim, dramTraceGen)
+    addPass(enableTrace && genPsim, dramTraceGen).dependsOn(pirgenStaging)
     addPass(graphInit) ==>
     addPass(enableDot, new PIRIRDotGen(s"top2.dot"))
     addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
@@ -85,7 +86,7 @@ trait PIRApp extends PIR with Logging {
     saveSession(buildPath(config.outDir,"pir1.ckpt")).dependsOn(globalInsertion)
 
     addPass(initializer).dependsOn(globalInsertion) ==>
-    addPass(new ParamHtmlIRPrinter(s"param.html", spadeParam))
+    addPass(new ParamHtmlIRPrinter(s"param.html", pirenv.spadeParam))
     addPass(enableDot, new PIRCtxDotGen(s"simple7.dot")) ==>
     addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
 
@@ -132,151 +133,7 @@ trait PIRApp extends PIR with Logging {
 
   }
 
-  override def loadSession:Unit = {
-    super.loadSession
-    if (_states.isEmpty) {
-      createNewState
-      tic
-      val top = Top()
-      states.pirTop = top
-      import top._
-      within(top) {
-        val topCtrler = createCtrl("Sequenced") { TopController() }
-        top.topCtrl = topCtrler.ctrl.get
-        topCtrl.ctrler := topCtrler
-        top.argFringe = ArgFringe()
-        within(argFringe) {
-          val hostInCtrler = createCtrl("Sequenced") { HostInController() }
-          top.hostInCtrl = hostInCtrler.ctrl.get
-          endState[Ctrl]
-        }
-        staging(top)
-        within(argFringe) {
-          val hostOutCtrler = createCtrl("Sequenced") { HostOutController() }
-          top.hostOutCtrl = hostOutCtrler.ctrl.get
-          argOuts.foreach { mem =>
-            HostRead().input(MemRead().setMem(mem))
-          }
-          endState[Ctrl]
-        }
-        streamOuts.foreach { streamOut =>
-          within(ControlTree("Streaming")) {
-            FringeStreamRead().name.mirror(streamOut.name).stream(MemRead().setMem(streamOut).out)
-          }
-        }
-        endState[Ctrl]
-      }
-      argOuts.clear
-      streamOuts.clear
-      dramAddrs.clear
-      nameSpace.clear
-      toc(s"New design", "ms")
-    }
-    setAnnotation(pirTop)
-  }
-
-  def setAnnotation(top:Top) = {
-    config.getOption[String]("count").foreach { v =>
-      val streamCommands = top.collectDown[StreamCommand]()
-      val nameMap = streamCommands.map { stream =>
-        stream.name.v.getOrElse(stream.sname.get) -> stream
-      }.toMap
-      v.split(",").toList.sliding(2,2).foreach { 
-        case List(key,value) =>
-          nameMap.get(key).fold {
-            warn(s"No stream with name $key")
-          } { stream =>
-            stream.count.reset
-            info(s"Annotate $key.count=$value")
-            stream.count(Finite(value.toLong))
-          }
-        case List(key) =>
-          info(s"Malformat on count annotation. Parsed $key with no value")
-        case Nil =>
-      }
-    }
-  }
-
   def staging(top:Top):Unit
-
-  /* Helper function during staging graph */
-
-  val argOuts = scala.collection.mutable.ListBuffer[Reg]()
-  val streamOuts = scala.collection.mutable.ListBuffer[FIFO]()
-  val dramAddrs = scala.collection.mutable.Map[DRAM, Reg]()
-
-  implicit class NodeHelper[T](x:T) {
-    def sctx(c:String):T = x.to[PIRNode].fold(x) { xx => xx.srcCtx(c); x }
-    def name(c:String):T = x.to[PIRNode].fold(x) { xx => xx.name(c); x }
-    def setMem(m:Memory):T = x.to[Access].fold(x) { xx => xx.order := m.accesses.size; xx.mem(m) ; x }
-  }
-
-  val nameSpace = scala.collection.mutable.Map[String,Any]()
-  def lookup[T](name:String) = nameSpace(name).asInstanceOf[T]
-  def save[T](name:String, x:T) = { 
-    nameSpace(name) = x; 
-    x.to[PIRNode].foreach { x =>
-      if (x.sname.isEmpty) x.sname(name)
-    }
-    x.to[DRAM].foreach { x => x.sname(name) }
-    x
-  }
-
-  def createCtrl[T<:Controller](schedule:String)(newCtrler: => T):T = {
-    val tree = ControlTree(schedule)
-    beginState(tree)
-    val ctrler = newCtrler
-    val par = ctrler match {
-      case ctrler:LoopController => ctrler.cchain.T.map { _.par }.product
-      case ctrler => 1
-    }
-    tree.par := par
-    tree.ctrler(ctrler)
-    tree.parent.foreach { parent =>
-      parent.ctrler.v.foreach { pctrler =>
-        ctrler.parentEn(pctrler.valid)
-      }
-    }
-    ctrler
-  }
-
-  def dramAddress(dram:DRAM) = {
-    val mem = dramAddrs.getOrElseUpdate(dram, {
-      val mem = Reg()
-      within(pirTop.argFringe, pirTop.hostInCtrl) {
-        val dramAddr = DRAMAddr(dram).name(dram.sid)
-        MemWrite().setMem(mem).data(dramAddr) // DRAMDef
-      }
-      mem
-    })
-    MemRead().setMem(mem)
-  }
-  
-  def argIn(name:String) = {
-    val mem = Reg().name(name)
-    within(pirTop.argFringe, pirTop.hostInCtrl) {
-      MemWrite().setMem(mem).data(HostWrite().name(name))
-    }
-    mem
-  }
-
-  def argOut() = {
-    within(pirTop.argFringe) {
-      val mem = Reg()
-      argOuts += mem
-      mem
-    }
-  }
-
-  def streamIn(fifo:FIFO) = {
-    within(ControlTree("Streaming")) {
-      FringeStreamWrite().name.mirror(fifo.name).stream(MemWrite().setMem(fifo).data)
-    }
-  }
-
-  def streamOut(fifo:FIFO) = {
-    streamOuts += fifo
-  }
 
 }
 
