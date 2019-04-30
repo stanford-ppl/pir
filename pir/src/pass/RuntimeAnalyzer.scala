@@ -214,6 +214,8 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:TokenRead => Some(1)
       case n:CountAck => Some(1)
       case n:MemWrite => n.data.inferVec
+      //TODO: this info should be from spatial. vec of streamOut should be bank of stream
+      case n:MemRead if n.getCtrl.schedule == "Streaming" => Some(n.mem.banks.get.head) 
       case n:MemRead => n.getCtrl.inferVec
       case n:BankedWrite => zipMap(n.data.inferVec, n.offset.inferVec) { case (a,b) => Math.max(a,b) }
       case n:BankedRead => n.offset.inferVec // Before lowering

@@ -63,7 +63,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
       insertGlobalOutput(nk)
     }
     //breakPoint(s"$k, $mks")
-    val usedByRemove = k.accum(visitFunc = visitGlobalOut _, logger=Some(this))
+    val usedByRemove = k.accum(visitFunc = visitGlobalOut _)
     removeNodes(nodes)
     removeNodes(usedByRemove)
     //breakPoint(s"$k, $mks")
@@ -94,6 +94,12 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     removeNodes(consts)
   }
 
+  def visitIn(n:PIRNode) = n match {
+    case n:BufferRead => n.in.neighbors.toList
+    case n:BufferWrite => n.data.neighbors.toList
+    case n => visitGlobalIn(n)
+  }
+
   def updateMetadata(k:CUMap.K, mem:Memory, mapping:mutable.Map[ND, ND], bankMult:Int, bankids:Iterable[Int]) = {
     val mmem = mapping(mem).as[Memory]
     if (bankMult != 1) {
@@ -102,12 +108,6 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     }
     mmem.bankids.reset
     mmem.bankids := bankids.toList
-
-    def visitIn(n:PIRNode) = n match {
-      case n:BufferRead => n.in.neighbors.toList
-      case n:BufferWrite => n.data.neighbors.toList
-      case n => visitGlobalIn(n)
-    }
 
     mmem.accesses.foreach { access =>
       // From access to memory bank shuffle
@@ -192,9 +192,10 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
                   val mmem = mapping(mem).as[Memory]
                   val mbr = mapping(br).as[BankedRead]
                   val fromBanks = mmem.bankids.get
-                  val mbankAddr = shuffle.to.T.collect[BufferWrite](visitGlobalIn _).headOption.flatMap { bout =>
+                  val mbankAddr = shuffle.to.collect[BufferWrite](visitIn _).headOption.map { bout =>
                     val bankAddr = bout.data.T
-                    mapping.get(bankAddr)
+                    dbg(s"bout=$bout bankAddr=$bankAddr")
+                    mapping(bankAddr)
                   }
                   val mto = mbankAddr.getOrElse { to }
                   dbg(s"mbankAddr=$mbankAddr, mto=$mto")
