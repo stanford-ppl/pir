@@ -5,6 +5,7 @@ import pickle
 import os, sys
 import csv
 import fnmatch
+import glob
 
 global parser
 parser = argparse.ArgumentParser(description='Run experiments')
@@ -37,28 +38,32 @@ def cstr(color, msg):
     return "{}{}{}".format(color, msg, NC)
 
 class Parser:
-    def __init__(self, conf, key, pattern, parseLambda, default=None):
+    def __init__(self, key, pattern, parseLambda, default=None):
         self.key = key
         if type(pattern) == list:
             patterns = pattern
         else:
             patterns = [pattern]
         self.patterns = patterns
-        self.conf = conf
         self.parseLambda = parseLambda
-        conf[key] = default
+        self.default = default
 
-    def parse(self, found):
+    def setDefault(self, conf):
+        conf[self.key] = self.default
+
+    def parse(self, found, conf):
         lines = [line for pat in self.patterns for line in found[pat]]
         if len(lines) != 0:
-            self.conf[self.key] = self.parseLambda(lines)
+            conf[self.key] = self.parseLambda(lines)
 
 def parseLog(log, parsers, conf):
+    for parser in parsers:
+        parser.setDefault(conf)
     if not os.path.exists(log): return
     patterns = [pat for parser in parsers for pat in parser.patterns] 
     found = grep(log, patterns)
     for parser in parsers:
-        parser.parse(found)
+        parser.parse(found, conf)
 
 def getApps(backend, opts):
     apps = []
@@ -103,12 +108,13 @@ def grep(path, patterns):
         patterns = [patterns]
     for pattern in patterns:
         found[pattern] = []
-    if not os.path.exists(path): return found
-    with open(path, 'r') as f:
-        for line in f:
-            for pattern in patterns:
-                if pattern in line:
-                    found[pattern].append(line)
+    paths = [path] if os.path.isfile(path) else glob.glob(path)
+    for p in paths:
+        with open(p, 'r') as f:
+            for line in f:
+                for pattern in patterns:
+                    if pattern in line:
+                        found[pattern].append(line)
     return found
 
 def remove(path, opts):

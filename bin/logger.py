@@ -93,6 +93,8 @@ def getMessage(conf, opts):
         msg.append(cstr(GREEN, 'genpir'))
     else:
         msg.append(cstr(RED, 'genpir'))
+    if conf['genpir_err'] is not None:
+        msg.append(cstr(RED, conf['genpir_err']))
 
     if conf['runpir_err'] is not None:
         msg.append(cstr(RED,'runpir'))
@@ -223,234 +225,201 @@ def parse(conf, opts):
     conf['proutesh'] = os.path.join(opts.gendir,backend,app,"log/runproute.sh")
     conf['prouteSummary'] = os.path.join(opts.gendir,backend,app,"plastisim","summary.csv")
     conf['AccelMain'] = os.path.join(opts.gendir,backend,app,"pir","AccelMain.scala")
+    conf['logpath'] = os.path.join(opts.gendir,backend,app,"log/")
     conf['gentstlog'] = os.path.join(opts.gendir,backend,app,"log/gentst.log")
     conf['maketstlog'] = os.path.join(opts.gendir,backend,app,"log/maketst.log")
     conf['runtstlog'] = os.path.join(opts.gendir,backend,app,"log/runtst.log")
     parse_genpir(conf['AccelMain'], conf, opts)
-    parse_runpir(conf['runpirlog'], conf, opts)
-    parse_mappir(conf['mappirlog'], conf, opts)
-    parse_genpsim(conf['genpsimlog'], conf, opts)
-    parse_gentrace(conf['gentracelog'], conf, opts)
-    parse_runpsim(conf['runpsimlog'], conf, opts)
-    parse_runpsimsh(conf['psimsh'], conf, opts)
-    parse_runproutesh(conf['proutesh'], conf, opts)
+    parseLog(conf['runpirlog'], runpir_parser, conf)
+    parseLog(conf['mappirlog'], mappir_parser, conf)
+    parseLog(conf['genpsimlog'], genpsim_parser, conf)
+    parseLog(conf['gentracelog'], gentrace_parser, conf)
+    parseLog(conf['runpsimlog'], runpsim_parser, conf)
+    parseLog(conf['psimsh'], runpsim_parser, conf)
+    parseLog(conf['proutesh'], runproutesh_parser, conf)
     parse_proutesummary(conf['prouteSummary'], conf, opts)
-    parse_gentst(conf['gentstlog'], conf, opts)
-    parse_maketst(conf['maketstlog'], conf, opts)
-    parse_runtst(conf['runtstlog'], conf, opts)
+    parseLog(conf['gentstlog'], gentst_parser, conf)
+    parseLog(conf['maketstlog'], maketst_parser, conf)
+    parseLog(conf['runtstlog'], runtst_parser, conf)
     return conf
 
-def parse_genpir(log, conf, opts):
-    if os.path.exists(log):
+def parse_genpir(pirsrc, conf, opts):
+    if os.path.exists(pirsrc):
         conf['genpir'] = True
+        conf['genpir_err'] = None
     else:
         conf['genpir'] = False
+        match = grep("{}/00*".format(conf['logpath']),
+                ["error", "exception", "Exception"])
+        lines = [line for pat in match for line in match[pat]]
+        if len(lines) != 0:
+            conf['genpir_err'] = lines[0].replace("\n","")
+        else:
+            conf['genpir_err'] = None
 
-def parse_runpsim(log, conf, opts):
-    parsers = []
-    parsers.append(Parser(
-        conf,
-        'psimcycle', 
-        'Simulation complete at cycle:',
-        lambda lines: int(lines[0].split('Simulation complete at cycle:')[1])
-    ))
-    parsers.append(Parser(
-        conf,
-        'lbw', 
-        'Total DRAM:',
-         lambda lines: float(lines[0].split("(")[1].split("GB/s R")[0].strip())
-    ))
-    parsers.append(Parser(
-        conf,
-        'sbw', 
-        'Total DRAM:',
-         lambda lines: float(lines[0].split(",")[1].split("GB/s W")[0].strip())
-    ))
-    parsers.append(Parser(
-        conf,
-        'psim_deadlock', 
-        'POSSIBLE DEADLOCK',
-         lambda lines: True,
-         default=False
-    ))
-    parseLog(log, parsers, conf)
+runpsim_parser = []
+runpsim_parser.append(Parser(
+    'psimcycle', 
+    'Simulation complete at cycle:',
+    lambda lines: int(lines[0].split('Simulation complete at cycle:')[1])
+))
+runpsim_parser.append(Parser(
+    'lbw', 
+    'Total DRAM:',
+     lambda lines: float(lines[0].split("(")[1].split("GB/s R")[0].strip())
+))
+runpsim_parser.append(Parser(
+    'sbw', 
+    'Total DRAM:',
+     lambda lines: float(lines[0].split(",")[1].split("GB/s W")[0].strip())
+))
+runpsim_parser.append(Parser(
+    'psim_deadlock', 
+    'POSSIBLE DEADLOCK',
+     lambda lines: True,
+     default=False
+))
 
-def parse_runtst(log, conf, opts):
-    parsers = []
-    parsers.append(Parser(
-        conf,
-        'tstcycle', 
-        'Simulation complete at cycle ',
-        lambda lines: int(lines[0].split('Simulation complete at cycle ')[1].split(" ")[0])
-    ))
-    parsers.append(Parser(
-        conf,
-        'runtst_err', 
-        ["error", "fail", "exception"],
-        lambda lines: lines[0] 
-    ))
-    parsers.append(Parser(
-        conf,
-        'runtst_pass', 
-        ["PASS: "],
-        lambda lines: bool(lines[0].split('PASS: ')[1].split(" (")[0])
-    ))
-    parsers.append(Parser(
-        conf,
-        'tst_deadlock', 
-        'DEADLOCK',
-         lambda lines: True,
-         default=False
-    ))
-    parseLog(log, parsers, conf)
+runtst_parser = []
+runtst_parser.append(Parser(
+    'tstcycle', 
+    'Simulation complete at cycle ',
+    lambda lines: int(lines[0].split('Simulation complete at cycle ')[1].split(" ")[0])
+))
+runtst_parser.append(Parser(
+    'runtst_err', 
+    ["error", "fail", "exception"],
+    lambda lines: lines[0] 
+))
+runtst_parser.append(Parser(
+    'runtst_pass', 
+    ["PASS: "],
+    lambda lines: bool(lines[0].split('PASS: ')[1].split(" (")[0])
+))
+runtst_parser.append(Parser(
+    'tst_deadlock', 
+    'DEADLOCK',
+     lambda lines: True,
+     default=False
+))
 
-def parse_maketst(log, conf, opts):
-    parsers = []
-    parsers.append(Parser(
-        conf,
-        'maketst_err', 
-        ["error", "fail", "Exception"],
-        lambda lines: lines[0] 
-    ))
-    parseLog(log, parsers, conf)
+maketst_parser = []
+maketst_parser.append(Parser(
+    'maketst_err', 
+    ["error", "fail", "Exception"],
+    lambda lines: lines[0] 
+))
 
-def parse_gentst(log, conf, opts):
-    parsers = []
-    parsers.append(Parser(
-        conf,
-        'gentst_err', 
-        ["error", "fail", "Exception"],
-        lambda lines: lines[0] 
-    ))
-    parseLog(log, parsers, conf)
+gentst_parser = []
+gentst_parser.append(Parser(
+    'gentst_err', 
+    ["error", "fail", "Exception"],
+    lambda lines: lines[0] 
+))
 
-def parse_mappir(log, conf, opts):
-    parsers = []
-    parsers.append(Parser(
-        conf,
-        'notFit', 
-        'Not enough resource of type',
-        lambda lines: lines[0]
+mappir_parser = []
+mappir_parser.append(Parser(
+    'notFit', 
+    'Not enough resource of type',
+    lambda lines: lines[0]
+))
+pattern = ["MC Usage:", "DAG Usage:", "PMU Usage:", "PCU Usage:"]
+for pat in pattern:
+    key = pat.replace(" Usage:", "")
+    mappir_parser.append(Parser(
+        key, 
+        pat,
+        lambda lines, pat=pat: float(lines[0].split(pat)[1].split("%")[0].strip())
     ))
-    pattern = ["MC Usage:", "DAG Usage:", "PMU Usage:", "PCU Usage:"]
-    for pat in pattern:
-        key = pat.replace(" Usage:", "")
-        parsers.append(Parser(
-            conf,
-            key, 
-            pat,
-            lambda lines, pat=pat: float(lines[0].split(pat)[1].split("%")[0].strip())
-        ))
-    parsers.append(Parser(
-        conf,
-        'row', 
-        '--row=',
-        lambda lines: int(lines[-1].split("--row=")[-1].split(",")[0])
-    ))
-    parsers.append(Parser(
-        conf,
-        'col', 
-        '--col=',
-        lambda lines: int(lines[-1].split("--col=")[-1].split(",")[0].split(']')[0])
-    ))
-    parsers.append(Parser(
-        conf,
-        'p2p', 
-        '--net=',
-        lambda lines: lines[-1].split("--net=")[-1].split(",")[0] == "p2p",
-        default=False
-    ))
-    parsers.append(Parser(
-        conf,
-        'asic', 
-        '--net=',
-        lambda lines: lines[-1].split("--net=")[-1].split(",")[0].split(']')[0] == "asic",
-        default=False
-    ))
-    parsers.append(Parser(
-        conf,
-        'scheduled', 
-        '--scheduled',
-        lambda lines: lines[-1].split("--scheduled=")[-1].split(",")[0].split(']')[0] == "true",
-        default=False
-    ))
-    parsers.append(Parser(
-        conf,
-        'fifo_depth', 
-        '--fifo-depth',
-        lambda lines: int(lines[-1].split("--fifo-depth=")[-1].split(",")[0].split(']')[0]),
-        default=100
-    ))
-    parsers.append(Parser(
-        conf,
-        'mappir_err', 
-        ["error", "Exception"],
-        lambda lines: lines[0] 
-    ))
-    parsers.append(Parser(
-        conf,
-        'mappir_time', 
-        ["Compilation failed in", "Compilation succeed in"],
-        lambda lines: float(lines[0].split("in ")[1].split("s")[0].strip())
-    ))
-    parseLog(log, parsers, conf)
+mappir_parser.append(Parser(
+    'row', 
+    '--row=',
+    lambda lines: int(lines[-1].split("--row=")[-1].split(",")[0])
+))
+mappir_parser.append(Parser(
+    'col', 
+    '--col=',
+    lambda lines: int(lines[-1].split("--col=")[-1].split(",")[0].split(']')[0])
+))
+mappir_parser.append(Parser(
+    'p2p', 
+    '--net=',
+    lambda lines: lines[-1].split("--net=")[-1].split(",")[0] == "p2p",
+    default=False
+))
+mappir_parser.append(Parser(
+    'asic', 
+    '--net=',
+    lambda lines: lines[-1].split("--net=")[-1].split(",")[0].split(']')[0] == "asic",
+    default=False
+))
+mappir_parser.append(Parser(
+    'scheduled', 
+    '--scheduled',
+    lambda lines: lines[-1].split("--scheduled=")[-1].split(",")[0].split(']')[0] == "true",
+    default=False
+))
+mappir_parser.append(Parser(
+    'fifo_depth', 
+    '--fifo-depth',
+    lambda lines: int(lines[-1].split("--fifo-depth=")[-1].split(",")[0].split(']')[0]),
+    default=100
+))
+mappir_parser.append(Parser(
+    'mappir_err', 
+    ["error", "Exception"],
+    lambda lines: lines[0] 
+))
+mappir_parser.append(Parser(
+    'mappir_time', 
+    ["Compilation failed in", "Compilation succeed in"],
+    lambda lines: float(lines[0].split("in ")[1].split("s")[0].strip())
+))
 
-def parse_runproutesh(log, conf, opts):
-    parsers = []
-    parsers.append(Parser(
-        conf,
-        'algo', 
-        '',
-        lambda lines: lines[0].split("-a ")[1].split(" ")[0]
-    ))
-    parsers.append(Parser(
-        conf,
-        'pattern', 
-        '',
-         lambda lines: lines[0].split("-T ")[1].split(" ")[0]
-    ))
-    parsers.append(Parser(
-        conf,
-        'slink', 
-        '',
-         lambda lines: int(lines[0].split("-e ")[1].split(" ")[0])
-    ))
-    parsers.append(Parser(
-        conf,
-        'vlink', 
-        '',
-         lambda lines: int(lines[0].split("-x ")[1].split(" ")[0])
-    ))
-    parsers.append(Parser(
-        conf,
-        'prtime', 
-        '',
-         lambda lines: int(lines[0].split("-S ")[1].split(" ")[0])
-    ))
-    parsers.append(Parser(
-        conf,
-        'vcLimit', 
-        '',
-         lambda lines: int(lines[0].split("-q")[1].split("-")[0].strip())
-    ))
-    parseLog(log, parsers, conf)
+runproutesh_parser = []
+runproutesh_parser.append(Parser(
+    'algo', 
+    '',
+    lambda lines: lines[0].split("-a ")[1].split(" ")[0]
+))
+runproutesh_parser.append(Parser(
+    'pattern', 
+    '',
+     lambda lines: lines[0].split("-T ")[1].split(" ")[0]
+))
+runproutesh_parser.append(Parser(
+    'slink', 
+    '',
+     lambda lines: int(lines[0].split("-e ")[1].split(" ")[0])
+))
+runproutesh_parser.append(Parser(
+    'vlink', 
+    '',
+     lambda lines: int(lines[0].split("-x ")[1].split(" ")[0])
+))
+runproutesh_parser.append(Parser(
+    'prtime', 
+    '',
+     lambda lines: int(lines[0].split("-S ")[1].split(" ")[0])
+))
+runproutesh_parser.append(Parser(
+    'vcLimit', 
+    '',
+     lambda lines: int(lines[0].split("-q")[1].split("-")[0].strip())
+))
 
-def parse_runpsimsh(log, conf, opts):
-    parsers = []
-    parsers.append(Parser(
-        conf,
-        'link_prop', 
-        '',
-        lambda lines: lines[0].split("-l ")[1].split(" ")[0]
-    ))
-    parsers.append(Parser(
-        conf,
-        'flit_data_width', 
-        '-i',
-        lambda lines: lines[0].split("-i")[1].split(" ")[0],
-        default=512
-    ))
-    parseLog(log, parsers, conf)
+runpsimsh_parser = []
+runpsimsh_parser.append(Parser(
+    'link_prop', 
+    '',
+    lambda lines: lines[0].split("-l ")[1].split(" ")[0]
+))
+runpsimsh_parser.append(Parser(
+    'flit_data_width', 
+    '-i',
+    lambda lines: lines[0].split("-i")[1].split(" ")[0],
+    default=512
+))
 
 def parse_proutesummary(log, conf, opts):
     conf["DynHopsVec"] = None
@@ -474,41 +443,31 @@ def parse_proutesummary(log, conf, opts):
                 if k in conf:
                     conf[k] = row[k]
 
-def parse_runpir(log, conf, opts):
-    parsers = []
-    parsers.append(Parser(
-        conf,
-        'runpir_time', 
-        ["Compilation failed in", "Compilation succeed in"],
-        lambda lines: float(lines[0].split("in ")[1].split("s")[0].strip())
-    ))
-    parsers.append(Parser(
-        conf,
-        'runpir_err', 
-        ["error", "fail", "Exception"],
-        lambda lines: lines[0] 
-    ))
-    parseLog(log, parsers, conf)
+runpir_parser = []
+runpir_parser.append(Parser(
+    'runpir_time', 
+    ["Compilation failed in", "Compilation succeed in"],
+    lambda lines: float(lines[0].split("in ")[1].split("s")[0].strip())
+))
+runpir_parser.append(Parser(
+    'runpir_err', 
+    ["error", "fail", "Exception"],
+    lambda lines: lines[0] 
+))
 
-def parse_genpsim(log, conf, opts):
-    parsers = []
-    parsers.append(Parser(
-        conf,
-        'genpsim_err', 
-        ["error", "fail", "Exception"],
-        lambda lines: lines[0] 
-    ))
-    parseLog(log, parsers, conf)
+genpsim_parser = []
+genpsim_parser.append(Parser(
+    'genpsim_err', 
+    ["error", "fail", "Exception"],
+    lambda lines: lines[0] 
+))
 
-def parse_gentrace(log, conf, opts):
-    parsers = []
-    parsers.append(Parser(
-        conf,
-        'gentrace_err', 
-        ["error", "fail", "Exception"],
-        lambda lines: lines[0] 
-    ))
-    parseLog(log, parsers, conf)
+gentrace_parser = []
+gentrace_parser.append(Parser(
+    'gentrace_err', 
+    ["error", "fail", "Exception"],
+    lambda lines: lines[0] 
+))
 
 def main():
     (opts, args) = parser.parse_known_args()
