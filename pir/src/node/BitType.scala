@@ -17,6 +17,10 @@ sealed trait BitType {
     case Fix(true,i,f) => - Math.pow(2, (i+f-1))
     case tp => throw PIRException(s"Unexpected tp for fixTpMin $tp")
   }
+  def toUnsigned = this match {
+    case Fix(s,i,f) => Fix(!s,i,f)
+    case _ => throw PIRException(s"Don't know how to convert to unsigned type")
+  }
   def nbits:Option[Int]
   def bytePerWord = nbits.map { _ /! 8 }
 }

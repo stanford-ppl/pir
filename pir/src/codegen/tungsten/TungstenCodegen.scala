@@ -157,6 +157,8 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       case Fix(true, 16, 0) => "int16_t"
       case Fix(true, 32, 0) => "int"
       case Fix(true, 64, 0) => "long"
+      case Fix(false, 8, 0) => "uint8_t"
+      case Fix(false, 16, 0) => "uint16_t"
       case Fix(false, 32, 0) => "uint32_t"
       case Fix(false, 64, 0) => "uint64_t"
       case Fix(true, i, f) if f > 0 && i + f <= 32 => "float"
