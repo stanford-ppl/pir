@@ -25,6 +25,8 @@ def main():
         if apps is None: apps = []
         os.system('bin/spatial -t {} -p {} -b {} {}'.format(opts.thread, opts.project,backend,
             ' '.join(['-a ' + a for a in apps])))
+        os.system('bin/log ../gen/{} -d -p {} -b {}'.format(gendir, opts.project,
+            opts.backend))
         os.system('bin/log ../gen/{} -s -p {} -b {}'.format(gendir, opts.project,
             opts.backend))
 
