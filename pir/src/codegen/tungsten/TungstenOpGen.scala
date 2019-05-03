@@ -34,7 +34,9 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
         case "AccumMin" => s"fmin($a,$b)"
         //case "AccumFMA" => s"FixFMA"
         //case "AccumUnk" => s"" //TODO
-        case List(op:OpDef) => quoteOp(op.op, n.getTp, List(a.toString,b.toString), List(n.getTp, n.getTp))
+        case List(op:OpDef) => 
+          val ctx = n.srcCtx.v.getOrElse("No spatial source context") + s" ($n ${n.ctx.get})"
+          quoteOp(op.op, n.getTp, List(a.toString,b.toString), List(n.getTp, n.getTp), ctx)
       }
       val in = n.in.T
       val firstVec = n.first.T.getVec
@@ -62,7 +64,8 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:OpDef => emitVec(n) { i => 
       val ins = n.input.connected.map { _.qidx(i) }
-      quoteOp(n.op, n.getTp, ins, n.input.connected.map { _.getTp})
+      val ctx = n.srcCtx.v.getOrElse("No spatial source context") + s" ($n ${n.ctx.get})"
+      quoteOp(n.op, n.getTp, ins, n.input.connected.map { _.getTp}, ctx)
     }
 
     case n:PrintIf =>
@@ -78,7 +81,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
     case n => super.emitNode(n)
   }
 
-  def quoteOp(op:Opcode, ntp:BitType, ins:List[String], intps:List[BitType]) = {
+  def quoteOp(op:Opcode, ntp:BitType, ins:List[String], intps:List[BitType], ctx:String) = {
     def a = ins(0)
     def b = ins(1)
     def c = ins(2)
@@ -91,7 +94,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       case FixAdd                   => s"$a + $b"
       case FixSub                   => s"$a - $b"
       case FixMul                   => s"$a * $b"
-      case FixDiv                   => s"$a / $b"
+      case FixDiv                   => s"""SafeDiv($a, $b, "$ctx")"""
       case FixRecip                 => s"1 / $a"
       case FixMod if ntp.isFraction =>
         val Fix(s,i,f) = ntp
@@ -164,7 +167,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       case FltAdd                   => s"$a + $b"
       case FltSub                   => s"$a - $b"
       case FltMul                   => s"$a * $b"
-      case FltDiv                   => s"$a / $b"
+      case FltDiv                   => s"SafeDiv($a, $b, $ctx)"
       //case FltMod                 =>
       case FltRecip                 => s"1/$a"
       case FltLst                   => s"$a < $b"
