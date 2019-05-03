@@ -142,6 +142,12 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with PIRTr
       }
     }
     n match {
+      case WithMem(reader:MemRead, WithInAccess(mem:Reg, WithData(writer:MemWrite, c:Const))) if !writer.en.isConnected && !reader.en.isConnected =>
+        val outs = reader.out.connected
+        dbgblk(s"Static writing $c -> $writer -> $mem -> $reader -> ${dquote(outs)}") {
+          dbg(s"=> $c -> ${dquote(outs)}")
+          swapOutput(reader.out, c.out)
+        }
       case ShuffleMatch(n) =>
         dbgblk(s"ShuffleMatch($n, from=${dquote(n.from.T)}, to=${dquote(n.to.T)})") {
           val base = assertOne(n.base.connected, s"$n.base.connected")

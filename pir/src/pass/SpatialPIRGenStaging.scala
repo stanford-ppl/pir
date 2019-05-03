@@ -82,7 +82,6 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
   implicit class NodeHelper[T](x:T) {
     def sctx(c:String):T = x.to[PIRNode].fold(x) { xx => xx.srcCtx(c); x }
     def name(c:String):T = x.to[PIRNode].fold(x) { xx => xx.name(c); x }
-    def setMem(m:Memory):T = x.to[Access].fold(x) { xx => xx.order := m.accesses.size; xx.mem(m) ; x }
   }
 
   val nameSpace = scala.collection.mutable.Map[String,Any]()

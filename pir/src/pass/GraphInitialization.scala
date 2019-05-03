@@ -42,6 +42,12 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       val data = n.data.collectFirst[FIFO](visitGlobalIn _)
       n.data.setVec(data.banks.get.head)
       n.data.setTp(data.tp.v)
+      val ack = n.ack.collectFirst[FIFO](visitGlobalIn _)
+      n.ack.setVec(1)
+      n.ack.setTp(Bool)
+    }
+    n.to[DRAMSparseCommand].foreach { n =>
+      n.addr.setVec(n.data.as[IR].getVec)
     }
     n.to[HostRead].foreach { n =>
       n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
@@ -51,9 +57,9 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         n.tp.reset
         n.tp := Bool
         val reg = within(pirTop.argFringe, pirTop.topCtrl) { stage(Reg().depth(1).tp(Bool)) }
-        within(n.parent.get, n.getCtrl) { stage(MemWrite().data(n.out).mem(reg).order(0)) }
+        within(n.parent.get, n.getCtrl) { stage(MemWrite().data(n.out).setMem(reg)) }
         within(pirTop, pirTop.hostOutCtrl) {
-          val read = stage(MemRead().mem(reg).order(1))
+          val read = stage(MemRead().setMem(reg))
           stage(HostRead().input(read))
         }
       }
