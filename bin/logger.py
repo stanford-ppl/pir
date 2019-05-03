@@ -93,7 +93,7 @@ def getMessage(conf, opts):
         msg.append(cstr(GREEN, 'genpir'))
     else:
         msg.append(cstr(RED, 'genpir'))
-    if conf['genpir_err'] is not None:
+    if 'genpir_err' in conf and conf['genpir_err'] is not None:
         msg.append(cstr(RED, conf['genpir_err']))
 
     if conf['runpir_err'] is not None:
@@ -252,6 +252,10 @@ def parse_genpir(pirsrc, conf, opts):
         match = grep("{}/00*".format(conf['logpath']),
                 ["error", "exception", "Exception"])
         lines = [line for pat in match for line in match[pat]]
+
+        match = grep("{}/*_exception.log".format(conf['logpath']),
+                ["error", "exception", "Exception"])
+        lines = lines + [line for pat in match for line in match[pat]]
         if len(lines) != 0:
             conf['genpir_err'] = lines[0].replace("\n","")
         else:
