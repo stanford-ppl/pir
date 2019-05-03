@@ -96,48 +96,54 @@ def getMessage(conf, opts):
     if 'genpir_err' in conf and conf['genpir_err'] is not None:
         msg.append(cstr(RED, conf['genpir_err']))
 
-    if conf['runpir_err'] is not None:
-        msg.append(cstr(RED,'runpir'))
-        msg.append(conf['runpir_err'].strip())
-    elif conf['runpir_time'] is None:
-        msg.append(cstr(YELLOW,'runpir'))
-    else:
-        msg.append(cstr(GREEN,'runpir[{:.2f}s]'.format(conf['runpir_time'])))
+    # if conf['runpir_err'] is not None:
+        # msg.append(cstr(RED,'runpir'))
+        # msg.append(conf['runpir_err'].strip())
+    # elif conf['runpir_time'] is None:
+        # msg.append(cstr(YELLOW,'runpir'))
+    # else:
+        # msg.append(cstr(GREEN,'runpir[{:.2f}s]'.format(conf['runpir_time'])))
 
-    if conf['mappir_err'] is not None:
-        msg.append(cstr(RED,'mappir'))
-        msg.append(conf['mappir_err'].strip())
-    elif conf['notFit'] is not None:
-        msg.append(cstr(YELLOW, 'notFit'))
-    elif conf['mappir_time'] is None:
-        msg.append(cstr(YELLOW,'mappir'))
-    elif conf['PCU'] is not None:
-        msg.append(cstr(GREEN, "mappir[{:.1f}s]".format(conf['mappir_time'])))
-        msg.append(cstr(GREEN,' '.join(['{}:{}'.format(k,conf[k]) for k in ['PCU', "PMU"]])))
-    else:
-        msg.append(cstr(GREEN,'mappir[{:.1f}s]'.format(conf['mappir_time'])))
+    # if conf['mappir_err'] is not None:
+        # msg.append(cstr(RED,'mappir'))
+        # msg.append(conf['mappir_err'].strip())
+    # elif conf['notFit'] is not None:
+        # msg.append(cstr(YELLOW, 'notFit'))
+    # elif conf['mappir_time'] is None:
+        # msg.append(cstr(YELLOW,'mappir'))
+    # elif conf['PCU'] is not None:
+        # msg.append(cstr(GREEN, "mappir[{:.1f}s]".format(conf['mappir_time'])))
+        # msg.append(cstr(GREEN,' '.join(['{}:{}'.format(k,conf[k]) for k in ['PCU', "PMU"]])))
+    # else:
+        # msg.append(cstr(GREEN,'mappir[{:.1f}s]'.format(conf['mappir_time'])))
 
-    if conf['NetVC'] is None:
-        msg.append(cstr(RED,'runproute'))
-    else:
-        msg.append(cstr(GREEN,'vc:{}'.format(conf['NetVC'])))
+    # if conf['NetVC'] is None:
+        # msg.append(cstr(RED,'runproute'))
+    # else:
+        # msg.append(cstr(GREEN,'vc:{}'.format(conf['NetVC'])))
 
-    if conf['psim_deadlock']:
-        msg.append(cstr(RED, 'DEADLOCK'))
-    elif conf['gentrace_err'] is not None:
-        msg.append(cstr(RED, 'gentrace') + ": " + conf['gentrace_err'].strip())
-    elif conf['genpsim_err'] is not None:
-        msg.append(cstr(RED, 'genpsim') + ": " + conf['genpsim_err'].strip())
-    elif conf['psimcycle'] is None:
-        msg.append(cstr(RED, 'runpsim'))
-    else:
-        msg.append(cstr(GREEN, 'psimcycle:{} lbw:{} sbw:{}'.format(conf['psimcycle'], conf['lbw'], conf['sbw'])))
+    # if conf['psim_deadlock']:
+        # msg.append(cstr(RED, 'DEADLOCK'))
+    # elif conf['gentrace_err'] is not None:
+        # msg.append(cstr(RED, 'gentrace') + ": " + conf['gentrace_err'].strip())
+    # elif conf['genpsim_err'] is not None:
+        # msg.append(cstr(RED, 'genpsim') + ": " + conf['genpsim_err'].strip())
+    # elif conf['psimcycle'] is None:
+        # msg.append(cstr(RED, 'runpsim'))
+    # else:
+        # msg.append(cstr(GREEN, 'psimcycle:{} lbw:{} sbw:{}'.format(conf['psimcycle'], conf['lbw'], conf['sbw'])))
 
     if conf['gentst_err'] is not None:
         msg.append(cstr(RED, 'gentst') + ": "+ conf['gentst_err'].strip())
-    elif conf['maketst_err'] is not None:
+    else:
+        msg.append(cstr(GREEN, 'gentst'))
+
+    if conf['maketst_err'] is not None:
         msg.append(cstr(RED, 'maketst') + ": " + conf['maketst_err'].strip())
-    elif conf['tst_deadlock']:
+    else:
+        msg.append(cstr(GREEN, 'maketst'))
+
+    if conf['tst_deadlock']:
         msg.append(cstr(RED, 'runtst: DEADLOCK'))
     elif conf['runtst_err'] is not None:
         msg.append(cstr(RED, 'runtst') + ": " + conf['runtst_err'].strip())
