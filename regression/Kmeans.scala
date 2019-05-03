@@ -3,7 +3,7 @@ import spatial.dsl._
 case class KmeansParam(
   K:scala.Int = 64,
   D:scala.Int = 64,
-  ts:scala.Int = 1024,
+  ts:scala.Int = 128,
   ip:scala.Int = 16,
   op:scala.Int = 1,
   mp1:scala.Int = 1,
@@ -13,15 +13,19 @@ case class KmeansParam(
 
 class Kmeans_0 extends Kmeans
 
-class Kmeans_1 extends Kmeans {override lazy val param = KmeansParam(mp1 = 2,mp2 = 2)}
-class Kmeans_2 extends Kmeans {override lazy val param = KmeansParam(ip=1, K=16, D=16, ts=2)}
-//class Kmeans_3 extends Kmeans {override lazy val param = KmeansParam(mp1 = 2,mp2 = 4)}
-//class Kmeans_5 extends Kmeans {override lazy val param = KmeansParam(mp1 = 3,mp2 = 3)}
+class Kmeans_1 extends Kmeans {override lazy val param = KmeansParam(ip=1)}
+class Kmeans_2 extends Kmeans {override lazy val param = KmeansParam(mp1=2)}
+class Kmeans_3 extends Kmeans {override lazy val param = KmeansParam(mp2=2)}
+class Kmeans_4 extends Kmeans {override lazy val param = KmeansParam(mp3=2)}
+class Kmeans_5 extends Kmeans {override lazy val param = KmeansParam(mp1=2,mp2=2)}
+class Kmeans_6 extends Kmeans {override lazy val param = KmeansParam(mp2=2,mp3=2)}
+class Kmeans_7 extends Kmeans {override lazy val param = KmeansParam(mp1=2,mp3=2)}
+class Kmeans_8 extends Kmeans {override lazy val param = KmeansParam(mp1=2,mp2=2,mp3=2)}
 
 @spatial abstract class Kmeans extends DSETest with SpatialTest { self => // Regression (Dense) // Args: 3 64
   type X = Int
 
-  override def runtimeArgs = "1 4"
+  override def runtimeArgs = "2 1024"
 
   lazy val param = KmeansParam()
   import param._
@@ -83,7 +87,7 @@ class Kmeans_2 extends Kmeans {override lazy val param = KmeansParam(ip=1, K=16,
           Foreach(D par ip){ d =>
             val centCount = newCents(ct,DM1)
             val cond = centCount == 0.to[T]
-            cts(ct, d) = mux(cond, 0.to[T], newCents(ct,d) / mux(cond,1.to[T], centCount)) 
+            cts(ct, d) = mux(cond, 0.to[T], newCents(ct,d) / mux(cond,1.to[T], centCount)) // prevent div by 0
           }
         }
       }
@@ -100,9 +104,11 @@ class Kmeans_2 extends Kmeans {override lazy val param = KmeansParam(ip=1, K=16,
     val I = args(0).to[Int]
     val N = args(1).to[Int]
 
-    val pts = Array.tabulate(N){i => Array.tabulate(D){d => if (d == D-1) 1.to[X] else random[X](element_max) + i }}
+    val pts = Array.tabulate(N){i => Array.tabulate(D){d => if (d == DM1) 1.to[X] else random[X](element_max) + i }}
+
     val result = kmeans(pts.flatten, I, N)
 
+    // Initialize centroids
     val cts = Array.tabulate(K) { i => Array.empty[X](D) }
     for (k <- 0 until K) {
       for (d <- 0 until D) {
@@ -111,38 +117,39 @@ class Kmeans_2 extends Kmeans {override lazy val param = KmeansParam(ip=1, K=16,
         cent(d) = point(d)
       }
     }
+
+    def dist[T:Num](p1: Array[T], p2: Array[T]) = {
+      Array.tabulate(D) { i =>
+        if (i==DM1) 0.to[T] else (p1(i) - p2(i)) ** 2
+      }.reduce(_+_)
+    }
+
     val ii = Array.tabulate(K){i => i}
-
     for(epoch <- 0 until I) {
-      def dist[T:Num](p1: Array[T], p2: Array[T]) = {
-        Array.tabulate(D) { i =>
-          if (i==DM1) 0.to[T] else (p1(i) - p2(i)) ** 2
-        }.reduce(_+_)
-      }
-
-      // Make weighted points
-      val newCents = Array.tabulate(K) { i => Array.empty[X](D) }
+      // Zero accumulator
+      val accum = Array.tabulate(K) { i => Array.empty[X](D) }
       for (k <- 0 until K) {
         for (d <- 0 until D) {
-          val cent = cts(k)
-          cent(d) = 0
+          val acc = accum(k)
+          acc(d) = 0.to[X]
         }
       }
       pts.foreach { pt =>
         val dists = cts.map{ct => dist(ct, pt) }
-        val idx = dists.zip(ii){(a,b) => pack(a,b) }.reduce{(a,b) => if (a._1 >= b._1) a else b}._2  // maxIndex
+        val idx = dists.zip(ii){(a,b) => pack(a,b) }.reduce{(a,b) => if (a._1 <= b._1) a else b}._2 
         for (k <- 0 until K) {
-          val cent = newCents(idx)
-          cent(k) = cent(k) + pt(k)
+          val acc = accum(idx)
+          acc(k) = acc(k) + pt(k)
         }
       }
 
       // Average
       for (k <- 0 until K) {
-        val cent = newCents(k)
-        val n = cent(D-1)
-        cts(k) = Array.tabulate(D){d => 
-          if (n == 0) 0.to[X] else cent(d)/n
+        val acc = accum(k)
+        val n = acc(DM1)
+        for (d <- 0 until D) {
+          val cent = cts(k)
+          cent(d) = if (n == 0) 0.to[X] else acc(d)/n
         }
       }
     }
