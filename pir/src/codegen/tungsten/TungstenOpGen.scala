@@ -165,7 +165,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       case FltAdd                   => s"$a + $b"
       case FltSub                   => s"$a - $b"
       case FltMul                   => s"$a * $b"
-      case FltDiv                   => s"SafeDiv($a, $b, $ctx)"
+      case FltDiv                   => s"SafeDiv($a, $b, \"$ctx\")"
       //case FltMod                 =>
       case FltRecip                 => s"1/$a"
       case FltLst                   => s"$a < $b"
