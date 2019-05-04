@@ -6,7 +6,7 @@ import prism.graph._
 
 trait MemoryNode extends PIRNode {
   /*  ------- Metadata -------- */
-  val inits = Metadata[List[Any]]("inits")
+  val inits = Metadata[Any]("inits")
   val dims = Metadata[List[Int]]("dims", default=List(1))
   // Total bank dimension of the original memory
   val banks = Metadata[List[Int]]("banks", default=List(1))

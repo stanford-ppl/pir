@@ -14,12 +14,6 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
   with GraphUtilImplicits 
   with CollectorImplicit
   with RuntimeAnalyzer
-  //with prism.traversal.GraphUtil  
-  //with spade.SpadeAlias 
-  //with RoutingUtil 
-  //with TypeUtil 
-  //with MappingUtil
-  //with MappingLogger
   {
 
   override def states = compiler.pirenv.states

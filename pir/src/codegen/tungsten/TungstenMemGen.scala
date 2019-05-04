@@ -67,7 +67,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
           genCtxInits {
             emitln(s"""inputs.push_back($name);""")
             if (n.initToken.get) {
-              val initVal = assertOne(n.inits.get, s"$n.inits")
+              val initVal = n.inits.get
               val banks = n.banks.map { _.head }.getOrElse(n.getVec)
               val init = if (banks > 1) {
                 emitln(s"${n.qtp} ${n}_init[${banks}] = {${List.fill(banks)(initVal).mkString(",")}};")

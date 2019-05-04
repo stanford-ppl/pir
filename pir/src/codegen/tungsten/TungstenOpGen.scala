@@ -35,8 +35,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
         //case "AccumFMA" => s"FixFMA"
         //case "AccumUnk" => s"" //TODO
         case List(op:OpDef) => 
-          val ctx = n.srcCtx.v.getOrElse("No spatial source context") + s" ($n ${n.ctx.get})"
-          quoteOp(op.op, n.getTp, List(a.toString,b.toString), List(n.getTp, n.getTp), ctx)
+          quoteOp(op.op, n.getTp, List(a.toString,b.toString), List(n.getTp, n.getTp), quoteSrcCtx(n))
       }
       val in = n.in.T
       val firstVec = n.first.T.getVec
@@ -64,8 +63,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:OpDef => emitVec(n) { i => 
       val ins = n.input.connected.map { _.qidx(i) }
-      val ctx = n.srcCtx.v.getOrElse("No spatial source context") + s" ($n ${n.ctx.get})"
-      quoteOp(n.op, n.getTp, ins, n.input.connected.map { _.getTp}, ctx)
+      quoteOp(n.op, n.getTp, ins, n.input.connected.map { _.getTp}, quoteSrcCtx(n))
     }
 
     case n:PrintIf =>
