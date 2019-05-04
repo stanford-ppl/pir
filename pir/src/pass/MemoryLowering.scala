@@ -318,7 +318,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
             if (inAccess.order.get > outAccess.order.get) {
               dbg(s"$token.initToken = true")
               token.initToken := true
-              token.inits := List(true)
+              token.inits := true
               token.depth.reset // HACK to mem reduce. 
                                 // if token.depth = 1, write is blocked since ready is low. 
               token.depth := 2

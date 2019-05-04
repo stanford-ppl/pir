@@ -13,7 +13,11 @@ class MemoryInitialLowering(implicit compiler:PIR) extends PIRTransformer {
   }
 
   def lowerMem(ctx:Context) = dbgblk(s"lowerMem($ctx)"){
-    ctx.collectChildren[Access].groupBy { _.mem.T }.foreach { 
+    ctx.collectChildren[Access].groupBy { _.mem.T }.map { case (mem, accesses) =>
+      val sorted = accesses.sortBy { _.order.get }
+      dbg(s"mem:$mem, accesses:$sorted")
+      (mem, sorted)
+    }.foreach { 
       case (mem, accesses) if accesses.size == 1 & mem.accesses.size != 1 =>
       case (mem:Reg, List(reader:MemRead)) if mem.accesses.size==1 =>
         mem.inits.v.fold { 
@@ -26,14 +30,23 @@ class MemoryInitialLowering(implicit compiler:PIR) extends PIRTransformer {
           removeNodes(List(mem, reader))
         }
       case (mem:Reg, List(writer:MemWrite, reader:MemRead)) if !writer.en.isConnected && !reader.en.isConnected =>
-        swapOutput(reader.out, writer.data.singleConnected.get)
-        removeNodes(List(mem, writer, reader))
-      case (mem, accesses) => 
+        dbgblk(s"Remove $writer -> $mem -> $reader") {
+          swapOutput(reader.out, writer.data.singleConnected.get)
+          removeNodes(List(mem, writer, reader))
+        }
+      case (mem:Memory, List(writer:BankedWrite, reader:BankedRead)) 
+        if !writer.en.isConnected && !reader.en.isConnected 
+          && writer.bank.connected == reader.bank.connected 
+          && writer.offset.connected == reader.offset.connected =>
+        dbgblk(s"Remove $writer -> $mem -> $reader") {
+          swapOutput(reader.out, writer.data.singleConnected.get)
+          removeNodes(List(mem, writer, reader))
+        }
+      case (mem, List(writer:InAccess, reader:OutAccess)) =>
         err(s"Multiple accesses to the same memory in the same basic block will deadlock on plasticine.", false)
         err(s"Please partition them in multiple basic block", false)
-        err(s"memory: ${quoteSrcCtx(mem)} accesses:", false)
-        accesses.foreach { a => err(quoteSrcCtx(a), false) }
-        err("")
+        err(s"${quoteSrcCtx(mem)} ${quoteSrcCtx(writer)} ${quoteSrcCtx(reader)}:", true)
+      case (mem, accesses) => 
     }
   }
 
