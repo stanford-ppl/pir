@@ -29,18 +29,24 @@ class MemoryInitialLowering(implicit compiler:PIR) extends PIRTransformer {
           swapOutput(reader.out, const.out)
           removeNodes(List(mem, reader))
         }
-      case (mem:Reg, List(writer:MemWrite, reader:MemRead)) if !writer.en.isConnected && !reader.en.isConnected =>
+      case (mem:Reg, List(writer:MemWrite, reader:MemRead)) if writer.en.matchWith(reader.en) =>
         dbgblk(s"Remove $writer -> $mem -> $reader") {
           swapOutput(reader.out, writer.data.singleConnected.get)
-          removeNodes(List(mem, writer, reader))
+          removeNodes(List(reader))
+          if (mem.accesses.size==1) {
+            removeNodes(List(mem, writer))
+          }
         }
       case (mem:Memory, List(writer:BankedWrite, reader:BankedRead)) 
-        if !writer.en.isConnected && !reader.en.isConnected 
-          && writer.bank.connected == reader.bank.connected 
-          && writer.offset.connected == reader.offset.connected =>
+        if writer.en.matchWith(reader.en)
+          && writer.bank.matchWith(reader.bank)
+          && writer.offset.matchWith(reader.offset) =>
         dbgblk(s"Remove $writer -> $mem -> $reader") {
           swapOutput(reader.out, writer.data.singleConnected.get)
-          removeNodes(List(mem, writer, reader))
+          removeNodes(List(reader))
+          if (mem.accesses.size==1) {
+            removeNodes(List(mem, writer))
+          }
         }
       case (mem, List(writer:InAccess, reader:OutAccess)) =>
         err(s"Multiple accesses to the same memory in the same basic block will deadlock on plasticine.", false)

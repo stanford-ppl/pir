@@ -293,5 +293,18 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     msg
   }
 
+  implicit class EdgeOp(x:IR) {
+    def matchWith(y:IR):Boolean = {
+      (x,y) match {
+        case (x:Input[_], y:Input[_]) if x.connected.size != y.connected.size => false
+        case (x:Input[_], y:Input[_]) => x.connected.zip(y.connected).forall { case (x,y) => x.matchWith(y) }
+        case (x:Output[_],y:Output[_]) if x == y => true
+        case (WithNode(Const(x)), WithNode(Const(y))) if x == y => true
+        case (x,y) => false
+      }
+    }
+  }
+
+
 }
 
