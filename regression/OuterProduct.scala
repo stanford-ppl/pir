@@ -26,7 +26,7 @@ class OuterProduct_8 extends OuterProduct {override lazy val param = OuterProduc
 //class OuterProduct_4 extends OuterProduct {override lazy val param = OuterProductParam(op2=8)}
 //class OuterProduct_5 extends OuterProduct {override lazy val param = OuterProductParam(op2=10)}
 
-@spatial abstract class OuterProduct extends DSETest { // Regression (Dense) // Args: 640 640
+@spatial abstract class OuterProduct extends DSETest with SpatialTest { // Regression (Dense) // Args: 640 640
 
   lazy val param = OuterProductParam()
   import param._

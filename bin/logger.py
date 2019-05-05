@@ -17,6 +17,8 @@ parser.add_argument('-G', '--isGen', dest="path_type", action='store_const', con
         default='backend')
 parser.add_argument('-s', '--summarize', action='store_true', default=False, help='summarize log into csv')
 parser.add_argument('-d', '--diff', dest='show_diff', action='store_true', default=False, help='showing difference')
+parser.add_argument('-H', '--history', dest='show_history', action='store_true', default=False,
+        help='showing history')
 parser.add_argument('--logdir', default="{}/spatial/pir/logs/".format(os.environ['HOME']))
 
 def to_conf(tab, **kws):
@@ -28,7 +30,6 @@ def to_conf(tab, **kws):
     return conf
 
 def load_history(opts):
-    if not opts.show_diff: return
     logs = os.listdir(opts.logdir)
     logs = logs[-10:]
 
@@ -488,6 +489,53 @@ gentrace_parser.append(Parser(
     lambda lines: lines[0] 
 ))
 
+def show_gen(opts):
+    gitmsg = subprocess.check_output("git log --pretty=format:'%h,%ad' -n 1 --date=iso".split(" "),
+            cwd=opts.logdir + '../../').replace("'","")
+    sha = gitmsg.split(",")[0]
+    time = gitmsg.split(",")[1].split(" -")[0].strip()
+    for backend in opts.backend:
+        numRun = 0
+        numSucc = 0
+        apps = getApps(backend, opts)
+        confs = []
+        opts.show_app = len(apps)==1 and not opts.summarize
+        for app in apps:
+            conf = OrderedDict()
+            conf['sha'] = sha
+            conf['time'] = time
+            conf['app'] = app
+            conf['project'] = opts.project
+            conf['backend'] = backend
+            logApp(conf, opts)
+            confs.append(conf)
+            numRun += 1
+            if conf['succeeded']: numSucc += 1
+        summarize(backend, opts, confs)
+        if numRun != 0:
+            print('Succeeded {} / {} ({:0.2f}) %'.format(numSucc, numRun, numSucc*100.0/numRun))
+
+def show_history(opts):
+    history = opts.history
+    history = history[history.project == opts.project]
+
+    for backend in opts.backend:
+        btab = history[history.backend==backend]
+        apps = btab.app.unique()
+
+        for app in apps:
+            tab = btab
+            tab = tab[tab.app == app]
+            succeeded = tab[tab.succeeded]
+            if succeeded.shape[0] > 0:
+                times = get_col(succeeded, 'time')
+                pconf = to_conf(succeeded.iloc[np.argmax(times), :])
+                print('{} {} {}'.format(getMessage(pconf, opts), pconf['sha'], pconf['time']))
+            else:
+                times = get_col(tab, 'time')
+                pconf = to_conf(tab.iloc[np.argmax(times), :])
+                print('{} {} {}'.format(getMessage(pconf, opts), pconf['sha'], pconf['time']))
+
 def main():
     (opts, args) = parser.parse_known_args()
     path = opts.path.rstrip('/')
@@ -505,36 +553,17 @@ def main():
         opts.gendir = path
         opts.backend = getBackends(opts)
 
+    for i in range(len(opts.backend)):
+        if 'Tst' in opts.backend[i]:
+            opts.project = backend.split("_")[1]
+            opts.backend[i] = 'Tst'
+
     opts.show_message = not opts.summarize 
 
-    gitmsg = subprocess.check_output("git log --pretty=format:'%h,%ad' -n 1 --date=iso".split(" "),
-            cwd=opts.logdir + '../../').replace("'","")
-    sha = gitmsg.split(",")[0]
-    time = gitmsg.split(",")[1].split(" -")[0].strip()
-
-    load_history(opts)
-    for backend in opts.backend:
-        numRun = 0
-        numSucc = 0
-        apps = getApps(backend, opts)
-        confs = []
-        opts.show_app = len(apps)==1 and not opts.summarize
-        if 'Tst' in backend:
-            opts.project = backend.split("_")[1]
-            backend = 'Tst'
-        for app in apps:
-            conf = OrderedDict()
-            conf['sha'] = sha
-            conf['time'] = time
-            conf['app'] = app
-            conf['project'] = opts.project
-            conf['backend'] = backend
-            logApp(conf, opts)
-            confs.append(conf)
-            numRun += 1
-            if conf['succeeded']: numSucc += 1
-        summarize(backend, opts, confs)
-        if numRun != 0:
-            print('Succeeded {} / {} ({:0.2f}) %'.format(numSucc, numRun, numSucc*100.0/numRun))
-
+    if opts.show_diff or opts.show_history:
+        load_history(opts)
+    if opts.show_history:
+        show_history(opts)
+    else:
+        show_gen(opts)
 
