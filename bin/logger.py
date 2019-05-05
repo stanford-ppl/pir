@@ -497,7 +497,10 @@ def show_gen(opts):
     for backend in opts.backend:
         numRun = 0
         numSucc = 0
-        apps = getApps(backend, opts)
+        if backend == 'Tst':
+            apps = getApps(backend + "_" + opts.project, opts)
+        else:
+            apps = getApps(backend, opts)
         confs = []
         opts.show_app = len(apps)==1 and not opts.summarize
         for app in apps:
