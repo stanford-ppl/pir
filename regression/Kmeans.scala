@@ -22,7 +22,7 @@ class Kmeans_6 extends Kmeans {override lazy val param = KmeansParam(mp2=2,mp3=2
 class Kmeans_7 extends Kmeans {override lazy val param = KmeansParam(mp1=2,mp3=2)}
 class Kmeans_8 extends Kmeans {override lazy val param = KmeansParam(mp1=2,mp2=2,mp3=2)}
 
-@spatial abstract class Kmeans extends DSETest with SpatialTest { self =>
+@spatial abstract class Kmeans extends DSETest { self =>
   type X = Int
 
   override def runtimeArgs = "2 1024"
