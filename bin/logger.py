@@ -135,11 +135,15 @@ def getMessage(conf, opts):
 
     if conf['gentst_err'] is not None:
         msg.append(cstr(RED, 'gentst') + ": "+ conf['gentst_err'].strip())
+    elif 'gentst_time' in conf and conf['gentst_time'] is None:
+        msg.append(cstr(YELLOW, 'gentst'))
     else:
         msg.append(cstr(GREEN, 'gentst'))
 
     if conf['maketst_err'] is not None:
         msg.append(cstr(RED, 'maketst') + ": " + conf['maketst_err'].strip())
+    elif not os.path.exists(conf['maketstlog']):
+        msg.append(cstr(YELLOW, 'maketst'))
     else:
         msg.append(cstr(GREEN, 'maketst'))
 
@@ -148,7 +152,7 @@ def getMessage(conf, opts):
     elif conf['runtst_err'] is not None:
         msg.append(cstr(RED, 'runtst') + ": " + conf['runtst_err'].strip())
     elif conf['tstcycle'] is None:
-        msg.append(cstr(RED, 'runtst'))
+        msg.append(cstr(YELLOW, 'runtst'))
     elif conf['runtst_pass'] is None and conf['tstcycle'] is not None:
         msg.append(cstr(GREEN, 'tstcycle:{}'.format(conf['tstcycle'])))
         succeeded = True
@@ -325,6 +329,11 @@ gentst_parser.append(Parser(
     'gentst_err', 
     ["error", "fail", "Exception"],
     lambda lines: lines[0] 
+))
+gentst_parser.append(Parser(
+    'gentst_time', 
+    ["Compilation failed in", "Compilation succeed in"],
+    lambda lines: float(lines[0].split("in ")[1].split("s")[0].strip())
 ))
 
 mappir_parser = []
