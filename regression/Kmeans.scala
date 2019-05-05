@@ -54,7 +54,8 @@ class Kmeans_8 extends Kmeans {override lazy val param = KmeansParam(mp1=2,mp2=2
 
       Sequential.Foreach(iters by 1){ epoch => // iter = 2
         // For each set of points
-        val newCents = MemReduce(SRAM[T](K,D) par ip)(numPoints by ts par op){i => // iter = 9
+        val newCents = SRAM[T](K,D)
+        MemReduce(newCents par ip)(numPoints by ts par op){i => // iter = 9
           val pts = SRAM[T](ts, D)
           pts load points(i::i+ts, 0::D par ip)
 
@@ -84,7 +85,7 @@ class Kmeans_8 extends Kmeans {override lazy val param = KmeansParam(mp1=2,mp2=2
 
         // Average each new centroid
         Foreach(K by 1 par mp3){ ct =>
-          Foreach(D par ip){ d =>
+          Foreach(D-1 par ip){ d =>
             val centCount = newCents(ct,DM1)
             val cond = centCount == 0.to[T]
             cts(ct, d) = mux(cond, 0.to[T], newCents(ct,d) / mux(cond,1.to[T], centCount)) // prevent div by 0
