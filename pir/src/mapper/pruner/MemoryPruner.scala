@@ -34,7 +34,6 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     val numCU = parts.size
 
     dbg(s"bankMult=$bankMult bankMult=$bankMult totalBanks=$totalBanks")
-    info(s"Split $k into ${numCU} CUs")
 
     val nodes = k.descendentTree
 
@@ -63,10 +62,16 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
       insertGlobalOutput(nk)
     }
     //breakPoint(s"$k, $mks")
-    val usedByRemove = k.accum(visitFunc = visitGlobalOut _)
+    val usedByRemove = k.accum(visitFunc = { n =>
+      val ns = visitGlobalOut(n)
+      n.to[Shuffle].foreach { n =>
+        if (ns.nonEmpty) err(s"Deleted Shuffle $n when remove use of deleted MemoryContainer $k are still used by $ns")
+      }
+      ns
+    })
     removeNodes(nodes)
     removeNodes(usedByRemove)
-    //breakPoint(s"$k, $mks")
+    breakPoint(s"$k, $mks")
     mks
   }
 
@@ -170,64 +175,67 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     reads.groupBy { _.global.get }.foreach { case (global, reads) =>
       reads.groupBy { _.ctx.get }.foreach { case (ctx, reads) =>
         val read = assertOne(reads, s"reads of $br in $ctx")
-        dbgblk(s"Merge $read in $ctx") {
           within(ctx, read.ctrl.get) {
-            val (toSwap, toMerge) = read.out.T match {
-              case List(Unbox(shuffle:Shuffle, from, Const(toBanks), base)) => 
-                dbg(s"Read by $shuffle.to(Const($toBanks))")
-                val toMerge = mappings.map { mapping => 
-                  val mmem = mapping(mem).as[Memory]
-                  val mbr = mapping(br).as[BankedRead]
-                  val fromBanks = mmem.bankids.get
-                  if (fromBanks == toBanks) {
-                    mbr.out
-                  } else {
+            read.out.T.foreach { deped =>
+              dbgblk(s"Merge $read => $deped in $ctx") {
+              val (toSwap, toMerge) = deped match {
+                case Unbox(shuffle:Shuffle, from, Const(toBanks), base) => 
+                  dbg(s"Read by $shuffle.to(Const($toBanks))")
+                  val toMerge = mappings.map { mapping => 
+                    val mmem = mapping(mem).as[Memory]
+                    val mbr = mapping(br).as[BankedRead]
+                    val fromBanks = mmem.bankids.get
+                    if (fromBanks == toBanks) {
+                      mbr.out
+                    } else {
+                      stage(Shuffle(0).base(mbr.out).from(allocConst(fromBanks)).to(allocConst(toBanks))).out
+                    }
+                  }
+                  (shuffle.out, toMerge)
+                case Unbox(shuffle:Shuffle, from, to, base) => 
+                  dbg(s"Read by $shuffle with non-constant to=$to")
+                  val toMerge = mappings.map { mapping => 
+                    val mmem = mapping(mem).as[Memory]
+                    val mbr = mapping(br).as[BankedRead]
+                    val fromBanks = mmem.bankids.get
+                    val mbankAddr = shuffle.to.collect[BufferWrite](visitIn _).headOption.map { bout =>
+                      val bankAddr = bout.data.T
+                      dbg(s"bout=$bout bankAddr=$bankAddr")
+                      mapping(bankAddr)
+                    }
+                    val mto = mbankAddr.getOrElse { to }
+                    dbg(s"mbankAddr=$mbankAddr, mto=$mto")
+                    val mshuffle = stage(Shuffle(0).base(mbr.out).from(allocConst(fromBanks)).to(mto))
+                    mshuffle.out
+                  }
+                  (shuffle.out, toMerge)
+                case out => 
+                  err(s"Read by non Shuffle $out")
+                  // Shuffle eliminated, which means bankAddr was constant and was
+                  // original bankIds. Likely from capacity splitting.
+                  val toMerge = mappings.map { mapping => 
+                    val mmem = mapping(mem).as[Memory]
+                    val mbr = mapping(br).as[BankedRead]
+                    val fromBanks = mmem.bankids.get
+                    val toBanks = mem.bankids.get
                     stage(Shuffle(0).base(mbr.out).from(allocConst(fromBanks)).to(allocConst(toBanks))).out
                   }
-                }
-                (shuffle.out, toMerge)
-              case List(Unbox(shuffle:Shuffle, from, to, base)) => 
-                dbg(s"Read by $shuffle with non-constant to=$to")
-                val toMerge = mappings.map { mapping => 
-                  val mmem = mapping(mem).as[Memory]
-                  val mbr = mapping(br).as[BankedRead]
-                  val fromBanks = mmem.bankids.get
-                  val mbankAddr = shuffle.to.collect[BufferWrite](visitIn _).headOption.map { bout =>
-                    val bankAddr = bout.data.T
-                    dbg(s"bout=$bout bankAddr=$bankAddr")
-                    mapping(bankAddr)
-                  }
-                  val mto = mbankAddr.getOrElse { to }
-                  dbg(s"mbankAddr=$mbankAddr, mto=$mto")
-                  val mshuffle = stage(Shuffle(0).base(mbr.out).from(allocConst(fromBanks)).to(mto))
-                  mshuffle.out
-                }
-                (shuffle.out, toMerge)
-              case outs => 
-                dbg(s"Read by non Shuffle $outs")
-                // Shuffle eliminated, which means bankAddr was constant and was
-                // original bankIds. Likely from capacity splitting.
-                val toMerge = mappings.map { mapping => 
-                  val mmem = mapping(mem).as[Memory]
-                  val mbr = mapping(br).as[BankedRead]
-                  val fromBanks = mmem.bankids.get
-                  val toBanks = mem.bankids.get
-                  stage(Shuffle(0).base(mbr.out).from(allocConst(fromBanks)).to(allocConst(toBanks))).out
-                }
-                (read.out, toMerge)
-            }
+                  (read.out, toMerge)
+              }
 
-            var red:List[Output[PIRNode]] = toMerge
-            while(red.size > 1) {
-              red = red.sliding(2,2).map{ 
-                case List(o1, o2) => stage(OpDef(FixOr).input(o1, o2)).out
-                case List(o1) => o1
-              }.toList
+              var red:List[Output[PIRNode]] = toMerge
+              while(red.size > 1) {
+                red = red.sliding(2,2).map{ 
+                  case List(o1, o2) => stage(OpDef(FixOr).input(o1, o2)).out
+                  case List(o1) => o1
+                }.toList
+              }
+              val List(out) = red.toList
+              swapOutput(toSwap, out)
             }
-            val List(out) = red.toList
-            swapOutput(toSwap, out)
-            bufferInput(ctx)
           }
+          bufferInput(ctx)
+          dupDeps(ctx, from=None)
         }
       }
       insertGlobalInput(global)

@@ -81,10 +81,6 @@ trait DependencyAnalyzer extends PIRTransformer {
 
   def mirrorDeps(to:Context, from:Option[Context]):Map[PIRNode,PIRNode] = dbgblk(s"mirrorDeps($to, $from)") {
     val deps = getDeps(to, from, Some(to))
-    //if (to.streaming.get) {
-      //dbg(s"unexpected deps=${deps}")
-      //if (deps.nonEmpty) throw PIRException(s"Duplicate dependency in streaming context $to")
-    //}
     within(to) { mirrorAll(deps).toMap }.as[Map[PIRNode, PIRNode]]
   }
 
@@ -97,8 +93,8 @@ trait DependencyAnalyzer extends PIRTransformer {
     //breakPoint(s"swapDep($ctx)", None)
   }
 
-  def dupDeps(ctx:Context, from:Context) = dbgblk(s"dupDeps(to=$ctx, from=$from)"){
-    val mapping = mirrorDeps(ctx, from=Some(from))
+  def dupDeps(ctx:Context, from:Option[Context]) = dbgblk(s"dupDeps(to=$ctx, from=$from)"){
+    val mapping = mirrorDeps(ctx, from=from)
     swapDeps(ctx, mapping)
   }
 
