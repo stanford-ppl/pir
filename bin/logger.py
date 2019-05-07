@@ -137,7 +137,7 @@ def getMessage(conf, opts):
 
     if conf['gentst_err'] is not None:
         msg.append(cstr(RED, 'gentst') + ": "+ conf['gentst_err'].strip())
-    elif 'gentst_time' in conf and conf['gentst_time'] is None:
+    elif 'gentst_time' not in conf or conf['gentst_time'] is None:
         msg.append(cstr(YELLOW, 'gentst'))
     else:
         msg.append(cstr(GREEN, 'gentst'))
