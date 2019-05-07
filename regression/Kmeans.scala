@@ -55,6 +55,7 @@ class Kmeans_8 extends Kmeans {override lazy val param = KmeansParam(mp1=2,mp2=2
       Sequential.Foreach(iters by 1){ epoch => // iter = 2
         // For each set of points
         val newCents = SRAM[T](K,D)
+        if (ip == 1) newCents.onlyblockcyclic.blockcyclic_Bs(Seq(63))
         MemReduce(newCents par ip)(numPoints by ts par op){i => // iter = 9
           val pts = SRAM[T](ts, D)
           pts load points(i::i+ts, 0::D par ip)
