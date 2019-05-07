@@ -71,7 +71,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     })
     removeNodes(nodes)
     removeNodes(usedByRemove)
-    breakPoint(s"$k, $mks")
+    //breakPoint(s"$k, $mks")
     mks
   }
 
