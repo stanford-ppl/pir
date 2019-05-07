@@ -182,7 +182,7 @@ def removeRules(conf, opts):
         # reruns.append('gentst')
         # reruns.append('maketst')
         # reruns.append('runtst')
-    # if not con['succeeded']:
+    # if not conf['succeeded']:
         # reruns.append('genpir')
         # reruns.append('gentst')
         # reruns.append('maketst')
