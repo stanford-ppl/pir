@@ -34,7 +34,8 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
         case "AccumMin" => s"fmin($a,$b)"
         //case "AccumFMA" => s"FixFMA"
         //case "AccumUnk" => s"" //TODO
-        case List(op:OpDef) => quoteOp(op, List(a.toString,b.toString))
+        case List(op:OpDef) => 
+          quoteOp(op.op, n.getTp, List(a.toString,b.toString), List(n.getTp, n.getTp), quoteSrcCtx(n))
       }
       val in = n.in.T
       val firstVec = n.first.T.getVec
@@ -62,7 +63,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:OpDef => emitVec(n) { i => 
       val ins = n.input.connected.map { _.qidx(i) }
-      quoteOp(n, ins)
+      quoteOp(n.op, n.getTp, ins, n.input.connected.map { _.getTp}, quoteSrcCtx(n))
     }
 
     case n:PrintIf =>
@@ -78,33 +79,36 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
     case n => super.emitNode(n)
   }
 
-  def quoteOp(n:OpDef, ins:List[String]) = {
+  def quoteOp(op:Opcode, ntp:BitType, ins:List[String], intps:List[BitType], ctx:String) = {
     def a = ins(0)
     def b = ins(1)
     def c = ins(2)
-    n.op match {
+    def ta = intps(0)
+    def tb = intps(1)
+    def tc = intps(2)
+    op match {
       //case FixInv                 => s"1/$a"  // TODO: same as Recip?
       case FixNeg                   => s"- $a"
       case FixAdd                   => s"$a + $b"
       case FixSub                   => s"$a - $b"
       case FixMul                   => s"$a * $b"
-      case FixDiv                   => s"$a / $b"
+      case FixDiv                   => s"""SafeDiv($a, $b, "$ctx")"""
       case FixRecip                 => s"1 / $a"
-      case FixMod if n.getTp.isFraction =>
-        val Fix(s,i,f) = n.getTp
+      case FixMod if ntp.isFraction =>
+        val Fix(s,i,f) = ntp
         s"(float) (((int) ($a * pow(2,$f))) % ((int) ($b * pow(2,$f)))) / pow(2,$f)"
       case FixMod                   => s"$a % $b"
       case FixAnd                   => s"$a & $b"
-      case FixOr if n.getTp.isFraction => s"asT<float,int>(asT<int,float>($a) | asT<int,float>($b))"
+      case FixOr if ntp.isFraction => s"asT<float,int>(asT<int,float>($a) | asT<int,float>($b))"
       case FixOr                    => s"$a | $b"
       case FixLst                   => s"$a < $b"
       case FixLeq                   => s"$a <= $b"
       case FixXor                   => s"$a ^ $b"
-      case FixSLA if n.getTp.isFraction => s"$a * pow(2,$b)"
-      case FixSRA if n.getTp.isFraction => s"$a / pow(2,$b)"
+      case FixSLA if ntp.isFraction => s"$a * pow(2,$b)"
+      case FixSRA if ntp.isFraction => s"$a / pow(2,$b)"
       case FixSLA                   => s"$a << $b"
       case FixSRA                   => s"$a >> $b"
-      //case FixSRU                 => s"$a >> $b"  // TODO
+      case FixSRU                   => s"(${ta.qtp}) ((${ta.toUnsigned.qtp}) $a >> $b)"
       case SatAdd                   => s"$a + $b"
       case SatSub                   => s"$a - $b"
       case SatMul                   => s"$a * $b"
@@ -117,20 +121,20 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       case FixEql                   => s"$a == $b"
       case FixMax                   => s"fmax($a,$b)"
       case FixMin                   => s"fmin($a,$b)"
-      case FixToFix                 => s"(${n.qtp}) $a"
+      case FixToFix                 => s"(${ntp.qtp}) $a"
       case FixToFixSat              => 
-        val Fix(_,_,af) = n.input.T.head.getTp
-        val Fix(_,_,nf) = n.getTp
-        var res = s"(${n.qtp}) fmax(fmin($a, ${n.getTp.fixTpMax}), ${n.getTp.fixTpMin})"
+        val Fix(_,_,af) = ta
+        val Fix(_,_,nf) = ntp
+        var res = s"(${ntp.qtp}) fmax(fmin($a, ${ntp.fixTpMax}), ${ntp.fixTpMin})"
         if (nf < af)
-          s"(${n.qtp}) ((int) ($res * pow(2,$af)) >> (${af - nf})) / pow(2,$nf)"
+          s"(${ntp.qtp}) ((int) ($res * pow(2,$af)) >> (${af - nf})) / pow(2,$nf)"
         res
-      case FixToFlt                 => s"(${n.qtp}) $a"
+      case FixToFlt                 => s"(${ntp.qtp}) $a"
       case FixToText                => s"to_string($a)"
       case FixRandom                => 
-        val Fix(s,i,f) = n.getTp
+        val Fix(s,i,f) = ntp
         var max = Integer.parseInt("1" * (i+f-1),2).toString
-        n.input.T.headOption.foreach { m => max = s"min($max, (int) ($m * pow(2,$f)))"}
+        ins.headOption.foreach { m => max = s"min($max, (int) ($m * pow(2,$f)))"}
         var res = s"(rand() % $max)"
         if (f > 0) res = s"$res * 1.0 / pow(2,${f})"
         res
@@ -161,7 +165,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       case FltAdd                   => s"$a + $b"
       case FltSub                   => s"$a - $b"
       case FltMul                   => s"$a * $b"
-      case FltDiv                   => s"$a / $b"
+      case FltDiv                   => s"""SafeDiv($a, $b, "$ctx")"""
       //case FltMod                 =>
       case FltRecip                 => s"1/$a"
       case FltLst                   => s"$a < $b"
@@ -170,8 +174,8 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       case FltEql                   => s"$a == $b"
       case FltMax                   => s"fmax($a,$b)"
       case FltMin                   => s"fmin($a,$b)"
-      case FltToFlt                 => s"(${n.qtp}) $a"
-      case FltToFix                 => s"(${n.qtp}) $a"
+      case FltToFlt                 => s"(${ntp.qtp}) $a"
+      case FltToFix                 => s"(${ntp.qtp}) $a"
       //case TextToFlt              =>
       case FltToText                => s"to_string($a)"
       //case FltRandom              =>
@@ -202,13 +206,13 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       case Xnor                     => s"$a == $b"
       //case BitRandom              =>
       case BitToText                => s"to_string($a)"
-      case BitsAsData               => a.asTp(n.qtp)
+      case BitsAsData               => a.asTp(ntp.qtp)
 
       case Mux                      => s"$a ? $b : $c"
       case TextConcat               => ins.reduce[String] { case (a,b) => s"$a + $b" }
       case TextEql                  => s"$a == $b"
       case TextNeq                  => s"$a != $b"
-      case TextLength               => s"$a.size() / ${n.input.T.head.getTp.bytePerWord.get}"
+      case TextLength               => s"$a.size() / ${ta.bytePerWord.get}"
       case TextApply                => s"$a[$b]"
       //case CharArrayToText        =>
       //case OneHotMux              =>

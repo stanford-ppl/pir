@@ -33,7 +33,7 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
         val offset = nameOf(n.offset.T.as[BufferRead]).&
         val size = nameOf(n.size.T.as[BufferRead]).&
         val data = nameOf(n.data.T.as[BufferWrite].gout.get).&
-        emitln(s"""$tp $name("$n", $offset, $size, $data, ${n.data.T.tokenTp});""")
+        emitln(s"""$tp $name("$n", $offset, $size, $data);""")
         dutArgs += name
       }
       addrgens += s"$n"
@@ -51,6 +51,27 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
       }
       addrgens += s"$n"
 
+    case n:FringeSparseLoad =>
+      val (tp, name) = varOf(n)
+      genTopEnd {
+        val addr = nameOf(n.addr.T.as[BufferRead]).&
+        val data = nameOf(n.data.T.as[BufferWrite].gout.get).&
+        emitln(s"""$tp $name("$n", $addr, $data);""")
+        dutArgs += name
+      }
+      addrgens += s"$n"
+
+    case n:FringeSparseStore =>
+      val (tp, name) = varOf(n)
+      genTopEnd {
+        val addr = nameOf(n.addr.T.as[BufferRead]).&
+        val data = nameOf(n.data.T.as[BufferRead]).&
+        val ack = nameOf(n.ack.T.as[BufferWrite].gout.get).&
+        emitln(s"""$tp $name("$n", $addr, $data, $ack);""")
+        dutArgs += name
+      }
+      addrgens += s"$n"
+
     case n:CountAck =>
       emitln(s"bool $n = true;")
 
@@ -58,8 +79,10 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
   }
 
   override def varOf(n:PIRNode):(String,String) = n match {
-    case n:FringeDenseLoad => (s"DenseLoadAG<${n.data.T.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
-    case n:FringeDenseStore => (s"DenseStoreAG<${n.data.T.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
+    case n:FringeDenseLoad => (s"DenseLoadAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
+    case n:FringeDenseStore => (s"DenseStoreAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
+    case n:FringeSparseLoad => (s"SparseLoadAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
+    case n:FringeSparseStore => (s"SparseStoreAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
     case n => super.varOf(n)
   }
 

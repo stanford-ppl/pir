@@ -15,7 +15,7 @@ abstract class Param[T:TypeTag] extends Product {
   }
 }
 
-trait DSETest extends PlasticineTest { test =>
+trait DSETest extends SpatialTest { test =>
   //def param:Param[_]
   
   override def runtimeArgs = Args(Seq(""))

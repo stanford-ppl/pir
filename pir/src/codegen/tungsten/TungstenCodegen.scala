@@ -139,11 +139,29 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
         if (vec > 1) s"$q[$i]" else s"$q"
       }
     }
-    def qtp:String = n.getTp match {
+    def qtp:String = n.getTp.qtp
+    def tokenTp = qtp match {
+      case "int" | "int8_t" | "int16_t" if n.getVec == 1 => "TT_INT"
+      case "int" | "int8_t" | "int16_t" if n.getVec > 1 => "TT_INTVEC"
+      case "long" if n.getVec == 1 => "TT_LONG"
+      case "long" if n.getVec == 1 => "TT_LONGVEC"
+      case "uint64_t" if n.getVec == 1 => "TT_UINT64"
+      case "uint64_t" if n.getVec > 1 => "TT_UINT64VEC"
+      case "float" if n.getVec == 1 => "TT_FLOAT"
+      case "float" if n.getVec > 1 => "TT_FLOATVEC"
+      case "bool" if n.getVec == 1 => "TT_BOOL"
+      case _ => throw PIRException(s"Unsupported token type $n")
+    }
+  }
+
+  implicit class TpOp(tp:BitType) {
+    def qtp:String = tp match {
       case Fix(true, 8, 0) => "int8_t"
       case Fix(true, 16, 0) => "int16_t"
       case Fix(true, 32, 0) => "int"
       case Fix(true, 64, 0) => "long"
+      case Fix(false, 8, 0) => "uint8_t"
+      case Fix(false, 16, 0) => "uint16_t"
       case Fix(false, 32, 0) => "uint32_t"
       case Fix(false, 64, 0) => "uint64_t"
       case Fix(true, i, f) if f > 0 && i + f <= 32 => "float"
@@ -152,15 +170,6 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       case Flt(m,f) => "float"
       case Bool => "bool"
       case Text => "string"
-    }
-    def tokenTp = qtp match {
-      case "int" | "int8_t" | "int16_t" if n.getVec == 1 => "TT_INT"
-      case "int" | "int8_t" | "int16_t" if n.getVec > 1 => "TT_INTVEC"
-      case "uint64_t" if n.getVec == 1 => "TT_UINT64"
-      case "float" if n.getVec == 1 => "TT_FLOAT"
-      case "float" if n.getVec > 1 => "TT_FLOATVEC"
-      case "bool" if n.getVec == 1 => "TT_BOOL"
-      case _ => throw PIRException(s"Unsupported token type $n")
     }
   }
 

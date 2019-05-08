@@ -214,6 +214,8 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:TokenRead => Some(1)
       case n:CountAck => Some(1)
       case n:MemWrite => n.data.inferVec
+      //TODO: this info should be from spatial. vec of streamOut should be bank of stream
+      case n:MemRead if n.getCtrl.schedule == "Streaming" => Some(n.mem.banks.get.head) 
       case n:MemRead => n.getCtrl.inferVec
       case n:BankedWrite => zipMap(n.data.inferVec, n.offset.inferVec) { case (a,b) => Math.max(a,b) }
       case n:BankedRead => n.offset.inferVec // Before lowering
@@ -224,7 +226,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:AssertIf => n.msg.inferVec
       case n:ExitIf => n.msg.inferVec
       case n@OpDef(Mux) => zipMap(n.input.connected(1).inferVec, n.input.connected(2).inferVec) { case (a,b) => Math.max(a,b) }
-      case n@OpDef(_:FixOp | _:FltOp | _:BitOp | _:TextOp) => flatReduce(n.input.connected.map{ out => out.inferVec}) { case (a,b) => Math.max(a,b) }
+      case n@OpDef(_:FixOp | _:FltOp | _:BitOp | _:TextOp | BitsAsData) => flatReduce(n.input.connected.map{ out => out.inferVec}) { case (a,b) => Math.max(a,b) }
       case n:Shuffle => n.to.T.inferVec
       case n:GlobalOutput => n.in.T.inferVec
       // During staging time GlobalInput might temporarily not connect to GlobalOutput
@@ -282,6 +284,27 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     dbgn(n)
     n
   }
+
+  def quoteSrcCtx(n:PIRNode) = {
+    var msg = dquote(n)
+    n.ctx.map { ctx => msg += s" ($ctx)"}
+    msg += " " + n.srcCtx.v.getOrElse("No spatial source context")
+    n.name.v.foreach { n => msg += s": $n" }
+    msg
+  }
+
+  implicit class EdgeOp(x:IR) {
+    def matchWith(y:IR):Boolean = {
+      (x,y) match {
+        case (x:Input[_], y:Input[_]) if x.connected.size != y.connected.size => false
+        case (x:Input[_], y:Input[_]) => x.connected.zip(y.connected).forall { case (x,y) => x.matchWith(y) }
+        case (x:Output[_],y:Output[_]) if x == y => true
+        case (WithNode(Const(x)), WithNode(Const(y))) if x == y => true
+        case (x,y) => false
+      }
+    }
+  }
+
 
 }
 

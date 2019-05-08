@@ -54,23 +54,24 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
 
   def groupAccess(mem:Memory, accesses:List[Access]):List[Set[Access]] = dbgblk(s"groupAccess($mem)") {
     accesses.groupBy { _.port.v }.flatMap { case (group, accesses) =>
-      if (accesses.size == 1) List(Set(accesses.head)) else {
-        val head::rest = accesses
-        rest.foldLeft(List(Set(head))) { case (groups, access) =>
-          val (shared, notshared) = groups.partition { group =>
-            assertUnify(group, s"share concurrency with $access(${access.getCtrl}) ${group.map { a => s"$a(${a.getCtrl})" }}") { a => 
-              val lca = leastCommonAncesstor(a.getCtrl, access.getCtrl).get
-              dbg(s"lca=$lca ${lca.schedule}")
-              lca.schedule == "ForkJoin" || (a.getCtrl == access.getCtrl && lca.schedule == "Pipelined")
-              // Inaccesses/Outaccesses who are concurrently operating on the same buffer port must be banked
-              // Can only coalesce accesses with the same count
-            }.get
-          }
-          dbg(s"access=$access shared=$shared")
-          val merged = shared.reduceOption { _ ++ _ }.getOrElse(Set.empty)
-          (merged + access) :: notshared
-        }
-      }
+      accesses.groupBy { _.gid.v }.map { _._2.toSet }
+      //if (accesses.size == 1) List(Set(accesses.head)) else {
+        //val head::rest = accesses
+        //rest.foldLeft(List(Set(head))) { case (groups, access) =>
+          //val (shared, notshared) = groups.partition { group =>
+            //assertUnify(group, s"share concurrency with $access(${access.getCtrl}) ${group.map { a => s"$a(${a.getCtrl})" }}") { a => 
+              //val lca = leastCommonAncesstor(a.getCtrl, access.getCtrl).get
+              //dbg(s"lca=$lca ${lca.schedule}")
+              //lca.schedule == "ForkJoin" || (a.getCtrl == access.getCtrl && lca.schedule == "Pipelined")
+              //// Inaccesses/Outaccesses who are concurrently operating on the same buffer port must be banked
+              //// Can only coalesce accesses with the same count
+            //}.get
+          //}
+          //dbg(s"access=$access shared=$shared")
+          //val merged = shared.reduceOption { _ ++ _ }.getOrElse(Set.empty)
+          //(merged + access) :: notshared
+        //}
+      //}
     }.toList
   }
 
@@ -318,7 +319,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
             if (inAccess.order.get > outAccess.order.get) {
               dbg(s"$token.initToken = true")
               token.initToken := true
-              token.inits := List(true)
+              token.inits := true
               token.depth.reset // HACK to mem reduce. 
                                 // if token.depth = 1, write is blocked since ready is low. 
               token.depth := 2

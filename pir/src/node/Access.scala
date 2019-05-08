@@ -7,6 +7,7 @@ trait Access extends PIRNode {
   val order = Metadata[Int]("order")
   val port = Metadata[Option[Int]]("port")
   val muxPort = Metadata[Int]("muxPort")
+  val gid = Metadata[Int]("gid", default=0)
 
   val en = new InputField[List[PIRNode]]("en")
   val done = new InputField[Option[PIRNode]]("done")
@@ -53,7 +54,7 @@ case class TokenWrite()(implicit env:Env) extends TokenAccess with LocalInAccess
 case class TokenRead()(implicit env:Env) extends TokenAccess with LocalOutAccess
 
 trait AccessUtil {
-  implicit class AccessOp(x:PIRNode) {
+  implicit class AccessOp[T](x:T) {
     def isInAccess:Boolean = x match {
       case x:InAccess => true
       case x => false
@@ -61,6 +62,13 @@ trait AccessUtil {
     def isOutAccess:Boolean = x match {
       case x:OutAccess => true
       case x => false
+    }
+    def setMem(m:Memory):T = {
+      x.to[Access].fold(x) { xx => 
+        xx.order := m.accesses.size
+        xx.mem(m)
+        x 
+      }
     }
   } 
   implicit class LocalAccessOp(n:LocalAccess) {
@@ -94,6 +102,12 @@ object WithData {
   def unapply(x:Any) = x match {
     case x:WriteAccess => Some((x, x.data.T))
     case x:BufferWrite => Some((x, x.data.T))
+    case x => None
+  }
+}
+object WithInAccess {
+  def unapply(x:Any) = x match {
+    case x:Memory if x.inAccesses.size == 1 => Some((x, x.inAccesses.head))
     case x => None
   }
 }

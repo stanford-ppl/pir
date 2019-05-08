@@ -14,6 +14,7 @@ trait PIRApp extends PIR with Logging {
   lazy val pirgenStaging = new SpatialPIRGenStaging()
   lazy val deadCodeEliminator = new DeadCodeElimination()
   lazy val constProp = new ConstantPropogation()
+  lazy val memInitLowering = new MemoryInitialLowering()
   lazy val memLowering = new MemoryLowering()
   lazy val contextAnalyzer = new ContextAnalyzer()
   lazy val contextInsertion = new ContextInsertion()
@@ -56,42 +57,41 @@ trait PIRApp extends PIR with Logging {
     import config._
 
     addPass(pirgenStaging) ==>
-    saveSession(buildPath(config.outDir,"pir0.ckpt"))
-
+    saveSession(buildPath(config.outDir,"pir0.ckpt")) ==>
     // ------- Analysis and Transformations --------
-    addPass(enableDot, new PIRIRDotGen(s"top1.dot"))
-    addPass(enableTrace && genPsim, dramTraceGen).dependsOn(pirgenStaging)
+    addPass(enableDot, new PIRIRDotGen(s"top1.dot")) ==>
+    addPass(enableTrace && genPsim, dramTraceGen) ==>
     addPass(graphInit) ==>
-    addPass(enableDot, new PIRIRDotGen(s"top2.dot"))
-    addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
-    addPass(enableDot, new ControlTreeHtmlIRPrinter(s"ctrl.html"))
-    addPass(constProp).dependsOn(graphInit) ==>
+    addPass(enableDot, new PIRIRDotGen(s"top2.dot")) ==>
+    addPass(enableDot, new ControlTreeDotGen(s"ctop.dot")) ==>
+    addPass(enableDot, new ControlTreeHtmlIRPrinter(s"ctrl.html")) ==>
+    addPass(constProp) ==>
     addPass(deadCodeEliminator) ==>
     addPass(contextInsertion) ==>
+    addPass(enableDot, new PIRCtxDotGen(s"simple2.dot")) ==>
+    addPass(memInitLowering) ==>
     addPass(enableDot, new PIRIRDotGen(s"top3.dot")) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"simple3.dot"))
-    addPass(memLowering).dependsOn(contextInsertion)
+    addPass(enableDot, new PIRCtxDotGen(s"simple3.dot")) ==>
+    addPass(memLowering) ==>
     addPass(enableDot, new PIRIRDotGen(s"top4.dot")) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"simple4.dot"))
-    addPass(depDuplications).dependsOn(memLowering)
+    addPass(enableDot, new PIRCtxDotGen(s"simple4.dot")) ==>
+    addPass(depDuplications).dependsOn(memLowering) ==>
     addPass(enableDot, new PIRIRDotGen(s"top5.dot")) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"simple5.dot"))
+    addPass(enableDot, new PIRCtxDotGen(s"simple5.dot")) ==>
     addPass(constProp) ==>
     addPass(deadCodeEliminator) ==>
     //addPass(contextAnalyzer) ==>
     addPass(enableDot, new PIRIRDotGen(s"top6.dot")) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"simple6.dot"))
-    addPass(globalInsertion).dependsOn(deadCodeEliminator)
-    
-    saveSession(buildPath(config.outDir,"pir1.ckpt")).dependsOn(globalInsertion)
-
-    addPass(initializer).dependsOn(globalInsertion) ==>
-    addPass(new ParamHtmlIRPrinter(s"param.html", pirenv.spadeParam))
+    addPass(enableDot, new PIRCtxDotGen(s"simple6.dot")) ==>
+    addPass(globalInsertion) ==>
+    saveSession(buildPath(config.outDir,"pir1.ckpt")) ==>
+    // ------ Load hardware constrain ----- 
+    addPass(initializer) ==>
+    addPass(new ParamHtmlIRPrinter(s"param.html", pirenv.spadeParam)) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple7.dot")) ==>
-    addPass(enableDot, new PIRIRDotGen(s"top7.dot"))
-
+    addPass(enableDot, new PIRIRDotGen(s"top7.dot")) ==>
     // ------- Mapping  --------
-    addPass(enableMapping, hardPruner).dependsOn(initializer) ==>
+    addPass(enableMapping, hardPruner) ==>
     addPass(enableMapping, memoryPruner) ==>
     addPass(constProp) ==> // Remove unused shuffle
     addPass(deadCodeEliminator) ==>
@@ -103,12 +103,10 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, matchPruner) ==>
     addPass(enableMapping, placerAndRouter) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple8.dot")) ==>
-    addPass(enableDot, new PIRIRDotGen(s"top8.dot"))
-
+    addPass(enableDot, new PIRIRDotGen(s"top8.dot")) ==>
     //addPass(enableDot, new PIRNetworkDotGen(s"net.dot"))
-    addPass(enableMapping,report).dependsOn(matchPruner) ==>
-    saveSession(buildPath(config.outDir,"pir2.ckpt"))
-    
+    addPass(enableMapping,report) ==>
+    saveSession(buildPath(config.outDir,"pir2.ckpt")) ==>
     // ------- Codegen  --------
     addPass(psimAnalyzer).dependsOn(placerAndRouter) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple9.dot")) ==>

@@ -115,7 +115,7 @@ trait CollectorImplicit {
   }
 
   class EdgeCollector[N<:Node[N],A<:Edge[N,A,B],B<:Edge[N,B,A]](edge:Edge[N,A,B]) {
-    def collect[M<:N:ClassTag](visitFunc:Node[N] => List[N], depth:Int = -1, logger:Option[Logging]=None):List[M] = 
+    def collect[M<:N:ClassTag](visitFunc:N => List[N], depth:Int = -1, logger:Option[Logging]=None):List[M] = 
       dbgblk(logger, s"collect(${edge.src}.${edge}, depth=$depth)") {
         def prefix(n:N) = n match { case n:M => true; case _ => false }
         def accumulate(prev:List[M], n:N) = {
@@ -125,7 +125,7 @@ trait CollectorImplicit {
         new PrefixTraversal[N,List[M]](prefix, visitFunc, accumulate _, Nil, logger).traverseNodes(nodes)
       }
 
-    def collectFirst[M<:N:ClassTag](visitFunc:Node[N] => List[N], depth:Int = -1, logger:Option[Logging]=None):M = {
+    def collectFirst[M<:N:ClassTag](visitFunc:N => List[N], depth:Int = -1, logger:Option[Logging]=None):M = {
       dbgblk(logger, s"collectFirst(${edge.src}.${edge}, depth=$depth)") {
         def prefix(n:N) = n match { case n:M => true; case _ => false }
         def accumulate(prev:Option[M], n:N) = {
@@ -136,7 +136,7 @@ trait CollectorImplicit {
       }
     }
 
-    def canReach(target:Edge[N,B,A], visitEdges:Node[N] => List[EN[N]], depth:Int= -1, logger:Option[Logging]=None):Boolean = 
+    def canReach(target:Edge[N,B,A], visitEdges:N => List[EN[N]], depth:Int= -1, logger:Option[Logging]=None):Boolean = 
       dbgblk(logger, s"canReach($target, depth=$depth)"){
         def prefix(n:N) = visitEdges(n).exists { _.connected.contains(target) }
         def accumulate(prev:Boolean, n:N) = prefix(n) || prev
