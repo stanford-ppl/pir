@@ -87,7 +87,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
             dbg(s"reduceOps:$reduceOps")
             val newOp = within(mux.parent.get, mux.getCtrl) {
               val in = reduceOps.head.localIns.flatMap { _.connected }.filterNot { _ == reader.out }
-              val first = mux.input.connected.head
+              val first = mux.inputs(0).singleConnected.get
               val en = writer.en.connected
               stage(RegAccumOp(reduceOps).in(in).en(en).first(first))
             }

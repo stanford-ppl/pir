@@ -10,6 +10,10 @@ trait Edge[N<:Node[N], A<:Edge[N,A,B], B<:Edge[N,B,A]] extends IR { self:A =>
   /*  ------- State -------- */
   def src:N
   val _connected = mutable.ListBuffer[B]()
+  /*  ------- Metadata -------- */
+  val dynamic = new Metadata[Boolean]("dynamic", default=Some(false))
+  def isDynamic = dynamic.get
+  def isStatic = !dynamic.get
 
   def connected:List[B] = _connected.toList
   def singleConnected:Option[B] = {

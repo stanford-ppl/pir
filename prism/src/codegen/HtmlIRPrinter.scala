@@ -49,6 +49,13 @@ trait HtmlIRPrinter extends IRPrinter with HtmlCodegen {
       }
       n.localEdges.foreach { edge =>
         emitElem("text", s"${edge}: ${quote(edge.connected.map{ e => s"${quote(e.src)}.${quote(e)}"})}<br>", "id"->s"$edge")
+        if (edge.metadata.values.nonEmpty) {
+          edge.metadata.values.foreach { metadata =>
+            metadata.v.foreach { v =>
+              text(s"&nbsp;&nbsp;${metadata.name} = ${quote(v)}")
+            }
+          }
+        }
       }
       text(elem("strong", "Metadata"))
       n.metadata.values.foreach { metadata =>

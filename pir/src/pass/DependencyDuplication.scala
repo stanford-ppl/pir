@@ -79,16 +79,18 @@ trait DependencyAnalyzer extends PIRTransformer {
     deps
   }
 
-  def mirrorDeps(to:Context, from:Option[Context]):Map[PIRNode,PIRNode] = dbgblk(s"mirrorDeps($to, $from)") {
+  def mirrorDeps(to:Context, from:Option[Context]):Map[IR,IR] = dbgblk(s"mirrorDeps($to, $from)") {
     val deps = getDeps(to, from, Some(to))
-    within(to) { mirrorAll(deps).toMap }.as[Map[PIRNode, PIRNode]]
+    within(to) { mirrorAll(deps).toMap }
   }
 
-  def swapDeps(ctx:Context, mapping:Map[PIRNode,PIRNode]) = dbgblk(s"swapDeps($ctx)"){
-    mapping.foreach { case (dep, mdep) =>
-      dep.localDepeds.filter { _.isDescendentOf(ctx) }.foreach { n =>
-        swapDep(n, dep, mdep)
-      }
+  def swapDeps(ctx:Context, mapping:Map[IR,IR]) = dbgblk(s"swapDeps($ctx)"){
+    mapping.foreach { 
+      case (dep:PIRNode, mdep:PIRNode) =>
+        dep.localDepeds.filter { _.isDescendentOf(ctx) }.foreach { n =>
+          swapDep(n, dep, mdep)
+        }
+      case (dep, mdep) =>
     }
     //breakPoint(s"swapDep($ctx)", None)
   }

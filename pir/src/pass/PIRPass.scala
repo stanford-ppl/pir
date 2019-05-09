@@ -47,12 +47,31 @@ trait ControlTreeTraversal extends PIRPass {
 trait PIRTransformer extends PIRPass with Transformer {
   override def mirrorField[N<:Node[N]](
     nodes:Iterable[FieldNode[N]], 
-    mapping:mutable.Map[ND,ND],
-    mirrorN:(ND, Seq[Any]) => ND = (n:ND, margs:Seq[Any]) => this.mirrorN(n, margs)
+    mapping:mutable.Map[IR,IR]
   ) = {
     val orig = mapping.values.toList
-    super.mirrorField(nodes, mapping, mirrorN)
+    super.mirrorField(nodes, mapping)
     val newnodes = mapping.values.toList diff orig
-    newnodes.foreach { n => stage(n.as[PIRNode]) }
+    newnodes.foreach { case n:PIRNode => stage(n.as[PIRNode]); case _ => }
+  }
+
+  override def swapConnection[N<:Node[N]](input:Input[N], from:Output[N], to:Output[N]):Unit = {
+    input.vecMeta.reset
+    super.swapConnection(input, from, to)
+    input.inferVec
+  }
+
+  override def mirrorN(
+    n:IR, 
+    margs:Seq[Any]
+  ):IR = {
+    val m = super.mirrorN(n, margs)
+    m.vecMeta.reset
+    m.to[ND].foreach { m =>
+      m.localEdges.foreach { e =>
+        if (e.isStatic) e.vecMeta.reset
+      }
+    }
+    m
   }
 }

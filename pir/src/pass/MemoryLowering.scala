@@ -133,16 +133,16 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       while(red.size > 1) {
         red = red.sliding(2,2).map{ 
           case List((o1, d1, e1),(o2, d2, e2)) =>
-            val of = stage(OpDef(SelectNonNeg).input(o1, o2))
-            bufferInput(of.input)
+            val of = stage(OpDef(SelectNonNeg).addInput(o1, o2))
+            of.inputs.foreach { in => bufferInput(in) }
             val dt = zipOption(d1, d2).map { case (d1, d2) =>
-              val dt = stage(OpDef(FixOr).input(d1,d2))
-              bufferInput(dt.input)
+              val dt = stage(OpDef(FixOr).addInput(d1,d2))
+              dt.inputs.foreach { in => bufferInput(in) }
               dt
             }
             val en = zipOption(e1, e2).map { case (e1,e2) =>
-              val en = stage(OpDef(Or).input(e1,e2))
-              bufferInput(en.input)
+              val en = stage(OpDef(Or).addInput(e1,e2))
+              en.inputs.foreach { in => bufferInput(in) }
               en 
             }
             (of.out, dt.map { _.out }, en.map{ _.out })
@@ -164,6 +164,10 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     }
     newAccess.vec.reset
     newAccess.vec := mem.nBanks
+    newAccess.to[BankedRead].foreach { newAccess =>
+      newAccess.out.vecMeta.reset
+      newAccess.out.vecMeta := mem.nBanks
+    }
     bufferInput(accessCtx)
 
     // Connect access.done
@@ -206,7 +210,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           assert(inds.size == dims.size, s"flattenND inds=$inds dims=$dims have different size for access=$access")
           val i::irest = inds
           val d::drest = dims
-          stage(OpDef(FixFMA).input(i,allocConst(drest.product), flattenND(irest, drest))).out
+          stage(OpDef(FixFMA).addInput(i,allocConst(drest.product), flattenND(irest, drest))).out
         }
         val dims = mem match {
           case mem:SRAM => mem.banks.get
@@ -225,7 +229,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
         var red:List[Output[PIRNode]] = ens.toList
         while (red.size > 1) {
           red = red.sliding(2,2).map{ 
-            case List(en1, en2) => stage(OpDef(And).input(en1,en2)).out
+            case List(en1, en2) => stage(OpDef(And).addInput(en1,en2)).out
             case List(en1) => en1
           }.toList
         }

@@ -84,7 +84,12 @@ trait Def extends PIRNode with DefNode[PIRNode] {
 case class Const(value:Any)(implicit env:Env) extends Def
 trait OpNode extends PIRNode
 case class OpDef(op:Opcode)(implicit env:Env) extends OpNode with Def {
-  val input = new InputField[List[PIRNode]]("input")
+  //val input = new InputField[List[PIRNode]]("input")
+  def addInput(xs:Any*) = {
+    xs.foreach { x => new InputField[PIRNode]("input").dynamic(true).apply(x) }
+    this
+  }
+  def inputs:List[InputField[PIRNode]] = localIns.filter { _.as[Field[_]].name == "input" }.toList.as
 }
 case class PrintIf()(implicit env:Env) extends OpNode with Def {
   val en = new InputField[List[PIRNode]]("en")

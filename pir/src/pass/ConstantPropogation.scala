@@ -42,9 +42,10 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with PIRTr
   }
 
   val EvalOp = MatchRule[OpDef, (OpDef, Any)] { case n@OpDef(op) =>
-    val ins = n.input.T.map { 
+    val ins = n.inputs.map { _.T match {
       case Const(c) => Some(c)
       case out => None
+    }
     }
     op.eval(ins).map { c => 
       dbg(s"Const prop $n($op).ins(${ins}) to $c")
@@ -104,7 +105,7 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with PIRTr
   }
 
   val FirstIter = MatchRule[OpDef, (Counter, OpDef)] { n =>
-    (n.op, n.input.T) match {
+    (n.op, n.inputs.map{_.T}) match {
       case (FixEql, List(iter:CounterIter, Const(c))) =>
         val ctr = iter.counter.T
         ctr.min.T match {

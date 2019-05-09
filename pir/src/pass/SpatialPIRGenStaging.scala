@@ -19,27 +19,27 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
     states.pirTop = top
     import top._
     within(top) {
-      val topCtrler = createCtrl("Sequenced") { TopController() }
+      val topCtrler = stage(createCtrl("Sequenced") { TopController() })
       top.topCtrl = topCtrler.ctrl.get
       topCtrl.ctrler := topCtrler
-      top.argFringe = ArgFringe()
+      top.argFringe = stage(ArgFringe())
       within(argFringe) {
-        val hostInCtrler = createCtrl("Sequenced") { HostInController() }
+        val hostInCtrler = stage(createCtrl("Sequenced") { HostInController() })
         top.hostInCtrl = hostInCtrler.ctrl.get
         endState[Ctrl]
       }
       compiler.staging(top)
       within(argFringe) {
-        val hostOutCtrler = createCtrl("Sequenced") { HostOutController() }
+        val hostOutCtrler = stage(createCtrl("Sequenced") { HostOutController() })
         top.hostOutCtrl = hostOutCtrler.ctrl.get
         argOuts.foreach { mem =>
-          HostRead().input(MemRead().setMem(mem))
+          stage(HostRead().input(MemRead().setMem(mem)))
         }
         endState[Ctrl]
       }
       streamOuts.foreach { streamOut =>
         within(ControlTree("Streaming")) {
-          FringeStreamRead().name.mirror(streamOut.name).stream(MemRead().setMem(streamOut).out)
+          stage(FringeStreamRead().name.mirror(streamOut.name).stream(MemRead().setMem(streamOut).out))
         }
       }
       endState[Ctrl]

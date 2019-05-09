@@ -62,8 +62,8 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       emitUnVec(n)(s"${n}_shuffled")
 
     case n:OpDef => emitVec(n) { i => 
-      val ins = n.input.connected.map { _.qidx(i) }
-      quoteOp(n.op, n.getTp, ins, n.input.connected.map { _.getTp}, quoteSrcCtx(n))
+      val ins = n.inputs.map { _.qidx(i) }
+      quoteOp(n.op, n.getTp, ins, n.inputs.map { _.getTp}, quoteSrcCtx(n))
     }
 
     case n:PrintIf =>
