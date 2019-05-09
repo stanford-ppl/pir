@@ -177,7 +177,10 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
 
   def compCount(n:PIRNode):Value[Long] = dbgblk(s"compCount($n)"){
     n match {
-      case StreamWriteContext(sw) => sw.count.v.getOrElse(throw PIRException(s"${sw.name.v.getOrElse(sw.sname.get)} is not annotated with count"))
+      case StreamWriteContext(sw) => sw.count.v match {
+        case Some(v) => v
+        case None => Unknown
+      }
       case n:Context =>
         val ctrlers = n.ctrlers
         if (n.streaming.get || ctrlers.exists { _.isForever }) countByReads(n).get
@@ -259,6 +262,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:GlobalInput => n.in.inferTp
       case n:GlobalOutput => n.in.inferTp
       case n:RegAccumOp => n.in.inferTp
+      case n:MemRead => n.mem.inferTp
       case n@OpDef(_:BitOp) => Some(Bool)
       case n@OpDef(_:TextOp) => Some(Text)
       case n@OpDef(_:FixOp | _:FltOp) => assertUnify(n.inputs, s"$n.tp") { _.inferTp }.get

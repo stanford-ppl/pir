@@ -32,20 +32,14 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
       within(argFringe) {
         val hostOutCtrler = stage(createCtrl("Sequenced") { HostOutController() })
         top.hostOutCtrl = hostOutCtrler.ctrl.get
-        argOuts.foreach { mem =>
-          stage(HostRead().input(MemRead().setMem(mem)))
-        }
+        argOuts.foreach { processArgOut }
+        argOuts.clear
         endState[Ctrl]
       }
-      streamOuts.foreach { streamOut =>
-        within(ControlTree("Streaming")) {
-          stage(FringeStreamRead().name.mirror(streamOut.name).stream(MemRead().setMem(streamOut).out))
-        }
-      }
+      streamOuts.foreach { processStreamOut }
+      streamOuts.clear
       endState[Ctrl]
     }
-    argOuts.clear
-    streamOuts.clear
     dramAddrs.clear
     nameSpace.clear
     toc(s"New design", "ms")
@@ -74,10 +68,6 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
   }
 
   /* Helper function during staging graph */
-
-  val argOuts = scala.collection.mutable.ListBuffer[Reg]()
-  val streamOuts = scala.collection.mutable.ListBuffer[FIFO]()
-  val dramAddrs = scala.collection.mutable.Map[DRAM, Reg]()
 
   implicit class NodeHelper[T](x:T) {
     def sctx(c:String):T = x.to[PIRNode].fold(x) { xx => xx.srcCtx(c); x }
@@ -116,6 +106,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
     ctrler
   }
 
+  val dramAddrs = scala.collection.mutable.Map[DRAM, Reg]()
   def dramAddress(dram:DRAM) = {
     val mem = dramAddrs.getOrElseUpdate(dram, {
       val mem = stage(Reg())
@@ -136,6 +127,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
     mem
   }
 
+  val argOuts = scala.collection.mutable.ListBuffer[Reg]()
   def argOut() = {
     within(pirTop.argFringe) {
       val mem = stage(Reg())
@@ -143,17 +135,40 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
       mem
     }
   }
+  def processArgOut(mem:Reg) = {
+    stage(HostRead().input(MemRead().setMem(mem)))
+  }
 
-  def streamIn(fifo:FIFO) = {
-    within(ControlTree("Streaming")) {
-      val sw = stage(FringeStreamWrite().name.mirror(fifo.name))
-      stage(MemWrite().setMem(fifo).data(sw.stream))
-      sw
+  def streamIn(fifos:List[FIFO], bus:Bus) = {
+    bus match {
+      case bus:DRAMBus =>
+      case bus =>
+        within(ControlTree("Streaming")) {
+          val sw = stage(FringeStreamWrite(bus))
+          fifos.map { fifo =>
+            stage(MemWrite().setMem(fifo).data(sw.streams).vec(fifo.banks.get.head).tp.mirror(fifo.tp))
+          }
+          sw
+        }
     }
   }
 
-  def streamOut(fifo:FIFO) = {
-    streamOuts += fifo
+  val streamOuts = scala.collection.mutable.ListBuffer[(List[FIFO],Bus)]()
+  def streamOut(fifos:List[FIFO], bus:Bus) = {
+    streamOuts += ((fifos, bus))
+  }
+  def processStreamOut(streamOut:(List[FIFO], Bus)) = {
+    val (fifos, bus) = streamOut
+    bus match {
+      case bus:DRAMBus =>
+      case bus =>
+        within(ControlTree("Streaming")) {
+          val reads = fifos.map { fifo =>
+            stage(MemRead().setMem(fifo).vec(fifo.banks.get.head)).out
+          }
+          stage(FringeStreamRead(bus).streams(reads))
+        }
+    }
   }
 
 }

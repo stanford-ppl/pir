@@ -11,7 +11,12 @@ abstract class PIRNode(implicit env:BuildEnvironment)
   with FieldNode[PIRNode] { self =>
   lazy val Nct = classTag[PIRNode]
 
-  val name = new Metadata[String]("name")
+  val name = new Metadata[String]("name") {
+    override def mirror(frommeta:MetadataLike[_]) = {
+      if (v.isEmpty) super.mirror(frommeta)
+      else self
+    }
+  }
   val sname = new Metadata[String]("sname") {
     override def check(v:String) = {}
   }

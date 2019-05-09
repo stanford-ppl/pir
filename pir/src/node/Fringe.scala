@@ -1,6 +1,11 @@
 package pir
 package node
 
+trait Bus
+case class DRAMBus() extends Bus
+case class FileBus(fileName:String) extends Bus
+case class BlackBoxBus(name:String) extends Bus
+
 trait FringeCommand extends PIRNode
 
 trait DRAMCommand extends FringeCommand {
@@ -41,9 +46,9 @@ case class DRAM(sid:String) extends prism.graph.IR {
 
 trait StreamCommand extends FringeCommand
 
-case class FringeStreamWrite()(implicit env:Env) extends StreamCommand {
-  val stream = new OutputField[PIRNode]("stream")
+case class FringeStreamWrite(bus:Bus)(implicit env:Env) extends StreamCommand {
+  val streams = new OutputField[PIRNode]("streams")
 }
-case class FringeStreamRead()(implicit env:Env) extends StreamCommand {
-  val stream = new InputField[PIRNode]("stream")
+case class FringeStreamRead(bus:Bus)(implicit env:Env) extends StreamCommand {
+  val streams = new InputField[PIRNode]("streams")
 }

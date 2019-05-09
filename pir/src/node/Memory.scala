@@ -151,6 +151,7 @@ abstract class Controller(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
   val en = new InputField[Option[PIRNode]]("en")
   val parentEn = new InputField[Option[PIRNode]]("parentEn")
+  val stopWhen = new InputField[Option[PIRNode]]("stopWhen")
 
   val valid = new OutputField[List[PIRNode]]("valid")
   val done = new OutputField[List[PIRNode]]("done")
