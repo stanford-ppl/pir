@@ -61,7 +61,13 @@ object PIRNode extends MemoryUtil with AccessUtil {
   }
 }
 
-case class ControlTree(schedule:String)(implicit env:Env) extends EnvNode[ControlTree] with FieldNode[ControlTree] with Ordered[ControlTree] { self =>
+sealed abstract class CtrlSchedule
+case object Sequenced extends CtrlSchedule
+case object Pipelined extends CtrlSchedule
+case object Streaming extends CtrlSchedule
+case object ForkJoin extends CtrlSchedule
+case object Fork extends CtrlSchedule
+case class ControlTree(schedule:CtrlSchedule)(implicit env:Env) extends EnvNode[ControlTree] with FieldNode[ControlTree] with Ordered[ControlTree] { self =>
   lazy val Nct = classTag[ControlTree]
 
   val sname = new Metadata[String]("sname")

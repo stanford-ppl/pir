@@ -246,7 +246,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     dbgblk(s"sequencedScheduleBarrierInsertion($mem)") {
       val ctrls = mem.accesses.toStream.flatMap { a => a.getCtrl.ancestorTree }.distinct
       ctrls.foreach { ctrl =>
-        if (ctrl.schedule == "Sequenced") {
+        if (ctrl.schedule == Sequenced) {
           val accesses = ctrl.children.flatMap { childCtrl => 
             val childAccesses = mem.accesses.filter { a => 
               a.getCtrl.isDescendentOf(childCtrl) || a.getCtrl == childCtrl

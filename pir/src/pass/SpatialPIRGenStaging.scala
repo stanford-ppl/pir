@@ -19,18 +19,18 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
     states.pirTop = top
     import top._
     within(top) {
-      val topCtrler = stage(createCtrl("Sequenced") { TopController() })
+      val topCtrler = stage(createCtrl(Sequenced) { TopController() })
       top.topCtrl = topCtrler.ctrl.get
       topCtrl.ctrler := topCtrler
       top.argFringe = stage(ArgFringe())
       within(argFringe) {
-        val hostInCtrler = stage(createCtrl("Sequenced") { HostInController() })
+        val hostInCtrler = stage(createCtrl(Sequenced) { HostInController() })
         top.hostInCtrl = hostInCtrler.ctrl.get
         endState[Ctrl]
       }
       compiler.staging(top)
       within(argFringe) {
-        val hostOutCtrler = stage(createCtrl("Sequenced") { HostOutController() })
+        val hostOutCtrler = stage(createCtrl(Sequenced) { HostOutController() })
         top.hostOutCtrl = hostOutCtrler.ctrl.get
         argOuts.foreach { processArgOut }
         argOuts.clear
@@ -86,7 +86,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
     x
   }
 
-  def createCtrl[T<:Controller](schedule:String)(newCtrler: => T):T = {
+  def createCtrl[T<:Controller](schedule:CtrlSchedule)(newCtrler: => T):T = {
     val tree = ControlTree(schedule)
     beginState(tree)
     val ctrler = newCtrler
@@ -143,7 +143,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
     bus match {
       case DRAMBus =>
       case bus =>
-        within(ControlTree("Streaming")) {
+        within(ControlTree(Streaming)) {
           val sw = stage(FringeStreamWrite(bus))
           val data = fifos.map { fifo =>
             stage(MemWrite().setMem(fifo).vec(fifo.banks.get.head).tp.mirror(fifo.tp)).data
@@ -163,7 +163,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
     bus match {
       case DRAMBus =>
       case bus =>
-        within(ControlTree("Streaming")) {
+        within(ControlTree(Streaming)) {
           val reads = fifos.map { fifo =>
             stage(MemRead().setMem(fifo).vec(fifo.banks.get.head)).out
           }
