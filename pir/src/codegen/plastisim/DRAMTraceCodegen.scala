@@ -160,7 +160,7 @@ class DRAMTraceCodegen(implicit compiler:PIR) extends ProgramOrderTraversal with
       emitln(s"val $n = ${offsetMap(n.dram)} // DRAMAddr(${n.dram})")
     case n:GlobalContainer =>
     case n@OpDef(op) if n.isTracked =>
-      val ins = n.input.T
+      val ins = n.inputs.map { _.T }
       emitln(s"""val $n = eval("$op")(${ins.mkString(",")})""")
     case n => 
       emitln(s"// $n")

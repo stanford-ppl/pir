@@ -136,15 +136,14 @@ trait Transformer extends Logging {
   }
 
   def mirrorAll(
-    nodes:Iterable[ND], 
-    mapping:mutable.Map[ND,ND]=mutable.Map.empty,
-    mirrorN:(ND, Seq[Any]) => ND = (n:ND, margs:Seq[Any]) => this.mirrorN(n, margs)
-  ):mutable.Map[ND,ND] = {
+    nodes:Iterable[IR], 
+    mapping:mutable.Map[IR,IR]=mutable.Map.empty
+  ):mutable.Map[IR,IR] = {
     type F = FN forSome { type FN <:FieldNode[FN] }
     if (nodes.nonEmpty) {
       nodes.head match {
-        case node:FieldNode[n] => mirrorField(nodes.as, mapping, mirrorN)
-        case node:ProductNode[n] => mirrorProduct(nodes, mapping, mirrorN)
+        case node:FieldNode[n] => mirrorField(nodes.as, mapping)
+        case node:ProductNode[n] => mirrorProduct(nodes, mapping)
         case _ => throw new Exception(s"Don't know thow to mirror $nodes")
       }
     }
@@ -160,48 +159,55 @@ trait Transformer extends Logging {
    * */
   def mirrorField[N<:Node[N]](
     nodes:Iterable[FieldNode[N]], 
-    mapping:mutable.Map[ND,ND],
-    mirrorN:(ND, Seq[Any]) => ND = (n:ND, margs:Seq[Any]) => this.mirrorN(n, margs)
+    mapping:mutable.Map[IR,IR]
   ) = {
     // First pass mirror all nodes and put in a map
-    nodes.foreach { n => mirror[N](n, mapping, mirrorN) }
+    nodes.foreach { n => 
+      mirror[N](n, mapping) 
+      n.localEdges.foreach { e =>
+        if (e.isDynamic) {
+          mirror[Any](e, mapping)
+        }
+      }
+    }
 
     // Second pass build hiearchy and connection
     mapping.foreach { case (n,m) =>
-      n.parent.foreach { p => 
-        mapping.get(p).foreach { mp =>
-          m.unsetParent
-          m.setParent(mp.as)
+      n.to[ND].foreach{ n =>
+        val mm = m.as[ND]
+        n.parent.foreach { p => 
+          mapping.get(p).foreach { mp =>
+            mm.unsetParent
+            mm.setParent(mp.as)
+          }
         }
-      }
-      n.localIns.zipWithIndex.foreach { case (io, idx) =>
-        val mio = m.localIns(idx)
-        io.connected.foreach { c => 
-          val cs = c.src
-          val cidx = cs.localEdges.indexOf(c)
-          val mcs = mapping.getOrElse(cs, cs)
-          val mc = mcs.localEdges(cidx)
-          mio.connect(mc.as)
+        n.localIns.zipWithIndex.foreach { case (io, idx) =>
+          val mio = mm.localIns(idx)
+          io.connected.foreach { c => 
+            val cs = c.src
+            val cidx = cs.localEdges.indexOf(c)
+            val mcs = mapping.getOrElse(cs, cs).as[ND]
+            val mc = mcs.localEdges(cidx)
+            mio.connect(mc.as)
+          }
         }
       }
     }
   }
 
   def mirrorProduct(
-    nodes:Iterable[ND], 
-    mapping:mutable.Map[ND,ND],
-    mirrorN:(ND, Seq[Any]) => ND = (n:ND, margs:Seq[Any]) => this.mirrorN(n, margs)
+    nodes:Iterable[IR], 
+    mapping:mutable.Map[IR,IR]
   ) = {
-    nodes.foreach { n => mirror(n, mapping, mirrorN) }
+    nodes.foreach { n => mirror(n, mapping) }
   }
 
   final def mirror[T](
     n:Any, 
-    mapping:mutable.Map[ND,ND]=mutable.Map.empty,
-    mirrorN:(ND, Seq[Any]) => ND = (n:ND, margs:Seq[Any]) => this.mirrorN(n, margs)
+    mapping:mutable.Map[IR,IR]=mutable.Map.empty
   ):T = {
     (unpack(n) {
-      case n:Node[n] => 
+      case n:IR => 
         if (!mapping.contains(n)) {
           val margs = newInstanceArgs(n, mapping)
           mapping.getOrElseUpdate(n, mirrorN(n, margs)).as[T]
@@ -210,20 +216,23 @@ trait Transformer extends Logging {
     }).asInstanceOf[T]
   }
 
-  def mirrorN[N<:ND](
-    n:N, 
+  def mirrorN(
+    n:IR, 
     margs:Seq[Any]
-  ):N = {
-    val m = n.newInstance[N](margs)
-    dbg(s"mirror $n -> $m")
+  ):IR = {
+    val m = n.newInstance[IR](margs)
     m.mirrorMetas(n)
-    // TODO: for now edge metadata is always recomputed since no way to override
-    // mirror behavior
-    //m.localEdges.zip(n.localEdges).foreach { case (medge, nedge) => medge.mirrorMetas(nedge) }
+    dbg(s"mirror $n -> $m")
+    n.to[ND].foreach{ n =>
+      m.as[ND].localEdges.zip(n.localEdges).foreach { case (medge, nedge) => 
+        if (nedge.isStatic) medge.mirrorMetas(nedge)
+      }
+    }
     m
   }
 
-  def newInstanceArgs(n:ND, mapping:mutable.Map[ND,ND]):Seq[Any] = n match {
+  def newInstanceArgs(n:IR, mapping:mutable.Map[IR,IR]):Seq[Any] = n match {
+    case n:Field[_] with Edge[_,_,_] => mirror[Any](n.src, mapping) :: n.name :: n.Ttt :: n.Tct :: Nil
     case n:EnvNode[_] with ProductNode[_] => n.productIterator.map { arg => mirror[Any](arg, mapping) }.toList :+ getEnv
     case n:ProductNode[_] => n.productIterator.map { arg => mirror[Any](arg, mapping) }.toList
     case n:EnvNode[_] with Product => n.productIterator.toSeq :+ getEnv

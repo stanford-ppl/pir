@@ -6,6 +6,7 @@ import scala.collection.mutable
 trait Field[T] extends Serializable {
   def name:String
   implicit val Ttt:TypeTag[T]
+  implicit val Tct:ClassTag[T]
   def update(x:Any):Unit
   def fieldToNodes:Seq[Node[_]]
   def T:T
@@ -58,8 +59,6 @@ trait FieldNode[N<:Node[N]] extends Node[N] { self:N =>
 
   trait NodeField[T] extends Field[T] {
     val name:String
-    implicit val Ttt:TypeTag[T]
-    implicit val Tct:ClassTag[T]
     def apply(xs:Any*):self.type = { xs.foreach(update); self }
     def update(x:Any):Unit
     def fieldToNodes:Seq[Node[_]]

@@ -50,6 +50,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     def psimState = n.getMeta[String]("psimState").v
   }
   implicit class NodeRuntimeOp[N<:IR](n:N) {
+    def vecMeta:MetadataLike[Int] = n.getMeta[Int]("vec")
     def inferVec:Option[Int] = n.getMeta[Int]("vec").orElseUpdate { compVec(n) }
     def getVec:Int = n.inferVec.getOrElse(throw PIRException(s"Don't know how to infer vec of $n"))
     def setVec(v:Int) = n.getMeta[Int]("vec").apply(v)
@@ -225,13 +226,12 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:PrintIf => n.msg.inferVec
       case n:AssertIf => n.msg.inferVec
       case n:ExitIf => n.msg.inferVec
-      case n@OpDef(Mux) => zipMap(n.input.connected(1).inferVec, n.input.connected(2).inferVec) { case (a,b) => Math.max(a,b) }
-      case n@OpDef(_:FixOp | _:FltOp | _:BitOp | _:TextOp | BitsAsData) => flatReduce(n.input.connected.map{ out => out.inferVec}) { case (a,b) => Math.max(a,b) }
+      case n@OpDef(Mux) => zipMap(n.inputs(1).inferVec, n.inputs(2).inferVec) { case (a,b) => Math.max(a,b) }
+      case n@OpDef(_:FixOp | _:FltOp | _:BitOp | _:TextOp | BitsAsData) => flatReduce(n.inputs.map{ _.inferVec}) { case (a,b) => Math.max(a,b) }
       case n:Shuffle => n.to.T.inferVec
       case n:GlobalOutput => n.in.T.inferVec
       // During staging time GlobalInput might temporarily not connect to GlobalOutput
       case n:GlobalInput => n.in.inferVec
-      case InputField(n:OpDef, "input") => None
       case InputField(n:Shuffle, "from" | "base") => zipMap(n.base.singleConnected.get.inferVec, n.from.singleConnected.get.inferVec) { case (a,b) => Math.max(a,b) }
       case InputField(n:BufferWrite, "en") => Some(1)
       case InputField(n:BankedAccess, "en") if n.mem.bankids.nonEmpty => Some(n.mem.nBanks)
@@ -261,13 +261,12 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:RegAccumOp => n.in.inferTp
       case n@OpDef(_:BitOp) => Some(Bool)
       case n@OpDef(_:TextOp) => Some(Text)
-      case n@OpDef(_:FixOp | _:FltOp) => assertUnify(n.input.T, s"$n.tp") { _.inferTp }.get
+      case n@OpDef(_:FixOp | _:FltOp) => assertUnify(n.inputs, s"$n.tp") { _.inferTp }.get
       case Const(_:Boolean) => Some(Bool)
       case Const(_:Int) => Some(Fix(true, 32, 0))
       case Const(_:Float) => Some(Flt(23, 8))
       case Const((i:Int) :: _) => Some(Fix(true, 32, 0))
       case Const(_:String) => Some(Text)
-      case InputField(n:OpDef, "input") => None
       case InputField(n, "en" | "parentEn") => Some(Bool)
       case n:Input[_] if n.isConnected && n.connected.size == 1 => n.singleConnected.get.inferTp
       case n:Any => None

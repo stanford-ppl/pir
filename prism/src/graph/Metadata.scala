@@ -13,8 +13,8 @@ trait MetadataIR extends Serializable { self =>
 
     override def toString = s"$self.$name"
     def getSelf:self.type = self
-    def apply(value:T):self.type = { :=(value); self }
-    def update(value:Option[T]):self.type = { value.foreach(apply); self }
+    def apply(value:T, reset:Boolean=false):self.type = { if (reset) this.reset; :=(value); self }
+    def update(value:Option[T]):self.type = { value.foreach(apply(_,false)); self }
     def get:T = value.getOrElse(throw PIRException(s"$self.$name is empty"))
     override def mirror(frommeta:MetadataLike[_]):self.type = { super.mirror(frommeta); self }
 
