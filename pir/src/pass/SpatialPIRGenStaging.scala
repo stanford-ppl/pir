@@ -141,13 +141,14 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
 
   def streamIn(fifos:List[FIFO], bus:Bus) = {
     bus match {
-      case bus:DRAMBus =>
+      case DRAMBus =>
       case bus =>
         within(ControlTree("Streaming")) {
           val sw = stage(FringeStreamWrite(bus))
-          fifos.map { fifo =>
-            stage(MemWrite().setMem(fifo).data(sw.streams).vec(fifo.banks.get.head).tp.mirror(fifo.tp))
+          val data = fifos.map { fifo =>
+            stage(MemWrite().setMem(fifo).vec(fifo.banks.get.head).tp.mirror(fifo.tp)).data
           }
+          sw.addStreams(data)
           sw
         }
     }
@@ -160,13 +161,13 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
   def processStreamOut(streamOut:(List[FIFO], Bus)) = {
     val (fifos, bus) = streamOut
     bus match {
-      case bus:DRAMBus =>
+      case DRAMBus =>
       case bus =>
         within(ControlTree("Streaming")) {
           val reads = fifos.map { fifo =>
             stage(MemRead().setMem(fifo).vec(fifo.banks.get.head)).out
           }
-          stage(FringeStreamRead(bus).streams(reads))
+          stage(FringeStreamRead(bus).addStreams(reads))
         }
     }
   }

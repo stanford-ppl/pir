@@ -2,7 +2,7 @@ package pir
 package node
 
 trait Bus
-case class DRAMBus() extends Bus
+case object DRAMBus extends Bus
 case class FileBus(fileName:String) extends Bus
 case class BlackBoxBus(name:String) extends Bus
 
@@ -47,8 +47,10 @@ case class DRAM(sid:String) extends prism.graph.IR {
 trait StreamCommand extends FringeCommand
 
 case class FringeStreamWrite(bus:Bus)(implicit env:Env) extends StreamCommand {
-  val streams = new OutputField[PIRNode]("streams")
+  def addStreams(xs:Any*) = DynamicOutputFields[List[PIRNode]]("stream", xs)
+  def streams = getDynamicOutputFields[List[PIRNode]]("stream")
 }
 case class FringeStreamRead(bus:Bus)(implicit env:Env) extends StreamCommand {
-  val streams = new InputField[PIRNode]("streams")
+  def addStreams(xs:Any*) = DynamicInputFields[PIRNode]("stream", xs)
+  def streams = getDynamicInputFields[PIRNode]("stream")
 }
