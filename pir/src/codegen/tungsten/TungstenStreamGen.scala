@@ -8,13 +8,59 @@ import scala.collection.mutable
 trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
 
   override def emitNode(n:N) = n match {
-    case StreamReadContext(cmd) => super.visitNode(n)
-    case StreamWriteContext(cmd) => super.visitNode(n)
-
     case n@FringeStreamRead(FileBus(filePath)) =>
-      val (tp, name) = varOf(n)
+      val file = s"${n}_file"
+      cleanup += s"${nameOf(n.ctx.get)}.$file.close();"
+      genCtxFields {
+        emitln(s"""ofstream $file;""")
+      }
       genCtxInits {
-        emitln(s"""ofstream ${n}_file("${filePath}", std::ios::out);""")
+        emitln(s"""$file.open("${filePath}", std::ios::out);""")
+      }
+      emitBlock(s"for (int i=0; i < ${n.streams.head.getVec}; i++)") {
+        val size = n.streams.size
+        n.streams.zipWithIndex.foreach { case (stream, s) =>
+          val dlim = if (s != size-1) s"""", ";""" else s"endl;"
+          emitln(s"""$file << ${stream.qidx("i")} << $dlim""")
+        }
+      }
+
+    case n@FringeStreamWrite(FileBus(filePath)) =>
+      val file = s"${n}_file"
+      cleanup += s"${nameOf(n.ctx.get)}.$file.close();"
+      genCtxFields {
+        emitln(s"""ifstream $file;""")
+      }
+      genCtxInits {
+        emitln(s"""$file.open("${filePath}", std::ios::in);""")
+      }
+      emitln(s"bool good = $file.good();")
+      emitIfElse(s"good") {
+        n.streams.foreach { stream =>
+          emitln(s"${stream.qtp} ${stream.T}_vec[${stream.getVec}];")
+        }
+        emitBlock(s"for (int i=0; i < ${n.streams.head.getVec}; i++)") {
+          val size = n.streams.size
+          emitln(s"string token;")
+          n.streams.zipWithIndex.foreach { case (stream, s) =>
+            val dlim = if (s != size-1) s"""','""" else s"""'\\n'"""
+            emitln(s"getline($file, token,$dlim);")
+            emitln(s"if (!(good = $file.good())) break;")
+            emitln(s"${stream.T}_vec[i] = parse<${stream.qtp}>(token);")
+          }
+        }
+        n.streams.foreach { stream =>
+          emitUnVec(stream.T)(s"${stream.T}_vec")
+          stream.T.as[BufferWrite].out.T.foreach { send =>
+            addEscapeVar(send)
+            genCtxInits {
+              emitln(s"AddSend(${nameOf(send)});");
+            }
+            emitln(s"""if (good) ${nameOf(send)}->Push(make_token(${stream.T}));""")
+          }
+        }
+      } {
+        emitln(s"InActive();")
       }
 
     case n => super.emitNode(n)

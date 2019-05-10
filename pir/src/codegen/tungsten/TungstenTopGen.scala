@@ -53,6 +53,7 @@ using namespace std;
     case n => super.emitNode(n)
   }
 
+  val cleanup = mutable.ListBuffer[String]()
   override def finPass = {
     getBuffer("top-end").foreach { _.flushTo(sw) }
 
@@ -60,6 +61,9 @@ using namespace std;
     emitBlock(s"void RunAccel()") {
       emitln(s"""REPL Top(&DUT, std::cout);""")
       emitln(s"""Top.Command("source script");""")
+      cleanup.foreach { l=>
+        emitln(l)
+      }
     }
     super.finPass
   }

@@ -24,6 +24,7 @@ trait TungstenCtxGen extends TungstenCodegen with TungstenTopGen {
 
   override def emitNode(n:N) = n match {
     case n:Context =>
+      val (tp, name) = varOf(n)
       val numStages = numStagesOf(n)
       enterFile(dirName, s"$n.h", false) {
         genCtxCompute {
@@ -65,9 +66,9 @@ using namespace std;
         emitln(s"""#include "$n.h"""")
         var args = s"${ctxExtVars.map { _._2 }.map { _.& }.mkString(",")}"
         if (ctxExtVars.nonEmpty) args = s"($args)"
-        emitln(s"""$n ctx_$n$args;""")
+        emitln(s"""$tp $name$args;""")
       }
-      dutArgs += s"ctx_$n"
+      dutArgs += name 
       ctxExtVars.clear
 
     case n => super.emitNode(n)
@@ -104,7 +105,10 @@ using namespace std;
     if (!ctxExtVars.contains(v)) ctxExtVars += v
   }
 
-  def varOf(n:PIRNode):(String, String) = throw PIRException(s"Don't know varOf($n)")
+  def varOf(n:PIRNode):(String, String) = n match {
+    case n:Context => (s"$n",s"ctx_$n")
+    case n => throw PIRException(s"Don't know varOf($n)")
+  }
   def nameOf(n:PIRNode) = varOf(n)._2
   def tpOf(n:PIRNode) = varOf(n)._1
 

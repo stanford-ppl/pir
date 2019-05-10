@@ -47,10 +47,10 @@ case class DRAM(sid:String) extends prism.graph.IR {
 trait StreamCommand extends FringeCommand
 
 case class FringeStreamWrite(bus:Bus)(implicit env:Env) extends StreamCommand {
-  def addStreams(xs:Any*) = DynamicOutputFields[List[PIRNode]]("stream", xs)
-  def streams = getDynamicOutputFields[List[PIRNode]]("stream")
+  def addStreams(xs:List[Any]) = DynamicOutputFields[PIRNode]("stream", xs)
+  def streams = getDynamicOutputFields[PIRNode]("stream")
 }
 case class FringeStreamRead(bus:Bus)(implicit env:Env) extends StreamCommand {
-  def addStreams(xs:Any*) = DynamicInputFields[PIRNode]("stream", xs)
+  def addStreams(xs:List[Any]) = DynamicInputFields[PIRNode]("stream", xs)
   def streams = getDynamicInputFields[PIRNode]("stream")
 }
