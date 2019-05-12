@@ -1,6 +1,8 @@
 package pir
 package node
 
+import prism.graph._
+
 trait Bus
 case object DRAMBus extends Bus
 case class FileBus(fileName:String) extends Bus
@@ -44,13 +46,16 @@ case class DRAM(sid:String) extends prism.graph.IR {
   val tp = new Metadata[BitType]("tp")
 }
 
-trait StreamCommand extends FringeCommand
+trait StreamCommand extends FringeCommand {
+  def streams:List[EN[PIRNode] with Field[PIRNode]]
+}
 
 case class FringeStreamWrite(bus:Bus)(implicit env:Env) extends StreamCommand {
   def addStreams(xs:List[Any]) = DynamicOutputFields[PIRNode]("stream", xs)
-  def streams = getDynamicOutputFields[PIRNode]("stream")
+  override def streams = getDynamicOutputFields[PIRNode]("stream")
 }
 case class FringeStreamRead(bus:Bus)(implicit env:Env) extends StreamCommand {
   def addStreams(xs:List[Any]) = DynamicInputFields[PIRNode]("stream", xs)
-  def streams = getDynamicInputFields[PIRNode]("stream")
+  override def streams = getDynamicInputFields[PIRNode]("stream")
+  //val ack = new OutputField[PIRNode]("ack")
 }

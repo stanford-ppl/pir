@@ -35,11 +35,33 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     }
     n.to[FringeCommand].foreach { n =>
       n.localOuts.foreach { out =>
-        val fifo = out.collectFirst[FIFO](visitGlobalOut _)
-        out.setVec(fifo.banks.get.head)
-        out.setTp(fifo.tp.v)
+        if (out.isConnected) {
+          val fifo = out.collectFirst[FIFO]()
+          out.setVec(fifo.banks.get.head)
+          out.setTp(fifo.tp.v)
+        }
       }
     }
+    n.to[StreamCommand].foreach { n =>
+      val fifos = n.streams.map { stream =>
+        stream.as[EN[PIRNode]].collectFirst[FIFO]()
+      }
+      longestCommonSubstring(fifos.flatMap { _.name.v }).foreach { name =>
+        n.name(name)
+      }
+    }
+    //n.to[FringeStreamRead].foreach { n =>
+      //within(pirTop.argFringe) {
+        //val reg = stage(FIFO().tp(Bool).banks(List(1)).name(s"${n.name.v.getOrElse(n.toString)}_ack"))
+        //within(pirTop, n.getCtrl) {
+          //stage(MemWrite().tp(Bool).data(n.ack).setMem(reg))
+        //}
+        //within(pirTop.hostOutCtrl) {
+          //val read = stage(MemRead().setMem(reg))
+          //stage(HostRead().input(read))
+        //}
+      //}
+    //}
     n.to[HostRead].foreach { n =>
       n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
     }

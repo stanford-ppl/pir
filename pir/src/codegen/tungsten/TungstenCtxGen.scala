@@ -82,8 +82,10 @@ using namespace std;
 
   def emitStopSim(ctx:Context) = {
     ctx.collectDown[HostOutController]().headOption.foreach { hostOut =>
-      emitIf(s"${hostOut.done.qref}") {
-        emitln(s"Complete(1);")
+      if (ctx.collectDown[LocalOutAccess]().nonEmpty) {
+        emitIf(s"${hostOut.done.qref}") {
+          emitln(s"Complete(1);")
+        }
       }
     }
   }

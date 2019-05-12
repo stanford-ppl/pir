@@ -2,14 +2,43 @@ import spatial.dsl._
 import spatial.lang.FileBus
 
 @spatial class StreamInOut extends DSETest {
-    def main(args: Array[String]): Unit = {
-     val in  = StreamIn[Tup2[Int,Bit]](FileBus[Tup2[Int,Bit]]("in.csv"))
-     val out = StreamOut[Tup2[Int,Bit]](FileBus[Tup2[Int,Bit]]("out.csv"))
-     Accel {
-       Stream(*){
-         out := in.value
-       }
-     }
-     assert(true)
-   }
- }
+  val inFile = "in.csv"
+  val outFile = "out.csv"
+  def main(args: Array[String]): Unit = {
+    val inData = Matrix.tabulate(10,2) { (i,j) =>
+      if (j == 0) random[Int](10) else random[Int](2)
+    }
+    writeCSV2D(inData, inFile)
+    val in  = StreamIn[Tup2[Int,Bit]](FileBus[Tup2[Int,Bit]](inFile))
+    val out = StreamOut[Tup2[Int,Bit]](FileBus[Tup2[Int,Bit]](outFile))
+    Accel(*){
+      out := in.value
+    }
+    val outData = loadCSV2D[Int](outFile)
+    val cksum = inData == outData
+    println("PASS: " + cksum + " (StreamInOut)")  
+    assert(cksum)
+  }
+}
+
+//@spatial class StreamInOutStop extends DSETest {
+  //val inFile = "in.csv"
+  //val outFile = "out.csv"
+  //val numToken = 10
+  //def main(args: Array[String]): Unit = {
+    //val inData = Matrix.tabulate(numToken,2) { (i,j) =>
+      //if (j == 0) random[Int](numToken) else random[Int](2)
+    //}
+    //val in  = StreamIn[Tup2[Int,Bit]](FileBus[Tup2[Int,Bit]](inFile))
+    //val out = StreamOut[Tup2[Int,Bit]](FileBus[Tup2[Int,Bit]](outFile))
+    //Accel {
+      //Stream(*){
+        //out := in.value
+      //}
+    //}
+    //val outData = loadCSV2D[Int](outFile)
+    //val cksum = inData == outData
+    //println("PASS: " + cksum + " (StreamInOutStop)")  
+    //assert(cksum)
+  //}
+//}

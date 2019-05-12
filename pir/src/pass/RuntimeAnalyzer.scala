@@ -204,6 +204,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case OutputField(n:Controller, "childDone") => Some(1)
       case OutputField(n:Controller, "valid") => Some(1)
       case OutputField(n:FringeDenseStore, "ack") => Some(1)
+      case OutputField(n:FringeStreamRead, "done") => Some(1)
       case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferVec
       case n:Controller => None
       case n:Memory => None
