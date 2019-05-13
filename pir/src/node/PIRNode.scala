@@ -51,6 +51,9 @@ abstract class PIRNode(implicit env:BuildEnvironment)
     override def mirror(frommeta:MetadataLike[_]) = self
   }
 
+  // Marker for whether the operation is reduction operation across lane
+  val isInnerReduceOp = new Metadata[Boolean]("isInnerReduceOp", default=Some(false))
+
   env.initNode(this)
 }
 object PIRNode extends MemoryUtil with AccessUtil {

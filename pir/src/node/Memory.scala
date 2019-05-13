@@ -106,7 +106,8 @@ case class ExitIf()(implicit env:Env) extends OpNode with Def {
 case class RegAccumOp(op:Any)(implicit env:Env) extends OpNode with Def {
   val in = new InputField[PIRNode]("input")
   val en = new InputField[Set[PIRNode]]("en")
-  val first = new InputField[PIRNode]("first")
+  val first = new InputField[Option[PIRNode]]("first")
+  val init = new InputField[Option[PIRNode]]("init")
 }
 // Filled can be "0" or "-0". based on shuffling address or data
 case class Shuffle(filled:Any)(implicit env:Env) extends OpNode with Def {
@@ -165,6 +166,7 @@ case class TopController()(implicit env:Env) extends Controller
 case class LoopController()(implicit env:Env) extends Controller {
   /*  ------- Fields -------- */
   val cchain = new ChildField[Counter, List[Counter]]("cchain")
+  val firstIter = new OutputField[List[PIRNode]]("firstIter")
 }
 
 case class ControlBlock()(implicit env:Env) extends PIRNode {

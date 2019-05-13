@@ -1,13 +1,14 @@
 import spatial.dsl._
 import spatial.lang.{FileBus,FileBusLastBit}
 
-@spatial class StreamDotProduct extends DSETest {
+@spatial class StreamSumFields extends DSETest {
   val inFile = "in.csv"
   val outFile = "out.csv"
   val field = 8
   val numBatch = 16
   val batch = 4
-  val numToken = batch * field * numBatch
+  val N = numBatch * batch
+  val numToken = N * field
   val op = 1
   type T = Int
 
@@ -45,14 +46,27 @@ import spatial.lang.{FileBus,FileBusLastBit}
       }
     }
     val outData = loadCSV2D[Int](outFile)
+
+    val inDataOnly = Array.tabulate(numToken) { i => inData(i,0) }
+    val inDataMat = inDataOnly.reshape(numBatch, field, batch)
+    val goldMat = Matrix.tabulate(numBatch, batch) { (i, b) =>
+      Array.tabulate(field) { f => inDataMat(i, f, b) }.reduce { _ + _ }
+    }
+    val goldFlat = goldMat.flatten
+    val gold = Matrix.tabulate(N, 2) { (i,j) => if (j==0) goldFlat(i) else (i==(N-1)).to[Int] }
+    println(s"inDataOnly:")
+    printArray(inDataOnly)
+    println(s"inDataMat:")
+    printTensor3(inDataMat)
     println(s"inData:")
     printMatrix(inData)
     println(s"outData:")
     printMatrix(outData)
+    println(s"gold:")
+    printMatrix(gold)
 
-    //val cksum = inData == outData
-    //println("PASS: " + cksum + " (StreamDotProduct)")  
-    //assert(cksum)
-    assert(true)
+    val cksum = outData == gold
+    println("PASS: " + cksum + s" (${this.getClass.getSimpleName})")  
+    assert(cksum)
   }
 }

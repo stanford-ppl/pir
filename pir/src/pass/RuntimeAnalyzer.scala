@@ -203,6 +203,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case OutputField(n:Controller, "done") => Some(1)
       case OutputField(n:Controller, "childDone") => Some(1)
       case OutputField(n:Controller, "valid") => Some(1)
+      case OutputField(n:LoopController, "firstIter") => Some(1)
       case OutputField(n:FringeDenseStore, "ack") => Some(1)
       case OutputField(n:FringeStreamRead, "done") => Some(1)
       case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferVec
@@ -250,6 +251,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     n match {
       case OutputField(n:Controller, "valid") => Some(Bool)
       case OutputField(n:Controller, "done") => Some(Bool)
+      case OutputField(n:LoopController, "firstIter") => Some(Bool)
       case OutputField(n:Controller, "childDone") => Some(Bool)
       case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferTp
       case n:CounterIter => Some(Fix(true, 32, 0))
