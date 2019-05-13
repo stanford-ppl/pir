@@ -22,6 +22,7 @@ case class OpCost(set:Set[Opcode]=Set.empty) extends SetCost[Opcode,OpCost]
 trait CUCostUtil extends PIRPass with CostUtil with RuntimeAnalyzer with Memorization { self =>
   implicit class AnyCostOp(x:Any) {
     def getCost[C<:Cost[C]:ClassTag]:C = x match {
+      case x:Parameter => self.getCost(x, classTag[C]).as[C]
       case x:CUMap.V => self.getCost(x.params.get, classTag[C]).as[C]
       case x => self.getCost(x, classTag[C]).as[C]
     }

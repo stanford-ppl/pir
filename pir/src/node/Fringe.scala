@@ -3,7 +3,7 @@ package node
 
 import prism.graph._
 
-trait Bus {
+trait Bus extends Serializable {
   def withLastBit = this match {
     case bus:FileBusLastBit => true
     case _ => false

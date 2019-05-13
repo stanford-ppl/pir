@@ -29,7 +29,8 @@ trait ProductNode[N<:ProductNode[N]] extends Node[N] with DefNode[N] with Produc
     unpack(field) { case x:Edge[N,a,b] => x.connected.map { _.src} }
   }
 
-  def trace[T<:N:ClassTag]:T = assertOne(this.collect[T](visitGlobalOut _), 
-    s"$this.trace[${classTag[T]}]")
+  def traceOut[T<:N:ClassTag]:T = assertOne(this.collect[T](visitGlobalOut _), 
+    s"$this.traceOut[${classTag[T]}]")
 
+  def traceIn[T<:N:ClassTag] = this.collect[T](visitGlobalIn _)
 }

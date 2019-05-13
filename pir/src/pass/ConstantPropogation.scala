@@ -28,6 +28,20 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with PIRTr
     memoryPrunerHashRun = compiler.hasRun[MemoryPruner]
   }
 
+  def outputMatch(out1:Output[PIRNode], out2:Output[PIRNode]) = (out1, out2) match {
+    case (out1, out2) if out1 == out2 => true
+    case (OutputField(Const(out1), "out"), OutputField(Const(out2), "out")) if out1 == out2 => true
+    case (OutputField(Const(List(out1)), "out"), OutputField(Const(out2), "out")) if out1 == out2 => true
+    case (OutputField(Const(out1), "out"), OutputField(Const(List(out2)), "out")) if out1 == out2 => true
+    case (OutputField(c1:UnitController, "valid" | "done"), OutputField(c2:UnitController, "valid" | "done")) => c1 == c2
+    case (out1, out2) => false
+  }
+
+  def matchInput(in1:Input[PIRNode], in2:Input[PIRNode]) = (in1, in2) match {
+    case (in1, in2) if in1.connected.size != in2.connected.size => false
+    case (in1, in2) => (in1.connected, in2.connected).zipped.forall { outputMatch _ }
+  }
+
   val WrittenByConstData = MatchRule[MemRead, (MemRead, Const)] { read =>
     val ConstData = MatchRule[MemWrite, Const] { write =>
       write.data.T match {
@@ -74,32 +88,34 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with PIRTr
     Some((counter, maxValid))
   }
 
+  /*
+   * w1 -> m1 -> r1 -> w2 -> m2
+   * mw1 -> m2
+   * */
   val RouteThrough1 = MatchRule[MemWrite, (MemWrite, Memory, MemRead, MemWrite, Memory)] { w2 =>
-    if (!initializerHasRun && !memLowerHasRun && !globalInsertHasRun && w2.en.isConnected) {
+    if (!initializerHasRun && !memLowerHasRun && !globalInsertHasRun) {
       w2.data.T match {
-        case r1:MemRead if !r1.en.isConnected =>
+        case r1:MemRead if matchInput(w2.en, r1.en) =>
           val m1 = r1.mem.T
           val m2 = w2.mem.T
           val w1s = m1.inAccesses
           if (w1s.size == 1 && m1.isFIFO == m2.isFIFO) {
             val w1 = w1s.head.as[MemWrite]
-            Some((w1, m1, r1, w2, m2))
+            if (matchInput(w1.en, w2.en)) Some((w1, m1, r1, w2, m2))
+            else None
           } else None
         case _ => None
       }
     } else None
   }
 
-  // w1 -> r1 -> w2 -> r2s => w1 -> r2s
+  // w1 -> r1 -> w2 -> r2s 
+  // w1 -> r2s
   val RouteThrough2 = MatchRule[BufferWrite, (BufferWrite, BufferRead, BufferWrite)] { w2 =>
     w2.data.T match {
-      case r1:BufferRead if !initializerHasRun =>
-        val doneMatch = (r1.done.singleConnected.get, w2.done.singleConnected.get) match {
-          case (OutputField(c1:UnitController, "valid" | "done"), OutputField(c2:UnitController, "valid" | "done")) => c1 == c2
-          case (r1done, w2done) => r1done == w2done
-        }
-        if (doneMatch) Some((r1.inAccess.as[BufferWrite], r1, w2))
-        else None
+      case r1:BufferRead if !initializerHasRun & matchInput(r1.done, w2.done) & !w2.en.isConnected =>
+        val w1 = r1.inAccess.as[BufferWrite]
+        Some((w1, r1, w2))
       case _ =>  None
     }
   }
@@ -117,12 +133,9 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with PIRTr
   }
 
   val ShuffleMatch = MatchRule[Shuffle, Shuffle] { n =>
-    (n.from.T, n.to.T) match {
+    (n.from, n.to) match {
       case (from, to) if !memoryPrunerHashRun => None
-      case (from, to) if from == to => Some(n)
-      case (Const(from), Const(to)) if from == to => Some(n)
-      case (Const(List(from:Int)), Const(to:Int)) if from == to => Some(n)
-      case (Const(from:Int), Const(List(to))) if from == to => Some(n)
+      case (from, to) if matchInput(from, to) => Some(n)
       case (from, to) => None
     }
   }

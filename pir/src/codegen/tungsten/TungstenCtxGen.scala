@@ -16,10 +16,10 @@ trait TungstenCtxGen extends TungstenCodegen with TungstenTopGen {
       Math.max(ctx.collectDown[OpNode]().size, 1)
     case g:GlobalContainer if spadeParam.isInf =>
       val cuParam = topMap.right.get.cumap(g).head.params.get.as[CUParam]
-      if (cuParam.trace[TopParam].scheduled) 1 else cuParam.numStage
+      if (cuParam.traceOut[TopParam].scheduled) 1 else cuParam.numStage
     case g:GlobalContainer =>
       val cuParam = topMap.right.get.cumap.usedMap(g).params.get.as[CUParam]
-      if (cuParam.trace[TopParam].scheduled) 1 else cuParam.numStage
+      if (cuParam.traceOut[TopParam].scheduled) 1 else cuParam.numStage
   }
 
   override def emitNode(n:N) = n match {

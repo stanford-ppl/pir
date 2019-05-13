@@ -53,6 +53,9 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       emitln(s"$n->SetEn(${n.en.qref} & ${n.parentEn.qref});")
       super.visitNode(n)
 
+    case n:Counter if n.isForever =>
+      emitNewMember(s"ForeverCounter<${n.par}>", n)
+
     case n:Counter if !n.isForever =>
       emitNewMember(s"Counter<${n.par}>", n)
       emitln(s"$n->setMin(${n.min.T.get});")

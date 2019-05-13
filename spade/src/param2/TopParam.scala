@@ -24,9 +24,7 @@ object WithPattern {
   }
 }
 
-trait Pattern extends Parameter {
-  def cuParams = this.collectIn[CUParam]()
-}
+trait Pattern extends Parameter
 
 case class AsicPattern(
   networkParam:NetworkParam=NetworkParam("vec")
@@ -88,7 +86,7 @@ case class FringePattern(
   argFringeParam:ArgFringeParam=ArgFringeParam(),
   shareNode:Boolean=true
 ) extends Parameter {
-  lazy val topParam = trace[TopParam]
+  lazy val topParam = traceOut[TopParam]
   def fringeColumn = if (shareNode) 1 else if (dagParam.nonEmpty) 2 else 1
 }
 
@@ -112,14 +110,14 @@ case class NetworkParam(
 ) extends Parameter
 
 case class BundleParam() extends Parameter {
-  lazy val granularity = trace[NetworkParam]
+  lazy val granularity = traceOut[NetworkParam]
 }
 
 case class SRAMParam (
   count:Int=1,
   size:Int= 256 * 1024 // in Byte
 ) extends Parameter {
-  lazy val topParam = trace[TopParam]
+  lazy val topParam = traceOut[TopParam]
   lazy val bank:Int = topParam.vecWidth
   lazy val sizeInWord = size / topParam.bytePerWord
 }
@@ -129,7 +127,7 @@ case class FIFOParam(
   count:Int,
   depth:Int=16
 ) extends Parameter {
-  lazy val cuParam = trace[CUParam]
+  lazy val cuParam = traceOut[CUParam]
 }
 
 sealed trait CUParam extends Parameter {
@@ -143,7 +141,7 @@ sealed trait CUParam extends Parameter {
   val numVout:Int
   val numSin:Int
   val numSout:Int
-  lazy val numLane:Int = trace[TopParam].vecWidth
+  lazy val numLane:Int = traceOut[TopParam].vecWidth
   def fifoParamOf(granularity:String):Option[FIFOParam] = 
     assertOneOrLess(fifoParams.filter { _.granularity == granularity }, 
       s"$this fifoParam at $granularity")
