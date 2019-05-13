@@ -140,11 +140,13 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
   }
 
   def streamIn(fifos:List[FIFO], bus:Bus) = {
+    val name = longestCommonSubstring(fifos.flatMap { _.name.v })
     bus match {
       case DRAMBus =>
       case bus =>
         within(ControlTree(Streaming)) {
           val sw = stage(FringeStreamWrite(bus))
+          name.foreach { name => sw.name(name) }
           val data = fifos.map { fifo =>
             stage(MemWrite().setMem(fifo).vec(fifo.banks.get.head).tp.mirror(fifo.tp)).data
           }
@@ -160,6 +162,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
   }
   def processStreamOut(streamOut:(List[FIFO], Bus)) = {
     val (fifos, bus) = streamOut
+    val name = longestCommonSubstring(fifos.flatMap { _.name.v })
     bus match {
       case DRAMBus =>
       case bus =>
@@ -167,7 +170,18 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
           val reads = fifos.map { fifo =>
             stage(MemRead().setMem(fifo).vec(fifo.banks.get.head)).out
           }
-          stage(FringeStreamRead(bus).addStreams(reads))
+          val sr = stage(FringeStreamRead(bus).addStreams(reads))
+          name.foreach { name => sr.name(name) }
+          if (bus.withLastBit) {
+            val writer = stage(MemWrite().tp(Bool).data(sr.lastBit))
+            within(pirTop.argFringe) {
+              val lastBit = stage(FIFO().addAccess(writer).tp(Bool).banks(List(1)).name(s"${name.getOrElse(sr.toString)}_lastBit"))
+              within(pirTop.hostOutCtrl) {
+                val read = stage(MemRead().setMem(lastBit))
+                stage(HostRead().input(read))
+              }
+            }
+          }
         }
     }
   }

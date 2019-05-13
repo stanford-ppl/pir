@@ -3,9 +3,19 @@ package node
 
 import prism.graph._
 
-trait Bus
+trait Bus {
+  def withLastBit = this match {
+    case bus:FileBusLastBit => true
+    case _ => false
+  }
+}
 case object DRAMBus extends Bus
-case class FileBus(fileName:String) extends Bus
+class FileBus(val fileName:String) extends Bus
+object FileBus {
+  def apply(fileName:String) = new FileBus(fileName)
+  def unapply(x:FileBus) = Some(x.fileName)
+}
+case class FileBusLastBit(override val fileName:String) extends FileBus(fileName)
 case class BlackBoxBus(name:String) extends Bus
 
 trait FringeCommand extends PIRNode
@@ -57,5 +67,5 @@ case class FringeStreamWrite(bus:Bus)(implicit env:Env) extends StreamCommand {
 case class FringeStreamRead(bus:Bus)(implicit env:Env) extends StreamCommand {
   def addStreams(xs:List[Any]) = DynamicInputFields[PIRNode]("stream", xs)
   override def streams = getDynamicInputFields[PIRNode]("stream")
-  //val ack = new OutputField[PIRNode]("ack")
+  val lastBit = new OutputField[Option[PIRNode]]("lastBit")
 }

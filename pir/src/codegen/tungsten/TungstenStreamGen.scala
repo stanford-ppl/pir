@@ -17,14 +17,28 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
       genCtxInits {
         emitln(s"""$file.open("${filePath}", std::ios::out);""")
       }
+      n.lastBit.T.foreach { last =>
+        emitln(s"bool $last = false;")
+      }
       emitBlock(s"for (int i=0; i < ${n.streams.head.getVec}; i++)") {
         val size = n.streams.size
         n.streams.zipWithIndex.foreach { case (stream, s) =>
           val dlim = if (s != size-1) s"""", ";""" else s"endl;"
           emitln(s"""$file << ${stream.qidx("i")} << $dlim""")
         }
+        n.lastBit.T.foreach { last =>
+          emitln(s"$last |= ${n.streams.last.qidx("i")};")
+        }
       }
-
+      n.lastBit.T.foreach { last =>
+        last.as[BufferWrite].out.T.foreach { send =>
+          addEscapeVar(send)
+          genCtxInits {
+            emitln(s"AddSend(${nameOf(send)});");
+          }
+          emitln(s"""if ($last) ${nameOf(send)}->Push(make_token($last));""")
+        }
+      }
     case n@FringeStreamWrite(FileBus(filePath)) =>
       val file = s"${n}_file"
       cleanup += s"${nameOf(n.ctx.get)}.$file.close();"

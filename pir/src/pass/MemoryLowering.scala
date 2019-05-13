@@ -423,9 +423,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           dbg(s"$read.initToken = true")
           read.initToken := true
         }
-        outAccess.depeds.foreach { deped =>
-          swapInput(deped, outAccess.out, read.out)
-        }
+        swapOutput(outAccess.out, read.out)
       }
     }
     removeNodes(mem.accesses :+ mem)

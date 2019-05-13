@@ -50,18 +50,6 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         n.name(name)
       }
     }
-    //n.to[FringeStreamRead].foreach { n =>
-      //within(pirTop.argFringe) {
-        //val reg = stage(FIFO().tp(Bool).banks(List(1)).name(s"${n.name.v.getOrElse(n.toString)}_ack"))
-        //within(pirTop, n.getCtrl) {
-          //stage(MemWrite().tp(Bool).data(n.ack).setMem(reg))
-        //}
-        //within(pirTop.hostOutCtrl) {
-          //val read = stage(MemRead().setMem(reg))
-          //stage(HostRead().input(read))
-        //}
-      //}
-    //}
     n.to[HostRead].foreach { n =>
       n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
     }
