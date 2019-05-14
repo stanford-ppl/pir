@@ -1,18 +1,29 @@
 import spatial.dsl._
 import spatial.lang.{FileBus,FileBusLastBit}
 
-@spatial class StreamSumFields extends DSETest {
+case class StreamSumFieldsParam(
+  field:scala.Int = 8,
+  numBatch:scala.Int = 16,
+  batch:scala.Int = 4,
+  op:scala.Int = 1
+) extends Param[StreamSumFieldsParam]
+
+class StreamSumFields_0 extends StreamSumFields
+class StreamSumFields_1 extends StreamSumFields { override lazy val param = StreamSumFieldsParam(op=2) }
+
+@spatial abstract class StreamSumFields extends DSETest {
   val inFile = "in.csv"
   val outFile = "out.csv"
-  val field = 8
-  val numBatch = 16
-  val batch = 4
-  val N = numBatch * batch
-  val numToken = N * field
-  val op = 1
-  type T = Int
+
+  lazy val param = StreamSumFieldsParam()
 
   def main(args: Array[String]): Unit = {
+    import param._
+
+    val N = numBatch * batch
+    val numToken = N * field
+    type T = Int
+
     val inData = Matrix.tabulate(numToken,2) { (i,j) =>
       if (j == 0) random[T](numToken) else (i==numToken-1).to[T]
     }
