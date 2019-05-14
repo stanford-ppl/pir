@@ -45,9 +45,7 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
       genCtxFields {
         emitln(s"""ifstream $file;""")
       }
-      genCtxInits {
-        emitln(s"""$file.open("${filePath}", std::ios::in);""")
-      }
+      emitln(s"""if (!$file.is_open()) $file.open("${filePath}", std::ios::in);""")
       emitln(s"bool good = $file.good();")
       emitIfElse(s"good") {
         n.streams.foreach { stream =>
