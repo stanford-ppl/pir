@@ -8,6 +8,20 @@ import scala.collection.mutable
 
 trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
+  override def emitRunAccel = {
+    val luts = pirTop.collectChildren[MemoryContainer].flatMap { _.collectChildren[LUT] }
+    luts.foreach { lut =>
+      val (tp, name) = varOf(lut)
+      emitln(s"${lut.qtp} ${name}_init[] = {${lut.inits.get.as[List[_]].mkString(",")}};")
+      emitBlock(s"for (auto* buf: $name.buffers)") {
+        emitBlock(s"for (auto* bank: buf->banks)") {
+          emitln(s"memcpy(bank->data.data(), &${name}_init, sizeof(${name}_init));")
+        }
+      }
+    }
+    super.emitRunAccel
+  }
+
   override def emitNode(n:N) = n match {
     case n:GlobalOutput if noPlaceAndRoute =>
       val (tp, name) = varOf(n)

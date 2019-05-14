@@ -21,7 +21,10 @@ trait MemoryNode extends PIRNode {
   def totalBanks = banks.get.product
   def nBanks:Int = bankids.get.size
   def size:Int = dims.get.product + darkVolume.get // User declared size
-  def bankSize:Int = size /! totalBanks
+  def bankSize:Int = this match {
+    case lut:LUT => size // LUT will duplicate data in all banks
+    case _ => size /! totalBanks
+  }
   def capacity:Int = getDepth * bankSize * nBanks // Total capacity of this memory.
 }
 
