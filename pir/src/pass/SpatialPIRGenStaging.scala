@@ -19,33 +19,27 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
     states.pirTop = top
     import top._
     within(top) {
-      val topCtrler = stage(createCtrl("Sequenced") { TopController() })
+      val topCtrler = stage(createCtrl(Sequenced) { TopController() })
       top.topCtrl = topCtrler.ctrl.get
       topCtrl.ctrler := topCtrler
       top.argFringe = stage(ArgFringe())
       within(argFringe) {
-        val hostInCtrler = stage(createCtrl("Sequenced") { HostInController() })
+        val hostInCtrler = stage(createCtrl(Sequenced) { HostInController() })
         top.hostInCtrl = hostInCtrler.ctrl.get
         endState[Ctrl]
       }
       compiler.staging(top)
       within(argFringe) {
-        val hostOutCtrler = stage(createCtrl("Sequenced") { HostOutController() })
+        val hostOutCtrler = stage(createCtrl(Sequenced) { HostOutController() })
         top.hostOutCtrl = hostOutCtrler.ctrl.get
-        argOuts.foreach { mem =>
-          stage(HostRead().input(MemRead().setMem(mem)))
-        }
+        argOuts.foreach { processArgOut }
+        argOuts.clear
         endState[Ctrl]
       }
-      streamOuts.foreach { streamOut =>
-        within(ControlTree("Streaming")) {
-          stage(FringeStreamRead().name.mirror(streamOut.name).stream(MemRead().setMem(streamOut).out))
-        }
-      }
+      streamOuts.foreach { processStreamOut }
+      streamOuts.clear
       endState[Ctrl]
     }
-    argOuts.clear
-    streamOuts.clear
     dramAddrs.clear
     nameSpace.clear
     toc(s"New design", "ms")
@@ -75,10 +69,6 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
 
   /* Helper function during staging graph */
 
-  val argOuts = scala.collection.mutable.ListBuffer[Reg]()
-  val streamOuts = scala.collection.mutable.ListBuffer[FIFO]()
-  val dramAddrs = scala.collection.mutable.Map[DRAM, Reg]()
-
   implicit class NodeHelper[T](x:T) {
     def sctx(c:String):T = x.to[PIRNode].fold(x) { xx => xx.srcCtx(c); x }
     def name(c:String):T = x.to[PIRNode].fold(x) { xx => xx.name(c); x }
@@ -96,7 +86,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
     x
   }
 
-  def createCtrl[T<:Controller](schedule:String)(newCtrler: => T):T = {
+  def createCtrl[T<:Controller](schedule:CtrlSchedule)(newCtrler: => T):T = {
     val tree = ControlTree(schedule)
     beginState(tree)
     val ctrler = newCtrler
@@ -116,6 +106,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
     ctrler
   }
 
+  val dramAddrs = scala.collection.mutable.Map[DRAM, Reg]()
   def dramAddress(dram:DRAM) = {
     val mem = dramAddrs.getOrElseUpdate(dram, {
       val mem = stage(Reg())
@@ -136,6 +127,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
     mem
   }
 
+  val argOuts = scala.collection.mutable.ListBuffer[Reg]()
   def argOut() = {
     within(pirTop.argFringe) {
       val mem = stage(Reg())
@@ -143,17 +135,55 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
       mem
     }
   }
+  def processArgOut(mem:Reg) = {
+    stage(HostRead().input(MemRead().setMem(mem)))
+  }
 
-  def streamIn(fifo:FIFO) = {
-    within(ControlTree("Streaming")) {
-      val sw = stage(FringeStreamWrite().name.mirror(fifo.name))
-      stage(MemWrite().setMem(fifo).data(sw.stream))
-      sw
+  def streamIn(fifos:List[FIFO], bus:Bus) = {
+    val name = longestCommonSubstring(fifos.flatMap { _.name.v })
+    bus match {
+      case DRAMBus =>
+      case bus =>
+        within(ControlTree(Streaming)) {
+          val sw = stage(FringeStreamWrite(bus))
+          name.foreach { name => sw.name(name) }
+          val data = fifos.map { fifo =>
+            stage(MemWrite().setMem(fifo).vec(fifo.banks.get.head).tp.mirror(fifo.tp)).data
+          }
+          sw.addStreams(data)
+          sw
+        }
     }
   }
 
-  def streamOut(fifo:FIFO) = {
-    streamOuts += fifo
+  val streamOuts = scala.collection.mutable.ListBuffer[(List[FIFO],Bus)]()
+  def streamOut(fifos:List[FIFO], bus:Bus) = {
+    streamOuts += ((fifos, bus))
+  }
+  def processStreamOut(streamOut:(List[FIFO], Bus)) = {
+    val (fifos, bus) = streamOut
+    val name = longestCommonSubstring(fifos.flatMap { _.name.v })
+    bus match {
+      case DRAMBus =>
+      case bus =>
+        within(ControlTree(Streaming)) {
+          val reads = fifos.map { fifo =>
+            stage(MemRead().setMem(fifo).vec(fifo.banks.get.head)).out
+          }
+          val sr = stage(FringeStreamRead(bus).addStreams(reads))
+          name.foreach { name => sr.name(name) }
+          if (bus.withLastBit) {
+            val writer = stage(MemWrite().tp(Bool).data(sr.lastBit))
+            within(pirTop.argFringe) {
+              val lastBit = stage(FIFO().addAccess(writer).tp(Bool).banks(List(1)).name(s"${name.getOrElse(sr.toString)}_lastBit"))
+              within(pirTop.hostOutCtrl) {
+                val read = stage(MemRead().setMem(lastBit))
+                stage(HostRead().input(read))
+              }
+            }
+          }
+        }
+    }
   }
 
 }

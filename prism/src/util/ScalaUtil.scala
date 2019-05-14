@@ -243,10 +243,22 @@ trait ScalaUtilFunc {
   final val SINGLE_PRECISION = 32
 
   case class MatchRule[A:ClassTag, B](lambda:A => Option[B]) {
-    def unapply(x:Any):Option[B] = x match {
-      case x:A => lambda(x)
-      case _ => None
-    }
+    def unapply(x:A):Option[B] = lambda(x)
+  }
+
+  def getAllSubstrings(str: String): Set[String] = {
+    str.inits.flatMap(_.tails).toSet
+  }
+
+  def longestCommonSubstring(str1: String, str2: String): String = {
+    val str1Substrings = getAllSubstrings(str1)
+    val str2Substrings = getAllSubstrings(str2)
+  
+    str1Substrings.intersect(str2Substrings).maxBy(_.length)
+  }
+
+  def longestCommonSubstring(strs:Iterable[String]): Option[String] = {
+    strs.reduceOption{ (a,b) => longestCommonSubstring(a,b) }
   }
 
 }

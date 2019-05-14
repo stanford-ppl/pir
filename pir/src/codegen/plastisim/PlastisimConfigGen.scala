@@ -125,7 +125,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
           Math.max(n.collectDown[OpNode]().map { getLatency }.sum, 1)
       case g:GlobalContainer =>
         val cuParam = paramOf(n).as[CUParam]
-        if (cuParam.trace[TopParam].scheduled) 1 else {
+        if (cuParam.traceOut[TopParam].scheduled) 1 else {
           val ops = n.collectDown[OpNode]()
           val unusedStage = cuParam.numStage - ops.size
           ops.map { getLatency }.sum + unusedStage

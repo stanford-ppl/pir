@@ -1,6 +1,23 @@
 package pir
 package node
 
+import prism.graph._
+
+trait Bus extends Serializable {
+  def withLastBit = this match {
+    case bus:FileBusLastBit => true
+    case _ => false
+  }
+}
+case object DRAMBus extends Bus
+class FileBus(val fileName:String) extends Bus
+object FileBus {
+  def apply(fileName:String) = new FileBus(fileName)
+  def unapply(x:FileBus) = Some(x.fileName)
+}
+case class FileBusLastBit(override val fileName:String) extends FileBus(fileName)
+case class BlackBoxBus(name:String) extends Bus
+
 trait FringeCommand extends PIRNode
 
 trait DRAMCommand extends FringeCommand {
@@ -39,11 +56,16 @@ case class DRAM(sid:String) extends prism.graph.IR {
   val tp = new Metadata[BitType]("tp")
 }
 
-trait StreamCommand extends FringeCommand
-
-case class FringeStreamWrite()(implicit env:Env) extends StreamCommand {
-  val stream = new OutputField[PIRNode]("stream")
+trait StreamCommand extends FringeCommand {
+  def streams:List[EN[PIRNode] with Field[PIRNode]]
 }
-case class FringeStreamRead()(implicit env:Env) extends StreamCommand {
-  val stream = new InputField[PIRNode]("stream")
+
+case class FringeStreamWrite(bus:Bus)(implicit env:Env) extends StreamCommand {
+  def addStreams(xs:List[Any]) = DynamicOutputFields[PIRNode]("stream", xs)
+  override def streams = getDynamicOutputFields[PIRNode]("stream")
+}
+case class FringeStreamRead(bus:Bus)(implicit env:Env) extends StreamCommand {
+  def addStreams(xs:List[Any]) = DynamicInputFields[PIRNode]("stream", xs)
+  override def streams = getDynamicInputFields[PIRNode]("stream")
+  val lastBit = new OutputField[Option[PIRNode]]("lastBit")
 }

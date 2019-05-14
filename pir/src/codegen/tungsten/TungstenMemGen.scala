@@ -89,6 +89,8 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
     case WithData(n:BufferWrite, data:DRAMCommand) =>
 
+    case WithData(n:BufferWrite, data:StreamCommand) =>
+
     case WithData(n:BufferWrite, data:BankedRead) =>
       n.out.T.foreach { send =>
         addEscapeVar(send)

@@ -84,12 +84,8 @@ trait Def extends PIRNode with DefNode[PIRNode] {
 case class Const(value:Any)(implicit env:Env) extends Def
 trait OpNode extends PIRNode
 case class OpDef(op:Opcode)(implicit env:Env) extends OpNode with Def {
-  //val input = new InputField[List[PIRNode]]("input")
-  def addInput(xs:Any*) = {
-    xs.foreach { x => new InputField[PIRNode]("input").dynamic(true).apply(x) }
-    this
-  }
-  def inputs:List[InputField[PIRNode]] = localIns.filter { _.as[Field[_]].name == "input" }.toList.as
+  def addInput(xs:Any*) = DynamicInputFields[PIRNode]("input", xs)
+  def inputs = getDynamicInputFields[PIRNode]("input")
 }
 case class PrintIf()(implicit env:Env) extends OpNode with Def {
   val en = new InputField[List[PIRNode]]("en")
@@ -110,7 +106,8 @@ case class ExitIf()(implicit env:Env) extends OpNode with Def {
 case class RegAccumOp(op:Any)(implicit env:Env) extends OpNode with Def {
   val in = new InputField[PIRNode]("input")
   val en = new InputField[Set[PIRNode]]("en")
-  val first = new InputField[PIRNode]("first")
+  val first = new InputField[Option[PIRNode]]("first")
+  val init = new InputField[Option[PIRNode]]("init")
 }
 // Filled can be "0" or "-0". based on shuffling address or data
 case class Shuffle(filled:Any)(implicit env:Env) extends OpNode with Def {
@@ -151,6 +148,7 @@ abstract class Controller(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
   val en = new InputField[Option[PIRNode]]("en")
   val parentEn = new InputField[Option[PIRNode]]("parentEn")
+  val stopWhen = new InputField[Option[PIRNode]]("stopWhen")
 
   val valid = new OutputField[List[PIRNode]]("valid")
   val done = new OutputField[List[PIRNode]]("done")
@@ -168,6 +166,7 @@ case class TopController()(implicit env:Env) extends Controller
 case class LoopController()(implicit env:Env) extends Controller {
   /*  ------- Fields -------- */
   val cchain = new ChildField[Counter, List[Counter]]("cchain")
+  val firstIter = new OutputField[List[PIRNode]]("firstIter")
 }
 
 case class ControlBlock()(implicit env:Env) extends PIRNode {
@@ -176,7 +175,7 @@ case class ControlBlock()(implicit env:Env) extends PIRNode {
 
 trait MemoryUtil extends CollectorImplicit {
 
-  implicit class MemOp(n:Memory) {
+  implicit class MemOp[M<:Memory](n:M) {
     def inAccesses = n.collect[InAccess](visitGlobalIn _)
     def outAccesses = n.collect[OutAccess](visitGlobalOut _)
     def accesses = inAccesses ++ outAccesses
@@ -184,6 +183,11 @@ trait MemoryUtil extends CollectorImplicit {
     def isFIFO = n match {
       case n:FIFO => true
       case _ => false
+    }
+
+    def addAccess(a:Access):M = {
+      a.setMem(n)
+      n
     }
   }
 

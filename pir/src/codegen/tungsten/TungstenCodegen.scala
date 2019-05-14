@@ -13,6 +13,7 @@ class TungstenPIRGen(implicit design:PIR) extends TungstenCodegen
   with TungstenControllerGen
   with TungstenOpGen
   with TungstenMemGen
+  with TungstenStreamGen
 
 trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal with CppCodegen {
 

@@ -2,11 +2,12 @@ package pir
 package pass
 
 import pir.node._
+import pir.mapper._
 import prism.graph._
 import spade.param._
 import scala.collection.mutable
 
-class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with DependencyAnalyzer {
+class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with DependencyAnalyzer with CUCostUtil {
 
   override def runPass = {
     pirTop.collectDown[Memory]().foreach(lowerMem)
@@ -21,7 +22,15 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     // If read access is branch dependent, the ctx cannot block on the input for its activation
     cannotToBuffer |= mem.outAccesses.exists { _.en.isConnected }
     cannotToBuffer |= mem.inAccesses.size > 1
-    if (mem.isFIFO) cannotToBuffer |= mem.outAccesses.size > 1
+    if (mem.isFIFO) {
+      cannotToBuffer |= mem.outAccesses.size > 1
+      //val maxFIFOCost = spadeParam.traceIn[CUParam].map { cuParam =>
+        //val cost = cuParam.getCost[FIFOCost]
+        //if (isVec(mem)) cost.vfifo else cost.sfifo
+      //}.maxOption.getOrElse(0)
+      //dbg(s"maxFIFOCost=$maxFIFOCost")
+      //cannotToBuffer |= mem.depth.get > maxFIFOCost
+    }
     if (cannotToBuffer) {
       createMemGlobal(mem)
     } else {
@@ -246,7 +255,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     dbgblk(s"sequencedScheduleBarrierInsertion($mem)") {
       val ctrls = mem.accesses.toStream.flatMap { a => a.getCtrl.ancestorTree }.distinct
       ctrls.foreach { ctrl =>
-        if (ctrl.schedule == "Sequenced") {
+        if (ctrl.schedule == Sequenced) {
           val accesses = ctrl.children.flatMap { childCtrl => 
             val childAccesses = mem.accesses.filter { a => 
               a.getCtrl.isDescendentOf(childCtrl) || a.getCtrl == childCtrl
@@ -423,9 +432,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           dbg(s"$read.initToken = true")
           read.initToken := true
         }
-        outAccess.depeds.foreach { deped =>
-          swapInput(deped, outAccess.out, read.out)
-        }
+        swapOutput(outAccess.out, read.out)
       }
     }
     removeNodes(mem.accesses :+ mem)

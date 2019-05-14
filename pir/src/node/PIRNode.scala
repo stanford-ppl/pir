@@ -11,7 +11,12 @@ abstract class PIRNode(implicit env:BuildEnvironment)
   with FieldNode[PIRNode] { self =>
   lazy val Nct = classTag[PIRNode]
 
-  val name = new Metadata[String]("name")
+  val name = new Metadata[String]("name") {
+    override def mirror(frommeta:MetadataLike[_]) = {
+      if (v.isEmpty) super.mirror(frommeta)
+      else self
+    }
+  }
   val sname = new Metadata[String]("sname") {
     override def check(v:String) = {}
   }
@@ -46,6 +51,9 @@ abstract class PIRNode(implicit env:BuildEnvironment)
     override def mirror(frommeta:MetadataLike[_]) = self
   }
 
+  // Marker for whether the operation is reduction operation across lane
+  val isInnerReduceOp = new Metadata[Boolean]("isInnerReduceOp", default=Some(false))
+
   env.initNode(this)
 }
 object PIRNode extends MemoryUtil with AccessUtil {
@@ -56,7 +64,13 @@ object PIRNode extends MemoryUtil with AccessUtil {
   }
 }
 
-case class ControlTree(schedule:String)(implicit env:Env) extends EnvNode[ControlTree] with FieldNode[ControlTree] with Ordered[ControlTree] { self =>
+sealed abstract class CtrlSchedule
+case object Sequenced extends CtrlSchedule
+case object Pipelined extends CtrlSchedule
+case object Streaming extends CtrlSchedule
+case object ForkJoin extends CtrlSchedule
+case object Fork extends CtrlSchedule
+case class ControlTree(schedule:CtrlSchedule)(implicit env:Env) extends EnvNode[ControlTree] with FieldNode[ControlTree] with Ordered[ControlTree] { self =>
   lazy val Nct = classTag[ControlTree]
 
   val sname = new Metadata[String]("sname")

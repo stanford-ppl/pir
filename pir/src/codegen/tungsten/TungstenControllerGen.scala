@@ -13,6 +13,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case OutputField(ctrler:Controller, "done") => s"$ctrler->Done()"
     case OutputField(ctrler:Controller, "childDone") => s"$ctrler->ChildDone()"
     case OutputField(ctrler:Controller, "valid") => s"$ctrler->Valid()"
+    case OutputField(ctrler:LoopController, "firstIter") => s"$ctrler->FirstIter()"
     case n => super.quoteRef(n)
   }
 
@@ -52,6 +53,9 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       }
       emitln(s"$n->SetEn(${n.en.qref} & ${n.parentEn.qref});")
       super.visitNode(n)
+
+    case n:Counter if n.isForever =>
+      emitNewMember(s"ForeverCounter<${n.par}>", n)
 
     case n:Counter if !n.isForever =>
       emitNewMember(s"Counter<${n.par}>", n)

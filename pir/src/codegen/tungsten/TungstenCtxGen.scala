@@ -16,14 +16,15 @@ trait TungstenCtxGen extends TungstenCodegen with TungstenTopGen {
       Math.max(ctx.collectDown[OpNode]().size, 1)
     case g:GlobalContainer if spadeParam.isInf =>
       val cuParam = topMap.right.get.cumap(g).head.params.get.as[CUParam]
-      if (cuParam.trace[TopParam].scheduled) 1 else cuParam.numStage
+      if (cuParam.traceOut[TopParam].scheduled) 1 else cuParam.numStage
     case g:GlobalContainer =>
       val cuParam = topMap.right.get.cumap.usedMap(g).params.get.as[CUParam]
-      if (cuParam.trace[TopParam].scheduled) 1 else cuParam.numStage
+      if (cuParam.traceOut[TopParam].scheduled) 1 else cuParam.numStage
   }
 
   override def emitNode(n:N) = n match {
     case n:Context =>
+      val (tp, name) = varOf(n)
       val numStages = numStagesOf(n)
       enterFile(dirName, s"$n.h", false) {
         genCtxCompute {
@@ -65,9 +66,9 @@ using namespace std;
         emitln(s"""#include "$n.h"""")
         var args = s"${ctxExtVars.map { _._2 }.map { _.& }.mkString(",")}"
         if (ctxExtVars.nonEmpty) args = s"($args)"
-        emitln(s"""$n ctx_$n$args;""")
+        emitln(s"""$tp $name$args;""")
       }
-      dutArgs += s"ctx_$n"
+      dutArgs += name 
       ctxExtVars.clear
 
     case n => super.emitNode(n)
@@ -81,8 +82,12 @@ using namespace std;
 
   def emitStopSim(ctx:Context) = {
     ctx.collectDown[HostOutController]().headOption.foreach { hostOut =>
-      emitIf(s"${hostOut.done.qref}") {
-        emitln(s"Complete(1);")
+      val noStreamReadCtxs = !pirTop.collectDown[Context]().exists { case StreamReadContext(_) => true; case _ => false }
+      val hasInputStream = ctx.collectDown[LocalOutAccess]().nonEmpty
+      if (hasInputStream || noStreamReadCtxs) {
+        emitIf(s"${hostOut.done.qref}") {
+          emitln(s"Complete(1);")
+        }
       }
     }
   }
@@ -104,7 +109,10 @@ using namespace std;
     if (!ctxExtVars.contains(v)) ctxExtVars += v
   }
 
-  def varOf(n:PIRNode):(String, String) = throw PIRException(s"Don't know varOf($n)")
+  def varOf(n:PIRNode):(String, String) = n match {
+    case n:Context => (s"$n",s"ctx_$n")
+    case n => throw PIRException(s"Don't know varOf($n)")
+  }
   def nameOf(n:PIRNode) = varOf(n)._2
   def tpOf(n:PIRNode) = varOf(n)._1
 

@@ -115,6 +115,17 @@ trait FieldNode[N<:Node[N]] extends Node[N] { self:N =>
     override def toString = s"${super.toString}_$name"
   }
 
+  def DynamicInputFields[T:TypeTag:ClassTag](name:String, xs:Seq[Any]):self.type = {
+    xs.foreach { x => new InputField[T](name).dynamic(true).apply(x) }
+    this
+  }
+  def getDynamicInputFields[T](name:String):List[InputField[T]] = localIns.filter { _.as[InputField[_]].name == name }.toList.as
+  def DynamicOutputFields[T:TypeTag:ClassTag](name:String, xs:Seq[Any]):self.type = {
+    xs.foreach { x => new OutputField[T](name).dynamic(true).apply(x) }
+    this
+  }
+  def getDynamicOutputFields[T](name:String):List[OutputField[T]] = localOuts.filter { _.as[OutputField[_]].name == name }.toList.as
+
   class ChildField[M<:FieldNode[N]:ClassTag, T:TypeTag:ClassTag](val name:String) extends NodeField[T] {
     val Ttt = typeTag[T]
     val Tct = classTag[T]

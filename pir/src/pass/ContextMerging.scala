@@ -18,7 +18,7 @@ class ContextMerging(implicit compiler:PIR) extends PIRTraversal with PIRTransfo
     dbg(s"mem=$mem")
     mem.outAccesses.groupBy { read =>
       val readCtrl = read.getCtrl
-      readCtrl.ancestorTree.filter { _.schedule == "ForkJoin" }
+      readCtrl.ancestorTree.filter { _.schedule == ForkJoin }
     }.filterNot { _._1.isEmpty }.foreach { case (forkJoins, reads) =>
       if (reads.size > 1) {
         dbg(s"forkJoins=$forkJoins")

@@ -11,21 +11,21 @@ def main():
     parser.add_argument('-t', '--thread', type=int, default=30, help='Number of threads to run')
     parser.add_argument('-p', '--project', type=str, default="pirTest", help='project name')
     parser.add_argument('-a', '--app', action='append', help='name of application to run')
-    parser.add_argument('-c', '--continue', default=False, action='store_true', 
+    parser.add_argument('-c', '--conti', default=False, action='store_true', 
         help='Continue from previous regression')
     (opts, args) = parser.parse_known_args()
     if (opts.backend is None):
         opts.backend = ['pirTest']
     os.system('mkdir -p logs/')
     os.system('sbt "; project pir; publishAll"')
+    apps = opts.app
+    if apps is None: apps = []
     for backend in opts.backend:
-        apps = opts.app
         gendir = backend
         if backend == "Tst":
             gendir = backend + "_" + opts.project
-        if not opts.continue:
+        if not opts.conti:
             os.system('rm -r ../gen/{}'.format(gendir))
-        if apps is None: apps = []
         os.system('bin/spatial -t {} -p {} -b {} {}'.format(opts.thread, opts.project,backend,
             ' '.join(['-a ' + a for a in apps])))
         os.system('bin/log ../gen/{} -d -p {} -b {}'.format(gendir, opts.project,
