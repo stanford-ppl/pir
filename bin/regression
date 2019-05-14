@@ -18,14 +18,14 @@ def main():
         opts.backend = ['pirTest']
     os.system('mkdir -p logs/')
     os.system('sbt "; project pir; publishAll"')
+    apps = opts.app
+    if apps is None: apps = []
     for backend in opts.backend:
-        apps = opts.app
         gendir = backend
         if backend == "Tst":
             gendir = backend + "_" + opts.project
         if not opts.conti:
             os.system('rm -r ../gen/{}'.format(gendir))
-        if apps is None: apps = []
         os.system('bin/spatial -t {} -p {} -b {} {}'.format(opts.thread, opts.project,backend,
             ' '.join(['-a ' + a for a in apps])))
         os.system('bin/log ../gen/{} -d -p {} -b {}'.format(gendir, opts.project,

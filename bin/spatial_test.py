@@ -5,6 +5,15 @@ def main():
     (opts, args) = parser.parse_known_args()
     if opts.app is None:
         opts.app = ["*"]
+    apps = []
+    for app in opts.app:
+        if app.startswith("file:"):
+            with open(app.split(":")[1], "r") as f:
+                for line in f:
+                    apps.append('*' + line.replace('\n', ''))
+        else: 
+            apps.append(app)
+    opts.app = apps
     java_cmd = ""
     java_cmd += "export TEST_ARGS=\"{}\"; ".format(' '.join(args))
     java_cmd += "sbt -Dmaxthreads={} ".format(opts.thread)

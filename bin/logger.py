@@ -6,6 +6,7 @@ import pandas as pd
 from pandautil import *
 import numpy as np
 import math
+import fnmatch
 
 from util import *
 
@@ -20,6 +21,7 @@ parser.add_argument('-d', '--diff', dest='show_diff', action='store_true', defau
 parser.add_argument('-H', '--history', dest='show_history', action='store_true', default=False,
         help='showing history')
 parser.add_argument('--logdir', default="{}/spatial/pir/logs/".format(os.environ['HOME']))
+parser.add_argument('-f', '--filter', dest='filter_str', action='append', help='Filter apps')
 
 def to_conf(tab, **kws):
     tab = lookup(tab, drop=False, **kws)
@@ -164,6 +166,9 @@ def getMessage(conf, opts):
         msg.append(cstr(GREEN, 'tstcycle:{} PASS:true'.format(conf['tstcycle'])))
         succeeded = True
 
+    if len(opts.filter) > 0:
+        msg = [conf['app']]
+
     conf['succeeded'] = succeeded
 
     return ' '.join(msg)
@@ -207,7 +212,6 @@ def removeRules(conf, opts):
     return reruns
 
 def logApp(conf, opts):
-    parse(conf, opts)
     show_diff(conf, opts)
     reruns = removeRules(conf, opts)
     if opts.show_app:
@@ -511,12 +515,15 @@ def show_gen(opts):
             conf['app'] = app
             conf['project'] = opts.project
             conf['backend'] = backend
+            parse(conf, opts)
+            matched = applyFilter(conf, opts)
+            if not matched: continue
             logApp(conf, opts)
             confs.append(conf)
             numRun += 1
             if conf['succeeded']: numSucc += 1
         summarize(backend, opts, confs)
-        if numRun != 0:
+        if numRun != 0 and len(opts.filter) == 0:
             print('Succeeded {} / {} ({:0.2f}) %'.format(numSucc, numRun, numSucc*100.0/numRun))
 
 def show_history(opts):
@@ -539,6 +546,27 @@ def show_history(opts):
                 times = get_col(tab, 'time')
                 pconf = to_conf(tab.iloc[np.argmax(times), :])
                 print('{} {} {}'.format(getMessage(pconf, opts), pconf['sha'], pconf['time']))
+
+def applyFilter(conf, opts):
+    matched = False
+    if len(opts.filter) > 0:
+        for f in opts.filter:
+            if f(conf):
+                matched = True
+    else:
+        matched = True
+    return matched
+
+def setFilterRules(opts):
+    opts.filter = []
+    if opts.filter_str is None: return
+    for fs in opts.filter_str:
+        if ":" in fs:
+            p,pat = fs.split(":")
+            opts.filter.append(lambda conf: p in conf and conf[p] is not None and fnmatch.fnmatch(str(conf[p]), pat))
+        else:
+            p = fs
+            opts.filter.append(lambda conf: p in conf and conf[p] is not None and conf[p])
 
 def main():
     (opts, args) = parser.parse_known_args()
@@ -564,6 +592,7 @@ def main():
 
     opts.show_message = not opts.summarize 
 
+    setFilterRules(opts)
     if opts.show_diff or opts.show_history:
         load_history(opts)
     if opts.show_history:
