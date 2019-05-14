@@ -42,15 +42,15 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with PIRTr
     case (in1, in2) => (in1.connected, in2.connected).zipped.forall { outputMatch _ }
   }
 
-  val WrittenByConstData = MatchRule[MemRead, (MemRead, Const)] { read =>
+  val WrittenByConstData = MatchRule[MemRead, (MemRead, Const)] { reader =>
     val ConstData = MatchRule[MemWrite, Const] { write =>
       write.data.T match {
-        case c@Const(_) => Some(c)
+        case c@Const(_) if !write.en.isConnected => Some(c)
         case _ => None
       }
     }
-    read.mem.T.inAccesses match {
-      case List(ConstData(c)) => Some((read, c))
+    reader.mem.T.inAccesses match {
+      case List(writer@ConstData(c)) if writer.order.get < reader.order.get && matchInput(writer.en, reader.en) => Some((reader, c))
       case _ => None
     }
   }

@@ -82,7 +82,9 @@ using namespace std;
 
   def emitStopSim(ctx:Context) = {
     ctx.collectDown[HostOutController]().headOption.foreach { hostOut =>
-      if (ctx.collectDown[LocalOutAccess]().nonEmpty) {
+      val noStreamReadCtxs = !pirTop.collectDown[Context]().exists { case StreamReadContext(_) => true; case _ => false }
+      val hasInputStream = ctx.collectDown[LocalOutAccess]().nonEmpty
+      if (hasInputStream || noStreamReadCtxs) {
         emitIf(s"${hostOut.done.qref}") {
           emitln(s"Complete(1);")
         }
