@@ -150,6 +150,7 @@ trait Ops extends Enumeration {
   val TextLength = new TextOp with Op1
   val TextApply = new TextOp with Op2
   val CharArrayToText = new TextOp with Opcode
+  val GenericToText = new TextOp with Op1
 
   val BitsAsData = new OtherOp with Op1
   val Mux       = new OtherOp with Op3 { override def eval(ins:List[Any]) = m(ins) { case Some(a:Boolean)::Some(b)::Some(c)::Nil => if (a) b else c } }

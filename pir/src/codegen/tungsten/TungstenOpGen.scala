@@ -216,6 +216,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       case TextNeq                  => s"$a != $b"
       case TextLength               => s"$a.size() / ${ta.bytePerWord.get}"
       case TextApply                => s"$a[$b]"
+      case GenericToText            => s"to_string($a)"
       //case CharArrayToText        =>
       //case OneHotMux              =>
       case op                       => throw PIRException(s"TODO: unsupported op $op")
