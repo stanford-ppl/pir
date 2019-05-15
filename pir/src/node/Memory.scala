@@ -13,6 +13,8 @@ trait MemoryNode extends PIRNode {
   val banks = Metadata[List[Int]]("banks", default=List(1))
   // Assigned bank ids for this memory. Before splitting, it's List(0 until totlBanks)
   val bankids = Metadata[List[Int]]("bankids") 
+  // Number of partitions after splitting
+  val numPart = Metadata[Int]("numPart", default=1) 
   val depth = Metadata[Int]("depth", default=1)
   val isInnerAccum = Metadata[Boolean]("isInnerAccum", default=false)
   def getBanks = banks.get

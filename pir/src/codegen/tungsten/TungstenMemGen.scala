@@ -256,7 +256,6 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
     case n:FIFO =>
       (s"FIFO<Token, 4>", s"$n") //TODO:
     case n:SRAM =>
-      val numBanks = n.getBanks.product
       (s"NBufferSRAM<${n.getDepth}, ${n.qtp}, ${n.bankSize}, ${n.nBanks}>", s"$n")
     case n:LUT =>
       (s"NBufferSRAM<${n.getDepth}, ${n.qtp}, ${n.bankSize}, ${n.nBanks}>", s"$n")
