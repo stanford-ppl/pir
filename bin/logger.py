@@ -173,7 +173,7 @@ def getMessage(conf, opts):
     if conf['tstcycle'] is not None and color != RED:
         color = GREEN
         msg.append(cstr(color, 'cycle:{}'.format(conf['tstcycle'])))
-    else:
+    else if cycle is not None:
         msg.append(cstr(color, 'cycle:{}'.format(conf['tstcycle'])))
 
     succeeded = color == GREEN
