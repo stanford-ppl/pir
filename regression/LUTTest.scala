@@ -11,6 +11,7 @@ class LUTTest_0 extends LUTTest
 class LUTTest_1 extends LUTTest { override lazy val param = LUTTestParam(ip=1, op=1) }
 class LUTTest_2 extends LUTTest { override lazy val param = LUTTestParam(ip=1, op=2) }
 class LUTTest_3 extends LUTTest { override lazy val param = LUTTestParam(op=2) }
+class LUTTest_4 extends LUTTest { override lazy val param = LUTTestParam(ts=16, op=2, N=32) }
 
 @spatial abstract class LUTTest extends DSETest {
   type T = Float
