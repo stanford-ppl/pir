@@ -14,7 +14,7 @@ class LUTTest_3 extends LUTTest { override lazy val param = LUTTestParam(op=2) }
 class LUTTest_4 extends LUTTest { override lazy val param = LUTTestParam(ts=16, op=2, N=32) }
 
 @spatial abstract class LUTTest extends DSETest {
-  type T = Float
+  type T = Int
 
   lazy val param = LUTTestParam()
   import param._
@@ -39,7 +39,7 @@ class LUTTest_4 extends LUTTest { override lazy val param = LUTTestParam(ts=16, 
     println("expected: " + gold)
     println("result: " + result)
 
-    val cksum = abs(gold - result) < (gold * 0.05f)
+    val cksum = abs(gold - result) <= (gold * 0.05f)
     println("PASS: " + cksum + " (LUTTest)")
     assert(cksum)
   }
