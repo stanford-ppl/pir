@@ -8,10 +8,13 @@ trait MemoryNode extends PIRNode {
   /*  ------- Metadata -------- */
   val inits = Metadata[Any]("inits")
   val dims = Metadata[List[Int]]("dims", default=List(1))
+  val darkVolume = Metadata[Int]("darkVolume", default=0)
   // Total bank dimension of the original memory
   val banks = Metadata[List[Int]]("banks", default=List(1))
   // Assigned bank ids for this memory. Before splitting, it's List(0 until totlBanks)
   val bankids = Metadata[List[Int]]("bankids") 
+  // Number of partitions after splitting
+  val numPart = Metadata[Int]("numPart", default=1) 
   val depth = Metadata[Int]("depth", default=1)
   val isInnerAccum = Metadata[Boolean]("isInnerAccum", default=false)
   def getBanks = banks.get
@@ -19,8 +22,11 @@ trait MemoryNode extends PIRNode {
   def bankDims = getBanks.size
   def totalBanks = banks.get.product
   def nBanks:Int = bankids.get.size
-  def size:Int = dims.get.product // User declared size
-  def bankSize:Int = size /! totalBanks
+  def size:Int = dims.get.product + darkVolume.get // User declared size
+  def bankSize:Int = this match {
+    case lut:LUT => size // LUT will duplicate data in all banks
+    case _ => size /! totalBanks
+  }
   def capacity:Int = getDepth * bankSize * nBanks // Total capacity of this memory.
 }
 

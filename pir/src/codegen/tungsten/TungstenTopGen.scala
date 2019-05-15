@@ -59,13 +59,17 @@ using namespace std;
 
     emitln(s"""Module DUT({${dutArgs.map(_.&).mkString(",")}}, "DUT");""")
     emitBlock(s"void RunAccel()") {
-      emitln(s"""REPL Top(&DUT, std::cout);""")
-      emitln(s"""Top.Command("source script");""")
-      cleanup.foreach { l=>
-        emitln(l)
-      }
+      emitRunAccel
     }
     super.finPass
+  }
+
+  protected def emitRunAccel = {
+    emitln(s"""REPL Top(&DUT, std::cout);""")
+    emitln(s"""Top.Command("source script");""")
+    cleanup.foreach { l=>
+      emitln(l)
+    }
   }
 
   final protected def genTop(block: => Unit) = enterFile(outputPath, false)(block)

@@ -41,7 +41,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     val mappings = parts.map { bankids =>
       val mapping = mutable.Map[IR,IR]()
       mapping ++= toBanks.map { to => to -> stage(Const(bankids.toList)).mirrorMetas(to) }
-      mapping += (mem -> mirror[Memory](mem).bankids(bankids.toList, reset=true)) 
+      mapping += (mem -> mirror[Memory](mem).bankids(bankids.toList, reset=true).numPart(numCU)) 
       within(pirTop) { mirrorAll(nodes, mapping=mapping) }
     }
     val mks = mappings.map { _(k).as[GlobalContainer] }

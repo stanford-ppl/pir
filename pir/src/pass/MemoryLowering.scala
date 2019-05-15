@@ -38,10 +38,45 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     }
   }
 
+  def lowerLUT(mem:Memory):Unit = {
+    if (!mem.isInstanceOf[LUT]) return
+    val lut = mem.as[LUT]
+    dbgblk(s"lowerLUT($lut)") {
+      val bank = lut.outAccesses.map { _.getVec }.sum
+      dbg(s"bank=$bank")
+      var bankid = 0
+      lut.outAccesses.foreach { outAccess =>
+        val read = outAccess.as[BankedRead]
+        // Use offset to carry bank address fornow. After flatten bank address,
+        // swap bank addr with offset. 
+        read.offset.disconnect
+        val bk = within(read.parent.get, read.getCtrl) {
+          stage(Const(List.tabulate(read.getVec) { i => bankid + i }))
+        }
+        read.offset(bk)
+        bankid += read.getVec
+      }
+    }
+  }
+
+  def lowerLUTAccess(mem:Memory, access:Access):Unit = {
+    if (!mem.isInstanceOf[LUT]) return
+    val lut = mem.as[LUT]
+    val read = access.as[BankedRead]
+    dbgblk(s"lowerLUTAccess($mem, $access)") {
+      val offset = read.bank.singleConnected.get
+      read.bank.disconnect
+      read.bank(read.offset.singleConnected)
+      read.offset.disconnect
+      read.offset(offset)
+    }
+  }
+
   def createMemGlobal(mem:Memory) = {
     val memCU = within(mem.parent.get) { MemoryContainer() }
     // Create Memory Context
     swapParent(mem, memCU)
+    lowerLUT(mem)
     val bankids = (0 until mem.banks.get.product).toList
     mem.bankids := bankids
     val accesses = mem.accesses
@@ -119,6 +154,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
         swapParent(access, addrCtx)
         within(addrCtx, access.getCtrl) {
           flattenBankAddr(access)
+          lowerLUTAccess(mem, access)
           val bank = access.bank.connected
           val ofs = stage(Shuffle(-1).from(bank).to(allocConst(mem.bankids.get)).base(access.offset.connected))
           dbg(s"val $ofs = Shuffle() //ofs")
