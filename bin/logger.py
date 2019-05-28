@@ -164,7 +164,7 @@ def getMessage(conf, opts):
     elif conf['runtst_pass'] is not None and conf['runtst_pass']:
         color = GREEN
         msg.append(cstr(color, 'runtst PASS:true'))
-    elif not conf['tst_complete']:
+    elif 'tst_complete' in conf and not conf['tst_complete']:
         color = YELLOW
         msg.append(cstr(color, 'runtst'))
     else:
@@ -173,7 +173,7 @@ def getMessage(conf, opts):
     if conf['tstcycle'] is not None and color != RED:
         color = GREEN
         msg.append(cstr(color, 'cycle:{}'.format(conf['tstcycle'])))
-    else if cycle is not None:
+    elif conf['tstcycle'] is not None:
         msg.append(cstr(color, 'cycle:{}'.format(conf['tstcycle'])))
 
     succeeded = color == GREEN
