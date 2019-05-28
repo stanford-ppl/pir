@@ -44,6 +44,8 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     dbgblk(s"lowerLUT($lut)") {
       val bank = lut.outAccesses.map { _.getVec }.sum
       dbg(s"bank=$bank")
+      mem.banks.reset
+      mem.banks := List(bank)
       var bankid = 0
       lut.outAccesses.foreach { outAccess =>
         val read = outAccess.as[BankedRead]
