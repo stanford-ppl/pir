@@ -164,7 +164,7 @@ def getMessage(conf, opts):
     elif conf['runtst_pass'] is not None and conf['runtst_pass']:
         color = GREEN
         msg.append(cstr(color, 'runtst PASS:true'))
-    elif not conf['tst_complete']:
+    elif 'tst_complete' in conf and not conf['tst_complete']:
         color = YELLOW
         msg.append(cstr(color, 'runtst'))
     else:
@@ -173,8 +173,11 @@ def getMessage(conf, opts):
     if conf['tstcycle'] is not None and color != RED:
         color = GREEN
         msg.append(cstr(color, 'cycle:{}'.format(conf['tstcycle'])))
-    else if cycle is not None:
+    elif conf['tstcycle'] is not None:
         msg.append(cstr(color, 'cycle:{}'.format(conf['tstcycle'])))
+
+    if 'tst_dram_power' in conf and conf['tst_dram_power'] is not None:
+        msg.append(cstr(color, 'dram power:' + str(conf['tst_dram_power']) + 'W'))
 
     succeeded = color == GREEN
 
@@ -340,6 +343,11 @@ runtst_parser.append(Parser(
     'Complete Simulation',
      lambda lines: True,
      default=False
+))
+runtst_parser.append(Parser(
+    'tst_dram_power', 
+    'Average DRAM Power',
+     lambda lines: float(lines[0].split(':')[1].split("W")[0])
 ))
 
 maketst_parser = []
