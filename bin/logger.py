@@ -151,20 +151,36 @@ def getMessage(conf, opts):
     else:
         msg.append(cstr(GREEN, 'maketst'))
 
+    color = None
     if conf['tst_deadlock']:
-        msg.append(cstr(RED, 'runtst: DEADLOCK'))
+        color = RED
+        msg.append(cstr(color, 'runtst: DEADLOCK'))
     elif conf['runtst_err'] is not None:
-        msg.append(cstr(RED, 'runtst') + ": " + conf['runtst_err'].strip())
-    elif conf['tstcycle'] is None:
-        msg.append(cstr(YELLOW, 'runtst'))
-    elif conf['runtst_pass'] is None and conf['tstcycle'] is not None:
-        msg.append(cstr(GREEN, 'tstcycle:{}'.format(conf['tstcycle'])))
-        succeeded = True
-    elif not conf['runtst_pass']:
-        msg.append(cstr(RED, 'tstcycle:{} PASS:false'.format(conf['tstcycle'])))
+        color = RED
+        msg.append(cstr(color, 'runtst') + ": " + conf['runtst_err'].strip())
+    elif conf['runtst_pass'] is not None and not conf['runtst_pass']:
+        color = RED
+        msg.append(cstr(color, 'runtst PASS:false'))
+    elif conf['runtst_pass'] is not None and conf['runtst_pass']:
+        color = GREEN
+        msg.append(cstr(color, 'runtst PASS:true'))
+    elif 'tst_complete' in conf and not conf['tst_complete']:
+        color = YELLOW
+        msg.append(cstr(color, 'runtst'))
     else:
-        msg.append(cstr(GREEN, 'tstcycle:{} PASS:true'.format(conf['tstcycle'])))
-        succeeded = True
+        color = GREEN
+        msg.append(cstr(GREEN, 'runtst'))
+    if conf['tstcycle'] is not None and color != RED:
+        color = GREEN
+        msg.append(cstr(color, 'cycle:{}'.format(conf['tstcycle'])))
+    elif conf['tstcycle'] is not None:
+        msg.append(cstr(color, 'cycle:{}'.format(conf['tstcycle'])))
+
+    if 'tst_dram_power' in conf and conf['tst_dram_power'] is not None:
+        msg.append(cstr(color, 'dram power:' + str(conf['tst_dram_power']) + 'W'))
+
+    succeeded = color == GREEN
+
 
     if len(opts.filter) > 0:
         msg = [conf['app']]
@@ -314,13 +330,24 @@ runtst_parser.append(Parser(
 runtst_parser.append(Parser(
     'runtst_pass', 
     ["PASS: "],
-    lambda lines: bool(lines[0].split('PASS: ')[1].split(" (")[0])
+    lambda lines: bool(lines[0].split('PASS: ')[1].split(" (")[0]),
 ))
 runtst_parser.append(Parser(
     'tst_deadlock', 
     'DEADLOCK',
      lambda lines: True,
      default=False
+))
+runtst_parser.append(Parser(
+    'tst_complete', 
+    'Complete Simulation',
+     lambda lines: True,
+     default=False
+))
+runtst_parser.append(Parser(
+    'tst_dram_power', 
+    'Average DRAM Power',
+     lambda lines: float(lines[0].split(':')[1].split("W")[0])
 ))
 
 maketst_parser = []

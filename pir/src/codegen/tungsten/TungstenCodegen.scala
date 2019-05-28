@@ -36,6 +36,7 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       emitln(s"log2files")
       emitln(s"stepall")
       emitln(s"dumpstate logs/state.json")
+      emitln(s"power")
       //emitln(s"logon")
     }
     super.initPass
