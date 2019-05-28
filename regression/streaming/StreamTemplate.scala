@@ -1,20 +1,27 @@
 import spatial.dsl._
 import spatial.lang.{FileBus,FileBusLastBit}
 
+trait StreamTemplateParam{
+  val field:scala.Int
+  val numBatch:scala.Int
+  val batch:scala.Int
+}
+
 @spatial trait StreamTemplate extends DSETest {
   val inFile = "in.csv"
   val outFile = "out.csv"
 
-  lazy val param = StreamSumFieldsParam()
+  val param:StreamTemplateParam
+  import param._
 
-  def body(insram:SRAM[T], outsram:SRAM[T])
+  type T = Int
+  def N = numBatch * batch
+  def numToken = N * field
+
+  def accelBody(insram:SRAM2[T]):SRAM1[T]
+  def hostBody(inDataMat:Tensor3[T]):Matrix[T]
 
   def main(args: Array[String]): Unit = {
-    import param._
-
-    val N = numBatch * batch
-    val numToken = N * field
-    type T = Int
 
     val inData = Matrix.tabulate(numToken,2) { (i,j) =>
       if (j == 0) random[T](numToken) else (i==numToken-1).to[T]
@@ -33,8 +40,7 @@ import spatial.lang.{FileBus,FileBusLastBit}
             lastBit.enq(token._2, f==field-1)
           }
         }
-        val outsram = SRAM[T](batch)
-        body(insram, outsram)
+        val outsram = accelBody(insram)
         Foreach(0 until batch par batch) { b =>
           out := Tup2(outsram(b), lastBit.deq)
         }
@@ -44,9 +50,7 @@ import spatial.lang.{FileBus,FileBusLastBit}
 
     val inDataOnly = Array.tabulate(numToken) { i => inData(i,0) }
     val inDataMat = inDataOnly.reshape(numBatch, field, batch)
-    val goldMat = Matrix.tabulate(numBatch, batch) { (i, b) =>
-      Array.tabulate(field) { f => inDataMat(i, f, b) }.reduce { _ + _ }
-    }
+    val goldMat = hostBody(inDataMat) 
     val goldFlat = goldMat.flatten
     val gold = Matrix.tabulate(N, 2) { (i,j) => if (j==0) goldFlat(i) else (i==(N-1)).to[Int] }
     println(s"inDataOnly:")

@@ -6,20 +6,31 @@ case class StreamSumFieldsParam(
   numBatch:scala.Int = 16,
   batch:scala.Int = 4,
   op:scala.Int = 1
-) extends Param[StreamSumFieldsParam]
+) extends StreamTemplateParam
 
 class StreamSumFields_0 extends StreamSumFields
 class StreamSumFields_1 extends StreamSumFields { override lazy val param = StreamSumFieldsParam(op=2) }
 
 @spatial abstract class StreamSumFields extends StreamTemplate {
 
-  def body(insram:SRAM2[T], outsram:SRAM2[T]) = {
+  lazy val param = StreamSumFieldsParam()
+  import param._
+
+  def accelBody(insram:SRAM2[T]) = {
+    val outsram = SRAM[T](batch)
     Foreach(0 until batch par op) { b =>
       val dot = Reg[T]
       Reduce(dot)(0 until field par field) { f =>
         insram(b,f)
       } { _ + _ }
       outsram(b) = dot.value
+    }
+    outsram
+  }
+
+  def hostBody(inDataMat:Tensor3[T]):Matrix[T] = {
+    Matrix.tabulate(numBatch, batch) { (i, b) =>
+      Array.tabulate(field) { f => inDataMat(i, f, b) }.reduce { _ + _ }
     }
   }
 }
