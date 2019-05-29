@@ -23,19 +23,30 @@ trait StreamTemplateParam{
   def hostBody(inDataMat:Seq[Seq[Seq[TT]]]):Seq[Seq[TT]]
 
   def main(args: Array[String]): Unit = {
-    val inFile = "in.csv"
-    val outFile = "out.csv"
-    val goldFile = "gold.csv"
+    val inFile = buildPath(IR.config.genDir, "tungsten", "in.csv")
+    val outFile = buildPath(IR.config.genDir, "tungsten", "out.csv")
+    val goldFile = buildPath(IR.config.genDir, "tungsten", "gold.csv")
+    createDirectories(dirName(inFile))
 
     val r = scala.util.Random
     val inDataOnly = Seq.tabulate(numToken) { i => r.nextInt(numToken) }
     val inData = Seq.tabulate(numToken,2) { (i,j) =>
-      if (j == 0) inDataOnly(i) else if (i==numToken-1) 1 else 0
+      (i,j) match {
+        case (i,0) => inDataOnly(i)
+        case (i, 1) if i == numToken-1 => 1
+        case (i, 1) => 0
+      }
     }
     val inDataMat = inDataOnly.grouped(batch).toSeq.grouped(field).toSeq
     val goldMat = hostBody(inDataMat) 
     val goldFlat = goldMat.flatten
-    val gold = Seq.tabulate(N, 2) { (i,j) => if (j==0) goldFlat(i) else if (i==(N-1)) 1 else 0 }
+    val gold = Seq.tabulate(N, 2) { (i,j) => 
+      (i,j) match {
+        case (i, 0) => goldFlat(i)
+        case (i, 1) if i == N-1 => 1
+        case (i, 1) => 0
+      }
+    }
     writeCSVNow2D(gold, goldFile)
     writeCSVNow2D(inData, inFile)
 
@@ -64,4 +75,3 @@ trait StreamTemplateParam{
     assert(cksum)
   }
 }
-
