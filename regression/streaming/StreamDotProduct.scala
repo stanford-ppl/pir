@@ -13,16 +13,17 @@ class StreamDotProduct_0 extends StreamDotProduct
 class StreamDotProduct_1 extends StreamDotProduct { override lazy val param = StreamDotProductParam(op=2) }
 class StreamDotProduct_2 extends StreamDotProduct { override lazy val param = StreamDotProductParam(ip=4) }
 class StreamDotProduct_3 extends StreamDotProduct { override lazy val param = StreamDotProductParam(ip=4, op=2) }
+class StreamDotProduct_4 extends StreamDotProduct { override lazy val param = StreamDotProductParam(ip=8, op=4) }
 
 @spatial abstract class StreamDotProduct extends StreamTemplate {
 
   lazy val param = StreamDotProductParam()
   import param._
 
-  val weights = Seq.tabulate(field) { i => i.to[T] }
+  val weights = Seq.tabulate(field) { i => i }
 
   def accelBody(insram:SRAM2[T]) = {
-    val wLUT = LUT.fromSeq[T](field)(weights)
+    val wLUT = LUT.fromSeq[T](weights.map { _.to[T] })
     val outsram = SRAM[T](batch)
     Foreach(0 until batch par op) { b =>
       val dot = Reg[T]
@@ -34,10 +35,9 @@ class StreamDotProduct_3 extends StreamDotProduct { override lazy val param = St
     outsram
   }
 
-  def hostBody(inDataMat:Tensor3[T]):Matrix[T] = {
-    val wArray = Array.fromSeq(weights)
-    Matrix.tabulate(numBatch, batch) { (i, b) =>
-      Array.tabulate(field) { f => inDataMat(i, f, b) * wArray(f) }.reduce { _ + _ }
+  def hostBody(inDataMat:Seq[Seq[Seq[TT]]]) = {
+    Seq.tabulate(numBatch, batch) { (i, b) =>
+      Seq.tabulate(field) { f => inDataMat(i)(f)(b) * weights(f) }.reduce { _ + _ }
     }
   }
 }

@@ -1,5 +1,6 @@
 import spatial.dsl._
 import spatial.lang.{FileBus,FileBusLastBit}
+import utils.io.files._
 
 trait StreamTemplateParam{
   val field:scala.Int
@@ -8,25 +9,36 @@ trait StreamTemplateParam{
 }
 
 @spatial trait StreamTemplate extends DSETest {
-  val inFile = "in.csv"
-  val outFile = "out.csv"
-
   val param:StreamTemplateParam
   import param._
 
   type T = Int
+  type TT = scala.Int
   def N = numBatch * batch
   def numToken = N * field
 
   def accelBody(insram:SRAM2[T]):SRAM1[T]
-  def hostBody(inDataMat:Tensor3[T]):Matrix[T]
+  // inDataMat in size numBatch x field x batch
+  // return outMat in size numBatch x batch
+  def hostBody(inDataMat:Seq[Seq[Seq[TT]]]):Seq[Seq[TT]]
 
   def main(args: Array[String]): Unit = {
+    val inFile = "in.csv"
+    val outFile = "out.csv"
+    val goldFile = "gold.csv"
 
-    val inData = Matrix.tabulate(numToken,2) { (i,j) =>
-      if (j == 0) random[T](numToken) else (i==numToken-1).to[T]
+    val r = scala.util.Random
+    val inDataOnly = Seq.tabulate(numToken) { i => r.nextInt(numToken) }
+    val inData = Seq.tabulate(numToken,2) { (i,j) =>
+      if (j == 0) inDataOnly(i) else if (i==numToken-1) 1 else 0
     }
-    writeCSV2D(inData, inFile)
+    val inDataMat = inDataOnly.grouped(batch).toSeq.grouped(field).toSeq
+    val goldMat = hostBody(inDataMat) 
+    val goldFlat = goldMat.flatten
+    val gold = Seq.tabulate(N, 2) { (i,j) => if (j==0) goldFlat(i) else if (i==(N-1)) 1 else 0 }
+    writeCSVNow2D(gold, goldFile)
+    writeCSVNow2D(inData, inFile)
+
     val in  = StreamIn[Tup2[T,Bit]](FileBusLastBit[Tup2[T,Bit]](inFile))
     val out = StreamOut[Tup2[T,Bit]](FileBusLastBit[Tup2[T,Bit]](outFile))
     Accel{
@@ -47,24 +59,7 @@ trait StreamTemplateParam{
       }
     }
     val outData = loadCSV2D[Int](outFile)
-
-    val inDataOnly = Array.tabulate(numToken) { i => inData(i,0) }
-    val inDataMat = inDataOnly.reshape(numBatch, field, batch)
-    val goldMat = hostBody(inDataMat) 
-    val goldFlat = goldMat.flatten
-    val gold = Matrix.tabulate(N, 2) { (i,j) => if (j==0) goldFlat(i) else (i==(N-1)).to[Int] }
-    println(s"inDataOnly:")
-    printArray(inDataOnly)
-    println(s"inDataMat:")
-    printTensor3(inDataMat)
-    println(s"inData:")
-    printMatrix(inData)
-    println(s"outData:")
-    printMatrix(outData)
-    println(s"gold:")
-    printMatrix(gold)
-
-    val cksum = outData == gold
+    val cksum = outData == loadCSV2D[T](goldFile)
     println("PASS: " + cksum + s" (${this.getClass.getSimpleName})")  
     assert(cksum)
   }

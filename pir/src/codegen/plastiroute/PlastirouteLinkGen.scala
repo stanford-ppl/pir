@@ -21,7 +21,8 @@ class PlastirouteLinkGen(implicit compiler: PIR) extends PlastisimCodegen with C
       row("ctx") = ctx.id
       row("src") = n.global.get.id
       row("tp") = if (n.getVec == 1) 1 else 2 // 1 for scalar, 2 for vector
-      row("count") = n.constCount
+      //row("count") = n.constCount
+      row("count") = n.count.get.getOrElse(1000000) //TODO: use more reasonable heuristic when count is not available
       n.out.T.zipWithIndex.foreach { case (gin, idx) =>
         row(s"dst[$idx]") = gin.global.get.id
         row(s"out[$idx]") = gin.id

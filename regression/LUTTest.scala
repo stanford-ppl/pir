@@ -25,8 +25,8 @@ class LUTTest_4 extends LUTTest { override lazy val param = LUTTestParam(ts=16, 
 
     val out = ArgOut[T]
     Accel {
-      val lutA = LUT.fromSeq[T](a.size)(a)
-      val lutB = LUT.fromSeq[T](b.size)(b)
+      val lutA = LUT.fromSeq[T](a)
+      val lutB = LUT.fromSeq[T](b)
       Reduce(out)(N by ts par op){ i =>
         val dot = Reg[T]
         Reduce(dot)(ts par ip){ii => lutA(i+ii) * lutB(i+ii) }{_+_}

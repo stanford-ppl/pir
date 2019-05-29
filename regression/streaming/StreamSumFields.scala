@@ -28,9 +28,9 @@ class StreamSumFields_1 extends StreamSumFields { override lazy val param = Stre
     outsram
   }
 
-  def hostBody(inDataMat:Tensor3[T]):Matrix[T] = {
-    Matrix.tabulate(numBatch, batch) { (i, b) =>
-      Array.tabulate(field) { f => inDataMat(i, f, b) }.reduce { _ + _ }
+  def hostBody(inDataMat:Seq[Seq[Seq[TT]]]) = {
+    Seq.tabulate(numBatch, batch) { (i, b) =>
+      Seq.tabulate(field) { f => inDataMat(i)(f)(b) }.reduce { _ + _ }
     }
   }
 }
