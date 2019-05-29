@@ -19,6 +19,7 @@ class StreamNN_1 extends StreamNN { override lazy val param = StreamNNParam(bp=2
 class StreamNN_2 extends StreamNN { override lazy val param = StreamNNParam(ip=4) }
 class StreamNN_3 extends StreamNN { override lazy val param = StreamNNParam(ip=4, P1=2) }
 class StreamNN_4 extends StreamNN { override lazy val param = StreamNNParam(ip=4, P1=2, bp=2) }
+class StreamNN_5 extends StreamNN { override lazy val param = StreamNNParam(L1=8, ip=8, P1=1, bp=2) }
 
 @spatial trait StreamNN extends StreamTemplate {
 
