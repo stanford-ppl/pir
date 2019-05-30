@@ -22,6 +22,7 @@ parser.add_argument('-H', '--history', dest='show_history', action='store_true',
         help='showing history')
 parser.add_argument('--logdir', default="{}/spatial/pir/logs/".format(os.environ['HOME']))
 parser.add_argument('-f', '--filter', dest='filter_str', action='append', help='Filter apps')
+parser.add_argument('-m', '--message', default='', help='Additional fields to print in message')
 
 def to_conf(tab, **kws):
     tab = lookup(tab, drop=False, **kws)
@@ -179,8 +180,18 @@ def getMessage(conf, opts):
     elif conf['tstcycle'] is not None:
         msg.append(cstr(color, 'cycle:{}'.format(conf['tstcycle'])))
 
-    if 'tst_dram_power' in conf and conf['tst_dram_power'] is not None:
-        msg.append(cstr(color, 'dram power:' + str(conf['tst_dram_power']) + 'W'))
+    # if 'tst_dram_power' in conf and conf['tst_dram_power'] is not None:
+        # msg.append(cstr(color, 'dram power:' + str(conf['tst_dram_power']) + 'W'))
+
+    # if 'tst_rbw' in conf and conf['tst_rbw'] is not None:
+        # msg.append(cstr(color, 'rbw:' + str(conf['tst_rbw']) + 'GB/s'))
+
+    # if 'tst_wbw' in conf and conf['tst_wbw'] is not None:
+        # msg.append(cstr(color, 'wbw:' + str(conf['tst_wbw']) + 'GB/s'))
+
+    for f in opts.message.split(","):
+        if f in conf and conf[f] is not None:
+            msg.append(cstr(color, f + ':' + str(conf[f])))
 
     succeeded = color == GREEN
 
@@ -351,6 +362,16 @@ runtst_parser.append(Parser(
     'tst_dram_power', 
     'Average DRAM Power',
      lambda lines: float(lines[0].split(':')[1].split("W")[0])
+))
+runtst_parser.append(Parser(
+    'tst_rbw', 
+    'Average DRAM Read Bandwidth: ',
+     lambda lines: float(lines[0].split(':')[1].split("GB/s")[0])
+))
+runtst_parser.append(Parser(
+    'tst_wbw', 
+    'Average DRAM Write Bandwidth: ',
+     lambda lines: float(lines[0].split(':')[1].split("GB/s")[0])
 ))
 
 maketst_parser = []
