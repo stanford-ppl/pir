@@ -100,24 +100,26 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
 
   // Remove accesses that are been broadcasted
   def resolveBroadcast(accesses:List[Access]):List[Access] = {
-    accesses.groupBy { _.castgroup.get }.map { case (grp, accesses) =>
-      val (heads, tail) = accesses.partition { _.broadcast.get == 0 }
-      val head = assertOne(heads, 
-        s"broadcast in castgroup $grp for ${accesses.head.mem} ${accesses}")
-      tail.foreach { tail =>
-        (head, tail) match {
-          case (head:BankedRead, tail:BankedRead) =>
-            swapOutput(tail.out, head.out)
-          case (head, tail) => err(s"Invalid broadcast from $head to $tail")
+    accesses.groupBy { _.castgroup.v }.flatMap { 
+      case (None, accesses) => accesses
+      case (Some(grp), accesses) =>
+        val (heads, tail) = accesses.partition { _.broadcast.get == 0 }
+        val head = assertOne(heads, 
+          s"broadcast in castgroup $grp for ${accesses.head.mem} ${accesses}")
+        tail.foreach { tail =>
+          (head, tail) match {
+            case (head:BankedRead, tail:BankedRead) =>
+              swapOutput(tail.out, head.out)
+            case (head, tail) => err(s"Invalid broadcast from $head to $tail")
+          }
         }
-      }
-      head
+        List(head)
     }.toList
   }
 
   def groupAccess(mem:Memory, accesses:List[Access]):List[Set[Access]] = dbgblk(s"groupAccess($mem)") {
     accesses.groupBy { _.port.v }.flatMap { case (group, accesses) =>
-      accesses.groupBy { _.muxPort.get }.map { case (muxPort, accesses) =>
+      accesses.groupBy { _.muxPort.v }.map { case (muxPort, accesses) =>
         resolveBroadcast(accesses).toSet
       }
     }.toList
