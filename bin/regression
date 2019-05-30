@@ -7,7 +7,7 @@ import os
 
 def main():
     parser = argparse.ArgumentParser(description='Run experiments')
-    parser.add_argument('-b', '--backend', type=str, action="append", default=['Tst'], help='Testing Backend')
+    parser.add_argument('-b', '--backend', type=str, action="append", help='Testing Backend')
     parser.add_argument('-t', '--thread', type=int, default=30, help='Number of threads to run')
     parser.add_argument('-p', '--project', action='append', help='project name')
     parser.add_argument('-a', '--app', action='append', help='name of application to run')
@@ -15,7 +15,7 @@ def main():
         help='Continue from previous regression')
     (opts, args) = parser.parse_known_args()
     if (opts.backend is None):
-        opts.backend = ['pirTest']
+        opts.backend = ['Tst']
     os.system('mkdir -p logs/')
     os.system('sbt "; project pir; publishAll"')
     apps = opts.app

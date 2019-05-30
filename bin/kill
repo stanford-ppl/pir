@@ -1,0 +1,73 @@
+#!/usr/bin/python
+
+import argparse
+import subprocess
+import pandas
+import os
+import signal
+
+def ps_generic(pids, *patterns):
+    cmd = 'ps -p {} -o {}'.format(','.join(pids), ','.join(patterns))
+    resp = subprocess.check_output(cmd.split(' '))
+    resp = resp.strip()
+    lines = resp.split('\n')
+    if len(patterns) == 1:
+        columns = [lines[0].strip()]
+        data = [line.strip() for line in lines[1:]]
+    else:
+        columns = lines[0].split()
+        data = [line.split() for line in lines[1:]]
+    tab = pandas.DataFrame(data, columns=columns)
+    return tab
+
+def ps(pids, *patterns):
+    tab = None
+    if 'cmd' in patterns:
+        tab = ps_generic(pids, *['cmd'])
+        patterns = [p for p in patterns if p != 'cmd']
+    tab2 = None
+    if len(patterns) != 0:
+        tab2 = ps_generic(pids, *patterns)
+    if tab is None and tab2 is not None:
+        tab = tab2
+    elif tab is not None and tab2 is None:
+        pass
+    else:
+        tab = pandas.concat((tab2, tab), axis=1)
+    return tab
+
+parser = argparse.ArgumentParser(description='Match and kill process')
+parser.add_argument('-u', '--user', type=str, help='user name')
+parser.add_argument('-s', '--sleep', action='store_true', default=False, help='Sleeping process only')
+parser.add_argument('-p', '--show_parent', action='store_true', default=False, 
+    help='Show parent process command')
+parser.add_argument('pattern', type=str, help='pattern')
+
+(opts, args) = parser.parse_known_args()
+cmd = 'pgrep '
+if opts.user is not None:
+    cmd += '-u ' + opts.user
+if opts.pattern == 'all':
+    opts.pattern = ''
+cmd += ' ' + opts.pattern
+pids = subprocess.check_output(cmd.split(' '))
+pids = pids.strip()
+pids = pids.split('\n')
+tab = ps(pids, 'pid','user','stat','ppid','cmd')
+
+if opts.sleep:
+    tab = tab[tab['STAT'].str.contains('S')]
+    tab = tab[~tab['STAT'].str.contains('\+')]
+
+if opts.show_parent:
+    ppids = tab.PPID.values
+    ptab = ps(ppids, 'pid','cmd')
+    tab = tab.merge(ptab, left_on='PPID', right_on='PID', suffixes=('','_ppid'))
+    tab = tab.drop('PID_ppid', axis=1)
+
+print(tab)
+resp = raw_input('Kill these process?\n')
+if resp == 'y':
+    for pid in tab.PID.unique():
+        print('kill {}'.format(pid))
+        os.kill(int(pid), signal.SIGKILL)

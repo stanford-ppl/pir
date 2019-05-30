@@ -44,6 +44,8 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     dbgblk(s"lowerLUT($lut)") {
       val bank = lut.outAccesses.map { _.getVec }.sum
       dbg(s"bank=$bank")
+      mem.banks.reset
+      mem.banks := List(bank)
       var bankid = 0
       lut.outAccesses.foreach { outAccess =>
         val read = outAccess.as[BankedRead]
@@ -96,26 +98,30 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     //enforceDataDependency(mem)
   }
 
+  // Remove accesses that are been broadcasted
+  def resolveBroadcast(accesses:List[Access]):List[Access] = {
+    accesses.groupBy { _.castgroup.v }.flatMap { 
+      case (None, accesses) => accesses
+      case (Some(grp), accesses) =>
+        val (heads, tail) = accesses.partition { _.broadcast.get == 0 }
+        val head = assertOne(heads, 
+          s"broadcast in castgroup $grp for ${accesses.head.mem} ${accesses}")
+        tail.foreach { tail =>
+          (head, tail) match {
+            case (head:BankedRead, tail:BankedRead) =>
+              swapOutput(tail.out, head.out)
+            case (head, tail) => err(s"Invalid broadcast from $head to $tail")
+          }
+        }
+        List(head)
+    }.toList
+  }
+
   def groupAccess(mem:Memory, accesses:List[Access]):List[Set[Access]] = dbgblk(s"groupAccess($mem)") {
     accesses.groupBy { _.port.v }.flatMap { case (group, accesses) =>
-      accesses.groupBy { _.gid.v }.map { _._2.toSet }
-      //if (accesses.size == 1) List(Set(accesses.head)) else {
-        //val head::rest = accesses
-        //rest.foldLeft(List(Set(head))) { case (groups, access) =>
-          //val (shared, notshared) = groups.partition { group =>
-            //assertUnify(group, s"share concurrency with $access(${access.getCtrl}) ${group.map { a => s"$a(${a.getCtrl})" }}") { a => 
-              //val lca = leastCommonAncesstor(a.getCtrl, access.getCtrl).get
-              //dbg(s"lca=$lca ${lca.schedule}")
-              //lca.schedule == "ForkJoin" || (a.getCtrl == access.getCtrl && lca.schedule == "Pipelined")
-              //// Inaccesses/Outaccesses who are concurrently operating on the same buffer port must be banked
-              //// Can only coalesce accesses with the same count
-            //}.get
-          //}
-          //dbg(s"access=$access shared=$shared")
-          //val merged = shared.reduceOption { _ ++ _ }.getOrElse(Set.empty)
-          //(merged + access) :: notshared
-        //}
-      //}
+      accesses.groupBy { _.muxPort.v }.map { case (muxPort, accesses) =>
+        resolveBroadcast(accesses).toSet
+      }
     }.toList
   }
 

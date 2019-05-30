@@ -7,7 +7,8 @@ trait Access extends PIRNode {
   val order = Metadata[Int]("order")
   val port = Metadata[Option[Int]]("port", default=Some(0))
   val muxPort = Metadata[Int]("muxPort")
-  val gid = Metadata[Int]("gid", default=0)
+  val broadcast = Metadata[Int]("broadcast")
+  val castgroup = Metadata[Int]("castgroup")
 
   val en = new InputField[List[PIRNode]]("en")
   val done = new InputField[Option[PIRNode]]("done")
