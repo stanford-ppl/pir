@@ -74,7 +74,6 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     }
   }
 
-
   def createMemGlobal(mem:Memory) = {
     val memCU = within(mem.parent.get) { MemoryContainer() }
     // Create Memory Context
@@ -117,8 +116,10 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
   }
 
   def groupAccess(mem:Memory, accesses:List[Access]):List[Set[Access]] = dbgblk(s"groupAccess($mem)") {
-    resolveBroadcast(accesses).groupBy { _.port.v }.flatMap { case (group, accesses) =>
-      accesses.groupBy { _.gid.v }.map { _._2.toSet }
+    accesses.groupBy { _.port.v }.flatMap { case (group, accesses) =>
+      accesses.groupBy { _.muxPort.get }.map { case (muxPort, accesses) =>
+        resolveBroadcast(accesses).toSet
+      }
     }.toList
   }
 
