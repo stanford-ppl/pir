@@ -61,15 +61,18 @@ def show_diff(conf, opts):
         print("No history to compare with")
         return
 
-    history = opts.history
-    prevsucc = history[(history.app==conf['app']) & history.succeeded]
+    diffkey = 'succeeded'
+    # diffkey = 'genpir'
 
-    if not conf['succeeded'] and prevsucc.shape[0] > 0:
+    history = opts.history
+    prevsucc = history[(history.app==conf['app']) & history[diffkey]]
+
+    if not conf[diffkey] and prevsucc.shape[0] > 0:
         times = get_col(prevsucc, 'time')
         pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
         print('{} {}'.format(msg, cstr(RED,'(Regression)')))
         print('{} {} {}'.format(getMessage(pconf, opts), pconf['sha'], pconf['time']))
-    if conf['succeeded'] and prevsucc.shape[0] == 0:
+    if conf[diffkey] and prevsucc.shape[0] == 0:
         print('{} {}'.format(msg, cstr(GREEN,'(New)')))
 
 def summarize(backend, opts, confs):
