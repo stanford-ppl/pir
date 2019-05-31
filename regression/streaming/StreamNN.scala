@@ -14,14 +14,14 @@ case class StreamNNParam(
   ip:scala.Int = 8
 ) extends StreamTemplateParam
 
-class StreamNN_0 extends StreamNN
-class StreamNN_1 extends StreamNN { override lazy val param = StreamNNParam(bp=2) }
-class StreamNN_2 extends StreamNN { override lazy val param = StreamNNParam(ip=4) }
-class StreamNN_3 extends StreamNN { override lazy val param = StreamNNParam(ip=4, P1=2) }
-class StreamNN_4 extends StreamNN { override lazy val param = StreamNNParam(ip=4, P1=2, bp=2) }
-class StreamNN_5 extends StreamNN { override lazy val param = StreamNNParam(L1=8, ip=8, P1=1, bp=2) }
+class StreamNN_0 extends StreamNN[scala.Int,Int]
+class StreamNN_1 extends StreamNN[scala.Int,Int] { override lazy val param = StreamNNParam(bp=2) }
+class StreamNN_2 extends StreamNN[scala.Int,Int] { override lazy val param = StreamNNParam(ip=4) }
+class StreamNN_3 extends StreamNN[scala.Int,Int] { override lazy val param = StreamNNParam(ip=4, P1=2) }
+class StreamNN_4 extends StreamNN[scala.Int,Int] { override lazy val param = StreamNNParam(ip=4, P1=2, bp=2) }
+class StreamNN_5 extends StreamNN[scala.Int,Int] { override lazy val param = StreamNNParam(L1=8, ip=8, P1=1, bp=2) }
 
-@spatial trait StreamNN extends StreamTemplate {
+@spatial abstract class StreamNN[HT:Numeric,T:Num](implicit ev:Cast[Text,T]) extends StreamInference[HT,T,T] {
 
   lazy val param = StreamNNParam()
   import param._
@@ -40,32 +40,17 @@ class StreamNN_5 extends StreamNN { override lazy val param = StreamNNParam(L1=8
     val outsram = SRAM[T](batch)
     Foreach(0 until batch par bp) { b =>
       val l1 = SRAM[T](L1)
-      nnlayer_tiled[T](w1, b1, ip, 1, P1, relu _, in=Left({i => insram(b, i)}), out=l1)
-      nnlayer_tiled[T](w2, b2, ip, P1, P2, { x => x } ,in=l1, out=Left({ case (o,d) => outsram(b) = d }))
+      denselayer_tiled[T](w1, b1, ip, 1, P1, relu _, in=Left({i => insram(b, i)}), out=l1)
+      denselayer_tiled[T](w2, b2, ip, P1, P2, { x => x } ,in=l1, out=Left({ case (o,d) => outsram(b) = d }))
     }
     outsram
   }
 
-  def hostBody(inDataMat:Seq[Seq[Seq[TT]]]) = {
-    def relu(x:TT) = Math.max(x,0)
-    Seq.tabulate(numBatch, batch) { (i, b) =>
-      val in1 = Seq.tabulate(field) { f => inDataMat(i)(f)(b) }
-      val l1 = hostnnlayer(in1, W1, B1, relu _)
-      val l2 = hostnnlayer(l1, W2, B2, { x => x })
+  def hostBody(inData:Seq[Seq[HT]]) = {
+    inData.map { fields =>
+      val l1 = host_denselayer[HT](fields, W1, B1, host_relu _)
+      val l2 = host_denselayer[HT](l1, W2, B2, { x => x })
       l2.head
-    }
-  }
-
-  def hostnnlayer(
-    in:Seq[TT],
-    w:Seq[Seq[TT]],
-    b:Seq[TT],
-    activation: TT => TT
-  ):Seq[TT] = {
-    val wT = w.transpose
-    wT.zip(b).map { case (ws, bb) =>
-      val dot = ws.zip(in).map { case (a,b) => a * b }.reduce { _ + _ }
-      activation(dot + bb)
     }
   }
 

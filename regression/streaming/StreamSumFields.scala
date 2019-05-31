@@ -8,10 +8,10 @@ case class StreamSumFieldsParam(
   op:scala.Int = 1
 ) extends StreamTemplateParam
 
-class StreamSumFields_0 extends StreamSumFields
-class StreamSumFields_1 extends StreamSumFields { override lazy val param = StreamSumFieldsParam(op=2) }
+class StreamSumFields_0 extends StreamSumFields[scala.Int,Int]
+class StreamSumFields_1 extends StreamSumFields[scala.Int,Int] { override lazy val param = StreamSumFieldsParam(op=2) }
 
-@spatial abstract class StreamSumFields extends StreamTemplate {
+@spatial abstract class StreamSumFields[HT:Numeric,T:Num](implicit ev:Cast[Text,T]) extends StreamInference[HT,T,T] {
 
   lazy val param = StreamSumFieldsParam()
   import param._
@@ -28,9 +28,7 @@ class StreamSumFields_1 extends StreamSumFields { override lazy val param = Stre
     outsram
   }
 
-  def hostBody(inDataMat:Seq[Seq[Seq[TT]]]) = {
-    Seq.tabulate(numBatch, batch) { (i, b) =>
-      Seq.tabulate(field) { f => inDataMat(i)(f)(b) }.reduce { _ + _ }
-    }
+  def hostBody(inDataMat:Seq[Seq[HT]]) = {
+    inDataMat.map { _.reduce { _ + _ } }
   }
 }
