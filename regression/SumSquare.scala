@@ -1,25 +1,20 @@
 import spatial.dsl._
 
-case class SumSquareParam(
+class SumSquare_0 extends SumSquare
+class SumSquare_1 extends SumSquare(ip=1)
+class SumSquare_2 extends SumSquare(ip=3)
+class SumSquare_3 extends SumSquare(ip=1, op=2)
+//class SumSquare_4 extends SumSquare(ip=1, op=3)
+class SumSquare_5 extends SumSquare(ip=3, op=2)
+//class SumSquare_6 extends SumSquare(ip=3, op=3)
+
+@spatial abstract class SumSquare(
   N:scala.Int = 1024,
   op:scala.Int = 1,
   ts:scala.Int = 32,
   ip:scala.Int = 16
-) extends Param[SumSquareParam]
-
-class SumSquare_0 extends SumSquare
-class SumSquare_1 extends SumSquare { override lazy val param = SumSquareParam(ip=1) }
-class SumSquare_2 extends SumSquare { override lazy val param = SumSquareParam(ip=3) }
-class SumSquare_3 extends SumSquare { override lazy val param = SumSquareParam(ip=1, op=2) }
-//class SumSquare_4 extends SumSquare { override lazy val param = SumSquareParam(ip=1, op=3) }
-class SumSquare_5 extends SumSquare { override lazy val param = SumSquareParam(ip=3, op=2) }
-//class SumSquare_6 extends SumSquare { override lazy val param = SumSquareParam(ip=3, op=3) }
-
-@spatial abstract class SumSquare extends DSETest {
+) extends DSETest {
   type T = Int
-
-  lazy val param = SumSquareParam()
-  import param._
 
   def sumSquare(aIn: Array[T]): T = {
 

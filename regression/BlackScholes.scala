@@ -1,19 +1,14 @@
 import spatial.dsl._
 
-case class BlackScholesParam(
+class BlackScholes_0 extends BlackScholes
+class BlackScholes_1 extends BlackScholes(ip=1)
+
+@spatial abstract class BlackScholes(
   N:scala.Int = 1024,
   ts:scala.Int = 64,
   op:scala.Int = 1,
   ip:scala.Int = 16
-) extends Param[BlackScholesParam]
-
-class BlackScholes_0 extends BlackScholes
-class BlackScholes_1 extends BlackScholes { override lazy val param = BlackScholesParam(ip=1) }
-
-@spatial abstract class BlackScholes extends DSETest {
-
-  lazy val param = BlackScholesParam()
-  import param._
+) extends DSETest {
 
   val margin = 0.5f // Validates true if within +/- margin
 

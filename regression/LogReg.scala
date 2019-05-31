@@ -1,41 +1,32 @@
 import spatial.dsl._
 
-case class LogRegParam(
+class LogReg_0 extends LogReg
+
+class LogReg_1 extends LogReg(mp=2)
+class LogReg_2 extends LogReg(op=2)
+class LogReg_3 extends LogReg(op=2, mp=2)
+class LogReg_4 extends LogReg(op=2, mp=4)
+class LogReg_5 extends LogReg(op=4, mp=2)
+//class LogReg_2 extends LogReg(mp=3)
+//class LogReg_3 extends LogReg(mp=4)
+//class LogReg_4 extends LogReg(mp=5)
+//class LogReg_5 extends LogReg(mp=6)
+//class LogReg_6 extends LogReg(op=2)
+//class LogReg_7 extends LogReg(op=2,mp=1)
+//class LogReg_8 extends LogReg(op=2,mp=2)
+//class LogReg_9 extends LogReg(op=2,mp=4)
+//class LogReg_10 extends LogReg(op=3,mp=2)
+
+@spatial abstract class LogReg(
   iters:scala.Int = 2,
   D:scala.Int = 32,
   N:scala.Int = 256,
   ts:scala.Int = 32,
   op:scala.Int = 1,
   mp:scala.Int = 1
-) extends Param[LogRegParam]
-
-class LogReg_0 extends LogReg
-
-class LogReg_1 extends LogReg {override lazy val param = LogRegParam(mp=2)}
-class LogReg_2 extends LogReg {override lazy val param = LogRegParam(op=2)}
-class LogReg_3 extends LogReg {override lazy val param = LogRegParam(op=2, mp=2)}
-class LogReg_4 extends LogReg {override lazy val param = LogRegParam(op=2, mp=4)}
-class LogReg_5 extends LogReg {override lazy val param = LogRegParam(op=4, mp=2)}
-//class LogReg_2 extends LogReg {override lazy val param = LogRegParam(mp=3)}
-//class LogReg_3 extends LogReg {override lazy val param = LogRegParam(mp=4)}
-//class LogReg_4 extends LogReg {override lazy val param = LogRegParam(mp=5)}
-//class LogReg_5 extends LogReg {override lazy val param = LogRegParam(mp=6)}
-//class LogReg_6 extends LogReg {override lazy val param = LogRegParam(op=2)}
-//class LogReg_7 extends LogReg {override lazy val param = LogRegParam(op=2,mp=1)}
-//class LogReg_8 extends LogReg {override lazy val param = LogRegParam(op=2,mp=2)}
-//class LogReg_9 extends LogReg {override lazy val param = LogRegParam(op=2,mp=4)}
-//class LogReg_10 extends LogReg {override lazy val param = LogRegParam(op=3,mp=2)}
-
-//class LogReg_2 extends LogReg {
-  //override lazy val param = LogRegParam(mp=8)
-//}
-
-@spatial abstract class LogReg extends DSETest {
+) extends DSETest {
 
   type X = Float //FixPt[TRUE,_16,_16]
-
-  lazy val param = LogRegParam()
-  import param._
 
   val ip = 16
   val margin = 5

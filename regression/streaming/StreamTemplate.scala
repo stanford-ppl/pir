@@ -2,14 +2,7 @@ import spatial.dsl._
 import spatial.lang.{FileBus,FileBusLastBit,BlackBoxBus}
 import utils.io.files._
 
-trait StreamTemplateParam{
-  val field:scala.Int
-  val numBatch:scala.Int
-  val batch:scala.Int
-}
-
 @spatial abstract class StreamTemplate extends StreamHostTemplate with DSETest {
-  import param._
 
   // Takes in input stream and put last bit into a FIFO,
   // transpose the data into SRAM in size [batch x field]
@@ -73,8 +66,8 @@ trait StreamTemplateParam{
     assert(cksum)
   }
 
-  implicit def tseq_to_bitsseq[T:Bits](x:Seq[T]):Seq[Bits[T]] = x.map { x => x }
-  implicit def tseqseq_to_bitsseqseq[T:Bits](x:Seq[Seq[T]]):Seq[Seq[Bits[T]]] = x.map { x => x }
+  implicit def tseq_to_bitsseq[T:Bits](x:Seq[T]):Seq[Bits[T]] = x.map { case Bits(x) => x.asInstanceOf[Bits[T]] }
+  implicit def tseqseq_to_bitsseqseq[T:Bits](x:Seq[Seq[T]]):Seq[Seq[Bits[T]]] = x.map { x => tseq_to_bitsseq(x) }
 }
 
 trait BlackBoxedStreamInference[HI,TI,TO] extends StreamInference[HI,TI,TO] {

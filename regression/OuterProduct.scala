@@ -1,6 +1,20 @@
 import spatial.dsl._
 
-case class OuterProductParam(
+class OuterProduct_0 extends OuterProduct
+class OuterProduct_1 extends OuterProduct(ip=1)
+class OuterProduct_2 extends OuterProduct(ip=1, op2=2)
+class OuterProduct_3 extends OuterProduct(ip=1, op1=2)
+class OuterProduct_4 extends OuterProduct(ip=1, op1=2, op2=2)
+class OuterProduct_5 extends OuterProduct(ip=16, op1=2, op2=2)
+class OuterProduct_6 extends OuterProduct(ip=16, op2=1, ip1=2, ip2=8)
+class OuterProduct_7 extends OuterProduct(ip=16, op2=2, ip1=2, ip2=8)
+class OuterProduct_8 extends OuterProduct(ip=16, op2=2, ip1=4, ip2=4)
+//class OuterProduct_2 extends OuterProduct(op2=4)
+//class OuterProduct_3 extends OuterProduct(op2=6)
+//class OuterProduct_4 extends OuterProduct(op2=8)
+//class OuterProduct_5 extends OuterProduct(op2=10)
+
+@spatial abstract class OuterProduct(
   M:scala.Int = 256,
   N:scala.Int = 256,
   ts1:scala.Int = 64,
@@ -10,26 +24,7 @@ case class OuterProductParam(
   ip2:scala.Int = 1,
   op1:scala.Int = 1,
   op2:scala.Int = 1
-) extends Param[OuterProductParam]
-
-class OuterProduct_0 extends OuterProduct
-class OuterProduct_1 extends OuterProduct {override lazy val param = OuterProductParam(ip=1)}
-class OuterProduct_2 extends OuterProduct {override lazy val param = OuterProductParam(ip=1, op2=2)}
-class OuterProduct_3 extends OuterProduct {override lazy val param = OuterProductParam(ip=1, op1=2)}
-class OuterProduct_4 extends OuterProduct {override lazy val param = OuterProductParam(ip=1, op1=2, op2=2)}
-class OuterProduct_5 extends OuterProduct {override lazy val param = OuterProductParam(ip=16, op1=2, op2=2)}
-class OuterProduct_6 extends OuterProduct {override lazy val param = OuterProductParam(ip=16, op2=1, ip1=2, ip2=8)}
-class OuterProduct_7 extends OuterProduct {override lazy val param = OuterProductParam(ip=16, op2=2, ip1=2, ip2=8)}
-class OuterProduct_8 extends OuterProduct {override lazy val param = OuterProductParam(ip=16, op2=2, ip1=4, ip2=4)}
-//class OuterProduct_2 extends OuterProduct {override lazy val param = OuterProductParam(op2=4)}
-//class OuterProduct_3 extends OuterProduct {override lazy val param = OuterProductParam(op2=6)}
-//class OuterProduct_4 extends OuterProduct {override lazy val param = OuterProductParam(op2=8)}
-//class OuterProduct_5 extends OuterProduct {override lazy val param = OuterProductParam(op2=10)}
-
-@spatial abstract class OuterProduct extends DSETest with SpatialTest { // Regression (Dense) // Args: 640 640
-
-  lazy val param = OuterProductParam()
-  import param._
+) extends DSETest with SpatialTest { // Regression (Dense) // Args: 640 640
 
   type X = FixPt[TRUE,_32,_0]
 

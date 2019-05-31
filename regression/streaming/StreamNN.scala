@@ -2,29 +2,24 @@ import spatial.dsl._
 import spatial.lang.{FileBus,FileBusLastBit}
 import spatial.lib.NN._
 
-case class StreamNNParam(
-  field:scala.Int = 8,
-  numBatch:scala.Int = 16,
-  batch:scala.Int = 4,
-  L1:scala.Int = 64,
-  L2:scala.Int = 1,
-  P1:scala.Int = 1,
-  P2:scala.Int = 1,
-  bp:scala.Int = 1,
-  ip:scala.Int = 8
-) extends StreamTemplateParam
-
 class StreamNN_0 extends StreamNN[scala.Int,Int]
-class StreamNN_1 extends StreamNN[scala.Int,Int] { override lazy val param = StreamNNParam(bp=2) }
-class StreamNN_2 extends StreamNN[scala.Int,Int] { override lazy val param = StreamNNParam(ip=4) }
-class StreamNN_3 extends StreamNN[scala.Int,Int] { override lazy val param = StreamNNParam(ip=4, P1=2) }
-class StreamNN_4 extends StreamNN[scala.Int,Int] { override lazy val param = StreamNNParam(ip=4, P1=2, bp=2) }
-class StreamNN_5 extends StreamNN[scala.Int,Int] { override lazy val param = StreamNNParam(L1=8, ip=8, P1=1, bp=2) }
+class StreamNN_1 extends StreamNN[scala.Int,Int](bp=2)
+class StreamNN_2 extends StreamNN[scala.Int,Int](ip=4)
+class StreamNN_3 extends StreamNN[scala.Int,Int](ip=4, P1=2)
+class StreamNN_4 extends StreamNN[scala.Int,Int](ip=4, P1=2, bp=2)
+class StreamNN_5 extends StreamNN[scala.Int,Int](L1=8, ip=8, P1=1, bp=2)
 
-@spatial abstract class StreamNN[HT:Numeric,T:Num](implicit ev:Cast[Text,T]) extends StreamInference[HT,T,T] {
-
-  lazy val param = StreamNNParam()
-  import param._
+@spatial abstract class StreamNN[HT:Numeric,T:Num](
+  val field:scala.Int = 8,
+  val numBatch:scala.Int = 16,
+  val batch:scala.Int = 4,
+  val L1:scala.Int = 64,
+  val L2:scala.Int = 1,
+  val P1:scala.Int = 1,
+  val P2:scala.Int = 1,
+  val bp:scala.Int = 1,
+  val ip:scala.Int = 8
+)(implicit ev:Cast[Text,T]) extends StreamInference[HT,T,T] {
 
   val W1 = Seq.tabulate(field, L1) { (i,j) => (i*L1 +j) }
   val W2 = Seq.tabulate(L1, L2) { (i,j) => (i*L2 +j) }

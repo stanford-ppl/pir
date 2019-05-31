@@ -1,6 +1,21 @@
 import spatial.dsl._
 
-case class SGDParam(
+class SGD_0 extends SGD
+class SGD_1 extends SGD(mp1=1, mp2=2) 
+class SGD_2 extends SGD(mp1=2, mp2=1) 
+class SGD_3 extends SGD(mp1=2, mp2=2) 
+//class SGD_4 extends SGD(mp1=1, mp2=4) 
+//class SGD_5 extends SGD(mp1=4, mp2=1) 
+//class SGD_6 extends SGD(mp1=3, mp2=3) 
+//class SGD_7 extends SGD(mp1=4, mp2=2) 
+//class SGD_8 extends SGD(mp1=2, mp2=4) 
+//class SGD_9 extends SGD(mp1=3, mp2=4) 
+//class SGD_10 extends SGD(mp1=4, mp2=3) 
+//class SGD_11 extends SGD(mp1=4, mp2=4) 
+//class SGD_12 extends SGD(mp1=4, mp2=5) 
+//class SGD_13 extends SGD(mp1=5, mp2=4) 
+
+@spatial abstract class SGD(
   D:scala.Int=32,
   N:scala.Int=128,
   E:scala.Int=2,
@@ -8,27 +23,7 @@ case class SGDParam(
   mp1:scala.Int=1,
   mp2:scala.Int=1,
   ip:scala.Int=16
-) extends Param[SGDParam]
-
-class SGD_0 extends SGD
-class SGD_1 extends SGD { override lazy val param = SGDParam(mp1=1, mp2=2) }
-class SGD_2 extends SGD { override lazy val param = SGDParam(mp1=2, mp2=1) }
-class SGD_3 extends SGD { override lazy val param = SGDParam(mp1=2, mp2=2) }
-//class SGD_4 extends SGD { override lazy val param = SGDParam(mp1=1, mp2=4) }
-//class SGD_5 extends SGD { override lazy val param = SGDParam(mp1=4, mp2=1) }
-//class SGD_6 extends SGD { override lazy val param = SGDParam(mp1=3, mp2=3) }
-//class SGD_7 extends SGD { override lazy val param = SGDParam(mp1=4, mp2=2) }
-//class SGD_8 extends SGD { override lazy val param = SGDParam(mp1=2, mp2=4) }
-//class SGD_9 extends SGD { override lazy val param = SGDParam(mp1=3, mp2=4) } // new
-//class SGD_10 extends SGD { override lazy val param = SGDParam(mp1=4, mp2=3) }
-//class SGD_11 extends SGD { override lazy val param = SGDParam(mp1=4, mp2=4) }
-//class SGD_12 extends SGD { override lazy val param = SGDParam(mp1=4, mp2=5) }
-//class SGD_13 extends SGD { override lazy val param = SGDParam(mp1=5, mp2=4) }
-
-@spatial abstract class SGD extends DSETest { self => // Regression (Dense) // Args: 40 64 0.0001
-
-  lazy val param = SGDParam()
-  import param._
+) extends DSETest { self => // Regression (Dense) // Args: 40 64 0.0001
 
   val A = 0.0001f
 

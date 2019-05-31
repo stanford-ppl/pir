@@ -1,8 +1,9 @@
 import utils.io.files._
 
 abstract class StreamHostTemplate {
-  val param:StreamTemplateParam
-  import param._
+  val field:scala.Int
+  val numBatch:scala.Int
+  val batch:scala.Int
 
   def N = numBatch * batch
   def numToken = N * field

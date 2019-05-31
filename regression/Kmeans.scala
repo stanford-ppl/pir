@@ -1,6 +1,17 @@
 import spatial.dsl._
 
-case class KmeansParam(
+class Kmeans_0 extends Kmeans
+
+class Kmeans_1 extends Kmeans(ip=1)
+class Kmeans_2 extends Kmeans(mp1=2)
+class Kmeans_3 extends Kmeans(mp2=2)
+class Kmeans_4 extends Kmeans(mp3=2)
+class Kmeans_5 extends Kmeans(mp1=2,mp2=2)
+class Kmeans_6 extends Kmeans(mp2=2,mp3=2)
+class Kmeans_7 extends Kmeans(mp1=2,mp3=2)
+class Kmeans_8 extends Kmeans(mp1=2,mp2=2,mp3=2)
+
+@spatial abstract class Kmeans(
   K:scala.Int = 64,
   D:scala.Int = 64,
   ts:scala.Int = 128,
@@ -9,26 +20,10 @@ case class KmeansParam(
   mp1:scala.Int = 1,
   mp2:scala.Int = 1,
   mp3:scala.Int = 1
-) extends Param[KmeansParam]
-
-class Kmeans_0 extends Kmeans
-
-class Kmeans_1 extends Kmeans {override lazy val param = KmeansParam(ip=1)}
-class Kmeans_2 extends Kmeans {override lazy val param = KmeansParam(mp1=2)}
-class Kmeans_3 extends Kmeans {override lazy val param = KmeansParam(mp2=2)}
-class Kmeans_4 extends Kmeans {override lazy val param = KmeansParam(mp3=2)}
-class Kmeans_5 extends Kmeans {override lazy val param = KmeansParam(mp1=2,mp2=2)}
-class Kmeans_6 extends Kmeans {override lazy val param = KmeansParam(mp2=2,mp3=2)}
-class Kmeans_7 extends Kmeans {override lazy val param = KmeansParam(mp1=2,mp3=2)}
-class Kmeans_8 extends Kmeans {override lazy val param = KmeansParam(mp1=2,mp2=2,mp3=2)}
-
-@spatial abstract class Kmeans extends DSETest { self =>
+) extends DSETest { self =>
   type X = Int
 
   override def runtimeArgs = "2 1024"
-
-  lazy val param = KmeansParam()
-  import param._
 
   def DM1 = D - 1
   val element_max = 10

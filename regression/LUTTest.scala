@@ -1,23 +1,18 @@
 import spatial.dsl._
 
-case class LUTTestParam(
+class LUTTest_0 extends LUTTest
+class LUTTest_1 extends LUTTest(ip=1, op=1)
+class LUTTest_2 extends LUTTest(ip=1, op=2)
+class LUTTest_3 extends LUTTest(op=2)
+class LUTTest_4 extends LUTTest(ts=16, op=2, N=32)
+
+@spatial abstract class LUTTest(
   N:scala.Int = 128,
   op:scala.Int = 1,
   ts:scala.Int = 32,
   ip:scala.Int = 16
-) extends Param[LUTTestParam]
-
-class LUTTest_0 extends LUTTest
-class LUTTest_1 extends LUTTest { override lazy val param = LUTTestParam(ip=1, op=1) }
-class LUTTest_2 extends LUTTest { override lazy val param = LUTTestParam(ip=1, op=2) }
-class LUTTest_3 extends LUTTest { override lazy val param = LUTTestParam(op=2) }
-class LUTTest_4 extends LUTTest { override lazy val param = LUTTestParam(ts=16, op=2, N=32) }
-
-@spatial abstract class LUTTest extends DSETest {
+) extends DSETest {
   type T = Int
-
-  lazy val param = LUTTestParam()
-  import param._
 
   def main(args: Array[String]): Unit = {
     val a = Seq.tabulate(N){ i => i.to[T] }
