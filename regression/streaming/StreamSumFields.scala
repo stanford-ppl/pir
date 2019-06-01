@@ -1,5 +1,4 @@
 import spatial.dsl._
-import spatial.lang.{FileBus,FileBusLastBit}
 
 class StreamSumFields_0 extends StreamSumFields[scala.Int,Int]
 class StreamSumFields_1 extends StreamSumFields[scala.Int,Int](op=2)

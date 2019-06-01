@@ -30,7 +30,7 @@ import utils.io.files._
   }
 }
 
-@spatial abstract class StreamInference[HI:Numeric,TI:Bits,TO:Bits](implicit ev:Cast[Text,TI]) extends StreamTemplate {
+@spatial abstract class StreamInference[HI:Numeric,TI:Bits,TO:Bits](implicit ev:Cast[Text,TO]) extends StreamTemplate {
   val tibits = implicitly[Bits[TI]]
   val tobits = implicitly[Bits[TO]]
 
@@ -60,8 +60,8 @@ import utils.io.files._
     val in  = StreamIn[Tup2[TI,Bit]](FileBusLastBit[Tup2[TI,Bit]](inFile))
     val out = StreamOut[Tup2[TO,Bit]](FileBusLastBit[Tup2[TO,Bit]](outFile))
     accelBody(in,out)
-    val outData = loadCSV2D[Int](outFile)
-    val cksum = outData == loadCSV2D[TI](goldFile)
+    val outData = loadCSV2D[TO](outFile)
+    val cksum = outData == loadCSV2D[TO](goldFile)
     println("PASS: " + cksum + s" (${this.getClass.getSimpleName})")  
     assert(cksum)
   }

@@ -1,5 +1,4 @@
 import spatial.dsl._
-import spatial.lang.{FileBus,FileBusLastBit,Bus}
 import utils.io.files._
 
 class StreamDotProduct_0 extends StreamDotProduct[scala.Int,Int]

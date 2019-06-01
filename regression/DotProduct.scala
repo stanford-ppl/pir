@@ -1,4 +1,5 @@
 import spatial.dsl._
+import spatial.lib.ML._
 
 class DotProduct_0 extends DotProduct
 class DotProduct_1 extends DotProduct(ip=1, op=1)
@@ -30,8 +31,7 @@ class DotProduct_3 extends DotProduct(op=2)
           aBlk load a(i::i+ts par ip)
           bBlk load b(i::i+ts par ip)
         }
-        val accI = Reg[T](0.to[T])
-        Reduce(accI)(ts par ip){ii => aBlk(ii) * bBlk(ii) }{_+_}
+        dp_flat(ts, ip) { ii => (aBlk(ii), bBlk(ii)) }
       }{_+_}
     }
     getArg(out)

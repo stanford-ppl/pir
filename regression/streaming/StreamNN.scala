@@ -1,6 +1,5 @@
 import spatial.dsl._
-import spatial.lang.{FileBus,FileBusLastBit}
-import spatial.lib.NN._
+import spatial.lib.ML._
 
 class StreamNN_0 extends StreamNN[scala.Int,Int]
 class StreamNN_1 extends StreamNN[scala.Int,Int](bp=2)
@@ -35,16 +34,16 @@ class StreamNN_5 extends StreamNN[scala.Int,Int](L1=8, ip=8, P1=1, bp=2)
     val outsram = SRAM[T](batch)
     Foreach(0 until batch par bp) { b =>
       val l1 = SRAM[T](L1)
-      denselayer_tiled[T](w1, b1, ip, 1, P1, relu _, in=Left({i => insram(b, i)}), out=l1)
-      denselayer_tiled[T](w2, b2, ip, P1, P2, { x => x } ,in=l1, out=Left({ case (o,d) => outsram(b) = d }))
+      denselayer_tiled[T](w1, b1, ip, 1, P1, relu[T] _, out=l1){ i => insram(b,i) }
+      denselayer_tiled[T](w2, b2, ip, P1, P2, activation[T](x => x), in=l1){ case (o,d) => outsram(b) = d }
     }
     outsram
   }
 
   def hostBody(inData:Seq[Seq[HT]]) = {
     inData.map { fields =>
-      val l1 = host_denselayer[HT](fields, W1, B1, host_relu _)
-      val l2 = host_denselayer[HT](l1, W2, B2, { x => x })
+      val l1 = unstaged_denselayer[HT](fields, W1, B1, unstaged_relu _)
+      val l2 = unstaged_denselayer[HT](l1, W2, B2, { x => x })
       l2.head
     }
   }

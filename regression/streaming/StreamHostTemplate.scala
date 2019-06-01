@@ -41,11 +41,26 @@ abstract class StreamHostTemplate {
     def * (x:HT) = num[HT].times(tt,x)
     def + (x:HT) = num[HT].plus(tt,x)
     def - (x:HT) = num[HT].minus(tt,x)
+    def > (x:HT) = num[HT].gt(tt,x)
+    def >= (x:HT) = num[HT].gteq(tt,x)
+    def < (x:HT) = num[HT].lt(tt,x)
+    def <= (x:HT) = num[HT].lteq(tt,x)
   }
   implicit def int_to_tt[HT:Numeric](x:Int):HT = num[HT].fromInt(x)
   implicit def intseq_to_ttseq[HT:Numeric](x:Seq[Int]):Seq[HT] = x.map { x => num[HT].fromInt(x) }
   implicit def intseqseq_to_ttseqseq[HT:Numeric](x:Seq[Seq[Int]]):Seq[Seq[HT]] = x.map { _.map { x => num[HT].fromInt(x) } }
 
   implicit def tonum[HT:Numeric](x:HT):NumOp[HT] = new NumOp[HT](x)
+
+  def frac[HT:Fractional]:Fractional[HT] = implicitly[Fractional[HT]]
+  implicit def float_to_frac[T:Fractional](x:Float):T = {
+    val t:T = frac[T] match {
+      case f if f == frac[Float] => x.asInstanceOf[T]
+      case f if f == frac[Double] => f.toDouble(x).asInstanceOf[T]
+    }
+    t
+  }
+  implicit def fltseq_to_ttseq[HT:Fractional](x:Seq[Float]):Seq[HT] = x.map { x => float_to_frac[HT](x) }
+  implicit def fltseqseq_to_ttseqseq[HT:Fractional](x:Seq[Seq[Float]]):Seq[Seq[HT]] = x.map { _.map { x => float_to_frac[HT](x) } }
 }
 

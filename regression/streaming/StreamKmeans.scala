@@ -1,5 +1,4 @@
 import spatial.dsl._
-import spatial.lang.{FileBus,FileBusLastBit,Bus}
 import utils.io.files._
 
 class StreamKmeans_0 extends StreamKmeans[scala.Int,Int]
@@ -20,7 +19,7 @@ class StreamKmeans_6 extends StreamKmeans[scala.Int,Int](ip=8, kp=4, op=2)
   val op:scala.Int = 1,
   val kp:scala.Int = 1,
   val ip:scala.Int = 8
-)(implicit ev:Cast[Text,T]) extends StreamInference[HT,T,Int] {
+) extends StreamInference[HT,T,Int] {
 
   val r = scala.util.Random
   val centroids = Seq.tabulate(K) { k => Seq.tabulate(field) { f => r.nextInt(numToken) } }
