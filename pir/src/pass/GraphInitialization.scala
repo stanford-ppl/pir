@@ -44,14 +44,6 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         }
       }
     }
-    n.to[StreamCommand].foreach { n =>
-      val fifos = n.streams.map { stream =>
-        stream.as[EN[PIRNode]].collectFirst[FIFO]()
-      }
-      longestCommonSubstring(fifos.flatMap { _.name.v }).foreach { name =>
-        n.name(name)
-      }
-    }
     n.to[HostRead].foreach { n =>
       n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
     }

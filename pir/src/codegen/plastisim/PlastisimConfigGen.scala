@@ -8,7 +8,7 @@ import spade.param._
 
 class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with PIRTraversal {
 
-  val fileName = configName
+  val fileName = config.psimConfigName
   val forward = true
 
   override def emitNode(n:N) = {
@@ -66,6 +66,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
   }
 
   def emitNodeSpecs(n:Context) = {
+    val traceRelativePath = getRelativePath(config.tracePath, config.psimOut)
     n.collectDown[DRAMCommand]().headOption.flatMap { command =>
       if (config.enableTrace) Some(command) else None
     }.fold{

@@ -2,10 +2,10 @@ package prism
 package util
 
 import java.io.{Console => _, _}
-import java.nio.file.Files
+import java.nio.file.{Files, Paths}
 import scala.io._
 
-trait FileManager { 
+trait FileIOUtil { 
 
   val separator = File.separator
 
@@ -108,6 +108,12 @@ trait FileManager {
       val cells = line.split(",").map(_.trim)
       headers.zip(cells).toMap
     }
+  }
+
+  def getRelativePath(path:String, relativeTo:String) = {
+    val p1 = Paths.get(path)
+    val p2 = Paths.get(relativeTo)
+    p2.relativize(p1).toString
   }
 
 }

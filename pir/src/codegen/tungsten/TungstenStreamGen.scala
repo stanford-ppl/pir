@@ -8,9 +8,32 @@ import scala.collection.mutable
 trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
 
   override def emitNode(n:N) = n match {
+    case n@FringeStreamRead(bus) if config.asModule =>
+      n.streams.zipWithIndex.foreach { case (stream, i) =>
+        val name = n.name.get + s"_$i"
+        val tp = s"CheckedSend<Token>"
+        val args = if (noPlaceAndRoute) Seq(name.qstr) else Seq(name.qstr, "net".&, "statnet".&)
+        genTopMember(tp, name, args, extern=true)
+        addEscapeVar((tp,name))
+        genCtxInits {
+          emitln(s"""AddSend($name);""")
+        }
+        emitln(s"$name->Push(make_token(${stream.T}));")
+      }
+      n.lastBit.T.foreach { last =>
+        last.as[BufferWrite].out.T.foreach { send =>
+          addEscapeVar(send)
+          genCtxInits {
+            emitln(s"AddSend(${nameOf(send)});");
+          }
+          emitIf(s"${n.streams.last.T}") {
+            emitln(s"""${nameOf(send)}->Push(make_token(true));""")
+          }
+        }
+      }
+
     case n@FringeStreamRead(FileBus(filePath)) =>
       val file = s"${n}_file"
-      cleanup += s"${nameOf(n.ctx.get)}.$file.close();"
       genCtxFields {
         emitln(s"""ofstream $file;""")
       }
@@ -36,12 +59,35 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
           genCtxInits {
             emitln(s"AddSend(${nameOf(send)});");
           }
-          emitln(s"""if ($last) ${nameOf(send)}->Push(make_token($last));""")
+          emitIf(s"$last") {
+            emitln(s"""${nameOf(send)}->Push(make_token($last));""")
+            emitln(s"$file.close();")
+          }
         }
       }
+    case n@FringeStreamWrite(bus) if config.asModule =>
+      n.streams.zipWithIndex.foreach { case (sout, i) =>
+        val stream = sout.T.as[BufferWrite]
+        val name = n.name.get + s"_$i"
+        val tp = s"CheckedReceive<Token>"
+        val args = if (noPlaceAndRoute) Seq(name.qstr) else Seq(name.qstr, "net".&, "statnet".&)
+        genTopMember(tp, name, args, extern=true)
+        addEscapeVar((tp,name))
+        genCtxInits {
+          emitln(s"""inputs.push_back($name);""")
+        }
+        stream.out.T.foreach { send =>
+          addEscapeVar(send)
+          genCtxInits {
+            emitln(s"AddSend(${nameOf(send)});");
+          }
+          emitln(s"""${nameOf(send)}->Push($name->Read());""")
+        }
+        emitln(s"$name->Pop();")
+      }
+
     case n@FringeStreamWrite(FileBus(filePath)) =>
       val file = s"${n}_file"
-      cleanup += s"${nameOf(n.ctx.get)}.$file.close();"
       genCtxFields {
         emitln(s"""ifstream $file;""")
       }
@@ -56,7 +102,6 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
           emitln(s"getline($file, line, '\\n');")
           emitln(s"if (!(good = $file.good())) break;")
           emitln(s"istringstream lineStream(line);")
-          val size = n.streams.size
           emitln(s"string token;")
           n.streams.zipWithIndex.foreach { case (stream, s) =>
             emitln(s"getline(lineStream, token,',');")
@@ -75,6 +120,9 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
         }
       } {
         emitln(s"InActive();")
+        emitIf(s"$file.eof()") {
+          emitln(s"$file.close();")
+        }
       }
 
     case n => super.emitNode(n)

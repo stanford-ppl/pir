@@ -10,14 +10,11 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
   val addrgens = mutable.ListBuffer[String]()
 
   override def finPass = {
-    genTopEnd {
-      val cmds = addrgens.map{ i => s"&$i.burstcmd" }.mkString(",")
-      val resps = addrgens.map{ i => s"&$i.burstrsp" }.mkString(",")
-      val dramFile = buildPath(config.tstHome, "ini", "DRAM.ini")
-      val systemFile = buildPath(config.tstHome, "ini", "system.ini")
-      emitln(s"""DRAMController DRAM("DRAM", "$dramFile", "$systemFile", ".", {$cmds}, {$resps});""")
-      dutArgs += "DRAM"
-    }
+    val cmds = addrgens.map{ i => s"&$i.burstcmd" }.mkString(",")
+    val resps = addrgens.map{ i => s"&$i.burstrsp" }.mkString(",")
+    val dramFile = buildPath(config.tstHome, "ini", "DRAM.ini")
+    val systemFile = buildPath(config.tstHome, "ini", "system.ini")
+    genTopFinalMember("DRAMController", "DRAM", Seq("DRAM".qstr, dramFile.qstr, systemFile.qstr, ".".qstr, s"{$cmds}", s"{$resps}"), extern=true)
     super.finPass
   }
 
@@ -29,47 +26,35 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:FringeDenseLoad =>
       val (tp, name) = varOf(n)
-      genTopEnd {
-        val offset = nameOf(n.offset.T.as[BufferRead]).&
-        val size = nameOf(n.size.T.as[BufferRead]).&
-        val data = nameOf(n.data.T.as[BufferWrite].gout.get).&
-        emitln(s"""$tp $name("$n", $offset, $size, $data);""")
-        dutArgs += name
-      }
+      val offset = nameOf(n.offset.T.as[BufferRead]).&
+      val size = nameOf(n.size.T.as[BufferRead]).&
+      val data = nameOf(n.data.T.as[BufferWrite].gout.get).&
+      genTopFinalMember(tp, name, Seq(n.qstr, offset, size, data))
       addrgens += s"$n"
 
     case n:FringeDenseStore =>
       val (tp, name) = varOf(n)
-      genTopEnd {
-        val offset = nameOf(n.offset.T.as[BufferRead]).&
-        val size = nameOf(n.size.T.as[BufferRead]).&
-        val data = nameOf(n.data.T.as[BufferRead]).&
-        val valid = nameOf(n.valid.T.as[BufferRead]).&
-        val ack = nameOf(n.ack.T.as[BufferWrite].gout.get).&
-        emitln(s"""$tp $name("$n", $offset, $size, $data, $valid, $ack);""")
-        dutArgs += name
-      }
+      val offset = nameOf(n.offset.T.as[BufferRead]).&
+      val size = nameOf(n.size.T.as[BufferRead]).&
+      val data = nameOf(n.data.T.as[BufferRead]).&
+      val valid = nameOf(n.valid.T.as[BufferRead]).&
+      val ack = nameOf(n.ack.T.as[BufferWrite].gout.get).&
+      genTopFinalMember(tp, name, Seq(n.qstr, offset, size, data, valid, ack))
       addrgens += s"$n"
 
     case n:FringeSparseLoad =>
       val (tp, name) = varOf(n)
-      genTopEnd {
-        val addr = nameOf(n.addr.T.as[BufferRead]).&
-        val data = nameOf(n.data.T.as[BufferWrite].gout.get).&
-        emitln(s"""$tp $name("$n", $addr, $data);""")
-        dutArgs += name
-      }
+      val addr = nameOf(n.addr.T.as[BufferRead]).&
+      val data = nameOf(n.data.T.as[BufferWrite].gout.get).&
+      genTopFinalMember(tp, name, Seq(n.qstr, addr, data))
       addrgens += s"$n"
 
     case n:FringeSparseStore =>
       val (tp, name) = varOf(n)
-      genTopEnd {
-        val addr = nameOf(n.addr.T.as[BufferRead]).&
-        val data = nameOf(n.data.T.as[BufferRead]).&
-        val ack = nameOf(n.ack.T.as[BufferWrite].gout.get).&
-        emitln(s"""$tp $name("$n", $addr, $data, $ack);""")
-        dutArgs += name
-      }
+      val addr = nameOf(n.addr.T.as[BufferRead]).&
+      val data = nameOf(n.data.T.as[BufferRead]).&
+      val ack = nameOf(n.ack.T.as[BufferWrite].gout.get).&
+      genTopFinalMember(tp, name, Seq(n.qstr, addr, data, ack))
       addrgens += s"$n"
 
     case n:CountAck =>

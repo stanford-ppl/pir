@@ -62,13 +62,8 @@ using namespace std;
         }
         emit(s""";""")
       }
-      genTopEnd {
-        emitln(s"""#include "$n.h"""")
-        var args = s"${ctxExtVars.map { _._2 }.map { _.& }.mkString(",")}"
-        if (ctxExtVars.nonEmpty) args = s"($args)"
-        emitln(s"""$tp $name$args;""")
-      }
-      dutArgs += name 
+      emitln(s"""#include "$n.h"""")
+      genTopFinalMember(tp, name, ctxExtVars.map { _._2 }.map { _.& })
       ctxExtVars.clear
 
     case n => super.emitNode(n)
@@ -105,7 +100,9 @@ using namespace std;
   //final protected def genCtxEval(block: => Unit) = enterBuffer("eval") { incLevel(2); block; decLevel(2) }
 
   final protected def addEscapeVar(n:PIRNode):Unit = {
-    val v = varOf(n)
+    addEscapeVar(varOf(n))
+  }
+  final protected def addEscapeVar(v:(String,String)):Unit = {
     if (!ctxExtVars.contains(v)) ctxExtVars += v
   }
 

@@ -38,8 +38,8 @@ trait ProgramOrderTraversal extends PIRTraversal with ChildFirstTraversal {
 
 class DRAMTraceCodegen(implicit compiler:PIR) extends ProgramOrderTraversal with ScalaCodegen with PlastisimUtil { self =>
 
-  override def dirName = tracePath
-  override val fileName = traceName
+  override def dirName = config.tracePath
+  override val fileName = config.traceName
 
   // mutable.ListMap doesn't preserve the order even scaladoc says so
   var offsetMap = scala.collection.immutable.ListMap[DRAM, Int]()
@@ -51,7 +51,7 @@ class DRAMTraceCodegen(implicit compiler:PIR) extends ProgramOrderTraversal with
 
   override def initPass = {
     super.initPass
-    clearDir(tracePath)
+    clearDir(config.tracePath)
     offsetMap = scala.collection.immutable.ListMap[DRAM, Int]()
     tracked.clear
     pirTop.collectDown[DRAMCommand]().foreach { fringe =>

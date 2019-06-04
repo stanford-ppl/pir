@@ -52,5 +52,11 @@ trait Codegen extends Pass with Printer with DFSTraversal with UnitTraversal {
   def emitComment(msg:String):Unit = emitln(s"// $msg")
 
   def emitlnc(msg:String, comment:String):Unit = { emit(msg); emitComment(comment) }
+
+  implicit class AnyStrOp(x:Any) {
+    def qstr:String = {
+      s""""$x""""
+    }
+  }
 }
 

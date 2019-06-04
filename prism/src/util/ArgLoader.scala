@@ -1,7 +1,7 @@
 package prism
 package util
 
-trait ArgLoader extends FileManager {
+trait ArgLoader extends FileIOUtil {
   val configPath =s"${sys.env("HOME")}${separator}.pirconf"
   def loadArgs(inputArgs:Array[String]) = {
     if (exists(configPath)) {

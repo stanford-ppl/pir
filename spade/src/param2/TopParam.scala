@@ -36,6 +36,11 @@ case class InfinatePattern(
   fringePattern:FringePattern=FringePattern()
 ) extends Pattern
 
+trait GridPattern extends Pattern {
+  def row:Int
+  def col:Int
+}
+
 /*
  *
  *  +-----+-----+
@@ -52,7 +57,7 @@ case class Checkerboard(
   cu2:CUParam=PMUParam(),
   fringePattern:FringePattern=FringePattern(),
   networkParams:List[NetworkParam]=List(NetworkParam("bit"), NetworkParam("word"), NetworkParam("vec", numVC=4))
-) extends Pattern {
+) extends GridPattern {
   def cuAt(i:Int, j:Int) = {
     if ((i+j) % 2 == 0) cu1 else cu2
   }
@@ -74,7 +79,7 @@ case class MCMColumnStrip(
   cu2:CUParam=PMUParam(),
   fringePattern:FringePattern=FringePattern(),
   networkParams:List[NetworkParam]=List(NetworkParam("bit"), NetworkParam("word"), NetworkParam("vec", numVC=4))
-) extends Pattern {
+) extends GridPattern {
   def cuAt(i:Int, j:Int) = {
     if (i % 3 % 2 == 0) cu2 else cu1
   }

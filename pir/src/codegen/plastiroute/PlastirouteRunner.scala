@@ -7,13 +7,11 @@ import spade.param._
 
 class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Printer {
 
-  lazy val summaryName = "summary.csv"
-  lazy val summaryPath = buildPath(psimOut, summaryName)
-  lazy val prouteLog = buildPath(config.cwd, "proute.log")
-
   override def runPass = {
-    if (!noPlaceAndRoute) {
-      var command = s"${config.prouteHome}/plastiroute -n $prouteNodeName -l $prouteLinkName -o $prouteName"
+    val conf = config
+    import conf._
+    if (!noPlaceAndRoute && runproute) {
+      var command = s"${config.prouteHome}/plastiroute -n $prouteNodeName -l $prouteLinkName -o $proutePlaceName"
       spadeParam.pattern match {
         case p:Checkerboard => 
           command += s" -r ${p.row} -c ${p.col}"
@@ -26,7 +24,7 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
       }
       //if (isInitPlacement) command += s" -b $psimOut/init.place"
       command += s" -g proute.dot"
-      command += s" -v $summaryName"
+      command += s" -v $prouteSummaryName"
       command += s" -a ${config.option[String]("proute-algo")} "
       command += s" -q${config.option[String]("proute-q")} "
       command += s" -s${config.option[String]("proute-seed")} "
@@ -36,7 +34,7 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
         emitln(s"cd $psimOut")
         emitln(command)
       }
-      deleteFile(summaryPath)
+      deleteFile(prouteSummaryPath)
       deleteFile(prouteLog)
       val exitCode = shellProcess("proute", s"bash proute.sh", prouteLog) { line =>
         if (line.contains("Used") && line.contains("VCs.")) {

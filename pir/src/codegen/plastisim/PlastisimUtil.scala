@@ -7,20 +7,6 @@ import prism.graph._
 import prism.util._
 
 trait PlastisimUtil extends PIRPass {
-  lazy val psimOut = config.psimOut
-  lazy val configName = "psim.conf"
-  lazy val configPath = buildPath(psimOut, configName)
-  lazy val prouteName = "final.place"
-  lazy val proutePath = buildPath(psimOut, prouteName)
-  lazy val prouteLinkName = "link.csv"
-  lazy val prouteLinkPath = buildPath(psimOut, prouteLinkName)
-  lazy val prouteNodeName = "node.csv"
-  lazy val prouteNodePath = buildPath(psimOut, prouteNodeName)
-  lazy val traceName = "gen_trace.scala"
-  lazy val traceRelativePath = s"trace"
-  lazy val tracePath = buildPath(psimOut, traceRelativePath)
-  lazy val psimLog = buildPath(config.cwd, "psim.log")
-
   val infCount = 1000000
 
   implicit class PIRNodePsimOp(n:PIRNode) {
@@ -38,5 +24,5 @@ trait PlastisimUtil extends PIRPass {
 }
 
 trait PlastisimCodegen extends PlastisimUtil with Codegen with PIRTraversal with ChildFirstTraversal {
-  override def dirName = psimOut
+  override def dirName = config.psimOut
 }

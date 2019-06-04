@@ -1,5 +1,5 @@
 import spatial.dsl._
-import spatial.lang.{FileBus,FileBusLastBit,BlackBoxBus}
+import spatial.lang.{FileBus,FileEOFBus}
 import utils.io.files._
 
 @spatial abstract class StreamTemplate extends StreamHostTemplate with DSETest {
@@ -57,8 +57,8 @@ import utils.io.files._
     val goldMat = hostBody(inDataMat) 
     writeGoldStream(goldMat, goldFile)
 
-    val in  = StreamIn[Tup2[TI,Bit]](FileBusLastBit[Tup2[TI,Bit]](inFile))
-    val out = StreamOut[Tup2[TO,Bit]](FileBusLastBit[Tup2[TO,Bit]](outFile))
+    val in  = StreamIn[Tup2[TI,Bit]](FileEOFBus[Tup2[TI,Bit]](inFile))
+    val out = StreamOut[Tup2[TO,Bit]](FileEOFBus[Tup2[TO,Bit]](outFile))
     accelBody(in,out)
     val outData = loadCSV2D[TO](outFile)
     val cksum = outData == loadCSV2D[TO](goldFile)
@@ -68,15 +68,4 @@ import utils.io.files._
 
   implicit def tseq_to_bitsseq[T:Bits](x:Seq[T]):Seq[Bits[T]] = x.map { case Bits(x) => x.asInstanceOf[Bits[T]] }
   implicit def tseqseq_to_bitsseqseq[T:Bits](x:Seq[Seq[T]]):Seq[Seq[Bits[T]]] = x.map { x => tseq_to_bitsseq(x) }
-}
-
-trait BlackBoxedStreamInference[HI,TI,TO] extends StreamInference[HI,TI,TO] {
-  implicit val imp_tibits = tibits
-  implicit val imp_tobits = tobits
-  override def main(args: Array[String]): Unit = {
-    val in  = StreamIn[Tup2[TI,Bit]](BlackBoxBus[Tup2[TI,Bit]]("input"))
-    val out = StreamOut[Tup2[TO,Bit]](BlackBoxBus[Tup2[TO,Bit]]("output"))
-    accelBody(in,out)
-    assert(true)
-  }
 }
