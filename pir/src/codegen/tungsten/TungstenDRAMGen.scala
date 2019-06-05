@@ -7,11 +7,11 @@ import scala.collection.mutable
 
 trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
 
-  override def finPass = {
+  override def initPass = {
+    super.initPass
     val dramFile = buildPath(config.tstHome, "ini", "DRAM.ini")
     val systemFile = buildPath(config.tstHome, "ini", "system.ini")
-    genTopMember("DRAMController", "DRAM", Seq("DRAM".qstr, dramFile.qstr, systemFile.qstr, ".".qstr, s"{}", s"{}"), extern=true, end=true, escape=true)
-    super.finPass
+    genTopMember("DRAMController", "DRAM", Seq("DRAM".qstr, dramFile.qstr, systemFile.qstr, ".".qstr, s"{}", s"{}"), extern=true, end=false, escape=true)
   }
 
   override def emitNode(n:N) = n match {

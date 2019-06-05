@@ -339,7 +339,7 @@ runtst_parser.append(Parser(
 ))
 runtst_parser.append(Parser(
     'runtst_err', 
-    ["error", "fail", "exception"],
+    ["error", "fail", "exception", "fault"],
     lambda lines: lines[0] 
 ))
 runtst_parser.append(Parser(
