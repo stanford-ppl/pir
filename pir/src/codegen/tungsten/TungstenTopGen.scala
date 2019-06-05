@@ -50,13 +50,18 @@ using namespace std;
   }
 
   def genTopMember(n:PIRNode, args:Seq[String], end:Boolean=false):Unit = {
-    val (tp,name) = varOf(n)
-    genTopMember(tp,name,args,end,n.isExtern.get,isEscaped(n), n.externAlias.v)
+    val interfaceTp = n match {
+      case n:GlobalInput if config.asModule & n.isExtern.get => "CheckedSend<Token>"
+      case n:GlobalOutput if config.asModule & n.isExtern.get => "CheckedReceive<Token>"
+      case n => varOf(n)._1
+    }
+    val (tp, name) = varOf(n)
+    genTopMember(tp, name,args,end,n.isExtern.get,isEscaped(n), n.externAlias.v, interfaceTp)
   }
   def genTopMember(tp:Any, name:Any, args:Seq[String], end:Boolean, extern:Boolean, escape:Boolean):Unit = {
-    genTopMember(tp, name, args, end, extern, escape, None)
+    genTopMember(tp.toString, name.toString, args, end, extern, escape, None, tp.toString)
   }
-  def genTopMember(tp:Any, name:Any, args:Seq[String], end:Boolean, extern:Boolean, escape:Boolean, alias:Option[String]):Unit = {
+  private def genTopMember(tp:String, name:String, args:Seq[String], end:Boolean, extern:Boolean, escape:Boolean, alias:Option[String], interfaceTp:String):Unit = {
     val ext = extern & config.asModule
     if (!ext) {
       if (end)
@@ -74,7 +79,7 @@ using namespace std;
         emitln(s"$tp $name(${args.mkString(",")});")
       }
     }
-    topMembers += TopMember(tp.toString, name.toString, args.map{_.toString}, ext, escape, alias)
+    topMembers += TopMember(interfaceTp, name, args, ext, escape, alias)
   }
 
   override def initPass = {
@@ -101,7 +106,7 @@ using namespace std;
     getBuffer("extern-end").foreach { _.flushTo(sw) }
     val topName = if (config.asModule) pirTop.name.get else "Top"
     val (externs, members) = topMembers.partition { _.extern } 
-    val (escapes, topExterns) = externs.partition { _.escape }
+    val (escapes, _) = externs.partition { _.escape }
     val dutArgs = ("top" +: externs.map { _.name }).map{_.&}.mkString(",")
     val topArgsSig = escapes.map { mem => s"${mem.tp}& ${mem.name}" }.mkString(",\n    ")
     val topArgs = if (escapes.isEmpty) "" else s"(${escapes.map { _.name }.mkString(",")})" 
