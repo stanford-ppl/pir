@@ -258,7 +258,7 @@ def logApp(conf, opts):
 def parse(conf, opts):
     app = conf['app']
     backend = conf['backend']
-    if backend == 'Tst':
+    if 'Tst' in backend:
         backend = backend + "_" + conf['project']
     conf["freq"] = 1e9
     conf['mappirlog'] = os.path.join(opts.gendir,backend,app,"log/mappir.log")
@@ -553,7 +553,7 @@ def show_gen(opts):
     for backend in opts.backend:
         numRun = 0
         numSucc = 0
-        if backend == 'Tst':
+        if 'Tst' in backend:
             apps = getApps(backend + "_" + opts.project, opts)
         else:
             apps = getApps(backend, opts)
@@ -639,7 +639,7 @@ def main():
     for i in range(len(opts.backend)):
         if 'Tst' in opts.backend[i]:
             opts.project = backend.split("_")[1]
-            opts.backend[i] = 'Tst'
+            opts.backend[i] = backend.split("_")[0]
 
     opts.show_message = not opts.summarize 
 

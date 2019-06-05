@@ -7,6 +7,7 @@ class StreamNN_2 extends StreamNN[scala.Int,Int](ip=4)
 class StreamNN_3 extends StreamNN[scala.Int,Int](ip=4, P1=2)
 class StreamNN_4 extends StreamNN[scala.Int,Int](ip=4, P1=2, bp=2)
 class StreamNN_5 extends StreamNN[scala.Int,Int](L1=8, ip=8, P1=1, bp=2)
+class StreamNN_6 extends StreamNN[scala.Float,Float]
 
 @spatial abstract class StreamNN[HT:Numeric,T:Num](
   val field:scala.Int = 8,

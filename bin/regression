@@ -14,18 +14,18 @@ def main():
     parser.add_argument('-c', '--conti', default=False, action='store_true', 
         help='Continue from previous regression')
     (opts, args) = parser.parse_known_args()
-    if (opts.backend is None):
-        opts.backend = ['Tst']
     os.system('mkdir -p logs/')
     os.system('sbt "; project pir; publishAll"')
     apps = opts.app
     if apps is None: apps = []
     if opts.project is None:
         opts.project = ['pirTest', 'test']
+    if (opts.backend is None):
+        opts.backend = ['Tst', 'MDTst']
     for project in opts.project:
         for backend in opts.backend:
             gendir = backend
-            if backend == "Tst":
+            if "Tst" in backend:
                 gendir = backend + "_" + project
             if not opts.conti:
                 os.system('rm -r ../gen/{}'.format(gendir))
