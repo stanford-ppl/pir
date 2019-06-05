@@ -30,6 +30,7 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
       }
     }.foldAt(n.sname.v) { (q, v) => s"$q[$v]" }
       .append("name", n.name.v)
+      .append("externAlias", n.externAlias.v)
       .append("ctrl", n.ctrl.v.map { c => c.sname.v.fold(s"$c") { n => s"$c[$n]"} })
       .append("tp", n.tp.v)
       .append("vec", n.vec.v)

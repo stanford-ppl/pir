@@ -66,7 +66,8 @@ def show_diff(conf, opts):
     # diffkey = 'genpir'
 
     history = opts.history
-    prevsucc = history[(history.app==conf['app']) & history[diffkey]]
+    prevsucc = history[(history.app==conf['app']) & (history.project == conf['project']) & \
+            (history.backend==conf['backend']) & history[diffkey]]
 
     if not conf[diffkey] and prevsucc.shape[0] > 0:
         times = get_col(prevsucc, 'time')
@@ -258,7 +259,7 @@ def logApp(conf, opts):
 def parse(conf, opts):
     app = conf['app']
     backend = conf['backend']
-    if backend == 'Tst':
+    if 'Tst' in backend:
         backend = backend + "_" + conf['project']
     conf["freq"] = 1e9
     conf['mappirlog'] = os.path.join(opts.gendir,backend,app,"log/mappir.log")
@@ -338,7 +339,7 @@ runtst_parser.append(Parser(
 ))
 runtst_parser.append(Parser(
     'runtst_err', 
-    ["error", "fail", "exception"],
+    ["error", "fail", "exception", "fault"],
     lambda lines: lines[0] 
 ))
 runtst_parser.append(Parser(
@@ -553,7 +554,7 @@ def show_gen(opts):
     for backend in opts.backend:
         numRun = 0
         numSucc = 0
-        if backend == 'Tst':
+        if 'Tst' in backend:
             apps = getApps(backend + "_" + opts.project, opts)
         else:
             apps = getApps(backend, opts)
@@ -639,7 +640,7 @@ def main():
     for i in range(len(opts.backend)):
         if 'Tst' in opts.backend[i]:
             opts.project = backend.split("_")[1]
-            opts.backend[i] = 'Tst'
+            opts.backend[i] = backend.split("_")[0]
 
     opts.show_message = not opts.summarize 
 

@@ -1,77 +1,80 @@
 import spatial.dsl._
-import spatial.lang.{FileBus,FileBusLastBit}
+import spatial.lang.{FileBus,FileEOFBus}
 import utils.io.files._
 
-trait StreamTemplateParam{
-  val field:scala.Int
-  val numBatch:scala.Int
-  val batch:scala.Int
+@spatial abstract class StreamTemplate extends StreamHostTemplate with DSETest {
+
+  // Takes in input stream and put last bit into a FIFO,
+  // transpose the data into SRAM in size [batch x field]
+  // where batch is the vector dimension of the stream and fields are sent in
+  // in multiple cycles
+  def transposeInput[T:Bits](in:StreamIn[Tup2[T,Bit]]) = {
+    val insram = SRAM[T](batch, field)
+    val lastBit = FIFO[Bit](10)
+    Foreach(0 until field) { f =>
+      Foreach(0 until batch par batch) { b =>
+        val token = in.value
+        insram(b,f) = token._1
+        lastBit.enq(token._2, f==field-1)
+      }
+    }
+    (insram, lastBit)
+  }
+
+  // Takes an output sram of size [batch] and last bit FIFO, send the data to a output stream
+  // vectorized by batch
+  def transposeOutput[T:Bits](outsram:SRAM1[T], lastBit:FIFO[Bit], out:StreamOut[Tup2[T,Bit]]) = {
+    Foreach(0 until batch par batch) { b =>
+      out := Tup2(outsram(b), lastBit.deq)
+    }
+  }
 }
 
-@spatial trait StreamTemplate extends DSETest {
-  val param:StreamTemplateParam
-  import param._
+@spatial abstract class StreamInference[HI:Numeric,TI:Bits,TO:Bits](implicit ev:Cast[Text,TO]) extends StreamTemplate {
+  val tibits = implicitly[Bits[TI]]
+  val tobits = implicitly[Bits[TO]]
 
-  type T = Int
-  type TT = scala.Int
-  def N = numBatch * batch
-  def numToken = N * field
+  // Takes in a matrix in [N x field] and returns a matrix in N
+  def hostBody(inDataMat:Seq[Seq[HI]]):Seq[Any]
+  // Takes in a 2D sram in shape [batch x field] and return a sram of size [batch]
+  def accelBody(insram:SRAM2[TI]):SRAM1[TO]
 
-  def accelBody(insram:SRAM2[T]):SRAM1[T]
-  // inDataMat in size numBatch x field x batch
-  // return outMat in size numBatch x batch
-  def hostBody(inDataMat:Seq[Seq[Seq[TT]]]):Seq[Seq[TT]]
+  def accelBody(in:StreamIn[Tup2[TI,Bit]], out:StreamOut[Tup2[TO,Bit]]):Unit = {
+    Accel{
+      Foreach(*) { _ =>
+        val (insram, lastBit) = transposeInput(in)
+        val outsram = accelBody(insram)
+        transposeOutput(outsram, lastBit, out)
+      }
+    }
+  }
+
+  def close(a:TO, b:TO) = {
+    tobits match {
+      case tobits:Num[_] =>
+        implicit val n = tobits.asInstanceOf[Num[TO]]
+        abs(a - b) <= (0.05.to[TO] * abs(a))
+      case _ => a == b
+    }
+  }
 
   def main(args: Array[String]): Unit = {
     val inFile = buildPath(IR.config.genDir, "tungsten", "in.csv")
     val outFile = buildPath(IR.config.genDir, "tungsten", "out.csv")
     val goldFile = buildPath(IR.config.genDir, "tungsten", "gold.csv")
-    createDirectories(dirName(inFile))
-
-    val r = scala.util.Random
-    val inDataOnly = Seq.tabulate(numToken) { i => r.nextInt(numToken) }
-    val inData = Seq.tabulate(numToken,2) { (i,j) =>
-      (i,j) match {
-        case (i,0) => inDataOnly(i)
-        case (i, 1) if i == numToken-1 => 1
-        case (i, 1) => 0
-      }
-    }
-    val inDataMat = inDataOnly.grouped(batch).toSeq.grouped(field).toSeq
+    val inDataMat = generateRandomInput(inFile)
     val goldMat = hostBody(inDataMat) 
-    val goldFlat = goldMat.flatten
-    val gold = Seq.tabulate(N, 2) { (i,j) => 
-      (i,j) match {
-        case (i, 0) => goldFlat(i)
-        case (i, 1) if i == N-1 => 1
-        case (i, 1) => 0
-      }
-    }
-    writeCSVNow2D(gold, goldFile)
-    writeCSVNow2D(inData, inFile)
+    writeGoldStream(goldMat, goldFile)
 
-    val in  = StreamIn[Tup2[T,Bit]](FileBusLastBit[Tup2[T,Bit]](inFile))
-    val out = StreamOut[Tup2[T,Bit]](FileBusLastBit[Tup2[T,Bit]](outFile))
-    Accel{
-      Foreach(*) { _ =>
-        val insram = SRAM[T](batch, field)
-        val lastBit = FIFO[Bit](10)
-        Foreach(0 until field) { f =>
-          Foreach(0 until batch par batch) { b =>
-            val token = in.value
-            insram(b,f) = token._1
-            lastBit.enq(token._2, f==field-1)
-          }
-        }
-        val outsram = accelBody(insram)
-        Foreach(0 until batch par batch) { b =>
-          out := Tup2(outsram(b), lastBit.deq)
-        }
-      }
-    }
-    val outData = loadCSV2D[Int](outFile)
-    val cksum = outData == loadCSV2D[T](goldFile)
+    val in  = StreamIn[Tup2[TI,Bit]](FileEOFBus[Tup2[TI,Bit]](inFile))
+    val out = StreamOut[Tup2[TO,Bit]](FileEOFBus[Tup2[TO,Bit]](outFile))
+    accelBody(in,out)
+    val outData = loadCSV2D[TO](outFile)
+    val cksum = outData.zip(loadCSV2D[TO](goldFile)) { (a,b) => close(a,b) }.reduce { _ & _ }
     println("PASS: " + cksum + s" (${this.getClass.getSimpleName})")  
     assert(cksum)
   }
+
+  implicit def tseq_to_bitsseq[T:Bits](x:Seq[T]):Seq[Bits[T]] = x.map { case Bits(x) => x.asInstanceOf[Bits[T]] }
+  implicit def tseqseq_to_bitsseqseq[T:Bits](x:Seq[Seq[T]]):Seq[Seq[Bits[T]]] = x.map { x => tseq_to_bitsseq(x) }
 }

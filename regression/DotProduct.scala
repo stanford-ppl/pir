@@ -1,23 +1,18 @@
 import spatial.dsl._
+import spatial.lib.ML._
 
-case class DotProductParam(
+class DotProduct_0 extends DotProduct
+class DotProduct_1 extends DotProduct(ip=1, op=1)
+class DotProduct_2 extends DotProduct(ip=1, op=2)
+class DotProduct_3 extends DotProduct(op=2)
+
+@spatial abstract class DotProduct(
   N:scala.Int = 1024,
   op:scala.Int = 1,
   ts:scala.Int = 32,
   ip:scala.Int = 16
-) extends Param[DotProductParam]
-
-class DotProduct_0 extends DotProduct
-class DotProduct_1 extends DotProduct { override lazy val param = DotProductParam(ip=1, op=1) }
-class DotProduct_2 extends DotProduct { override lazy val param = DotProductParam(ip=1, op=2) }
-class DotProduct_3 extends DotProduct { override lazy val param = DotProductParam(op=2) }
-
-@spatial abstract class DotProduct extends DSETest {
-  //type X = FixPt[TRUE,_16,_16]
+) extends DSETest {
   type X = Float
-
-  lazy val param = DotProductParam()
-  import param._
 
   def dotproduct[T:Num](aIn: Array[T], bIn: Array[T]): T = {
 
@@ -36,8 +31,7 @@ class DotProduct_3 extends DotProduct { override lazy val param = DotProductPara
           aBlk load a(i::i+ts par ip)
           bBlk load b(i::i+ts par ip)
         }
-        val accI = Reg[T](0.to[T])
-        Reduce(accI)(ts par ip){ii => aBlk(ii) * bBlk(ii) }{_+_}
+        dp_flat(ts, ip) { ii => (aBlk(ii), bBlk(ii)) }
       }{_+_}
     }
     getArg(out)

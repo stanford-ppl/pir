@@ -1,6 +1,15 @@
 import spatial.dsl._
 
-case class GDAParam(
+class GDA_0 extends GDA
+class GDA_1 extends GDA(C=32, R=64, ts=32)
+class GDA_2 extends GDA(mp1=2, C=32, R=64, ts=32)
+class GDA_3 extends GDA(mp2=2, C=32, R=64, ts=32)
+class GDA_4 extends GDA(mp1=2, mp2=2, C=32, R=64, ts=32)
+class GDA_5 extends GDA(mp2=2, C=32, R=64, ts=32, ip=8)
+class GDA_6 extends GDA(mp2=4)
+class GDA_14 extends GDA(mp1 = 2,mp2 = 2)
+
+@spatial abstract class GDA(
   C:scala.Int = 128,
   R:scala.Int = 1024,
   ts:scala.Int = 256,
@@ -8,35 +17,9 @@ case class GDAParam(
   mp1:scala.Int = 1,
   mp2:scala.Int = 1,
   ip:scala.Int = 16
-) extends Param[GDAParam]
-
-class GDA_0 extends GDA
-class GDA_1 extends GDA {override lazy val param = GDAParam(C=32, R=64, ts=32)}
-class GDA_2 extends GDA {override lazy val param = GDAParam(mp1=2, C=32, R=64, ts=32)}
-class GDA_3 extends GDA {override lazy val param = GDAParam(mp2=2, C=32, R=64, ts=32)}
-class GDA_4 extends GDA {override lazy val param = GDAParam(mp1=2, mp2=2, C=32, R=64, ts=32)}
-class GDA_5 extends GDA {override lazy val param = GDAParam(mp2=2, C=32, R=64, ts=32, ip=8)}
-class GDA_6 extends GDA {override lazy val param = GDAParam(mp2=4)}
-//class GDA_1 extends GDA {override lazy val param = GDAParam(mp1 = 8,mp2 = 1)}
-//class GDA_2 extends GDA {override lazy val param = GDAParam(mp1 = 4,mp2 = 2)}
-//class GDA_3 extends GDA {override lazy val param = GDAParam(mp1 = 2,mp2 = 4)}
-//class GDA_4 extends GDA {override lazy val param = GDAParam(mp1 = 6,mp2 = 1)}
-//class GDA_5 extends GDA {override lazy val param = GDAParam(mp1 = 5,mp2 = 1)}
-//class GDA_6 extends GDA {override lazy val param = GDAParam(mp1 = 4,mp2 = 1)}
-//class GDA_7 extends GDA {override lazy val param = GDAParam(mp1 = 1,mp2 = 4)}
-//class GDA_8 extends GDA {override lazy val param = GDAParam(mp1 = 1,mp2 = 2)}
-//class GDA_9 extends GDA {override lazy val param = GDAParam(mp1 = 2,mp2 = 1)}
-//class GDA_11 extends GDA {override lazy val param = GDAParam(mp1 = 3,mp2 = 1)}
-//class GDA_12 extends GDA {override lazy val param = GDAParam(mp1 = 1,mp2 = 3)}
-//class GDA_13 extends GDA {override lazy val param = GDAParam(op = 2,mp1 = 1,mp2 = 1)}
-class GDA_14 extends GDA {override lazy val param = GDAParam(mp1 = 2,mp2 = 2)}
-
-@spatial abstract class GDA extends SpatialTest with DSETest { self => // Regression (Dense) // Args: 64
+) extends SpatialTest with DSETest { self => // Regression (Dense) // Args: 64
 
   type X = Float
-
-  lazy val param = GDAParam()
-  import param._
 
   val margin = 1
 

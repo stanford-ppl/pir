@@ -5,7 +5,7 @@ import prism.graph._
 
 trait Bus extends Serializable {
   def withLastBit = this match {
-    case bus:FileBusLastBit => true
+    case bus:FileEOFBus => true
     case _ => false
   }
 }
@@ -15,7 +15,7 @@ object FileBus {
   def apply(fileName:String) = new FileBus(fileName)
   def unapply(x:FileBus) = Some(x.fileName)
 }
-case class FileBusLastBit(override val fileName:String) extends FileBus(fileName)
+case class FileEOFBus(override val fileName:String) extends FileBus(fileName)
 case class BlackBoxBus(name:String) extends Bus
 
 trait FringeCommand extends PIRNode

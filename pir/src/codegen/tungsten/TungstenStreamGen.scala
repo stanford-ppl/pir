@@ -8,27 +8,22 @@ import scala.collection.mutable
 trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
 
   override def emitNode(n:N) = n match {
-    case n@FringeStreamRead(FileBus(filePath)) =>
+    case n@FringeStreamRead(bus@FileBus(filePath)) =>
       val file = s"${n}_file"
-      cleanup += s"${nameOf(n.ctx.get)}.$file.close();"
       genCtxFields {
         emitln(s"""ofstream $file;""")
       }
       genCtxInits {
         emitln(s"""$file.open("${filePath}", std::ios::out);""")
       }
-      n.lastBit.T.foreach { last =>
-        emitln(s"bool $last = false;")
-      }
+      emitln(s"bool last = false;")
       emitBlock(s"for (int i=0; i < ${n.streams.head.getVec}; i++)") {
         val size = n.streams.size
         n.streams.zipWithIndex.foreach { case (stream, s) =>
           val dlim = if (s != size-1) s"""", ";""" else s"endl;"
           emitln(s"""$file << ${stream.qidx("i")} << $dlim""")
         }
-        n.lastBit.T.foreach { last =>
-          emitln(s"$last |= ${n.streams.last.qidx("i")};")
-        }
+        emitln(s"last |= ${n.streams.last.qidx("i")};")
       }
       n.lastBit.T.foreach { last =>
         last.as[BufferWrite].out.T.foreach { send =>
@@ -36,27 +31,40 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
           genCtxInits {
             emitln(s"AddSend(${nameOf(send)});");
           }
-          emitln(s"""if ($last) ${nameOf(send)}->Push(make_token($last));""")
+          emitIf(s"last") {
+            emitln(s"""${nameOf(send)}->Push(make_token(true));""")
+            emitln(s"$file.close();")
+          }
         }
       }
+      if (config.asModule && bus.withLastBit) {
+        genCtxInits {
+          emitln(s"Expect(1);")
+        }
+        emitIf(s"last") {
+          emitln(s"Complete(1);")
+        }
+      }
+
     case n@FringeStreamWrite(FileBus(filePath)) =>
       val file = s"${n}_file"
-      cleanup += s"${nameOf(n.ctx.get)}.$file.close();"
       genCtxFields {
         emitln(s"""ifstream $file;""")
+        emitln(s"bool eof = false;")
       }
-      emitln(s"""if (!$file.is_open()) $file.open("${filePath}", std::ios::in);""")
+      emitln(s"""if (!$file.is_open() & !eof) $file.open("${filePath}", std::ios::in);""")
       emitln(s"bool good = $file.good();")
       emitIfElse(s"good") {
         n.streams.foreach { stream =>
           emitln(s"${stream.qtp} ${stream.T}_vec[${stream.getVec}];")
         }
+        emitln(s"bool validToken = false;")
         emitBlock(s"for (int i=0; i < ${n.streams.head.getVec}; i++)") {
           emitln(s"string line;")
           emitln(s"getline($file, line, '\\n');")
           emitln(s"if (!(good = $file.good())) break;")
+          emitln(s"validToken = true;")
           emitln(s"istringstream lineStream(line);")
-          val size = n.streams.size
           emitln(s"string token;")
           n.streams.zipWithIndex.foreach { case (stream, s) =>
             emitln(s"getline(lineStream, token,',');")
@@ -70,11 +78,16 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
             genCtxInits {
               emitln(s"AddSend(${nameOf(send)});");
             }
-            emitln(s"""${nameOf(send)}->Push(make_token(${stream.T}));""")
+            emitIf("validToken") {
+              emitln(s"""${nameOf(send)}->Push(make_token(${stream.T}));""")
+            }
           }
         }
       } {
         emitln(s"InActive();")
+        emitIf(s"eof = $file.eof()") {
+          emitln(s"$file.close();")
+        }
       }
 
     case n => super.emitNode(n)

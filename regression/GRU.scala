@@ -1,22 +1,18 @@
 import spatial.dsl._
 
-case class GRUParam(
+class GRU_0 extends GRUApp
+class GRU_1 extends GRUApp(rp=2)
+//class GRU_2 extends GRUApp(rp=4)
+//class GRU_3 extends GRUApp(rp=6)
+//class GRU_5 extends GRUApp(hp=2)
+//class GRU_6 extends GRUApp(hp=4)
+//class GRU_7 extends GRUApp(hp=6)
+//class GRU_8 extends GRUApp(hp=2,rp=2)
+
+@spatial abstract class GRUApp(
   hp:scala.Int=1,
   rp:scala.Int=1
-) extends Param[GRUParam]
-
-class GRU_0 extends GRUApp
-class GRU_1 extends GRUApp {override lazy val param = GRUParam(rp=2)}
-//class GRU_2 extends GRUApp {override lazy val param = GRUParam(rp=4)}
-//class GRU_3 extends GRUApp {override lazy val param = GRUParam(rp=6)}
-//class GRU_5 extends GRUApp {override lazy val param = GRUParam(hp=2)}
-//class GRU_6 extends GRUApp {override lazy val param = GRUParam(hp=4)}
-//class GRU_7 extends GRUApp {override lazy val param = GRUParam(hp=6)}
-//class GRU_8 extends GRUApp {override lazy val param = GRUParam(hp=2,rp=2)}
-
-@spatial abstract class GRUApp extends DSETest with RNNHelper {
-  lazy val param = GRUParam()
-  import param._
+) extends DSETest with RNNHelper {
 
   val innerPar = 16
   val nHiddenUnits = 512

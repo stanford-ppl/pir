@@ -54,6 +54,10 @@ abstract class PIRNode(implicit env:BuildEnvironment)
   // Marker for whether the operation is reduction operation across lane
   val isInnerReduceOp = new Metadata[Boolean]("isInnerReduceOp", default=Some(false))
 
+  // Is external node when modularize app
+  val isExtern = new Metadata[Boolean]("isExtern", default=Some(false))
+  val externAlias = new Metadata[String]("externAlias")
+
   env.initNode(this)
 }
 object PIRNode extends MemoryUtil with AccessUtil {

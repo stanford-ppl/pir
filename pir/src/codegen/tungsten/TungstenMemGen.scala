@@ -8,7 +8,7 @@ import scala.collection.mutable
 
 trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
-  override def emitRunAccel = {
+  override def emitInit = {
     val luts = pirTop.collectChildren[MemoryContainer].flatMap { _.collectChildren[LUT] }
     luts.foreach { lut =>
       val (tp, name) = varOf(lut)
@@ -19,61 +19,13 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         }
       }
     }
-    super.emitRunAccel
+    super.emitInit
   }
 
   override def emitNode(n:N) = n match {
-    case n:GlobalOutput if noPlaceAndRoute =>
-      val (tp, name) = varOf(n)
-      genTop {
-        emitln(s"""$tp $name("$n");""")
-        dutArgs += name
-      }
-      genTopEnd {
-        val bcArgs = n.out.T.map { out => varOf(out)._2.& }
-        emitln(s"""Broadcast<Token> bc_$n("bc_$n", ${name.&}, {${bcArgs.mkString(",")}});""")
-        dutArgs += s"bc_$n"
-      }
-      
-    case n:GlobalInput if noPlaceAndRoute =>
-      val (tp, name) = varOf(n)
-      genTop {
-        emitln(s"""$tp $name("$n");""")
-        dutArgs += name
-      }
-      genTopEnd {
-        val bcArgs = n.out.T.map { out => varOf(out)._2.& }
-        emitln(s"""Broadcast<Token> bc_$n("bc_$n", ${name.&}, {${bcArgs.mkString(",")}});""")
-        dutArgs += s"bc_$n"
-      }
-
-    case n:GlobalOutput =>
-      val (tp, name) = varOf(n)
-      val bcArgs = n.out.T.map { out => varOf(out)._2.& }
-      emitln(s"""$tp $name("$n", &net, &statnet);""")
-      emitln(s"""// dst = ${bcArgs.mkString(",")}""")
-      dutArgs += name
-      
-    case n:GlobalInput =>
-      val (tp, name) = varOf(n)
-      emitln(s"""$tp $name("$n", &net, &statnet);""")
-      dutArgs += name
-
-      genTopEnd {
-        val bcArgs = n.out.T.map { out => varOf(out)._2 }
-        assert(bcArgs.length == 1) // This assertion can fail
-        val src = s"$name"
-        val dst = s"${bcArgs.mkString(",")}"
-        emitln(s"""Bridge<Token> brg_${src}_${dst}("brg_${src}_${dst}", &$src, &$dst);""")
-        dutArgs += s"brg_${src}_${dst}"
-      }
-
     case n:LocalOutAccess =>
       val (tp, name) = varOf(n)
-      genTop {
-        emitln(s"""$tp $name("$n");""")
-        dutArgs += name
-      }
+      genTopMember(n, Seq(n.qstr))
       n.ctx.get match {
         case DRAMContext(cmd) =>
         case _ =>
@@ -146,15 +98,11 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       }
 
     case n:FIFO =>
-      val (tp, name) = varOf(n)
-      emitln(s"""$tp $name("$n");""")
-      dutArgs += name
+      genTopMember(n, Seq(n.qstr))
 
     case n:Memory =>
-      val (tp, name) = varOf(n)
       val accesses = n.accesses.map { a => s"""make_tuple("$a", ${a.port.get.isEmpty})""" }.mkString(",")
-      emitln(s"""$tp $name("$n", {$accesses});""")
-      dutArgs += name
+      genTopMember(n, Seq(n.qstr, s"{$accesses}"))
 
     case n:MemRead if n.mem.T.isFIFO =>
       val mem = n.mem.T
@@ -231,14 +179,6 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
   }
 
   override def varOf(n:PIRNode):(String,String) = n match {
-    case n:GlobalOutput if noPlaceAndRoute =>
-      (s"FIFO<Token,2>", s"$n")
-    case n:GlobalInput if noPlaceAndRoute =>
-      (s"FIFO<Token,2>", s"$n")
-    case n:GlobalOutput =>
-      (s"NetworkInput", s"ni_$n")
-    case n:GlobalInput =>
-      (s"NetworkOutput", s"no_$n")
     case n:BufferRead =>
       (s"FIFO<Token, 4>", s"fifo_$n") //TODO
     case n:TokenRead =>

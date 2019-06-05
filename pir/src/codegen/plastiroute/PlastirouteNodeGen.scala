@@ -7,7 +7,7 @@ import prism.graph._
 import prism.codegen._
 
 class PlastirouteNodeGen(implicit compiler: PIR) extends PlastisimCodegen with CSVCodegen {
-  override def fileName = prouteNodeName
+  override def fileName = config.prouteNodeName
 
   override def runPass = {
     if (!noPlaceAndRoute) {

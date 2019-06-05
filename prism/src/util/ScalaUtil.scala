@@ -261,4 +261,13 @@ trait ScalaUtilFunc {
     strs.reduceOption{ (a,b) => longestCommonSubstring(a,b) }
   }
 
+  implicit class StringOp(x:String) {
+    def strip(f:String):String = {
+      var xx = x
+      while (xx.endsWith(f)) xx = xx.stripSuffix(f)
+      while (xx.startsWith(f)) xx = xx.stripPrefix(f)
+      xx
+    }
+  }
+
 }

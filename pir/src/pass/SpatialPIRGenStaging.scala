@@ -140,7 +140,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
   }
 
   def streamIn(fifos:List[FIFO], bus:Bus) = {
-    val name = longestCommonSubstring(fifos.flatMap { _.name.v })
+    val name = longestCommonSubstring(fifos.flatMap { _.name.v }).map { _.strip("_") }
     bus match {
       case DRAMBus =>
       case bus =>
@@ -162,7 +162,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
   }
   def processStreamOut(streamOut:(List[FIFO], Bus)) = {
     val (fifos, bus) = streamOut
-    val name = longestCommonSubstring(fifos.flatMap { _.name.v })
+    val name = longestCommonSubstring(fifos.flatMap { _.name.v }).map { _.strip("_") }
     bus match {
       case DRAMBus =>
       case bus =>
@@ -172,7 +172,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
           }
           val sr = stage(FringeStreamRead(bus).addStreams(reads))
           name.foreach { name => sr.name(name) }
-          if (bus.withLastBit) {
+          if (bus.withLastBit && !config.asModule) {
             val writer = stage(MemWrite().tp(Bool).data(sr.lastBit))
             within(pirTop.argFringe) {
               val lastBit = stage(FIFO().addAccess(writer).tp(Bool).banks(List(1)).name(s"${name.getOrElse(sr.toString)}_lastBit"))

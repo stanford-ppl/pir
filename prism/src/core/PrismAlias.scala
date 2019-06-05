@@ -5,7 +5,7 @@ import prism.mapper._
 import prism.collection.immutable._
 import prism.graph._
 
-trait PrismLocalAlias extends Misc with MappingUtil with ScalaUtil with FileManager with Serialization {
+trait PrismLocalAlias extends Misc with MappingUtil with ScalaUtil with FileIOUtil with Serialization {
   
   type Env = prism.graph.BuildEnvironment
 

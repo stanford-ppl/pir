@@ -66,7 +66,8 @@ trait Printer extends FormatPrinter {
   def openStdout = open(StdoutWriter())
 
   def openFile(filePath:String, append:Boolean=false):StreamWriter = {
-    open(FileWriter(filePath, append))
+    //open(FileWriter(filePath, append))
+    startStream(filePath, FileWriter(filePath, append))
   }
 
   def openFile(dirName:String, fileName:String, append:Boolean):StreamWriter = {
@@ -159,8 +160,11 @@ trait Printer extends FormatPrinter {
     popStream
     res
   }
-  def enterBuffer[T](name:String)(block: => T) = {
-    enterStream(name, ByteWriter(Some(name)))(block)
+  def enterBuffer[T](name:String, level:Int = 0)(block: => T) = {
+    enterStream(name, ByteWriter(Some(name))){
+      sw.level = level
+      block
+    }
   }
   def enterFile[T](dirName:String, fileName:String, append:Boolean=false)(block: => T):T = {
     val path = buildPath(dirName, fileName)

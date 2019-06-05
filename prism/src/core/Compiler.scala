@@ -1,11 +1,11 @@
 package prism
 
 import prism.graph._
-import prism.util.{FileManager, ArgLoader}
+import prism.util.{FileIOUtil, ArgLoader}
 
 import scala.collection.mutable
 
-trait Compiler extends FileManager with ArgLoader with Session with Logging {
+trait Compiler extends FileIOUtil with ArgLoader with Session with Logging {
 
   implicit val compiler:this.type = this
 

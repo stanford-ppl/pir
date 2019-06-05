@@ -26,5 +26,11 @@ trait CppCodegen extends Codegen {
     }
   }
 
+  def declareClass(name:String)(block: => Unit) = {
+    emitBlock(bs=Some(s"class $name"), b=None, es=Some(";")) {
+      block
+    }
+  }
+
 }
 
