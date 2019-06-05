@@ -66,7 +66,8 @@ def show_diff(conf, opts):
     # diffkey = 'genpir'
 
     history = opts.history
-    prevsucc = history[(history.app==conf['app']) & history[diffkey]]
+    prevsucc = history[(history.app==conf['app']) & (history.project == conf['project']) & \
+            (history.backend==conf['backend']) & history[diffkey]]
 
     if not conf[diffkey] and prevsucc.shape[0] > 0:
         times = get_col(prevsucc, 'time')
