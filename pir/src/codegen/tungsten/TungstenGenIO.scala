@@ -12,18 +12,18 @@ trait TungstenIOGen extends TungstenCodegen with TungstenCtxGen {
     case n:GlobalOutput =>
       val (tp, name) = varOf(n)
       val args = if (noPlaceAndRoute) Seq(name.qstr) else Seq(name.qstr, "net".&, "statnet".&)
-      genTopMember(tp, name, args)
+      genTopMember(n, args)
       if (noPlaceAndRoute) {
         val bcArgs = n.out.T.map { out => varOf(out)._2.& }
-        genTopMember("Broadcast<Token>", s"bc_$n", Seq(s"bc_$n".qstr, name.&, s"{${bcArgs.mkString(",")}}"))
+        genTopMember("Broadcast<Token>", s"bc_$n", Seq(s"bc_$n".qstr, name.&, s"{${bcArgs.mkString(",")}}"), extern=false, end=true, escape=false)
       }
       
     case n:GlobalInput =>
       val (tp, name) = varOf(n)
       val args = if (noPlaceAndRoute) Seq(name.qstr) else Seq(name.qstr, "net".&, "statnet".&)
-      genTopMember(tp, name, args)
+      genTopMember(n, args)
       val bcArgs = n.out.T.map { out => varOf(out)._2.& }
-      genTopMember("Broadcast<Token>", s"bc_$n", Seq(s"bc_$n".qstr, name.&, s"{${bcArgs.mkString(",")}}"))
+      genTopMember("Broadcast<Token>", s"bc_$n", Seq(s"bc_$n".qstr, name.&, s"{${bcArgs.mkString(",")}}"), extern=n.isExtern.get, end=true, escape=false)
 
     case n => super.emitNode(n)
   }

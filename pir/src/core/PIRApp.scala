@@ -27,6 +27,7 @@ trait PIRApp extends PIR with Logging {
   lazy val ctxMerging = new ContextMerging()
   lazy val psimParser = new PlastisimLogParser()
   lazy val sanityCheck = new SanityCheck()
+  lazy val modAnalyzer = new ModularAnalysis()
 
   /* Mapping */
   lazy val initializer = new TargetInitializer()
@@ -101,6 +102,7 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, dagPruner) ==>
     addPass(sanityCheck) ==>
     addPass(enableMapping, matchPruner) ==>
+    addPass(modAnalyzer) ==>
     addPass(enableMapping, placerAndRouter) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple8.dot")) ==>
     addPass(enableDot, new PIRIRDotGen(s"top8.dot")) ==>

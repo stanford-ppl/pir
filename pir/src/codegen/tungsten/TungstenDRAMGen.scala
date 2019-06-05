@@ -14,7 +14,7 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
     val resps = addrgens.map{ i => s"&$i.burstrsp" }.mkString(",")
     val dramFile = buildPath(config.tstHome, "ini", "DRAM.ini")
     val systemFile = buildPath(config.tstHome, "ini", "system.ini")
-    genTopFinalMember("DRAMController", "DRAM", Seq("DRAM".qstr, dramFile.qstr, systemFile.qstr, ".".qstr, s"{$cmds}", s"{$resps}"), extern=true)
+    genTopMember("DRAMController", "DRAM", Seq("DRAM".qstr, dramFile.qstr, systemFile.qstr, ".".qstr, s"{$cmds}", s"{$resps}"), extern=true, end=true, escape=true)
     super.finPass
   }
 
@@ -25,36 +25,32 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
       emitln(s"${n.qtp} $n = (${n.qtp}) ${n.dram.sname.get};")
 
     case n:FringeDenseLoad =>
-      val (tp, name) = varOf(n)
       val offset = nameOf(n.offset.T.as[BufferRead]).&
       val size = nameOf(n.size.T.as[BufferRead]).&
       val data = nameOf(n.data.T.as[BufferWrite].gout.get).&
-      genTopFinalMember(tp, name, Seq(n.qstr, offset, size, data))
+      genTopMember(n, Seq(n.qstr, offset, size, data), end=true)
       addrgens += s"$n"
 
     case n:FringeDenseStore =>
-      val (tp, name) = varOf(n)
       val offset = nameOf(n.offset.T.as[BufferRead]).&
       val size = nameOf(n.size.T.as[BufferRead]).&
       val data = nameOf(n.data.T.as[BufferRead]).&
       val valid = nameOf(n.valid.T.as[BufferRead]).&
       val ack = nameOf(n.ack.T.as[BufferWrite].gout.get).&
-      genTopFinalMember(tp, name, Seq(n.qstr, offset, size, data, valid, ack))
+      genTopMember(n, Seq(n.qstr, offset, size, data, valid, ack), end=true)
       addrgens += s"$n"
 
     case n:FringeSparseLoad =>
-      val (tp, name) = varOf(n)
       val addr = nameOf(n.addr.T.as[BufferRead]).&
       val data = nameOf(n.data.T.as[BufferWrite].gout.get).&
-      genTopFinalMember(tp, name, Seq(n.qstr, addr, data))
+      genTopMember(n, Seq(n.qstr, addr, data), end=true)
       addrgens += s"$n"
 
     case n:FringeSparseStore =>
-      val (tp, name) = varOf(n)
       val addr = nameOf(n.addr.T.as[BufferRead]).&
       val data = nameOf(n.data.T.as[BufferRead]).&
       val ack = nameOf(n.ack.T.as[BufferWrite].gout.get).&
-      genTopFinalMember(tp, name, Seq(n.qstr, addr, data, ack))
+      genTopMember(n, Seq(n.qstr, addr, data, ack), end=true)
       addrgens += s"$n"
 
     case n:CountAck =>

@@ -9,9 +9,9 @@ import scala.collection.mutable
 
 trait TungstenTopGen extends TungstenCodegen {
 
-  override def initPass = {
-    super.initPass
-    emitln(
+  def emitTopHeader = {
+    genTop {
+      emitln(
 """
 #include "example.h"
 #include "module.h"
@@ -34,33 +34,56 @@ trait TungstenTopGen extends TungstenCodegen {
 using namespace std;
 
 """)
-
-    if (!config.asModule) {
-      emitln(s"""#include "hostio.h"""")
+      if (!config.asModule) {
+        emitln(s"""#include "hostio.h"""")
+      }
     }
+  }
+  
+  // (type, name, constructor args, extern, escape)
+  // extern: if generated as module, these members are instantiated from outside of top module
+  // escape: if generated as module, these members are passed in to the top module
+  case class TopMember(tp:String, name:String, args:Seq[String], extern:Boolean, escape:Boolean, alias:Option[String])
+  val topMembers = mutable.ListBuffer[TopMember]()
 
+  def isEscaped(n:PIRNode):Boolean = n match {
+    case n:GlobalIO => true
+    case _ => false
   }
 
-  // (type, name, constructor args, extern)
-  // extern: if generate as module, these members are passed from outside of top module
-  val topMembers = mutable.ListBuffer[(String, String, Seq[String], Boolean)]()
-  def genTopMember(tp:Any, name:Any, args:Seq[String], extern:Boolean=false) = {
-    genTop {
-      if (!config.asModule | !extern)
-        emitln(s"$tp $name;")
-    }
-    topMembers += ((tp.toString, name.toString, args.map{_.toString}, extern))
+  def genTopMember(n:PIRNode, args:Seq[String], end:Boolean=false):Unit = {
+    val (tp,name) = varOf(n)
+    genTopMember(tp,name,args,end,n.isExtern.get,isEscaped(n), n.externAlias.v)
   }
-  def genTopFinalMember(tp:Any, name:Any, args:Seq[String], extern:Boolean=false) = {
-    genTopEnd {
-      if (!config.asModule | !extern)
-        emitln(s"$tp $name;")
+  def genTopMember(tp:Any, name:Any, args:Seq[String], end:Boolean, extern:Boolean, escape:Boolean):Unit = {
+    genTopMember(tp, name, args, end, extern, escape, None)
+  }
+  def genTopMember(tp:Any, name:Any, args:Seq[String], end:Boolean, extern:Boolean, escape:Boolean, alias:Option[String]):Unit = {
+    val ext = extern & config.asModule
+    if (!ext) {
+      if (end)
+        genTopEndFields {
+          emitln(s"$tp $name;")
+        }
+      else
+        genTopFields {
+          emitln(s"$tp $name;")
+        }
+    } else {
+      if (end) genExternEnd {
+        emitln(s"$tp $name(${args.mkString(",")});")
+      } else enterFile(outputPath, false) {
+        emitln(s"$tp $name(${args.mkString(",")});")
+      }
     }
-    topMembers += ((tp.toString, name.toString, args.map{_.toString}, extern))
+    topMembers += TopMember(tp.toString, name.toString, args.map{_.toString}, ext, escape, alias)
   }
 
   override def emitNode(n:N) = n match {
-    case n:Top => visitNode(n)
+    case n:Top => 
+      emitln(s"""#include "Top.h"""")
+      emitTopHeader
+      visitNode(n)
     case n:GlobalContainer => visitNode(n)
     case n => super.emitNode(n)
   }
@@ -70,39 +93,54 @@ using namespace std;
       val pattern = spadeParam.pattern.as[GridPattern]
       val row = pattern.row
       val col = pattern.col
-      genTopMember("DynamicNetwork<4, 4>", "net", Seq(s"{${row}, ${col}}", "net".qstr), extern=true)
-      genTopMember("DynamicNetwork<4, 4>", "statnet", Seq(s"{${row}, ${col}}", "statnet".qstr), extern=true)
+      genTopMember("DynamicNetwork<4, 4>", "net", Seq(s"{${row}, ${col}}", "net".qstr), end=false, extern=true, escape=true)
+      genTopMember("DynamicNetwork<4, 4>", "statnet", Seq(s"{${row}, ${col}}", "statnet".qstr), end=false, extern=true, escape=true)
     }
+    getBuffer("extern-end").foreach { _.flushTo(sw) }
     val topName = if (config.asModule) pirTop.name.get else "Top"
-    declareClass(s"""$topName: public Module""") {
-      emitln("public:")
-      getBuffer("top").foreach { _.flushTo(sw) }
-      getBuffer("top-end").foreach { _.flushTo(sw) }
-      val (topArgs, members) = topMembers.partition { _._4 & config.asModule } 
-      val argList = topArgs.map { case (tp, name, args, extern) => s"${tp}& ${name}" }.mkString(",\n    ")
-      val memberInits = members.filter { _._3.nonEmpty }.map { case (tp, name, args, extern) =>
-        s"$name(${args.mkString(",")})"
-      }.mkString(",\n      ")
-      emitBlock(s"""explicit $topName(\n    $argList\n  ): Module("$topName"),\n      $memberInits""") {
-        emitln(s"AddChildren({${members.map { _._2.&}.mkString(",")}});")
+    val (externs, members) = topMembers.partition { _.extern } 
+    val (escapes, topExterns) = externs.partition { _.escape }
+    val dutArgs = ("top" +: externs.map { _.name }).map{_.&}.mkString(",")
+    val topArgsSig = escapes.map { mem => s"${mem.tp}& ${mem.name}" }.mkString(",\n    ")
+    val topArgs = if (escapes.isEmpty) "" else s"(${escapes.map { _.name }.mkString(",")})" 
+
+    genTop {
+      declareClass(s"""$topName: public Module""") {
+        emitln("public:")
+        getBuffer("top").foreach { _.flushTo(sw) }
+        getBuffer("top-end").foreach { _.flushTo(sw) }
+        val memberInits = members.filter { _.args.nonEmpty }.map { mem =>
+          s"${mem.name}(${mem.args.mkString(",")})"
+        }.mkString(",\n      ")
+        emitBlock(s"""explicit $topName(\n    $topArgsSig\n  ): Module("$topName"),\n      $memberInits""") {
+          emitln(s"AddChildren({${members.map { _.name.&}.mkString(",")}});")
+        }
+        val aliasArgs = escapes.map { mem => 
+          val alias = mem.alias.getOrElse(mem.name) 
+          s""" *((${mem.tp}*)alias["$alias"])"""
+        }.mkString(",")
+        emitln(s"""$topName(map<string, Module*> alias): $topName($aliasArgs) {}""")
       }
     }
-    if (!config.asModule) {
-      emitBlock(s"void RunAccel()") {
-        emitRunAccel
-      }
+    emitln(s"""using namespace std;""")
+    emitBlock(s"void RunAccel()") {
+      emitln(s"$topName top$topArgs;")
+      emitln(s"""Module DUT({$dutArgs}, "DUT");""")
+      emitln(s"""REPL repl(&DUT, std::cout);""")
+      emitInit
+      emitln(s"""repl.Command("source script");""")
     }
     super.finPass
   }
 
-  protected def emitRunAccel = {
-    emitln("Top top;")
-    emitln(s"""REPL repl(&top, std::cout);""")
-    emitln(s"""repl.Command("source script");""")
-  }
+  protected def emitInit = {}
 
-  final protected def genTop(block: => Unit) = enterBuffer("top", level=1)(block)
+  protected def genTop(block: => Unit) = enterFile(dirName, "Top.h")(block)
 
-  final protected def genTopEnd(block: => Unit) = enterBuffer("top-end", level=1)(block)
+  private def genTopFields(block: => Unit) = enterBuffer("top", level=1)(block)
+
+  private def genTopEndFields(block: => Unit) = enterBuffer("top-end", level=1)(block)
+
+  private def genExternEnd(block: => Unit) = enterBuffer("extern-end")(block)
 
 }

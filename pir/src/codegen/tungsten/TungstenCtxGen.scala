@@ -62,29 +62,31 @@ using namespace std;
         }
         emit(s""";""")
       }
-      emitln(s"""#include "$n.h"""")
-      genTopFinalMember(tp, name, ctxExtVars.map { _._2 }.map { _.& })
+      genTop {
+        emitln(s"""#include "$n.h"""")
+      }
+      genTopMember(n, ctxExtVars.map { _._2 }.map { _.& }, end=true)
       ctxExtVars.clear
 
     case n => super.emitNode(n)
   }
 
-  def emitExpectStop(ctx:Context) = {
-    ctx.collectDown[HostOutController]().headOption.foreach { hostOut =>
-      emitln(s"Expect(1);")
+  def emitStop(ctx:Context) = {
+    ctx.collectDown[HostOutController]().headOption.fold(false) { hostOut =>
+      val noStreamReadCtxs = !pirTop.collectDown[Context]().exists { case StreamReadContext(_) => true; case _ => false }
+      val hasInputStream = ctx.collectDown[LocalOutAccess]().nonEmpty
+      hasInputStream || noStreamReadCtxs
     }
   }
 
+  def emitExpectStop(ctx:Context) = {
+    if (emitStop(ctx))
+      emitln(s"Expect(1);")
+  }
+
   def emitStopSim(ctx:Context) = {
-    ctx.collectDown[HostOutController]().headOption.foreach { hostOut =>
-      val noStreamReadCtxs = !pirTop.collectDown[Context]().exists { case StreamReadContext(_) => true; case _ => false }
-      val hasInputStream = ctx.collectDown[LocalOutAccess]().nonEmpty
-      if (hasInputStream || noStreamReadCtxs) {
-        emitIf(s"${hostOut.done.qref}") {
-          emitln(s"Complete(1);")
-        }
-      }
-    }
+    if (emitStop(ctx))
+      emitln(s"Complete(1);")
   }
 
   val ctxExtVars = mutable.ListBuffer[(String, String)]()
@@ -105,13 +107,6 @@ using namespace std;
   final protected def addEscapeVar(v:(String,String)):Unit = {
     if (!ctxExtVars.contains(v)) ctxExtVars += v
   }
-
-  def varOf(n:PIRNode):(String, String) = n match {
-    case n:Context => (s"$n",s"ctx_$n")
-    case n => throw PIRException(s"Don't know varOf($n)")
-  }
-  def nameOf(n:PIRNode) = varOf(n)._2
-  def tpOf(n:PIRNode) = varOf(n)._1
 
   def emitNewMember(tp:String, name:Any) = {
     genCtxFields {

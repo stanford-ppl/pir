@@ -13,14 +13,18 @@ import spatial.lang.{FileBus,FileEOFBus}
     val in  = StreamIn[Tup2[Int,Bit]](FileEOFBus[Tup2[Int,Bit]](inFile))
     val out = StreamOut[Tup2[Int,Bit]](FileEOFBus[Tup2[Int,Bit]](outFile))
     Accel(*){
-      out := in.value
+      val i = in.value 
+      out := Tup2(i._1 + 3, i._2)
     }
     val outData = loadCSV2D[Int](outFile)
     println(s"inData:")
     printMatrix(inData)
     println(s"outData:")
     printMatrix(outData)
-    val cksum = inData == outData
+    val gold = Matrix.tabulate(numToken,2) { (i,j) =>
+      if (j == 0) inData(i,j) + 3 else inData(i,j)
+    }
+    val cksum = gold == outData
     println("PASS: " + cksum + " (StreamInOutStop)")  
     assert(cksum)
   }

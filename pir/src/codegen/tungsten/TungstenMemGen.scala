@@ -8,7 +8,7 @@ import scala.collection.mutable
 
 trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
-  override def emitRunAccel = {
+  override def emitInit = {
     val luts = pirTop.collectChildren[MemoryContainer].flatMap { _.collectChildren[LUT] }
     luts.foreach { lut =>
       val (tp, name) = varOf(lut)
@@ -19,13 +19,13 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         }
       }
     }
-    super.emitRunAccel
+    super.emitInit
   }
 
   override def emitNode(n:N) = n match {
     case n:LocalOutAccess =>
       val (tp, name) = varOf(n)
-      genTopMember(tp, name, Seq(n.qstr))
+      genTopMember(n, Seq(n.qstr))
       n.ctx.get match {
         case DRAMContext(cmd) =>
         case _ =>
@@ -98,13 +98,11 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       }
 
     case n:FIFO =>
-      val (tp, name) = varOf(n)
-      genTopMember(tp, name, Seq(n.qstr))
+      genTopMember(n, Seq(n.qstr))
 
     case n:Memory =>
-      val (tp, name) = varOf(n)
       val accesses = n.accesses.map { a => s"""make_tuple("$a", ${a.port.get.isEmpty})""" }.mkString(",")
-      genTopMember(tp, name, Seq(n.qstr, s"{$accesses}"))
+      genTopMember(n, Seq(n.qstr, s"{$accesses}"))
 
     case n:MemRead if n.mem.T.isFIFO =>
       val mem = n.mem.T

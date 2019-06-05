@@ -114,7 +114,7 @@ trait CollectorImplicit {
       }
   }
 
-  class EdgeCollector[N<:Node[N],A<:Edge[N,A,B],B<:Edge[N,B,A]](edge:Edge[N,A,B]) {
+  class EdgeCollector[N<:Node[N]](edge:Edge[N,_,_]) {
     def isInput = edge match {
       case edge:Input[_] => true
       case _ => false
@@ -153,7 +153,7 @@ trait CollectorImplicit {
     }
 
     def canReach(
-      target:Edge[N,B,A], 
+      target:Edge[N,_,_], 
       visitEdges:N => List[EN[N]], 
       depth:Int= -1, 
       logger:Option[Logging]=None

@@ -20,27 +20,25 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
 
   override def dirName = buildPath(config.tstOut, s"src")
   val forward = true
-  val fileName = "Top.h"
+  val fileName = "DUT.h"
 
   override def initPass = {
     clearDir(dirName, { fileName => fileName.contains("Context") })
     clearDir(buildPath(config.tstOut, "build"))
     clearDir(buildPath(config.tstOut, "logs"))
-    if (!config.asModule) {
-      copyFiles(buildPath(config.tstHome, "plasticine", "resources"), config.tstOut)
-      withOpen(config.tstOut,"TUNGSTEN_HOME",false) {
-        emitln(config.tstHome)
+    copyFiles(buildPath(config.tstHome, "plasticine", "resources"), config.tstOut)
+    withOpen(config.tstOut,"TUNGSTEN_HOME",false) {
+      emitln(config.tstHome)
+    }
+    withOpen(buildPath(dirName, ".."),"script",false) {
+      if (!noPlaceAndRoute) {
+        emitln(s"source ${getRelativePath(config.proutePlacePath, config.tstOut)}")
       }
-      withOpen(buildPath(dirName, ".."),"script",false) {
-        if (!noPlaceAndRoute) {
-          emitln(s"source ${getRelativePath(config.proutePlacePath, config.tstOut)}")
-        }
-        emitln(s"log2files")
-        emitln(s"stepall")
-        emitln(s"dumpstate logs/state.json")
-        emitln(s"stat")
-        //emitln(s"logon")
-      }
+      emitln(s"log2files")
+      emitln(s"stepall")
+      emitln(s"dumpstate logs/state.json")
+      emitln(s"stat")
+      //emitln(s"logon")
     }
     super.initPass
   }
@@ -60,6 +58,14 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     case n:LocalInAccess => super.visitOut(n).filterNot{_.isInstanceOf[LocalOutAccess]}
     case n => super.visitOut(n)
   }
+
+  def varOf(n:PIRNode):(String, String) = n match {
+    case n:Context => (s"$n",s"ctx_$n")
+    case n => throw PIRException(s"Don't know varOf($n)")
+  }
+  def nameOf(n:PIRNode) = varOf(n)._2
+  def tpOf(n:PIRNode) = varOf(n)._1
+
 
   def quoteEn(en:Input[PIRNode], i:Option[String]):String = {
     var ens = en.connected.map { _.qidx(i) }
