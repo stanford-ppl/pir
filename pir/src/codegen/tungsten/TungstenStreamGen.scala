@@ -16,18 +16,14 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
       genCtxInits {
         emitln(s"""$file.open("${filePath}", std::ios::out);""")
       }
-      n.lastBit.T.foreach { last =>
-        emitln(s"bool $last = false;")
-      }
+      emitln(s"bool last = false;")
       emitBlock(s"for (int i=0; i < ${n.streams.head.getVec}; i++)") {
         val size = n.streams.size
         n.streams.zipWithIndex.foreach { case (stream, s) =>
           val dlim = if (s != size-1) s"""", ";""" else s"endl;"
           emitln(s"""$file << ${stream.qidx("i")} << $dlim""")
         }
-        n.lastBit.T.foreach { last =>
-          emitln(s"$last |= ${n.streams.last.qidx("i")};")
-        }
+        emitln(s"last |= ${n.streams.last.qidx("i")};")
       }
       n.lastBit.T.foreach { last =>
         last.as[BufferWrite].out.T.foreach { send =>
@@ -35,8 +31,8 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
           genCtxInits {
             emitln(s"AddSend(${nameOf(send)});");
           }
-          emitIf(s"$last") {
-            emitln(s"""${nameOf(send)}->Push(make_token($last));""")
+          emitIf(s"last") {
+            emitln(s"""${nameOf(send)}->Push(make_token(true));""")
             emitln(s"$file.close();")
           }
         }
@@ -45,7 +41,7 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
         genCtxInits {
           emitln(s"Expect(1);")
         }
-        emitIf(s"${n.streams.last.qidx("i")}") {
+        emitIf(s"last") {
           emitln(s"Complete(1);")
         }
       }

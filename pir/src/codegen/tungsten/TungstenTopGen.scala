@@ -34,9 +34,7 @@ trait TungstenTopGen extends TungstenCodegen {
 using namespace std;
 
 """)
-      if (!config.asModule) {
-        emitln(s"""#include "hostio.h"""")
-      }
+      emitln(s"""#include "hostio.h"""")
     }
   }
   
@@ -114,6 +112,7 @@ using namespace std;
         }.mkString(",\n      ")
         emitBlock(s"""explicit $topName(\n    $topArgsSig\n  ): Module("$topName"),\n      $memberInits""") {
           emitln(s"AddChildren({${members.map { _.name.&}.mkString(",")}});")
+          emitInit
         }
         val aliasArgs = escapes.map { mem => 
           val alias = mem.alias.getOrElse(mem.name) 
@@ -127,7 +126,6 @@ using namespace std;
       emitln(s"$topName top$topArgs;")
       emitln(s"""Module DUT({$dutArgs}, "DUT");""")
       emitln(s"""REPL repl(&DUT, std::cout);""")
-      emitInit
       emitln(s"""repl.Command("source script");""")
     }
     super.finPass
