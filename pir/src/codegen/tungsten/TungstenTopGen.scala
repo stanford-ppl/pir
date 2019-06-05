@@ -77,9 +77,13 @@ using namespace std;
     topMembers += TopMember(tp.toString, name.toString, args.map{_.toString}, ext, escape, alias)
   }
 
+  override def initPass = {
+    super.initPass
+    emitln(s"""#include "Top.h"""")
+  }
+
   override def emitNode(n:N) = n match {
     case n:Top => 
-      emitln(s"""#include "Top.h"""")
       emitTopHeader
       visitNode(n)
     case n:GlobalContainer => visitNode(n)
