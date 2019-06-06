@@ -82,6 +82,13 @@ using namespace std;
     emitln(s"""#include "Top.h"""")
     emitln(s"""using namespace std;""")
     emitBSln("void RunAccel()")
+    if (!noPlaceAndRoute) {
+      val pattern = spadeParam.pattern.as[GridPattern]
+      val row = pattern.row
+      val col = pattern.col
+      genTopMember("DynamicNetwork<4, 4>", "net", Seq(s"{${row}, ${col}}", "net".qstr), end=false, extern=true, escape=true)
+      genTopMember("DynamicNetwork<4, 4>", "statnet", Seq(s"{${row}, ${col}}", "statnet".qstr), end=false, extern=true, escape=true)
+    }
   }
 
   override def emitNode(n:N) = n match {
@@ -94,14 +101,6 @@ using namespace std;
 
 
   override def finPass = {
-    if (!noPlaceAndRoute) {
-      val pattern = spadeParam.pattern.as[GridPattern]
-      val row = pattern.row
-      val col = pattern.col
-      genTopMember("DynamicNetwork<4, 4>", "net", Seq(s"{${row}, ${col}}", "net".qstr), end=false, extern=true, escape=true)
-      genTopMember("DynamicNetwork<4, 4>", "statnet", Seq(s"{${row}, ${col}}", "statnet".qstr), end=false, extern=true, escape=true)
-    }
-
     // Emit Top Module
     val (externs, members) = topMembers.partition { _.extern } 
     val (escapes, _) = externs.partition { _.escape }

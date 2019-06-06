@@ -50,7 +50,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     def psimState = n.getMeta[String]("psimState").v
 
     def isEscaped = n match {
-      case n:GlobalOutput if n.isExtern.get => n.out.T.exists { !_.isExtern.get }
+      case n:GlobalOutput if n.isExtern.get & noPlaceAndRoute => n.out.T.exists { !_.isExtern.get }
       case _ => false
     }
   }

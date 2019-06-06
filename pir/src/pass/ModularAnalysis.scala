@@ -19,7 +19,6 @@ class ModularAnalysis(implicit compiler:PIR) extends PIRPass {
         n.isExtern := true
       }
       externs.collect { case cmd:StreamCommand => cmd }.foreach { cmd =>
-        cmd.global.get.externAlias := cmd.name.get
         cmd.streams.zipWithIndex.foreach { case (stream, i) =>
           val gout = stream.collectFirst[GlobalOutput]()
           if (cmd.isInstanceOf[FringeStreamWrite] || !gout.isExtern.get) {

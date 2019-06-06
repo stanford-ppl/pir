@@ -27,8 +27,9 @@ parser.add_argument('-d', '--dst', type=str, help='Path to destination csv to ap
 parsed = {}
 with open(opts.partial, 'r') as f:
     for line in f:
-        link,rest = line.strip().split(",", 1)
-        parsed[link] = rest
+        line = line.strip()
+        link,rest = line.split(",", 1)
+        parsed[link.split("/")[-1]] = line
 with open (opts.dst, 'a') as f:
 """)
       }
@@ -37,7 +38,7 @@ with open (opts.dst, 'a') as f:
       genScript {
 emitln("""
     for link in parsed:
-        f.write(link + "," + parsed[link])
+        f.write(parsed[link] + '\n')
 """)
       }
       getStream(buildPath(config.psimOut, script)).get.close
@@ -50,7 +51,9 @@ emitln("""
   }
 
   override def quote(n:Any) = n match {
-    case n:GlobalIO => n.externAlias.v.getOrElse(s"$n")
+    case n:GlobalIO => 
+      val name = n.externAlias.v.getOrElse(s"$n")
+      s"DUT/Top/$name"
     case _ => super.quote(n)
   }
 
@@ -60,10 +63,10 @@ emitln("""
     val ctx = n.in.T.ctx.get
     if (n.isExtern.get) {
       // Inputs to PIR module.
-      if (n.isEscaped) {
+      if (intInputs.nonEmpty) {
         genScript {
-          emitln(s"""    f.write("${quote(n)}," + parsed["${quote(n)}"] + ",$intIns\\n") # external output""")
-          emitln(s"""    del parsed["${quote(n)}"]""")
+          emitln(s"""    f.write(parsed["${n.externAlias.get}"] + ",$intIns\\n") # external output""")
+          emitln(s"""    del parsed["${n.externAlias.get}"]""")
         }
       }
     } else {
@@ -77,8 +80,8 @@ emitln("""
             1000000,
             intIns
           )
-          emitln(s"""    f.write("${fields.mkString(",")}" + parsed["${quote(n)}"] + "\\n") # internal output""")
-          emitln(s"""    del parsed["${quote(n)}"]""")
+          emitln(s"""    f.write("${fields.mkString(",")}" + parsed["${n.externAlias.get}"].split(",",1)[1] + "\\n") # internal output""")
+          emitln(s"""    del parsed["${n.externAlias.get}"]""")
         }
       } else {
         val row = newRow
@@ -91,7 +94,7 @@ emitln("""
         n.out.T.zipWithIndex.foreach { case (gin, idx) =>
           if (!gin.isExtern.get) {
             row(s"dst[$idx]") = gin.global.get.id
-            row(s"out[$idx]") = gin
+            row(s"out[$idx]") = quote(gin)
           }
         }
       }

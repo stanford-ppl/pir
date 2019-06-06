@@ -44,6 +44,7 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   }
 
   override def quote(n:Any) = n match {
+    case n:PIRNode => n.externAlias.v.getOrElse(s"$n")
     case n:Iterable[_] => 
       s"{${n.map(quote).mkString(",")}}"
     case n => super.quote(n)

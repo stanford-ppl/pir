@@ -19,7 +19,7 @@ trait TungstenIOGen extends TungstenCodegen with TungstenCtxGen with TungstenTop
         if (extRec.nonEmpty) {
           if (!n.isExtern.get) {
             genExternEnd {
-              emitln(s"auto& $n = top.$n;")
+              emitln(s"auto& ${quote(n)} = top.${quote(n)};")
             }
           }
           genTopMember("Broadcast<Token>", s"bc_$n", Seq(s"bc_$n".qstr, name.&, s"{${bcArgs.mkString(",")}}"), extern=true, end=true, escape=false)
@@ -41,13 +41,13 @@ trait TungstenIOGen extends TungstenCodegen with TungstenCtxGen with TungstenTop
 
   override def varOf(n:PIRNode):(String,String) = n match {
     case n:GlobalOutput if noPlaceAndRoute =>
-      (s"FIFO<Token,2>", s"$n")
+      (s"FIFO<Token,2>", quote(n))
     case n:GlobalInput if noPlaceAndRoute =>
-      (s"FIFO<Token,2>", s"$n")
+      (s"FIFO<Token,2>", quote(n))
     case n:GlobalOutput =>
-      (s"NetworkInput", s"$n")
+      (s"NetworkInput", quote(n))
     case n:GlobalInput =>
-      (s"NetworkOutput", s"$n")
+      (s"NetworkOutput", quote(n))
     case n => super.varOf(n)
   }
 
