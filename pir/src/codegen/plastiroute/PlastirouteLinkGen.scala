@@ -34,6 +34,12 @@ with open (opts.dst, 'a') as f:
       }
       setHeaders("link","ctx","src","tp","count","dst[0]","out[0]")
       super.runPass
+      genScript {
+emitln("""
+    for link in parsed:
+        f.write(link + "," + parsed[link])
+""")
+      }
       getStream(buildPath(config.psimOut, script)).get.close
     }
   }
@@ -57,6 +63,7 @@ with open (opts.dst, 'a') as f:
       if (n.isEscaped) {
         genScript {
           emitln(s"""    f.write("${quote(n)}," + parsed["${quote(n)}"] + ",$intIns\\n") # external output""")
+          emitln(s"""    del parsed["${quote(n)}"]""")
         }
       }
     } else {
@@ -71,6 +78,7 @@ with open (opts.dst, 'a') as f:
             intIns
           )
           emitln(s"""    f.write("${fields.mkString(",")}" + parsed["${quote(n)}"] + "\\n") # internal output""")
+          emitln(s"""    del parsed["${quote(n)}"]""")
         }
       } else {
         val row = newRow
