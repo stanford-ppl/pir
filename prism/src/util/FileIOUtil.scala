@@ -89,7 +89,9 @@ trait FileIOUtil {
     }
   }
 
-  def buildPath(dirs:String*) = dirs.mkString(separator)
+  def buildPath(dirs:String*) = {
+    Paths.get(dirs.mkString(separator)).normalize.toString
+  }
 
   def dirName(fullPath:String) = fullPath.split(separator).dropRight(1).mkString(separator)
 
@@ -114,6 +116,10 @@ trait FileIOUtil {
     val p1 = Paths.get(path)
     val p2 = Paths.get(relativeTo)
     p2.relativize(p1).toString
+  }
+
+  def getAbsolutePath(path:String) = {
+    Paths.get(path).toAbsolutePath.normalize.toString
   }
 
 }

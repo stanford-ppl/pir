@@ -133,7 +133,7 @@ trait Misc {
     info(Console.YELLOW, header.getOrElse("command"), command)
 
     logPath.foreach { path => 
-      info(Console.YELLOW, header.getOrElse("command"), s"log in $path")
+      info(Console.YELLOW, header.getOrElse("command"), s"log in ${getAbsolutePath(path)}")
     }
     val printer = new Printer {}
     val logFile = logPath.map { path => printer.openFile(path, false) }

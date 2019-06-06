@@ -44,11 +44,6 @@ using namespace std;
   case class TopMember(tp:String, name:String, args:Seq[String], extern:Boolean, escape:Boolean, alias:Option[String])
   val topMembers = mutable.ListBuffer[TopMember]()
 
-  def isEscaped(n:PIRNode):Boolean = n match {
-    case n:GlobalIO => true
-    case _ => false
-  }
-
   def genTopMember(n:PIRNode, args:Seq[String], end:Boolean=false):Unit = {
     val interfaceTp = n match {
       case n:GlobalInput if config.asModule & n.isExtern.get => "CheckedSend<Token>"
@@ -56,7 +51,7 @@ using namespace std;
       case n => varOf(n)._1
     }
     val (tp, name) = varOf(n)
-    genTopMember(tp, name,args,end,n.isExtern.get,isEscaped(n), n.externAlias.v, interfaceTp)
+    genTopMember(tp, name,args,end,n.isExtern.get,n.isEscaped, n.externAlias.v, interfaceTp)
   }
   def genTopMember(tp:Any, name:Any, args:Seq[String], end:Boolean, extern:Boolean, escape:Boolean):Unit = {
     genTopMember(tp.toString, name.toString, args, end, extern, escape, None, tp.toString)

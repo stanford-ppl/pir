@@ -14,7 +14,19 @@ class PlastirouteLinkGen(implicit compiler: PIR) extends PlastisimCodegen with C
   }
 
   override def emitNode(n:N) = n match {
-    case n:GlobalOutput =>
+    case n:GlobalOutput => emitLink(n)
+    case n => visitNode(n)
+  }
+
+  def emitLink(n:GlobalOutput) = {
+    if (n.isExtern.get) {
+      if (n.isEscaped) {
+        n.out.T.filter { !_.isExtern.get }.map { gin =>
+          gin.global.get.id
+        }
+        //TODO
+      }
+    } else {
       val ctx = n.in.T.ctx.get
       val row = newRow
       row("link") = n.id
@@ -27,6 +39,6 @@ class PlastirouteLinkGen(implicit compiler: PIR) extends PlastisimCodegen with C
         row(s"dst[$idx]") = gin.global.get.id
         row(s"out[$idx]") = gin.id
       }
-    case n => visitNode(n)
+    }
   }
 }

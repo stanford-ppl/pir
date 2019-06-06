@@ -48,7 +48,14 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
 
     def psimState(s:String) = n.getMeta[Float]("psimState").update(s)
     def psimState = n.getMeta[String]("psimState").v
+
+    def isEscaped = n match {
+      case n:GlobalOutput if n.isExtern.get => n.out.T.exists { !_.isExtern.get }
+      case n:GlobalInput if n.isExtern.get => !n.in.T.isExtern.get
+      case _ => false
+    }
   }
+
   implicit class NodeRuntimeOp[N<:IR](n:N) {
     def vecMeta:MetadataLike[Int] = n.getMeta[Int]("vec")
     def inferVec:Option[Int] = n.getMeta[Int]("vec").orElseUpdate { compVec(n) }

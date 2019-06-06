@@ -29,14 +29,15 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
       command += s" -q${config.option[String]("proute-q")} "
       command += s" -s${config.option[String]("proute-seed")} "
       command += s" ${config.option[String]("proute-opts")}"
+      command += s" -G"
       // Generate proute.sh script containing proute commands to run
-      withOpen(config.cwd, s"proute.sh", false) {
-        emitln(s"cd $psimOut")
+      withOpen(config.appDir, s"proute.sh", false) {
+        emitln(s"cd ${getRelativePath(config.psimOut, config.appDir)}")
         emitln(command)
       }
       deleteFile(prouteSummaryPath)
       deleteFile(prouteLog)
-      val exitCode = shellProcess("proute", s"bash proute.sh", prouteLog) { line =>
+      val exitCode = shellProcess("proute", s"bash proute.sh", config.appDir, prouteLog) { line =>
         if (line.contains("Used") && line.contains("VCs.")) {
           info(Console.GREEN, s"proute", line)
         }
