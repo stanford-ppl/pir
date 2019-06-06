@@ -29,6 +29,8 @@ trait CSVCodegen extends Codegen {
     emitln(s"${headers.map( h => row.cell.getOrElse(h, "") ).mkString(",")}")
   }
 
+  def setHeaders(header:String*) = { headers ++= header }
+
   override def finPass = {
     emitln(headers.mkString(","))
     rows.foreach(emit)

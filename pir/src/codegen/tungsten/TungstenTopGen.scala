@@ -80,6 +80,8 @@ using namespace std;
   override def initPass = {
     super.initPass
     emitln(s"""#include "Top.h"""")
+    emitln(s"""using namespace std;""")
+    emitBSln("void RunAccel()")
   }
 
   override def emitNode(n:N) = n match {
@@ -90,6 +92,7 @@ using namespace std;
     case n => super.emitNode(n)
   }
 
+
   override def finPass = {
     if (!noPlaceAndRoute) {
       val pattern = spadeParam.pattern.as[GridPattern]
@@ -98,14 +101,15 @@ using namespace std;
       genTopMember("DynamicNetwork<4, 4>", "net", Seq(s"{${row}, ${col}}", "net".qstr), end=false, extern=true, escape=true)
       genTopMember("DynamicNetwork<4, 4>", "statnet", Seq(s"{${row}, ${col}}", "statnet".qstr), end=false, extern=true, escape=true)
     }
-    getBuffer("extern-end").foreach { _.flushTo(sw) }
-    val topName = if (config.asModule) pirTop.name.get else "Top"
+
+    // Emit Top Module
     val (externs, members) = topMembers.partition { _.extern } 
     val (escapes, _) = externs.partition { _.escape }
     val dutArgs = ("top" +: externs.map { _.name }).map{_.&}.mkString(",")
     val topArgsSig = escapes.map { mem => s"${mem.tp}& ${mem.name}" }.mkString(",\n    ")
     val topArgs = if (escapes.isEmpty) "" else s"(${escapes.map { _.name }.mkString(",")})" 
 
+    val topName = if (config.asModule) pirTop.name.get else "Top"
     genTop {
       declareClass(s"""$topName: public Module""") {
         emitln("public:")
@@ -125,13 +129,13 @@ using namespace std;
         emitln(s"""$topName(map<string, Module*> alias): $topName($aliasArgs) {}""")
       }
     }
-    emitln(s"""using namespace std;""")
-    emitBlock(s"void RunAccel()") {
-      emitln(s"$topName top$topArgs;")
-      emitln(s"""Module DUT({$dutArgs}, "DUT");""")
-      emitln(s"""REPL repl(&DUT, std::cout);""")
-      emitln(s"""repl.Command("source script");""")
-    }
+
+    emitln(s"$topName top$topArgs;")
+    getBuffer("extern-end").foreach { _.flushTo(sw) }
+    emitln(s"""Module DUT({$dutArgs}, "DUT");""")
+    emitln(s"""REPL repl(&DUT, std::cout);""")
+    emitln(s"""repl.Command("source script");""")
+    emitBEln
     super.finPass
   }
 
@@ -143,6 +147,6 @@ using namespace std;
 
   private def genTopEndFields(block: => Unit) = enterBuffer("top-end", level=1)(block)
 
-  private def genExternEnd(block: => Unit) = enterBuffer("extern-end")(block)
+  protected def genExternEnd(block: => Unit) = enterBuffer("extern-end", level=1)(block)
 
 }

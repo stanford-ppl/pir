@@ -51,7 +51,6 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
 
     def isEscaped = n match {
       case n:GlobalOutput if n.isExtern.get => n.out.T.exists { !_.isExtern.get }
-      case n:GlobalInput if n.isExtern.get => !n.in.T.isExtern.get
       case _ => false
     }
   }

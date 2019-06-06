@@ -11,7 +11,7 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
     val conf = config
     import conf._
     if (!noPlaceAndRoute && runproute) {
-      var command = s"${config.prouteHome}/plastiroute -n $prouteNodeName -l $prouteLinkName -o $proutePlaceName"
+      var command = s"${config.prouteHome}/plastiroute -n $prouteNodeName -l $prouteLinkName"
       spadeParam.pattern match {
         case p:Checkerboard => 
           command += s" -r ${p.row} -c ${p.col}"
@@ -29,7 +29,8 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
       command += s" -q${config.option[String]("proute-q")} "
       command += s" -s${config.option[String]("proute-seed")} "
       command += s" ${config.option[String]("proute-opts")}"
-      command += s" -G"
+      command += s" -G $proutePlaceName"
+      //command += s" -o $proutePlaceName"
       // Generate proute.sh script containing proute commands to run
       withOpen(config.appDir, s"proute.sh", false) {
         emitln(s"cd ${getRelativePath(config.psimOut, config.appDir)}")
