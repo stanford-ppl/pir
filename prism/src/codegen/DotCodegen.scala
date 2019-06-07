@@ -8,7 +8,7 @@ trait DotCodegen extends Codegen {
   override def dirName = buildPath(super.dirName, s"dot") 
 
   def dotFile:String = fileName.replace(".dot", ".html")
-  lazy val dotPath = buildPath(dirName, dotFile)
+  lazy val dotPath = getAbsolutePath(buildPath(dirName, dotFile))
 
   val regex = "\\[[0-9]*\\]".r
   def q(s:Any) = regex.replaceAllIn(s.toString, "")

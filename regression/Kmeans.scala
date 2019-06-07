@@ -166,7 +166,7 @@ class Kmeans_8 extends Kmeans(mp1=2,mp2=2,mp3=2)
       printArray(resrow)
     }
 
-    val cksum = result.zip(gold){ case (o, g) => (g < (o + margin)) && g > (o - margin)}.reduce{_&&_}
+    val cksum = approxEql(gold, result)
 
     println("PASS: " + cksum + " (Kmeans)")
     assert(cksum)

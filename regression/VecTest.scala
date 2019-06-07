@@ -40,7 +40,7 @@ import spatial.dsl._
     printArray(gold, "gold: ")
     printArray(result, "result: ")
 
-    val cksum = gold.zip(result){(a,b) => abs(a-b) <= margin}.reduce{_&&_}
+    val cksum = approxEql(gold,result)
     println("PASS: " + cksum  + " (VecTest)")
     assert(cksum)
   }

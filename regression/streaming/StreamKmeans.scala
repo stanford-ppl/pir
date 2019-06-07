@@ -6,8 +6,8 @@ class StreamKmeans_1 extends StreamKmeans[scala.Int,Int](op=2)
 class StreamKmeans_2 extends StreamKmeans[scala.Int,Int](kp=2)
 class StreamKmeans_3 extends StreamKmeans[scala.Int,Int](ip=4)
 class StreamKmeans_4 extends StreamKmeans[scala.Int,Int](ip=4, kp=2)
-class StreamKmeans_5 extends StreamKmeans[scala.Int,Int](ip=8, kp=4)
-class StreamKmeans_6 extends StreamKmeans[scala.Int,Int](ip=8, kp=4, op=2)
+class StreamKmeans_6 extends StreamKmeans[scala.Int,Int](ip=8, kp=4)
+class StreamKmeans_7 extends StreamKmeans[scala.Int,Int](ip=8, kp=4, op=2)
 
 // Given a set of centroids, compute the closest centroid and output centroid indices for a stream of
 // records

@@ -40,7 +40,7 @@ class SimpleDotProduct_1 extends SimpleDotProduct(op=2)
     println("expected: " + gold)
     println("result: " + result)
 
-    val cksum = gold == result
+    val cksum = approxEql(gold,result)
     println("PASS: " + cksum + " (SimpleDotProduct)")
     assert(cksum)
   }

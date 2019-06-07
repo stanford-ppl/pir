@@ -44,7 +44,7 @@ class SumSquare_5 extends SumSquare(ip=3, op=2)
     println("expected: " + gold)
     println("result: " + result)
 
-    val cksum = gold == result
+    val cksum = approxEql[T](gold,result)
     println("PASS: " + cksum + " (SumSquare)")
     assert(cksum)
   }

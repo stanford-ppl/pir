@@ -11,7 +11,7 @@ trait Codegen extends Pass with Printer with DFSTraversal with UnitTraversal {
   def codegenPostfix = fileName
   override def name = s"${super.name} $codegenPostfix"
 
-  lazy val outputPath = buildPath(dirName, fileName)
+  lazy val outputPath = getAbsolutePath(buildPath(dirName, fileName))
 
   def clearGenDir = clearDir(dirName)
 

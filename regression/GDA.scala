@@ -103,7 +103,7 @@ class GDA_14 extends GDA(mp1 = 2,mp2 = 2)
     printArray(gold, "gold: ")
     printArray(result, "result: ")
 
-    val cksum = gold.zip(result){(a,b) => abs(a-b) <= margin}.reduce{_&&_}
+    val cksum = approxEql(gold, result)
     println("PASS: " + cksum  + " (GDA)")
     assert(cksum)
   }

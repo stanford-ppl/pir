@@ -48,7 +48,7 @@ class DotProduct_3 extends DotProduct(op=2)
     println("expected: " + gold)
     println("result: " + result)
 
-    val cksum = abs(gold - result) < (gold * 0.05f)
+    val cksum = approxEql(gold, result)
     println("PASS: " + cksum + " (DotProduct)")
     assert(cksum)
   }

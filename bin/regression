@@ -21,7 +21,7 @@ def main():
     if opts.project is None:
         opts.project = ['pirTest', 'test']
     if (opts.backend is None):
-        opts.backend = ['Tst', 'MDTst']
+        opts.backend = ['Tst', 'MDTst', 'MDHTst']
     for project in opts.project:
         for backend in opts.backend:
             gendir = backend

@@ -49,15 +49,6 @@ import utils.io.files._
     }
   }
 
-  def close(a:TO, b:TO) = {
-    tobits match {
-      case tobits:Num[_] =>
-        implicit val n = tobits.asInstanceOf[Num[TO]]
-        abs(a - b) <= (0.05.to[TO] * abs(a))
-      case _ => a == b
-    }
-  }
-
   def main(args: Array[String]): Unit = {
     val inFile = buildPath(IR.config.genDir, "tungsten", "in.csv")
     val outFile = buildPath(IR.config.genDir, "tungsten", "out.csv")
@@ -69,8 +60,9 @@ import utils.io.files._
     val in  = StreamIn[Tup2[TI,Bit]](FileEOFBus[Tup2[TI,Bit]](inFile))
     val out = StreamOut[Tup2[TO,Bit]](FileEOFBus[Tup2[TO,Bit]](outFile))
     accelBody(in,out)
-    val outData = loadCSV2D[TO](outFile)
-    val cksum = outData.zip(loadCSV2D[TO](goldFile)) { (a,b) => close(a,b) }.reduce { _ & _ }
+    val outData:Matrix[TO] = loadCSV2D[TO](outFile)
+    val goldData:Matrix[TO] = loadCSV2D[TO](goldFile)
+    val cksum = approxEql[TO](outData,goldData)
     println("PASS: " + cksum + s" (${this.getClass.getSimpleName})")  
     assert(cksum)
   }
