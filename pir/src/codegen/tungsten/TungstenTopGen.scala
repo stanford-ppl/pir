@@ -108,7 +108,7 @@ using namespace std;
     val topArgsSig = escapes.map { mem => s"${mem.tp}& ${mem.name}" }.mkString(",\n    ")
     val topArgs = if (escapes.isEmpty) "" else s"(${escapes.map { _.name }.mkString(",")})" 
 
-    val topName = if (config.asModule) pirTop.name.get else "Top"
+    val topName = if (config.asModule) pirTop.name.get + "Top" else "Top"
     genTop {
       declareClass(s"""$topName: public Module""") {
         emitln("public:")
@@ -116,8 +116,9 @@ using namespace std;
         getBuffer("top-end").foreach { _.flushTo(sw) }
         val memberInits = members.filter { _.args.nonEmpty }.map { mem =>
           s"${mem.name}(${mem.args.mkString(",")})"
-        }.mkString(",\n      ")
-        emitBlock(s"""explicit $topName(\n    $topArgsSig\n  ): Module("$topName"),\n      $memberInits""") {
+        }
+        val inits = (s"""Module("$topName")""" +: memberInits).mkString(",\n      ")
+        emitBlock(s"""explicit $topName(\n    $topArgsSig\n  ): $inits""") {
           emitln(s"AddChildren({${members.map { _.name.&}.mkString(",")}});")
           emitInit
         }
