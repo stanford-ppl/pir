@@ -630,7 +630,7 @@ def setFilterRules(opts):
     if opts.filter_str is None: return
     for fs in opts.filter_str:
         if ":" in fs:
-            p,pat = fs.split(":")
+            p,pat = fs.split(":",1)
             opts.filter.append(lambda conf: p in conf and conf[p] is not None and fnmatch.fnmatch(str(conf[p]), pat))
         else:
             p = fs
