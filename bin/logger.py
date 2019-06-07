@@ -148,6 +148,8 @@ def getMessage(conf, opts):
         msg.append(cstr(YELLOW, 'gentst'))
     else:
         msg.append(cstr(GREEN, 'gentst'))
+    if 'gentst_time' in conf and conf['gentst_time'] is not None:
+        msg.append('[{}s]'.format(round(conf['gentst_time']),2))
 
     if conf['maketst_err'] is not None:
         msg.append(cstr(RED, 'maketst') + ": " + conf['maketst_err'].strip())
@@ -155,6 +157,8 @@ def getMessage(conf, opts):
         msg.append(cstr(YELLOW, 'maketst'))
     else:
         msg.append(cstr(GREEN, 'maketst'))
+    if 'maketst_time' in conf and conf['maketst_time'] is not None:
+        msg.append('[{}]'.format(conf['maketst_time']))
 
     color = None
     if conf['tst_deadlock']:
@@ -180,6 +184,8 @@ def getMessage(conf, opts):
         msg.append(cstr(color, 'cycle:{}'.format(conf['tstcycle'])))
     elif conf['tstcycle'] is not None:
         msg.append(cstr(color, 'cycle:{}'.format(conf['tstcycle'])))
+    if 'runtst_time' in conf and conf['runtst_time'] is not None:
+        msg.append('[{}]'.format(conf['runtst_time']))
 
     # if 'tst_dram_power' in conf and conf['tst_dram_power'] is not None:
         # msg.append(cstr(color, 'dram power:' + str(conf['tst_dram_power']) + 'W'))
@@ -374,12 +380,22 @@ runtst_parser.append(Parser(
     'Average DRAM Write Bandwidth: ',
      lambda lines: float(lines[0].split(':')[1].split("GB/s")[0])
 ))
+runtst_parser.append(Parser(
+    'runtst_time', 
+    ["Runtime:"],
+    lambda lines: lines[0].split("Runtime:")[1].strip()
+))
 
 maketst_parser = []
 maketst_parser.append(Parser(
     'maketst_err', 
     ["error", "fail", "Exception"],
     lambda lines: lines[0] 
+))
+maketst_parser.append(Parser(
+    'maketst_time', 
+    ["Runtime:"],
+    lambda lines: lines[0].split("Runtime:")[1].strip()
 ))
 
 gentst_parser = []
