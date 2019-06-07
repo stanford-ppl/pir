@@ -91,6 +91,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       }
     }
     sequencedScheduleBarrierInsertion(mem)
+    //breakPoint(s"insert token for $mem")
     multiBufferBarrierInsertion(mem)
     enforceDataDependencyInSameController(mem)
     fifoBarrierInsertion(mem)
@@ -110,9 +111,13 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           (head, tail) match {
             case (head:BankedRead, tail:BankedRead) =>
               swapOutput(tail.out, head.out)
+              tail.mem.disconnect
             case (head, tail) => err(s"Invalid broadcast from $head to $tail")
           }
         }
+        if (tail.nonEmpty) 
+          dbg(s"broadcast $head => $tail")
+        removeNodes(tail)
         List(head)
     }.toList
   }
