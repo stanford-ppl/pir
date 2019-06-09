@@ -317,6 +317,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     }
   }
 
+  def topName = if (config.asModule) pirTop.name.get + "Top" else "Top"
 
 }
 

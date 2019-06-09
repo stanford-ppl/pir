@@ -53,7 +53,9 @@ emitln("""
   override def quote(n:Any) = n match {
     case n:GlobalIO => 
       val name = n.externAlias.v.getOrElse(s"$n")
-      s"DUT/Top/$name"
+      s"$topName/$name"
+    case n:GlobalContainer =>
+      s"$topName/$n"
     case _ => super.quote(n)
   }
 
@@ -87,13 +89,13 @@ emitln("""
         val row = newRow
         row("link") = quote(n)
         row("ctx") = ctx.id
-        row("src") = n.global.get.id
+        row("src") = quote(n.global.get)
         row("tp") = if (n.getVec == 1) 1 else 2 // 1 for scalar, 2 for vector
         //row("count") = n.constCount
         row("count") = n.count.get.getOrElse(1000000) //TODO: use more reasonable heuristic when count is not available
         n.out.T.zipWithIndex.foreach { case (gin, idx) =>
           if (!gin.isExtern.get) {
-            row(s"dst[$idx]") = gin.global.get.id
+            row(s"dst[$idx]") = quote(gin.global.get)
             row(s"out[$idx]") = quote(gin)
           }
         }

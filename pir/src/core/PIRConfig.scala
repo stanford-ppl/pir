@@ -78,7 +78,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register[String]("proute-home", default=sys.env.get("PLASTIROUTE_HOME"), info="Plastiroute Home")
   register("proute-algo", default="route_dor_YX", info="Plastiroute routing algorithm") 
   register("proute-q", default=1, info="Maximum number of vc") 
-  register("proute-opts", default="-i1000 -p100 -t1 -d100", info="Plastiroute options") 
+  register("proute-opts", default="-i100 -p100 -t1 -d100", info="Plastiroute options") 
   register("proute-seed", default=0, info="Plastiroute seed") 
   register("run-proute", default=false, info="Run Plastiroute") 
   def prouteHome = getOption[String]("proute-home").getOrElse(throw PIRException(s"proute-home is not set"))

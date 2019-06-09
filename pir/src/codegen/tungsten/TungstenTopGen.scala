@@ -30,6 +30,7 @@ trait TungstenTopGen extends TungstenCodegen {
 #include "nbuffer.h"
 #include "dramag.h"
 #include "network.h"
+#include "staticnetwork.h"
 
 using namespace std;
 
@@ -87,7 +88,7 @@ using namespace std;
       val row = pattern.row
       val col = pattern.col
       genTopMember("DynamicNetwork<4, 4>", "net", Seq(s"{${row}, ${col}}", "net".qstr), end=false, extern=true, escape=true)
-      genTopMember("DynamicNetwork<4, 4>", "statnet", Seq(s"{${row}, ${col}}", "statnet".qstr), end=false, extern=true, escape=true)
+      genTopMember("StaticNetwork<4, 4>", "statnet", Seq("statnet".qstr), end=false, extern=true, escape=true)
     }
   }
 
@@ -108,7 +109,6 @@ using namespace std;
     val topArgsSig = escapes.map { mem => s"${mem.tp}& ${mem.name}" }.mkString(",\n    ")
     val topArgs = if (escapes.isEmpty) "" else s"(${escapes.map { _.name }.mkString(",")})" 
 
-    val topName = if (config.asModule) pirTop.name.get + "Top" else "Top"
     genTop {
       declareClass(s"""$topName: public Module""") {
         emitln("public:")
