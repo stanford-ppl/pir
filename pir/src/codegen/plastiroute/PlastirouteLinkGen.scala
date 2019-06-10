@@ -51,6 +51,8 @@ emitln("""
   }
 
   override def quote(n:Any) = n match {
+    case n:GlobalIO if n.isExtern.get => 
+      s"$name"
     case n:GlobalIO => 
       val name = n.externAlias.v.getOrElse(s"$n")
       s"${config.modulePreix.getOrElse("")}/$topName/$name"
@@ -61,7 +63,7 @@ emitln("""
 
   def emitLink(n:GlobalOutput) = {
     val intInputs = n.out.T.filterNot { _.isExtern.get }
-    val intIns = intInputs.map{ in => s"${in.global.get.id},${quote(in)}" }.mkString(",")
+    val intIns = intInputs.map{ in => s"${quote(in.global.get)},${quote(in)}" }.mkString(",")
     val ctx = n.in.T.ctx.get
     if (n.isExtern.get) {
       // Inputs to PIR module.
@@ -77,7 +79,7 @@ emitln("""
           val fields = List(
             quote(n),
             ctx.id,
-            n.global.get.id,
+            quote(n.global.get),
             if (n.getVec == 1) 1 else 2,
             1000000,
             intIns

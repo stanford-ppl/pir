@@ -35,7 +35,7 @@ class PlastirouteNodeGen(implicit compiler: PIR) extends PlastisimCodegen with C
 
   override def quote(n:Any) = n match {
     case n:GlobalContainer =>
-      s"$topName/$n"
+      s"${config.modulePreix.getOrElse("")}/$topName/$n"
     case _ => super.quote(n)
   }
 
