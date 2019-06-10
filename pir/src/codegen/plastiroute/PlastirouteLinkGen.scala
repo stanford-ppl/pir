@@ -85,7 +85,7 @@ emitln("""
             1000000,
             intIns
           )
-          emitln(s"""    f.write("${fields.mkString(",")}" + parsed["${n.externAlias.get}"].split(",",1)[1] + "\\n") # internal output""")
+          emitln(s"""    f.write("${fields.mkString(",")}" + ",".join(parsed["${n.externAlias.get}"].split(",")[::-1]) + "\\n") # internal output""")
           emitln(s"""    del parsed["${n.externAlias.get}"]""")
         }
       } else {
