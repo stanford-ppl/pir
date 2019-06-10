@@ -222,7 +222,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       }
     }
     newAccess.vec.reset
-    newAccess.vec := mem.nBanks
+    newAccess.presetVec := mem.nBanks
     newAccess.to[BankedRead].foreach { newAccess =>
       newAccess.out.vecMeta.reset
       newAccess.out.vecMeta := mem.nBanks
@@ -367,7 +367,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
   def enforceDataDependencyInSameController(mem:Memory):Unit = dbgblk(s"enforceDataDependencyInSameController($mem)"){
     val accesses = mem.accesses.filter { _.port.nonEmpty }
     accesses.groupBy { _.port.get }.foreach { case (port, accesses) =>
-      val (inAccesses, outAccesses) =  accesses.partition { _.isInstanceOf[InAccess] }
+      val (inAccesses, outAccesses) =  accesses.partition { _.isInAccess }
       inAccesses.foreach { inAccess =>
         outAccesses.foreach { outAccess =>
           if (inAccess.getCtrl == outAccess.getCtrl) {
@@ -476,7 +476,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           }
         }
         val read = within(outAccess.parent.get, outAccess.ctrl.get) {
-          stage(BufferRead().in(write.out).mirrorMetas(mem).mirrorMetas(outAccess).done(deq))
+          stage(BufferRead().in(write.out).mirrorMetas(mem).mirrorMetas(outAccess).done(deq).presetVec(outAccess.inferVec.get))
         }
         if (inAccess.order.get > outAccess.order.get ) {
           dbg(s"$read.initToken = true")

@@ -1,15 +1,15 @@
 import spatial.dsl._
 import spatial.lib.ML._
 
-class StreamNN_0 extends StreamNN[scala.Int,Int]
-class StreamNN_1 extends StreamNN[scala.Int,Int](bp=2)
-class StreamNN_2 extends StreamNN[scala.Int,Int](ip=4)
-class StreamNN_3 extends StreamNN[scala.Int,Int](ip=4, P1=2)
-class StreamNN_4 extends StreamNN[scala.Int,Int](ip=4, P1=2, bp=2)
-class StreamNN_5 extends StreamNN[scala.Int,Int](L1=8, ip=8, P1=1, bp=2)
-class StreamNN_6 extends StreamNN[scala.Float,Float]
+class StreamInfNN_0 extends StreamInfNN[scala.Int,Int]
+class StreamInfNN_1 extends StreamInfNN[scala.Int,Int](bp=2)
+class StreamInfNN_2 extends StreamInfNN[scala.Int,Int](ip=4)
+class StreamInfNN_3 extends StreamInfNN[scala.Int,Int](ip=4, P1=2)
+class StreamInfNN_4 extends StreamInfNN[scala.Int,Int](ip=4, P1=2, bp=2)
+class StreamInfNN_5 extends StreamInfNN[scala.Int,Int](L1=8, ip=8, P1=1, bp=2)
+class StreamInfNN_6 extends StreamInfNN[scala.Float,Float]
 
-@spatial abstract class StreamNN[HT:Numeric,T:Num](
+@spatial abstract class StreamInfNN[HT:Numeric,T:Num](
   val field:scala.Int = 8,
   val numBatch:scala.Int = 16,
   val batch:scala.Int = 4,

@@ -1,17 +1,17 @@
 import spatial.dsl._
 import utils.io.files._
 
-class StreamKmeans_0 extends StreamKmeans[scala.Int,Int]
-class StreamKmeans_1 extends StreamKmeans[scala.Int,Int](op=2)
-class StreamKmeans_2 extends StreamKmeans[scala.Int,Int](kp=2)
-class StreamKmeans_3 extends StreamKmeans[scala.Int,Int](ip=4)
-class StreamKmeans_4 extends StreamKmeans[scala.Int,Int](ip=4, kp=2)
-class StreamKmeans_6 extends StreamKmeans[scala.Int,Int](ip=8, kp=4)
-class StreamKmeans_7 extends StreamKmeans[scala.Int,Int](ip=8, kp=4, op=2)
+class StreamInfKmeans_0 extends StreamInfKmeans[scala.Int,Int]
+class StreamInfKmeans_1 extends StreamInfKmeans[scala.Int,Int](op=2)
+class StreamInfKmeans_2 extends StreamInfKmeans[scala.Int,Int](kp=2)
+class StreamInfKmeans_3 extends StreamInfKmeans[scala.Int,Int](ip=4)
+class StreamInfKmeans_4 extends StreamInfKmeans[scala.Int,Int](ip=4, kp=2)
+class StreamInfKmeans_6 extends StreamInfKmeans[scala.Int,Int](ip=8, kp=4)
+class StreamInfKmeans_7 extends StreamInfKmeans[scala.Int,Int](ip=8, kp=4, op=2)
 
 // Given a set of centroids, compute the closest centroid and output centroid indices for a stream of
 // records
-@spatial abstract class StreamKmeans[HT:Numeric,T:Arith:Num](
+@spatial abstract class StreamInfKmeans[HT:Numeric,T:Arith:Num](
   val K:scala.Int = 16, // Number of centroids
   val field:scala.Int = 8,
   val numBatch:scala.Int = 16,

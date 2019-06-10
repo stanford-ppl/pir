@@ -34,7 +34,7 @@ def to_conf(tab, **kws):
 
 def load_history(opts):
     logs = os.listdir(opts.logdir)
-    logs = sorted(logs, reverse = True)
+    logs = sorted(logs, reverse = True)[:20]
     # print(logs)
 
     history = None

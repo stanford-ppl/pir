@@ -52,6 +52,11 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
         }
       }
       emitln(s"$n->SetEn(${n.en.qref} & ${n.parentEn.qref});")
+      n.to[LoopController].foreach { n =>
+        n.stopWhen.T.foreach { stop =>
+          emitln(s"$n->SetStop($stop);")
+        }
+      }
       super.visitNode(n)
 
     case n:Counter if n.isForever =>

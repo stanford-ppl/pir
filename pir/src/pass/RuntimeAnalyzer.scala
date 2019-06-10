@@ -102,6 +102,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
         val step = n.step.T.get.getBound.toValue
         val par = n.par
         (max - min) /! (step * par)
+      case n:LoopController if n.stopWhen.T.nonEmpty => Unknown
       case n:LoopController =>
         n.cchain.T.map { _.getIter }.reduce { _ * _ }
       case n:Controller => Finite(1l)
@@ -173,8 +174,11 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     else if (n.collectFirstChild[FringeStreamWrite].nonEmpty) None
     else { // reads is empty
       val ctrlers = n.ctrlers
+      val forevers = ctrlers.filter { _.isForever }
+      val (infiniteForever, stopForever) = forevers.partition { _.as[LoopController].stopWhen.T.isEmpty }
       if (ctrlers.isEmpty) throw PIRException(s"$n's ctrlers and reads are empty")
-      else if (ctrlers.exists { _.isForever }) Some(Infinite)
+      else if (infiniteForever.nonEmpty) Some(Infinite)
+      else if (stopForever.nonEmpty) Some(Unknown)
       else None
     }
     countStack -= n
@@ -215,6 +219,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferVec
       case n:Controller => None
       case n:Memory => None
+      case n:PIRNode if n.presetVec.nonEmpty => n.presetVec.v
       case n:CounterIter => Some(n.is.size)
       case n:CounterValid => Some(n.is.size)
       case n:DRAMAddr => Some(1)
@@ -226,13 +231,11 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:TokenRead => Some(1)
       case n:CountAck => Some(1)
       case n:MemWrite => n.data.inferVec
-      //TODO: this info should be from spatial. vec of streamOut should be bank of stream
-      case n:MemRead if n.getCtrl.schedule == "Streaming" => Some(n.mem.banks.get.head) 
-      case n:MemRead => n.getCtrl.inferVec
+      case n:MemRead => n.broadcast.v.map { _.size }.orElse(n.getCtrl.inferVec)
       case n:BankedWrite => zipMap(n.data.inferVec, n.offset.inferVec) { case (a,b) => Math.max(a,b) }
       case n:BankedRead => n.offset.inferVec // Before lowering
       case n:BufferWrite => n.data.inferVec
-      case n:BufferRead => n.in.inferVec //TODO: consider FIFO with unequal reader and writer parallelization factor
+      case n:BufferRead => n.in.inferVec
       case n:RegAccumOp => Some(1)
       case n:PrintIf => n.msg.inferVec
       case n:AssertIf => n.msg.inferVec

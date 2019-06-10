@@ -39,7 +39,16 @@ import utils.io.files._
   // Takes in a 2D sram in shape [batch x field] and return a sram of size [batch]
   def accelBody(insram:SRAM2[TI]):SRAM1[TO]
 
-  def accelBody(in:StreamIn[Tup2[TI,Bit]], out:StreamOut[Tup2[TO,Bit]]):Unit = {
+  def main(args: Array[String]): Unit = {
+    val inFile = buildPath(IR.config.genDir, "tungsten", "in.csv")
+    val outFile = buildPath(IR.config.genDir, "tungsten", "out.csv")
+    val goldFile = buildPath(IR.config.genDir, "tungsten", "gold.csv")
+    val inDataMat = generateRandomInput[HI](inFile)
+    val goldMat = hostBody(inDataMat) 
+    writeGoldStream(goldMat, goldFile)
+
+    val in  = StreamIn[Tup2[TI,Bit]](FileEOFBus[Tup2[TI,Bit]](inFile))
+    val out = StreamOut[Tup2[TO,Bit]](FileEOFBus[Tup2[TO,Bit]](outFile))
     Accel{
       Foreach(*) { _ =>
         val (insram, lastBit) = transposeInput(in)
@@ -47,19 +56,6 @@ import utils.io.files._
         transposeOutput(outsram, lastBit, out)
       }
     }
-  }
-
-  def main(args: Array[String]): Unit = {
-    val inFile = buildPath(IR.config.genDir, "tungsten", "in.csv")
-    val outFile = buildPath(IR.config.genDir, "tungsten", "out.csv")
-    val goldFile = buildPath(IR.config.genDir, "tungsten", "gold.csv")
-    val inDataMat = generateRandomInput(inFile)
-    val goldMat = hostBody(inDataMat) 
-    writeGoldStream(goldMat, goldFile)
-
-    val in  = StreamIn[Tup2[TI,Bit]](FileEOFBus[Tup2[TI,Bit]](inFile))
-    val out = StreamOut[Tup2[TO,Bit]](FileEOFBus[Tup2[TO,Bit]](outFile))
-    accelBody(in,out)
     val outData:Matrix[TO] = loadCSV2D[TO](outFile)
     val goldData:Matrix[TO] = loadCSV2D[TO](goldFile)
     val cksum = approxEql[TO](outData,goldData)
@@ -70,3 +66,25 @@ import utils.io.files._
   implicit def tseq_to_bitsseq[T:Bits](x:Seq[T]):Seq[Bits[T]] = x.map { case Bits(x) => x.asInstanceOf[Bits[T]] }
   implicit def tseqseq_to_bitsseqseq[T:Bits](x:Seq[Seq[T]]):Seq[Seq[Bits[T]]] = x.map { x => tseq_to_bitsseq(x) }
 }
+
+@spatial abstract class StreamTraining[HI:Numeric,TI:Bits,TO:Bits](implicit ev:Cast[Text,TO]) extends StreamTemplate {
+
+  //def hostCheck(inDataMat:Seq[Seq[HI]]):Bit
+  def main(in:StreamIn[Tup2[TI,Bit]], inDataMat:Seq[Seq[HI]]):Bit
+
+  def checkGold(dram:DRAM1[TO], goldFile:java.lang.String) = {
+    val goldData = loadCSV1D[TO](goldFile)
+    approxEql[TO](getMem(dram), goldData)
+  }
+
+  def main(args: Array[String]): Unit = {
+    val inFile = buildPath(IR.config.genDir, "tungsten", "in.csv")
+    val inDataMat = generateRandomInput[HI](inFile)
+
+    val in  = StreamIn[Tup2[TI,Bit]](FileEOFBus[Tup2[TI,Bit]](inFile))
+    val cksum = main(in, inDataMat)
+    println("PASS: " + cksum + s" (${this.getClass.getSimpleName})")  
+    assert(cksum)
+  }
+}
+

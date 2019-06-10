@@ -37,7 +37,7 @@ trait MemoryAnalyzer extends PIRTransformer { self:BufferAnalyzer =>
       val deq = if (ictx.streaming.get && isFIFO) Some(within(ictx, i) { allocConst(true).out }) else None
       (o, i) match {
         case (o,i) if isFIFO => (enq.getOrElse(valid(o, octx)), deq.getOrElse(valid(i, ictx)))
-        case (o,i) if o == i => (enq.getOrElse(done(o, octx)), deq.getOrElse(done(i, ictx))) // TODO: should this be valid?
+        case (o,i) if o == i => (enq.getOrElse(valid(o, octx)), deq.getOrElse(valid(i, ictx)))
         case (o,i) =>
           val lca = leastCommonAncesstor(o,i).get
           val oAncesstors = o.ancestorTree

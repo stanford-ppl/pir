@@ -2,15 +2,15 @@ import spatial.dsl._
 import utils.io.files._
 import spatial.lib.ML._
 
-class StreamSVM_0 extends StreamSVM[scala.Float,Float]
-class StreamSVM_1 extends StreamSVM[scala.Float,Float](op=2)
-class StreamSVM_3 extends StreamSVM[scala.Float,Float](ip=4)
-class StreamSVM_4 extends StreamSVM[scala.Float,Float](ip=4, op=2)
-class StreamSVM_5 extends StreamSVM[scala.Float,Float](ip=8, op=4)
+class StreamInfSVM_0 extends StreamInfSVM[scala.Float,Float]
+class StreamInfSVM_1 extends StreamInfSVM[scala.Float,Float](op=2)
+class StreamInfSVM_3 extends StreamInfSVM[scala.Float,Float](ip=4)
+class StreamInfSVM_4 extends StreamInfSVM[scala.Float,Float](ip=4, op=2)
+class StreamInfSVM_5 extends StreamInfSVM[scala.Float,Float](ip=8, op=4)
 
 // Given a set of centroids, compute the closest centroid and output centroid indices for a stream of
 // records
-@spatial abstract class StreamSVM[HT:Fractional,T:Arith:Num](
+@spatial abstract class StreamInfSVM[HT:Fractional,T:Arith:Num](
   val field:scala.Int = 8,
   val numBatch:scala.Int = 16,
   val batch:scala.Int = 4,

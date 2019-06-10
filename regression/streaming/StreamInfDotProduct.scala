@@ -1,13 +1,13 @@
 import spatial.dsl._
 import utils.io.files._
 
-class StreamDotProduct_0 extends StreamDotProduct[scala.Int,Int]
-class StreamDotProduct_1 extends StreamDotProduct[scala.Int,Int](op=2)
-class StreamDotProduct_2 extends StreamDotProduct[scala.Int,Int](ip=4)
-class StreamDotProduct_3 extends StreamDotProduct[scala.Int,Int](ip=4, op=2)
-class StreamDotProduct_4 extends StreamDotProduct[scala.Int,Int](ip=8, op=4)
+class StreamInfDotProduct_0 extends StreamInfDotProduct[scala.Int,Int]
+class StreamInfDotProduct_1 extends StreamInfDotProduct[scala.Int,Int](op=2)
+class StreamInfDotProduct_2 extends StreamInfDotProduct[scala.Int,Int](ip=4)
+class StreamInfDotProduct_3 extends StreamInfDotProduct[scala.Int,Int](ip=4, op=2)
+class StreamInfDotProduct_4 extends StreamInfDotProduct[scala.Int,Int](ip=8, op=4)
 
-@spatial abstract class StreamDotProduct[HT:Numeric,T:Num](
+@spatial abstract class StreamInfDotProduct[HT:Numeric,T:Num](
   val field:scala.Int = 8,
   val numBatch:scala.Int = 16,
   val batch:scala.Int = 4,
@@ -26,9 +26,11 @@ class StreamDotProduct_4 extends StreamDotProduct[scala.Int,Int](ip=8, op=4)
     val outsram = SRAM[T](batch)
     Foreach(0 until batch par op) { b =>
       val dot = Reg[T]
+      Pipe {
       Reduce(dot)(0 until field par ip) { f =>
         insram(b,f) * wLUT(f)
       } { _ + _ }
+      }
       outsram(b) = dot.value
     }
     outsram

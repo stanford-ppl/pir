@@ -178,9 +178,12 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
     }
   }
 
+  val fifoDepth = 4 //TODO: read from spade param
   override def varOf(n:PIRNode):(String,String) = n match {
+    case n:BufferRead if n.out.getVec != n.in.getVec =>
+      (s"RateMatchingTokenFIFO<${n.qtp}, ${fifoDepth*n.in.getVec}, ${n.in.getVec}, ${n.out.getVec}>", s"fifo_$n") 
     case n:BufferRead =>
-      (s"FIFO<Token, 4>", s"fifo_$n") //TODO
+      (s"FIFO<Token, ${fifoDepth}>", s"fifo_$n")
     case n:TokenRead =>
       (s"FIFO<Token, ${n.getDepth}>", s"fifo_$n")
     case n:LocalInAccess =>
@@ -194,7 +197,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       }
       (s"ValPipeline<Token, $pipeDepth>", s"pipe_$n")
     case n:FIFO =>
-      (s"FIFO<Token, 4>", s"$n") //TODO:
+      (s"FIFO<Token, ${fifoDepth}>", s"$n")
     case n:SRAM =>
       (s"NBufferSRAM<${n.getDepth}, ${n.qtp}, ${n.bankSize}, ${n.nBanks}>", s"$n")
     case n:LUT =>
