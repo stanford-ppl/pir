@@ -104,7 +104,10 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     accesses.groupBy { _.castgroup.v }.flatMap { 
       case (None, accesses) => accesses
       case (Some(grp), accesses) =>
-        val (heads, tail) = accesses.partition { _.broadcast.get == 0 }
+        val (heads, tail) = accesses.partition { a => 
+          val broadcast = assertIdentical(a.broadcast.get, s"$a.broadcast").get
+          broadcast == 0
+        }
         val head = assertOne(heads, 
           s"broadcast in castgroup $grp for ${accesses.head.mem} ${accesses}")
         tail.foreach { tail =>
