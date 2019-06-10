@@ -36,35 +36,35 @@ trait ScalaUtilFunc {
     }
   }
 
-  def assertUnify[A,B](list:Iterable[A],info:String)(lambda:A => B):Option[B] = {
+  def assertUnify[A,B](list:Iterable[A],info: => String)(lambda:A => B):Option[B] = {
     val res = list.map(lambda)
     assert(res.toSet.size<=1, s"$list doesnt have the same $info = $res")
     res.headOption
   }
 
-  def assertOptionUnify[A,B](list:Iterable[A],info:String)(lambda:A => Option[B]):Option[B] = {
+  def assertOptionUnify[A,B](list:Iterable[A],info: => String)(lambda:A => Option[B]):Option[B] = {
     val res = list.flatMap(a => lambda(a))
     assert(res.toSet.size<=1, s"$list doesnt have the same $info = $res")
     res.headOption
   }
 
-  def assertIdentical[A](list:Iterable[A],info:String):Option[A] = {
+  def assertIdentical[A](list:Iterable[A],info: => String):Option[A] = {
     val res = list
     assert(res.toSet.size<=1, s"$list doesnt have the same $info = $res")
     res.headOption
   }
 
-  def assertOneOrLess[A](list:Iterable[A], info:String):Option[A] = {
+  def assertOneOrLess[A](list:Iterable[A], info: => String):Option[A] = {
     assert(list.size<=1, s"More than one element in $list for $info")
     list.headOption
   }
 
-  def assertOne[A](list:Iterable[A], info:String):A = {
+  def assertOne[A](list:Iterable[A], info: => String):A = {
     assert(list.size==1, s"Not exactly one element in $list for $info")
     list.head
   }
 
-  def assertUnique[A](list:Iterable[A],info:String):Unit = {
+  def assertUnique[A](list:Iterable[A],info: => String):Unit = {
     assert(list.toSet.size == list.size, s"$info is not unique=$list")
   }
 

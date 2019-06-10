@@ -169,7 +169,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     val (unknown, known) = counts.partition { _.unknown }
     val (finite, infinite) = known.partition { _.isFinite }
     val c = if (unknown.nonEmpty) Some(Unknown)
-    else if (finite.nonEmpty) assertIdentical(finite, s"$n.reads.count reads=$reads")
+    else if (finite.nonEmpty) assertIdentical(finite, s"$n.reads.count reads=$reads countByController=${countByController(n)}")
     else if (infinite.nonEmpty) Some(Infinite)
     else if (n.collectFirstChild[FringeStreamWrite].nonEmpty) None
     else { // reads is empty
@@ -185,6 +185,10 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     c
   }
 
+  def countByController(n:Context) = dbgblk(s"countByContrller($n)"){
+    n.ctrlers.map { _.getIter }.reduceOption { _ * _ }.getOrElse(Unknown)
+  }
+
   def compCount(n:PIRNode):Value[Long] = dbgblk(s"compCount($n)"){
     n match {
       case StreamWriteContext(sw) => sw.count.v match {
@@ -194,7 +198,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:Context =>
         val ctrlers = n.ctrlers
         if (n.streaming.get || ctrlers.exists { _.isForever }) countByReads(n).get
-        else ctrlers.map { _.getIter }.reduce { _ * _ }
+        else countByController(n)
       case n:LocalOutAccess =>
         n.in.T.getCount
       case n:LocalInAccess =>
@@ -231,7 +235,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:TokenRead => Some(1)
       case n:CountAck => Some(1)
       case n:MemWrite => n.data.inferVec
-      case n:MemRead => n.broadcast.v.map { _.size }.orElse(n.getCtrl.inferVec)
+      case n:MemRead => n.broadcast.v.map { _.size }.orElse(n.mem.banks.get.headOption)
       case n:BankedWrite => zipMap(n.data.inferVec, n.offset.inferVec) { case (a,b) => Math.max(a,b) }
       case n:BankedRead => n.offset.inferVec // Before lowering
       case n:BufferWrite => n.data.inferVec
