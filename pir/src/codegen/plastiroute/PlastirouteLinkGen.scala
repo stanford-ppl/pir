@@ -26,6 +26,7 @@ parser.add_argument('-d', '--dst', type=str, help='Path to destination csv to ap
 (opts, args) = parser.parse_known_args()
 parsed = {}
 with open(opts.partial, 'r') as f:
+    f.readline()
     for line in f:
         line = line.strip()
         link,rest = line.split(",", 1)
