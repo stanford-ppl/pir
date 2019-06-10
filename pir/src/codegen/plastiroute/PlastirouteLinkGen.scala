@@ -53,9 +53,9 @@ emitln("""
   override def quote(n:Any) = n match {
     case n:GlobalIO => 
       val name = n.externAlias.v.getOrElse(s"$n")
-      s"$topName/$name"
+      s"${config.modulePreix.getOrElse("")}/$topName/$name"
     case n:GlobalContainer =>
-      s"$topName/$n"
+      s"${config.modulePreix.getOrElse("")}/$topName/$n"
     case _ => super.quote(n)
   }
 
