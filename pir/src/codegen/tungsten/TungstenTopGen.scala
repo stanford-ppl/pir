@@ -87,7 +87,7 @@ using namespace std;
       val pattern = spadeParam.pattern.as[GridPattern]
       val row = pattern.row
       val col = pattern.col
-      genTopMember("DynamicNetwork<4, 4>", "net", Seq(s"{${row}, ${col}}", "net".qstr), end=false, extern=true, escape=true)
+      genTopMember("DynamicNetwork<4, 4>", "net", Seq(s"{${row}, ${col+2}}", "net".qstr), end=false, extern=true, escape=true)
       genTopMember("StaticNetwork<4, 4>", "statnet", Seq("statnet".qstr), end=false, extern=true, escape=true)
     }
   }
