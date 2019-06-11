@@ -215,15 +215,13 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     //TODO: handle en
     val accessCtx = within(memCU, headAccess.ctx.get.getCtrl) { Context().streaming(true) }
     val newAccess = within(accessCtx) {
-      data.fold[BankedAccess]{
-        stage(BankedRead().offset(ofs).en(en).mem(mem).mirrorMetas(headAccess))
+      data.fold[FlatBankedAccess]{
+        stage(FlatBankedRead().offset(ofs).en(en).mem(mem).mirrorMetas(headAccess))
       } { data => 
-        stage(BankedWrite().offset(ofs).data(data).en(en).mem(mem).mirrorMetas(headAccess))
+        stage(FlatBankedWrite().offset(ofs).data(data).en(en).mem(mem).mirrorMetas(headAccess))
       }
     }
-    newAccess.vec.reset
-    newAccess.presetVec := mem.nBanks
-    newAccess.to[BankedRead].foreach { newAccess =>
+    newAccess.to[FlatBankedRead].foreach { newAccess =>
       newAccess.out.vecMeta.reset
       newAccess.out.vecMeta := mem.nBanks
     }
@@ -237,7 +235,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       bufferInput(newAccess.done, fromCtx=Some(depCtx(accessCtx)))
     }
 
-    newAccess.to[BankedRead].foreach { newAccess =>
+    newAccess.to[FlatBankedRead].foreach { newAccess =>
       accesses.asInstanceOf[Set[BankedRead]].foreach { access =>
         access.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx, ins) =>
           val shuffle = within(inCtx, inCtx.getCtrl)  {

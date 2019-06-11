@@ -238,6 +238,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:MemRead => n.broadcast.v.map { _.size }.orElse(n.mem.banks.get.headOption)
       case n:BankedWrite => zipMap(n.data.inferVec, n.offset.inferVec) { case (a,b) => Math.max(a,b) }
       case n:BankedRead => n.offset.inferVec // Before lowering
+      case n:FlatBankedAccess => Some(n.mem.nBanks)
       case n:BufferWrite => n.data.inferVec
       case n:BufferRead => n.in.inferVec
       case n:RegAccumOp => Some(1)
@@ -252,7 +253,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:GlobalInput => n.in.inferVec
       case InputField(n:Shuffle, "from" | "base") => zipMap(n.base.singleConnected.get.inferVec, n.from.singleConnected.get.inferVec) { case (a,b) => Math.max(a,b) }
       case InputField(n:BufferWrite, "en") => Some(1)
-      case InputField(n:BankedAccess, "en") if n.mem.bankids.nonEmpty => Some(n.mem.nBanks)
+      case InputField(n:FlatBankedAccess, field) => Some(n.mem.T.nBanks)
       case InputField(n:Controller, "en" | "parentEn") => Some(1)
       case n:Input[_] if n.isConnected && n.connected.size==1 => n.singleConnected.get.inferVec
       case n:ControlTree => if (n.children.isEmpty) Some(n.par.get) else Some(1)

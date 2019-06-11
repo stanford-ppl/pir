@@ -57,7 +57,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
     case WithData(n:BufferWrite, data:StreamCommand) =>
 
-    case WithData(n:BufferWrite, data:BankedRead) =>
+    case WithData(n:BufferWrite, data:FlatBankedRead) =>
       n.out.T.foreach { send =>
         addEscapeVar(send)
         genCtxInits {
@@ -122,7 +122,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         emitln(s"$mem->Push(make_token(${n.data.qref}));")
       }
 
-    case n:BankedRead =>
+    case n:FlatBankedRead =>
       addEscapeVar(n.mem.T)
       emitEn(n.en)
       emitln(s"""${n.mem.T}->SetupRead("$n",make_token(${n.offset.qref}), make_token(${n.en.qref}));""")
@@ -130,7 +130,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
       }
 
-    case n:BankedWrite =>
+    case n:FlatBankedWrite =>
       addEscapeVar(n.mem.T)
       emitEn(n.en)
       emitln(s"""${n.mem.T}->Write("$n", make_token(${n.data.qref}), make_token(${n.offset.qref}), make_token(${n.en.qref}));""")
@@ -157,7 +157,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
   override def quoteRef(n:Any):String = n match {
     case n@InputField(_:BufferWrite, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
-    case InputField(n:BankedAccess, "en") => s"${n}_en"
+    case InputField(n:FlatBankedAccess, "en") => s"${n}_en"
     case n@InputField(_:MemWrite, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
     case n@InputField(access:Access, "done") if !n.as[Input[PIRNode]].isConnected => "false"
     case n => super.quoteRef(n)
@@ -192,7 +192,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         case n:TokenWrite => n.done.T
       }
       val pipeDepth = data match {
-        case data:BankedRead => 1
+        case data:FlatBankedRead => 1
         case _ => numStagesOf(n.ctx.get)
       }
       (s"ValPipeline<Token, $pipeDepth>", s"pipe_$n")
