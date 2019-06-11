@@ -4,6 +4,7 @@ package test
 import spade.node._
 import spade.param._
 import spade.codegen._
+import spade.pass._
 
 import prism.test._
 import prism.graph.implicits._

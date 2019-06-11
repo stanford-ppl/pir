@@ -56,14 +56,15 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with PIRTr
   }
 
   val EvalOp = MatchRule[OpDef, (OpDef, Any)] { case n@OpDef(op) =>
-    val ins = n.inputs.map { _.T match {
-      case Const(c) => Some(c)
-      case out => None
+    val ins = n.inputs.map { 
+      _.connected match {
+        case List(OutputField(Const(c), "out")) => Literal(c)
+        case outs => outs
+      }
     }
-    }
-    op.eval(ins).map { c => 
-      dbg(s"Const prop $n($op).ins(${ins}) to $c")
-      (n, c)
+    op.eval(ins).map { exp => 
+      dbg(s"Const prop $n($op).ins(${ins}) to $exp")
+      (n, exp)
     }
   }
 
@@ -140,6 +141,13 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with PIRTr
     }
   }
 
+  val ShuffleUnmatch = MatchRule[Shuffle, Shuffle] { n =>
+    (n.from, n.to) match {
+      case (SConnected(OutputField(Const(from:List[_]),"out")), SConnected(OutputField(Const(to:List[_]),"out"))) if from.intersect(to).isEmpty => Some(n)
+      case (from, to) => None
+    }
+  }
+
   override def visitNode(n:N):T = /*dbgblk(s"visitNode:${quote(n)}") */{
     super.visitNode(n)
     n.to[PIRNode].foreach { n =>
@@ -167,6 +175,14 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with PIRTr
           val base = assertOne(n.base.connected, s"$n.base.connected")
           swapOutput(n.out, base)
         }
+      case ShuffleUnmatch(n) =>
+        dbgblk(s"ShuffleUnmatch($n, from=${dquote(n.from.T)}, to=${dquote(n.to.T)})") {
+          val c = within(n.ctx.get, n.getCtrl) {
+            allocConst(List.fill(n.inferVec.get)(n.filled))
+          }
+          swapOutput(n.out, c.out)
+        }
+
       case WrittenByConstData(read:MemRead, c:Const) =>
         dbgblk(s"WrittenByConstData($read, $c)") {
           swapOutput(read.out, c.out)
@@ -175,11 +191,16 @@ class ConstantPropogation(implicit compiler:PIR) extends PIRTraversal with PIRTr
         dbgblk(s"FirstIter($ctr)") {
           swapOutput(n.out, ctr.isFirstIter)
         }
-      case EvalOp(n, c) =>
-        dbgblk(s"EvalOp($n, $c)") {
-          val const = within(n.parent.get, n.ctrl.get) { allocConst(c) }
-          swapOutput(n.out, const.out)
-          addAndVisitNode(const, ())
+      case EvalOp(n, exp) =>
+        dbgblk(s"EvalOp($n, $exp)") {
+          exp match {
+            case Literal(c) =>
+              val const = within(n.parent.get, n.ctrl.get) { allocConst(c) }
+              swapOutput(n.out, const.out)
+              addAndVisitNode(const, ())
+            case List(out:Output[_]) =>
+              swapOutput(n.out, out.as[Output[PIRNode]])
+          }
         }
       case CounterConstValid(counter, maxValid) => 
         dbgblk(s"CounterConstValid($counter, $maxValid)") {
