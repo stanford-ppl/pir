@@ -150,8 +150,8 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
             }
           }
           bufferInput(ctx)
-          dupDeps(ctx, from=None)
         }
+        dupDeps(ctx, from=None).values.foreach { _.as[PIRNode].ctrl(read.ctrl.get,reset=true) }
       }
       insertGlobalInput(global)
       removeUnusedConst(global)

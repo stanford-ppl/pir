@@ -109,6 +109,11 @@ trait MemoryAnalyzer extends PIRTransformer { self:BufferAnalyzer =>
     }
   }
 
-  def allocConst(value:Any) = allocate[Const] { c => c.value == value } { Const(value) }
+  def allocConst(value:Any) = allocate[Const] { c => 
+    c.value == value &&
+    stackTop[Ctrl].fold(true) { ctrl => c.getCtrl == ctrl }
+  } { 
+    Const(value)
+  }
 
 }

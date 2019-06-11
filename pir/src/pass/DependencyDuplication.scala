@@ -95,9 +95,10 @@ trait DependencyAnalyzer extends PIRTransformer {
     //breakPoint(s"swapDep($ctx)", None)
   }
 
-  def dupDeps(ctx:Context, from:Option[Context]) = dbgblk(s"dupDeps(to=$ctx, from=$from)"){
+  def dupDeps(ctx:Context, from:Option[Context]):Map[IR,IR] = dbgblk(s"dupDeps(to=$ctx, from=$from)"){
     val mapping = mirrorDeps(ctx, from=from)
     swapDeps(ctx, mapping)
+    mapping
   }
 
   def check(ctx:Context) = {
