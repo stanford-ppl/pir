@@ -26,6 +26,7 @@ parser.add_argument('-d', '--dst', type=str, help='Path to destination csv to ap
 (opts, args) = parser.parse_known_args()
 parsed = {}
 with open(opts.partial, 'r') as f:
+    f.readline()
     for line in f:
         line = line.strip()
         link,rest = line.split(",", 1)
@@ -84,7 +85,7 @@ emitln("""
             1000000,
             intIns
           )
-          emitln(s"""    f.write("${fields.mkString(",")}" + parsed["${n.externAlias.get}"].split(",",1)[1] + "\\n") # internal output""")
+          emitln(s"""    f.write("${fields.mkString(",")}" + ",".join(parsed["${n.externAlias.get}"].split(",")[::-1]) + "\\n") # internal output""")
           emitln(s"""    del parsed["${n.externAlias.get}"]""")
         }
       } else {
