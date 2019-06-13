@@ -4,7 +4,7 @@ package codegen
 import pir.node._
 import prism.graph._
 import prism.util._
-import spade.param._
+import spade.param.{NumOp => _, _}
 
 class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with PIRTraversal {
 
@@ -135,7 +135,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
   }
 
   def getLatency(n:OpNode):Int = n match {
-    case n:RegAccumOp => n.getCtrl.getVec.log2 + 1
+    case n:RegAccumOp => new NumOp(n.getCtrl.getVec).log2 + 1
     case n => 1
   }
 
