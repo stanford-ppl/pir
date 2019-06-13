@@ -345,7 +345,7 @@ runtst_parser.append(Parser(
 ))
 runtst_parser.append(Parser(
     'runtst_err', 
-    ["error", "fail", "exception", "fault"],
+    ["error", "fail", "exception", "fault", "terminated by signal"],
     lambda lines: lines[0] 
 ))
 runtst_parser.append(Parser(
