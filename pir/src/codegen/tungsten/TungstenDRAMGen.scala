@@ -24,7 +24,7 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
       val offset = nameOf(n.offset.T.as[BufferRead]).&
       val size = nameOf(n.size.T.as[BufferRead]).&
       val data = nameOf(n.data.T.as[BufferWrite].gout.get).&
-      genTopMember(n, Seq(n.qstr, offset, size, data, "&DRAM"), end=true)
+      genTopMember(n, Seq(n.qstr, offset, size, data, "DRAM".&), end=true)
 
     case n:FringeDenseStore =>
       val offset = nameOf(n.offset.T.as[BufferRead]).&
@@ -32,18 +32,18 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
       val data = nameOf(n.data.T.as[BufferRead]).&
       val valid = nameOf(n.valid.T.as[BufferRead]).&
       val ack = nameOf(n.ack.T.as[BufferWrite].gout.get).&
-      genTopMember(n, Seq(n.qstr, offset, size, data, valid, ack, "&DRAM"), end=true)
+      genTopMember(n, Seq(n.qstr, offset, size, data, valid, ack, "DRAM".&), end=true)
 
     case n:FringeSparseLoad =>
       val addr = nameOf(n.addr.T.as[BufferRead]).&
       val data = nameOf(n.data.T.as[BufferWrite].gout.get).&
-      genTopMember(n, Seq(n.qstr, addr, data, "&DRAM"), end=true)
+      genTopMember(n, Seq(n.qstr, addr, data, "DRAM".&), end=true)
 
     case n:FringeSparseStore =>
       val addr = nameOf(n.addr.T.as[BufferRead]).&
       val data = nameOf(n.data.T.as[BufferRead]).&
       val ack = nameOf(n.ack.T.as[BufferWrite].gout.get).&
-      genTopMember(n, Seq(n.qstr, addr, data, ack, "&DRAM"), end=true)
+      genTopMember(n, Seq(n.qstr, addr, data, ack, "DRAM".&), end=true)
 
     case n:CountAck =>
       emitln(s"bool $n = true;")
