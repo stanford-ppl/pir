@@ -43,7 +43,7 @@ using namespace std;
   // extern: if generated as module, these members are instantiated from outside of top module
   // escape: if generated as module, these members are passed in to the top module
   case class TopMember(tp:String, name:String, args:Seq[String], extern:Boolean, escape:Boolean, alias:Option[String])
-  val topMembers = mutable.ListBuffer[TopMember]()
+  val topMembers = mutable.Map[String, TopMember]()
 
   def genTopMember(n:PIRNode, args:Seq[String], end:Boolean=false):Unit = {
     val interfaceTp = n match {
@@ -75,7 +75,18 @@ using namespace std;
         emitln(s"$tp $name(${args.mkString(",")});")
       }
     }
-    topMembers += TopMember(interfaceTp, name, args, ext, escape, alias)
+    topMembers += name -> TopMember(interfaceTp, name, args, ext, escape & ext, alias)
+  }
+
+  private var enterTop = false
+  override def isPointer(x:Any) = {
+    x.to[String].flatMap { x =>
+      if (enterTop)
+        topMembers.get(x).flatMap { mem =>
+          if (mem.escape) Some(true) else None
+        }
+      else None
+    }.getOrElse(super.isPointer(x))
   }
 
   override def initPass = {
@@ -94,20 +105,21 @@ using namespace std;
 
   override def emitNode(n:N) = n match {
     case n:Top => 
+      enterTop = true
       emitTopHeader
       visitNode(n)
+      enterTop = false
     case n:GlobalContainer => visitNode(n)
     case n => super.emitNode(n)
   }
 
-
   override def finPass = {
     // Emit Top Module
-    val (externs, members) = topMembers.partition { _.extern } 
+    val (externs, members) = topMembers.values.toList.partition { _.extern } 
     val (escapes, _) = externs.partition { _.escape }
     val dutArgs = ("top" +: externs.map { _.name }).map{_.&}.mkString(",")
-    val topArgsSig = escapes.map { mem => s"${mem.tp}& ${mem.name}" }.mkString(",\n    ")
-    val topArgs = if (escapes.isEmpty) "" else s"(${escapes.map { _.name }.mkString(",")})" 
+    val topArgsSig = escapes.map { mem => s"${mem.tp}* ${mem.name}" }.mkString(",\n    ")
+    val topArgs = if (escapes.isEmpty) "" else s"(${escapes.map { _.name.& }.mkString(",")})" 
 
     genTop {
       declareClass(s"""$topName: public Module""") {
@@ -124,7 +136,7 @@ using namespace std;
         }
         val aliasArgs = escapes.map { mem => 
           val alias = mem.alias.getOrElse(mem.name) 
-          s""" *((${mem.tp}*)alias["$alias"])"""
+          s""" ((${mem.tp}*)alias["$alias"])"""
         }.mkString(",")
         emitln(s"""$topName(map<string, Module*> alias): $topName($aliasArgs) {}""")
       }
