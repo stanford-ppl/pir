@@ -7,16 +7,16 @@ import spade.param._
 
 class TungstenRunner(implicit compiler: PIR) extends PIRPass with Printer {
 
-  lazy val tstLog = buildPath(config.cwd, "runtst.log")
-
   override def runPass = {
-    withOpen(config.cwd, s"runtst.sh", false) {
+    val conf = config
+    import conf._
+    withOpen(config.appDir, s"runtst.sh", false) {
       emitln(s"""cd tungsten""")
       emitln(s"""make""")
       emitln("""./tungsten "$@"""")
     }
     deleteFile(tstLog)
-    val exitCode = shellProcess("tungsten", s"bash runtst.sh", tstLog) { line =>
+    val exitCode = shellProcess("tungsten", s"bash runtst.sh", config.appDir, tstLog) { line =>
       if (line.contains("PASS: true")) {
         info(Console.GREEN, s"tungsten", line)
       } else if (line.contains("PASS: false")) {
