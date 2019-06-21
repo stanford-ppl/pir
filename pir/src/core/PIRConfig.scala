@@ -87,6 +87,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def runproute = option[Boolean]("run-proute") || runPsim || runTst 
   def proutePlaceName = "final.place"
   def proutePlacePath = buildPath(psimOut, proutePlaceName)
+  def iroutePlacePath = buildPath(psimOut, "ideal.place")
   def prouteLinkName = "link.csv"
   def prouteLinkPath = buildPath(psimOut, prouteLinkName)
   def prouteNodeName = "node.csv"

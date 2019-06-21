@@ -31,6 +31,7 @@ trait TungstenTopGen extends TungstenCodegen {
 #include "dramag.h"
 #include "network.h"
 #include "staticnetwork.h"
+#include "idealnetwork.h"
 
 using namespace std;
 
@@ -100,6 +101,11 @@ using namespace std;
       val col = pattern.col
       genTopMember("DynamicNetwork<4, 4>", "net", Seq(s"{${col+2}, ${row}}", "net".qstr), end=false, extern=true, escape=true)
       genTopMember("StaticNetwork<4, 4>", "statnet", Seq("statnet".qstr), end=false, extern=true, escape=true)
+      genTopMember("IdealNetwork<4>", "idealnet", Seq("idealnet".qstr), end=false, extern=true, escape=true)
+    } else {
+      genTopMember("DynamicNetwork<4, 4>", "net", Seq(s"{4, 4}", "net".qstr), end=false, extern=true, escape=true)
+      genTopMember("StaticNetwork<4, 4>", "statnet", Seq("statnet".qstr), end=false, extern=true, escape=true)
+      genTopMember("IdealNetwork<4>", "idealnet", Seq("idealnet".qstr), end=false, extern=true, escape=true)
     }
   }
 

@@ -11,27 +11,29 @@ trait TungstenIOGen extends TungstenCodegen with TungstenCtxGen with TungstenTop
   override def emitNode(n:N) = n match {
     case n:GlobalOutput =>
       val (tp, name) = varOf(n)
-      val args = if (noPlaceAndRoute) Seq(name.qstr) else Seq(name.qstr, "net".&, "statnet".&)
+      //val args = if (noPlaceAndRoute) Seq(name.qstr) else Seq(name.qstr, "net".&, "statnet".&, "idealnet".&)
+      val args = Seq(name.qstr, "net".&, "statnet".&, "idealnet".&)
       genTopMember(n, args)
-      if (noPlaceAndRoute) {
-        val bcArgs = n.out.T.map { out => varOf(out)._2.& }
-        val (extRec, intRec) = n.out.T.partition { _.isExtern.get }
-        if (extRec.nonEmpty) {
-          if (!n.isExtern.get) {
-            genExternEnd {
-              emitln(s"auto& ${quote(n)} = top.${quote(n)};")
-            }
-          }
-          genTopMember("Broadcast<Token>", s"bc_$n", Seq(s"bc_$n".qstr, name.&, s"{${bcArgs.mkString(",")}}"), extern=true, end=true, escape=false)
-        } 
-        if (intRec.nonEmpty) {
-          genTopMember("Broadcast<Token>", s"bc_$n", Seq(s"bc_$n".qstr, name.&, s"{${bcArgs.mkString(",")}}"), extern=false, end=true, escape=false)
-        }
-      }
+      //if (noPlaceAndRoute) {
+        //val bcArgs = n.out.T.map { out => varOf(out)._2.& }
+        //val (extRec, intRec) = n.out.T.partition { _.isExtern.get }
+        //if (extRec.nonEmpty) {
+          //if (!n.isExtern.get) {
+            //genExternEnd {
+              //emitln(s"auto& ${quote(n)} = top.${quote(n)};")
+            //}
+          //}
+          //genTopMember("Broadcast<Token>", s"bc_$n", Seq(s"bc_$n".qstr, name.&, s"{${bcArgs.mkString(",")}}"), extern=true, end=true, escape=false)
+        //} 
+        //if (intRec.nonEmpty) {
+          //genTopMember("Broadcast<Token>", s"bc_$n", Seq(s"bc_$n".qstr, name.&, s"{${bcArgs.mkString(",")}}"), extern=false, end=true, escape=false)
+        //}
+      //}
       
     case n:GlobalInput =>
       val (tp, name) = varOf(n)
-      val args = if (noPlaceAndRoute) Seq(name.qstr) else Seq(name.qstr, "net".&, "statnet".&)
+      //val args = if (noPlaceAndRoute) Seq(name.qstr) else Seq(name.qstr, "net".&, "statnet".&)
+      val args = Seq(name.qstr, "net".&, "statnet".&, "idealnet".&)
       genTopMember(n, args)
       val bcArgs = n.out.T.map { out => varOf(out)._2.& }
       genTopMember("Broadcast<Token>", s"bc_$n", Seq(s"bc_$n".qstr, name.&, s"{${bcArgs.mkString(",")}}"), extern=n.isExtern.get, end=true, escape=false)
@@ -40,10 +42,10 @@ trait TungstenIOGen extends TungstenCodegen with TungstenCtxGen with TungstenTop
   }
 
   override def varOf(n:PIRNode):(String,String) = n match {
-    case n:GlobalOutput if noPlaceAndRoute =>
-      (s"FIFO<Token,2>", quote(n))
-    case n:GlobalInput if noPlaceAndRoute =>
-      (s"FIFO<Token,2>", quote(n))
+    //case n:GlobalOutput if noPlaceAndRoute =>
+      //(s"FIFO<Token,2>", quote(n))
+    //case n:GlobalInput if noPlaceAndRoute =>
+      //(s"FIFO<Token,2>", quote(n))
     case n:GlobalOutput =>
       (s"NetworkInput", quote(n))
     case n:GlobalInput =>

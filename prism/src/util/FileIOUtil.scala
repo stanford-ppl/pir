@@ -81,6 +81,28 @@ trait FileIOUtil {
     }
   }
 
+  def lnFiles(srcDir: String, dstDir:String): Unit = {
+    lnFiles(new File(srcDir), new File(dstDir))
+  }
+
+  def lnFiles(srcDirFile: File, dstDirFile:File): Unit = {
+    for (f <- srcDirFile.listFiles) {
+      if (f.isDirectory) {
+        val dstDir = new File(s"${dstDirFile.getCanonicalPath()}${separator}${f.getName}")
+        dstDir.mkdirs()
+        lnFiles(f, dstDir)
+      } else {
+        val dst = s"${dstDirFile.getCanonicalPath()}${separator}${f.getName}"
+        val src = f.getCanonicalPath()
+        val link = Paths.get(dst);
+        if (Files.exists(link)) {
+          Files.delete(link);
+        }
+        Files.createSymbolicLink(link, Paths.get(src));
+      }
+    }
+  }
+
   def mkdir(dirName:String):Unit = {
     val dir = new File(dirName)
     if (!dir.exists()) {

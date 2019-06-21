@@ -118,9 +118,9 @@ trait PIRApp extends PIR with Logging {
     // Plastiroute
     addPass(genProute, prouteLinkGen).dependsOn(psimAnalyzer)
     addPass(genProute, prouteNodeGen).dependsOn(placerAndRouter, psimAnalyzer) ==>
+    addPass(genTungsten, tungstenPIRGen).dependsOn(placerAndRouter) ==>
     addPass(genProute, prouteRunner)
     // Tungsten
-    addPass(genTungsten, tungstenPIRGen).dependsOn(placerAndRouter) ==>
     addPass(genTungsten && runTst, tstRunner).dependsOn(prouteRunner)
     // Plastisim
     addPass(genPsim, psimConfigGen).dependsOn(placerAndRouter, psimAnalyzer, prouteLinkGen) ==>

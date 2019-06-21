@@ -14,36 +14,34 @@ class PlastirouteLinkGen(implicit compiler: PIR) extends PlastisimCodegen with C
   def genScript(block: => Unit) = enterFile(config.psimOut, script)(block)
 
   override def runPass = {
-    if (!noPlaceAndRoute) {
-      genScript {
-        emitln("""
-import argparse
+    genScript {
+      emitln("""
+impo argparse
 
-parser = argparse.ArgumentParser(description='Generate full link.csv based on partial csv')
-parser.add_argument('-p', '--partial', type=str, help='Path to partial csv')
-parser.add_argument('-d', '--dst', type=str, help='Path to destination csv to append to')
+pars = argparse.ArgumentParser(description='Generate full link.csv based on partial csv')
+pars.add_argument('-p', '--partial', type=str, help='Path to partial csv')
+pars.add_argument('-d', '--dst', type=str, help='Path to destination csv to append to')
 
-(opts, args) = parser.parse_known_args()
-parsed = {}
-with open(opts.partial, 'r') as f:
-    f.readline()
-    for line in f:
-        line = line.strip()
-        link,rest = line.split(",", 1)
-        parsed[link.split("/")[-1]] = line
-with open (opts.dst, 'a') as f:
+(opt args) = parser.parse_known_args()
+pars = {}
+withpen(opts.partial, 'r') as f:
+    readline()
+    r line in f:
+      line = line.strip()
+      link,rest = line.split(",", 1)
+      parsed[link.split("/")[-1]] = line
+withpen (opts.dst, 'a') as f:
 """)
-      }
-      setHeaders("link","ctx","src","tp","count","dst[0]","out[0]")
-      super.runPass
-      genScript {
-emitln("""
-    for link in parsed:
-        f.write(parsed[link] + '\n')
-""")
-      }
-      getStream(buildPath(config.psimOut, script)).get.close
     }
+    setHeaders("link","ctx","src","tp","count","dst[0]","out[0]")
+    super.runPass
+    genScript {
+emit("""
+    r link in parsed:
+      f.write(parsed[link] + '\n')
+""")
+    }
+    getStream(buildPath(config.psimOut, script)).get.close
   }
 
   override def emitNode(n:N) = n match {
