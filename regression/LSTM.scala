@@ -1,7 +1,7 @@
 import spatial.dsl._
 
-class LSTM_0 extends LSTMApp
-class LSTM_1 extends LSTMApp(rp=2)
+//class LSTM_0 extends LSTMApp
+//class LSTM_1 extends LSTMApp(rp=2)
 //class LSTM_2 extends LSTMApp(rp=4)
 //class LSTM_3 extends LSTMApp(rp=6)
 //class LSTM_4 extends LSTMApp(rp=8)
