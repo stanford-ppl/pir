@@ -16,8 +16,16 @@ abstract class Param[T:TypeTag] extends Product {
 }
 
 trait DSETest extends SpatialTest { test =>
-  //def param:Param[_]
-  
-  override def runtimeArgs = Args(Seq(""))
+  case object PIRCompile extends PIRBackend {
+    val row:Int=14
+    val col:Int=14
+    def runPasses():Result = {
+      genpir() >>
+      pirpass("gentst", s"--mapping=true --codegen=true --net=inf --tungsten=false --dot=true --psim=false".split(" ").toList)
+    }
+  }
 
+  override def backends: Seq[Backend] = 
+    PIRCompile +:
+    super.backends
 }
