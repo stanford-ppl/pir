@@ -135,7 +135,11 @@ trait DotCodegen extends Codegen {
   override def finPass = {
     super.finPass
     val flag = if (usePos) "-Kfdp -n" else ""
-    val command = s"dot $flag -Tsvg -o $dotPath $outputPath"
+    val tp = if (dotPath.endsWith("html")) "svg" else {
+      val dp = dotPath
+      dotPath.split("\\.")(1).trim
+    }
+    val command = s"dot $flag -T$tp -o $dotPath $outputPath"
     shell(command)
   }
 

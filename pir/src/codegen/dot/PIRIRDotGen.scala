@@ -128,5 +128,34 @@ class PIRCtxDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fil
     case n:Context => n.children.collect { case n:LocalAccess => n; case n:Access => n; case c:FringeCommand => c }
     case n => super.visitFunc(n)
   }
+}
 
+class PIRGlobalDotGen(fileName:String, format:String="html")(implicit design:PIR) extends PIRIRDotGen(fileName) {
+  override def dotFile:String = fileName.replace(s".dot", s".$format")
+
+  override def color(attr:DotAttr, n:N) = n match {
+    case n:ArgFringe => attr.setNode.fillcolor("beige").style(filled)
+    case n:MemoryContainer => attr.setNode.fillcolor("limegreen").style(filled)
+    case n:ComputeContainer if n.isDAG.get => attr.setNode.fillcolor("orange").style(filled)
+
+    case n:ComputeContainer => attr.setNode.fillcolor("dodgerblue").style(filled)
+    case n:DRAMFringe => attr.setNode.fillcolor("lightseagreen").style(filled)
+    case n:Top => super.color(attr,n)
+  }
+
+  override def label(attr:DotAttr, n:N) = n match {
+    case n:ArgFringe => attr.setNode.label("Host")
+    case n:MemoryContainer => attr.setNode.label("PMU")
+    case n:ComputeContainer if n.isDAG.get => attr.setNode.label("DRAM_AG")
+
+    case n:ComputeContainer => attr.setNode.label("PCU")
+    case n:DRAMFringe => attr.setNode.label("MC")
+    case n:Top => super.color(attr,n)
+  }
+
+  override def emitNode(n:N) = n match {
+    case n:Top => visitNode(n)
+    case n:GlobalContainer => emitSingleNode(n)
+    case n => super.emitNode(n)
+  }
 }

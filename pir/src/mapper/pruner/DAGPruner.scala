@@ -9,11 +9,9 @@ import prism.collection.immutable._
 
 class DAGPruner(implicit compiler:PIR) extends CUPruner {
 
-  val dags = scala.collection.mutable.Set[GlobalContainer]()
-
   override def prune[T](x:T):EOption[T] = super.prune[T](x).flatMap {
     case x:CUMap if !spadeParam.isAsic =>
-      flatFold(dags, x) { case (x, k) =>
+      flatFold(x.freeKeys.filter { _.isDAG.get }, x) { case (x, k) =>
         val vs = x.freeValuesOf(k)
         val (isDAGs, nonDAGs) = vs.partition { _.params.get.isInstanceOf[DramAGParam] }
         val fits = isDAGs.nonEmpty
@@ -27,7 +25,7 @@ class DAGPruner(implicit compiler:PIR) extends CUPruner {
 
   override def initPass = {
     super.initPass
-    dags.clear
+    val dags = scala.collection.mutable.Set[GlobalContainer]()
     topMap.foreach { tmap =>
       val globals = tmap.cumap.freeKeys
       val fringes = globals.collect { case global:DRAMFringe => global }
@@ -40,6 +38,7 @@ class DAGPruner(implicit compiler:PIR) extends CUPruner {
         }
       }
       dbg(s"Find DAGs: $dags")
+      dags.foreach { _.isDAG := true }
     }
   }
 
