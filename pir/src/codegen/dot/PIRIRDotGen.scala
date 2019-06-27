@@ -5,7 +5,8 @@ import pir.node._
 import prism.codegen._
 import prism.util._
 
-class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal with IRDotCodegen { self =>
+class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDotCodegen { self =>
+  def fileName = fn
 
   implicit class PIRStringHelper(label:String) {
     def append(field:String, value:Any):String = value match {
@@ -107,7 +108,7 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
     super.emitEdge(from, to, newAttr)
   }
 
-  val htmlGen = new PIRHtmlIRPrinter(fileName.replace(".dot", "_IR.html")) {
+  lazy val htmlGen = new PIRHtmlIRPrinter(fileName.replace(".dot", "_IR.html")) {
     override lazy val logger = self.logger
     override def dirName = self.dirName
   }
@@ -130,8 +131,10 @@ class PIRCtxDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fil
   }
 }
 
-class PIRGlobalDotGen(fileName:String, format:String="html")(implicit design:PIR) extends PIRIRDotGen(fileName) {
-  override def dotFile:String = fileName.replace(s".dot", s".$format")
+class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
+  //override def fileName = pirTop.name.get + ".dot"
+  //override def dirName = buildPath(config.appDir, "../figs")
+  override def dotFile:String = fileName.replace(s".dot", s".html")
 
   override def color(attr:DotAttr, n:N) = n match {
     case n:ArgFringe => attr.setNode.fillcolor("beige").style(filled)

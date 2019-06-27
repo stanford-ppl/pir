@@ -113,7 +113,7 @@ trait PIRApp extends PIR with Logging {
     addPass(psimAnalyzer).dependsOn(placerAndRouter) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple9.dot")) ==>
     addPass(enableDot, new PIRIRDotGen(s"top9.dot"))
-    addPass(enableDot, new PIRGlobalDotGen(s"global.dot", "pdf"))
+    addPass(enableDot, new PIRGlobalDotGen(s"global.dot"))
     // Igraph
     addPass(enableIgraph, igraphGen).dependsOn(psimAnalyzer)
     // Plastiroute
