@@ -48,11 +48,6 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
 
     def psimState(s:String) = n.getMeta[Float]("psimState").update(s)
     def psimState = n.getMeta[String]("psimState").v
-
-    def isEscaped = n match {
-      case n:GlobalOutput if n.isExtern.get & noPlaceAndRoute => n.out.T.exists { !_.isExtern.get }
-      case _ => false
-    }
   }
 
   implicit class NodeRuntimeOp[N<:IR](n:N) {

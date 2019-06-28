@@ -49,8 +49,8 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
           fail(s"Plastiroute failed. details in $prouteLog")
         }
       }
-    } else {
-      val command = s"python ../tungsten/bin/idealroute.py -l link.csv -p ideal.place ${if (config.asModule) "" else "-i /Top/idealnet" }"
+    } else if (!config.asModule) {
+      val command = s"python ../tungsten/bin/idealroute.py -l link.csv -p ideal.place -i /Top/idealnet"
       withOpen(config.appDir, s"iroute.sh", false) {
         emitln(s"cd ${getRelativePath(config.psimOut, config.appDir)}")
         emitln(command)

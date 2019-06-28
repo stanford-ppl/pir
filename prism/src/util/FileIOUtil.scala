@@ -94,13 +94,20 @@ trait FileIOUtil {
       } else {
         val dst = s"${dstDirFile.getCanonicalPath()}${separator}${f.getName}"
         val src = f.getCanonicalPath()
-        val link = Paths.get(dst);
-        if (Files.exists(link)) {
-          Files.delete(link);
-        }
-        Files.createSymbolicLink(link, Paths.get(src));
+        lnFile(src, dst)
       }
     }
+  }
+
+  def lnFile(src:String, dst:String):Unit = {
+    lnFile(Paths.get(src), Paths.get(dst))
+  }
+
+  def lnFile(src:java.nio.file.Path, dst:java.nio.file.Path):Unit = {
+    if (Files.exists(dst)) {
+      Files.delete(dst);
+    }
+    Files.createSymbolicLink(dst, src);
   }
 
   def mkdir(dirName:String):Unit = {

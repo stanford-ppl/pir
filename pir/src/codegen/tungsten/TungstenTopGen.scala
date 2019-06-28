@@ -46,19 +46,19 @@ using namespace std;
   case class TopMember(tp:String, name:String, args:Seq[String], extern:Boolean, escape:Boolean, alias:Option[String])
   val topMembers = mutable.Map[String, TopMember]()
 
-  def genTopMember(n:PIRNode, args:Seq[String], end:Boolean=false):Unit = {
+  def genTopMember(n:PIRNode, args: => Seq[String], end:Boolean=false):Unit = {
     val interfaceTp = n match {
       case n:GlobalInput if config.asModule & n.isExtern.get => "CheckedSend<Token>"
       case n:GlobalOutput if config.asModule & n.isExtern.get => "CheckedReceive<Token>"
       case n => varOf(n)._1
     }
     val (tp, name) = varOf(n)
-    genTopMember(tp, name,args,end,n.isExtern.get,n.isEscaped, n.externAlias.v, interfaceTp)
+    genTopMember(tp, name,args,end,n.isExtern.get,false, n.externAlias.v, interfaceTp)
   }
-  def genTopMember(tp:Any, name:Any, args:Seq[String], end:Boolean, extern:Boolean, escape:Boolean):Unit = {
+  def genTopMember(tp:Any, name:Any, args: => Seq[String], end:Boolean, extern:Boolean, escape:Boolean):Unit = {
     genTopMember(tp.toString, name.toString, args, end, extern, escape, None, tp.toString)
   }
-  private def genTopMember(tp:String, name:String, args:Seq[String], end:Boolean, extern:Boolean, escape:Boolean, alias:Option[String], interfaceTp:String):Unit = {
+  private def genTopMember(tp:String, name:String, args: => Seq[String], end:Boolean, extern:Boolean, escape:Boolean, alias:Option[String], interfaceTp:String):Unit = {
     val ext = extern & config.asModule
     if (!ext) {
       if (end)
@@ -70,11 +70,14 @@ using namespace std;
           emitln(s"$tp $name;")
         }
     } else {
+      val saved = enterTop
+      enterTop = false
       if (end) genExternEnd {
         emitln(s"$tp $name(${args.mkString(",")});")
       } else enterFile(outputPath, false) {
         emitln(s"$tp $name(${args.mkString(",")});")
       }
+      enterTop = saved
     }
     topMembers += name -> TopMember(interfaceTp, name, args, ext, escape & ext, alias)
   }
