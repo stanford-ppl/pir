@@ -82,6 +82,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("proute-seed", default=0, info="Plastiroute seed") 
   register("run-proute", default=false, info="Run Plastiroute") 
   register[String]("module-prefix", info="Prefix to top module path")
+  register[String]("module-name", info="Name for top-level module")
   def prouteHome = getOption[String]("proute-home").getOrElse(throw PIRException(s"proute-home is not set"))
   def genProute = genPsim || genTungsten
   def runproute = option[Boolean]("run-proute") || runPsim || runTst 
@@ -96,6 +97,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def prouteSummaryPath = buildPath(psimOut, prouteSummaryName)
   def prouteLog = buildPath(appDir, "proute.log")
   def modulePreix = getOption[String]("module-prefix")
+  def moduleName = getOption[String]("module-name")
 
   /* ------------------- Tungsten --------------------  */
   register[String]("tungsten-home", default=sys.env.get("TUNGSTEN_HOME"), info="Tungsten Home")
