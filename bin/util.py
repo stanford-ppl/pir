@@ -51,34 +51,23 @@ class Parser:
             parsers.append(self)
         self.logs = logs
 
-    def setDefault(self, conf, m):
-        conf[m + "_" + self.key] = self.default
+    def setDefault(self, conf, log):
+        conf[log + "_" + self.key] = self.default
 
     def parse(self, found, conf, log):
         lines = [line for pat in self.patterns for line in found[pat]]
         if len(lines) != 0:
-            conf[m + "_" + self.key] = self.parseLambda(lines)
-
-    def matched(log):
-        for l in logs:
-            if l in log:
-                return l
-        return None
+            conf[log + "_" + self.key] = self.parseLambda(lines)
 
 def parseLog(log, parsers, conf):
-    ps = []
-    ms = []
-    for p in parsers:
-        m = p.matched(log)
-        if m is not None:
-            ps.append((p,m))
-    for parser,m in ps:
-        parser.setDefault(conf, m)
-    if not os.path.exists(log): return
-    patterns = [pat,m for parser in ps for pat in parser.patterns] 
-    found = grep(log, patterns)
-    for parser,m in ps:
-        parser.parse(found, conf, m)
+    parsers = [p for p in parsers if log in p.logs]
+    for parser in parsers:
+        parser.setDefault(conf, log)
+    if not os.path.exists(conf[log]): return
+    patterns = [pat for parser in parsers for pat in parser.patterns] 
+    found = grep(conf[log], patterns)
+    for parser in parsers:
+        parser.parse(found, conf, log)
 
 def getApps(backend, opts):
     apps = []
