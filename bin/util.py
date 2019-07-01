@@ -38,7 +38,7 @@ def cstr(color, msg):
     return "{}{}{}".format(color, msg, NC)
 
 class Parser:
-    def __init__(self, key, pattern, parseLambda, default=None):
+    def __init__(self, key, pattern, parseLambda, default=None, parsers=None, logs=[]):
         self.key = key
         if type(pattern) == list:
             patterns = pattern
@@ -47,23 +47,38 @@ class Parser:
         self.patterns = patterns
         self.parseLambda = parseLambda
         self.default = default
+        if parsers is not None:
+            parsers.append(self)
+        self.logs = logs
 
-    def setDefault(self, conf):
-        conf[self.key] = self.default
+    def setDefault(self, conf, m):
+        conf[m + "_" + self.key] = self.default
 
-    def parse(self, found, conf):
+    def parse(self, found, conf, log):
         lines = [line for pat in self.patterns for line in found[pat]]
         if len(lines) != 0:
-            conf[self.key] = self.parseLambda(lines)
+            conf[m + "_" + self.key] = self.parseLambda(lines)
+
+    def matched(log):
+        for l in logs:
+            if l in log:
+                return l
+        return None
 
 def parseLog(log, parsers, conf):
-    for parser in parsers:
-        parser.setDefault(conf)
+    ps = []
+    ms = []
+    for p in parsers:
+        m = p.matched(log)
+        if m is not None:
+            ps.append((p,m))
+    for parser,m in ps:
+        parser.setDefault(conf, m)
     if not os.path.exists(log): return
-    patterns = [pat for parser in parsers for pat in parser.patterns] 
+    patterns = [pat,m for parser in ps for pat in parser.patterns] 
     found = grep(log, patterns)
-    for parser in parsers:
-        parser.parse(found, conf)
+    for parser,m in ps:
+        parser.parse(found, conf, m)
 
 def getApps(backend, opts):
     apps = []
