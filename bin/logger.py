@@ -98,96 +98,87 @@ def getMessage(conf, opts):
     msg.append(conf['app'])
     succeeded = False
 
-    if conf['genpir']:
+    if get(conf,'genpir'):
         msg.append(cstr(GREEN, 'genpir'))
     else:
         msg.append(cstr(RED, 'genpir'))
-    if 'genpir_err' in conf and conf['genpir_err'] is not None:
-        msg.append(cstr(RED, conf['genpir_err']))
+    if get(conf,'genpir_err') is not None:
+        msg.append(cstr(RED, get(conf,'genpir_err')))
 
-    # if conf['NetVC'] is None:
+    # if get(conf,'NetVC') is None:
         # msg.append(cstr(RED,'runproute'))
     # else:
-        # msg.append(cstr(GREEN,'vc:{}'.format(conf['NetVC'])))
+        # msg.append(cstr(GREEN,'vc:{}'.format(get(conf,'NetVC'))))
 
-    # if conf['psim_deadlock']:
+    # if get(conf,'psim_deadlock'):
         # msg.append(cstr(RED, 'DEADLOCK'))
-    # elif conf['gentrace_err'] is not None:
-        # msg.append(cstr(RED, 'gentrace') + ": " + conf['gentrace_err'].strip())
-    # elif conf['genpsim_err'] is not None:
-        # msg.append(cstr(RED, 'genpsim') + ": " + conf['genpsim_err'].strip())
-    # elif conf['psimcycle'] is None:
+    # elif get(conf,'gentrace_err') is not None:
+        # msg.append(cstr(RED, 'gentrace') + ": " + get(conf,'gentrace_err').strip())
+    # elif get(conf,'genpsim_err') is not None:
+        # msg.append(cstr(RED, 'genpsim') + ": " + get(conf,'genpsim_err').strip())
+    # elif get(conf,'psimcycle') is None:
         # msg.append(cstr(RED, 'runpsim'))
     # else:
-        # msg.append(cstr(GREEN, 'psimcycle:{} lbw:{} sbw:{}'.format(conf['psimcycle'], conf['lbw'], conf['sbw'])))
+        # msg.append(cstr(GREEN, 'psimcycle:{} lbw:{} sbw:{}'.format(get(conf,'psimcycle'], conf['lbw'], conf['sbw'))))
 
-    if conf['gentst_err'] is not None:
-        msg.append(cstr(RED, 'gentst') + ": "+ conf['gentst_err'].strip())
-    elif 'gentst_time' not in conf or conf['gentst_time'] is None:
+    if get(conf,'gentst_err') is not None:
+        msg.append(cstr(RED, 'gentst') + ": "+ get(conf,'gentst_err').strip())
+    elif get(conf,'gentst_time') is None:
         msg.append(cstr(YELLOW, 'gentst'))
     else:
         msg.append(cstr(GREEN, 'gentst'))
-    if 'gentst_time' in conf and conf['gentst_time'] is not None:
-        msg.append('[{}s]'.format(round(conf['gentst_time']),2))
+    if get(conf,'gentst_time') is not None:
+        msg.append('[{}s]'.format(round(get(conf,'gentst_time')),2))
 
-    if conf['maketst_err'] is not None:
-        msg.append(cstr(RED, 'maketst') + ": " + conf['maketst_err'].strip())
-    elif not os.path.exists(conf['maketst']):
+    if get(conf,'maketst_err') is not None:
+        msg.append(cstr(RED, 'maketst') + ": " + get(conf,'maketst_err').strip())
+    elif get(conf,'maketst_time') is None:
         msg.append(cstr(YELLOW, 'maketst'))
     else:
         msg.append(cstr(GREEN, 'maketst'))
-    if 'maketst_time' in conf and conf['maketst_time'] is not None:
-        msg.append('[{}]'.format(conf['maketst_time']))
+    if get(conf,'maketst_time') is not None:
+        msg.append('[{}]'.format(get(conf,'maketst_time')))
 
-    color = None
-    if conf['runtst_deadlock']:
-        color = RED
-        msg.append(cstr(color, 'runtst: DEADLOCK'))
-    elif conf['runtst_err'] is not None:
-        color = RED
-        msg.append(cstr(color, 'runtst') + ": " + conf['runtst_err'].strip())
-    elif conf['runtst_pass'] is not None and not conf['runtst_pass']:
-        color = RED
-        msg.append(cstr(color, 'runtst PASS:false'))
-    elif conf['runtst_pass'] is not None and conf['runtst_pass']:
-        color = GREEN
-        msg.append(cstr(color, 'runtst PASS:true'))
-    elif 'runtst_complete' in conf and not conf['runtst_complete']:
-        color = YELLOW
-        msg.append(cstr(color, 'runtst'))
-    else:
-        color = GREEN
-        msg.append(cstr(GREEN, 'runtst'))
-    if conf['runtst_cycle'] is not None and color != RED:
-        color = GREEN
-        msg.append(cstr(color, 'cycle:{}'.format(conf['runtst_cycle'])))
-    elif conf['runtst_cycle'] is not None:
-        msg.append(cstr(color, 'cycle:{}'.format(conf['runtst_cycle'])))
-    if 'runtst_time' in conf and conf['runtst_time'] is not None:
-        msg.append('[{}]'.format(conf['runtst_time']))
+    for p in ['runp2p', 'runhybrid']:
+        color = None
+        if get(conf,p + '_deadlock'):
+            color = RED
+            msg.append(cstr(color, p + ': DEADLOCK'))
+        elif get(conf,p + '_err') is not None:
+            color = RED
+            msg.append(cstr(color, p + '') + ": " + get(conf,p + '_err').strip())
+        elif get(conf,p + '_pass') is not None and not get(conf,p + '_pass'):
+            color = RED
+            msg.append(cstr(color, p + ' PASS:false'))
+        elif get(conf,p + '_pass') is not None and get(conf,p + '_pass'):
+            color = GREEN
+            msg.append(cstr(color, p + ' PASS:true'))
+        elif not get(conf,p + '_complete'):
+            color = YELLOW
+            msg.append(cstr(color, p + ''))
+        else:
+            color = GREEN
+            msg.append(cstr(GREEN, p + ''))
+        if get(conf,p + '_cycle') is not None and color != RED:
+            color = GREEN
+            msg.append(cstr(color, 'cycle:{}'.format(get(conf,p + '_cycle'))))
+        elif get(conf,p + '_cycle') is not None:
+            msg.append(cstr(color, 'cycle:{}'.format(get(conf,p + '_cycle'))))
+        if get(conf,p + '_time') is not None:
+            msg.append('[{}]'.format(get(conf,p + '_time')))
 
-    # if 'tst_dram_power' in conf and conf['tst_dram_power'] is not None:
-        # msg.append(cstr(color, 'dram power:' + str(conf['tst_dram_power']) + 'W'))
-
-    # if 'tst_rbw' in conf and conf['tst_rbw'] is not None:
-        # msg.append(cstr(color, 'rbw:' + str(conf['tst_rbw']) + 'GB/s'))
-
-    # if 'tst_wbw' in conf and conf['tst_wbw'] is not None:
-        # msg.append(cstr(color, 'wbw:' + str(conf['tst_wbw']) + 'GB/s'))
-
-    for f in opts.message.split(","):
-        if f in conf and conf[f] is not None:
-            msg.append(cstr(color, f + ':' + str(conf[f])))
-
-    succeeded = color == GREEN
-
+        for f in opts.message.split(","):
+            if get(conf,f) is not None:
+                msg.append(cstr(color, f + ':' + str(get(conf,f))))
 
     if len(opts.filter) > 0:
-        msg = [conf['app']]
-
-    conf['succeeded'] = succeeded
+        msg = [get(conf,'app')]
 
     return ' '.join(msg)
+
+def get(conf,key):
+    if key not in conf: return None
+    return conf[key]
 
 def removeRules(conf, opts):
     reruns = [] + opts.rerun
@@ -215,10 +206,6 @@ def removeRules(conf, opts):
             remove(conf['AccelMain'], opts)
         elif p == 'runproute':
             remove(conf['prouteSummary'], opts)
-        # elif p == 'runtst':
-            # remove(conf['gentst'], opts)
-            # remove(conf['maketst'], opts)
-            # remove(conf['runtst'], opts)
         elif p == 'runpsim':
             remove(conf['gentrace'], opts)
             remove(conf['genpsim'], opts)
@@ -239,7 +226,8 @@ def logApp(conf, opts):
         tail(conf['gentst'])
         tail(conf['runproute'])
         tail(conf['maketst'])
-        tail(conf['runtst'])
+        tail(conf['runp2p'])
+        tail(conf['runhybrid'])
 
 def parse(conf, opts):
     app = conf['app']
@@ -260,7 +248,8 @@ def parse(conf, opts):
     conf['logpath'] = os.path.join(opts.gendir,backend,app,"log/")
     conf['gentst'] = os.path.join(opts.gendir,backend,app,"log/gentst.log")
     conf['maketst'] = os.path.join(opts.gendir,backend,app,"log/maketst.log")
-    conf['runtst'] = os.path.join(opts.gendir,backend,app,"log/runtst.log")
+    conf['runp2p'] = os.path.join(opts.gendir,backend,app,"log/runp2p.log")
+    conf['runhybrid'] = os.path.join(opts.gendir,backend,app,"log/runhybrid.log")
     parse_genpir(conf['AccelMain'], conf, opts)
     # parseLog('runpir', parsers, conf)
     # parseLog('mappir', parsers, conf)
@@ -272,8 +261,18 @@ def parse(conf, opts):
     parseLog('proutesh', parsers, conf)
     parse_proutesummary(conf['prouteSummary'], conf, opts)
     parseLog('maketst', parsers, conf)
-    parseLog('runtst', parsers, conf)
+    parseLog('runp2p', parsers, conf)
+    parseLog('runhybrid', parsers, conf)
+    conf['succeeded'] = parse_success(conf)
     return conf
+
+def parse_success(conf):
+    for p in ['runp2p', 'runhybrid']:
+        if conf[p+'_cycle'] is None: return False
+        if conf[p+'_deadlock']: return False
+        if conf[p+'_deadlock']: return False
+        if conf[p+'_err'] is not None: return False
+    return True
 
 def parse_genpir(pirsrc, conf, opts):
     if os.path.exists(pirsrc):
@@ -329,21 +328,21 @@ Parser(
     'Simulation complete at cycle ',
     lambda lines: int(lines[0].split('Simulation complete at cycle ')[1].split(" ")[0]),
     parsers=parsers,
-    logs=['runtst']
+    logs=['runp2p', 'runhybrid']
 )
 Parser(
     'err', 
     ["error", "fail", "exception", "Exception", "fault", "terminated by signal"],
     lambda lines: lines[0],
     parsers=parsers,
-    logs=['runtst', 'maketst', 'gentst']
+    logs=['runp2p', 'runhybrid', 'maketst', 'gentst']
 )
 Parser(
     'pass', 
     ["PASS: "],
     lambda lines: bool(lines[0].split('PASS: ')[1].split(" (")[0]),
     parsers=parsers,
-    logs=['runtst']
+    logs=['runp2p', 'runhybrid']
 )
 Parser(
     'deadlock', 
@@ -351,7 +350,7 @@ Parser(
      lambda lines: True,
     default=False,
     parsers=parsers,
-    logs=['runtst'],
+    logs=['runp2p', 'runhybrid']
 )
 Parser(
     'complete', 
@@ -359,35 +358,35 @@ Parser(
      lambda lines: True,
     default=False,
     parsers=parsers,
-    logs=['runtst'],
+    logs=['runp2p', 'runhybrid']
 )
 Parser(
     'dram_power', 
     'Average DRAM Power',
     lambda lines: float(lines[0].split(':')[1].split("W")[0]),
     parsers=parsers,
-    logs=['runtst'],
+    logs=['runp2p', 'runhybrid']
 )
 Parser(
     'rbw', 
     'Average DRAM Read Bandwidth: ',
     lambda lines: float(lines[0].split(':')[1].split("GB/s")[0]),
     parsers=parsers,
-    logs=['runtst'],
+    logs=['runp2p', 'runhybrid']
 )
 Parser(
     'wbw', 
     'Average DRAM Write Bandwidth: ',
     lambda lines: float(lines[0].split(':')[1].split("GB/s")[0]),
     parsers=parsers,
-    logs=['runtst'],
+    logs=['runp2p', 'runhybrid']
 )
 Parser(
     'time', 
     ["Runtime:"],
     lambda lines: lines[0].split("Runtime:")[1].strip(),
     parsers=parsers,
-    logs=['runtst', 'maketst'],
+    logs=['runp2p', 'runhybrid']
 )
 Parser(
     'time', 
