@@ -95,8 +95,6 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     multiBufferBarrierInsertion(mem)
     enforceDataDependencyInSameController(mem)
     fifoBarrierInsertion(mem)
-    //enforceProgramOrder(mem)
-    //enforceDataDependency(mem)
   }
 
   // Remove accesses that are been broadcasted
@@ -391,30 +389,6 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     }
   }
 
-  //def enforceDataDependency(mem:Memory):Unit = dbgblk(s"enforceDataDependency($mem)"){
-    //val accesses = mem.accesses.filter { _.port.nonEmpty }
-    //accesses.groupBy { _.port.get }.foreach { case (port, accesses) =>
-      //val (inAccesses, outAccesses) =  accesses.partition { _.isInstanceOf[InAccess] }
-      //inAccesses.foreach { inAccess =>
-        //outAccesses.foreach { outAccess =>
-          //dbg(s"Insert token for data dependency between $inAccess and $outAccess")
-          //val token = insertToken(
-            //inAccess.ctx.get, 
-            //outAccess.ctx.get
-          //)
-          //if (token.depth.isEmpty) {
-            //token.depth(1)
-          //}
-          //if (inAccess.order.get > outAccess.order.get) {
-            //dbg(s"$token.initToken = true")
-            //token.initToken := true
-            //token.inits := List(true)
-          //}
-        //}
-      //}
-    //}
-  //}
-
   def fifoBarrierInsertion(mem:Memory):Unit = {
     if (!mem.isFIFO) return
     dbgblk(s"fifoBarrierInsertion($mem)") {
@@ -423,34 +397,6 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       insertToken(w.ctx.get,r.ctx.get)
     }
   }
-
-  //def enforceProgramOrder(mem:Memory) = {
-    //dbgblk(s"enforceProgramOrder($mem)") {
-      //val accesses = mem.accesses
-       ////Insert token between accesses based on program order
-      //val sorted = accesses.sortBy { _.order.get }
-      //sorted.sliding(2, 1).foreach {
-        //case List(a, b) => insertToken(a.ctx.get,b.ctx.get)
-        //case List(a) =>
-      //}
-       ////Insert token for loop carried dependency
-      //val lcaCtrl = leastCommonAncesstor(accesses.map(_.ctrl.get)).get
-      //(lcaCtrl.descendentTree).foreach { ctrl =>
-        //if (ctrl.ctrler.get.isInstanceOf[LoopController]) {
-          //val accesses = sorted.filter { a => a.ctrl.get.isDescendentOf(ctrl) || a.ctrl.get == ctrl }
-          //if (accesses.nonEmpty) {
-            //dbg(s"$ctrl accesses = ${accesses}")
-            //zipOption(accesses.head.to[ReadAccess], accesses.last.to[WriteAccess]).foreach { case (r, w) =>
-              //val token = insertToken(w.ctx.get, r.ctx.get)
-              //dbg(s"$token.initToken = true")
-              //token.initToken := true
-              //token.inits := List(true)
-            //}
-          //}
-        //}
-      //}
-    //}
-  //}
 
   def lowerToBuffer(mem:Memory) = {
     dbg(s"Lower $mem to InputBuffer")

@@ -11,11 +11,9 @@ class PlastirouteNodeGen(implicit compiler: PIR) extends PlastisimCodegen with C
   override def fileName = config.prouteNodeName
 
   override def runPass = {
-    if (!noPlaceAndRoute) {
-      topMap.foreach { tmap =>
-        tmap.cumap.usedMap.foreach { case (cuP, cuS) =>
-          emitCU(cuP, cuS)
-        }
+    topMap.foreach { tmap =>
+      tmap.cumap.usedMap.foreach { case (cuP, cuS) =>
+        emitCU(cuP, cuS)
       }
     }
   }
