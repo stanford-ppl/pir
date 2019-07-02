@@ -12,7 +12,8 @@ class StreamInfDotProduct_4 extends StreamInfDotProduct[scala.Int,Int](ip=8, op=
   val numBatch:scala.Int = 16,
   val batch:scala.Int = 4,
   val op:scala.Int = 1,
-  val ip:scala.Int = 8
+  val ip:scala.Int = 8,
+  val weightFile:Option[java.lang.String] = None
 )(implicit ev:Cast[Text,T]) extends StreamInference[HT,T,T] {
 
   val weights = Seq.tabulate(field) { i => i }
@@ -22,7 +23,11 @@ class StreamInfDotProduct_4 extends StreamInfDotProduct[scala.Int,Int](ip=8, op=
   }
 
   def accelBody(insram:SRAM2[T]):SRAM1[T] = { 
-    val wLUT = LUT.fromSeq[T](weights.map { _.to[T] })
+    val wLUT = weightFile match {
+      case Some(f) => LUT.fromFile[T](field)(f)
+      case None => LUT.fromSeq[T](weights.map { _.to[T] })
+    }
+
     val outsram = SRAM[T](batch)
     Foreach(0 until batch par op) { b =>
       val dot = Reg[T]
@@ -31,7 +36,8 @@ class StreamInfDotProduct_4 extends StreamInfDotProduct[scala.Int,Int](ip=8, op=
         insram(b,f) * wLUT(f)
       } { _ + _ }
       }
-      outsram(b) = dot.value
+      // binary classifier
+      outsram(b) = mux(dot.value > 0.to[T], 1.to[T], 0.to[T])
     }
     outsram
   }
