@@ -18,8 +18,7 @@ class StreamInfKmeans_7 extends StreamInfKmeans[scala.Int,Int](ip=8, kp=4, op=2)
   val batch:scala.Int = 4,
   val op:scala.Int = 1,
   val kp:scala.Int = 1,
-  val ip:scala.Int = 8,
-  val centroidsFile:Option[java.lang.String] = None
+  val ip:scala.Int = 8
 ) extends StreamInference[HT,T,Int] {
 
   val r = scala.util.Random
@@ -37,11 +36,7 @@ class StreamInfKmeans_7 extends StreamInfKmeans[scala.Int,Int](ip=8, kp=4, op=2)
   }
 
   def accelBody(insram:SRAM2[T]):SRAM1[Int] = { 
-    val cLUT = centroidsFile match {
-      case Some(f) => LUT.fromFile[T](K, field)(f)
-      case None => LUT.fromSeq[T](centroids.map { _.map { _.to[T] } })
-    }
-
+    val cLUT = LUT.fromSeq[T](centroids.map { _.map { _.to[T] } })
     val outsram = SRAM[Int](batch)
     Foreach(0 until batch par op) { b =>
       val dists = SRAM[T](K)
