@@ -105,11 +105,6 @@ def getMessage(conf, opts):
     if get(conf,'genpir_err') is not None:
         msg.append(cstr(RED, get(conf,'genpir_err')))
 
-    # if get(conf,'NetVC') is None:
-        # msg.append(cstr(RED,'runproute'))
-    # else:
-        # msg.append(cstr(GREEN,'vc:{}'.format(get(conf,'NetVC'))))
-
     # if get(conf,'psim_deadlock'):
         # msg.append(cstr(RED, 'DEADLOCK'))
     # elif get(conf,'gentrace_err') is not None:
@@ -131,45 +126,54 @@ def getMessage(conf, opts):
         msg.append('[{}s]'.format(round(get(conf,'gentst_time')),2))
 
     if get(conf,'maketst_err') is not None:
-        msg.append(cstr(RED, 'maketst') + ": " + get(conf,'maketst_err').strip())
+        msg.append(cstr(RED, 'make') + ": " + get(conf,'maketst_err').strip())
     elif get(conf,'maketst_time') is None:
-        msg.append(cstr(YELLOW, 'maketst'))
+        msg.append(cstr(YELLOW, 'make'))
     else:
-        msg.append(cstr(GREEN, 'maketst'))
+        msg.append(cstr(GREEN, 'make'))
     if get(conf,'maketst_time') is not None:
         msg.append('[{}]'.format(get(conf,'maketst_time')))
 
-    for p in ['runp2p', 'runhybrid']:
+    def printtst(p):
         color = None
         if get(conf,p + '_deadlock'):
             color = RED
-            msg.append(cstr(color, p + ': DEADLOCK'))
+            msg.append(cstr(color, p.replace('run','') + ': DEADLOCK'))
         elif get(conf,p + '_err') is not None:
             color = RED
-            msg.append(cstr(color, p + '') + ": " + get(conf,p + '_err').strip())
+            msg.append(cstr(color, p.replace('run','') + '') + ": " + get(conf,p + '_err').strip())
         elif get(conf,p + '_pass') is not None and not get(conf,p + '_pass'):
             color = RED
-            msg.append(cstr(color, p + ' PASS:false'))
-        elif get(conf,p + '_pass') is not None and get(conf,p + '_pass'):
-            color = GREEN
-            msg.append(cstr(color, p + ' PASS:true'))
+            msg.append(cstr(color, p.replace('run','') + ' PASS:false'))
         elif not get(conf,p + '_complete'):
             color = YELLOW
-            msg.append(cstr(color, p + ''))
+            msg.append(cstr(color, p.replace('run','') + ''))
         else:
             color = GREEN
-            msg.append(cstr(GREEN, p + ''))
+            msg.append(cstr(GREEN, p.replace('run','') + ''))
         if get(conf,p + '_cycle') is not None and color != RED:
             color = GREEN
-            msg.append(cstr(color, 'cycle:{}'.format(get(conf,p + '_cycle'))))
-        elif get(conf,p + '_cycle') is not None:
-            msg.append(cstr(color, 'cycle:{}'.format(get(conf,p + '_cycle'))))
+        if get(conf,p + '_cycle') is not None:
+            msg.append('cycle:{}'.format(get(conf,p + '_cycle')))
         if get(conf,p + '_time') is not None:
             msg.append('[{}]'.format(get(conf,p + '_time')))
 
         for f in opts.message.split(","):
             if get(conf,f) is not None:
                 msg.append(cstr(color, f + ':' + str(get(conf,f))))
+
+    printtst('runp2p')
+
+    if get(conf,'runproute_err') is not None:
+        msg.append(cstr(RED, 'proute') + ": "+ get(conf,'runproute_err').strip())
+    elif get(conf,'runproute_time') is None:
+        msg.append(cstr(YELLOW, 'proute'))
+    else:
+        msg.append(cstr(GREEN,'proute') + ' vc:{}'.format(get(conf,'NetVC')))
+    if get(conf,'runproute_time') is not None:
+        msg.append('[{}]'.format(get(conf,'runproute_time')))
+
+    printtst('runhybrid')
 
     if len(opts.filter) > 0:
         msg = [get(conf,'app')]
@@ -259,6 +263,7 @@ def parse(conf, opts):
     # parseLog('psimsh', parsers, conf)
     parseLog('gentst', parsers, conf)
     parseLog('proutesh', parsers, conf)
+    parseLog('runproute', parsers, conf)
     parse_proutesummary(conf['prouteSummary'], conf, opts)
     parseLog('maketst', parsers, conf)
     parseLog('runp2p', parsers, conf)
@@ -335,7 +340,7 @@ Parser(
     ["error", "fail", "exception", "Exception", "fault", "terminated by signal"],
     lambda lines: lines[0],
     parsers=parsers,
-    logs=['runp2p', 'runhybrid', 'maketst', 'gentst']
+    logs=['runp2p', 'runhybrid', 'maketst', 'runproute', 'gentst']
 )
 Parser(
     'pass', 
@@ -386,7 +391,7 @@ Parser(
     ["Runtime:"],
     lambda lines: lines[0].split("Runtime:")[1].strip(),
     parsers=parsers,
-    logs=['runp2p', 'runhybrid']
+    logs=['maketst', 'runp2p', 'runhybrid', 'runproute']
 )
 Parser(
     'time', 
