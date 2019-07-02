@@ -54,6 +54,9 @@ trait FileIOUtil {
 
   def copyFile(src: String, dst: String):Unit = {
     if (src == dst) return
+    if (Files.exists(Paths.get(dst))) {
+      Files.delete(Paths.get(dst));
+    }
     val srcFile = new File(src)
     val dstFile = new File(dst)
     new FileOutputStream(dstFile)

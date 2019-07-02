@@ -26,12 +26,16 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     }
   }
 
-  def bufferInput(ctx:Context):Unit = dbgblk(s"bufferInput($ctx)"){
-    ctx.descendents.foreach { deped => bufferInput(deped) }
+  def bufferInput(ctx:Context):Unit = {
+    bufferInput(ctx, None)
   }
 
-  def bufferInput(deped:PIRNode):Seq[BufferRead] = {
-    deped.localIns.flatMap { in => bufferInput(in) }
+  def bufferInput(ctx:Context, fromCtx:Option[Context]):Unit = dbgblk(s"bufferInput($ctx)"){
+    ctx.descendents.foreach { deped => bufferInput(deped, fromCtx) }
+  }
+
+  def bufferInput(deped:PIRNode, fromCtx:Option[Context]):Seq[BufferRead] = {
+    deped.localIns.flatMap { in => bufferInput(in, fromCtx) }
   }
 
   def bufferInput(in:Input[PIRNode], fromCtx:Option[Context]=None):Seq[BufferRead] = {

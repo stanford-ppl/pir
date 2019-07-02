@@ -75,7 +75,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
   }
 
   def createMemGlobal(mem:Memory) = {
-    val memCU = within(mem.parent.get) { MemoryContainer() }
+    val memCU = within(pirTop) { MemoryContainer() }
     // Create Memory Context
     swapParent(mem, memCU)
     lowerLUT(mem)
@@ -95,6 +95,10 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     multiBufferBarrierInsertion(mem)
     enforceDataDependencyInSameController(mem)
     fifoBarrierInsertion(mem)
+    mem.accesses.foreach { access =>
+      val ctx = access.ctx.get
+      bufferInput(ctx, fromCtx=Some(depCtx(ctx)))
+    }
   }
 
   // Remove accesses that are been broadcasted
@@ -132,17 +136,18 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
   }
 
   def lowerAccess(mem:Memory, memCU:MemoryContainer, access:Access) = dbgblk(s"lowerAccess($mem, $memCU, $access)") {
-    val mergeCtx = within(memCU, access.ctx.get.getCtrl) { Context() }
+    val mergeCtx = within(memCU, access.ctx.get.getCtrl) { Context().streaming(true) }
     swapParent(access, mergeCtx)
     access match {
       case access:MemRead =>
         bufferOutput(access.out)
       case access:MemWrite =>
         bufferInput(access.data)
-        val writeEns = access.en.T
-        dbg(s"writeEns=$writeEns")
-        val fromValid = writeEns.forall { case en:CounterValid => true }
-        if (!fromValid) bufferInput(access.en)
+        bufferInput(access.en)
+        //val writeEns = access.en.T
+        //dbg(s"writeEns=$writeEns")
+        //val fromValid = writeEns.forall { case en:CounterValid => true }
+        //if (!fromValid) bufferInput(access.en)
     }
   }
 
@@ -432,12 +437,12 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     removeNodes(mem.accesses :+ mem)
   }
 
-  override def insertToken(fctx:Context, tctx:Context):TokenRead = {
-    val read = super.insertToken(fctx, tctx)
-    bufferInput(read.inAccess.done, fromCtx=Some(depCtx(fctx)))
-    bufferInput(read.done, fromCtx=Some(depCtx(tctx)))
-    read
-  }
+  //override def insertToken(fctx:Context, tctx:Context):TokenRead = {
+    //val read = super.insertToken(fctx, tctx)
+    //bufferInput(read.inAccess.done, fromCtx=Some(depCtx(fctx)))
+    //bufferInput(read.done, fromCtx=Some(depCtx(tctx)))
+    //read
+  //}
 
   def depCtx(streamCtx:Context) = {
     streamCtx.collectDown[LocalOutAccess]().head.inAccess.ctx.get

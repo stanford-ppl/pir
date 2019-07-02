@@ -215,7 +215,7 @@ def removeRules(conf, opts):
             remove(conf['genpsim'], opts)
             remove(conf['runpsim'], opts)
         else:
-            remove(conf[p + 'log'], opts)
+            remove(conf[p], opts)
     return reruns
 
 def logApp(conf, opts):
