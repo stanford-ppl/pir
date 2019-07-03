@@ -330,5 +330,9 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     else true
   }
 
+  def isCtrlLink(n:GlobalOutput) = {
+    n.getVec == 1 && n.getTp == Bool
+  }
+
 }
 
