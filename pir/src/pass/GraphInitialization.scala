@@ -21,6 +21,22 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       }
       n.en.disconnect
     }
+    n.to[LoopController].foreach { n =>
+      n.stopWhen.T.foreach { n =>
+        n.to[MemRead].foreach { read =>
+          val mem = read.mem.T
+          within(mem.parent.get) { 
+            val newMem = FIFO().mirrorMetas(mem)
+            mem.accesses.sortBy{_.order.get}.foreach { a =>
+              a.mem.disconnect
+              a.setMem(newMem)
+            }
+            stage(newMem)
+          }
+          removeNodes(List(mem))
+        }
+      }
+    }
     n.to[Def].foreach { _.getVec }
     n.to[Access].foreach { _.getVec }
     n.to[DRAMAddr].foreach { n =>

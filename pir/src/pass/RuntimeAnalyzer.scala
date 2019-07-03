@@ -193,7 +193,10 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       }
       case n:Context =>
         val ctrlers = n.ctrlers
-        if (n.streaming.get || ctrlers.exists { _.isForever }) countByReads(n).get
+        var inferByInput = false
+        inferByInput ||= n.streaming.get
+        inferByInput ||= ctrlers.exists { ctrler => ctrler.isForever && !ctrler.hasBranch }
+        if (inferByInput) countByReads(n).get
         else countByController(n)
       case n:LocalOutAccess =>
         n.in.T.getCount

@@ -20,7 +20,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     }
     var cannotToBuffer = accesses.exists { _.isInstanceOf[BankedAccess] }
     // If read access is branch dependent, the ctx cannot block on the input for its activation
-    cannotToBuffer |= mem.outAccesses.exists { _.en.isConnected }
+    cannotToBuffer |= mem.accesses.exists { _.en.isConnected }
     cannotToBuffer |= mem.inAccesses.size > 1
     if (mem.isFIFO) {
       cannotToBuffer |= mem.outAccesses.size > 1
@@ -437,15 +437,12 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     removeNodes(mem.accesses :+ mem)
   }
 
-  //override def insertToken(fctx:Context, tctx:Context):TokenRead = {
-    //val read = super.insertToken(fctx, tctx)
-    //bufferInput(read.inAccess.done, fromCtx=Some(depCtx(fctx)))
-    //bufferInput(read.done, fromCtx=Some(depCtx(tctx)))
-    //read
-  //}
-
   def depCtx(streamCtx:Context) = {
-    streamCtx.collectDown[LocalOutAccess]().head.inAccess.ctx.get
+    streamCtx.collectDown[BufferRead]().headOption.map { _.inAccess.ctx.get }.getOrElse {
+      within(streamCtx.global.get, streamCtx.getCtrl) {
+        Context()
+      }
+    }
   }
 
 }

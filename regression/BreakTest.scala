@@ -6,8 +6,11 @@ import spatial.dsl._
     Accel{
       val stop = Reg[Bit](false)
       Stream(breakWhen=stop).Foreach(*) { i =>
-        stop := i == 10
-        out := i
+        val stopWhen = i == 10
+        stop := stopWhen 
+        if (stopWhen) {
+          out := i
+        }
       }
     }
     val o = getArg(out)

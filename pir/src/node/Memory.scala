@@ -160,6 +160,7 @@ abstract class Controller(implicit env:Env) extends PIRNode {
   val childDone = new OutputField[List[PIRNode]]("childDone")
 
   def isForever = this.collectDown[Counter]().exists { _.isForever }
+  def hasBranch = this.ctrl.v.get == Fork || this.to[LoopController].fold(false) { _.stopWhen.isConnected }
 
   val par = new Metadata[Int]("par")
 }
