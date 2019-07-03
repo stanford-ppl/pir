@@ -158,7 +158,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       case FixPow                   => s"pow($a, $b)"
       case FixFMA                   => s"$a * $b + $c"
       //case FixRecipSqrt           => s"-$a"
-      case FltSigmoid               => s"1.0 / (exp(-$a) + 1)"
+      case FixSigmoid               => s"1.0 / (1 + exp(-$a))"
       case SelectNonNeg             => s"($a<0) ? $b : $a"
       //case FltIsPosInf            =>
       //case FltIsNegInf            =>
@@ -198,8 +198,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       case FltAtan                  => s"atan($a)"
       case FltPow                   => s"pow($a, $b)"
       case FltFMA                   => s"$a * $b + $c"
-      //case FltRecipSqrt           =>
-      //case FltSigmoid             =>
+      case FltSigmoid               => s"1.0 / (1 + exp(-$a))"
 
       case Not                      => s"!$a"
       case And                      => s"$a & $b"

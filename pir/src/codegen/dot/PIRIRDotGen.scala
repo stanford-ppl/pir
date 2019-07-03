@@ -102,7 +102,7 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
 
   override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
     val newAttr = from.src match {
-      case from:GlobalOutput if from.vec.v.fold(false) { _ > 1 } => attr.setEdge.style(bold)
+      case from:GlobalOutput if from.vec.v.nonEmpty & isVecLink(from) => attr.setEdge.style(bold)
       case _ =>  attr
     }
     super.emitEdge(from, to, newAttr)
@@ -146,14 +146,22 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
     case n:Top => super.color(attr,n)
   }
 
-  override def label(attr:DotAttr, n:N) = n match {
-    case n:ArgFringe => attr.setNode.label("Host")
-    case n:MemoryContainer => attr.setNode.label("PMU")
-    case n:ComputeContainer if n.isDAG.get => attr.setNode.label("DRAM_AG")
+  //override def label(attr:DotAttr, n:N) = n match {
+    //case n:ArgFringe => attr.setNode.label("Host")
+    //case n:MemoryContainer => attr.setNode.label("PMU")
+    //case n:ComputeContainer if n.isDAG.get => attr.setNode.label("DRAM_AG")
 
-    case n:ComputeContainer => attr.setNode.label("PCU")
-    case n:DRAMFringe => attr.setNode.label("MC")
-    case n:Top => super.color(attr,n)
+    //case n:ComputeContainer => attr.setNode.label("PCU")
+    //case n:DRAMFringe => attr.setNode.label("MC")
+    //case n:Top => super.color(attr,n)
+  //}
+  
+  override def quote(n:Any) = {
+    super.quote(n).foldAt(n.to[GlobalContainer]) { (q, n) =>
+      val mem = n.collectDown[Memory]().map { quote(_) }
+      if (mem.nonEmpty) s"${q}\n${mem.mkString(",")}" 
+      else q
+    }
   }
 
   override def emitNode(n:N) = n match {

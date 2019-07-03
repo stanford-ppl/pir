@@ -54,7 +54,7 @@ class PlastirouteLinkGen(implicit compiler: PIR) extends PlastisimCodegen with C
     row("link") = quote(n)
     row("ctx") = ctx.id
     row("src") = quote(n.global.get)
-    row("tp") = if (n.getVec == 1) 1 else 2 // 1 for scalar, 2 for vector
+    row("tp") = if (isVecLink(n)) 1 else 2 // 1 for scalar, 2 for vector
     //row("count") = n.constCount
     row("count") = n.count.get.getOrElse(1000000) //TODO: use more reasonable heuristic when count is not available
 

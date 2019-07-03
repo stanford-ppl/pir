@@ -71,7 +71,8 @@ using namespace std;
     case n => super.emitNode(n)
   }
 
-  def emitStop(ctx:Context) = {
+  def emitStop(ctx:Context):Boolean = {
+    if (!ctx.global.get.isInstanceOf[ArgFringe]) return false
     ctx.collectDown[HostOutController]().headOption.fold(false) { hostOut =>
       val noStreamReadCtxs = !pirTop.collectDown[Context]().exists { case StreamReadContext(_) => true; case _ => false }
       val hasInputStream = ctx.collectDown[LocalOutAccess]().nonEmpty

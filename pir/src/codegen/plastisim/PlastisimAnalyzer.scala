@@ -21,7 +21,7 @@ class PlastisimAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFS
     val ctxs = pirTop.collectDown[Context]()
     ctxs.foreach { n =>
       val count = n.getCount
-      if (n.collectDown[HostOutController]().nonEmpty) {
+      if (n.collectDown[HostOutController]().nonEmpty & count.isKnown) {
         assert(count == Finite(1), s"Host out count != 1: $count")
       }
       n.collectDown[FringeStreamRead]().headOption.foreach { streamRead =>
