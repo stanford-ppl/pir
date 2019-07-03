@@ -100,7 +100,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:LoopController if n.stopWhen.T.nonEmpty => Unknown
       case n:LoopController =>
         n.cchain.T.map { _.getIter }.reduce { _ * _ }
-      case n:Controller => Finite(1l)
+      case n:Controller if n.getCtrl.schedule != Fork => Finite(1l)
       case n:FringeDenseLoad =>
         val size = n.size.T.getBound.toValue
         val dataPar = n.data.T.getVec
@@ -124,6 +124,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case OutputField(n:Const, _) => Finite(n.ctx.get.getScheduleFactor)
       case n:LocalAccess => 
         (n, n.done.singleConnected.get) match {
+          case (n:BufferWrite, _) if n.en.isConnected => Unknown // Branch dependent
           case (n:TokenAccess, OutputField(r:BufferRead, _)) => compScale(r.inAccess.as[BufferWrite].data.singleConnected.get)
           case (n:BufferWrite, done) if n.ctx.get.streaming.get =>
             n.data.singleConnected.get match {

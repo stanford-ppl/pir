@@ -19,6 +19,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         d.ctrl := ctrl
         dbg(s"Resetting $d.ctrl = $ctrl")
       }
+      n.en.disconnect
     }
     n.to[Def].foreach { _.getVec }
     n.to[Access].foreach { _.getVec }
