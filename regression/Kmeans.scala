@@ -12,7 +12,7 @@ class Kmeans_7 extends Kmeans(mp1=2,mp3=2)
 class Kmeans_8 extends Kmeans(mp1=2,mp2=2,mp3=2)
 
 @spatial abstract class Kmeans(
-  K:scala.Int = 64,
+  K:scala.Int = 32,
   D:scala.Int = 64,
   ts:scala.Int = 128,
   ip:scala.Int = 16,
