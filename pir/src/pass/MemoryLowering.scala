@@ -20,7 +20,10 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     }
     var cannotToBuffer = accesses.exists { _.isInstanceOf[BankedAccess] }
     // If read access is branch dependent, the ctx cannot block on the input for its activation
-    cannotToBuffer |= mem.accesses.exists { _.en.isConnected }
+    cannotToBuffer |= mem.outAccesses.exists { _.en.isConnected }
+    mem.to[Reg].foreach { mem =>
+      cannotToBuffer |= mem.inAccesses.exists { _.en.isConnected }
+    }
     cannotToBuffer |= mem.inAccesses.size > 1
     if (mem.isFIFO) {
       cannotToBuffer |= mem.outAccesses.size > 1

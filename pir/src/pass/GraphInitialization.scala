@@ -20,6 +20,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         dbg(s"Resetting $d.ctrl = $ctrl")
       }
       n.en.disconnect
+      // TODO: migrate this enable signal to write enable of all memory and read enable of sram
     }
     n.to[LoopController].foreach { n =>
       n.stopWhen.T.foreach { n =>
