@@ -51,8 +51,8 @@ case class DynamicGridNetwork[B<:PinType](
   /** ----- Fringe Connection ----- **/
   dagArray.map { dagArray => 
     connectTerminalArrayWithRouter(dagArray)
-    dagArray.zipWithIndex.foreach { case (col, i) =>
-      col.zipWithIndex.foreach { case (dag, j) =>
+    dagArray.view.zipWithIndex.foreach { case (col, i) =>
+      col.view.zipWithIndex.foreach { case (dag, j) =>
         val mc = mcArray(i)(j)
         connect(mc, dag)
       }

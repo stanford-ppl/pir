@@ -66,9 +66,9 @@ trait TopFactory extends Factory {
         ListBuffer(visitNodeAs[CU](param.cuAt(x,y), None))
       }
       val array = visitNodeAs[CUArray](fringePattern, center)
-      array.zipWithIndex.foreach { case (col, x) =>
-        col.zipWithIndex.foreach { case (nodes, y) =>
-          nodes.zipWithIndex.foreach { case (node, i) => 
+      array.view.zipWithIndex.foreach { case (col, x) =>
+        col.view.zipWithIndex.foreach { case (nodes, y) =>
+          nodes.view.zipWithIndex.foreach { case (node, i) => 
             node.pos((x*scale*1.0,(y+0.4*i)*scale))
           }
         }

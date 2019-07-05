@@ -60,7 +60,7 @@ class PlastirouteLinkGen(implicit compiler: PIR) extends PlastisimCodegen with C
 
     // Emit local dsts
     val localIns = n.out.T.filter { _.isExtern.get == n.isExtern.get }
-    localIns.zipWithIndex.foreach { case (gin, idx) =>
+    localIns.view.zipWithIndex.foreach { case (gin, idx) =>
       if (!gin.isExtern.get) {
         row(s"dst[$idx]") = quote(gin.global.get)
         row(s"out[$idx]") = quote(gin)
@@ -72,7 +72,7 @@ class PlastirouteLinkGen(implicit compiler: PIR) extends PlastisimCodegen with C
     if (bridgeIns.nonEmpty) {
       val row = if (!n.isExtern.get) externLink.newRow else newRow
       row("link") = quote(n)
-      bridgeIns.zipWithIndex.foreach { case (gin, idx) =>
+      bridgeIns.view.zipWithIndex.foreach { case (gin, idx) =>
         row(s"dst[$idx]") = quote(gin.global.get)
         row(s"out[$idx]") = quote(gin)
       }

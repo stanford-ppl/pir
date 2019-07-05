@@ -6,7 +6,7 @@ case class SIMDUnit(param:SIMDParam)(implicit design:SpadeDesign) extends Module
   import param._
   val stages = Modules("stage", stageParams.map { param => Stage(param) })
 
-  stages.zipWithIndex.foreach { case (stage, i) =>
+  stages.view.zipWithIndex.foreach { case (stage, i) =>
     // Stage Operands 
     stage.funcUnit.operands.foreach { operand =>
       operand <== stage.pipeRegs.map(_.out)

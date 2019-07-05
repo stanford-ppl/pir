@@ -56,7 +56,7 @@ trait ArgParser {
   def isOption(key:String) = key.contains("--")
 
   def getValues(origKey:String, rest:List[String]):(String, List[String], List[String]) = {
-    var (values, remains) = rest.zipWithIndex.find{ case (a, i) => isOption(a) }.fold((rest, List[String]())) { case (_, i) => rest.splitAt(i) } 
+    var (values, remains) = rest.view.zipWithIndex.find{ case (a, i) => isOption(a) }.fold((rest, List[String]())) { case (_, i) => rest.splitAt(i) } 
     var key = origKey.replace("--", "")
     if (key.contains("=")) {
       val newKey::newValues = key.split("=").toList
