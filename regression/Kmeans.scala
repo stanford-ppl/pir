@@ -12,7 +12,7 @@ class Kmeans_7 extends Kmeans(mp1=2,mp3=2)
 class Kmeans_8 extends Kmeans(mp1=2,mp2=2,mp3=2)
 
 @spatial abstract class Kmeans(
-  K:scala.Int = 32,
+  K:scala.Int = 64,
   D:scala.Int = 64,
   ts:scala.Int = 128,
   ip:scala.Int = 16,
@@ -23,7 +23,7 @@ class Kmeans_8 extends Kmeans(mp1=2,mp2=2,mp3=2)
 ) extends DSETest { self =>
   type X = Int
 
-  override def runtimeArgs = "2 1024"
+  override def runtimeArgs = "2 256"
 
   def DM1 = D - 1
   val element_max = 10
@@ -99,10 +99,34 @@ class Kmeans_8 extends Kmeans(mp1=2,mp2=2,mp3=2)
     getMem(centroids)
   }
 
+
   def main(args: Array[String]): Unit = {
 
     val I = args(0).to[Int]
     val N = args(1).to[Int]
+
+    //val r = scala.util.Random
+    //val pts = scala.Seq.tabulate(N,D) { case (i, d) =>
+      //if (d == DM1) 1 else r.nextInt(element_max) + i
+    //}
+    //val cts = scala.Array.tabulate(K,K) { case (i,d) => pts(i)(d) }
+    //(0 until I).foreach { epoch =>
+      //val accum = scala.Array.fill(K)(scala.Array.fill(D)(0))
+      //pts.foreach { pt =>
+        //val dists = cts.map { ct => dist(ct, pt) }
+        //val idx = dists.view.zipWithIndex.min._2
+        //(0 until K).foreach { k =>
+          //accum(k) += pt(k)
+        //}
+      //}
+      //(0 until K).foreach { k =>
+        //val n = accum(DM1)
+        //(0 until D).foreach { d =>
+          //cent(d) = if (n == 0) 0 else accum(d)/n
+        //}
+      //}
+    //}
+    //writeCSVNow2D(cts, buildPath(IR.config.genDir, "tungsten", "cts.csv"))
 
     val pts = Array.tabulate(N){i => Array.tabulate(D){d => if (d == DM1) 1.to[X] else random[X](element_max) + i }}
 
