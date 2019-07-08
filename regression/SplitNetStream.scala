@@ -1,5 +1,5 @@
-import spatial.dsl._
-import forge.tags._
+//import spatial.dsl._
+//import forge.tags._
 
 //@spatial class SplitStream extends DSETest {
 
