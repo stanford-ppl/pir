@@ -273,7 +273,7 @@ def parse(conf, opts):
 
 def parse_success(conf):
     for p in ['runp2p', 'runhybrid']:
-        if conf[p+'_cycle'] is None: return False
+        if conf[p+'_complete'] != True: return False
         if conf[p+'_deadlock']: return False
         if conf[p+'_deadlock']: return False
         if conf[p+'_err'] is not None: return False
