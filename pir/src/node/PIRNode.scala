@@ -44,7 +44,14 @@ abstract class PIRNode(implicit env:BuildEnvironment)
     override def mirror(frommeta:MetadataLike[_]) = self
   }
   // Count is total number of time a node is active
-  val count = new Metadata[Value[Long]]("count")
+  val count = new Metadata[Value[Long]]("count") {
+    override def check(v:Value[Long]) = {
+      (value, v) match {
+        case (Some(Infinite), Unknown) => // Unknown is more specific (data-dependent) than Infinite
+        case _ => super.check(v)
+      }
+    }
+  }
   // Iter is how many iteration a node run between enabled and done. Independent of what it stacks on
   val iter = new Metadata[Value[Long]]("iter")
   val vec = new Metadata[Int]("vec") {

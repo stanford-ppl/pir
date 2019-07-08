@@ -8,17 +8,17 @@ import prism.util._
 import scala.collection.mutable
 
 class PlastisimAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTraversal with UnitTraversal {
-//class PlastisimAnalyzer(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal {
   val forward = true
 
   override def visitNode(n:N) = {
     n.to[Context].foreach { n =>
-      n.getCount
+      compCount(n)
     }
   }
 
   override def finPass = {
     val ctxs = pirTop.collectDown[Context]()
+    // Two passes to handle cycle in data flow graph
     ctxs.foreach { n =>
       val count = n.getCount
       if (n.collectDown[HostOutController]().nonEmpty & count.isKnown) {

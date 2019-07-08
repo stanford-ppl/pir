@@ -9,9 +9,10 @@ abstract class StreamHostTemplate {
   def numToken = N * field
 
   // Return inData in size N x field
-  def generateRandomInput[HT:Numeric](inFile:String):Seq[Seq[HT]] = {
+  def generateRandomInput[HT:Numeric](inFile:String, field:scala.Int=field):Seq[Seq[HT]] = {
     createDirectories(dirName(inFile))
     val r = scala.util.Random
+    val numToken = N * field
     val inDataOnly = Seq.tabulate(numToken) { i => r.nextInt(numToken) }
     val inData = Seq.tabulate(numToken,2) { (i,j) =>
       if (j == 0) inDataOnly(i)
@@ -23,6 +24,13 @@ abstract class StreamHostTemplate {
     val inputMat = inDataOnly.grouped(batch).toSeq.grouped(field).toSeq
     // size in (numBatch x batch) x field = N x field
     inputMat.map { _.transpose }.flatten
+  }
+
+  def generateRandomTrainInput[HT:Numeric](inFile:String):(Seq[Seq[HT]], Seq[HT]) = {
+    generateRandomInput(inFile, field=field+1).map { record =>
+      val (fields, Seq(label)) = record.splitAt(record.size-1)
+      (fields, label)
+    }.unzip
   }
 
   // Takes in a gold vector in N

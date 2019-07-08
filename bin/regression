@@ -29,7 +29,7 @@ def main():
                 gendir = backend + "_" + project
             if not opts.conti:
                 os.system('rm -r ../gen/{}'.format(gendir))
-            os.system('bin/spatial -t {} -p {} -b {} {} --save=false'.format(opts.thread, project,backend,
+            os.system('bin/spatial -t {} -p {} -b {} {} --save=false --dot=false --debug=false'.format(opts.thread, project,backend,
                 ' '.join(['-a ' + a for a in apps])))
             os.system('bin/log ../gen/{} -d -p {} -b {}'.format(gendir, project,
                 opts.backend))

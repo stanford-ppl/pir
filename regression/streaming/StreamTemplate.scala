@@ -21,6 +21,29 @@ import utils.io.files._
     (insram, lastBit)
   }
 
+  def transposeTrainInput[T:Bits](in:StreamIn[Tup2[T,Bit]]) = {
+    val trainX = SRAM[T](batch, field)
+    val trainY = SRAM[T](batch)
+    val lastBit = FIFO[Bit](10)
+    val lastBitFIFO = FIFO[Bit](10)
+    Foreach(0 until field+1) { f =>
+      Foreach(0 until batch par batch) { b =>
+        val token = in.value
+        if (f != field) {
+          trainX(b,f) = token._1
+        }
+        lastBit.enq(token._2, f==field)
+        lastBitFIFO.enq(token._2, f==field)
+        trainY(b) = token._1
+      }
+    }
+    val lastBatch = Reg[Bit]
+    Reduce(lastBatch)(0 until batch par batch) { b =>
+      lastBitFIFO.deq
+    } { _ | _ }
+    (trainX, trainY, lastBit, lastBatch.value)
+  }
+
   // Takes an output sram of size [batch] and last bit FIFO, send the data to a output stream
   // vectorized by batch
   def transposeOutput[T:Bits](outsram:SRAM1[T], lastBit:FIFO[Bit], out:StreamOut[Tup2[T,Bit]]) = {
@@ -28,6 +51,27 @@ import utils.io.files._
       out := Tup2(outsram(b), lastBit.deq)
     }
   }
+
+
+  def checkGold[T:Bits](dram:DRAM1[T], goldFile:java.lang.String)(implicit ev:Cast[Text,T]) = {
+    val result = getMem(dram)
+    println(s"${dram.name.getOrElse(s"$dram")} Result: ")
+    printArray(result)
+
+    val goldData = loadCSV1D[T](goldFile)
+    println(s"${dram.name.getOrElse(s"$dram")} Gold: ")
+    printArray(goldData)
+
+    approxEql[T](result, goldData)
+  }
+
+  def checkGold[T:Bits](reg:Reg[T], gold:T)(implicit ev:Cast[T,Text]) = {
+    val result = getArg(reg)
+    println(s"${reg.name.getOrElse(s"$reg")} Result: " + result)
+    println(s"${reg.name.getOrElse(s"$reg")} Gold: " + gold)
+    approxEql[T](result, gold)
+  }
+
 }
 
 @spatial abstract class StreamInference[HI:Numeric,TI:Bits,TO:Bits](implicit ev:Cast[Text,TO]) extends StreamTemplate {
@@ -67,24 +111,19 @@ import utils.io.files._
   implicit def tseqseq_to_bitsseqseq[T:Bits](x:Seq[Seq[T]]):Seq[Seq[Bits[T]]] = x.map { x => tseq_to_bitsseq(x) }
 }
 
-@spatial abstract class StreamTraining[HI:Numeric,TI:Bits,TO:Bits](implicit ev:Cast[Text,TO]) extends StreamTemplate {
+trait StreamTraining extends StreamTemplate {
 
   //def hostCheck(inDataMat:Seq[Seq[HI]]):Bit
-  def main(in:StreamIn[Tup2[TI,Bit]], inDataMat:Seq[Seq[HI]]):Bit
+  //def main(in:StreamIn[Tup2[TI,Bit]], inDataMat:Seq[Seq[HI]]):Bit
 
-  def checkGold(dram:DRAM1[TO], goldFile:java.lang.String) = {
-    val goldData = loadCSV1D[TO](goldFile)
-    approxEql[TO](getMem(dram), goldData)
-  }
+  //def main(args: Array[String]): Unit = {
+    //val inFile = buildPath(IR.config.genDir, "tungsten", "in.csv")
+    //val inDataMat = generateRandomInput[HI](inFile)
 
-  def main(args: Array[String]): Unit = {
-    val inFile = buildPath(IR.config.genDir, "tungsten", "in.csv")
-    val inDataMat = generateRandomInput[HI](inFile)
-
-    val in  = StreamIn[Tup2[TI,Bit]](FileEOFBus[Tup2[TI,Bit]](inFile))
-    val cksum = main(in, inDataMat)
-    println("PASS: " + cksum + s" (${this.getClass.getSimpleName})")  
-    assert(cksum)
-  }
+    //val in  = StreamIn[Tup2[TI,Bit]](FileEOFBus[Tup2[TI,Bit]](inFile))
+    //val cksum = main(in, inDataMat)
+    //println("PASS: " + cksum + s" (${this.getClass.getSimpleName})")  
+    //assert(cksum)
+  //}
 }
 
