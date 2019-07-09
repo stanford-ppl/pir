@@ -172,7 +172,6 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case Const(v) => Some(1)
       case n:TokenWrite => Some(1)
       case n:TokenRead => Some(1)
-      case n:CountAck => Some(1)
       case n:MemWrite => n.data.inferVec
       case n:MemRead => n.broadcast.v.map { _.size }.orElse(n.mem.banks.get.headOption)
       case n:BankedWrite => zipMap(n.data.inferVec, n.offset.inferVec) { case (a,b) => Math.max(a,b) }
@@ -219,6 +218,8 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n:GlobalOutput => n.in.inferTp
       case n:RegAccumOp => n.in.inferTp
       case n:MemRead => n.mem.inferTp
+      case n:MemWrite => n.data.inferTp
+      case n:Memory => assertOptionUnify(n.inAccesses, s"$n.type") { w => w.inferTp }
       case n@OpDef(_:BitOp) => Some(Bool)
       case n@OpDef(_:TextOp) => Some(Text)
       case n@OpDef(_:FixOp | _:FltOp) => assertUnify(n.inputs, s"$n.tp") { _.inferTp }.get

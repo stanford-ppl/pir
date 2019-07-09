@@ -45,9 +45,6 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
       val ack = nameOf(n.ack.T.as[BufferWrite].gout.get).&
       genTopMember(n, Seq(n.qstr, addr, data, ack, "DRAM".&), end=true)
 
-    case n:CountAck =>
-      emitln(s"bool $n = true;")
-
     case n => super.emitNode(n)
   }
 

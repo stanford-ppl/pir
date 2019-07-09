@@ -76,8 +76,8 @@ class PlastisimAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFS
   }
 
   def compCount(n:PIRNode):Option[Value[Long]] = {
-    n.count.v orElse {
-      val count:Option[Value[Long]] = dbgblk(s"compCount($n)"){
+    n.count orElseUpdate {
+      dbgblk(s"compCount($n)"){
         n match {
           case StreamWriteContext(sw) => sw.count.v match {
             case Some(v) => Some(v)
@@ -101,8 +101,6 @@ class PlastisimAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFS
           case n => throw PIRException(s"Don't know how to compute count of $n")
         }
       }
-      count.foreach { c => n.count := c }
-      count
     }
   }
     
