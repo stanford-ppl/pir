@@ -150,6 +150,9 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
           val data = fifos.map { fifo =>
             stage(MemWrite().setMem(fifo).presetVec(fifo.banks.get.head).tp.mirror(fifo.tp)).data
           }
+          val count = assertUnify(fifos, s"$sw.count")(_.count.v).get
+          count.foreach { c => sw.count(c) }
+          fifos.foreach { _.count.reset }
           sw.addStreams(data)
           sw
         }

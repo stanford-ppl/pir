@@ -2,6 +2,7 @@ import spatial.dsl._
 import spatial.lib.ML._
 import utils.io.files._
 import spatial.lang.{FileBus,FileEOFBus}
+import spatial.metadata.bounds._
 
 class StreamTrainTest_0 extends StreamTrainTest[Float]
 
@@ -22,15 +23,14 @@ class StreamTrainTest_0 extends StreamTrainTest[Float]
     val inFile = buildPath(IR.config.genDir, "tungsten", "in.csv")
     val goldXFile = buildPath(IR.config.genDir, "tungsten", "goldx.csv")
     val (trainX, trainY) = generateRandomTrainInput[scala.Float](inFile) // return N x field
-    val goldX = trainX.reduce[Seq[scala.Float]]{ case (r1, r2) => r1.zip(r2).map { case (f1,f2) => f1 + f2 } }
+    val goldX = trainX.reduce[Seq[scala.Float]]{ case (r1, r2) => r1.zip(r2).map { case (f1,f2) => f1 + f2 } }.map { _ * iters }
     writeCSVNow(goldX, goldXFile)
-    val goldY = trainY.sum.to[T]
-    println("trainX: ")
-    printArray(Array.fromSeq(trainX.map{ record => Array.fromSeq(record.map { _.to[T]})}))
-    println("trainY: ")
-    printArray(Array.fromSeq(trainY.map { _.to[T]}))
+    val goldY = (trainY.sum * iters).to[T]
+    writeCSVNow2D(trainX, buildPath(IR.config.genDir, "tungsten", "trainX.csv"))
+    writeCSVNow(trainY, buildPath(IR.config.genDir, "tungsten", "trainY.csv"))
 
     val in  = StreamIn[Tup2[T,Bit]](FileEOFBus[Tup2[T,Bit]](inFile))
+    in.count = numBatch * (field + 1)
     val xDRAM = DRAM[T](field)
     val bArg = ArgOut[T]
     Accel{
@@ -47,7 +47,7 @@ class StreamTrainTest_0 extends StreamTrainTest[Float]
             }
           }
           val ySum = Reg[T]
-          Reduce(ySum)(0 until batch par op) { b =>
+          Reduce(ySum)(0 until batch par ipb) { b =>
             trainY(b)
           } { _ + _ }
           Pipe {

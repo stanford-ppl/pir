@@ -368,6 +368,8 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
    * If write => read are not in the same loop, they should be handled in multibuffer or sequential
    * controller. This is to handle the case where write and read are in the same controller
    * */
+  //TODO: consider dependency between any controllers. Insert token only if there is not already a
+  //token between the writer and the reader
   def enforceDataDependencyInSameController(mem:Memory):Unit = dbgblk(s"enforceDataDependencyInSameController($mem)"){
     val accesses = mem.accesses.filter { _.port.nonEmpty }
     accesses.groupBy { _.port.get }.foreach { case (port, accesses) =>

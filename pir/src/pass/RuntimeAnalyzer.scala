@@ -44,7 +44,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
     def getBound:Option[Int] = n.getMeta[Option[Int]]("bound").getOrElseUpdate(boundProp(n).as[Option[Int]])
     def getScale:Value[Long] = n.scale.getOrElseUpdate(compScale(n))
     def getIter:Value[Long] = n.iter.getOrElseUpdate(compIter(n))
-    def getCount:Value[Long] = n.count.getOrElseUpdate(compCount(n).get)
+    def getCount:Value[Long] = n.count.get
 
     def psimState(s:String) = n.getMeta[Float]("psimState").update(s)
     def psimState = n.getMeta[String]("psimState").v
@@ -149,76 +149,6 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       1
     }
   }
-
-  // To handle cycle in computing count
-  val countStack = mutable.HashSet[Any]()
-
-  /*
-   * Compute count of the context using reads. Return None if reads is empty
-   * and ctrlers nonEmpty
-   * */
-  def countByReads(n:Context):Option[Value[Long]] = dbgblk(s"countByReads($n)") {
-    val counts = n.reads.flatMap { read => 
-      compCount(read).map { _ * read.getScale }
-    }
-    val (unknown, known) = counts.partition { _.unknown }
-    val (finite, infinite) = known.partition { _.isFinite }
-    val c = if (unknown.nonEmpty) Some(Unknown)
-    else if (finite.nonEmpty) assertIdentical(finite, 
-    s"$n.reads.count reads=${n.reads.map { r => (r, compCount(r)) }} countByController=${countByController(n)}")
-    else if (infinite.nonEmpty) Some(Infinite)
-    else if (n.collectFirstChild[FringeStreamWrite].nonEmpty) None
-    else { // reads is empty
-      val ctrlers = n.ctrlers
-      val forevers = ctrlers.filter { _.isForever }
-      val (infiniteForever, stopForever) = forevers.partition { _.as[LoopController].stopWhen.T.isEmpty }
-      if (ctrlers.isEmpty) None
-      else if (infiniteForever.nonEmpty) Some(Infinite)
-      else if (stopForever.nonEmpty) Some(Unknown)
-      else None
-    }
-    c
-  }
-
-  def countByController(n:Context) = dbgblk(s"countByContrller($n)"){
-    n.ctrlers.map { _.getIter }.reduceOption { _ * _ }
-  }
-
-  def compCount(n:PIRNode):Option[Value[Long]] = {
-    n.count.v orElse {
-      val count:Option[Value[Long]] = dbgblk(s"compCount($n)"){
-        if (countStack.contains(n)) None else {
-          countStack += n
-          n match {
-            case StreamWriteContext(sw) => sw.count.v match {
-              case Some(v) => Some(v)
-              case None => Some(Unknown)
-            }
-            case n:Context =>
-              val ctrlers = n.ctrlers
-              var inferByInput = false
-              inferByInput ||= n.streaming.get
-              inferByInput ||= ctrlers.exists { ctrler => ctrler.isForever && !ctrler.hasBranch }
-              if (inferByInput) countByReads(n)
-              else countByController(n)
-            case n:LocalOutAccess =>
-              compCount(n.in.T)
-            case n:LocalInAccess =>
-              compCount(n.ctx.get).map { _ /! n.getScale }
-            case n:GlobalInput =>
-              compCount(n.in.T)
-            case n:GlobalOutput =>
-              compCount(n.in.T)
-            case n => throw PIRException(s"Don't know how to compute count of $n")
-          }
-        }
-      }
-      count.foreach { c => n.count := c }
-      countStack -= n
-      count
-    }
-  }
-    
 
   import spade.param._
   def compVec(n:IR):Option[Int] = dbgblk(s"compVec(${dquote(n)})") {

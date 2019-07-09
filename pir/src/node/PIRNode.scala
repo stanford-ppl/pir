@@ -48,6 +48,7 @@ abstract class PIRNode(implicit env:BuildEnvironment)
     override def check(v:Value[Long]) = {
       (value, v) match {
         case (Some(Infinite), Unknown) => // Unknown is more specific (data-dependent) than Infinite
+        case (Some(Infinite), Finite(s)) => // Finite is more specific (data-dependent) than Infinite
         case _ => super.check(v)
       }
     }
