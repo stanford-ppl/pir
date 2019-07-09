@@ -13,7 +13,7 @@ trait PIRApp extends PIR with Logging {
 
   lazy val pirgenStaging = new SpatialPIRGenStaging()
   lazy val deadCodeEliminator = new DeadCodeElimination()
-  lazy val constProp = new ConstantPropogation()
+  lazy val rewriter = new RewriteTransformer()
   lazy val memInitLowering = new MemoryInitialLowering()
   lazy val memLowering = new MemoryLowering()
   lazy val contextAnalyzer = new ContextAnalyzer()
@@ -66,7 +66,7 @@ trait PIRApp extends PIR with Logging {
     addPass(enableDot, new PIRIRDotGen(s"top2.dot")) ==>
     addPass(enableDot, new ControlTreeDotGen(s"ctop.dot")) ==>
     addPass(enableDot, new ControlTreeHtmlIRPrinter(s"ctrl.html")) ==>
-    addPass(constProp) ==>
+    addPass(rewriter) ==>
     addPass(deadCodeEliminator) ==>
     addPass(contextInsertion) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple2.dot")) ==>
@@ -79,7 +79,7 @@ trait PIRApp extends PIR with Logging {
     addPass(depDuplications).dependsOn(memLowering) ==>
     addPass(enableDot, new PIRIRDotGen(s"top5.dot")) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple5.dot")) ==>
-    addPass(constProp) ==>
+    addPass(rewriter) ==>
     addPass(deadCodeEliminator) ==>
     //addPass(contextAnalyzer) ==>
     addPass(enableDot, new PIRIRDotGen(s"top6.dot")) ==>
@@ -94,7 +94,7 @@ trait PIRApp extends PIR with Logging {
     // ------- Mapping  --------
     addPass(enableMapping, hardPruner) ==>
     addPass(enableMapping, memoryPruner) ==>
-    addPass(constProp) ==> // Remove unused shuffle
+    addPass(rewriter) ==> // Remove unused shuffle
     addPass(deadCodeEliminator) ==>
     addPass(enableMapping, memoryComputePruner) ==>
     addPass(enableMapping, hardPruner) ==> // prune on newly created CUs by memoryComputePruner

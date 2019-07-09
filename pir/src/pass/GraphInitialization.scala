@@ -65,6 +65,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     n.to[HostRead].foreach { n =>
       n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
     }
+
     n.to[FringeDenseStore].foreach { n =>
       val write = within(pirTop, n.getCtrl) {
         within(createSeqCtrler.getCtrl) {
@@ -74,6 +75,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       }
       argOut(write).name(s"${n}_ack")
     }
+
     if (config.enableSimDebug) {
       n.to[PrintIf].foreach { n =>
         n.tp.reset
