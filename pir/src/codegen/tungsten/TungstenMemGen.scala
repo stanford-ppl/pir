@@ -124,16 +124,14 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:FlatBankedRead =>
       addEscapeVar(n.mem.T)
-      emitEn(n.en)
-      emitln(s"""${n.mem.T}->SetupRead("$n",make_token(${n.offset.qref}), make_token(${n.en.qref}));""")
+      emitln(s"""${n.mem.T}->SetupRead("$n",make_token(${n.offset.qref}));""")
       genCtxComputeEnd {
         emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
       }
 
     case n:FlatBankedWrite =>
       addEscapeVar(n.mem.T)
-      emitEn(n.en)
-      emitln(s"""${n.mem.T}->Write("$n", make_token(${n.data.qref}), make_token(${n.offset.qref}), make_token(${n.en.qref}));""")
+      emitln(s"""${n.mem.T}->Write("$n", make_token(${n.data.qref}), make_token(${n.offset.qref}));""")
       genCtxComputeEnd {
         emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
       }
@@ -157,7 +155,6 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
   override def quoteRef(n:Any):String = n match {
     case n@InputField(_:BufferWrite, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
-    case InputField(n:FlatBankedAccess, "en") => s"${n}_en"
     case n@InputField(_:MemWrite, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
     case n@InputField(access:Access, "done") if !n.as[Input[PIRNode]].isConnected => "false"
     case n => super.quoteRef(n)

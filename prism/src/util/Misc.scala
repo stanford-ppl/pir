@@ -145,6 +145,7 @@ trait Misc {
       },
       { line => 
         logFile.foreach { l => l.println(line); l.flush } 
+        processLambda.foreach { _(line) }
       }
     )
     logFile.foreach { _.close }

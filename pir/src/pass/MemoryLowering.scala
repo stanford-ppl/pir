@@ -176,28 +176,26 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           flattenBankAddr(access)
           lowerLUTAccess(mem, access)
           val bank = access.bank.connected
-          val ofs = stage(Shuffle(-1).from(bank).to(allocConst(mem.bankids.get)).base(access.offset.connected))
-          dbg(s"val $ofs = Shuffle() //ofs")
+          var ofsOut = access.offset.singleConnected.get
+          access.en.singleConnected.foreach { en =>
+            ofsOut = stage(OpDef(Mux).addInput(en, ofsOut, allocConst(-1).out)).out
+          }
+          val ofs = stage(Shuffle(-1).from(bank).to(allocConst(mem.bankids.get)).base(ofsOut))
           val data = access match {
             case access:BankedWrite => 
               val shuffle = stage(Shuffle(0).from(bank).to(allocConst(mem.bankids.get)).base(access.data.connected))
               bufferInput(shuffle.base) // Prevent copying data producer into addrCtx
-              dbg(s"val $shuffle = Shuffle() //data")
               Some(shuffle)
             case access => None
           }
-          val en = access.en.singleConnected.map { en =>
-            val shuffle = stage(Shuffle(false).from(bank).to(allocConst(mem.bankids.get)).base(en))
-            dbg(s"val $shuffle = Shuffle() //en")
-            shuffle
-          }
-          (ofs.out, data.map{_.out}, en.map { _.out })
+          dbg(s"ofs:$ofs data:$data")
+          (ofs.out, data.map{_.out})
         }
       }
-      var red:List[(Output[PIRNode], Option[Output[PIRNode]], Option[Output[PIRNode]])] = requests.toList
+      var red:List[(Output[PIRNode], Option[Output[PIRNode]])] = requests.toList
       while(red.size > 1) {
         red = red.sliding(2,2).map{ 
-          case List((o1, d1, e1),(o2, d2, e2)) =>
+          case List((o1, d1),(o2, d2)) =>
             val of = stage(OpDef(SelectNonNeg).addInput(o1, o2))
             of.inputs.foreach { in => bufferInput(in) }
             val dt = zipOption(d1, d2).map { case (d1, d2) =>
@@ -205,26 +203,20 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
               dt.inputs.foreach { in => bufferInput(in) }
               dt
             }
-            val en = zipOption(e1, e2).map { case (e1,e2) =>
-              val en = stage(OpDef(Or).addInput(e1,e2))
-              en.inputs.foreach { in => bufferInput(in) }
-              en 
-            }
-            (of.out, dt.map { _.out }, en.map{ _.out })
-          case List((o1, d1,e1)) => (o1, d1, e1)
+            (of.out, dt.map { _.out })
+          case List((o1, d1)) => (o1, d1)
         }.toList
       }
       red
     }
 
-    val List((ofs, data, en)) = red
-    //TODO: handle en
+    val List((ofs, data)) = red
     val accessCtx = within(memCU, headAccess.ctx.get.getCtrl) { Context().streaming(true) }
     val newAccess = within(accessCtx) {
       data.fold[FlatBankedAccess]{
-        stage(FlatBankedRead().offset(ofs).en(en).mem(mem).mirrorMetas(headAccess))
+        stage(FlatBankedRead().offset(ofs).mem(mem).mirrorMetas(headAccess))
       } { data => 
-        stage(FlatBankedWrite().offset(ofs).data(data).en(en).mem(mem).mirrorMetas(headAccess))
+        stage(FlatBankedWrite().offset(ofs).data(data).mem(mem).mirrorMetas(headAccess))
       }
     }
     newAccess.to[FlatBankedRead].foreach { newAccess =>

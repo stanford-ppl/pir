@@ -223,6 +223,7 @@ trait RuntimeAnalyzer extends Logging { self:PIRPass =>
       case n@OpDef(_:BitOp) => Some(Bool)
       case n@OpDef(_:TextOp) => Some(Text)
       case n@OpDef(_:FixOp | _:FltOp) => assertUnify(n.inputs, s"$n.tp") { _.inferTp }.get
+      case n@OpDef(Mux) => assertUnify(n.inputs.slice(1,3), s"$n.tp") { _.inferTp }.get
       case Const(_:Boolean) => Some(Bool)
       case Const(_:Int) => Some(Fix(true, 32, 0))
       case Const(_:Float) => Some(Flt(23, 8))
