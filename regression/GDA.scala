@@ -11,8 +11,8 @@ class GDA_14 extends GDA(mp1 = 2,mp2 = 2)
 
 @spatial abstract class GDA(
   C:scala.Int = 128,
-  R:scala.Int = 1024,
-  ts:scala.Int = 256,
+  R:scala.Int = 256,
+  ts:scala.Int = 128,
   op:scala.Int = 1,
   mp1:scala.Int = 1,
   mp2:scala.Int = 1,

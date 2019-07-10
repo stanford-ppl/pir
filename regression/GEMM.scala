@@ -1,7 +1,7 @@
 import spatial.dsl._
 
 class GEMM_0 extends GEMM
-class GEMM_1 extends GEMM(ip=1)
+class GEMM_1 extends GEMM(ip=1, dim=64, ts=32, its=32)
 class GEMM_2 extends GEMM(loop_j = 2)
 class GEMM_3 extends GEMM(loop_kk = 2)
 class GEMM_4 extends GEMM(loop_i = 2)
