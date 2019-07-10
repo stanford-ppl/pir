@@ -228,10 +228,7 @@ object Num1 {
 }
 
 object ToInt {
-  def unapply(x:Any):Option[Int] = x match {
-    case x:Int => Some(x)
-    case _ => None
-  }
+  def unapply(x:Int):Option[Int] = Some(x)
 }
 object ToLong {
   def unapply(x:Any):Option[Long] = x match {

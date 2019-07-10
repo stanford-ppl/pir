@@ -7,8 +7,8 @@ import spatial.dsl._
       val stop = Reg[Bit](false)
       Stream(breakWhen=stop).Foreach(*) { i =>
         val stopWhen = i == 10
-        stop := stopWhen 
         if (stopWhen) {
+          stop := true
           out := i
         }
       }

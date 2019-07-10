@@ -23,7 +23,7 @@ trait PIRApp extends PIR with Logging {
   lazy val bufferInsertion = new BufferInsertion()
   lazy val globalInsertion = new GlobalInsertion()
   lazy val graphInit = new GraphInitialization()
-  lazy val psimAnalyzer = new PlastisimAnalyzer()
+  lazy val runtimeAnalyzer = new RuntimeAnalyzer()
   lazy val ctxMerging = new ContextMerging()
   lazy val psimParser = new PlastisimLogParser()
   lazy val sanityCheck = new SanityCheck()
@@ -110,21 +110,21 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping,report) ==>
     saveSession(buildPath(config.outDir,"pir2.ckpt")) ==>
     // ------- Codegen  --------
-    addPass(psimAnalyzer).dependsOn(placerAndRouter) ==>
+    addPass(runtimeAnalyzer).dependsOn(placerAndRouter) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple9.dot")) ==>
     addPass(enableDot, new PIRIRDotGen(s"top9.dot"))
     addPass(enableDot, new PIRGlobalDotGen(s"global.dot"))
     // Igraph
-    addPass(enableIgraph, igraphGen).dependsOn(psimAnalyzer)
+    addPass(enableIgraph, igraphGen).dependsOn(runtimeAnalyzer)
     // Plastiroute
-    addPass(genProute, prouteLinkGen).dependsOn(psimAnalyzer)
-    addPass(genProute, prouteNodeGen).dependsOn(placerAndRouter, psimAnalyzer) ==>
+    addPass(genProute, prouteLinkGen).dependsOn(runtimeAnalyzer)
+    addPass(genProute, prouteNodeGen).dependsOn(placerAndRouter, runtimeAnalyzer) ==>
     addPass(genTungsten, tungstenPIRGen).dependsOn(placerAndRouter) ==>
     addPass(genProute, prouteRunner)
     // Tungsten
     addPass(genTungsten && runTst, tstRunner).dependsOn(prouteRunner)
     // Plastisim
-    addPass(genPsim, psimConfigGen).dependsOn(placerAndRouter, psimAnalyzer, prouteLinkGen) ==>
+    addPass(genPsim, psimConfigGen).dependsOn(placerAndRouter, runtimeAnalyzer, prouteLinkGen) ==>
     addPass(genPsim && runPsim, psimRunner).dependsOn(prouteRunner)
     addPass(psimParser)
     addPass(enableDot, new PIRIRDotGen(s"top10.dot"))

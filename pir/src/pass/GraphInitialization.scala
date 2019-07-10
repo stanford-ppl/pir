@@ -22,19 +22,27 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       n.en.disconnect
       // TODO: migrate this enable signal to write enable of all memory and read enable of sram
     }
+    //n.to[LoopController].foreach { n =>
+      //n.stopWhen.T.foreach { n =>
+        //n.to[MemRead].foreach { read =>
+          //val mem = read.mem.T
+          //within(mem.parent.get) { 
+            //val newMem = FIFO().mirrorMetas(mem)
+            //mem.accesses.sortBy{_.order.get}.foreach { a =>
+              //a.mem.disconnect
+              //a.setMem(newMem)
+            //}
+            //stage(newMem)
+          //}
+          //removeNodes(List(mem))
+        //}
+      //}
+    //}
     n.to[LoopController].foreach { n =>
       n.stopWhen.T.foreach { n =>
         n.to[MemRead].foreach { read =>
           val mem = read.mem.T
-          within(mem.parent.get) { 
-            val newMem = FIFO().mirrorMetas(mem)
-            mem.accesses.sortBy{_.order.get}.foreach { a =>
-              a.mem.disconnect
-              a.setMem(newMem)
-            }
-            stage(newMem)
-          }
-          removeNodes(List(mem))
+          mem.nonBlocking := true
         }
       }
     }

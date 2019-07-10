@@ -18,26 +18,25 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     accesses.foreach { access =>
       dbg(s"access=$access order=${access.order.v}")
     }
-    var cannotToBuffer = accesses.exists { _.isInstanceOf[BankedAccess] }
+    val noBankedAccess = accesses.forall { !_.isInstanceOf[BankedAccess] }
+    val singleWriter = mem.inAccesses.size == 1
+    val singleFIFOReader = !mem.isFIFO | mem.outAccesses.size == 1
+    var toBuffer = true
+    toBuffer &= noBankedAccess
     // If read access is branch dependent, the ctx cannot block on the input for its activation
-    cannotToBuffer |= mem.outAccesses.exists { _.en.isConnected }
+    toBuffer &= mem.outAccesses.forall { !_.en.isConnected }
     mem.to[Reg].foreach { mem =>
-      cannotToBuffer |= mem.inAccesses.exists { _.en.isConnected }
+      toBuffer &= mem.inAccesses.forall { !_.en.isConnected }
     }
-    cannotToBuffer |= mem.inAccesses.size > 1
-    if (mem.isFIFO) {
-      cannotToBuffer |= mem.outAccesses.size > 1
-      //val maxFIFOCost = spadeParam.traceIn[CUParam].map { cuParam =>
-        //val cost = cuParam.getCost[FIFOCost]
-        //if (isVec(mem)) cost.vfifo else cost.sfifo
-      //}.maxOption.getOrElse(0)
-      //dbg(s"maxFIFOCost=$maxFIFOCost")
-      //cannotToBuffer |= mem.depth.get > maxFIFOCost
-    }
-    if (cannotToBuffer) {
-      createMemGlobal(mem)
+    toBuffer &= singleWriter && singleFIFOReader
+    toBuffer &= !mem.nonBlocking.get
+    var toEnBuffer = noBankedAccess && singleWriter && singleFIFOReader
+    if (toBuffer) {
+      bufferLowering(mem)
+    } else if (toEnBuffer) {
+      bufferRegLowering(mem)
     } else {
-      lowerToBuffer(mem)
+      createMemGlobal(mem)
     }
   }
 
@@ -400,8 +399,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     }
   }
 
-  def lowerToBuffer(mem:Memory) = {
-    dbg(s"Lower $mem to InputBuffer")
+  def bufferLowering(mem:Memory) = dbgblk(s"bufferLowering($mem)") {
     mem.outAccesses.foreach { outAccess =>
       within(outAccess.parent.get) {
         val inAccess = mem.inAccesses.head.as[MemWrite]
@@ -432,6 +430,79 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       }
     }
     removeNodes(mem.accesses :+ mem)
+  }
+
+  def bufferRegLowering(mem:Memory) = dbgblk(s"enBuferLowering($mem)") {
+    mem.outAccesses.foreach { outAccess =>
+      within(outAccess.parent.get) {
+        val inAccess = mem.inAccesses.head.as[MemWrite]
+        val (enq, _) = compEnqDeq(
+          true, 
+          inAccess.ctx.get, 
+          outAccess.ctx.get, 
+          Some(inAccess.data.connected.head), 
+          outAccess.out.connected
+        )
+        val read = if (mem.nonBlocking.get) {
+          val write = within(inAccess.parent.get, inAccess.ctrl.get) {
+            allocate[BufferWrite]{ write => 
+              write.data.evalTo(inAccess.data.connected) &&
+              write.en.evalTo(inAccess.en.connected) && 
+              write.done.isConnectedTo(enq)
+            } {
+              stage(BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(inAccess.en.connected).done(enq))
+            }
+          }
+          within(outAccess.parent.get, outAccess.ctrl.get) {
+            stage(BufferRegRead()
+              .in(write.out)
+              .mirrorMetas(mem)
+              .mirrorMetas(outAccess).presetVec(outAccess.inferVec.get))
+          }
+        } else {
+          val (wdone, deq) = compEnqDeq(
+            mem.isFIFO, 
+            inAccess.ctx.get, 
+            outAccess.ctx.get, 
+            Some(inAccess.data.connected.head), 
+            outAccess.out.connected
+          )
+          val (write,writeEn,writeDone) = within(inAccess.parent.get, inAccess.ctrl.get) {
+            (allocate[BufferWrite]{ write => 
+              write.data.evalTo(inAccess.data.connected) &&
+              write.done.isConnectedTo(enq)
+            } {
+              stage(BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).done(enq))
+            },
+            allocate[BufferWrite]{ write => 
+              write.data.evalTo(inAccess.en.connected) &&
+              write.done.isConnectedTo(enq)
+            } {
+              stage(BufferWrite().data(inAccess.en.connected).done(enq))
+            },
+            allocate[BufferWrite]{ write => 
+              write.data.evalTo(wdone) &&
+              write.done.isConnectedTo(enq)
+            } {
+              stage(BufferWrite().data(wdone).done(enq))
+            })
+          }
+          within(outAccess.parent.get, outAccess.ctrl.get) {
+            stage(BufferRegRead()
+              .in(write.out)
+              .mirrorMetas(mem)
+              .mirrorMetas(outAccess).done(deq).presetVec(outAccess.inferVec.get))
+              .writeDone(writeDone.out)
+              .writeEn(writeEn.out)
+          }
+        }
+        if (inAccess.order.get > outAccess.order.get ) {
+          dbg(s"$read.initToken = true")
+          read.initToken := true
+        }
+        swapOutput(outAccess.out, read.out)
+      }
+    }
   }
 
   def depCtx(streamCtx:Context) = {

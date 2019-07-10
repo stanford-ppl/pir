@@ -16,7 +16,7 @@ trait TungstenIOGen extends TungstenCodegen with TungstenCtxGen with TungstenTop
     case n:GlobalInput =>
       val (tp, name) = varOf(n)
       genTopMember(n, Seq(name.qstr, "net".&, "statnet".&, "idealnet".&))
-      val bcArgs = n.out.T.map { out => varOf(out)._2.& }
+      val bcArgs = n.out.connected.map { in => in.qref.& }
       genTopMember("Broadcast<Token>", s"bc_$n", Seq(s"bc_$n".qstr, name.&, s"{${bcArgs.mkString(",")}}"), extern=n.isExtern.get, end=true, escape=false)
 
     case n => super.emitNode(n)

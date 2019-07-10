@@ -11,6 +11,9 @@ trait CppCodegen extends Codegen {
     def cast(tp:String) = s"($tp) $x"
     def & = if (!isPointer(x)) s"&${x}" else s"$x"
     def * = if (isPointer(x)) s"*${x}" else s"$x"
+    def field(f:String) = {
+      if (isPointer(x)) s"$x->$f" else s"$x.$f"
+    }
   }
 
   def emitIfElse(cond:Any)(trueCase: => Unit)(falseCase: => Unit) = {

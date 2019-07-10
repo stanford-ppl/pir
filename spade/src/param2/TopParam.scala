@@ -18,10 +18,7 @@ case class TopParam(
   val burstSizeByte = burstSize / 8 
 }
 object WithPattern {
-  def unapply(x:Any) = x match {
-    case param:TopParam => Some(param.pattern) 
-    case _ => None
-  }
+  def unapply(x:TopParam) = Some(x.pattern)
 }
 
 trait Pattern extends Parameter

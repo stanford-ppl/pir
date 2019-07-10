@@ -19,23 +19,14 @@ object Field {
   }
 }
 object InputField {
-  def unapply(x:Any):Option[(ND, String)] = x match {
-    case x:Input[_] with Field[_] => Some((x.node, x.name))
-    case _ => None
-  }
+  def unapply(x: Input[_] with Field[_]):Option[(ND, String)] = Some((x.node, x.name))
 }
 object OutputField {
-  def unapply(x:Any):Option[(ND, String)] = x match {
-    case x:Output[_] with Field[_] => Some((x.node, x.name))
-    case _ => None
-  }
+  def unapply(x:Output[_] with Field[_]):Option[(ND, String)] = Some((x.node, x.name))
 }
 
 object Unbox {
-  def unapplySeq(x:Any):Option[Seq[Any]] = x match {
-    case x:FieldNode[_] => Some(x +: x.fins.map { _.T })
-    case x => None
-  }
+  def unapplySeq(x:FieldNode[_]):Option[Seq[Any]] = Some(x +: x.fins.map { _.T })
 }
 /*
  * With field node the edges are declared with FieldEdge

@@ -31,7 +31,8 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         case _ =>
           addEscapeVar(n)
           genCtxInits {
-            emitln(s"""inputs.push_back($name);""")
+            if (!n.nonBlocking)
+              emitln(s"""inputs.push_back($name);""")
             if (n.initToken.get) {
               val initVal = n.inits.get
               val banks = n.banks.map { _.head }.getOrElse(n.getVec)
@@ -154,9 +155,13 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
   }
 
   override def quoteRef(n:Any):String = n match {
+    case n@InputField(x:BufferRegRead, "in") if !x.nonBlocking => varOf(x)._2.field("data")
+    case n@InputField(x:BufferRegRead, f@("writeEn" | "writeDone")) => varOf(x)._2.field(f)
+    case n@InputField(x:BufferRegRead, "done") if !n.isConnected => "false"
+    case n@InputField(x:LocalOutAccess, "in") => varOf(x)._2
     case n@InputField(_:BufferWrite, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
     case n@InputField(_:MemWrite, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
-    case n@InputField(access:Access, "done") if !n.as[Input[PIRNode]].isConnected => "false"
+    case n@InputField(access:Access, "done") if !n.isConnected => "false"
     case n => super.quoteRef(n)
   }
 
@@ -177,6 +182,10 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
   val fifoDepth = 4 //TODO: read from spade param
   override def varOf(n:PIRNode):(String,String) = n match {
+    case n:BufferRegRead if n.nonBlocking =>
+      (s"NBlockBufferReg<Token>", s"fifo_$n")
+    case n:BufferRegRead =>
+      (s"BufferReg<${n.in.getVec}, $fifoDepth>", s"fifo_$n")
     case n:BufferRead if n.out.getVec != n.in.getVec =>
       (s"RateMatchingTokenFIFO<${n.qtp}, ${fifoDepth*n.in.getVec}, ${n.in.getVec}, ${n.out.getVec}>", s"fifo_$n") 
     case n:BufferRead =>

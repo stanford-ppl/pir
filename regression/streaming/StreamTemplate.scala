@@ -51,26 +51,6 @@ import utils.io.files._
     }
   }
 
-
-  def checkGold[T:Bits](dram:DRAM1[T], goldFile:java.lang.String)(implicit ev:Cast[Text,T]) = {
-    val result = getMem(dram)
-    println(s"${dram.name.getOrElse(s"$dram")} Result: ")
-    printArray(result)
-
-    val goldData = loadCSV1D[T](goldFile)
-    println(s"${dram.name.getOrElse(s"$dram")} Gold: ")
-    printArray(goldData)
-
-    approxEql[T](result, goldData)
-  }
-
-  def checkGold[T:Bits](reg:Reg[T], gold:T)(implicit ev:Cast[T,Text]) = {
-    val result = getArg(reg)
-    println(s"${reg.name.getOrElse(s"$reg")} Result: " + result)
-    println(s"${reg.name.getOrElse(s"$reg")} Gold: " + gold)
-    approxEql[T](result, gold)
-  }
-
 }
 
 @spatial abstract class StreamInference[HI:Numeric,TI:Bits,TO:Bits](implicit ev:Cast[Text,TO]) extends StreamTemplate {

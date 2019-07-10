@@ -54,7 +54,7 @@ object psh extends PIRShell with Session {
     //addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
     //addPass(enableDot, new PIRIRDotGen(s"top.dot"))
     //addPass(new PIRCtxDotGen(s"simple.dot"))
-    addPass(psimAnalyzer)
+    addPass(runtimeAnalyzer)
     addPass(tungstenPIRGen)
     //addPass(genPsim, prouteLinkGen)
     //addPass(genPsim, prouteNodeGen)

@@ -17,7 +17,7 @@ class StreamTrainTest_0 extends StreamTrainTest[Float]
   val kp:scala.Int = 1,
   val ipf:scala.Int = 8, // field
   val ipb:scala.Int = 4, // batch
-)(implicit ev:Cast[Text,T], ev2:Cast[T,Text]) extends StreamTraining {
+)(implicit ev:Cast[T,Text], ev2:Cast[Text,T]) extends StreamTraining {
 
   def main(args: Array[String]): Unit = {
     val inFile = buildPath(IR.config.genDir, "tungsten", "in.csv")
@@ -36,9 +36,9 @@ class StreamTrainTest_0 extends StreamTrainTest[Float]
     Accel{
       val sumX = SRAM[T](field)
       val sumY = Reg[T](0.to[T])
-      //val stop = Reg[Bit](false)
+      val stop = Reg[Bit](false)
       //Stream(breakWhen=stop).Foreach(*) { _ =>
-      Foreach(*) { _ =>
+      Sequential(breakWhen=stop).Foreach(*) { _ =>
         val (trainX, trainY, lastBit, lastBatch) = transposeTrainInput[T](in) // trainX [batch, field], trainY [batch]
         Sequential.Foreach(iters by 1) { epoch =>
           Foreach(0 until batch) { b =>
@@ -57,11 +57,11 @@ class StreamTrainTest_0 extends StreamTrainTest[Float]
         if (lastBatch) {
           xDRAM(0::field par ipf) store sumX
           bArg := sumY.value
+          stop := true
         }
-        //stop := false 
       }
     }
-    val cksum = checkGold(xDRAM, goldXFile) & checkGold(bArg, goldY)
+    val cksum = checkGold[T](xDRAM, goldXFile) & checkGold[T](bArg, goldY)
     println("PASS: " + cksum + s" (${this.getClass.getSimpleName})")  
     assert(cksum)
   }

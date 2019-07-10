@@ -55,12 +55,16 @@ case class BufferWrite()(implicit env:Env) extends LocalInAccess {
   val en = new InputField[List[PIRNode]]("en")
 }
 case class BufferRead()(implicit env:Env) extends LocalOutAccess
+case class BufferRegRead()(implicit env:Env) extends LocalOutAccess {
+  val writeEn = new InputField[Option[PIRNode]]("writeEn")
+  val writeDone = new InputField[Option[PIRNode]]("writeDone")
+}
 trait TokenAccess extends LocalAccess
 case class TokenWrite()(implicit env:Env) extends TokenAccess with LocalInAccess
 case class TokenRead()(implicit env:Env) extends TokenAccess with LocalOutAccess
 
 trait AccessUtil {
-  implicit class AccessOp[T](x:T) {
+  implicit class AccessOp[T<:PIRNode](x:T) {
     def isInAccess:Boolean = x match {
       case x:InAccess => true
       case x => false
@@ -96,13 +100,17 @@ trait AccessUtil {
   implicit class LocalOutAccessOp(n:LocalOutAccess) {
     def inAccess:LocalInAccess = assertOne(n.in.collect[LocalInAccess](visitGlobalIn _), s"$n.inAccess")
     def gin:Option[GlobalInput] = n.in.T.to[GlobalInput]
+    def nonBlocking = n match {
+      case n:BufferRegRead if !n.writeDone.isConnected => 
+        assert(!n.writeEn.isConnected)
+        assert(n.depth.get==1)
+        true
+      case _ => false
+    }
   }
 }
 object WithMem {
-  def unapply(x:Any) = x match {
-    case x:Access => Some((x, x.mem.T))
-    case x => None
-  }
+  def unapply(x:Access) = Some((x, x.mem.T))
 }
 object WithData {
   def unapply(x:Any) = x match {
@@ -112,8 +120,7 @@ object WithData {
   }
 }
 object WithInAccess {
-  def unapply(x:Any) = x match {
-    case x:Memory if x.inAccesses.size == 1 => Some((x, x.inAccesses.head))
-    case x => None
+  def unapply(x:Memory) = {
+    if (x.inAccesses.size == 1) Some((x, x.inAccesses.head)) else None
   }
 }
