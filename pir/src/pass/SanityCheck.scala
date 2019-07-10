@@ -69,6 +69,10 @@ class SanityCheck(implicit compiler:PIR) extends PIRTraversal with SiblingFirstT
           val cs = ctrlers.filter { _.getCtrl == n.getCtrl }
           assert(cs.nonEmpty, s"$n doesn't have matched controller for ${n.getCtrl}")
         }
+        if (n.streaming.get) {
+          val cblk = n.collectDown[ControlBlock]()
+          assert(cblk.isEmpty, s"Streaming ctx $n has control block ${cblk.mkString(",")}")
+        }
       case n:GlobalIO => 
         if (n.neighbors.isEmpty) err(s"$n is not connected")
       case n:Controller =>
