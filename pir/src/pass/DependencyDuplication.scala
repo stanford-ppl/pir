@@ -65,15 +65,18 @@ trait DependencyAnalyzer extends PIRTransformer {
         }
       }
     } else {
-      val cmds = toCtx.collectFirstChild[FringeCommand]
-      val depCtrlers = deps.collect { case ctrler:Controller => ctrler }.distinct
-      val toCtrlers = toCtx.children.collect { case c:Controller => c}
-      if (cmds.isEmpty && !(depCtrlers ++ toCtrlers).exists { _.getCtrl == toCtx.getCtrl }) {
+      def copyCtrlers:Unit = {
+        if (toCtx.streaming.get) return
+        val toCtrlers = toCtx.children.collect { case c:Controller => c}
+        if (toCtrlers.exists { _.getCtrl == toCtx.getCtrl }) return
+        val depCtrlers = deps.collect { case ctrler:Controller => ctrler }.distinct
+        if (depCtrlers.exists { _.getCtrl == toCtx.getCtrl }) return
         toCtx.getCtrl.ctrler.v.foreach { ctxCtrler =>
           deps ++= (ctxCtrler.descendentTree ++ accumDeps(ctxCtrler))
           deps = deps.distinct
         }
       }
+      copyCtrlers
     }
     dbg(s"deps=$deps")
     deps
