@@ -13,7 +13,7 @@ trait Serialization {
   }
 
   def loadFromFile[T](path:String) = {
-    infor(s"Loading from $path")
+    infor(s"Loading from ${getAbsolutePath(path)}")
     val ois = new ObjectInputStream(new FileInputStream(path)) {
       override def resolveClass(desc: java.io.ObjectStreamClass): Class[_] = {
         try { Class.forName(desc.getName, false, getClass.getClassLoader) }

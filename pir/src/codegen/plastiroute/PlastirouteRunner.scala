@@ -10,8 +10,8 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
   override def runPass = {
     val conf = config
     import conf._
-    if (!noPlaceAndRoute && runproute) {
-      var command = s"${config.prouteHome}/plastiroute -n $prouteNodeName -l $prouteLinkName -o $proutePlaceName"
+    if (!noPlaceAndRoute) {
+      var command = s"${config.prouteHome}/plastiroute -n $prouteNodeName -l $prouteLinkName"
       spadeParam.pattern match {
         case p:Checkerboard => 
           command += s" -r ${p.row} -c ${p.col}"
@@ -29,22 +29,35 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
       command += s" -q${config.option[String]("proute-q")} "
       command += s" -s${config.option[String]("proute-seed")} "
       command += s" ${config.option[String]("proute-opts")}"
+      command += s" -G $proutePlaceName"
+      command += s" -X ${if (config.asModule) s"/" else s"/$topName"}"
+      //command += s" -o $proutePlaceName"
       // Generate proute.sh script containing proute commands to run
-      withOpen(config.cwd, s"proute.sh", false) {
-        emitln(s"cd $psimOut")
+      withOpen(config.appDir, s"proute.sh", false) {
+        emitln(s"cd ${getRelativePath(config.psimOut, config.appDir)}")
         emitln(command)
       }
       deleteFile(prouteSummaryPath)
       deleteFile(prouteLog)
-      val exitCode = shellProcess("proute", s"bash proute.sh", prouteLog) { line =>
-        if (line.contains("Used") && line.contains("VCs.")) {
-          info(Console.GREEN, s"proute", line)
+      if (runproute) {
+        val exitCode = shellProcess("proute", s"bash proute.sh", config.appDir, prouteLog) { line =>
+          if (line.contains("Used") && line.contains("VCs.")) {
+            info(Console.GREEN, s"proute", line)
+          }
+        }
+        if (exitCode != 0) {
+          fail(s"Plastiroute failed. details in $prouteLog")
         }
       }
-      if (exitCode != 0) {
-        fail(s"Plastiroute failed. details in $prouteLog")
+    }
+    if (!config.asModule) {
+      val command = s"python ../tungsten/bin/idealroute.py -l link.csv -p ideal.place -i /Top/idealnet"
+      withOpen(config.appDir, s"iroute.sh", false) {
+        emitln(s"cd ${getRelativePath(config.psimOut, config.appDir)}")
+        emitln(command)
       }
-    } 
+      shell(header=Some("iroute"), command=s"bash iroute.sh", cwd=Some(config.appDir))
+    }
   }
 
 }

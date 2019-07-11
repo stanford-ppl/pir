@@ -1,7 +1,7 @@
 import spatial.dsl._
 
-class GRU_0 extends GRUApp
-class GRU_1 extends GRUApp(rp=2)
+//class GRU_0 extends GRUApp
+//class GRU_1 extends GRUApp(rp=2)
 //class GRU_2 extends GRUApp(rp=4)
 //class GRU_3 extends GRUApp(rp=6)
 //class GRU_5 extends GRUApp(hp=2)

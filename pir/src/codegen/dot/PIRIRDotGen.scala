@@ -5,7 +5,8 @@ import pir.node._
 import prism.codegen._
 import prism.util._
 
-class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal with IRDotCodegen { self =>
+class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDotCodegen { self =>
+  def fileName = fn
 
   implicit class PIRStringHelper(label:String) {
     def append(field:String, value:Any):String = value match {
@@ -101,13 +102,14 @@ class PIRIRDotGen(val fileName:String)(implicit design:PIR) extends PIRTraversal
 
   override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
     val newAttr = from.src match {
-      case from:GlobalOutput if from.vec.v.fold(false) { _ > 1 } => attr.setEdge.style(bold)
+      case from:GlobalOutput if from.vec.v.nonEmpty & isVecLink(from) => attr.setEdge.style(bold)
+      case from:GlobalOutput if from.vec.v.nonEmpty & isCtrlLink(from) => attr.setEdge.color(red).style(dashed)
       case _ =>  attr
     }
     super.emitEdge(from, to, newAttr)
   }
 
-  val htmlGen = new PIRHtmlIRPrinter(fileName.replace(".dot", "_IR.html")) {
+  lazy val htmlGen = new PIRHtmlIRPrinter(fileName.replace(".dot", "_IR.html")) {
     override lazy val logger = self.logger
     override def dirName = self.dirName
   }
@@ -128,5 +130,44 @@ class PIRCtxDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fil
     case n:Context => n.children.collect { case n:LocalAccess => n; case n:Access => n; case c:FringeCommand => c }
     case n => super.visitFunc(n)
   }
+}
 
+class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
+  //override def fileName = pirTop.name.get + ".dot"
+  //override def dirName = buildPath(config.appDir, "../figs")
+  override def dotFile:String = fileName.replace(s".dot", s".html")
+
+  override def color(attr:DotAttr, n:N) = n match {
+    case n:ArgFringe => attr.setNode.fillcolor("beige").style(filled)
+    case n:MemoryContainer => attr.setNode.fillcolor("limegreen").style(filled)
+    case n:ComputeContainer if n.isDAG.get => attr.setNode.fillcolor("orange").style(filled)
+
+    case n:ComputeContainer => attr.setNode.fillcolor("dodgerblue").style(filled)
+    case n:DRAMFringe => attr.setNode.fillcolor("lightseagreen").style(filled)
+    case n:Top => super.color(attr,n)
+  }
+
+  //override def label(attr:DotAttr, n:N) = n match {
+    //case n:ArgFringe => attr.setNode.label("Host")
+    //case n:MemoryContainer => attr.setNode.label("PMU")
+    //case n:ComputeContainer if n.isDAG.get => attr.setNode.label("DRAM_AG")
+
+    //case n:ComputeContainer => attr.setNode.label("PCU")
+    //case n:DRAMFringe => attr.setNode.label("MC")
+    //case n:Top => super.color(attr,n)
+  //}
+  
+  override def quote(n:Any) = {
+    super.quote(n).foldAt(n.to[GlobalContainer]) { (q, n) =>
+      val mem = n.collectDown[Memory]().map { quote(_) }
+      if (mem.nonEmpty) s"${q}\n${mem.mkString(",")}" 
+      else q
+    }
+  }
+
+  override def emitNode(n:N) = n match {
+    case n:Top => visitNode(n)
+    case n:GlobalContainer => emitSingleNode(n)
+    case n => super.emitNode(n)
+  }
 }

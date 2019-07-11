@@ -19,7 +19,7 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
       emitln(s"bool last = false;")
       emitBlock(s"for (int i=0; i < ${n.streams.head.getVec}; i++)") {
         val size = n.streams.size
-        n.streams.zipWithIndex.foreach { case (stream, s) =>
+        n.streams.view.zipWithIndex.foreach { case (stream, s) =>
           val dlim = if (s != size-1) s"""", ";""" else s"endl;"
           emitln(s"""$file << ${stream.qidx("i")} << $dlim""")
         }
@@ -66,7 +66,7 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
           emitln(s"validToken = true;")
           emitln(s"istringstream lineStream(line);")
           emitln(s"string token;")
-          n.streams.zipWithIndex.foreach { case (stream, s) =>
+          n.streams.view.zipWithIndex.foreach { case (stream, s) =>
             emitln(s"getline(lineStream, token,',');")
             emitln(s"${stream.T}_vec[i] = parse<${stream.qtp}>(token);")
           }

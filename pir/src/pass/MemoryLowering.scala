@@ -18,23 +18,25 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     accesses.foreach { access =>
       dbg(s"access=$access order=${access.order.v}")
     }
-    var cannotToBuffer = accesses.exists { _.isInstanceOf[BankedAccess] }
+    val noBankedAccess = accesses.forall { !_.isInstanceOf[BankedAccess] }
+    val singleWriter = mem.inAccesses.size == 1
+    val singleFIFOReader = !mem.isFIFO | mem.outAccesses.size == 1
+    var toBuffer = true
+    toBuffer &= noBankedAccess
     // If read access is branch dependent, the ctx cannot block on the input for its activation
-    cannotToBuffer |= mem.outAccesses.exists { _.en.isConnected }
-    cannotToBuffer |= mem.inAccesses.size > 1
-    if (mem.isFIFO) {
-      cannotToBuffer |= mem.outAccesses.size > 1
-      //val maxFIFOCost = spadeParam.traceIn[CUParam].map { cuParam =>
-        //val cost = cuParam.getCost[FIFOCost]
-        //if (isVec(mem)) cost.vfifo else cost.sfifo
-      //}.maxOption.getOrElse(0)
-      //dbg(s"maxFIFOCost=$maxFIFOCost")
-      //cannotToBuffer |= mem.depth.get > maxFIFOCost
+    toBuffer &= mem.outAccesses.forall { !_.en.isConnected }
+    mem.to[Reg].foreach { mem =>
+      toBuffer &= mem.inAccesses.forall { !_.en.isConnected }
     }
-    if (cannotToBuffer) {
-      createMemGlobal(mem)
+    toBuffer &= singleWriter && singleFIFOReader
+    toBuffer &= !mem.nonBlocking.get
+    var toEnBuffer = noBankedAccess && singleWriter && singleFIFOReader
+    if (toBuffer) {
+      bufferLowering(mem)
+    } else if (toEnBuffer) {
+      bufferRegLowering(mem)
     } else {
-      lowerToBuffer(mem)
+      createMemGlobal(mem)
     }
   }
 
@@ -75,7 +77,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
   }
 
   def createMemGlobal(mem:Memory) = {
-    val memCU = within(mem.parent.get) { MemoryContainer() }
+    val memCU = within(pirTop) { MemoryContainer() }
     // Create Memory Context
     swapParent(mem, memCU)
     lowerLUT(mem)
@@ -91,11 +93,14 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       }
     }
     sequencedScheduleBarrierInsertion(mem)
+    //breakPoint(s"insert token for $mem")
     multiBufferBarrierInsertion(mem)
     enforceDataDependencyInSameController(mem)
     fifoBarrierInsertion(mem)
-    //enforceProgramOrder(mem)
-    //enforceDataDependency(mem)
+    mem.accesses.foreach { access =>
+      val ctx = access.ctx.get
+      bufferInput(ctx, fromCtx=Some(depCtx(ctx)))
+    }
   }
 
   // Remove accesses that are been broadcasted
@@ -103,16 +108,23 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     accesses.groupBy { _.castgroup.v }.flatMap { 
       case (None, accesses) => accesses
       case (Some(grp), accesses) =>
-        val (heads, tail) = accesses.partition { _.broadcast.get == 0 }
+        val (heads, tail) = accesses.partition { a => 
+          val broadcast = assertIdentical(a.broadcast.get, s"$a.broadcast").get
+          broadcast == 0
+        }
         val head = assertOne(heads, 
           s"broadcast in castgroup $grp for ${accesses.head.mem} ${accesses}")
         tail.foreach { tail =>
           (head, tail) match {
             case (head:BankedRead, tail:BankedRead) =>
               swapOutput(tail.out, head.out)
+              tail.mem.disconnect
             case (head, tail) => err(s"Invalid broadcast from $head to $tail")
           }
         }
+        if (tail.nonEmpty) 
+          dbg(s"broadcast $head => $tail")
+        removeNodes(tail)
         List(head)
     }.toList
   }
@@ -126,17 +138,18 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
   }
 
   def lowerAccess(mem:Memory, memCU:MemoryContainer, access:Access) = dbgblk(s"lowerAccess($mem, $memCU, $access)") {
-    val mergeCtx = within(memCU, access.ctx.get.getCtrl) { Context() }
+    val mergeCtx = within(memCU, access.ctx.get.getCtrl) { Context().streaming(true) }
     swapParent(access, mergeCtx)
     access match {
       case access:MemRead =>
         bufferOutput(access.out)
       case access:MemWrite =>
         bufferInput(access.data)
-        val writeEns = access.en.T
-        dbg(s"writeEns=$writeEns")
-        val fromValid = writeEns.forall { case en:CounterValid => true }
-        if (!fromValid) bufferInput(access.en)
+        bufferInput(access.en)
+        //val writeEns = access.en.T
+        //dbg(s"writeEns=$writeEns")
+        //val fromValid = writeEns.forall { case en:CounterValid => true }
+        //if (!fromValid) bufferInput(access.en)
     }
   }
 
@@ -162,28 +175,26 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           flattenBankAddr(access)
           lowerLUTAccess(mem, access)
           val bank = access.bank.connected
-          val ofs = stage(Shuffle(-1).from(bank).to(allocConst(mem.bankids.get)).base(access.offset.connected))
-          dbg(s"val $ofs = Shuffle() //ofs")
+          var ofsOut = access.offset.singleConnected.get
+          access.en.singleConnected.foreach { en =>
+            ofsOut = stage(OpDef(Mux).addInput(en, ofsOut, allocConst(-1).out)).out
+          }
+          val ofs = stage(Shuffle(-1).from(bank).to(allocConst(mem.bankids.get)).base(ofsOut))
           val data = access match {
             case access:BankedWrite => 
               val shuffle = stage(Shuffle(0).from(bank).to(allocConst(mem.bankids.get)).base(access.data.connected))
               bufferInput(shuffle.base) // Prevent copying data producer into addrCtx
-              dbg(s"val $shuffle = Shuffle() //data")
               Some(shuffle)
             case access => None
           }
-          val en = access.en.singleConnected.map { en =>
-            val shuffle = stage(Shuffle(false).from(bank).to(allocConst(mem.bankids.get)).base(en))
-            dbg(s"val $shuffle = Shuffle() //en")
-            shuffle
-          }
-          (ofs.out, data.map{_.out}, en.map { _.out })
+          dbg(s"ofs:$ofs data:$data")
+          (ofs.out, data.map{_.out})
         }
       }
-      var red:List[(Output[PIRNode], Option[Output[PIRNode]], Option[Output[PIRNode]])] = requests.toList
+      var red:List[(Output[PIRNode], Option[Output[PIRNode]])] = requests.toList
       while(red.size > 1) {
         red = red.sliding(2,2).map{ 
-          case List((o1, d1, e1),(o2, d2, e2)) =>
+          case List((o1, d1),(o2, d2)) =>
             val of = stage(OpDef(SelectNonNeg).addInput(o1, o2))
             of.inputs.foreach { in => bufferInput(in) }
             val dt = zipOption(d1, d2).map { case (d1, d2) =>
@@ -191,31 +202,23 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
               dt.inputs.foreach { in => bufferInput(in) }
               dt
             }
-            val en = zipOption(e1, e2).map { case (e1,e2) =>
-              val en = stage(OpDef(Or).addInput(e1,e2))
-              en.inputs.foreach { in => bufferInput(in) }
-              en 
-            }
-            (of.out, dt.map { _.out }, en.map{ _.out })
-          case List((o1, d1,e1)) => (o1, d1, e1)
+            (of.out, dt.map { _.out })
+          case List((o1, d1)) => (o1, d1)
         }.toList
       }
       red
     }
 
-    val List((ofs, data, en)) = red
-    //TODO: handle en
+    val List((ofs, data)) = red
     val accessCtx = within(memCU, headAccess.ctx.get.getCtrl) { Context().streaming(true) }
     val newAccess = within(accessCtx) {
-      data.fold[BankedAccess]{
-        stage(BankedRead().offset(ofs).en(en).mem(mem).mirrorMetas(headAccess))
+      data.fold[FlatBankedAccess]{
+        stage(FlatBankedRead().offset(ofs).mem(mem).mirrorMetas(headAccess))
       } { data => 
-        stage(BankedWrite().offset(ofs).data(data).en(en).mem(mem).mirrorMetas(headAccess))
+        stage(FlatBankedWrite().offset(ofs).data(data).mem(mem).mirrorMetas(headAccess))
       }
     }
-    newAccess.vec.reset
-    newAccess.vec := mem.nBanks
-    newAccess.to[BankedRead].foreach { newAccess =>
+    newAccess.to[FlatBankedRead].foreach { newAccess =>
       newAccess.out.vecMeta.reset
       newAccess.out.vecMeta := mem.nBanks
     }
@@ -229,7 +232,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
       bufferInput(newAccess.done, fromCtx=Some(depCtx(accessCtx)))
     }
 
-    newAccess.to[BankedRead].foreach { newAccess =>
+    newAccess.to[FlatBankedRead].foreach { newAccess =>
       accesses.asInstanceOf[Set[BankedRead]].foreach { access =>
         access.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx, ins) =>
           val shuffle = within(inCtx, inCtx.getCtrl)  {
@@ -356,10 +359,12 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
    * If write => read are not in the same loop, they should be handled in multibuffer or sequential
    * controller. This is to handle the case where write and read are in the same controller
    * */
+  //TODO: consider dependency between any controllers. Insert token only if there is not already a
+  //token between the writer and the reader
   def enforceDataDependencyInSameController(mem:Memory):Unit = dbgblk(s"enforceDataDependencyInSameController($mem)"){
     val accesses = mem.accesses.filter { _.port.nonEmpty }
     accesses.groupBy { _.port.get }.foreach { case (port, accesses) =>
-      val (inAccesses, outAccesses) =  accesses.partition { _.isInstanceOf[InAccess] }
+      val (inAccesses, outAccesses) =  accesses.partition { _.isInAccess }
       inAccesses.foreach { inAccess =>
         outAccesses.foreach { outAccess =>
           if (inAccess.getCtrl == outAccess.getCtrl) {
@@ -385,30 +390,6 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     }
   }
 
-  //def enforceDataDependency(mem:Memory):Unit = dbgblk(s"enforceDataDependency($mem)"){
-    //val accesses = mem.accesses.filter { _.port.nonEmpty }
-    //accesses.groupBy { _.port.get }.foreach { case (port, accesses) =>
-      //val (inAccesses, outAccesses) =  accesses.partition { _.isInstanceOf[InAccess] }
-      //inAccesses.foreach { inAccess =>
-        //outAccesses.foreach { outAccess =>
-          //dbg(s"Insert token for data dependency between $inAccess and $outAccess")
-          //val token = insertToken(
-            //inAccess.ctx.get, 
-            //outAccess.ctx.get
-          //)
-          //if (token.depth.isEmpty) {
-            //token.depth(1)
-          //}
-          //if (inAccess.order.get > outAccess.order.get) {
-            //dbg(s"$token.initToken = true")
-            //token.initToken := true
-            //token.inits := List(true)
-          //}
-        //}
-      //}
-    //}
-  //}
-
   def fifoBarrierInsertion(mem:Memory):Unit = {
     if (!mem.isFIFO) return
     dbgblk(s"fifoBarrierInsertion($mem)") {
@@ -418,36 +399,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     }
   }
 
-  //def enforceProgramOrder(mem:Memory) = {
-    //dbgblk(s"enforceProgramOrder($mem)") {
-      //val accesses = mem.accesses
-       ////Insert token between accesses based on program order
-      //val sorted = accesses.sortBy { _.order.get }
-      //sorted.sliding(2, 1).foreach {
-        //case List(a, b) => insertToken(a.ctx.get,b.ctx.get)
-        //case List(a) =>
-      //}
-       ////Insert token for loop carried dependency
-      //val lcaCtrl = leastCommonAncesstor(accesses.map(_.ctrl.get)).get
-      //(lcaCtrl.descendentTree).foreach { ctrl =>
-        //if (ctrl.ctrler.get.isInstanceOf[LoopController]) {
-          //val accesses = sorted.filter { a => a.ctrl.get.isDescendentOf(ctrl) || a.ctrl.get == ctrl }
-          //if (accesses.nonEmpty) {
-            //dbg(s"$ctrl accesses = ${accesses}")
-            //zipOption(accesses.head.to[ReadAccess], accesses.last.to[WriteAccess]).foreach { case (r, w) =>
-              //val token = insertToken(w.ctx.get, r.ctx.get)
-              //dbg(s"$token.initToken = true")
-              //token.initToken := true
-              //token.inits := List(true)
-            //}
-          //}
-        //}
-      //}
-    //}
-  //}
-
-  def lowerToBuffer(mem:Memory) = {
-    dbg(s"Lower $mem to InputBuffer")
+  def bufferLowering(mem:Memory) = dbgblk(s"bufferLowering($mem)") {
     mem.outAccesses.foreach { outAccess =>
       within(outAccess.parent.get) {
         val inAccess = mem.inAccesses.head.as[MemWrite]
@@ -468,7 +420,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           }
         }
         val read = within(outAccess.parent.get, outAccess.ctrl.get) {
-          stage(BufferRead().in(write.out).mirrorMetas(mem).mirrorMetas(outAccess).done(deq))
+          stage(BufferRead().in(write.out).mirrorMetas(mem).mirrorMetas(outAccess).done(deq).presetVec(outAccess.inferVec.get))
         }
         if (inAccess.order.get > outAccess.order.get ) {
           dbg(s"$read.initToken = true")
@@ -480,15 +432,85 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     removeNodes(mem.accesses :+ mem)
   }
 
-  override def insertToken(fctx:Context, tctx:Context):TokenRead = {
-    val read = super.insertToken(fctx, tctx)
-    bufferInput(read.inAccess.done, fromCtx=Some(depCtx(fctx)))
-    bufferInput(read.done, fromCtx=Some(depCtx(tctx)))
-    read
+  def bufferRegLowering(mem:Memory) = dbgblk(s"enBuferLowering($mem)") {
+    mem.outAccesses.foreach { outAccess =>
+      within(outAccess.parent.get) {
+        val inAccess = mem.inAccesses.head.as[MemWrite]
+        val (enq, _) = compEnqDeq(
+          true, 
+          inAccess.ctx.get, 
+          outAccess.ctx.get, 
+          Some(inAccess.data.connected.head), 
+          outAccess.out.connected
+        )
+        val read = if (mem.nonBlocking.get) {
+          val write = within(inAccess.parent.get, inAccess.ctrl.get) {
+            allocate[BufferWrite]{ write => 
+              write.data.evalTo(inAccess.data.connected) &&
+              write.en.evalTo(inAccess.en.connected) && 
+              write.done.isConnectedTo(enq)
+            } {
+              stage(BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(inAccess.en.connected).done(enq))
+            }
+          }
+          within(outAccess.parent.get, outAccess.ctrl.get) {
+            stage(BufferRegRead()
+              .in(write.out)
+              .mirrorMetas(mem)
+              .mirrorMetas(outAccess).presetVec(outAccess.inferVec.get))
+          }
+        } else {
+          val (wdone, deq) = compEnqDeq(
+            mem.isFIFO, 
+            inAccess.ctx.get, 
+            outAccess.ctx.get, 
+            Some(inAccess.data.connected.head), 
+            outAccess.out.connected
+          )
+          val (write,writeEn,writeDone) = within(inAccess.parent.get, inAccess.ctrl.get) {
+            (allocate[BufferWrite]{ write => 
+              write.data.evalTo(inAccess.data.connected) &&
+              write.done.isConnectedTo(enq)
+            } {
+              stage(BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).done(enq))
+            },
+            allocate[BufferWrite]{ write => 
+              write.data.evalTo(inAccess.en.connected) &&
+              write.done.isConnectedTo(enq)
+            } {
+              stage(BufferWrite().data(inAccess.en.connected).done(enq))
+            },
+            allocate[BufferWrite]{ write => 
+              write.data.evalTo(wdone) &&
+              write.done.isConnectedTo(enq)
+            } {
+              stage(BufferWrite().data(wdone).done(enq))
+            })
+          }
+          within(outAccess.parent.get, outAccess.ctrl.get) {
+            stage(BufferRegRead()
+              .in(write.out)
+              .mirrorMetas(mem)
+              .mirrorMetas(outAccess).done(deq).presetVec(outAccess.inferVec.get)
+              .writeDone(writeDone.out)
+              .writeEn(writeEn.out))
+          }
+        }
+        if (inAccess.order.get > outAccess.order.get ) {
+          dbg(s"$read.initToken = true")
+          read.initToken := true
+        }
+        swapOutput(outAccess.out, read.out)
+      }
+    }
   }
 
   def depCtx(streamCtx:Context) = {
-    streamCtx.collectDown[LocalOutAccess]().head.inAccess.ctx.get
+    streamCtx.collectDown[BufferRead]().headOption.map { _.inAccess.ctx.get }.getOrElse {
+      within(streamCtx.global.get, streamCtx.getCtrl) {
+        Context()
+      }
+    }
   }
 
 }

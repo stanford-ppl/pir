@@ -44,12 +44,21 @@ abstract class PIRNode(implicit env:BuildEnvironment)
     override def mirror(frommeta:MetadataLike[_]) = self
   }
   // Count is total number of time a node is active
-  val count = new Metadata[Value[Long]]("count")
+  val count = new Metadata[Value[Long]]("count") {
+    override def check(v:Value[Long]) = {
+      (value, v) match {
+        case (Some(Infinite), Unknown) => // Unknown is more specific (data-dependent) than Infinite
+        case (Some(Infinite), Finite(s)) => // Finite is more specific (data-dependent) than Infinite
+        case _ => super.check(v)
+      }
+    }
+  }
   // Iter is how many iteration a node run between enabled and done. Independent of what it stacks on
   val iter = new Metadata[Value[Long]]("iter")
   val vec = new Metadata[Int]("vec") {
     override def mirror(frommeta:MetadataLike[_]) = self
   }
+  val presetVec = new Metadata[Int]("presetVec")
 
   // Marker for whether the operation is reduction operation across lane
   val isInnerReduceOp = new Metadata[Boolean]("isInnerReduceOp", default=Some(false))
@@ -57,6 +66,9 @@ abstract class PIRNode(implicit env:BuildEnvironment)
   // Is external node when modularize app
   val isExtern = new Metadata[Boolean]("isExtern", default=Some(false))
   val externAlias = new Metadata[String]("externAlias")
+
+  val waitFors = new Metadata[List[Int]]("waitFors")
+  val barrier = new Metadata[Int]("barrier")
 
   env.initNode(this)
 }

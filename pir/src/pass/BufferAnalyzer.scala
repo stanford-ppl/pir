@@ -26,12 +26,16 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     }
   }
 
-  def bufferInput(ctx:Context):Unit = dbgblk(s"bufferInput($ctx)"){
-    ctx.descendents.foreach { deped => bufferInput(deped) }
+  def bufferInput(ctx:Context):Unit = {
+    bufferInput(ctx, None)
   }
 
-  def bufferInput(deped:PIRNode):Seq[BufferRead] = {
-    deped.localIns.flatMap { in => bufferInput(in) }
+  def bufferInput(ctx:Context, fromCtx:Option[Context]):Unit = dbgblk(s"bufferInput($ctx)"){
+    ctx.descendents.foreach { deped => bufferInput(deped, fromCtx) }
+  }
+
+  def bufferInput(deped:PIRNode, fromCtx:Option[Context]):Seq[BufferRead] = {
+    deped.localIns.flatMap { in => bufferInput(in, fromCtx) }
   }
 
   def bufferInput(in:Input[PIRNode], fromCtx:Option[Context]=None):Seq[BufferRead] = {
@@ -59,10 +63,9 @@ trait BufferAnalyzer extends MemoryAnalyzer {
     val deped = depedIn.src
     val depedCtx = deped.ctx.get
     if (escape(dep, depedIn, depedCtx)) {
+      val depCtx = fromCtx.getOrElse { dep.ctx.get }
       val read = dbgblk(s"insertBuffer(depOut=$dep.$depOut, depedIn=$deped.$depedIn)") {
-        val depCtx = fromCtx.getOrElse { dep.ctx.get }
         val (enq, deq) = compEnqDeq(isFIFO=true, depCtx, depedCtx, Some(depOut), List(depedIn))
-        val tp = compType(depOut)
         val write = within(depCtx, depCtx.getCtrl) {
           allocate[BufferWrite] { write => 
             write.data.canReach(depOut, visitEdges=visitInEdges _) &&
@@ -76,8 +79,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
             read.in.canReach(write.out, visitEdges=visitInEdges _) &&
             read.done.canReach(deq, visitEdges=visitInEdges _)
           } {
-            val v = depOut.getVec
-            stage(BufferRead().in(write.out).done(deq).vec(v).tp.update(tp))
+            stage(BufferRead().in(write.out).done(deq))
           }
         }
         swapConnection(depedIn, depOut, read.out)

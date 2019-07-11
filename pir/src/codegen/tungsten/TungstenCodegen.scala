@@ -26,24 +26,16 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     clearDir(dirName, { fileName => fileName.contains("Context") })
     clearDir(buildPath(config.tstOut, "build"))
     clearDir(buildPath(config.tstOut, "logs"))
+    //lnFiles(buildPath(config.tstHome, "plasticine", "resources"), config.tstOut)
     copyFiles(buildPath(config.tstHome, "plasticine", "resources"), config.tstOut)
     withOpen(config.tstOut,"TUNGSTEN_HOME",false) {
       emitln(config.tstHome)
-    }
-    withOpen(buildPath(dirName, ".."),"script",false) {
-      if (!noPlaceAndRoute) {
-        emitln(s"source ${getRelativePath(config.proutePlacePath, config.tstOut)}")
-      }
-      emitln(s"log2files")
-      emitln(s"stepall")
-      emitln(s"dumpstate logs/state.json")
-      emitln(s"stat")
-      //emitln(s"logon")
     }
     super.initPass
   }
 
   override def quote(n:Any) = n match {
+    case n:PIRNode => n.externAlias.v.getOrElse(s"$n")
     case n:Iterable[_] => 
       s"{${n.map(quote).mkString(",")}}"
     case n => super.quote(n)

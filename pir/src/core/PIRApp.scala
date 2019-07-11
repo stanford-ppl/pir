@@ -13,7 +13,7 @@ trait PIRApp extends PIR with Logging {
 
   lazy val pirgenStaging = new SpatialPIRGenStaging()
   lazy val deadCodeEliminator = new DeadCodeElimination()
-  lazy val constProp = new ConstantPropogation()
+  lazy val rewriter = new RewriteTransformer()
   lazy val memInitLowering = new MemoryInitialLowering()
   lazy val memLowering = new MemoryLowering()
   lazy val contextAnalyzer = new ContextAnalyzer()
@@ -23,11 +23,12 @@ trait PIRApp extends PIR with Logging {
   lazy val bufferInsertion = new BufferInsertion()
   lazy val globalInsertion = new GlobalInsertion()
   lazy val graphInit = new GraphInitialization()
-  lazy val psimAnalyzer = new PlastisimAnalyzer()
+  lazy val runtimeAnalyzer = new RuntimeAnalyzer()
   lazy val ctxMerging = new ContextMerging()
   lazy val psimParser = new PlastisimLogParser()
   lazy val sanityCheck = new SanityCheck()
   lazy val modAnalyzer = new ModularAnalysis()
+  lazy val debugTransformer = new DebugTransformer()
 
   /* Mapping */
   lazy val initializer = new TargetInitializer()
@@ -66,7 +67,7 @@ trait PIRApp extends PIR with Logging {
     addPass(enableDot, new PIRIRDotGen(s"top2.dot")) ==>
     addPass(enableDot, new ControlTreeDotGen(s"ctop.dot")) ==>
     addPass(enableDot, new ControlTreeHtmlIRPrinter(s"ctrl.html")) ==>
-    addPass(constProp) ==>
+    addPass(rewriter) ==>
     addPass(deadCodeEliminator) ==>
     addPass(contextInsertion) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple2.dot")) ==>
@@ -79,7 +80,7 @@ trait PIRApp extends PIR with Logging {
     addPass(depDuplications).dependsOn(memLowering) ==>
     addPass(enableDot, new PIRIRDotGen(s"top5.dot")) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple5.dot")) ==>
-    addPass(constProp) ==>
+    addPass(rewriter) ==>
     addPass(deadCodeEliminator) ==>
     //addPass(contextAnalyzer) ==>
     addPass(enableDot, new PIRIRDotGen(s"top6.dot")) ==>
@@ -94,36 +95,38 @@ trait PIRApp extends PIR with Logging {
     // ------- Mapping  --------
     addPass(enableMapping, hardPruner) ==>
     addPass(enableMapping, memoryPruner) ==>
-    addPass(constProp) ==> // Remove unused shuffle
+    addPass(rewriter) ==> // Remove unused shuffle
     addPass(deadCodeEliminator) ==>
     addPass(enableMapping, memoryComputePruner) ==>
     addPass(enableMapping, hardPruner) ==> // prune on newly created CUs by memoryComputePruner
-    addPass(enableMapping, computePruner) ==>
+    addPass(enableMapping, computePruner) ==> // Last transformer
     addPass(enableMapping, dagPruner) ==>
     addPass(sanityCheck) ==>
+    addPass(config.debug, debugTransformer) ==>
     addPass(enableMapping, matchPruner) ==>
     addPass(modAnalyzer) ==>
     addPass(enableMapping, placerAndRouter) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple8.dot")) ==>
     addPass(enableDot, new PIRIRDotGen(s"top8.dot")) ==>
     //addPass(enableDot, new PIRNetworkDotGen(s"net.dot"))
-    addPass(enableMapping,report) ==>
     saveSession(buildPath(config.outDir,"pir2.ckpt")) ==>
     // ------- Codegen  --------
-    addPass(psimAnalyzer).dependsOn(placerAndRouter) ==>
+    addPass(enableMapping,report) ==>
+    addPass(runtimeAnalyzer).dependsOn(placerAndRouter) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple9.dot")) ==>
     addPass(enableDot, new PIRIRDotGen(s"top9.dot"))
+    addPass(enableDot, new PIRGlobalDotGen(s"global.dot"))
     // Igraph
-    addPass(enableIgraph, igraphGen).dependsOn(psimAnalyzer)
+    addPass(enableIgraph, igraphGen).dependsOn(runtimeAnalyzer)
     // Plastiroute
-    addPass(genProute, prouteLinkGen).dependsOn(psimAnalyzer)
-    addPass(genProute, prouteNodeGen).dependsOn(placerAndRouter, psimAnalyzer) ==>
+    addPass(genProute, prouteLinkGen).dependsOn(runtimeAnalyzer)
+    addPass(genProute, prouteNodeGen).dependsOn(placerAndRouter, runtimeAnalyzer) ==>
+    addPass(genTungsten, tungstenPIRGen).dependsOn(placerAndRouter) ==>
     addPass(genProute, prouteRunner)
     // Tungsten
-    addPass(genTungsten, tungstenPIRGen).dependsOn(placerAndRouter) ==>
     addPass(genTungsten && runTst, tstRunner).dependsOn(prouteRunner)
     // Plastisim
-    addPass(genPsim, psimConfigGen).dependsOn(placerAndRouter, psimAnalyzer, prouteLinkGen) ==>
+    addPass(genPsim, psimConfigGen).dependsOn(placerAndRouter, runtimeAnalyzer, prouteLinkGen) ==>
     addPass(genPsim && runPsim, psimRunner).dependsOn(prouteRunner)
     addPass(psimParser)
     addPass(enableDot, new PIRIRDotGen(s"top10.dot"))
@@ -136,4 +139,3 @@ trait PIRApp extends PIR with Logging {
   def staging(top:Top):Unit
 
 }
-

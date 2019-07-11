@@ -19,7 +19,7 @@ case class StageCost(quantity:Int=0) extends QuantityCost[StageCost]
 case class LaneCost(quantity:Int=1) extends MaxCost[LaneCost]
 case class OpCost(set:Set[Opcode]=Set.empty) extends SetCost[Opcode,OpCost]
 
-trait CUCostUtil extends PIRPass with CostUtil with RuntimeAnalyzer with Memorization { self =>
+trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
   implicit class AnyCostOp(x:Any) {
     def getCost[C<:Cost[C]:ClassTag]:C = x match {
       case x:Parameter => self.getCost(x, classTag[C]).as[C]

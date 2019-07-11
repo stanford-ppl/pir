@@ -120,9 +120,6 @@ class Partition(val scope:List[PIRNode]) {
 
 }
 object Partition {
-  def unapply(x:Any):Option[List[PIRNode]] = x match {
-    case x:Partition => Some(x.scope)
-    case x => None
-  }
+  def unapply(x:Partition):Option[List[PIRNode]] = Some(x.scope)
 }
 

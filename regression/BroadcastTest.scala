@@ -8,8 +8,6 @@ import spatial.dsl._
   val op:scala.Int = 2
   val ip:scala.Int = 8
 
-  val margin = 1
-
   def vectest[T: Num](vector: Array[T]) = {
 
     val vDRAM = DRAM[T](N)
@@ -40,7 +38,7 @@ import spatial.dsl._
     printArray(gold, "gold: ")
     printArray(result, "result: ")
 
-    val cksum = gold.zip(result){(a,b) => abs(a-b) <= margin}.reduce{_&&_}
+    val cksum = approxEql(result, gold)
     println("PASS: " + cksum  + " (BroadcastTest)")
     assert(cksum)
   }

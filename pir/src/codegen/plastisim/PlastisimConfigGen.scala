@@ -4,7 +4,7 @@ package codegen
 import pir.node._
 import prism.graph._
 import prism.util._
-import spade.param._
+import spade.param.{NumOp => _, _}
 
 class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with PIRTraversal {
 
@@ -135,7 +135,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
   }
 
   def getLatency(n:OpNode):Int = n match {
-    case n:RegAccumOp => n.getCtrl.getVec.log2 + 1
+    case n:RegAccumOp => new NumOp(n.getCtrl.getVec).log2 + 1
     case n => 1
   }
 
@@ -147,7 +147,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
         case Infinite => emitln(s"start_at_tokens = $infCount")
       }
     } else {
-      n.reads.zipWithIndex.foreach { case (read, idx) =>
+      n.reads.view.zipWithIndex.foreach { case (read, idx) =>
         if (read.initToken.get) {
           emitln(s"unscaled_init_token[${idx}] = 1")
         }
@@ -179,7 +179,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
   }
 
   def emitInLinks(n:Context) = dbgblk(s"emitInLinks($n)") {
-    n.reads.zipWithIndex.foreach { case (read, idx) =>
+    n.reads.view.zipWithIndex.foreach { case (read, idx) =>
       emitln(s"link_in[$idx] = ${read.inAccess}")
       emitln(s"scale_in[$idx] = ${read.constScale}")
       emitln(s"buffer[$idx] = ${getBufferSize(n, read)}")
@@ -187,7 +187,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
   }
 
   def emitOutLinks(n:Context) = dbgblk(s"emitOutLinks($n)") {
-    n.writes.zipWithIndex.foreach { case (write, idx) =>
+    n.writes.view.zipWithIndex.foreach { case (write, idx) =>
       emitln(s"link_out[$idx] = $write")
       emitln(s"scale_out[$idx] = ${write.constScale}")
     }
@@ -205,7 +205,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
       val tp = if (n.getVec > 1) "vec" else "scal"
       emitln(s"type = ${quote(tp)}")
       emitln(s"src[0] = ${quote(src)}")
-      dsts.zipWithIndex.foreach { case (dst,idx) =>
+      dsts.view.zipWithIndex.foreach { case (dst,idx) =>
         emitln(s"dst[$idx] = ${quote(dst)}")
       }
       n.count.get match {
@@ -214,7 +214,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
         case Infinite => emitln(s"count = $infCount # count is infinite")
       }
       if (isLocalLink) {
-        dsts.zipWithIndex.foreach { case (dst, dstIdx) =>
+        dsts.view.zipWithIndex.foreach { case (dst, dstIdx) =>
           emitln(s"lat[0, $dstIdx] = 1")
         }
       } else {
@@ -223,7 +223,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
         emitln(s"vc_id = $vc_id")
         val sid = src.global.get.id
         emitln(s"src_id[0] = $sid")
-        dsts.zipWithIndex.foreach { case (dst, idx) =>
+        dsts.view.zipWithIndex.foreach { case (dst, idx) =>
           val did = dst.global.get.id
           emitln(s"dst_id[$idx] = $did")
         }

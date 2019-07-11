@@ -21,7 +21,7 @@ def main():
     if opts.project is None:
         opts.project = ['pirTest', 'test']
     if (opts.backend is None):
-        opts.backend = ['Tst', 'MDTst']
+        opts.backend = ['Tst', 'MDTst', 'MDHTst']
     for project in opts.project:
         for backend in opts.backend:
             gendir = backend
@@ -29,7 +29,7 @@ def main():
                 gendir = backend + "_" + project
             if not opts.conti:
                 os.system('rm -r ../gen/{}'.format(gendir))
-            os.system('bin/spatial -t {} -p {} -b {} {}'.format(opts.thread, project,backend,
+            os.system('bin/spatial -t {} -p {} -b {} {} --save=false --dot=false --debug=false'.format(opts.thread, project,backend,
                 ' '.join(['-a ' + a for a in apps])))
             os.system('bin/log ../gen/{} -d -p {} -b {}'.format(gendir, project,
                 opts.backend))

@@ -105,7 +105,7 @@ class TPCHQ6_4 extends TPCHQ6(op=4, ip=16)
     println("expected " + gold)
     println("result " + result)
 
-    val cksum = (gold < result + margin && gold > result - margin)
+    val cksum = approxEql(gold,result)
     println("PASS: " + cksum + " (TPCHQ6)")
     assert(cksum)
   }

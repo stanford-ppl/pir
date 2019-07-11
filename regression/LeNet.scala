@@ -5,7 +5,7 @@ class LeNet_0 extends LeNet
 //class LeNet_1 extends LeNet(conv1_par=2,conv2_par=1,mat1_par=1,mat2_par=1)
 //class LeNet_2 extends LeNet(conv1_par=1,conv2_par=2,mat1_par=1,mat2_par=1)
 //class LeNet_3 extends LeNet(conv1_par=2,conv2_par=2,mat1_par=1,mat2_par=1)
-class LeNet_4 extends LeNet(conv1_par=2,conv2_par=2,mat1_par=2,mat2_par=1)
+//class LeNet_4 extends LeNet(conv1_par=2,conv2_par=2,mat1_par=2,mat2_par=1)
 //class LeNet_5 extends LeNet(conv1_par=2,conv2_par=4,mat1_par=2,mat2_par=1)
 //class LeNet_6 extends LeNet(conv1_par=4,conv2_par=2,mat1_par=2,mat2_par=1)
 
@@ -220,7 +220,7 @@ class LeNet_4 extends LeNet(conv1_par=2,conv2_par=2,mat1_par=2,mat2_par=1)
     val gold = loadCSV1D[T]("/home/shadjis/spatial/DEVELOP_spatial-lang/csv_LeNetDNNW/data_out.csv", "\n")
     printArray(gold, "gold")
     val margin = 1.882.to[T]
-    val cksum = gold.zip(output_no_extra){(a,b) => abs(a-b) < margin}.reduce{_&&_}
+    val cksum = approxEql(gold, output_no_extra)
     println("PASS: " + cksum)
     assert(cksum)
   }

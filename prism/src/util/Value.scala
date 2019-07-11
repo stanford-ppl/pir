@@ -231,6 +231,8 @@ sealed abstract class Value[+A] extends Product with Serializable {
   }
 
   def zipMap[B, C](v:Value[B])(f:(A,B) => C):Value[C] = (this, v) match {
+    case (Unknown, _) => Unknown
+    case (_, Unknown) => Unknown
     case (Infinite, _) => Infinite
     case (_, Infinite) => Infinite
     case (Finite(t), Finite(v)) => Finite(f(t, v))

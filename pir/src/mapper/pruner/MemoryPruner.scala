@@ -52,7 +52,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     }
     
     // Merge bankReads of multiple partitions
-    val bankReads = k.collectDown[BankedRead]()
+    val bankReads = k.collectDown[FlatBankedRead]()
     bankReads.foreach { bankRead =>
       //breakPoint(s"$k, $bankRead")
       mergeReads(k, mem, bankRead, mappings)
@@ -85,7 +85,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     case n => visitGlobalIn(n)
   }
 
-  def mergeReads(k:CUMap.K, mem:Memory, br:BankedRead, mappings:List[mutable.Map[IR, IR]]) = dbgblk(s"mergeReads($k, $br)") {
+  def mergeReads(k:CUMap.K, mem:Memory, br:FlatBankedRead, mappings:List[mutable.Map[IR, IR]]) = dbgblk(s"mergeReads($k, $br)") {
     val reads = br.collect[BufferRead](visitGlobalOut _)
     reads.groupBy { _.global.get }.foreach { case (global, reads) =>
       reads.groupBy { _.ctx.get }.foreach { case (ctx, reads) =>
@@ -98,7 +98,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
                   dbg(s"Read by $shuffle.to(Const($toBanks))")
                   val toMerge = mappings.map { mapping => 
                     val mmem = mapping(mem).as[Memory]
-                    val mbr = mapping(br).as[BankedRead]
+                    val mbr = mapping(br).as[FlatBankedRead]
                     val fromBanks = mmem.bankids.get
                     if (fromBanks == toBanks) {
                       mbr.out
@@ -111,7 +111,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
                   dbg(s"Read by $shuffle with non-constant to=$to")
                   val toMerge = mappings.map { mapping => 
                     val mmem = mapping(mem).as[Memory]
-                    val mbr = mapping(br).as[BankedRead]
+                    val mbr = mapping(br).as[FlatBankedRead]
                     val fromBanks = mmem.bankids.get
                     val mbankAddr = shuffle.to.collect[BufferWrite](visitIn _).headOption.map { bout =>
                       val bankAddr = bout.data.T
@@ -130,7 +130,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
                   // original bankIds. Likely from capacity splitting.
                   val toMerge = mappings.map { mapping => 
                     val mmem = mapping(mem).as[Memory]
-                    val mbr = mapping(br).as[BankedRead]
+                    val mbr = mapping(br).as[FlatBankedRead]
                     val fromBanks = mmem.bankids.get
                     val toBanks = mem.bankids.get
                     stage(Shuffle(0).base(mbr.out).from(allocConst(fromBanks)).to(allocConst(toBanks))).out
@@ -150,8 +150,8 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
             }
           }
           bufferInput(ctx)
-          dupDeps(ctx, from=None)
         }
+        dupDeps(ctx, from=None).values.foreach { _.as[PIRNode].ctrl(read.ctrl.get,reset=true) }
       }
       insertGlobalInput(global)
       removeUnusedConst(global)

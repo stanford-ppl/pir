@@ -23,7 +23,7 @@ class SGD_3 extends SGD(mp1=2, mp2=2)
   mp1:scala.Int=1,
   mp2:scala.Int=1,
   ip:scala.Int=16
-) extends DSETest { self => // Regression (Dense) // Args: 40 64 0.0001
+) extends DSETest {
 
   val A = 0.0001f
 
@@ -32,14 +32,6 @@ class SGD_3 extends SGD(mp1=2, mp2=2)
   val margin = 1
 
   def sgdminibatch(x_in: Array[TX], y_in: Array[TX], alpha: TM, epochs: Int, nn: Int) = {
-    //val E = ArgIn[Int]
-    //val N = ArgIn[Int]
-    //val A = ArgIn[TM]
-
-    //setArg(E, epochs); bound(E) = self.E
-    //setArg(N, nn); bound(N) = self.N
-    //setArg(A, alpha)
-
     val x = DRAM[TX](N,D)
     val y = DRAM[TX](N)
     val result = DRAM[TM](D)
@@ -82,7 +74,7 @@ class SGD_3 extends SGD(mp1=2, mp2=2)
 
     val result = sgdminibatch(sX.flatten, sY, A.to[TM], E, N)
 
-    val cksum = ideal_model.zip(result){ case (a,b) => abs(a - b) < margin }.reduce{_&&_}
+    val cksum = approxEql(result, ideal_model)
     printArray(result, "result: ")
     printArray(ideal_model, "gold: ")
     println("PASS: " + cksum  + " (SGD_minibatch)")

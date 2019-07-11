@@ -19,6 +19,32 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         d.ctrl := ctrl
         dbg(s"Resetting $d.ctrl = $ctrl")
       }
+      n.en.disconnect
+      // TODO: migrate this enable signal to write enable of all memory and read enable of sram
+    }
+    //n.to[LoopController].foreach { n =>
+      //n.stopWhen.T.foreach { n =>
+        //n.to[MemRead].foreach { read =>
+          //val mem = read.mem.T
+          //within(mem.parent.get) { 
+            //val newMem = FIFO().mirrorMetas(mem)
+            //mem.accesses.sortBy{_.order.get}.foreach { a =>
+              //a.mem.disconnect
+              //a.setMem(newMem)
+            //}
+            //stage(newMem)
+          //}
+          //removeNodes(List(mem))
+        //}
+      //}
+    //}
+    n.to[LoopController].foreach { n =>
+      n.stopWhen.T.foreach { n =>
+        n.to[MemRead].foreach { read =>
+          val mem = read.mem.T
+          mem.nonBlocking := true
+        }
+      }
     }
     n.to[Def].foreach { _.getVec }
     n.to[Access].foreach { _.getVec }
@@ -47,58 +73,39 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     n.to[HostRead].foreach { n =>
       n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
     }
+
+    //n.to[FringeSparseStore].foreach { n =>
+      //// hack to get range of scatter
+      //val addr = n.addr.T.as[MemRead].mem.T.inAccesses.head
+      //val ctr = assertOne(addr.getCtrl.ctrler.get.as[LoopController].cchain, s"$n loop cchain")
+      //val max = ctr.max.T.get
+      //max match {
+        //case max:Const if max.getCtrl == n.getCtrl=>
+          //max.ctrl.reset
+          //max.ctrl(addr.getCtrl)
+        //case _ =>
+      //}
+      //n.range(max)
+    //}
+
+    n.to[DRAMStoreCommand].foreach { n =>
+      val write = within(pirTop, n.getCtrl) {
+        val ack = n.ack.T.as[MemWrite].mem.T.outAccesses.head
+        within(ack.getCtrl) {
+          stage(MemWrite().data(ack))
+        }
+      }
+      argOut(write).name(s"${n}_ack")
+    }
+
     if (config.enableSimDebug) {
       n.to[PrintIf].foreach { n =>
         n.tp.reset
         n.tp := Bool
-        val reg = within(pirTop.argFringe, pirTop.topCtrl) { stage(Reg().depth(1).tp(Bool)) }
-        within(n.parent.get, n.getCtrl) { stage(MemWrite().data(n.out).setMem(reg)) }
-        within(pirTop.argFringe, pirTop.hostOutCtrl) {
-          val read = stage(MemRead().setMem(reg))
-          stage(HostRead().input(read))
-        }
+        val write = within(n.parent.get, n.getCtrl) { stage(MemWrite().data(n.out)) }
+        argOut(write)
       }
     }
-    // Convert reduction not expressed as RegAccumOp to RegAccumOp
-    // Spatial IR: 
-    // with init
-    // accum.write(reduce(input, mux(isFirst, init, accum.read)))
-    // without init
-    // accum.write(mux(isFirst, input, reduce(input, accum.read)))
-    //
-    // val read = accum.read
-    // val reduceOp = func(read, input)
-    //n.to[Memory].foreach { n =>
-      //if (n.isInnerAccum.get && n.inAccesses.nonEmpty) {
-        //val writer = assertOne(n.inAccesses, s"writer of inner accum $n").as[MemWrite]
-        //val reader = assertOne(n.outAccesses, s"reader of inner accum $n")
-        //val mux = writer.data.T match {
-          //case m@OpDef(Mux) => Some(m)
-          //case m:RegAccumOp => None
-          //case mux => throw PIRException(s"inner accum ($n)'s writer data is not Mux $mux")
-        //}
-        //mux.foreach { mux =>
-          //dbgblk(s"InnerAccum($n)"){
-            //// RegAccumOp will empty inAccesses 
-            //var reduceOps = reader.accum(
-              //prefix={ case OpDef(Mux) => true; case _ => false }, 
-              //visitFunc=visitGlobalOut _
-            //)
-            //reduceOps = reduceOps.filterNot { case x:Access => true; case OpDef(Mux) => true; case _ => false }
-            //dbg(s"reduceOps:$reduceOps")
-            //val newOp = within(mux.parent.get, mux.getCtrl) {
-              //val in = reduceOps.head.localIns.flatMap { _.connected }.filterNot { _ == reader.out }
-              //val first = mux.inputs(0).singleConnected.get
-              //val en = writer.en.connected
-              //stage(RegAccumOp(reduceOps).in(in).en(en).first(first))
-            //}
-            //val writer2 = assertOne(mux.out.T.filterNot { _ == writer }, s"writer2 for after mux $mux").asInstanceOf[MemWrite]
-            //swapConnection(writer2.data, mux.out, newOp.out)
-          //}
-        //}
-      //}
-    //}
-    
     
     // Convert reduction operation
     // Spaital IR:
@@ -133,7 +140,8 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
           dbg(s"input=${dquote(input)}")
           val accumOp = within(reader.parent.get, reader.getCtrl) {
             val firstIter = writer.getCtrl.ctrler.get.to[LoopController].map { _ .firstIter }
-            stage(RegAccumOp(reduceOps).in(input).en(writer.en.connected).first(firstIter).init(init))
+            val en = reader.getCtrl.ctrler.get.valid
+            stage(RegAccumOp(reduceOps).in(input).en(writer.en.connected, en).first(firstIter).init(init))
           }
           disconnect(writer, reduceOps.last)
           swapOutput(reduceOps.last.as[DefNode[PIRNode]].output.get, accumOp.out)
@@ -143,6 +151,32 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     }
     super.visitNode(n)
   } 
+
+  def argOut(write:MemWrite) = {
+    val reg = within(pirTop.argFringe, pirTop.topCtrl) { 
+      val reg = Reg().depth(1)
+      write.setMem(reg)
+      stage(reg)
+    }
+    within(pirTop.argFringe, pirTop.hostOutCtrl) {
+      val read = stage(MemRead().setMem(reg))
+      stage(HostRead().input(read))
+    }
+    reg
+  }
+
+  def createSeqCtrler = {
+    val tree = ControlTree(Sequenced)
+    val ctrler = within(tree) { UnitController().srcCtx("GraphInitialization") }
+    tree.par := 1
+    tree.ctrler(ctrler)
+    tree.parent.foreach { parent =>
+      parent.ctrler.v.foreach { pctrler =>
+        ctrler.parentEn(pctrler.valid)
+      }
+    }
+    ctrler
+  }
 
 }
 

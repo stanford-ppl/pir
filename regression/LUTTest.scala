@@ -34,7 +34,7 @@ class LUTTest_4 extends LUTTest(ts=16, op=2, N=32)
     println("expected: " + gold)
     println("result: " + result)
 
-    val cksum = abs(gold - result) <= (gold * 0.05f)
+    val cksum = approxEql(result, gold)
     println("PASS: " + cksum + " (LUTTest)")
     assert(cksum)
   }

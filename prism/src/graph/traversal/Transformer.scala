@@ -181,7 +181,7 @@ trait Transformer extends Logging {
             mm.setParent(mp.as)
           }
         }
-        n.localIns.zipWithIndex.foreach { case (io, idx) =>
+        n.localIns.view.zipWithIndex.foreach { case (io, idx) =>
           val mio = mm.localIns(idx)
           io.connected.foreach { c => 
             val cs = c.src

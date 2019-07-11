@@ -13,7 +13,7 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
   with PIRDebugger 
   with GraphUtilImplicits 
   with CollectorImplicit
-  with RuntimeAnalyzer
+  with AnalysisUtil
   {
 
   override def states = compiler.pirenv.states

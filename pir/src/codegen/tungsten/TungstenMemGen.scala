@@ -31,7 +31,8 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         case _ =>
           addEscapeVar(n)
           genCtxInits {
-            emitln(s"""inputs.push_back($name);""")
+            if (!n.nonBlocking)
+              emitln(s"""inputs.push_back($name);""")
             if (n.initToken.get) {
               val initVal = n.inits.get
               val banks = n.banks.map { _.head }.getOrElse(n.getVec)
@@ -57,7 +58,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
     case WithData(n:BufferWrite, data:StreamCommand) =>
 
-    case WithData(n:BufferWrite, data:BankedRead) =>
+    case WithData(n:BufferWrite, data:FlatBankedRead) =>
       n.out.T.foreach { send =>
         addEscapeVar(send)
         genCtxInits {
@@ -82,14 +83,14 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         emitln(s"$name->Push(make_token(${n.data.qref}));")
       }
 
-    case n:TokenWrite =>
+    case n:TokenWrite => // TODO: token write can also go through stages now. 
       n.out.T.foreach { send =>
         addEscapeVar(send)
         genCtxInits {
           emitln(s"AddSend(${nameOf(send)});");
         }
         genCtxComputeEnd {
-          var ens = n.done.qref :: Nil
+          var ens = n.done.qref :: n.en.qref :: Nil
           n.ctx.get.ctrler(n.ctrl.get).foreach { ctrler => ens +:= ctrler.valid.qref }
           emitIf(s"${ens.distinct.reduce { _ + " && " + _ }}") {
             emitln(s"${nameOf(send)}->Push(make_token(true));")
@@ -122,18 +123,16 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         emitln(s"$mem->Push(make_token(${n.data.qref}));")
       }
 
-    case n:BankedRead =>
+    case n:FlatBankedRead =>
       addEscapeVar(n.mem.T)
-      emitEn(n.en)
-      emitln(s"""${n.mem.T}->SetupRead("$n",make_token(${n.offset.qref}), make_token(${n.en.qref}));""")
+      emitln(s"""${n.mem.T}->SetupRead("$n",make_token(${n.offset.qref}));""")
       genCtxComputeEnd {
         emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
       }
 
-    case n:BankedWrite =>
+    case n:FlatBankedWrite =>
       addEscapeVar(n.mem.T)
-      emitEn(n.en)
-      emitln(s"""${n.mem.T}->Write("$n", make_token(${n.data.qref}), make_token(${n.offset.qref}), make_token(${n.en.qref}));""")
+      emitln(s"""${n.mem.T}->Write("$n", make_token(${n.data.qref}), make_token(${n.offset.qref}));""")
       genCtxComputeEnd {
         emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
       }
@@ -156,10 +155,13 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
   }
 
   override def quoteRef(n:Any):String = n match {
-    case n@InputField(_:BufferWrite, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
-    case InputField(n:BankedAccess, "en") => s"${n}_en"
+    case n@InputField(x:BufferRegRead, "in") if !x.nonBlocking => varOf(x)._2.field("data")
+    case n@InputField(x:BufferRegRead, f@("writeEn" | "writeDone")) => varOf(x)._2.field(f)
+    case n@InputField(x:BufferRegRead, "done") if !n.isConnected => "false"
+    case n@InputField(x:LocalOutAccess, "in") => varOf(x)._2
+    case n@InputField(_:LocalInAccess, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
     case n@InputField(_:MemWrite, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
-    case n@InputField(access:Access, "done") if !n.as[Input[PIRNode]].isConnected => "false"
+    case n@InputField(access:Access, "done") if !n.isConnected => "false"
     case n => super.quoteRef(n)
   }
 
@@ -178,9 +180,16 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
     }
   }
 
+  val fifoDepth = 4 //TODO: read from spade param
   override def varOf(n:PIRNode):(String,String) = n match {
+    case n:BufferRegRead if n.nonBlocking =>
+      (s"NBlockBufferReg<Token>", s"fifo_$n")
+    case n:BufferRegRead =>
+      (s"BufferReg<${n.in.getVec}, $fifoDepth>", s"fifo_$n")
+    case n:BufferRead if n.out.getVec != n.in.getVec =>
+      (s"RateMatchingTokenFIFO<${n.qtp}, ${fifoDepth*n.in.getVec}, ${n.in.getVec}, ${n.out.getVec}>", s"fifo_$n") 
     case n:BufferRead =>
-      (s"FIFO<Token, 4>", s"fifo_$n") //TODO
+      (s"FIFO<Token, ${fifoDepth}>", s"fifo_$n")
     case n:TokenRead =>
       (s"FIFO<Token, ${n.getDepth}>", s"fifo_$n")
     case n:LocalInAccess =>
@@ -189,12 +198,12 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         case n:TokenWrite => n.done.T
       }
       val pipeDepth = data match {
-        case data:BankedRead => 1
+        case data:FlatBankedRead => 1
         case _ => numStagesOf(n.ctx.get)
       }
       (s"ValPipeline<Token, $pipeDepth>", s"pipe_$n")
     case n:FIFO =>
-      (s"FIFO<Token, 4>", s"$n") //TODO:
+      (s"FIFO<Token, ${fifoDepth}>", s"$n")
     case n:SRAM =>
       (s"NBufferSRAM<${n.getDepth}, ${n.qtp}, ${n.bankSize}, ${n.nBanks}>", s"$n")
     case n:LUT =>

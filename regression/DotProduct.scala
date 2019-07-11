@@ -5,6 +5,8 @@ class DotProduct_0 extends DotProduct
 class DotProduct_1 extends DotProduct(ip=1, op=1)
 class DotProduct_2 extends DotProduct(ip=1, op=2)
 class DotProduct_3 extends DotProduct(op=2)
+class DotProduct_4 extends DotProduct(op=8)
+class DotProduct_5 extends DotProduct(op=3)
 
 @spatial abstract class DotProduct(
   N:scala.Int = 1024,
@@ -48,7 +50,7 @@ class DotProduct_3 extends DotProduct(op=2)
     println("expected: " + gold)
     println("result: " + result)
 
-    val cksum = abs(gold - result) < (gold * 0.05f)
+    val cksum = approxEql(gold, result)
     println("PASS: " + cksum + " (DotProduct)")
     assert(cksum)
   }

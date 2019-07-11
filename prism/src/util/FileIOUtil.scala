@@ -54,6 +54,9 @@ trait FileIOUtil {
 
   def copyFile(src: String, dst: String):Unit = {
     if (src == dst) return
+    if (Files.exists(Paths.get(dst))) {
+      Files.delete(Paths.get(dst));
+    }
     val srcFile = new File(src)
     val dstFile = new File(dst)
     new FileOutputStream(dstFile)
@@ -81,6 +84,35 @@ trait FileIOUtil {
     }
   }
 
+  def lnFiles(srcDir: String, dstDir:String): Unit = {
+    lnFiles(new File(srcDir), new File(dstDir))
+  }
+
+  def lnFiles(srcDirFile: File, dstDirFile:File): Unit = {
+    for (f <- srcDirFile.listFiles) {
+      if (f.isDirectory) {
+        val dstDir = new File(s"${dstDirFile.getCanonicalPath()}${separator}${f.getName}")
+        dstDir.mkdirs()
+        lnFiles(f, dstDir)
+      } else {
+        val dst = s"${dstDirFile.getCanonicalPath()}${separator}${f.getName}"
+        val src = f.getCanonicalPath()
+        lnFile(src, dst)
+      }
+    }
+  }
+
+  def lnFile(src:String, dst:String):Unit = {
+    lnFile(Paths.get(src), Paths.get(dst))
+  }
+
+  def lnFile(src:java.nio.file.Path, dst:java.nio.file.Path):Unit = {
+    if (Files.exists(dst)) {
+      Files.delete(dst);
+    }
+    Files.createSymbolicLink(dst, src);
+  }
+
   def mkdir(dirName:String):Unit = {
     val dir = new File(dirName)
     if (!dir.exists()) {
@@ -89,7 +121,9 @@ trait FileIOUtil {
     }
   }
 
-  def buildPath(dirs:String*) = dirs.mkString(separator)
+  def buildPath(dirs:String*) = {
+    Paths.get(dirs.mkString(separator)).normalize.toString
+  }
 
   def dirName(fullPath:String) = fullPath.split(separator).dropRight(1).mkString(separator)
 
@@ -114,6 +148,10 @@ trait FileIOUtil {
     val p1 = Paths.get(path)
     val p2 = Paths.get(relativeTo)
     p2.relativize(p1).toString
+  }
+
+  def getAbsolutePath(path:String) = {
+    Paths.get(path).toAbsolutePath.normalize.toString
   }
 
 }

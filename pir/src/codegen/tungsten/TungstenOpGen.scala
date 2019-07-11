@@ -33,9 +33,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
         case op => throw PIRException(s"Unsupported reduce ops =$op")
       }
       val in = n.in.T
-      var ens = n.en.qref :: Nil
-      n.ctx.get.ctrler(n.ctrl.get).foreach { ctrler => ens +:= ctrler.valid.qref }
-      emitIf(s"${ens.distinct.reduce { _ + " && " + _ }}") {
+      emitIf(s"${n.en.qref}") {
         emitBlock(s"for (int i = 0; i < ${in.getVec}; i++)") {
           // If firstIter is not connected, the reduction controller is a fully unrolled Unit
           // Controller
@@ -158,7 +156,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       case FixPow                   => s"pow($a, $b)"
       case FixFMA                   => s"$a * $b + $c"
       //case FixRecipSqrt           => s"-$a"
-      case FltSigmoid               => s"1.0 / (exp(-$a) + 1)"
+      case FixSigmoid               => s"1.0 / (1 + exp(-$a))"
       case SelectNonNeg             => s"($a<0) ? $b : $a"
       //case FltIsPosInf            =>
       //case FltIsNegInf            =>
@@ -198,8 +196,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       case FltAtan                  => s"atan($a)"
       case FltPow                   => s"pow($a, $b)"
       case FltFMA                   => s"$a * $b + $c"
-      //case FltRecipSqrt           =>
-      //case FltSigmoid             =>
+      case FltSigmoid               => s"1.0 / (1 + exp(-$a))"
 
       case Not                      => s"!$a"
       case And                      => s"$a & $b"

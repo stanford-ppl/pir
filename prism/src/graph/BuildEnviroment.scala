@@ -13,7 +13,7 @@ abstract class State[T] extends Serializable {
 
 class States extends Serializable {
   var id = -1
-  val stacks = Map[Class[_], Stack[State[_]]]()
+  val stacks = Map[Class[_], java.util.Stack[State[_]]]()
 }
 
 trait BuildEnvironment extends Logging {
@@ -29,8 +29,12 @@ trait BuildEnvironment extends Logging {
   def states:States = _states.get
   def stacks = states.stacks
 
+  private def headOption[T](stack:java.util.Stack[T]) = {
+    if (stack.empty) None else Some(stack.peek)
+  }
+
   def nextId = { states.id += 1; states.id }
-  def stackTop[T:ClassTag] = stacks(classTag[T].runtimeClass).headOption.map(_.value)
+  def stackTop[T:ClassTag] = headOption(stacks(classTag[T].runtimeClass)).map(_.value)
 
   def within[T](xs:State[_]*)(block: => T):T = {
     xs.foreach(beginState)
@@ -40,7 +44,7 @@ trait BuildEnvironment extends Logging {
   }
 
   def beginState(x:State[_]) = {
-    stacks.getOrElseUpdate(x.key, Stack.empty[State[_]]).push(x)
+    stacks.getOrElseUpdate(x.key, new java.util.Stack[State[_]]()).push(x)
   }
 
   def endState(x:State[_]) = stacks(x.key).pop
@@ -49,7 +53,7 @@ trait BuildEnvironment extends Logging {
 
   def initNode[N<:Node[N]](n:Node[N]) = {
     stacks.foreach { case (key,stack) =>
-      stack.headOption.foreach { head =>
+      headOption(stack).foreach { head =>
         head.initNodeX(n, head.value)
       }
     }

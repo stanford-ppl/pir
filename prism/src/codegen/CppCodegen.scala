@@ -5,10 +5,15 @@ import scala.collection.mutable
 
 trait CppCodegen extends Codegen {
 
+  def isPointer(x:Any) = false
+
   implicit class UtilOp(x:Any) {
     def cast(tp:String) = s"($tp) $x"
-    def & = s"&${x}"
-    def * = s"*${x}"
+    def & = if (!isPointer(x)) s"&${x}" else s"$x"
+    def * = if (isPointer(x)) s"*${x}" else s"$x"
+    def field(f:String) = {
+      if (isPointer(x)) s"$x->$f" else s"$x.$f"
+    }
   }
 
   def emitIfElse(cond:Any)(trueCase: => Unit)(falseCase: => Unit) = {

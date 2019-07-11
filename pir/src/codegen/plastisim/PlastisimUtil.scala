@@ -7,8 +7,8 @@ import prism.graph._
 import prism.util._
 
 trait PlastisimUtil extends PIRPass {
-  val infCount = 1000000
 
+  val infCount = 1000000
   implicit class PIRNodePsimOp(n:PIRNode) {
     def constScale:Long = n.scale.get match {
       case Unknown => throw PIRException(s"${n}.scale not statically known")

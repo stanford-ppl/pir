@@ -67,42 +67,48 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def loadPsim = getOption[String]("load-psim")
   def enableTrace = genPsim && option[Boolean]("trace")
   def psimHome = getOption[String]("psim-home").getOrElse(throw PIRException(s"psim-home is not set"))
-  def psimOut = getOption[String]("psim-out").getOrElse { buildPath(outDir, ".." , "..", s"plastisim") }
+  def psimOut = getOption[String]("psim-out").getOrElse { buildPath(appDir, s"plastisim") }
   def psimConfigName = "psim.conf"
   def psimConfigPath = buildPath(psimOut, psimConfigName)
   def traceName = "gen_trace.scala"
   def tracePath = buildPath(psimOut, "trace")
-  def psimLog = buildPath(cwd, "psim.log")
+  def psimLog = buildPath(appDir, "psim.log")
 
   /* ------------------- Plastiroute --------------------  */
   register[String]("proute-home", default=sys.env.get("PLASTIROUTE_HOME"), info="Plastiroute Home")
   register("proute-algo", default="route_dor_YX", info="Plastiroute routing algorithm") 
   register("proute-q", default=1, info="Maximum number of vc") 
-  register("proute-opts", default="-i1000 -p100 -t1 -d100", info="Plastiroute options") 
+  register("proute-opts", default="-i100 -p100 -t1 -d100", info="Plastiroute options") 
   register("proute-seed", default=0, info="Plastiroute seed") 
-  register("rerun-proute", default=true, info="Run Plastiroute") 
+  register("run-proute", default=false, info="Run Plastiroute") 
+  register[String]("module-prefix", info="Prefix to top module path")
+  register[String]("module-name", info="Name for top-level module")
   def prouteHome = getOption[String]("proute-home").getOrElse(throw PIRException(s"proute-home is not set"))
   def genProute = genPsim || genTungsten
-  def runproute = runPsim || runTst 
+  def runproute = option[Boolean]("run-proute") || runPsim || runTst 
   def proutePlaceName = "final.place"
   def proutePlacePath = buildPath(psimOut, proutePlaceName)
+  def iroutePlacePath = buildPath(psimOut, "ideal.place")
   def prouteLinkName = "link.csv"
   def prouteLinkPath = buildPath(psimOut, prouteLinkName)
   def prouteNodeName = "node.csv"
   def prouteNodePath = buildPath(psimOut, prouteNodeName)
   def prouteSummaryName = "summary.csv"
   def prouteSummaryPath = buildPath(psimOut, prouteSummaryName)
-  def prouteLog = buildPath(cwd, "proute.log")
+  def prouteLog = buildPath(appDir, "proute.log")
+  def modulePreix = getOption[String]("module-prefix")
+  def moduleName = getOption[String]("module-name")
 
   /* ------------------- Tungsten --------------------  */
   register[String]("tungsten-home", default=sys.env.get("TUNGSTEN_HOME"), info="Tungsten Home")
   register("run-tst", default=false, info="Launch Tungsten simulation")
   register("tungsten", default=true, info="Enable tungsten codegen")
-  register("debug-tst", default=false, info="Enable debu print in simulation in tungsten")
+  register("debug-tst", default=false, info="Enable debug print in simulation in tungsten")
   def genTungsten = enableCodegen && option[Boolean]("tungsten")
   def runTst = option[Boolean]("run-tst")
-  def tstOut = buildPath(outDir, "..", "..", "tungsten")
+  def tstOut = buildPath(appDir, "tungsten")
   def tstHome = getOption[String]("tungsten-home").getOrElse(throw PIRException(s"tungsten-home is not set"))
+  def tstLog = buildPath(appDir, "runtst.log")
   def enableSimDebug = option[Boolean]("debug-tst")
 
   /* ------------------- Debugging --------------------  */

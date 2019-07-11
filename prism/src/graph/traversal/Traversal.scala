@@ -194,7 +194,7 @@ trait TopDownTraversal extends GraphTraversal with HierarchicalTraversal {
   def visitFunc(n:N):List[N] = n.children
   def traverseScope(n:N, zero:T):T = traverseNode(n, zero)
 }
-trait ChildFirstTraversal extends DFSTraversal with TopDownTraversal
+trait ChildFirstTraversal extends DFSTraversal with TopDownTraversal // Pre-order
 trait SiblingFirstTraversal extends BFSTraversal with TopDownTraversal
 
 trait TopDownTopologicalTraversal extends HierarchicalTopologicalTraversal with TopDownTraversal {
@@ -229,6 +229,6 @@ trait BottomUpTopologicalTraversal extends HierarchicalTopologicalTraversal {
 
 }
 
-trait DFSBottomUpTopologicalTraversal extends DFSTopologicalTraversal with BottomUpTopologicalTraversal
+trait DFSBottomUpTopologicalTraversal extends DFSTopologicalTraversal with BottomUpTopologicalTraversal // Post-order
 trait BFSBottomUpTopologicalTraversal extends BFSTopologicalTraversal with BottomUpTopologicalTraversal
 

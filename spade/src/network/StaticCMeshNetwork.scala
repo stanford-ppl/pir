@@ -10,8 +10,8 @@ case class StaticCMeshNetwork[B<:PinType](
   import param._
   import top._
 
-  cuArray.zipWithIndex.foreach { case (col, i) =>
-    col.zipWithIndex.foreach { case (cluster, j) =>
+  cuArray.view.zipWithIndex.foreach { case (col, i) =>
+    col.view.zipWithIndex.foreach { case (cluster, j) =>
       val sb = sbArray(i)(j)
       /* ---- CU to SB connections ----*/
       cluster.foreach { col => col.foreach { cu => connect(cu, sb) } }

@@ -1,0 +1,32 @@
+#!/bin/bash
+rm */*/pir/out/*.ckpt
+rm */*/tungsten/build/*
+rm -r */*/target
+rm -r */*/project/target
+rm -r */*/info
+rm -r */*/banking
+rm -r */*/report
+rm -r */*/log/9999*.log
+for I in {0..9..1}
+do
+  for J in {0..9..1}
+  do 
+    rm -r */*/log/00$I$J*.log
+  done
+done
+
+## isca2019
+#rm -r */*/pir/plastisim/trace/target
+#rm */*/pir/out/*.ckpt
+#rm -r */*/target
+#rm -r */*/project/target
+#rm -r */*/info
+#rm -r */*/9999*.log
+#for I in {0..9..1}
+#do
+  #for J in {0..9..1}
+  #do 
+    #rm -r */*/00$I$J*.log
+  #done
+#done
+#rm -r */*/Memories.report

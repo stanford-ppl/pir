@@ -33,11 +33,9 @@ trait MemoryAnalyzer extends PIRTransformer { self:BufferAnalyzer =>
     dbgblk(s"compEnqDeq(isFIFO=$isFIFO, o=${dquote(o)}, i=${dquote(i)})") {
       dbg(s"out=$from.$out")
       dbg(s"ins=${ins.map { in => s"${in.src}.$in"}.mkString(",")}")
-      val enq = if (octx.streaming.get && isFIFO) Some(within(octx, o) { allocConst(true).out }) else None
-      val deq = if (ictx.streaming.get && isFIFO) Some(within(ictx, i) { allocConst(true).out }) else None
       (o, i) match {
-        case (o,i) if isFIFO => (enq.getOrElse(valid(o, octx)), deq.getOrElse(valid(i, ictx)))
-        case (o,i) if o == i => (enq.getOrElse(done(o, octx)), deq.getOrElse(done(i, ictx))) // TODO: should this be valid?
+        case (o,i) if isFIFO => (valid(o, octx), valid(i, ictx))
+        case (o,i) if o == i => (done(o, octx), done(i, ictx))
         case (o,i) =>
           val lca = leastCommonAncesstor(o,i).get
           val oAncesstors = o.ancestorTree
@@ -48,15 +46,17 @@ trait MemoryAnalyzer extends PIRTransformer { self:BufferAnalyzer =>
           // in case of one ctrl is ancesstor of another
           def octrl = oAncesstors(oidx-1)
           def ictrl = iAncesstors(iidx-1)
-          if (lca == o)      (enq.getOrElse(childDone(o, octx)), deq.getOrElse(done(ictrl, ictx)))
-          else if (lca == i) (enq.getOrElse(done(octrl, octx)), deq.getOrElse(childDone(i, ictx)))
-          else               (enq.getOrElse(done(octrl, octx)), deq.getOrElse(done(ictrl, ictx)))
+          if (lca == o)      (childDone(o, octx), done(ictrl, ictx))
+          else if (lca == i) (done(octrl, octx), childDone(i, ictx))
+          else               (done(octrl, octx), done(ictrl, ictx))
       }
     }
   }
 
   def valid(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
-    if (!compiler.hasRun[DependencyDuplication]) {
+    if (ctx.streaming.get) {
+      within(ctx, ctrl) { allocConst(true).out }
+    } else if (!compiler.hasRun[DependencyDuplication]) {
       // Centralized controller
       ctrl.ctrler.get.valid
     } else {
@@ -109,6 +109,11 @@ trait MemoryAnalyzer extends PIRTransformer { self:BufferAnalyzer =>
     }
   }
 
-  def allocConst(value:Any) = allocate[Const] { c => c.value == value } { Const(value) }
+  def allocConst(value:Any) = allocate[Const] { c => 
+    c.value == value &&
+    stackTop[Ctrl].fold(true) { ctrl => c.getCtrl == ctrl }
+  } { 
+    Const(value)
+  }
 
 }

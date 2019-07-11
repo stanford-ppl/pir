@@ -1,7 +1,7 @@
 import spatial.dsl._
 
 class GEMM_0 extends GEMM
-class GEMM_1 extends GEMM(ip=1)
+class GEMM_1 extends GEMM(ip=1, dim=64, ts=32, its=32)
 class GEMM_2 extends GEMM(loop_j = 2)
 class GEMM_3 extends GEMM(loop_kk = 2)
 class GEMM_4 extends GEMM(loop_i = 2)
@@ -18,6 +18,7 @@ class GEMM_15 extends GEMM(loop_kk = 2,loop_i = 2,loop_j = 2, ip=1, ts=16, its=1
 class GEMM_16 extends GEMM(loop_ii = 2,loop_jj = 2, loop_kk=2, ip=1, ts=16, its=16, dim=32)
 class GEMM_17 extends GEMM(loop_kk = 2,loop_i = 2,loop_j = 2, ip=16, ts=32, its=32, dim=64)
 class GEMM_18 extends GEMM(loop_ii = 2,loop_jj = 2, loop_kk=2, ip=16, ts=32, its=32, dim=64)
+class GEMM_19 extends GEMM(loop_i = 3)
 //class GEMM_3 extends GEMM(loop_i = 4,loop_j = 4)
 //class GEMM_4 extends GEMM(loop_i = 2,loop_j = 2)
 //class GEMM_5 extends GEMM(loop_i = 1,loop_j = 2)
@@ -93,8 +94,7 @@ class GEMM_18 extends GEMM(loop_ii = 2,loop_jj = 2, loop_kk=2, ip=16, ts=32, its
     printMatrix(c_gold, "C Gold: ")
     printMatrix(c_result, "C Result: ")
 
-    val margin = 0.5.to[T]
-    val cksum = c_gold.zip(c_result){(a,b) => abs(a-b) <= margin}.reduce{_&&_}
+    val cksum = approxEql(c_gold, c_result, margin=0.05)
     println("PASS: " + cksum + " (GEMM)")
     assert(cksum)
   }

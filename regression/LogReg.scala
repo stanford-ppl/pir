@@ -29,7 +29,6 @@ class LogReg_5 extends LogReg(op=4, mp=2)
   type X = Float //FixPt[TRUE,_16,_16]
 
   val ip = 16
-  val margin = 5
   val A = 1
 
   def logreg[T:Num](xIn: Array[T], yIn: Array[T], tt: Array[T], n: Int, it: Int): Array[T] = {
@@ -111,7 +110,7 @@ class LogReg_5 extends LogReg(op=4, mp=2)
     printArray(gold, "gold: ")
     printArray(result, "result: ")
 
-    val cksum = result.zip(gold){ (a,b) => abs(a-b)<=margin }.reduce{_&&_}
+    val cksum = approxEql(result, gold)
     println("PASS: " + cksum  + " (LogReg)")
     assert(cksum)
 

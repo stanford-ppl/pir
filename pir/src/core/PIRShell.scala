@@ -18,7 +18,8 @@ object pload extends PIRShell with Session {
   override def loadSession = {
     import config._
     var args = ""
-    args += s" --load --debug --dot --out=${dirName(option[String]("ckpt"))}"
+    val appPath = buildPath(dirName(option[String]("ckpt")), "../../")
+    args += s" --load --debug --dot --path=$appPath"
     setOption(args.split(" ").map(_.trim).toList)
     super[Session].loadSession
     if (pirenv._states.isEmpty) {
@@ -33,7 +34,8 @@ object psh extends PIRShell with Session {
   override def loadSession = {
     import config._
     var args = ""
-    args += s" --load --debug --dot --out=${dirName(option[String]("ckpt"))}"
+    val appPath = buildPath(dirName(option[String]("ckpt")), "../../")
+    args += s" --load --debug --dot --path=$appPath"
     setOption(args.split(" ").map(_.trim).toList)
     val start = getArgOption[Int]("start-id").flatMap { _.getValue }.getOrElse(-1)
     super[Session].loadSession
@@ -52,7 +54,7 @@ object psh extends PIRShell with Session {
     //addPass(enableDot, new ControlTreeDotGen(s"ctop.dot"))
     //addPass(enableDot, new PIRIRDotGen(s"top.dot"))
     //addPass(new PIRCtxDotGen(s"simple.dot"))
-    addPass(psimAnalyzer)
+    addPass(runtimeAnalyzer)
     addPass(tungstenPIRGen)
     //addPass(genPsim, prouteLinkGen)
     //addPass(genPsim, prouteNodeGen)

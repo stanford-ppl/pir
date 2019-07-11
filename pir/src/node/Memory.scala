@@ -32,6 +32,7 @@ trait MemoryNode extends PIRNode {
 
 abstract class Memory(implicit env:Env) extends MemoryNode with DefNode[PIRNode] {
 
+  val nonBlocking = Metadata[Boolean]("nonBlocking", default=false)
   /*  ------- Fields -------- */
   val in = new InputField[List[Access]]("in")
   val out = new OutputField[List[Access]]("out")
@@ -126,9 +127,6 @@ case class HostRead()(implicit env:Env) extends Def {
 }
 case class HostWrite()(implicit env:Env) extends Def
 case class DRAMAddr(dram:DRAM)(implicit env:Env) extends Def
-case class CountAck()(implicit env:Env) extends Def {
-  val input = new InputField[List[PIRNode]]("input")
-}
 case class Counter(par:Int, isForever:Boolean=false)(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
   val min = new InputField[Option[PIRNode]]("min")
@@ -154,13 +152,13 @@ abstract class Controller(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
   val en = new InputField[Option[PIRNode]]("en")
   val parentEn = new InputField[Option[PIRNode]]("parentEn")
-  val stopWhen = new InputField[Option[PIRNode]]("stopWhen")
 
   val valid = new OutputField[List[PIRNode]]("valid")
   val done = new OutputField[List[PIRNode]]("done")
   val childDone = new OutputField[List[PIRNode]]("childDone")
 
   def isForever = this.collectDown[Counter]().exists { _.isForever }
+  def hasBranch = this.ctrl.v.get == Fork || this.to[LoopController].fold(false) { _.stopWhen.isConnected }
 
   val par = new Metadata[Int]("par")
 }
@@ -173,6 +171,7 @@ case class LoopController()(implicit env:Env) extends Controller {
   /*  ------- Fields -------- */
   val cchain = new ChildField[Counter, List[Counter]]("cchain")
   val firstIter = new OutputField[List[PIRNode]]("firstIter")
+  val stopWhen = new InputField[Option[PIRNode]]("stopWhen")
 }
 
 case class ControlBlock()(implicit env:Env) extends PIRNode {

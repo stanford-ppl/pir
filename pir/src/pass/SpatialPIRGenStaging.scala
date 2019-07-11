@@ -148,8 +148,11 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
           val sw = stage(FringeStreamWrite(bus))
           name.foreach { name => sw.name(name) }
           val data = fifos.map { fifo =>
-            stage(MemWrite().setMem(fifo).vec(fifo.banks.get.head).tp.mirror(fifo.tp)).data
+            stage(MemWrite().setMem(fifo).presetVec(fifo.banks.get.head).tp.mirror(fifo.tp)).data
           }
+          val count = assertUnify(fifos, s"$sw.count")(_.count.v).get
+          count.foreach { c => sw.count(c) }
+          fifos.foreach { _.count.reset }
           sw.addStreams(data)
           sw
         }
@@ -168,7 +171,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
       case bus =>
         within(ControlTree(Streaming)) {
           val reads = fifos.map { fifo =>
-            stage(MemRead().setMem(fifo).vec(fifo.banks.get.head)).out
+            stage(MemRead().setMem(fifo).presetVec(fifo.banks.get.head)).out
           }
           val sr = stage(FringeStreamRead(bus).addStreams(reads))
           name.foreach { name => sr.name(name) }
