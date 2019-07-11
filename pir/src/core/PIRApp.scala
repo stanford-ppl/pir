@@ -28,6 +28,7 @@ trait PIRApp extends PIR with Logging {
   lazy val psimParser = new PlastisimLogParser()
   lazy val sanityCheck = new SanityCheck()
   lazy val modAnalyzer = new ModularAnalysis()
+  lazy val debugTransformer = new DebugTransformer()
 
   /* Mapping */
   lazy val initializer = new TargetInitializer()
@@ -98,18 +99,19 @@ trait PIRApp extends PIR with Logging {
     addPass(deadCodeEliminator) ==>
     addPass(enableMapping, memoryComputePruner) ==>
     addPass(enableMapping, hardPruner) ==> // prune on newly created CUs by memoryComputePruner
-    addPass(enableMapping, computePruner) ==>
+    addPass(enableMapping, computePruner) ==> // Last transformer
     addPass(enableMapping, dagPruner) ==>
     addPass(sanityCheck) ==>
+    addPass(config.debug, debugTransformer) ==>
     addPass(enableMapping, matchPruner) ==>
     addPass(modAnalyzer) ==>
     addPass(enableMapping, placerAndRouter) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple8.dot")) ==>
     addPass(enableDot, new PIRIRDotGen(s"top8.dot")) ==>
     //addPass(enableDot, new PIRNetworkDotGen(s"net.dot"))
-    addPass(enableMapping,report) ==>
     saveSession(buildPath(config.outDir,"pir2.ckpt")) ==>
     // ------- Codegen  --------
+    addPass(enableMapping,report) ==>
     addPass(runtimeAnalyzer).dependsOn(placerAndRouter) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple9.dot")) ==>
     addPass(enableDot, new PIRIRDotGen(s"top9.dot"))

@@ -3,6 +3,7 @@ import spatial.lib.ML._
 import utils.io.files._
 import spatial.lang.{FileBus,FileEOFBus}
 import spatial.metadata.bounds._
+import spatial.metadata.memory._
 
 class StreamTrainTest_0 extends StreamTrainTest[Float]
 
@@ -55,10 +56,10 @@ class StreamTrainTest_0 extends StreamTrainTest[Float]
           }
         }
         if (lastBatch) {
-          xDRAM(0::field par ipf) store sumX
-          bArg := sumY.value
-          stop := true
+          xDRAM(0::field par ipf).store(sumX).setBarrier(0)
         }
+        bArg.write(sumY.value, lastBatch).setBarrier(0)
+        (stop := lastBatch).waitFor(0)
       }
     }
     val cksum = checkGold[T](xDRAM, goldXFile) & checkGold[T](bArg, goldY)

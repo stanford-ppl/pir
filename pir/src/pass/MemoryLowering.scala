@@ -491,9 +491,9 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
             stage(BufferRegRead()
               .in(write.out)
               .mirrorMetas(mem)
-              .mirrorMetas(outAccess).done(deq).presetVec(outAccess.inferVec.get))
+              .mirrorMetas(outAccess).done(deq).presetVec(outAccess.inferVec.get)
               .writeDone(writeDone.out)
-              .writeEn(writeEn.out)
+              .writeEn(writeEn.out))
           }
         }
         if (inAccess.order.get > outAccess.order.get ) {

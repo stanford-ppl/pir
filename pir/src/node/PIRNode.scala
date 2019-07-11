@@ -67,6 +67,9 @@ abstract class PIRNode(implicit env:BuildEnvironment)
   val isExtern = new Metadata[Boolean]("isExtern", default=Some(false))
   val externAlias = new Metadata[String]("externAlias")
 
+  val waitFors = new Metadata[List[Int]]("waitFors")
+  val barrier = new Metadata[Int]("barrier")
+
   env.initNode(this)
 }
 object PIRNode extends MemoryUtil with AccessUtil {

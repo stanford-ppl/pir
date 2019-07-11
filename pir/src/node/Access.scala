@@ -44,15 +44,16 @@ case class MemWrite()(implicit env:Env) extends WriteAccess
 trait LocalAccess extends PIRNode {
   val done = new InputField[PIRNode]("done")
 }
-trait LocalInAccess extends LocalAccess with Def
+trait LocalInAccess extends LocalAccess with Def {
+  // En is anded with done. But done is branch independent
+  val en = new InputField[List[PIRNode]]("en")
+}
 trait LocalOutAccess extends LocalAccess with Def with MemoryNode {
   val in = new InputField[PIRNode]("in")
   val initToken = Metadata[Boolean]("initToken", default=false)
 }
 case class BufferWrite()(implicit env:Env) extends LocalInAccess {
   val data = new InputField[PIRNode]("data")
-  // En is anded with done. But done is branch independent
-  val en = new InputField[List[PIRNode]]("en")
 }
 case class BufferRead()(implicit env:Env) extends LocalOutAccess
 case class BufferRegRead()(implicit env:Env) extends LocalOutAccess {
@@ -108,6 +109,7 @@ trait AccessUtil {
       case _ => false
     }
   }
+
 }
 object WithMem {
   def unapply(x:Access) = Some((x, x.mem.T))

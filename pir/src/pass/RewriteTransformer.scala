@@ -45,7 +45,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   val WrittenByConstData = MatchRule[MemRead, (MemRead, Const)] { reader =>
     val ConstData = MatchRule[MemWrite, Const] { write =>
       write.data.T match {
-        case c@Const(_) if !write.en.isConnected => Some(c)
+        case c@Const(_) if !write.en.isConnected && write.waitFors.isEmpty => Some(c)
         case _ => None
       }
     }
@@ -114,7 +114,8 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   // w1 -> r2s
   val RouteThrough2 = MatchRule[BufferWrite, (BufferWrite, BufferRead, BufferWrite)] { w2 =>
     w2.data.T match {
-      case r1:BufferRead if !initializerHasRun & matchInput(r1.done, w2.done) & !w2.en.isConnected =>
+      case r1:BufferRead if !initializerHasRun & matchInput(r1.done, w2.done) 
+                          & !w2.en.isConnected =>
         val w1 = r1.inAccess.as[BufferWrite]
         Some((w1, r1, w2))
       case _ =>  None
@@ -164,12 +165,6 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
       }
     }
     n match {
-      case WithMem(reader:MemRead, WithInAccess(mem:Reg, WithData(writer:MemWrite, c:Const))) if !writer.en.isConnected && !reader.en.isConnected =>
-        val outs = reader.out.connected
-        dbgblk(s"Static writing $c -> $writer -> $mem -> $reader -> ${dquote(outs)}") {
-          dbg(s"=> $c -> ${dquote(outs)}")
-          swapOutput(reader.out, c.out)
-        }
       case ShuffleMatch(n) =>
         dbgblk(s"ShuffleMatch($n, from=${dquote(n.from.T)}, to=${dquote(n.to.T)})") {
           val base = assertOne(n.base.connected, s"$n.base.connected")
@@ -215,24 +210,31 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
           addAndVisitNode(const, ())
         }
       case RouteThrough1(w1, m1, r1, w2, m2) =>
-        dbg(s"Route through $w1 -> $m1 -> $r1 -> $w2 -> $m2 detected")
-        disconnect(w2.mem, m2)
-        val mw1 = within(w1.parent.get) { mirrorAll(List(w1))(w1).as[MemWrite] }
-        dbg(s" => $mw1 -> $m2")
-        mw1.mem(m2)
-        val name = zipReduce(m1.name.v, m2.name.v) { _ + "/" + _ }
-        m2.name.reset
-        m2.name.update(name)
+        dbgblk(s"Route through $w1 -> $m1 -> $r1 -> $w2 -> $m2 detected") {
+          disconnect(w2.mem, m2)
+          val mw1 = within(w1.parent.get) { mirrorAll(List(w1))(w1).as[MemWrite] }
+          mw1.mirrorMetas(w1)
+          mirrorSyncMeta(w2, mw1)
+          dbg(s" => $mw1 -> $m2")
+          mw1.mem(m2)
+          val name = zipReduce(m1.name.v, m2.name.v) { _ + "/" + _ }
+          m2.name.reset
+          m2.name.update(name)
+        }
       case RouteThrough2(w1, r1, w2) =>
         val r2s = w2.outAccesses
-        dbg(s"Route through $w1 -> $r1 -> $w2 -> $r2s detected")
-        dbg(s" => $w1 -> $r2s")
-        r2s.foreach { out => disconnect(w2.out, out) }
-        w1.out(r2s.map { _.in })
-        r2s.foreach { r2 =>
-          val name = zipReduce(r1.name.v, r2.name.v) { _ + "/" + _ }
-          r2.name.reset
-          r2.name.update(name)
+        dbgblk(s"Route through $w1 -> $r1 -> $w2 -> $r2s detected => ") {
+          dbg(s" => $w1 -> $r2s")
+          mirrorSyncMeta(w2, w1)
+          r2s.foreach { out => 
+            val prevIn = out.in.connected
+            swapInput(out, w2.out, w1.out)
+            if (prevIn != out.in.connected) {
+              val name = zipReduce(r1.name.v, out.name.v) { _ + "/" + _ }
+              out.name.reset
+              out.name.update(name)
+            }
+          }
         }
       case n => 
     }

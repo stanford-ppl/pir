@@ -83,14 +83,14 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         emitln(s"$name->Push(make_token(${n.data.qref}));")
       }
 
-    case n:TokenWrite =>
+    case n:TokenWrite => // TODO: token write can also go through stages now. 
       n.out.T.foreach { send =>
         addEscapeVar(send)
         genCtxInits {
           emitln(s"AddSend(${nameOf(send)});");
         }
         genCtxComputeEnd {
-          var ens = n.done.qref :: Nil
+          var ens = n.done.qref :: n.en.qref :: Nil
           n.ctx.get.ctrler(n.ctrl.get).foreach { ctrler => ens +:= ctrler.valid.qref }
           emitIf(s"${ens.distinct.reduce { _ + " && " + _ }}") {
             emitln(s"${nameOf(send)}->Push(make_token(true));")
@@ -159,7 +159,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
     case n@InputField(x:BufferRegRead, f@("writeEn" | "writeDone")) => varOf(x)._2.field(f)
     case n@InputField(x:BufferRegRead, "done") if !n.isConnected => "false"
     case n@InputField(x:LocalOutAccess, "in") => varOf(x)._2
-    case n@InputField(_:BufferWrite, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
+    case n@InputField(_:LocalInAccess, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
     case n@InputField(_:MemWrite, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
     case n@InputField(access:Access, "done") if !n.isConnected => "false"
     case n => super.quoteRef(n)
