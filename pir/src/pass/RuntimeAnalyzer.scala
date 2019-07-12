@@ -96,7 +96,7 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
           inferByInput ||= ctrlers.exists { ctrler => ctrler.isForever && !ctrler.hasBranch }
           if (inferByInput) countByReads(n)
           else countByController(n)
-        case n:BufferRegRead if n.nonBlocking =>
+        case n:BufferRead if n.nonBlocking =>
           n.in.T.getCount
           Some(Infinite)
         case n:BufferRegRead =>

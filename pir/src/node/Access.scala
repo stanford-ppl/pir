@@ -102,8 +102,7 @@ trait AccessUtil {
     def inAccess:LocalInAccess = assertOne(n.in.collect[LocalInAccess](visitGlobalIn _), s"$n.inAccess")
     def gin:Option[GlobalInput] = n.in.T.to[GlobalInput]
     def nonBlocking = n match {
-      case n:BufferRegRead if !n.writeDone.isConnected => 
-        assert(!n.writeEn.isConnected)
+      case n:BufferRead if !n.done.isConnected => 
         assert(n.depth.get==1)
         true
       case _ => false

@@ -30,14 +30,6 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with PIRTr
     removeNodes(toRemove)
   }
 
-  //override def depFunc(n:N) = n match {
-    //case n:Controller => 
-      //n.ctx.get.children.collect{ case c:Controller => c }.flatMap { _.depeds }
-    //case n => 
-      //val ctrler = n.collectUp[Controller]().headOption
-      //if (ctrler.nonEmpty) List(ctrler.head) else super.depFunc(n)
-  //}
-
   // Breaking loop in traversal
   override def visitIn(n:N):List[N] = n match {
     case n:LocalOutAccess => n.in.neighbors.toList ++ n.done.neighbors.filterNot { case c:Controller => true; case _ => false }

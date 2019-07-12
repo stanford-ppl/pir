@@ -454,7 +454,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
             }
           }
           within(outAccess.parent.get, outAccess.ctrl.get) {
-            stage(BufferRegRead()
+            stage(BufferRead()
               .in(write.out)
               .mirrorMetas(mem)
               .mirrorMetas(outAccess).presetVec(outAccess.inferVec.get))

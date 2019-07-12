@@ -11,13 +11,30 @@ class DebugTransformer(implicit compiler:PIR) extends PIRTransformer with Buffer
 
   override def runPass = {
     saveToFile((runner.id-1, compiler.getDesign), buildPath(config.outDir,"debug.ckpt"))
-    val ctx = pirTop.collectDown[Context]().filter { _.id == 254 }.head
+    //val ctx = pirTop.collectDown[Context]().filter { _.id == 254 }.head
     //breakPoint("Debug Transformer")
     
+    def prefix(x:PIRNode) =  x match {
+        case n:LocalOutAccess => 
+          n.out.connected.exists { case InputField(_:LoopController, "stopWhen") => true; case _ => false };
+        case _ => false
+    }
+    val buffers = pirTop.filter(
+      prefix=prefix,
+      visitFunc=visitDown _,
+    )
+    buffers.foreach { x =>
+      val a = x.as[LocalOutAccess]
+      a.done.disconnect
+      a.depth.reset
+      a.depth := 1
+    }
+
     val nodes = pirTop.filter(
       prefix={ n => n.barrier.nonEmpty | n.waitFors.nonEmpty },
       visitFunc=visitDown _,
     )
+
     dbg(s"Sync nodes=$nodes")
 
     val barrier = nodes.view.filterNot { _.barrier.isEmpty }.groupBy { n => n.barrier.get }

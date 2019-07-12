@@ -39,13 +39,43 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       //}
     //}
     n.to[LoopController].foreach { n =>
-      n.stopWhen.T.foreach { n =>
-        n.to[MemRead].foreach { read =>
+      n.stopWhen.T.foreach { read =>
+        read.to[MemRead].foreach { read =>
+          read.ctrl.reset
+          read.ctrl(n.getCtrl.parent.get)
           val mem = read.mem.T
           mem.nonBlocking := true
         }
       }
     }
+    //n.to[LoopController].foreach { n =>
+      //n.stopWhen.T.foreach { read =>
+        //var writer = read.as[MemRead].mem.T.inAccesses.head.as[MemWrite]
+        //var data = writer.data.singleConnected.get
+        //data.src match {
+          //case read:MemRead =>
+            //writer = read.as[MemRead].mem.T.inAccesses.head.as[MemWrite]
+            //data = writer.data.singleConnected.get
+        //}
+        //val ens = writer.en.connected
+        //var stop = within(writer.getCtrl, writer.parent.get) {
+          //(data +: ens).reduce[Output[PIRNode]]{ case (a,b) =>
+            //stage(OpDef(FixAnd).addInput(a,b)).out
+          //}
+        //}
+        //n.stopWhen.disconnect
+        //if (writer.getCtrl != n.getCtrl) {
+          //val write = within(writer.getCtrl, writer.parent.get) {
+            //stage(MemWrite().data(stop))
+          //}
+          //val fifo = within(pirTop) { stage(Reg().depth(2).addAccess(write)) }
+          //stop = within(n.getCtrl, n.parent.get) {
+            //stage(MemRead().setMem(fifo)).out
+          //}
+        //}
+        //n.stopWhen(stop)
+      //}
+    //}
     n.to[Def].foreach { _.getVec }
     n.to[Access].foreach { _.getVec }
     n.to[DRAMAddr].foreach { n =>
