@@ -6,7 +6,7 @@ import prism.graph._
 import prism.util._
 import scala.collection.mutable
 
-trait AnalysisUtil extends Logging { self:PIRPass =>
+trait AnalysisUtil { self:PIRPass =>
 
   def noPlaceAndRoute = spadeParam.isAsic || spadeParam.isP2P || spadeParam.isInf
 
