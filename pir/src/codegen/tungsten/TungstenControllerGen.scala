@@ -18,7 +18,8 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
   }
 
   override def emitNode(n:N) = n match {
-    case n:ControlBlock => super.visitNode(n)
+    case n:ControlBlock => 
+      super.visitNode(n)
 
     case n:Controller =>
       val tp = n match {
@@ -40,6 +41,16 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       emitln(s"$n->SetEn(${n.en.qref} & ${n.parentEn.qref});")
 
       // If last level controller is loop controller, generate lane valids
+
+      n.to[LoopController].foreach { n =>
+        n.stopWhen.T.foreach { stop =>
+          genCtxComputeMid {
+            emitln(s"$n->SetStop($stop);")
+          }
+        }
+      }
+
+      super.visitNode(n)
       if (n.getCtrl.isLeaf) {
         n.to[LoopController].foreach { ctrler =>
           val laneValids = ctrler.cchain.T.foldLeft(List[String]()) { 
@@ -51,23 +62,9 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
           }
           emitln(s"bool laneValids[] = {${laneValids.mkString(",")}};")
         }
+        emitln(s"EvalControllers();")
       }
 
-      n.to[LoopController].foreach { n =>
-        n.stopWhen.T.foreach { stop =>
-          genCtxComputeMid {
-            emitln(s"$n->SetStop($stop);")
-          }
-        }
-      }
-
-      if (n.getCtrl.isLeaf) {
-        genCtxComputeMid {
-          emitln(s"EvalControllers();")
-        }
-      }
-
-      super.visitNode(n)
 
     case n:Counter if n.isForever =>
       emitNewMember(s"ForeverCounter<${n.par}>", n)
