@@ -70,23 +70,25 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
 
   // Counter valids with par < maxValid should be always true
   val CounterConstValid = MatchRule[Counter, (Counter, Int)] { counter =>
-    val min = counter.min.T
-    val step = counter.step.T
-    val max = counter.max.T
-    val par = counter.par
-    val maxValid = (min, step, max) match {
-      case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) =>
-        var bound = ((max - min) /! step) % par
-        if (bound == 0) {
-          bound = par
-        }
-        dbg(s"Constant loop bounds min=$min, step=$step, max=$max, par=$par (0 until $bound)")
-        bound
-      case _ =>
-        dbg(s"None constant loop bounds min=$min, step=$step, max=$max, par=$par (0 until 1)")
-        1
-    }
-    Some((counter, maxValid))
+    if (counter.valids.exists { _.out.isConnected }) {
+      val min = counter.min.T
+      val step = counter.step.T
+      val max = counter.max.T
+      val par = counter.par
+      val maxValid = (min, step, max) match {
+        case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) =>
+          var bound = ((max - min) /! step) % par
+          if (bound == 0) {
+            bound = par
+          }
+          dbg(s"Constant loop bounds min=$min, step=$step, max=$max, par=$par (0 until $bound)")
+          bound
+        case _ =>
+          dbg(s"None constant loop bounds min=$min, step=$step, max=$max, par=$par (0 until 1)")
+          1
+      }
+      Some((counter, maxValid))
+    } else None
   }
 
   /*
@@ -169,6 +171,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
         dbgblk(s"ShuffleMatch($n, from=${dquote(n.from.T)}, to=${dquote(n.to.T)})") {
           val base = assertOne(n.base.connected, s"$n.base.connected")
           swapOutput(n.out, base)
+          free(n)
         }
       case ShuffleUnmatch(n) =>
         dbgblk(s"ShuffleUnmatch($n, from=${dquote(n.from.T)}, to=${dquote(n.to.T)})") {
@@ -176,6 +179,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
             allocConst(List.fill(n.inferVec.get)(n.filled))
           }
           swapOutput(n.out, c.out)
+          free(n)
         }
 
       case WrittenByConstData(read:MemRead, c:Const) =>
@@ -204,11 +208,9 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
           counter.valids.foreach { case valid@CounterValid(is) =>
             if (is.forall(_ < maxValid)) {
               dbg(s"Set $valid with is=$is to true")
-              if (valid.out.isConnected) {
-                if (const == null)
-                  const = within(ctrler.parent.get, counter.ctrl.get) { allocConst(true) }
-                swapOutput(valid.out, const.out)
-              }
+              if (const == null)
+                const = within(ctrler.parent.get, counter.ctrl.get) { allocConst(true) }
+              swapOutput(valid.out, const.out)
             }
           }
           if (const != null)
