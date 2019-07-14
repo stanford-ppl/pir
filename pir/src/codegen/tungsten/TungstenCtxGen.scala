@@ -24,6 +24,7 @@ trait TungstenCtxGen extends TungstenCodegen with TungstenTopGen {
 
   override def emitNode(n:N) = n match {
     case n:Context =>
+      dbgblk(s"emitNode($n)") {
       val (tp, name) = varOf(n)
       val numStages = numStagesOf(n)
       enterFile(dirName, s"$n.h", false) {
@@ -68,6 +69,7 @@ using namespace std;
       }
       genTopMember(n, ctxExtVars.map { _._2 }.map { _.& }, end=true)
       ctxExtVars.clear
+      }
 
     case n => super.emitNode(n)
   }

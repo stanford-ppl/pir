@@ -42,6 +42,7 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   }
 
   def filterEdge(out:Output[PIRNode], in:Input[PIRNode]) = (out,in) match {
+    case (_, InputField(_:LocalOutAccess, "done")) => false
     case (OutputField(_:LocalInAccess, _), InputField(_:LocalOutAccess, _)) => false
     case (_,InputField(_:LoopController, "stopWhen")) => false
     case _ => true
@@ -50,6 +51,15 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   override def visitIn(n:N) = n.siblingDeps(filter=Some(filterEdge)).toList
 
   override def visitOut(n:N) = n.siblingDepeds(filter=Some(filterEdge)).toList
+
+  override def visitFunc(n:N):List[N] = n match {
+    case n:Top => n.children.flatMap { _.children }
+    case n => super.visitFunc(n)
+  }
+
+  override def selectFrontier(unvisited:List[N]) = {
+    throw PIRException(s"Loop in tungsten codegen. Unvisited ${unvisited}")
+  }
 
   def varOf(n:PIRNode):(String, String) = n match {
     case n:Context => (s"$n",s"ctx_$n")
