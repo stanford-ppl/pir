@@ -41,10 +41,19 @@ trait GarbageCollector { self:PIRTransformer =>
 
   def free(nodes:Iterable[PIRNode]):Unit = dbgblk(s"free(${nodes.map{dquote(_)}})"){
     depDupHasRun = self.as[PIRPass].compiler.hasRunAll[DependencyDuplication]
-    val ns = nodes.map { n => (n, -1) }.toList
+    val ns = nodes.flatMap { n => 
+      if (isDead(n)) Some((n, -1))
+      else None
+    }.toList
+    var dead = ns.flatMap { _._1.descendents }
     collector.resetTraversal
-    val dead = collector.traverseNodes(ns).filterNot { isLive(_) == Some(true) }
+    dead ++= collector.traverseNodes(ns).filterNot { isLive(_) == Some(true) }
     removeNodes(dead)
+  }
+
+  private def isDead(n:PIRNode):Boolean = {
+    if (isLive(n) == Some(true)) return false
+    visitOut(n).isEmpty
   }
 
   def free(input:Input[PIRNode]):Unit = dbgblk(s"free(${dquote(input)})") {

@@ -106,8 +106,9 @@ trait BufferAnalyzer extends MemoryAnalyzer {
       out.src match {
         case dep:GlobalInput if dep.isDescendentOf(global) => dep
         case dep:GlobalInput => 
-          ins.foreach { in => swapConnection(in, out, dep.in.T.out) }
-          insertGlobalInput(global, dep.in.T.out, ins)
+          val gout = dep.in.T.out
+          ins.foreach { in => swapConnection(in, out, gout) }
+          insertGlobalInput(global, gout, ins)
         case dep =>
           val gin = within(global) { 
             allocate[GlobalInput] { _.in.isConnectedTo(out) } { stage(GlobalInput().in(out)) } 

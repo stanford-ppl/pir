@@ -161,7 +161,6 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
           }
           disconnect(writer, reduceOps.last)
           swapOutput(reduceOps.last.as[DefNode[PIRNode]].output.get, accumOp.out)
-          removeNodes(reduceOps :+ writer :+ reader :+ writer.mem.T)
         }
       }
     }

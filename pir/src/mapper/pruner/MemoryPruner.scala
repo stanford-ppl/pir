@@ -60,23 +60,10 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     mks.foreach { nk =>
       insertGlobalOutput(nk)
     }
+    free(k)
     //breakPoint(s"$k, $mks")
-    val usedByRemove = k.accum(visitFunc = { n =>
-      val ns = visitGlobalOut(n)
-      n.to[Shuffle].foreach { n =>
-        if (ns.nonEmpty) err(s"Deleted Shuffle $n when remove use of deleted MemoryContainer $k are still used by $ns")
-      }
-      ns
-    })
-    removeNodes(nodes)
-    removeNodes(usedByRemove)
-    //breakPoint(s"$k, $mks")
+    mks.foreach { mk => free(mk.collectChildren[GlobalOutput]) }
     mks
-  }
-
-  def removeUnusedConst(global:CUMap.K) = {
-    val consts = global.collectDown[Const]().filter { !_.out.isConnected }
-    removeNodes(consts)
   }
 
   def visitIn(n:PIRNode) = n match {
@@ -90,10 +77,11 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     reads.groupBy { _.global.get }.foreach { case (global, reads) =>
       reads.groupBy { _.ctx.get }.foreach { case (ctx, reads) =>
         val read = assertOne(reads, s"reads of $br in $ctx")
-          within(ctx, read.ctrl.get) {
-            read.out.T.foreach { deped =>
-              dbgblk(s"Merge $read => $deped in $ctx") {
-              val (toSwap, toMerge) = deped match {
+        val rctrl = read.ctrl.get
+        within(ctx, rctrl) {
+          read.out.T.foreach { deped =>
+            dbgblk(s"Merge $read => $deped in $ctx") {
+              val (toSwap:Output[PIRNode], toMerge) = deped match {
                 case Unbox(shuffle:Shuffle, from, Const(toBanks), base) => 
                   dbg(s"Read by $shuffle.to(Const($toBanks))")
                   val toMerge = mappings.map { mapping => 
@@ -151,10 +139,9 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
           }
           bufferInput(ctx)
         }
-        dupDeps(ctx, from=None).values.foreach { _.as[PIRNode].ctrl(read.ctrl.get,reset=true) }
+        dupDeps(ctx, from=None).values.foreach { _.as[PIRNode].ctrl(rctrl,reset=true) }
       }
       insertGlobalInput(global)
-      removeUnusedConst(global)
     }
   }
 }

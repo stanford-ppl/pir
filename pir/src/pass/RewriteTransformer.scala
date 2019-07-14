@@ -171,7 +171,6 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
         dbgblk(s"ShuffleMatch($n, from=${dquote(n.from.T)}, to=${dquote(n.to.T)})") {
           val base = assertOne(n.base.connected, s"$n.base.connected")
           swapOutput(n.out, base)
-          free(n)
         }
       case ShuffleUnmatch(n) =>
         dbgblk(s"ShuffleUnmatch($n, from=${dquote(n.from.T)}, to=${dquote(n.to.T)})") {
@@ -179,7 +178,6 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
             allocConst(List.fill(n.inferVec.get)(n.filled))
           }
           swapOutput(n.out, c.out)
-          free(n)
         }
 
       case WrittenByConstData(read:MemRead, c:Const) =>
