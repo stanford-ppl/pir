@@ -124,7 +124,7 @@ trait Transformer extends Logging {
     val pairs = a.localEdges.flatMap[(EN[N],EN[N]), ListBuffer[(EN[N],EN[N])]] { aio => 
       aio.connected.filter{ _.src == b }.map { bio => (aio, bio) }
     }
-    assert(pairs.nonEmpty, s"$a is not connected to $b, a.connected=${a.deps++a.depeds}")
+    assert(pairs.nonEmpty, s"$a is not connected to $b, a.connected=${a.deps()++a.depeds()}")
     pairs.foreach { case (aio,bio) => aio.disconnectFrom(bio.as) }
   }
 

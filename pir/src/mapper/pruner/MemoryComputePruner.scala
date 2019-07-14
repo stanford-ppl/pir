@@ -52,7 +52,7 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
 
     val addrCtx = addrCtxs.maxBy { _.getCost[StageCost].quantity }
     val global = within(pirTop) { ComputeContainer() }
-    val gouts = addrCtx.depeds.collect { case gout:GlobalOutput => gout }
+    val gouts = addrCtx.depeds().collect { case gout:GlobalOutput => gout }
     swapParent(addrCtx, global)
     gouts.foreach { gout => swapParent(gout, global) }
     insertGlobalIO(global)

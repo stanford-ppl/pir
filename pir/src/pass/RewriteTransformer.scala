@@ -100,7 +100,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
           val m1 = r1.mem.T
           val m2 = w2.mem.T
           val w1s = m1.inAccesses
-          if (w1s.size == 1 && m1.isFIFO == m2.isFIFO) {
+          if (w1s.size == 1 && m1.isFIFO == m2.isFIFO && !m2.nonBlocking.get) {
             val w1 = w1s.head.as[MemWrite]
             if (matchInput(w1.en, w2.en)) Some((w1, m1, r1, w2, m2))
             else None
@@ -115,7 +115,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   val RouteThrough2 = MatchRule[BufferWrite, (BufferWrite, BufferRead, BufferWrite)] { w2 =>
     w2.data.T match {
       case r1:BufferRead if !initializerHasRun & matchInput(r1.done, w2.done) 
-                          & !w2.en.isConnected =>
+                          & !w2.en.isConnected & w2.outAccesses.forall { !_.nonBlocking } =>
         val w1 = r1.inAccess.as[BufferWrite]
         Some((w1, r1, w2))
       case _ =>  None

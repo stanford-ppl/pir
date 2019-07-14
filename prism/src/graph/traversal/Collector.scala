@@ -23,7 +23,7 @@ class PrefixTraversal[NN,TT](
     super.isVisited(node)
   }
   // depth = -1 is infinate depth
-  def withinDepth(depth:Int) = (depth > 0 || depth < 0)
+  def withinDepth(depth:Int) = depth != 0
 
   override def visitNode(n:N, prev:T):T = prism.dbgblk(logging, s"visitNode($n, depth=${n._2})") {
     val (node, depth) = n
@@ -44,13 +44,8 @@ class PrefixTraversal[NN,TT](
 
 object PrefixTraversal {
   private val map = mutable.HashMap[(ClassTag[_],ClassTag[_]), PrefixTraversal[_,_]]()
-  def get[NN:ClassTag, TT:ClassTag]:PrefixTraversal[NN,TT] = map.getOrElseUpdate((classTag[NN], classTag[TT]), {
-    val zero = classTag[TT] match {
-      case ct if ct == classTag[List[_]] => Nil
-      case ct if ct == classTag[Option[_]] => None
-      case ct if ct == classTag[Boolean] => false
-    }
-    new PrefixTraversal[NN,TT](zero.as[TT])
+  def get[NN:ClassTag, TT:ClassTag](zero:TT):PrefixTraversal[NN,TT] = map.getOrElseUpdate((classTag[NN], classTag[TT]), {
+    new PrefixTraversal[NN,TT](zero)
   }).asInstanceOf[PrefixTraversal[NN,TT]]
 
   def get[NN:ClassTag, TT:ClassTag](
@@ -60,7 +55,7 @@ object PrefixTraversal {
     zero:TT,
     logging:Option[Logging]
   ):PrefixTraversal[NN,TT] = {
-    val traversal = get[NN,TT]
+    val traversal = get[NN,TT](zero)
     traversal.prefix = prefix
     traversal.vf = vf
     traversal.accumulate = accumulate

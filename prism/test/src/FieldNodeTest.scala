@@ -31,8 +31,8 @@ class FieldNodeTest extends UnitTest with TestEnv with Transformer {
     }
     assert(d.parent==Some(top))
     assert(a.parent==Some(d))
-    assert(a.deps.contains(c))
-    assert(a.depeds.contains(b))
+    assert(a.deps().contains(c))
+    assert(a.depeds().contains(b))
     new prism.codegen.BasicIRDotGen[N](testOut, s"field1.dot", top).run
 
     val mapping = mirrorAll(top+:top.descendents)

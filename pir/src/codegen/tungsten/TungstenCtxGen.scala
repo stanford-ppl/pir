@@ -52,6 +52,7 @@ using namespace std;
           }
           emitBlock(s"void Compute()") {
             getBuffer("computes").foreach { _.flushTo(sw) }
+            getBuffer("computes-mid").foreach { _.flushTo(sw) }
             getBuffer("computes-end").foreach { _.flushTo(sw) }
             emitStopSim(n)
           }
@@ -97,6 +98,8 @@ using namespace std;
   final protected def genCtxInits(block: => Unit) = enterBuffer("inits") { incLevel(2); block; decLevel(2) }
 
   final protected def genCtxCompute(block: => Unit) = enterBuffer("computes") { incLevel(2); block; decLevel(2) }
+
+  final protected def genCtxComputeMid(block: => Unit) = enterBuffer("computes-mid") { incLevel(2); block; decLevel(2) }
 
   final protected def genCtxComputeEnd(block: => Unit) = enterBuffer("computes-end") { incLevel(2); block; decLevel(2) }
 

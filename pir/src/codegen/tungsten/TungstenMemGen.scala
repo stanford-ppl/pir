@@ -67,33 +67,27 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         }
       }
 
-    case n:BufferWrite =>
+    case n:LocalInAccess =>
       val (tp, name) = varOf(n)
-      emitNewMember(tp, name)
       val ctx = n.ctx.get
+      val noOp = ctx.collectChildren[OpNode].isEmpty
+      if (!noOp) emitNewMember(tp, name)
       n.out.T.foreach { send =>
         if (!send.isDescendentOf(ctx)) addEscapeVar(send)
         genCtxInits {
-          emitln(s"AddSend(${nameOf(send)}, $name);")
-        }
-      }
-      var ens = n.done.qref :: n.en.qref :: Nil
-      n.ctx.get.ctrler(n.ctrl.get).foreach { ctrler => ens +:= ctrler.valid.qref }
-      emitIf(s"${ens.distinct.reduce { _ + " && " + _ }}") {
-        emitln(s"$name->Push(make_token(${n.data.qref}));")
-      }
-
-    case n:TokenWrite => // TODO: token write can also go through stages now. 
-      n.out.T.foreach { send =>
-        addEscapeVar(send)
-        genCtxInits {
-          emitln(s"AddSend(${nameOf(send)});");
+          if (noOp) emitln(s"AddSend(${nameOf(send)});");
+          else emitln(s"AddSend(${nameOf(send)}, $name);")
         }
         genCtxComputeEnd {
           var ens = n.done.qref :: n.en.qref :: Nil
           n.ctx.get.ctrler(n.ctrl.get).foreach { ctrler => ens +:= ctrler.valid.qref }
           emitIf(s"${ens.distinct.reduce { _ + " && " + _ }}") {
-            emitln(s"${nameOf(send)}->Push(make_token(true));")
+            val data = n match {
+              case n:BufferWrite => n.data.qref
+              case n:TokenWrite => s"true"
+            }
+            val pushto = if (noOp) nameOf(send) else name
+            emitln(s"$pushto->Push(make_token($data));")
           }
         }
       }

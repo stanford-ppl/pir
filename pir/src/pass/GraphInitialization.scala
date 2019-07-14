@@ -104,20 +104,6 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
     }
 
-    //n.to[FringeSparseStore].foreach { n =>
-      //// hack to get range of scatter
-      //val addr = n.addr.T.as[MemRead].mem.T.inAccesses.head
-      //val ctr = assertOne(addr.getCtrl.ctrler.get.as[LoopController].cchain, s"$n loop cchain")
-      //val max = ctr.max.T.get
-      //max match {
-        //case max:Const if max.getCtrl == n.getCtrl=>
-          //max.ctrl.reset
-          //max.ctrl(addr.getCtrl)
-        //case _ =>
-      //}
-      //n.range(max)
-    //}
-
     n.to[DRAMStoreCommand].foreach { n =>
       val write = within(pirTop, n.getCtrl) {
         val ack = n.ack.T.as[MemWrite].mem.T.outAccesses.head

@@ -41,15 +41,15 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     case n => super.quote(n)
   }
 
-  override def visitIn(n:N) = n match {
-    case n:LocalOutAccess => Nil
-    case n => super.visitIn(n)
+  def filterEdge(out:Output[PIRNode], in:Input[PIRNode]) = (out,in) match {
+    case (OutputField(_:LocalInAccess, _), InputField(_:LocalOutAccess, _)) => false
+    case (_,InputField(_:LoopController, "stopWhen")) => false
+    case _ => true
   }
 
-  override def visitOut(n:N) = n match {
-    case n:LocalInAccess => super.visitOut(n).filterNot{_.isInstanceOf[LocalOutAccess]}
-    case n => super.visitOut(n)
-  }
+  override def visitIn(n:N) = n.siblingDeps(filter=Some(filterEdge)).toList
+
+  override def visitOut(n:N) = n.siblingDepeds(filter=Some(filterEdge)).toList
 
   def varOf(n:PIRNode):(String, String) = n match {
     case n:Context => (s"$n",s"ctx_$n")

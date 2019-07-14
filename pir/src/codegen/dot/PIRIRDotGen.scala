@@ -67,6 +67,7 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
   }
 
   override def color(attr:DotAttr, n:N) = n match {
+    case n:LocalOutAccess if n.nonBlocking => attr.fillcolor("darkorange").style(filled)
     case n:LocalOutAccess => attr.fillcolor(gold).style(filled)
     case n:Memory => attr.fillcolor(chartreuse).style(filled)
     case n:GlobalInput if n.psimState == Some(".") && n.out.T.map { _.ctx.get}.exists { _.psimState != Some("DONE") } => attr.setNode.fillcolor("firebrick1").style(filled)

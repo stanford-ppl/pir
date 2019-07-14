@@ -30,12 +30,12 @@ class DAGTraversalTest extends UnitTest with Logging {
   "DAGGraphTest" should "success" in {
     new prism.codegen.BasicIRPrinter(testOut, s"IR.txt", top).run
     new prism.codegen.BasicIRDotGen(testOut, s"dag1.dot", top).run
-    assert(i.deps.toSet == Set(g, h), i.deps)
+    assert(i.deps().toSet == Set(g, h), i.deps())
     assert(i.globalDeps.toSet == Set(g))
-    assert(i.siblingDeps.toSet == Set(h))
-    assert(g.deps.toSet == Set(c, e))
+    assert(i.siblingDeps().toSet == Set(h))
+    assert(g.deps().toSet == Set(c, e))
     assert(g.globalDeps.toSet == Set())
-    assert(g.siblingDeps.toSet == Set(g2, e))
+    assert(g.siblingDeps().toSet == Set(g2, e))
     assert(g1.children.contains(b))
     assert(top.children.contains(g1))
   }

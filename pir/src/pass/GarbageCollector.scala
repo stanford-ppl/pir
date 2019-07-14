@@ -1,63 +1,70 @@
-//package pir
-//package pass
+package pir
+package pass
 
-//import pir.node._
-//import prism.graph._
-//import prism.graph.implicits._
+import pir.node._
+import prism.graph._
+import prism.graph.implicits._
 
-//import scala.collection.mutable
+import scala.collection.mutable
 
-//// BFS is slightly faster than DFS
-//trait GarbageCollector { self:PIRPass =>
+// BFS is slightly faster than DFS
+trait GarbageCollector { self:PIRTransformer =>
 
-  //// Breaking loop in traversal
-  //override def visitIn(n:N):List[N] = n match {
-    //case n:LocalOutAccess => n.in.neighbors.toList ++ n.done.neighbors.filterNot { case c:Controller => true; case _ => false }
-    //case n@UnderControlBlock(cb) if depDupHasRun => super.visitIn(cb)
-    //case n if depDupHasRun => cover[PIRNode, ControlBlock](super.visitIn(n))
-    //case n => super.visitIn(n)
-  //}
+  // Visit until a live node
+  private def prefix(n:PIRNode) = isLive(n).fold(false) { l => l }
 
-  //override def visitOut(n:N):List[N] = n match {
-    //case n@UnderControlBlock(cb) if depDupHasRun => 
-      //super.visitOut(cb).tryFilter { case x:LocalOutAccess => false; case _ => true }.toList
-    //case n:ControlBlock if depDupHasRun => 
-      //super.visitOut(n).tryFilter { case x:LocalOutAccess => false; case _ => true }.toList
-    //case n => super.visitOut(n)
-  //}
+  private def visitIn(n:PIRNode):List[PIRNode] = n match {
+    case n@UnderControlBlock(cb) if depDupHasRun => visitGlobalIn(cb)
+    case n if depDupHasRun => cover[PIRNode, ControlBlock](visitGlobalIn(n))
+    case n => visitGlobalIn(n)
+  }
 
-  //def depedsExistsLive(n:N):Boolean = {
-    //val depeds = depFunc(n)
-    //val (analyzedDepeds, unanalyzedDepeds) = depeds.partition { deped => isLive(deped).nonEmpty }
-    //val live = analyzedDepeds.exists { deped => isLive(deped).get }
-    //if (live) return true
-    //if (unanalyzedDepeds.isEmpty) return false
-    //if (config.aggressive_dce) {
-      //dbg(s"depeds=${depeds.map { deped => (deped, isLive(deped)) }}")
-      //dbg(s"n=$n unkownDeps=${depFunc(n).filter { deped => isLive(deped).isEmpty }} liveness unknown! be aggressive here")
-      ////warn(s"n=$n unkownDeps=${depFunc(n).filter { deped => isLive(deped).isEmpty }} liveness unknown! be aggressive here")
-      //return false
-    //} else {
-      //dbg(s"depeds=${depeds.map { deped => (deped, isLive(deped)) }}")
-      //dbg(s"n=$n unkownDeps=${depFunc(n).filter { deped => isLive(deped).isEmpty }} liveness unknown! be conservative here")
-      ////warn(s"n=$n unkownDeps=${depFunc(n).filter { deped => isLive(deped).isEmpty }} liveness unknown! be conservative here")
-      //return true
-    //}
-  //}
+  private def visitOut(n:PIRNode):List[PIRNode] = n match {
+    case n@UnderControlBlock(cb) if depDupHasRun => visitGlobalOut(cb)
+    case n => visitGlobalOut(n)
+  }
 
-  //def isLive(n:N):Option[Boolean] = n match {
-    //case n if liveMap.contains(n) => Some(liveMap(n))
-    //case n:HostRead => Some(true)
-    //case n:HostWrite => Some(true)
-    //case n:TokenRead => Some(true)
-    //case n:AssertIf => Some(true)
-    //case n:ExitIf => Some(true)
-    //case n:FringeStreamRead => Some(true)
-    //case n:HostInController => Some(true)
-    //case n:HostOutController => Some(true)
-    //case n:Controller if !depDupHasRun => Some(true)
-    //case n if n.isUnder[Controller] && !depDupHasRun => Some(true)
-    //case n => None
-  //}
+  private def visitFunc(n:PIRNode):List[PIRNode] = {
+    val deps = visitIn(n).filter { x => visitOut(x).forall(x => collector.isVisited(x, -1)) }
+    val parents = visitUp(n).filter { x => visitDown(x).forall(x => collector.isVisited(x, -1)) }
+    dbg(s"$n deps=$deps parent=$parents")
+    (deps ++ parents).distinct
+  }
 
-//}
+  private def accumulate(prev:Set[PIRNode], n:PIRNode) = if (!prev.contains(n) && (isLive(n) != Some(true))) (prev + n) else prev
+
+  private lazy val collector = PrefixTraversal.get[PIRNode,Set[PIRNode]](prefix _, visitFunc _, accumulate _, Set.empty[PIRNode], None)
+
+  var depDupHasRun = false
+
+  def free(nodes:PIRNode):Unit = free(List(nodes))
+
+  def free(nodes:Iterable[PIRNode]):Unit = dbgblk(s"free(${nodes.map{dquote(_)}})"){
+    depDupHasRun = self.as[PIRPass].compiler.hasRunAll[DependencyDuplication]
+    val ns = nodes.map { n => (n, -1) }.toList
+    collector.resetTraversal
+    val dead = collector.traverseNodes(ns).filterNot { isLive(_) == Some(true) }
+    removeNodes(dead)
+  }
+
+  def free(input:Input[PIRNode]):Unit = dbgblk(s"free(${dquote(input)})") {
+    val ns = input.neighbors
+    input.disconnect
+    free(ns)
+  }
+
+  def isLive(n:PIRNode):Option[Boolean] = n match {
+    case n:HostRead => Some(true)
+    case n:HostWrite => Some(true)
+    case n:TokenRead => Some(true)
+    case n:AssertIf => Some(true)
+    case n:ExitIf => Some(true)
+    case n:FringeStreamRead => Some(true)
+    case n:HostInController => Some(true)
+    case n:HostOutController => Some(true)
+    case n:Controller if !depDupHasRun => Some(true)
+    case n if n.isUnder[Controller] && !depDupHasRun => Some(true)
+    case n => None
+  }
+
+}

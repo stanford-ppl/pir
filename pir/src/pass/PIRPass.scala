@@ -44,7 +44,7 @@ trait ControlTreeTraversal extends PIRPass {
   type N = ControlTree
   def top = compiler.pirenv.pirTop.topCtrl
 }
-trait PIRTransformer extends PIRPass with Transformer {
+trait PIRTransformer extends PIRPass with Transformer with GarbageCollector {
   override def mirrorField[N<:Node[N]](
     nodes:Iterable[FieldNode[N]], 
     mapping:mutable.Map[IR,IR]
