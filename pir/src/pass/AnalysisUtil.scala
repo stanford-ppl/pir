@@ -11,11 +11,10 @@ trait AnalysisUtil { self:PIRPass =>
   def noPlaceAndRoute = spadeParam.isAsic || spadeParam.isP2P || spadeParam.isInf
 
   implicit class CtxUtil(ctx:Context) {
-    def reads:Seq[LocalOutAccess] = ctx.collectChildren[LocalOutAccess].filterNot { _.isLocal }
-    def writes:Seq[LocalInAccess] = ctx.collectChildren[LocalInAccess].filterNot { _.isLocal }
+    def reads:Seq[LocalOutAccess] = ctx.collectDown[LocalOutAccess]().filterNot { _.isLocal }
+    def writes:Seq[LocalInAccess] = ctx.collectDown[LocalInAccess]().filterNot { _.isLocal }
     def ctrs:Seq[Counter] = ctx.collectDown[Counter]()
-    def cb = ctx.collectFirstChild[ControlBlock]
-    def ctrlers = ctx.cb.map { _.collectChildren[Controller] }.getOrElse(Nil)
+    def ctrlers = ctx.collectDown[Controller]()
     def ctrler(ctrl:ControlTree) = {
       assertOneOrLess(
         ctx.ctrlers.filter { _.ctrl.get == ctrl }, 

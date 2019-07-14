@@ -18,23 +18,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
   }
 
   override def emitNode(n:N) = n match {
-    case n:ControlBlock =>
-      super.visitNode(n)
-      genCtxComputeMid {
-        emitln(s"EvalControllers();")
-      }
-
-      // If last level controller is loop controller, generate lane valids
-      n.ctrlers.last.to[LoopController].foreach { ctrler =>
-        val laneValids = ctrler.cchain.T.foldLeft(List[String]()) { 
-          case (Nil, ctr) => List.tabulate(ctr.par) { i => s"$ctr->Valids()[$i]" }
-          case (prev, ctr) => 
-            prev.flatMap { valid => 
-              List.tabulate(ctr.par) { i => s"$valid & $ctr->Valids()[$i]" }
-            }
-        }
-        emitln(s"bool laneValids[] = {${laneValids.mkString(",")}};")
-      }
+    case n:ControlBlock => super.visitNode(n)
 
     case n:Controller =>
       val tp = n match {
@@ -54,6 +38,21 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
         }
       }
       emitln(s"$n->SetEn(${n.en.qref} & ${n.parentEn.qref});")
+
+      // If last level controller is loop controller, generate lane valids
+      if (n.getCtrl.isLeaf) {
+        n.to[LoopController].foreach { ctrler =>
+          val laneValids = ctrler.cchain.T.foldLeft(List[String]()) { 
+            case (Nil, ctr) => List.tabulate(ctr.par) { i => s"$ctr->Valids()[$i]" }
+            case (prev, ctr) => 
+              prev.flatMap { valid => 
+                List.tabulate(ctr.par) { i => s"$valid & $ctr->Valids()[$i]" }
+              }
+          }
+          emitln(s"bool laneValids[] = {${laneValids.mkString(",")}};")
+        }
+      }
+
       n.to[LoopController].foreach { n =>
         n.stopWhen.T.foreach { stop =>
           genCtxComputeMid {
@@ -61,6 +60,13 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
           }
         }
       }
+
+      if (n.getCtrl.isLeaf) {
+        genCtxComputeMid {
+          emitln(s"EvalControllers();")
+        }
+      }
+
       super.visitNode(n)
 
     case n:Counter if n.isForever =>
