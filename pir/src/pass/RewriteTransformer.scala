@@ -200,14 +200,19 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
       case CounterConstValid(counter, maxValid) => 
         dbgblk(s"CounterConstValid($counter, $maxValid)") {
           val ctrler = counter.parent.get
-          val const = within(ctrler.parent.get, counter.ctrl.get) { allocConst(true) }
+          var const:Const = null
           counter.valids.foreach { case valid@CounterValid(is) =>
             if (is.forall(_ < maxValid)) {
               dbg(s"Set $valid with is=$is to true")
-              swapOutput(valid.out, const.out)
+              if (valid.out.isConnected) {
+                if (const == null)
+                  const = within(ctrler.parent.get, counter.ctrl.get) { allocConst(true) }
+                swapOutput(valid.out, const.out)
+              }
             }
           }
-          addAndVisitNode(const, ())
+          if (const != null)
+            addAndVisitNode(const, ())
         }
       case RouteThrough1(w1, m1, r1, w2, m2) =>
         dbgblk(s"Route through $w1 -> $m1 -> $r1 -> $w2 -> $m2 detected") {
