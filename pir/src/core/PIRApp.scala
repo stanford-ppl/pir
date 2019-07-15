@@ -101,7 +101,7 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, computePruner) ==>
     addPass(enableMapping, dagPruner) ==>
     addPass(sanityCheck) ==>
-    addPass(config.debug, debugTransformer) ==>
+    addPass(debugTransformer) ==>
     addPass(enableMapping, matchPruner) ==>
     addPass(modAnalyzer) ==>
     addPass(enableMapping, placerAndRouter) ==>

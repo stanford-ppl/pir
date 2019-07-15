@@ -48,7 +48,10 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
             s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
           }
           genCtxComputeEnd {
-            emitIf(s"${n.done.qref}") {
+            val ctrlerEn = n.collectPeer[Controller]().headOption.map { ctrler =>
+              s"$ctrler->Enabled()"
+            }.getOrElse(true)
+            emitIf(s"$ctrlerEn & ${n.done.qref}") {
               emitln(s"$name->Pop();")
             }
           }

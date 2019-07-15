@@ -93,6 +93,12 @@ trait AccessUtil {
       case n:LocalOutAccess => n.in.T.isInstanceOf[GlobalInput]
       case n:LocalInAccess => n.out.T.exists { _.isInstanceOf[GlobalOutput] }
     }
+    def nonBlocking = n match {
+      case n:BufferRead if !n.done.isConnected => 
+        assert(n.depth.get==1)
+        true
+      case _ => false
+    }
   }
   implicit class LocalInAccessOp(n:LocalInAccess) {
     def outAccesses:List[LocalOutAccess] = n.out.collect[LocalOutAccess](visitGlobalOut _)
@@ -101,12 +107,6 @@ trait AccessUtil {
   implicit class LocalOutAccessOp(n:LocalOutAccess) {
     def inAccess:LocalInAccess = assertOne(n.in.collect[LocalInAccess](visitGlobalIn _), s"$n.inAccess")
     def gin:Option[GlobalInput] = n.in.T.to[GlobalInput]
-    def nonBlocking = n match {
-      case n:BufferRead if !n.done.isConnected => 
-        assert(n.depth.get==1)
-        true
-      case _ => false
-    }
   }
 
 }

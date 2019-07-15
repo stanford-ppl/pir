@@ -60,16 +60,24 @@ using   namespace std;
               def flush = {
                 getBuffer("computes").foreach { _.flushTo(sw) }
                 getBuffer("computes-mid").foreach { _.flushTo(sw) }
-                emitln(s"EvalControllers();")
-                getBuffer("computes-end").foreach { _.flushTo(sw) }
               }
-              if (n.collectChildren[LocalOutAccess].nonEmpty) {
+              val checkIO = n.collectChildren[LocalAccess].filterNot{_.nonBlocking}.nonEmpty
+              if (checkIO) {
                 emitIf(s"InputsValid() && OutputsReady()") {
                   flush
                 }
               } else {
                 flush
               }
+              emitln(s"EvalControllers();")
+              if (checkIO) {
+                emitIf(s"InputsValid() && OutputsReady()") {
+                  getBuffer("computes-end").foreach { _.flushTo(sw) }
+                }
+              } else {
+                getBuffer("computes-end").foreach { _.flushTo(sw) }
+              }
+              getBuffer("computes-end").foreach { _.flushTo(sw) }
               emitln(s"EvalPipe();")
             }
           }

@@ -74,8 +74,8 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     en match {
       case InputField(_:BufferWrite | _:InAccess | _:RegAccumOp, "en") =>
         val n = en.src
-        n.ctx.get.ctrler(n.getCtrl).foreach { ctrler =>
-          ens :+= ctrler.valid.qidx(i)
+        n.collectPeer[Controller]().headOption.map { ctrler =>
+          ens :+= s"${ctrler}->Enabled()"
         }
       case _ =>
     }
