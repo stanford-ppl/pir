@@ -11,7 +11,9 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
     super.initPass
     val dramFile = buildPath(config.tstHome, "ini", "DRAM.ini")
     val systemFile = buildPath(config.tstHome, "ini", "system.ini")
-    genTopMember("DRAMController", "DRAM", Seq("DRAM".qstr, dramFile.qstr, systemFile.qstr, ".".qstr, s"{}", s"{}"), extern=true, end=false, escape=true)
+    copyFile(dramFile, buildPath(config.tstOut, "DRAM.ini"))
+    copyFile(systemFile, buildPath(config.tstOut, "system.ini"))
+    genTopMember("DRAMController", "DRAM", Seq("DRAM".qstr, "DRAM.ini".qstr, "system.ini".qstr, ".".qstr, s"{}", s"{}"), extern=true, end=false, escape=true)
   }
 
   override def emitNode(n:N) = n match {
