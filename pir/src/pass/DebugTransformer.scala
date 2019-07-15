@@ -13,7 +13,7 @@ class DebugTransformer(implicit compiler:PIR) extends PIRTransformer with Buffer
     saveToFile((runner.id-1, compiler.getDesign), buildPath(config.outDir,"debug.ckpt"))
     //val ctx = pirTop.collectDown[Context]().filter { _.id == 254 }.head
     removeStopWhenReg
-    insertSynchronization
+    //insertSynchronization
     insertControBlock
     //breakPoint("Debug Transformer")
   }
@@ -52,27 +52,30 @@ class DebugTransformer(implicit compiler:PIR) extends PIRTransformer with Buffer
       prefix=prefix,
       visitFunc=visitDown _,
     )
-    buffers.foreach { x =>
-      val a = x.as[LocalOutAccess]
-      // if the nonblocking register is written locally, remove the register.
-      a.in.T.to[BufferWrite].foreach { write =>
-        var stops = (write.data.connected ++ write.en.connected)
-        a.to[BufferRegRead].foreach { a =>
-          a.writeEn.T.foreach { w =>
-            w.to[BufferWrite].foreach { en =>
-              stops ++= en.data.connected
-            }
-          }
-        }
-        val stop = within(a.getCtrl, a.parent.get) {
-          stops.reduce[Output[PIRNode]]{ case (o1, o2) =>
-            stage(OpDef(FixAnd).addInput(o1, o2)).out
-          }
-        }
-        swapOutput(a.out, stop)
-        free(a)
-      }
+    buffers.foreach { b =>
+      b.as[LocalOutAccess].initToken := true
     }
+    //buffers.foreach { x =>
+      //val a = x.as[LocalOutAccess]
+      //// if the register is written locally, remove the register.
+      //a.in.T.to[BufferWrite].foreach { write =>
+        //var stops = (write.data.connected ++ write.en.connected)
+        //a.to[BufferRegRead].foreach { a =>
+          //a.writeEn.T.foreach { w =>
+            //w.to[BufferWrite].foreach { en =>
+              //stops ++= en.data.connected
+            //}
+          //}
+        //}
+        //val stop = within(a.getCtrl, a.parent.get) {
+          //stops.reduce[Output[PIRNode]]{ case (o1, o2) =>
+            //stage(OpDef(FixAnd).addInput(o1, o2)).out
+          //}
+        //}
+        //swapOutput(a.out, stop)
+        //free(a)
+      //}
+    //}
   }
 
   def insertSynchronization = {

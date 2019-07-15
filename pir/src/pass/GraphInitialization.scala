@@ -22,32 +22,32 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       n.en.disconnect
       // TODO: migrate this enable signal to write enable of all memory and read enable of sram
     }
-    //n.to[LoopController].foreach { n =>
-      //n.stopWhen.T.foreach { n =>
-        //n.to[MemRead].foreach { read =>
-          //val mem = read.mem.T
-          //within(mem.parent.get) { 
-            //val newMem = FIFO().mirrorMetas(mem)
-            //mem.accesses.sortBy{_.order.get}.foreach { a =>
-              //a.mem.disconnect
-              //a.setMem(newMem)
-            //}
-            //stage(newMem)
-          //}
-          //removeNodes(List(mem))
-        //}
-      //}
-    //}
     n.to[LoopController].foreach { n =>
-      n.stopWhen.T.foreach { read =>
-        read.to[MemRead].foreach { read =>
-          read.ctrl.reset
-          read.ctrl(n.getCtrl.parent.get)
+      n.stopWhen.T.foreach { n =>
+        n.to[MemRead].foreach { read =>
           val mem = read.mem.T
-          mem.nonBlocking := true
+          within(mem.parent.get) { 
+            val newMem = FIFO().mirrorMetas(mem)
+            mem.accesses.sortBy{_.order.get}.foreach { a =>
+              a.mem.disconnect
+              a.setMem(newMem)
+            }
+            stage(newMem)
+          }
+          removeNodes(List(mem))
         }
       }
     }
+    //n.to[LoopController].foreach { n =>
+      //n.stopWhen.T.foreach { read =>
+        //read.to[MemRead].foreach { read =>
+          //read.ctrl.reset
+          //read.ctrl(n.getCtrl.parent.get)
+          //val mem = read.mem.T
+          //mem.nonBlocking := true
+        //}
+      //}
+    //}
     //n.to[LoopController].foreach { n =>
       //n.stopWhen.T.foreach { read =>
         //var writer = read.as[MemRead].mem.T.inAccesses.head.as[MemWrite]

@@ -25,9 +25,9 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     toBuffer &= noBankedAccess
     // If read access is branch dependent, the ctx cannot block on the input for its activation
     toBuffer &= mem.outAccesses.forall { !_.en.isConnected }
-    mem.to[Reg].foreach { mem =>
-      toBuffer &= mem.inAccesses.forall { !_.en.isConnected }
-    }
+    //mem.to[Reg].foreach { mem =>
+      //toBuffer &= mem.inAccesses.forall { !_.en.isConnected }
+    //}
     toBuffer &= singleWriter && singleFIFOReader
     toBuffer &= !mem.nonBlocking.get
     var toEnBuffer = noBankedAccess && singleWriter && singleFIFOReader

@@ -37,6 +37,7 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
           }
         }
       }
+      emitln("Active()");
       if (config.asModule && bus.withLastBit) {
         genCtxInits {
           emitln(s"Expect(1);")
@@ -83,8 +84,8 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
             }
           }
         }
+        emitln(s"Active();")
       } {
-        emitln(s"InActive();")
         emitIf(s"eof = $file.eof()") {
           emitln(s"$file.close();")
         }

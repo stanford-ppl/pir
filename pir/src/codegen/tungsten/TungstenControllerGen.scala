@@ -12,7 +12,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case n@InputField(_:Controller, "en" | "parentEn") => quoteEn(n.as[Input[PIRNode]], None)
     case OutputField(ctrler:Controller, "done") => s"$ctrler->Done()"
     case OutputField(ctrler:Controller, "childDone") => s"$ctrler->ChildDone()"
-    case OutputField(ctrler:Controller, "valid") => s"$ctrler->Valid()"
+    case OutputField(ctrler:Controller, "valid") => s"$ctrler->Valid() & $ctrler->ChildDone()"
     case OutputField(ctrler:LoopController, "firstIter") => s"$ctrler->FirstIter()"
     case n => super.quoteRef(n)
   }
@@ -45,6 +45,9 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
         }
       }
       emitln(s"$n->SetEn(${n.en.qref});")
+      if (n.getCtrl.isLeaf) {
+        emitln("Active();")
+      }
 
       // If last level controller is loop controller, generate lane valids
 

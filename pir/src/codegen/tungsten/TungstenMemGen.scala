@@ -48,10 +48,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
             s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
           }
           genCtxComputeEnd {
-            val ctrlerEn = n.collectPeer[Controller]().headOption.map { ctrler =>
-              s"$ctrler->Enabled()"
-            }.getOrElse(true)
-            emitIf(s"$ctrlerEn & ${n.done.qref}") {
+            emitIf(s"${n.done.qref}") {
               emitln(s"$name->Pop();")
             }
           }
@@ -71,31 +68,35 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
     case n:LocalInAccess =>
       val (tp, name) = varOf(n)
       val ctx = n.ctx.get
-      val noOp = ctx.collectDown[OpNode]().isEmpty
-      if (!noOp) emitNewMember(tp, name)
+      val withPipe = ctx.collectDown[OpNode]().nonEmpty
+      if (withPipe) emitNewMember(tp, name)
       val ctrler = n.collectPeer[Controller]().headOption
       n.out.T.foreach { send =>
         if (!send.isDescendentOf(ctx)) addEscapeVar(send)
         genCtxInits {
-          if (noOp) emitln(s"AddSend(${nameOf(send)});");
-          else emitln(s"AddSend(${nameOf(send)}, $name);")
+          if (withPipe) emitln(s"AddSend(${nameOf(send)}, $name);")
+          else emitln(s"AddSend(${nameOf(send)});");
           ctrler.foreach { ctrler =>
             //TODO: add val ready pipeline
-            //if (noOp) emitln(s"${ctrler}->AddOutput(${nameOf(send)});")
+            //if (!withPipe) emitln(s"${ctrler}->AddOutput(${nameOf(send)});")
             //else emitln(s"${ctrler}->AddOutput($name);")
             emitln(s"${ctrler}->AddOutput(${nameOf(send)});")
           }
         }
-        genCtxComputeEnd {
-          var ens = n.done.qref :: n.en.qref :: Nil
-          n.ctx.get.ctrler(n.ctrl.get).foreach { ctrler => ens +:= ctrler.valid.qref }
-          emitIf(s"${ens.distinct.reduce { _ + " && " + _ }}") {
-            val data = n match {
-              case n:BufferWrite => n.data.qref
-              case n:TokenWrite => s"true"
-            }
-            val pushto = if (noOp) nameOf(send) else name
-            emitln(s"$pushto->Push(make_token($data));")
+      }
+      emitIf(n.en.qref) {
+        emitVec(n) { i => 
+          n match {
+            case n:BufferWrite => n.data.qidx(i)
+            case n:TokenWrite => s"true"
+          }
+        }
+      }
+      genCtxComputeEnd {
+        emitIf(s"${n.done.qref}") {
+          if (withPipe) emitln(s"$name->Push(make_token(${n.qref}));")
+          else n.out.T.foreach { send =>
+            emitln(s"${nameOf(send)}->Push(make_token(${n.qref}));")
           }
         }
       }
@@ -111,6 +112,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       val mem = n.mem.T
       addEscapeVar(mem)
       emitln(s"int $n = 0;")
+      emitln(s"Active();")
       emitIf(n.en.qref){
         emitln(s"${n} = toT<${n.qtp}>($mem->Read(), 0);")
         emitIf(n.done.qref) {
@@ -121,12 +123,14 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
     case n:MemWrite if n.mem.T.isFIFO =>
       val mem = n.mem.T
       addEscapeVar(mem)
+      emitln(s"Active();")
       emitIf(s"${n.en.qref} && ${n.done.qref}"){
         emitln(s"$mem->Push(make_token(${n.data.qref}));")
       }
 
     case n:FlatBankedRead =>
       addEscapeVar(n.mem.T)
+      emitln(s"Active();")
       emitln(s"""${n.mem.T}->SetupRead("$n",make_token(${n.offset.qref}));""")
       genCtxComputeEnd {
         emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
@@ -134,6 +138,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:FlatBankedWrite =>
       addEscapeVar(n.mem.T)
+      emitln(s"Active();")
       emitln(s"""${n.mem.T}->Write("$n", make_token(${n.data.qref}), make_token(${n.offset.qref}));""")
       genCtxComputeEnd {
         emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
@@ -142,12 +147,14 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
     case n:MemRead =>
       addEscapeVar(n.mem.T)
       emitln(s"""auto $n = ${n.mem.T}->Read("$n");""")
+      emitln(s"Active();")
       genCtxComputeEnd {
         emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
       }
 
     case n:MemWrite =>
       addEscapeVar(n.mem.T)
+      emitln(s"Active();")
       emitln(s"""if (${n.en.qref}) ${n.mem.T}->Write("$n", ${n.data.T});""")
       genCtxComputeEnd {
         emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")

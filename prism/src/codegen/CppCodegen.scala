@@ -17,16 +17,21 @@ trait CppCodegen extends Codegen {
   }
 
   def emitIfElse(cond:Any)(trueCase: => Unit)(falseCase: => Unit) = {
-    emitBlock(s"if ($cond)") {
-      trueCase
-    }
-    emitBlock(s"else") {
-      falseCase
+    if (cond.toString == "true") trueCase
+    else if (cond.toString == "false") falseCase
+    else {
+      emitBlock(s"if ($cond)") {
+        trueCase
+      }
+      emitBlock(s"else") {
+        falseCase
+      }
     }
   }
 
   def emitIf(cond:Any)(trueCase: => Unit) = {
-    emitBlock(s"if ($cond)") {
+    if (cond.toString == "true") trueCase 
+    else emitBlock(s"if ($cond)") {
       trueCase
     }
   }
