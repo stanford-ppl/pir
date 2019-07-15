@@ -29,13 +29,16 @@ class DebugTransformer(implicit compiler:PIR) extends PIRTransformer with Buffer
       cb.children.foreach { c => swapParent(c, ctx) }
       removeNodes(List(cb))
     }
-    val map = ctx.children.groupBy { _.getCtrl }
-    var ctrls = map.keys.toList
+    val ctrlers = ctx.collectChildren[Controller]
+    var ctrls = ctrlers.map { _.getCtrl }
+    val map = ctx.children.view.filter { c => ctrls.contains(c.getCtrl) }.groupBy { _.getCtrl }
     ctrls = ctrls.sortBy { _.ancestors.size }
-    ctrls.tail.foldLeft[PIRNode](ctx) { case (prev, ctrl) =>
-      val cb = within(prev, ctrl) { ControlBlock() }
-      map(ctrl).foreach { n => swapParent(n, cb) }
-      cb
+    if (ctrls.nonEmpty) {
+      ctrls.tail.foldLeft[PIRNode](ctx) { case (prev, ctrl) =>
+        val cb = within(prev, ctrl) { ControlBlock() }
+        map(ctrl).foreach { n => swapParent(n, cb) }
+        cb
+      }
     }
   }
 

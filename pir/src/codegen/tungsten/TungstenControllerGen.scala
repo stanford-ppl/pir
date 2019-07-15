@@ -19,6 +19,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
 
   override def emitNode(n:N) = n match {
     case n:ControlBlock => 
+      dbg(s"$n")
       val ctrler = n.ctrlers.last
       emitIf(s"${ctrler}->Enabled()") {
         super.visitNode(n)
