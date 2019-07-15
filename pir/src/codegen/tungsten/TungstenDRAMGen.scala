@@ -15,10 +15,14 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
   }
 
   override def emitNode(n:N) = n match {
-    case DRAMContext(cmd) => super.visitNode(n)
+    case DRAMContext(cmd) => 
+      enterBuffer("dummy"){ 
+        super.visitNode(n)
+      }
+      getBuffer("dummy").foreach { _.reset }
 
     case n:DRAMAddr =>
-      emitln(s"${n.qtp} $n = (${n.qtp}) ${n.dram.sname.get};")
+      declare(n.qtp, n.qref, s"(${n.qtp}) ${n.dram.sname.get}")
 
     case n:FringeDenseLoad =>
       val offset = nameOf(n.offset.T.as[BufferRead]).&

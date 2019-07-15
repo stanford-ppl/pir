@@ -54,8 +54,6 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
           }
       }
 
-    case WithData(n:BufferWrite, data:DRAMCommand) =>
-
     case WithData(n:BufferWrite, data:StreamCommand) =>
 
     case WithData(n:BufferWrite, data:FlatBankedRead) =>
@@ -70,13 +68,20 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
     case n:LocalInAccess =>
       val (tp, name) = varOf(n)
       val ctx = n.ctx.get
-      val noOp = ctx.collectChildren[OpNode].isEmpty
+      val noOp = ctx.collectDown[OpNode]().isEmpty
       if (!noOp) emitNewMember(tp, name)
+      val ctrler = n.collectPeer[Controller]().headOption
       n.out.T.foreach { send =>
         if (!send.isDescendentOf(ctx)) addEscapeVar(send)
         genCtxInits {
           if (noOp) emitln(s"AddSend(${nameOf(send)});");
           else emitln(s"AddSend(${nameOf(send)}, $name);")
+          ctrler.foreach { ctrler =>
+            //TODO: add val ready pipeline
+            //if (noOp) emitln(s"${ctrler}->AddOutput(${nameOf(send)});")
+            //else emitln(s"${ctrler}->AddOutput($name);")
+            emitln(s"${ctrler}->AddOutput(${nameOf(send)});")
+          }
         }
         genCtxComputeEnd {
           var ens = n.done.qref :: n.en.qref :: Nil

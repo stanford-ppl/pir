@@ -8,12 +8,12 @@ import scala.collection.mutable
 
 class TungstenPIRGen(implicit design:PIR) extends TungstenCodegen 
   with TungstenTopGen 
-  with TungstenCtxGen 
   with TungstenDRAMGen 
+  with TungstenIOGen
+  with TungstenCtxGen 
   with TungstenControllerGen
   with TungstenOpGen
   with TungstenMemGen
-  with TungstenIOGen
   with TungstenStreamGen
 
 trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal with CppCodegen {
@@ -80,57 +80,6 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       case _ =>
     }
     ens.reduceOption[String]{ _ + " & " + _ }.getOrElse("true")
-  }
-
-  def emitEn(en:Input[PIRNode]):Unit = {
-    emitVec(en) { i => quoteEn(en, i) }
-  }
-
-  /*
-   * Emit n as a vector even when n.getVec is 1
-   * */
-  def emitToVec(n:IR)(rhs: Option[String] => Any) = {
-    val vec = n.getVec
-    if (vec > 1) {
-      emitln(s"${n.qtp} ${n.qref}[${vec}] = {};")
-      emitBlock(s"for (int i = 0; i < ${vec}; i++)") {
-        emitln(s"${n.qref}[i] = ${rhs(Some("i"))};")
-      }
-    } else {
-      emitln(s"${n.qtp} ${n.qref}[] = {${rhs(None)}};")
-    }
-  }
-
-  /*
-   * Right hand side is a vector. Emit lhs as vector if vec > 1, otherwise as scalar
-   * */
-  def emitUnVec(lhs:IR)(rhs:Any) = {
-    if (lhs.getVec > 1) {
-      emitln(s"auto& $lhs = $rhs;")
-    } else {
-      emitln(s"${lhs.qtp} $lhs = $rhs[0];")
-    }
-  }
-
-  def emitVec(n:IR)(rhs: Option[String] => Any) = {
-    val vec = n.getVec
-    if (vec > 1) {
-      emitln(s"${n.qtp} ${n.qref}[${vec}] = {};")
-      emitBlock(s"for (int i = 0; i < ${vec}; i++)") {
-        emitln(s"${n.qref}[i] = ${rhs(Some("i"))};")
-      }
-    } else {
-      emitln(s"${n.qtp} ${n.qref} = ${rhs(None)};")
-    }
-  }
-
-  def emitVec(n:IR, rhs:List[Any]) = {
-    assert(n.getVec == rhs.size)
-    if (n.getVec==1) {
-      emitln(s"${n.qtp} ${n} = ${rhs.head};")
-    } else {
-      emitln(s"${n.qtp} ${n}[] = {${rhs.mkString(",")}};")
-    }
   }
 
   def quoteRef(n:Any):String = n match {

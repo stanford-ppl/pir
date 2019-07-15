@@ -19,7 +19,10 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
 
   override def emitNode(n:N) = n match {
     case n:ControlBlock => 
-      super.visitNode(n)
+      val ctrler = n.ctrlers.last
+      emitIf(s"${ctrler}->Enabled()") {
+        super.visitNode(n)
+      }
 
     case n:Controller =>
       val tp = n match {
@@ -32,13 +35,15 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
           emitln(s"""$n->SetChild($child);""");
         }
         emitln(s"controllers.push_back($n);");
+        val inputs = n.collectPeer[LocalOutAccess]().filterNot { _.nonBlocking }.map { nameOf }
+        emitln(s"${n}->SetInputs({${inputs.mkString(",")}});")
         n.to[LoopController].foreach { n =>
           n.cchain.foreach { ctr =>
             emitln(s"$n->AddCounter(${ctr});")
           }
         }
       }
-      emitln(s"$n->SetEn(${n.en.qref} & ${n.parentEn.qref});")
+      emitln(s"$n->SetEn(${n.en.qref});")
 
       // If last level controller is loop controller, generate lane valids
 
@@ -51,6 +56,19 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       }
 
       super.visitNode(n)
+
+      n.to[HostOutController].foreach { ctrler =>
+        val noStreamReadCtxs = !pirTop.collectDown[Context]().exists { case StreamReadContext(_) => true; case _ => false }
+        val hasInputStream = ctrler.collectPeer[LocalOutAccess]().nonEmpty
+        val emitStop = hasInputStream || noStreamReadCtxs
+        if (emitStop) {
+          emitln(s"Complete(1);")
+          genCtxInits {
+            emitln(s"Expect(1);")
+          }
+        }
+      }
+
       if (n.getCtrl.isLeaf) {
         n.to[LoopController].foreach { ctrler =>
           val laneValids = ctrler.cchain.T.foldLeft(List[String]()) { 
@@ -62,7 +80,6 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
           }
           emitln(s"bool laneValids[] = {${laneValids.mkString(",")}};")
         }
-        emitln(s"EvalControllers();")
       }
 
 

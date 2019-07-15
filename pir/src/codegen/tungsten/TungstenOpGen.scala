@@ -17,7 +17,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       }
 
     case n:HostWrite =>
-      emitln(s"auto& $n = ${n.sname.get};")
+      declare(n.qtp, n.qref, n.sname.get)
 
     case n@Const(v:List[_]) => emitVec(n, v)
     case n@Const(v:String) => emitVec(n, List.fill(n.getVec)(s""""${v.replace("\n", "\\n")}""""))

@@ -35,6 +35,7 @@ trait Printer extends FormatPrinter {
       toStream.flush
       outputStream.reset
     }
+    def reset = outputStream.reset
   }
   case class FileWriter(filePath:String, append:Boolean) extends StreamWriter {
     override lazy val outputStream:FileOutputStream = {
