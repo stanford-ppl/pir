@@ -56,8 +56,8 @@ trait Session { self:Compiler =>
 
   def loadDesign(loaded:Any):Unit = {}
   def getDesign:Serializable = null
-  def saveSession(path:String) = addPass("SaveSession"){runner =>
-    if (config.save) {
+  def saveSession(path:String, force:Boolean=false) = addPass("SaveSession"){runner =>
+    if (config.save | force) {
       val saved = (runner.id, compiler.getDesign)
       saveToFile(saved, path)
       //loadFromFile[(Int, Serializable)](path)

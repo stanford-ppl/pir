@@ -59,7 +59,7 @@ trait PIRApp extends PIR with Logging {
     import config._
 
     addPass(pirgenStaging) ==>
-    saveSession(buildPath(config.outDir,"pir0.ckpt")) ==>
+    saveSession(buildPath(config.outDir,"pir0.ckpt"), force=true) ==>
     // ------- Analysis and Transformations --------
     addPass(enableDot, new PIRIRDotGen(s"top1.dot")) ==>
     addPass(enableTrace && genPsim, dramTraceGen) ==>
