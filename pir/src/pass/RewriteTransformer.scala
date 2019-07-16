@@ -139,7 +139,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   val ShuffleMatch = MatchRule[Shuffle, Shuffle] { n =>
     (n.from, n.to) match {
       case (from, to) if !memoryPrunerHashRun => None
-      case (from, to) if matchInput(from, to) => Some(n)
+      case (from, to) if matchInput(from, to) & n.base.T.getVec == n.from.T.getVec & n.getVec == n.to.T.getVec => Some(n)
       case (from, to) => None
     }
   }
