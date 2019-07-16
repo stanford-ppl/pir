@@ -105,10 +105,13 @@ trait AnalysisUtil { self:PIRPass =>
       case n:TokenWrite => Some(1)
       case n:TokenRead => Some(1)
       case n:MemWrite => n.data.inferVec
-      //case WithMem(n:MemRead, mem:Reg) => Some(1)
+      case WithMem(n:MemRead, mem:Reg) => 
+        val b = n.mem.banks.get.head
+        assert(b == 1, s"Register have more than 1 bank $n $b")
+        Some(1)
       //case WithMem(n:MemRead, mem:FIFO) => Some(n.getCtrl.par.get) // doesn't work for stream in
       //out under stream controller
-      case n:MemRead => n.broadcast.v.map { _.size }.orElse(n.mem.banks.get.headOption)
+      case WithMem(n:MemRead, mem:FIFO) => n.broadcast.v.map { _.size }.orElse(Some(n.mem.banks.get.head))
       case n:BankedWrite => zipMap(n.data.inferVec, n.offset.inferVec) { case (a,b) => Math.max(a,b) }
       case n:BankedRead => n.offset.inferVec // Before lowering
       case n:FlatBankedAccess => Some(n.mem.nBanks)
