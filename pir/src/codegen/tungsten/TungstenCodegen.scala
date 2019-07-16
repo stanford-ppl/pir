@@ -69,19 +69,6 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   def tpOf(n:PIRNode) = varOf(n)._1
 
 
-  def quoteEn(en:Input[PIRNode], i:Option[String]):String = {
-    var ens = en.connected.map { _.qidx(i) }
-    //en match {
-      //case InputField(_:BufferWrite | _:InAccess | _:RegAccumOp, "en") =>
-        //val n = en.src
-        //n.collectPeer[Controller]().headOption.map { ctrler =>
-          //ens :+= s"${ctrler}->Enabled()"
-        //}
-      //case _ =>
-    //}
-    ens.reduceOption[String]{ _ + " & " + _ }.getOrElse("true")
-  }
-
   def quoteRef(n:Any):String = n match {
     case n:Input[_] => quoteRef(n.singleConnected.getOrElse(throw PIRException(s"Don't know how to quoteRef for ${dquote(n)}")))
     case n:Output[_] => quoteRef(n.src)

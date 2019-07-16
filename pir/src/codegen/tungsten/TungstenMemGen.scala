@@ -166,9 +166,8 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
   override def quoteRef(n:Any):String = n match {
     case n@InputField(x:BufferRegRead, "in") if !x.nonBlocking => varOf(x)._2.field("data")
     case n@InputField(x:BufferRegRead, f@("writeEn" | "writeDone")) => varOf(x)._2.field(f)
-    case n@InputField(x:LocalOutAccess, "done") if !n.isConnected => "false"
     case n@InputField(x:LocalOutAccess, "in") => varOf(x)._2
-    case n@InputField(_:LocalInAccess, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
+    case n@InputField(_:LocalAccess, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
     case n@InputField(_:MemWrite, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
     case n@InputField(access:Access, "done") if !n.isConnected => "false"
     case n => super.quoteRef(n)

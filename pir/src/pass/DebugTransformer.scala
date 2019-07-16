@@ -12,34 +12,9 @@ class DebugTransformer(implicit compiler:PIR) extends PIRTransformer with Buffer
   override def runPass = {
     saveToFile((runner.id-1, compiler.getDesign), buildPath(config.outDir,"debug.ckpt"))
     //val ctx = pirTop.collectDown[Context]().filter { _.id == 254 }.head
-    removeStopWhenReg
+    //removeStopWhenReg
     //insertSynchronization
-    insertControBlock
     //breakPoint("Debug Transformer")
-  }
-
-  def insertControBlock:Unit = {
-    val ctxs = pirTop.collectDown[Context]()
-    ctxs.foreach(insertControBlock)
-  }
-
-  def insertControBlock(ctx:Context):Unit = {
-    // Remove existing control block
-    ctx.collectChildren[ControlBlock].foreach { cb =>
-      cb.children.foreach { c => swapParent(c, ctx) }
-      removeNodes(List(cb))
-    }
-    val ctrlers = ctx.collectChildren[Controller]
-    var ctrls = ctrlers.map { _.getCtrl }
-    val map = ctx.children.view.filter { c => ctrls.contains(c.getCtrl) }.groupBy { _.getCtrl }
-    ctrls = ctrls.sortBy { _.ancestors.size }
-    if (ctrls.nonEmpty) {
-      ctrls.tail.foldLeft[PIRNode](ctx) { case (prev, ctrl) =>
-        val cb = within(prev, ctrl) { ControlBlock() }
-        map(ctrl).foreach { n => swapParent(n, cb) }
-        cb
-      }
-    }
   }
 
   def removeStopWhenReg = {

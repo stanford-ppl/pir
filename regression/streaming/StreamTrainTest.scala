@@ -56,10 +56,10 @@ class StreamTrainTest_0 extends StreamTrainTest[Float]
           }
         }
         if (lastBatch) {
-          xDRAM(0::field par ipf).store(sumX).setBarrier(0)
+          xDRAM(0::field par ipf).store(sumX)
         }
-        bArg.write(sumY.value, lastBatch).setBarrier(0)
-        (stop := lastBatch).waitFor(0)
+        bArg.write(sumY.value)
+        stop := lastBatch
       }
     }
     val cksum = checkGold[T](xDRAM, goldXFile) & checkGold[T](bArg, goldY)

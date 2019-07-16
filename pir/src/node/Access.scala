@@ -42,7 +42,7 @@ case class MemRead()(implicit env:Env) extends ReadAccess
 case class MemWrite()(implicit env:Env) extends WriteAccess
 
 trait LocalAccess extends PIRNode {
-  val done = new InputField[PIRNode]("done")
+  val done = new InputField[List[PIRNode]]("done")
 }
 trait LocalInAccess extends LocalAccess with Def {
   // En is anded with done. But done is branch independent

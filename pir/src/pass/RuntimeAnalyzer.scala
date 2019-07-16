@@ -124,20 +124,21 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
         assertUnify(children, s"$ctrler.valid.scale") { child => compScale(child.done) }.getOrElse(Finite(ctrler.ctx.get.getScheduleFactor))
       case OutputField(n:Const, _) => Finite(n.ctx.get.getScheduleFactor)
       case n:LocalAccess => 
-        (n, n.done.singleConnected.get) match {
+        (n, n.done.connected) match {
           case (n:BufferWrite, _) if n.en.isConnected => Unknown // Branch dependent
-          case (n:TokenAccess, OutputField(r:BufferRead, _)) => compScale(r.inAccess.as[BufferWrite].data.singleConnected.get)
-          case (n:BufferWrite, done) if n.ctx.get.streaming.get =>
+          case (n:TokenAccess, List(OutputField(r:BufferRead, _))) => compScale(r.inAccess.as[BufferWrite].data.singleConnected.get)
+          case (n:BufferWrite, List(done)) if n.ctx.get.streaming.get =>
             n.data.singleConnected.get match {
               case OutputField(n:FringeDenseStore, "ack") => n.getIter * n.ctx.get.getScheduleFactor
               case out => Finite(n.ctx.get.getScheduleFactor)
             }
-          case (n:BufferRead, done) if n.ctx.get.streaming.get =>
+          case (n:BufferRead, List(done)) if n.ctx.get.streaming.get =>
             n.out.connected.head match {
               case InputField(n:DRAMDenseCommand, "size" | "offset") => n.getIter * n.ctx.get.getScheduleFactor
               case in => Finite(n.ctx.get.getScheduleFactor)
             }
-          case (n, done) => compScale(done) 
+          case (n, List(done)) => compScale(done) 
+          case (n, done) if done.size > 1 => Unknown
         }
       case n => throw PIRException(s"Don't know how to compute scale of $n")
     }

@@ -24,7 +24,7 @@ import utils.io.files._
   def transposeTrainInput[T:Bits](in:StreamIn[Tup2[T,Bit]]) = {
     val trainX = SRAM[T](batch, field)
     val trainY = SRAM[T](batch)
-    val lastBit = SRAM[Bit](batch)
+    val lastBit = FIFO[Bit](10)
     Foreach(0 until field+1) { f =>
       Foreach(0 until batch par batch) { b =>
         val token = in.value
@@ -33,12 +33,12 @@ import utils.io.files._
         }
         trainY(b) = token._1
         val lb = token._2
-        lastBit(b) = lb
+        lastBit.enq(lb, f==field)
       }
     }
     val lastBatch = Reg[Bit]
     Reduce(lastBatch)(0 until batch par batch) { b =>
-      lastBit(b)
+      lastBit.deq
     } { _ | _ }
     (trainX, trainY, lastBit, lastBatch.value)
   }

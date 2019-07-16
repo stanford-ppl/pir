@@ -411,12 +411,17 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           outAccess.out.connected
         )
         val write = within(inAccess.parent.get, inAccess.ctrl.get) {
+          val (en, done) = if (mem.isFIFO) {
+            (Nil, enq :: inAccess.en.connected)
+          } else {
+            (inAccess.en.connected, enq)
+          }
           allocate[BufferWrite]{ write => 
             write.data.evalTo(inAccess.data.connected) &&
-            write.en.evalTo(inAccess.en.connected) && 
-            write.done.isConnectedTo(enq)
+            write.en.evalTo(en) && 
+            write.done.evalTo(done)
           } {
-            stage(BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(inAccess.en.connected).done(enq))
+            stage(BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(en).done(done))
           }
         }
         val read = within(outAccess.parent.get, outAccess.ctrl.get) {

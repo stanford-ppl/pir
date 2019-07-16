@@ -191,4 +191,14 @@ using   namespace std;
     emitVec(en) { i => quoteEn(en, i) }
   }
 
+  def quoteEn(en:Input[PIRNode], i:Option[String]):String = {
+    val name = en.as[Field[PIRNode]].name
+    val default = name match {
+      case "en" => true
+      case "done" => false
+    }
+    var ens = en.connected.map { _.qidx(i) }
+    ens.distinct.reduceOption[String]{ _ + " & " + _ }.getOrElse(default.toString)
+  }
+
 }
