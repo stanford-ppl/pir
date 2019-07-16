@@ -37,7 +37,7 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
           }
         }
       }
-      emitln("Active()");
+      emitln("Active();");
       if (config.asModule && bus.withLastBit) {
         genCtxInits {
           emitln(s"Expect(1);")

@@ -3,7 +3,7 @@ import spatial.lib.ML._
 import utils.io.files._
 import spatial.lang.{FileBus,FileEOFBus}
 
-class StreamTrainLogReg_0 extends StreamTrainLogReg[Float]
+class StreamTrainLogReg_0 extends StreamTrainLogReg[Float]()()
 
 // Reference https://blog.goodaudience.com/logistic-regression-from-scratch-in-numpy-5841c09e425f 
 @spatial abstract class StreamTrainLogReg[T:Num](
@@ -13,10 +13,11 @@ class StreamTrainLogReg_0 extends StreamTrainLogReg[Float]
   val batch:scala.Int = 4,
   val iters:scala.Int = 2,
   val learnRate:scala.Float = 0.01f,
-  val op:scala.Int = 1,
-  val kp:scala.Int = 1,
-  val ipf:scala.Int = 8, // field
-  val ipb:scala.Int = 8, // batch
+)(
+  val opb:scala.Int = 1,
+  val opf:scala.Int = 1,
+  val ipf:scala.Int = field, // field
+  val ipb:scala.Int = batch, // batch
 )(implicit ev:Cast[Text,T], ev2:Cast[T,Text]) extends StreamTraining {
   val init = 0.1f
 
@@ -66,7 +67,7 @@ class StreamTrainLogReg_0 extends StreamTrainLogReg[Float]
         val (trainX, trainY, lastBit, lastBatch) = transposeTrainInput[T](in) // trainX [batch, field], trainY [batch]
         Sequential.Foreach(iters by 1) { epoch =>
           val dZ = SRAM[T](batch)
-          Foreach(0 until batch par op) { b =>
+          Foreach(0 until batch par opb) { b =>
             val dot = Reg[T]
             Reduce(dot)(0 until field par ipf) { f =>
               trainX(b,f) * weights(f)
@@ -75,7 +76,7 @@ class StreamTrainLogReg_0 extends StreamTrainLogReg[Float]
             dZ(b) = A - trainY(b)
           }
           val dW = SRAM[T](field)
-          Foreach(0 until field) { f =>
+          Foreach(0 until field par opf) { f =>
             val sum = Reg[T]
             Reduce(sum)(0 until batch par ipb) { b =>
               trainX(b,f) * dZ(b) * (1.0/batch).to[T]
@@ -84,12 +85,12 @@ class StreamTrainLogReg_0 extends StreamTrainLogReg[Float]
           }
           val dB = Reg[T]
           Reduce(dB)(0 until batch par ipb) { b => dZ(b) } { _ + _ }
-          Foreach(0 until field) { f =>
+          Foreach(0 until field par ipf) { f =>
             weights(f) = weights(f) - learnRate.to[T] * dW(f)
           }
           bias := bias.value - learnRate.to[T] * dB.value
         }
-        if (lastBatch) wDRAM(0::field) store weights
+        if (lastBatch) wDRAM(0::field par ipf) store weights
         bArg := bias.value
         stop := lastBatch
       }

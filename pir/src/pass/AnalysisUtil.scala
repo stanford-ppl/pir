@@ -105,9 +105,10 @@ trait AnalysisUtil { self:PIRPass =>
       case n:TokenWrite => Some(1)
       case n:TokenRead => Some(1)
       case n:MemWrite => n.data.inferVec
-      case WithMem(n:MemRead, mem:Reg) => Some(1)
-      case WithMem(n:MemRead, mem:FIFO) => Some(n.getCtrl.par.get)
-      //case n:MemRead => n.broadcast.v.map { _.size }.orElse(n.mem.banks.get.headOption)
+      //case WithMem(n:MemRead, mem:Reg) => Some(1)
+      //case WithMem(n:MemRead, mem:FIFO) => Some(n.getCtrl.par.get) // doesn't work for stream in
+      //out under stream controller
+      case n:MemRead => n.broadcast.v.map { _.size }.orElse(n.mem.banks.get.headOption)
       case n:BankedWrite => zipMap(n.data.inferVec, n.offset.inferVec) { case (a,b) => Math.max(a,b) }
       case n:BankedRead => n.offset.inferVec // Before lowering
       case n:FlatBankedAccess => Some(n.mem.nBanks)
