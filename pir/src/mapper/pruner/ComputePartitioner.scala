@@ -45,7 +45,9 @@ trait ComputePartitioner extends CUPruner {
           }
         }
          // need to run in two pass to avoid duplicated allocation
+        alias ++= ctxs.map { ctx => (ctx, k) }
         ctxs.foreach { ctx => bufferInput(ctx) }
+        alias.clear
         dupDeps(ctxs, from=Some(k))
         (part::parts).foreach { removeCache }
         removeNodes(k.descendentTree)
@@ -61,6 +63,12 @@ trait ComputePartitioner extends CUPruner {
           split(new Partition(head), vcost) ++ split(new Partition(tail),vcost)
         }
     }).as[List[T]]
+  }
+
+  val alias = scala.collection.mutable.Map[Context,Context]()
+
+  override def valid(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
+    super.valid(ctrl, alias.get(ctx).getOrElse(ctx))
   }
 
   def include(n:PIRNode) = n match {

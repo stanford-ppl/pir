@@ -61,12 +61,14 @@ trait MemoryAnalyzer extends PIRTransformer { self:BufferAnalyzer =>
       ctrl.ctrler.get.valid
     } else {
        //Distributed controller
-      assertOneOrLess(ctx.ctrlers.filter { _.getCtrl == ctrl }, 
-        s"$ctrl.valid in $ctx").map { _.valid }.getOrElse {
-          //assert(this.isInstanceOf[CUPruner], s"$ctx has no Controller for $ctrl")
-          dbg(s"$ctx has no Controller for $ctrl. Use Const(true) instead")
-          within(ctx, ctrl) { allocConst(true).out }
-        }
+      //assertOneOrLess(ctx.ctrlers.filter { _.getCtrl == ctrl }, 
+        //s"$ctrl.valid in $ctx").map { _.valid }.getOrElse {
+          ////assert(this.isInstanceOf[CUPruner], s"$ctx has no Controller for $ctrl")
+          //val c = within(ctx, ctrl) { allocConst(true) }
+          //dbg(s"$ctx has no Controller for $ctrl. Use $c instead")
+          //c.out
+        //}
+      ctx.getCtrler(ctrl).valid
     }
   }
 
