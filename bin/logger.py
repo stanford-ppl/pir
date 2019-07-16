@@ -73,16 +73,18 @@ def show_diff(conf, opts):
         times = get_col(prevsucc, 'time')
         pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
         print('{} {}'.format(msg, cstr(RED,'(Regression)')))
-        print('{} {} {}'.format(getMessage(pconf, opts), pconf['sha'], pconf['time']))
+        print('{} {} {} {}'.format(getMessage(pconf, opts), pconf['spatial_sha'], 
+            get(pconf,'pir_sha'), pconf['time']))
     if conf[diffkey] and prevsucc.shape[0] == 0:
         print('{} {}'.format(msg, cstr(GREEN,'(New)')))
 
 def summarize(backend, opts, confs):
     if not opts.summarize: return
-    sha = confs[0]['sha']
+    spatial_sha = confs[0]['spatial_sha']
     time = confs[0]['time']
     timeshort = time[2:].replace("-","").replace(" ","_").replace(":","")
-    summary_path = "{}/{}_{}_{}_{}.csv".format(opts.logdir, timeshort, backend, opts.project, sha)
+    summary_path = "{}/{}_{}_{}_{}.csv".format(opts.logdir, timeshort, backend, opts.project,
+            spatial_sha)
     # create new csv
     conf = confs[0]
     with open(summary_path, "w") as f:
@@ -518,8 +520,11 @@ def parse_proutesummary(log, conf, opts):
 def show_gen(opts):
     gitmsg = subprocess.check_output("git log --pretty=format:'%h,%ad' -n 1 --date=iso".split(" "),
             cwd=opts.logdir + '../../').replace("'","")
-    sha = gitmsg.split(",")[0]
+    spatial_sha = gitmsg.split(",")[0]
     time = gitmsg.split(",")[1].split(" -")[0].strip()
+    gitmsg = subprocess.check_output("git log --pretty=format:'%h' -n 1".split(" "),
+            cwd=opts.logdir + '../').replace("'","")
+    pir_sha = gitmsg.split(",")[0]
     for backend in opts.backend:
         numRun = 0
         numSucc = 0
@@ -531,7 +536,8 @@ def show_gen(opts):
         opts.show_app = len(apps)==1 and not opts.summarize
         for app in apps:
             conf = OrderedDict()
-            conf['sha'] = sha
+            conf['spatial_sha'] = spatial_sha
+            conf['pir_sha'] = pir_sha
             conf['time'] = time
             conf['app'] = app
             conf['project'] = opts.project
@@ -562,11 +568,11 @@ def show_history(opts):
             if succeeded.shape[0] > 0:
                 times = get_col(succeeded, 'time')
                 pconf = to_conf(succeeded.iloc[np.argmax(times), :])
-                print('{} {} {}'.format(getMessage(pconf, opts), pconf['sha'], pconf['time']))
             else:
                 times = get_col(tab, 'time')
                 pconf = to_conf(tab.iloc[np.argmax(times), :])
-                print('{} {} {}'.format(getMessage(pconf, opts), pconf['sha'], pconf['time']))
+            print('{} {} {} {}'.format(getMessage(pconf, opts), pconf['spatial_sha'],
+                get(pconf,'pir_sha'), pconf['time']))
 
 def applyFilter(conf, opts):
     matched = False
