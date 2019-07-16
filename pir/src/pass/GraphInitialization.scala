@@ -78,7 +78,6 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     //}
     n.to[Def].foreach { _.getVec }
     n.to[Access].foreach { _.getVec }
-    n.to[BankedAccess].foreach { fixAddress }
     n.to[DRAMAddr].foreach { n =>
       val read = n.collect[MemRead](visitFunc=visitGlobalOut _).head
       n.tp.mirror(read.tp)
@@ -192,20 +191,6 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       }
     }
     ctrler
-  }
-
-  def fixAddress(n:BankedAccess) = {
-    val vec = n.getVec
-    (n.offset.connected ++ n.bank.connected).foreach { out =>
-      if (out.getVec < vec) {
-        val const = out.src.as[Const]
-        assert(out.getVec == 1)
-        val vconst = within(const.getCtrl, const.parent.get) {
-          Const(List.fill(vec)(const.value))
-        }
-        swapOutput(const.out, vconst.out)
-      }
-    }
   }
 
 }
