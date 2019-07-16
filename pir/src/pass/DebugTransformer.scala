@@ -17,19 +17,19 @@ class DebugTransformer(implicit compiler:PIR) extends PIRTransformer with Buffer
     //breakPoint("Debug Transformer")
   }
 
-  def removeStopWhenReg = {
-    def prefix(x:PIRNode) =  x match {
-        case n:LocalOutAccess => 
-          n.out.connected.exists { case InputField(_:LoopController, "stopWhen") => true; case _ => false };
-        case _ => false
-    }
-    val buffers = pirTop.filter(
-      prefix=prefix,
-      visitFunc=visitDown _,
-    )
-    buffers.foreach { b =>
-      b.as[LocalOutAccess].initToken := true
-    }
+  //def removeStopWhenReg = {
+    //def prefix(x:PIRNode) =  x match {
+        //case n:LocalOutAccess => 
+          //n.out.connected.exists { case InputField(_:LoopController, "stopWhen") => true; case _ => false };
+        //case _ => false
+    //}
+    //val buffers = pirTop.filter(
+      //prefix=prefix,
+      //visitFunc=visitDown _,
+    //)
+    //buffers.foreach { b =>
+      //b.as[LocalOutAccess].initToken := true
+    //}
     //buffers.foreach { x =>
       //val a = x.as[LocalOutAccess]
       //// if the register is written locally, remove the register.
@@ -51,7 +51,7 @@ class DebugTransformer(implicit compiler:PIR) extends PIRTransformer with Buffer
         //free(a)
       //}
     //}
-  }
+  //}
 
   def insertSynchronization = {
     val nodes = pirTop.filter(
