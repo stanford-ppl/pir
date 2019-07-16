@@ -62,10 +62,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       super.visitNode(n)
 
       n.to[HostOutController].foreach { ctrler =>
-        val noStreamReadCtxs = !pirTop.collectDown[Context]().exists { case StreamReadContext(_) => true; case _ => false }
-        val hasInputStream = ctrler.collectPeer[LocalOutAccess]().nonEmpty
-        val emitStop = hasInputStream || noStreamReadCtxs
-        if (emitStop) {
+        if (ctrler.collectPeer[LocalOutAccess]().nonEmpty) {
           emitln(s"Complete(1);")
           genCtxInits {
             emitln(s"Expect(1);")
