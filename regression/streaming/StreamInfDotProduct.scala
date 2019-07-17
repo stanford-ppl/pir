@@ -13,7 +13,7 @@ class StreamInfDotProduct_4 extends StreamInfDotProduct[scala.Int,Int]()(ipf=8, 
   val batch:scala.Int = 4,
 )(
   val opb:scala.Int = 1,
-  val ipf:scala.Int = field,
+  val ipf:scala.Int = math.min(field, 16),
   val ipb:scala.Int = math.min(batch, 16),
 )(implicit ev:Cast[Text,T]) extends StreamInference[HT,T,T] {
 

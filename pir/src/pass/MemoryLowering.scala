@@ -29,6 +29,12 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     toBuffer &= noReadEnable
     toBuffer &= singleWriter && singleFIFOReader
     toBuffer &= !mem.nonBlocking.get
+    if (!noReadEnable) {
+      val access = mem.outAccesses.filter { _.en.isConnected }
+      throw PIRException(s"$mem (${mem.name.v}, ${mem.srcCtx.v}) has read enables at \n${access.map { a =>
+        s"$a (${a.srcCtx.v.getOrElse("No context")})"
+      }.mkString("\n")}")
+    }
     var toEnBuffer = noBankedAccess && singleWriter && singleFIFOReader
     if (toBuffer) {
       bufferLowering(mem)
@@ -436,7 +442,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     removeNodes(mem.accesses :+ mem)
   }
 
-  def bufferRegLowering(mem:Memory) = dbgblk(s"enBuferLowering($mem)") {
+  def bufferRegLowering(mem:Memory) = dbgblk(s"bufferRegLowering($mem)") {
     mem.outAccesses.foreach { outAccess =>
       within(outAccess.parent.get) {
         val inAccess = mem.inAccesses.head.as[MemWrite]

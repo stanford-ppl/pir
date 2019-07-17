@@ -4,10 +4,11 @@ import spatial.lib.ML._
 
 class StreamInfLogReg_0 extends StreamInfLogReg[Float]()()
 class StreamInfLogReg_1 extends StreamInfLogReg[Float]()(opb=2)
-class StreamInfLogReg_2 extends StreamInfLogReg[Float]()(ipf=4)
-class StreamInfLogReg_3 extends StreamInfLogReg[Float]()(ipf=4, opb=2)
+class StreamInfLogReg_2 extends StreamInfLogReg[Float]()(ipf=8)
+class StreamInfLogReg_3 extends StreamInfLogReg[Float]()(ipf=8, opb=2)
 class StreamInfLogReg_4 extends StreamInfLogReg[Float]()(ipf=8, opb=4)
 class StreamInfLogReg_5 extends StreamInfLogReg[Int]()(ipf=8, opb=4)
+class StreamInfLogReg_6 extends StreamInfLogReg[Int]()(ipf=1)
 
 @spatial abstract class StreamInfLogReg[T:Num](
   val field:scala.Int = 8,
@@ -15,8 +16,8 @@ class StreamInfLogReg_5 extends StreamInfLogReg[Int]()(ipf=8, opb=4)
   val batch:scala.Int = 4,
 )(
   val opb:scala.Int = 1,
-  val ipb:scala.Int = 8,
-  val ipf:scala.Int = 8,
+  val ipb:scala.Int = math.min(batch,16),
+  val ipf:scala.Int = math.min(field,16),
 )(implicit ev:Cast[Text,T]) extends StreamInference[scala.Float,T,Bit] {
 
   val weights:Seq[scala.Float] = Seq.tabulate(field) { i => i }

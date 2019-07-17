@@ -20,7 +20,7 @@ class StreamInfKmeans_7 extends StreamInfKmeans[scala.Int,Int]()(ipf=8, opk=4, o
   val opb:scala.Int = 1,
   val opk:scala.Int = 1,
   val ipb:scala.Int = math.min(16,batch),
-  val ipf:scala.Int = 8,
+  val ipf:scala.Int = math.min(field, 16),
 ) extends StreamInference[HT,T,Int] {
 
   val r = scala.util.Random

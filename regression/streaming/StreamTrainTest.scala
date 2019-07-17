@@ -5,7 +5,7 @@ import spatial.lang.{FileBus,FileEOFBus}
 import spatial.metadata.bounds._
 import spatial.metadata.memory._
 
-class StreamTrainTest_0 extends StreamTrainTest[Float]
+class StreamTrainTest_0 extends StreamTrainTest[Float]()()
 
 // Reference https://blog.goodaudience.com/logistic-regression-from-scratch-in-numpy-5841c09e425f 
 @spatial abstract class StreamTrainTest[T:Num](
@@ -14,10 +14,11 @@ class StreamTrainTest_0 extends StreamTrainTest[Float]
   val numBatch:scala.Int = 16,
   val batch:scala.Int = 4,
   val iters:scala.Int = 2,
+)(
   val op:scala.Int = 1,
   val kp:scala.Int = 1,
-  val ipf:scala.Int = 8, // field
-  val ipb:scala.Int = 4, // batch
+  val ipf:scala.Int = math.min(field, 16),
+  val ipb:scala.Int = math.min(batch, 16), // batch
 )(implicit ev:Cast[T,Text], ev2:Cast[Text,T]) extends StreamTraining {
 
   def main(args: Array[String]): Unit = {

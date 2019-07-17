@@ -21,8 +21,8 @@ class StreamInfSVM_5 extends StreamInfSVM[scala.Float,Float]()(ipf=8, opb=4)
 )(
   val opb:scala.Int = 1,
   val opv:scala.Int = 1,
-  val ipf:scala.Int = 8,
-  val ipb:scala.Int = 8,
+  val ipf:scala.Int = math.min(field, 16),
+  val ipb:scala.Int = math.min(batch, 16),
 )(implicit ev:Cast[HT,T]) extends StreamInference[HT,T,Bit] {
 
   val r = scala.util.Random
