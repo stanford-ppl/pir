@@ -22,7 +22,7 @@ class StreamTrainLogReg_5 extends StreamTrainLogReg[Float]()(opb=2, opf=4)
   val opb:scala.Int = 1,
   val opf:scala.Int = 1,
   val ipf:scala.Int = field, // field
-  val ipb:scala.Int = batch, // batch
+  val ipb:scala.Int = math.min(batch,16), // batch
 )(implicit ev:Cast[Text,T], ev2:Cast[T,Text]) extends StreamTraining {
   val init = 0.1f
 

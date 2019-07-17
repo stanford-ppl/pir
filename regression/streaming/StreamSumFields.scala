@@ -7,7 +7,8 @@ class StreamSumFields_1 extends StreamSumFields[scala.Int,Int](op=2)
   val field:scala.Int = 8,
   val numBatch:scala.Int = 16,
   val batch:scala.Int = 4,
-  val op:scala.Int = 1
+  val op:scala.Int = 1,
+  val ipb:scala.Int = 4
 )(implicit ev:Cast[Text,T]) extends StreamInference[HT,T,T] {
 
   def accelBody(insram:SRAM2[T]) = {

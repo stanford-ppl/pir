@@ -4,6 +4,8 @@ import utils.io.files._
 
 @spatial abstract class StreamTemplate extends StreamHostTemplate with DSETest {
 
+  val ipb:scala.Int
+
   // Takes in input stream and put last bit into a FIFO,
   // transpose the data into SRAM in size [batch x field]
   // where batch is the vector dimension of the stream and fields are sent in
@@ -12,7 +14,7 @@ import utils.io.files._
     val insram = SRAM[T](batch, field)
     val lastBit = FIFO[Bit](10)
     Foreach(0 until field) { f =>
-      Foreach(0 until batch par batch) { b =>
+      Foreach(0 until batch par ipb) { b =>
         val token = in.value
         insram(b,f) = token._1
         lastBit.enq(token._2, f==field-1)
@@ -26,7 +28,7 @@ import utils.io.files._
     val trainY = SRAM[T](batch)
     val lastBit = FIFO[Bit](10)
     Foreach(0 until field+1) { f =>
-      Foreach(0 until batch par batch) { b =>
+      Foreach(0 until batch par ipb) { b =>
         val token = in.value
         if (f != field) {
           trainX(b,f) = token._1
@@ -37,7 +39,7 @@ import utils.io.files._
       }
     }
     val lastBatch = Reg[Bit]
-    Reduce(lastBatch)(0 until batch par batch) { b =>
+    Reduce(lastBatch)(0 until batch par ipb) { b =>
       lastBit.deq
     } { _ | _ }
     (trainX, trainY, lastBit, lastBatch.value)
@@ -46,7 +48,7 @@ import utils.io.files._
   // Takes an output sram of size [batch] and last bit FIFO, send the data to a output stream
   // vectorized by batch
   def transposeOutput[T:Bits](outsram:SRAM1[T], lastBit:FIFO[Bit], out:StreamOut[Tup2[T,Bit]]) = {
-    Foreach(0 until batch par batch) { b =>
+    Foreach(0 until batch par ipb) { b =>
       out := Tup2(outsram(b), lastBit.deq)
     }
   }
