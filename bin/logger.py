@@ -198,7 +198,7 @@ def print_message(conf, opts):
     if not opts.summarize and not opts.show_diff:
         print(msg)
 
-    if not opts.show_history or opts.show_diff:
+    if not opts.show_history and not opts.show_diff:
         return
 
     if opts.history is None:
@@ -212,7 +212,7 @@ def print_message(conf, opts):
 
     history = history[(history.app==conf['app']) & (history.project == conf['project']) & \
             (history.backend==conf['backend'])]
-    prevsucc =  history[history[diffkey] == True]
+    prevsucc =  history[history[diffkey]]
 
     if opts.show_diff:
         if not conf[diffkey] and prevsucc.shape[0] > 0:
