@@ -12,6 +12,7 @@ case class TopParam(
   burstSize:Int=512, // bit
   pattern:Pattern = Checkerboard(),
   scheduled:Boolean=false,
+  memTech:String="DDR3",
 ) extends Parameter {
   val bytePerWord = wordWidth / 8
   val burstSizeWord = burstSize / wordWidth
