@@ -164,16 +164,25 @@ using   namespace std;
     }
   }
 
-  def emitVec(n:IR)(rhs: Option[String] => Any) = {
+  def emitAssign(n:IR)(rhs: Option[String] => Any) = {
     val vec = n.getVec
     if (vec > 1) {
-      declare(s"${n.qtp} ${n.qref}[${vec}];")
       emitBlock(s"for (int i = 0; i < ${vec}; i++)") {
         emitln(s"${n.qref}[i] = ${rhs(Some("i"))};")
       }
     } else {
-      declare(n.qtp, n.qref, rhs(None))
+      emitln(s"${n.qref} = ${rhs(None)};")
     }
+  }
+
+  def emitVec(n:IR)(rhs: Option[String] => Any) = {
+    val vec = n.getVec
+    if (vec > 1) {
+      declare(s"${n.qtp} ${n.qref}[${vec}];")
+    } else {
+      declare(s"${n.qtp} ${n.qref};")
+    }
+    emitAssign(n)(rhs)
   }
 
   def emitVec(n:IR, rhs:List[Any]) = {

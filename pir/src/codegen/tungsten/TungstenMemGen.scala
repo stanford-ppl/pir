@@ -88,15 +88,23 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
           }
         }
       }
-      emitIf(n.en.qref) {
-        emitVec(n) { i => 
-          n match {
-            case n:BufferWrite => n.data.qidx(i)
-            case n:TokenWrite => s"true"
+      genCtxComputeEnd {
+        val ctrlerEn = ctrler.map { ctrler => s"$ctrler->Enabled()"}.getOrElse(true)
+        emitIfElse(s"$ctrlerEn & ${n.en.qref}") {
+          emitVec(n) { i => 
+            n match {
+              case n:BufferWrite => n.data.qidx(i)
+              case n:TokenWrite => s"true"
+            }
+          }
+        } {
+          val outs = n.out.T.collect { case out:LocalOutAccess if out.ctx.get == ctx => out }
+          assertOneOrLess(outs, s"written LocalOutAccess").foreach { out =>
+            genCtxComputeBegin {
+              emitAssign(n) { i => out.qidx(i) }
+            }
           }
         }
-      }
-      genCtxComputeEnd {
         emitIf(s"${n.done.qref}") {
           if (withPipe) emitln(s"$name->Push(make_token(${n.qref}));")
           else n.out.T.foreach { send =>
