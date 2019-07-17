@@ -11,8 +11,8 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
   override def quoteRef(n:Any):String = n match {
     case n@InputField(_:Controller, "en" | "parentEn") => quoteEn(n.as[Input[PIRNode]], None)
     case OutputField(ctrler:Controller, "done") => s"$ctrler->Done()"
-    case OutputField(ctrler:Controller, "childDone") => s"$ctrler->ChildDone()"
-    case OutputField(ctrler:Controller, "valid") => s"$ctrler->Valid() & $ctrler->ChildDone()"
+    case OutputField(ctrler:Controller, "childDone") => s"$ctrler->Valid()"
+    case OutputField(ctrler:Controller, "valid") => s"$ctrler->Valid()"
     case OutputField(ctrler:LoopController, "firstIter") => s"$ctrler->FirstIter()"
     case n => super.quoteRef(n)
   }
@@ -21,6 +21,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case n:ControlBlock => 
       dbg(s"$n")
       val ctrler = n.ctrlers.last
+      emitln(s"$ctrler->SetEn(${ctrler.en.qref});")
       emitIf(s"${ctrler}->Enabled()") {
         super.visitNode(n)
       }
@@ -44,7 +45,6 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
           }
         }
       }
-      emitln(s"$n->SetEn(${n.en.qref});")
       if (n.getCtrl.isLeaf) {
         emitln("Active();")
       }

@@ -10,7 +10,6 @@ class ContextInsertion(implicit compiler:PIR) extends PIRTraversal with SiblingF
   val ctxMap = mutable.Map[ControlTree, Context]() 
 
   override def visitNode(n:N) = n match {
-    //case n:PIRNode if n.ctrl.v.fold(false) { c => c.isLeaf } => moveToContext(n)
     case n:PIRNode if n.ctrl.nonEmpty => moveToContext(n)
     case _ => super.visitNode(n)
   }
