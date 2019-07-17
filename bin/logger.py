@@ -50,34 +50,6 @@ def load_history(opts):
     else:
         opts.history = history
 
-def show_diff(conf, opts):
-    msg = getMessage(conf, opts)
-    if not opts.show_message: return
-
-    if not opts.show_diff:
-        print(msg)
-        return
-
-    if opts.history is None:
-        print("No history to compare with")
-        return
-
-    diffkey = 'succeeded'
-    # diffkey = 'genpir'
-
-    history = opts.history
-    prevsucc = history[(history.app==conf['app']) & (history.project == conf['project']) & \
-            (history.backend==conf['backend']) & history[diffkey]]
-
-    if not conf[diffkey] and prevsucc.shape[0] > 0:
-        times = get_col(prevsucc, 'time')
-        pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
-        print('{} {}'.format(msg, cstr(RED,'(Regression)')))
-        print('{} {} {} {}'.format(getMessage(pconf, opts), pconf['spatial_sha'], 
-            get(pconf,'pir_sha'), pconf['time']))
-    if conf[diffkey] and prevsucc.shape[0] == 0:
-        print('{} {}'.format(msg, cstr(GREEN,'(New)')))
-
 def summarize(backend, opts, confs):
     if not opts.summarize: return
     spatial_sha = confs[0]['spatial_sha']
@@ -160,10 +132,6 @@ def getMessage(conf, opts):
         if get(conf,p + '_time') is not None:
             msg.append('[{}]'.format(get(conf,p + '_time')))
 
-        for f in opts.message.split(","):
-            if get(conf,f) is not None:
-                msg.append(cstr(color, f + ':' + str(get(conf,f))))
-
     printtst('runp2p')
 
     if get(conf,'runproute_err') is not None:
@@ -179,6 +147,11 @@ def getMessage(conf, opts):
 
     if len(opts.filter) > 0:
         msg = [get(conf,'app')]
+
+    for f in opts.message.split(","):
+        if get(conf,f) is not None:
+            msg.append(cstr(CYAN, f + ':' + str(get(conf,f))))
+
 
     return ' '.join(msg)
 
@@ -220,8 +193,49 @@ def removeRules(conf, opts):
             remove(conf[p], opts)
     return reruns
 
+def print_message(conf, opts):
+    msg = getMessage(conf, opts)
+    if not opts.summarize and not opts.show_diff:
+        print(msg)
+
+    if not opts.show_history or opts.show_diff:
+        return
+
+    if opts.history is None:
+        print("No history to compare with")
+        return
+
+    diffkey = 'succeeded'
+    # diffkey = 'genpir'
+
+    history = opts.history
+
+    history = history[(history.app==conf['app']) & (history.project == conf['project']) & \
+            (history.backend==conf['backend'])]
+    prevsucc =  history[history[diffkey] == True]
+
+    if opts.show_diff:
+        if not conf[diffkey] and prevsucc.shape[0] > 0:
+            times = get_col(prevsucc, 'time')
+            pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
+            print('{} {}'.format(msg, cstr(RED,'(Regression)')))
+            print('{} {} {} {}'.format(getMessage(pconf, opts), pconf['spatial_sha'], 
+                get(pconf,'pir_sha'), pconf['time']))
+        if conf[diffkey] and prevsucc.shape[0] == 0:
+            print('{} {}'.format(msg, cstr(GREEN,'(New)')))
+    elif opts.show_history:
+        history = prevsucc
+        if history.shape[0] > 0:
+            times = sorted(get_col(history, 'time'))
+            history = history.sort_values('time')
+            for idx, row in history.iterrows():
+                pconf = to_conf(row)
+                print('{} {} {} {}'.format(getMessage(pconf, opts), pconf['spatial_sha'], 
+                    get(pconf,'pir_sha'), pconf['time']))
+        print(msg)
+
 def logApp(conf, opts):
-    show_diff(conf, opts)
+    print_message(conf, opts)
     reruns = removeRules(conf, opts)
     if opts.show_app:
         # tail(conf['runpir'])
@@ -533,7 +547,7 @@ def show_gen(opts):
         else:
             apps = getApps(backend, opts)
         confs = []
-        opts.show_app = len(apps)==1 and not opts.summarize
+        opts.show_app = len(apps)==1 and not opts.summarize and not opts.show_history
         for app in apps:
             conf = OrderedDict()
             conf['spatial_sha'] = spatial_sha
@@ -617,13 +631,11 @@ def main():
             opts.project = backend.split("_")[1]
             opts.backend[i] = backend.split("_")[0]
 
-    opts.show_message = not opts.summarize 
-
     setFilterRules(opts)
     if opts.show_diff or opts.show_history:
         load_history(opts)
-    if opts.show_history:
-        show_history(opts)
-    else:
-        show_gen(opts)
+    # if opts.show_history:
+        # show_history(opts)
+    # else:
+    show_gen(opts)
 
