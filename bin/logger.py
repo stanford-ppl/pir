@@ -567,27 +567,6 @@ def show_gen(opts):
         if numRun != 0 and len(opts.filter) == 0:
             print('Succeeded {} / {} ({:0.2f}) %'.format(numSucc, numRun, numSucc*100.0/numRun))
 
-def show_history(opts):
-    history = opts.history
-    history = history[history.project == opts.project]
-
-    for backend in opts.backend:
-        btab = history[history.backend==backend]
-        apps = btab.app.unique()
-
-        for app in apps:
-            tab = btab
-            tab = tab[tab.app == app]
-            succeeded = tab[tab.succeeded]
-            if succeeded.shape[0] > 0:
-                times = get_col(succeeded, 'time')
-                pconf = to_conf(succeeded.iloc[np.argmax(times), :])
-            else:
-                times = get_col(tab, 'time')
-                pconf = to_conf(tab.iloc[np.argmax(times), :])
-            print('{} {} {} {}'.format(getMessage(pconf, opts), pconf['spatial_sha'],
-                get(pconf,'pir_sha'), pconf['time']))
-
 def applyFilter(conf, opts):
     matched = False
     if len(opts.filter) > 0:
@@ -634,8 +613,5 @@ def main():
     setFilterRules(opts)
     if opts.show_diff or opts.show_history:
         load_history(opts)
-    # if opts.show_history:
-        # show_history(opts)
-    # else:
     show_gen(opts)
 
