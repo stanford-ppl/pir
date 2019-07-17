@@ -33,10 +33,11 @@ trait MemoryAnalyzer extends PIRTransformer { self:BufferAnalyzer =>
     dbgblk(s"compEnqDeq(isFIFO=$isFIFO, o=${dquote(o)}, i=${dquote(i)})") {
       dbg(s"out=$from.$out")
       dbg(s"ins=${ins.map { in => s"${in.src}.$in"}.mkString(",")}")
-      (o, i) match {
-        case (o,i) if isFIFO => (valid(o, octx), valid(i, ictx))
-        case (o,i) if o == i => (done(o, octx), done(i, ictx))
-        case (o,i) =>
+      (out, ins) match {
+        case (out,ins) if isFIFO => (valid(o, octx), valid(i, ictx))
+        case (out,Seq(InputField(n:LoopController, "stopWhen"))) if o == i => (childDone(o, octx), childDone(i, ictx))
+        case (out,ins) if o == i => (done(o, octx), done(i, ictx)) // This should be childDone other than hack for block reduce token
+        case (out,ins) =>
           val lca = leastCommonAncesstor(o,i).get
           val oAncesstors = o.ancestorTree
           val iAncesstors = i.ancestorTree
@@ -46,9 +47,9 @@ trait MemoryAnalyzer extends PIRTransformer { self:BufferAnalyzer =>
           // in case of one ctrl is ancesstor of another
           def octrl = oAncesstors(oidx-1)
           def ictrl = iAncesstors(iidx-1)
-          if (lca == o)      (childDone(o, octx), done(ictrl, ictx))
-          else if (lca == i) (done(octrl, octx), childDone(i, ictx))
-          else               (done(octrl, octx), done(ictrl, ictx))
+          val enq = if (lca == o) childDone(o, octx) else done(octrl, octx)
+          val deq = if (lca == i) childDone(i, ictx) else done(ictrl, ictx)
+          (enq,deq)
       }
     }
   }

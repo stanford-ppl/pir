@@ -57,17 +57,16 @@ using   namespace std;
               getBuffer("inits").foreach { _.flushTo(sw) }
             }
             emitBlock(s"void Eval()") {
-              def flush = {
-                getBuffer("computes").foreach { _.flushTo(sw) }
-                getBuffer("computes-mid").foreach { _.flushTo(sw) }
-              }
+              getBuffer("computes-begin").foreach { _.flushTo(sw) }
               val checkIO = n.collectChildren[LocalAccess].filterNot{_.nonBlocking}.nonEmpty
               if (checkIO) {
                 emitIf(s"InputsValid() && OutputsReady()") {
-                  flush
+                  getBuffer("computes").foreach { _.flushTo(sw) }
+                  getBuffer("computes-mid").foreach { _.flushTo(sw) }
                 }
               } else {
-                flush
+                getBuffer("computes").foreach { _.flushTo(sw) }
+                getBuffer("computes-mid").foreach { _.flushTo(sw) }
               }
               emitln(s"EvalControllers();")
               if (checkIO) {
@@ -97,6 +96,8 @@ using   namespace std;
   final protected def genCtxFields(block: => Unit) = enterBuffer("fields"){ incLevel(1); block; decLevel(1) }
 
   final protected def genCtxInits(block: => Unit) = enterBuffer("inits") { incLevel(2); block; decLevel(2) }
+
+  final protected def genCtxComputeBegin(block: => Unit) = enterBuffer("computes-begin") { incLevel(2); block; decLevel(2) }
 
   final protected def genCtxCompute(block: => Unit) = enterBuffer("computes") { incLevel(2); block; decLevel(2) }
 

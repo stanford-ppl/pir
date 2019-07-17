@@ -41,11 +41,15 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
               } else {
                 s"(${n.qtp}) $initVal"
               }
-              emitln(s"$name->Push(make_token($init));")
+              emitln(s"$name->Init(make_token($init));")
             }
           }
-          emitVec(n) { i =>
-            s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
+          genCtxComputeBegin {
+            emitIf(s"$name->Valid()") {
+              emitVec(n) { i =>
+                s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
+              }
+            }
           }
           genCtxComputeEnd {
             emitIf(s"${n.done.qref}") {

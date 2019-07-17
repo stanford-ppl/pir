@@ -26,7 +26,6 @@ import spatial.dsl._
     val out = ArgOut[Int]
     Accel{
       val stop = Reg[Bit](false)
-
       val fifo = FIFO[Bit](2)
       Foreach(0 until 10) { i =>
         fifo.enq(i==9)

@@ -4,7 +4,7 @@ package node
 import prism.graph._
 
 trait Access extends PIRNode {
-  val order = Metadata[Int]("order")
+  val order = Metadata[Float]("order")
   val port = Metadata[Option[Int]]("port", default=Some(0))
   val muxPort = Metadata[Int]("muxPort")
   val broadcast = Metadata[Seq[Int]]("broadcast")
@@ -14,6 +14,16 @@ trait Access extends PIRNode {
   val done = new InputField[Option[PIRNode]]("done")
   def mem:FieldEdge[Memory,_,_]
   def isBroadcast = port.get.isEmpty
+
+  def setMem(m:Memory, order:Float=id):this.type = {
+    // Id when the access is created is an indication 
+    // of program order. This makes sure the program
+    // oder is correct between accesses of different
+    // memories that gets merged
+    this.order := order
+    mem(m)
+    this
+  }
 }
 trait BankedAccess extends Access {
   val bank = new InputField[List[PIRNode]]("bank")
@@ -73,13 +83,6 @@ trait AccessUtil {
     def isOutAccess:Boolean = x match {
       case x:OutAccess => true
       case x => false
-    }
-    def setMem(m:Memory):T = {
-      x.to[Access].fold(x) { xx => 
-        xx.order := m.accesses.size
-        xx.mem(m)
-        x 
-      }
     }
   } 
   implicit class LocalAccessOp(n:LocalAccess) {

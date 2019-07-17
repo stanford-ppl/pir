@@ -25,25 +25,36 @@ class StreamTrainLogReg_0 extends StreamTrainLogReg[Float]()()
     val (trainX, trainY) = generateRandomTrainInput[scala.Float](inFile) // return N x field
     val weights = scala.Array.fill[scala.Float](field)(init)
     val bias = scala.Array.fill[scala.Float](1)(init) // Spatial stage var
+    val pw = new java.io.PrintWriter(new java.io.File(buildPath(IR.config.genDir, "tungsten", "host.log")))
     trainX.grouped(batch).zip(trainY.grouped(batch)).foreach { case (trainX, trainY) =>
+      pw.write(s"===================================")
+      pw.write(s"trainX=[${trainX.mkString(",")}] \n")
+      pw.write(s"trainY=[${trainY.mkString(",")}] \n")
       (0 until iters).foreach { epoch =>
-        val dZ = (trainX,trainY).zipped.map { case (record, label) =>
+        pw.write(s"epoch=$epoch \n")
+        val dZ:Seq[scala.Float] = (trainX,trainY).zipped.map { case (record, label) =>
           val pc = unstaged_dp(record, weights) + bias(0)
           val A = unstaged_sigmoid(pc)
           A - label
         }
+        pw.write(s"dZ=[${dZ.mkString(",")}] \n")
         val dW = trainX.transpose.map { batches =>
           (batches, dZ).zipped.map { case (x, dZ) =>
             x * dZ * (1.0f / batch)
           }.sum
         }
+        pw.write(s"dW=[${dW.mkString(",")}] \n")
         val dB = dZ.sum
+        pw.write(s"dB=$dB \n")
         Range(start=0,end=field,step=1).foreach { f =>
           weights(f) = weights(f) - learnRate * dW(f)
         }
+        pw.write(s"weights=$weights \n")
         bias(0) = bias(0) - learnRate * dB
+        pw.write(s"bias=${bias(0)} \n")
       }
     }
+    pw.close
     writeCSVNow(weights, wFile)
     bias(0)
   }

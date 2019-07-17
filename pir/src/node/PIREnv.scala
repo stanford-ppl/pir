@@ -14,6 +14,7 @@ class PIRStates extends States {
   var topMap:EOption[TopMap] = _
 }
 trait PIREnv extends Env { self =>
+  implicit override val env:PIREnv = this
 
   override def newStates = new PIRStates
   override def states:PIRStates = super.states.asInstanceOf[PIRStates]
