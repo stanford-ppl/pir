@@ -42,7 +42,7 @@ class StreamTrainTest_0 extends StreamTrainTest[Float]()()
       //Stream(breakWhen=stop).Foreach(*) { _ =>
       Sequential(breakWhen=stop).Foreach(*) { _ =>
         val (trainX, trainY, lastBit, lastBatch) = transposeTrainInput[T](in) // trainX [batch, field], trainY [batch]
-        Sequential.Foreach(iters by 1) { epoch =>
+        Sequential.Foreach(iters by 1) { iter =>
           Foreach(0 until batch) { b =>
             Foreach(0 until field par ipf) { f =>
               sumX(f) = sumX(f) + trainX(b,f)

@@ -12,7 +12,6 @@ class StreamTrainLogReg_5 extends StreamTrainLogReg[Float]()(opb=2, opf=4)
 
 // Reference https://blog.goodaudience.com/logistic-regression-from-scratch-in-numpy-5841c09e425f 
 @spatial abstract class StreamTrainLogReg[T:Num](
-  val K:scala.Int = 16, // Number of centroids
   val field:scala.Int = 8,
   val numBatch:scala.Int = 16,
   val batch:scala.Int = 4,
@@ -21,7 +20,7 @@ class StreamTrainLogReg_5 extends StreamTrainLogReg[Float]()(opb=2, opf=4)
 )(
   val opb:scala.Int = 1,
   val opf:scala.Int = 1,
-  val ipf:scala.Int = math.min(field, 16),
+  val ipf:scala.Int = math.min(field,16),
   val ipb:scala.Int = math.min(batch,16), // batch
 )(implicit ev:Cast[Text,T], ev2:Cast[T,Text]) extends StreamTraining {
   val init = 0.1f
@@ -36,8 +35,8 @@ class StreamTrainLogReg_5 extends StreamTrainLogReg[Float]()(opb=2, opf=4)
       //pw.write(s"trainX: \n")
       //trainX.foreach { rec => pw.write(s"[${rec.toList.mkString(",")}]\n") }
       //pw.write(s"trainY=[${trainY.mkString(",")}] \n")
-      Range(start=0, end=iters, step=1).foreach { epoch =>
-        //pw.write(s"epoch=$epoch \n")
+      Range(start=0, end=iters, step=1).foreach { iter =>
+        //pw.write(s"iter=$iter \n")
         val dZ:Seq[scala.Float] = (trainX,trainY).zipped.map { case (record, label) =>
           val pc = unstaged_dp(record, weights) + bias(0)
           val A = unstaged_sigmoid(pc)
@@ -82,7 +81,7 @@ class StreamTrainLogReg_5 extends StreamTrainLogReg[Float]()(opb=2, opf=4)
       }
       Sequential(breakWhen=stop).Foreach(*) { _ =>
         val (trainX, trainY, lastBit, lastBatch) = transposeTrainInput[T](in) // trainX [batch, field], trainY [batch]
-        Sequential.Foreach(iters by 1) { epoch =>
+        Sequential.Foreach(iters by 1) { iter =>
           val dZ = SRAM[T](batch)
           Foreach(0 until batch par opb) { b =>
             val dot = Reg[T]
