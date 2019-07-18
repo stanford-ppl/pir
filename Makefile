@@ -8,6 +8,9 @@ clean:
 	#rm -rf out
 	#rm -f docs/api
 	sbt clean
+	make -C tungsten/ clean
+	make -C plastiroute/ clean
+	make -C plastisim/ clean
 
 distclean: clean
 	make -C docs/manual clean
