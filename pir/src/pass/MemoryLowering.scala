@@ -29,7 +29,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     toBuffer &= noReadEnable
     toBuffer &= singleWriter && singleFIFOReader
     toBuffer &= !mem.nonBlocking.get
-    if (!noReadEnable) {
+    if (noBankedAccess && !noReadEnable) {
       val access = mem.outAccesses.filter { _.en.isConnected }
       throw PIRException(s"$mem (${mem.name.v}, ${mem.srcCtx.v}) has read enables at \n${access.map { a =>
         s"$a (${a.srcCtx.v.getOrElse("No context")})"
