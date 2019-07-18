@@ -149,7 +149,7 @@ def getMessage(conf, opts):
         msg = [get(conf,'app')]
 
     for f in opts.message.split(","):
-        if get(conf,f) is not None:
+        if f in conf:
             msg.append(cstr(CYAN, f + ':' + str(get(conf,f))))
 
 

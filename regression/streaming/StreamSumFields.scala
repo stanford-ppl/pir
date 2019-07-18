@@ -1,9 +1,10 @@
 import spatial.dsl._
+import scala.reflect._
 
 class StreamSumFields_0 extends StreamSumFields[scala.Int,Int]()()
 class StreamSumFields_1 extends StreamSumFields[scala.Int,Int]()(op=2)
 
-@spatial abstract class StreamSumFields[HT:Numeric,T:Num](
+@spatial abstract class StreamSumFields[HT:Numeric:ClassTag,T:Num](
   val field:scala.Int = 8,
   val numBatch:scala.Int = 16,
   val batch:scala.Int = 4,

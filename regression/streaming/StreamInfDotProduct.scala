@@ -1,5 +1,6 @@
 import spatial.dsl._
 import utils.io.files._
+import scala.reflect._
 
 class StreamInfDotProduct_0 extends StreamInfDotProduct[scala.Int,Int]()()
 class StreamInfDotProduct_1 extends StreamInfDotProduct[scala.Int,Int]()(opb=2)
@@ -7,7 +8,7 @@ class StreamInfDotProduct_2 extends StreamInfDotProduct[scala.Int,Int]()(ipf=4)
 class StreamInfDotProduct_3 extends StreamInfDotProduct[scala.Int,Int]()(ipf=4, opb=2)
 class StreamInfDotProduct_4 extends StreamInfDotProduct[scala.Int,Int]()(ipf=8, opb=4)
 
-@spatial abstract class StreamInfDotProduct[HT:Numeric,T:Num](
+@spatial abstract class StreamInfDotProduct[HT:Numeric:ClassTag,T:Num](
   val field:scala.Int = 8,
   val numBatch:scala.Int = 16,
   val batch:scala.Int = 4,

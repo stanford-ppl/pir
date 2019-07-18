@@ -1,6 +1,7 @@
 import spatial.dsl._
 import spatial.lang.{FileBus,FileEOFBus}
 import utils.io.files._
+import scala.reflect._
 
 @spatial abstract class StreamTemplate extends StreamHostTemplate with DSETest {
 
@@ -55,7 +56,7 @@ import utils.io.files._
 
 }
 
-@spatial abstract class StreamInference[HI:Numeric,TI:Bits,TO:Bits](implicit ev:Cast[Text,TO]) extends StreamTemplate {
+@spatial abstract class StreamInference[HI:Numeric:ClassTag,TI:Bits,TO:Bits](implicit ev:Cast[Text,TO]) extends StreamTemplate {
   val tibits = implicitly[Bits[TI]]
   val tobits = implicitly[Bits[TO]]
 

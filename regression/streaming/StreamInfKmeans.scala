@@ -1,5 +1,6 @@
 import spatial.dsl._
 import utils.io.files._
+import scala.reflect._
 
 class StreamInfKmeans_0 extends StreamInfKmeans[scala.Int,Int]()()
 class StreamInfKmeans_1 extends StreamInfKmeans[scala.Int,Int]()(opb=2)
@@ -11,7 +12,7 @@ class StreamInfKmeans_7 extends StreamInfKmeans[scala.Int,Int]()(ipf=8, opk=4, o
 
 // Given a set of centroids, compute the closest centroid and output centroid indices for a stream of
 // records
-@spatial abstract class StreamInfKmeans[HT:Numeric,T:Arith:Num](
+@spatial abstract class StreamInfKmeans[HT:Numeric:ClassTag,T:Arith:Num](
   val K:scala.Int = 16, // Number of centroids
   val field:scala.Int = 8,
   val numBatch:scala.Int = 16,

@@ -1,5 +1,6 @@
 import spatial.dsl._
 import spatial.lib.ML._
+import scala.reflect._
 
 class StreamInfNN_0 extends StreamInfNN[scala.Int,Int]()()
 class StreamInfNN_1 extends StreamInfNN[scala.Int,Int]()(opb=2)
@@ -10,7 +11,7 @@ class StreamInfNN_5 extends StreamInfNN[scala.Int,Int](L1=8)(ipf=8, ip1=8, op1=1
 class StreamInfNN_6 extends StreamInfNN[scala.Float,Float]()()
 
 // 2 layer MLP [field x L1] [L1 x 1]
-@spatial abstract class StreamInfNN[HT:Numeric,T:Num](
+@spatial abstract class StreamInfNN[HT:Numeric:ClassTag,T:Num](
   val field:scala.Int = 8,
   val numBatch:scala.Int = 16,
   val batch:scala.Int = 4,
