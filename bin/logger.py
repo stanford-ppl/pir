@@ -151,7 +151,8 @@ def getMessage(conf, opts):
     for f in opts.message.split(","):
         if f in conf:
             msg.append(cstr(CYAN, f + ':' + str(get(conf,f))))
-
+        # else:
+            # print("{} not in config. options: {}".format(f, ','.join([k for k in conf])))
 
     return ' '.join(msg)
 
@@ -267,6 +268,7 @@ def parse(conf, opts):
     conf['AccelMain'] = os.path.join(opts.gendir,backend,app,"pir","AccelMain.scala")
     conf['logpath'] = os.path.join(opts.gendir,backend,app,"log/")
     conf['gentst'] = os.path.join(opts.gendir,backend,app,"log/gentst.log")
+    conf['resreport'] = os.path.join(opts.gendir,backend,app,"pir/out/resource.csv")
     conf['maketst'] = os.path.join(opts.gendir,backend,app,"log/maketst.log")
     conf['runp2p'] = os.path.join(opts.gendir,backend,app,"log/runp2p.log")
     conf['runhybrid'] = os.path.join(opts.gendir,backend,app,"log/runhybrid.log")
@@ -278,6 +280,7 @@ def parse(conf, opts):
     # parseLog('runpsim', parsers, conf)
     # parseLog('psimsh', parsers, conf)
     parseLog('gentst', parsers, conf)
+    parseLog('resreport', parsers, conf)
     parseLog('proutesh', parsers, conf)
     parseLog('runproute', parsers, conf)
     parse_proutesummary(conf['prouteSummary'], conf, opts)
@@ -424,15 +427,23 @@ Parser(
     parsers=parsers,
     logs=['gentst'],
 )
-pattern = ["MC Usage:", "DAG Usage:", "PMU Usage:", "PCU Usage:"]
+pattern = ["MC", "DAG", "PMU", "PCU"]
 for pat in pattern:
-    key = pat.replace(" Usage:", "")
     Parser(
-        key, 
+        pat, 
         pat,
-        lambda lines, pat=pat: float(lines[0].split(pat)[1].split("%")[0].strip()),
+        lambda lines, pat=pat: int(lines[0].split(pat+",")[1].split(",")[0].strip()),
         parsers=parsers,
-        logs=['gentst'],
+        logs=['resreport'],
+    )
+pattern = ["MC", "DAG", "PMU", "PCU"]
+for pat in pattern:
+    Parser(
+        pat+"_Total", 
+        pat,
+        lambda lines, pat=pat: int(lines[0].split(",")[2].strip()),
+        parsers=parsers,
+        logs=['resreport'],
     )
 Parser(
     'row', 

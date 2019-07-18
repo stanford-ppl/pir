@@ -22,7 +22,7 @@ class StreamInfNN_6 extends StreamInfNN[scala.Float,Float]()()
   val op2:scala.Int = 1,
   val opb:scala.Int = 1,
   val ipf:scala.Int = math.min(field, 16),
-  val ip1:scala.Int = 8,
+  val ip1:scala.Int = math.min(L1,16),
   val ipb:scala.Int = math.min(16,batch),
 )(implicit ev:Cast[Text,T]) extends StreamInference[HT,T,T] {
 

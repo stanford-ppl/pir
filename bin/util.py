@@ -51,13 +51,17 @@ class Parser:
             parsers.append(self)
         self.logs = logs
 
+    def getKey(self,log):
+        if len(self.logs) == 1: return self.key
+        else: return log + "_" + self.key
+
     def setDefault(self, conf, log):
-        conf[log + "_" + self.key] = self.default
+        conf[self.getKey(log)] = self.default
 
     def parse(self, found, conf, log):
         lines = [line for pat in self.patterns for line in found[pat]]
         if len(lines) != 0:
-            conf[log + "_" + self.key] = self.parseLambda(lines)
+            conf[self.getKey(log)] = self.parseLambda(lines)
 
 def parseLog(log, parsers, conf):
     parsers = [p for p in parsers if log in p.logs]
