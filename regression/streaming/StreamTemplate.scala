@@ -4,7 +4,7 @@ import utils.io.files._
 import scala.reflect._
 
 @spatial abstract class StreamTemplate extends StreamHostTemplate with DSETest {
-
+  
   val ipb:scala.Int
 
   // Takes in input stream and put last bit into a FIFO,
@@ -57,6 +57,7 @@ import scala.reflect._
 }
 
 @spatial abstract class StreamInference[HI:Numeric:ClassTag,TI:Bits,TO:Bits](implicit ev:Cast[Text,TO]) extends StreamTemplate {
+  val transpose:scala.Boolean = false
   val tibits = implicitly[Bits[TI]]
   val tobits = implicitly[Bits[TO]]
 
@@ -64,6 +65,9 @@ import scala.reflect._
   def hostBody(inDataMat:Seq[Seq[HI]]):Seq[Any]
   // Takes in a 2D sram in shape [batch x field] and return a sram of size [batch]
   def accelBody(insram:SRAM2[TI]):SRAM1[TO]
+
+  def accelBody(in:StreamIn[Tup2[TI,Bit]], out:StreamOut[Tup2[TO,Bit]]) = {
+  }
 
   def main(args: Array[String]): Unit = {
     val inFile = buildPath(IR.config.genDir, "tungsten", "in.csv")
@@ -77,9 +81,13 @@ import scala.reflect._
     val out = StreamOut[Tup2[TO,Bit]](FileEOFBus[Tup2[TO,Bit]](outFile))
     Accel{
       Foreach(*) { _ =>
-        val (insram, lastBit) = transposeInput(in)
-        val outsram = accelBody(insram)
-        transposeOutput(outsram, lastBit, out)
+        IfElse(transpose) {
+          val (insram, lastBit) = transposeInput(in)
+          val outsram = accelBody(insram)
+          transposeOutput(outsram, lastBit, out)
+        } {
+          accelBody(in, out)
+        }
       }
     }
     val outData:Matrix[TO] = loadCSV2D[TO](outFile)

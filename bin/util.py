@@ -39,7 +39,7 @@ def cstr(color, msg):
 
 class Parser:
     def __init__(self, key, pattern, parseLambda, 
-            default=None, parsers=None, logs=[], prefix=True):
+            default=None, parsers=None, logs=[], prefix=False):
         self.key = key
         if type(pattern) == list:
             patterns = pattern
@@ -51,10 +51,10 @@ class Parser:
         if parsers is not None:
             parsers.append(self)
         self.logs = logs
-        self.prefix = prefix
+        self.prefix = prefix or len(self.logs) > 1
 
     def getKey(self,log):
-        if len(self.logs) == 1 and not self.prefix: return self.key
+        if not self.prefix: return self.key
         else: return log + "_" + self.key
 
     def setDefault(self, conf, log):
