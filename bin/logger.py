@@ -21,6 +21,8 @@ parser.add_argument('-d', '--diff', dest='show_diff', action='store_true', defau
 parser.add_argument('-H', '--history', dest='show_history', action='store_true', default=False,
         help='showing history')
 parser.add_argument('--logdir', default="{}/spatial/pir/logs/".format(os.environ['HOME']))
+parser.add_argument('--spatial_dir', default="{}/spatial/".format(os.environ['HOME']))
+parser.add_argument('--pir_dir', default="{}/spatial/pir".format(os.environ['HOME']))
 parser.add_argument('-f', '--filter', dest='filter_str', action='append', help='Filter apps')
 parser.add_argument('-m', '--message', default='', help='Additional fields to print in message')
 
@@ -410,7 +412,8 @@ Parser(
     ["Runtime:"],
     lambda lines: lines[0].split("Runtime:")[1].strip(),
     parsers=parsers,
-    logs=['maketst', 'runp2p', 'runhybrid', 'runproute']
+    logs=['maketst', 'runp2p', 'runhybrid', 'runproute'],
+    prefix=True,
 )
 Parser(
     'time', 
@@ -418,6 +421,7 @@ Parser(
     lambda lines: float(lines[0].split("in ")[1].split("s")[0].strip()),
     parsers=parsers,
     logs=['gentst'],
+    prefix=True,
 )
 
 Parser(
@@ -544,11 +548,11 @@ def parse_proutesummary(log, conf, opts):
 
 def show_gen(opts):
     gitmsg = subprocess.check_output("git log --pretty=format:'%h,%ad' -n 1 --date=iso".split(" "),
-            cwd=opts.logdir + '../../').replace("'","")
+            cwd=opts.spatial_dir).replace("'","")
     spatial_sha = gitmsg.split(",")[0]
     time = gitmsg.split(",")[1].split(" -")[0].strip()
     gitmsg = subprocess.check_output("git log --pretty=format:'%h' -n 1".split(" "),
-            cwd=opts.logdir + '../').replace("'","")
+            cwd=opts.pir_dir).replace("'","")
     pir_sha = gitmsg.split(",")[0]
     for backend in opts.backend:
         numRun = 0
@@ -599,8 +603,8 @@ def setFilterRules(opts):
             p = fs
             opts.filter.append(lambda conf: p in conf and conf[p] is not None and conf[p])
 
-def main():
-    (opts, args) = parser.parse_known_args()
+def main(args=None):
+    (opts, args) = parser.parse_known_args(args=args)
     path = opts.path.rstrip('/')
     if opts.path_type == "app":
         path, app = path.rsplit('/',1)
