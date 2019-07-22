@@ -37,4 +37,14 @@ class StreamInfDotProduct_4 extends StreamInfDotProduct[scala.Int,Int]()(ipf=8, 
     outsram
   }
 
+  //override def accelBody(in:StreamIn[Tup2[TI,Bit]], out:StreamOut[Tup2[TO,Bit]]) = {
+    //Foreach(0 until field) { f =>
+      //Foreach(0 until batch par ipb) { b =>
+        //val token = in.value
+        //insram(b,f) = token._1
+        //lastBit.enq(token._2, f==field-1)
+      //}
+    //}
+  //}
+
 }
