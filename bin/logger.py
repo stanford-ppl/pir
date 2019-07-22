@@ -235,7 +235,6 @@ def print_message(conf, opts):
                 pconf = to_conf(row)
                 print('{} {} {} {}'.format(getMessage(pconf, opts), pconf['spatial_sha'], 
                     get(pconf,'pir_sha'), pconf['time']))
-        print(msg)
 
 def logApp(conf, opts):
     print_message(conf, opts)

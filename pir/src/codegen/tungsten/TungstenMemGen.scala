@@ -2,6 +2,7 @@ package pir
 package codegen
 
 import pir.node._
+import spade.param._
 import prism.graph._
 import prism.codegen._
 import scala.collection.mutable
@@ -200,7 +201,14 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
     }
   }
 
-  val fifoDepth = 4 //TODO: read from spade param
+  var fifoDepth = -1
+  override def initPass = {
+    super.initPass
+    fifoDepth = assertUnify(spadeParam.traceIn[FIFOParam], "fifoParam") { _.depth }
+      .getOrElse{ 100 }
+    dbg(s"fifoDepth=$fifoDepth")
+  } 
+
   override def varOf(n:PIRNode):(String,String) = n match {
     case n:LocalOutAccess if n.nonBlocking =>
       (s"NBlockBufferReg<Token>", s"fifo_$n")
