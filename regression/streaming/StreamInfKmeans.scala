@@ -22,6 +22,7 @@ class StreamInfKmeans_7 extends StreamInfKmeans[scala.Int,Int]()(ipf=8, opk=4, o
   val opk:scala.Int = 1,
   val ipb:scala.Int = math.min(16,batch),
   val ipf:scala.Int = math.min(field, 16),
+  val ipk:scala.Int = math.min(K, 16),
 ) extends StreamInference[HT,T,Int] {
 
   val r = scala.util.Random
@@ -54,7 +55,7 @@ class StreamInfKmeans_7 extends StreamInfKmeans[scala.Int,Int]()(ipf=8, opk=4, o
       val minDist = Reg[T]
       Reduce(minDist)(0 until K par ipf) { k => dists(k) } { Num[T].min(_,_) }
       val minIdx = Reg[Int]
-      Reduce(minIdx)(0 until K) { k =>
+      Reduce(minIdx)(0 until K par ipk) { k =>
         mux(dists(k) == minDist.value, k, K+1)
       } { min(_,_) }
       outsram(b) = minIdx.value

@@ -38,9 +38,9 @@ class TungstenRunner(implicit compiler: PIR) extends PIRPass with Printer {
     }
     if (exitCode != 0 || failed) {
       fail(s"Tungsten failed. details in $tstLog")
-    } else {
-      shell(header=Some("tungsten"), command=s"python bin/annotate.py", cwd=Some(config.tstOut))
     }
+    shell(header=Some("tungsten"), command=s"python bin/annotate.py", cwd=Some(config.tstOut))
+    
   }
 
 }

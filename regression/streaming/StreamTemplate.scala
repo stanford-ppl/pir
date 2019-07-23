@@ -57,7 +57,7 @@ import scala.reflect._
 }
 
 @spatial abstract class StreamInference[HI:Numeric:ClassTag,TI:Bits,TO:Bits](implicit ev:Cast[Text,TO]) extends StreamTemplate {
-  val transpose:scala.Boolean = false
+  val transpose:scala.Boolean = true
   val tibits = implicitly[Bits[TI]]
   val tobits = implicitly[Bits[TO]]
 
@@ -68,6 +68,8 @@ import scala.reflect._
 
   def accelBody(in:StreamIn[Tup2[TI,Bit]], out:StreamOut[Tup2[TO,Bit]]) = {
   }
+
+  def init:Unit = {}
 
   def main(args: Array[String]): Unit = {
     val inFile = buildPath(IR.config.genDir, "tungsten", "in.csv")
@@ -81,13 +83,14 @@ import scala.reflect._
     val out = StreamOut[Tup2[TO,Bit]](FileEOFBus[Tup2[TO,Bit]](outFile))
     Accel{
       Foreach(*) { _ =>
-        IfElse(transpose) {
+        If(transpose) {
           val (insram, lastBit) = transposeInput(in)
           val outsram = accelBody(insram)
           transposeOutput(outsram, lastBit, out)
-        } {
-          accelBody(in, out)
         }
+      }
+      If(!transpose) {
+        accelBody(in, out)
       }
     }
     val outData:Matrix[TO] = loadCSV2D[TO](outFile)

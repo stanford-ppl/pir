@@ -7,6 +7,7 @@ class StreamInfDotProduct_1 extends StreamInfDotProduct[scala.Int,Int]()(opb=2)
 class StreamInfDotProduct_2 extends StreamInfDotProduct[scala.Int,Int]()(ipf=4)
 class StreamInfDotProduct_3 extends StreamInfDotProduct[scala.Int,Int]()(ipf=4, opb=2)
 class StreamInfDotProduct_4 extends StreamInfDotProduct[scala.Int,Int]()(ipf=8, opb=4)
+class StreamInfDotProduct_5 extends StreamInfDotProduct[scala.Int,Int]()(transpose=false)
 
 @spatial abstract class StreamInfDotProduct[HT:Numeric:ClassTag,T:Num](
   val field:scala.Int = 8,
@@ -16,6 +17,7 @@ class StreamInfDotProduct_4 extends StreamInfDotProduct[scala.Int,Int]()(ipf=8, 
   val opb:scala.Int = 1,
   val ipf:scala.Int = math.min(field, 16),
   val ipb:scala.Int = math.min(batch, 16),
+  override val transpose:scala.Boolean = true,
 )(implicit ev:Cast[Text,T]) extends StreamInference[HT,T,T] {
 
   val weights = Seq.tabulate(field) { i => i }
@@ -37,14 +39,25 @@ class StreamInfDotProduct_4 extends StreamInfDotProduct[scala.Int,Int]()(ipf=8, 
     outsram
   }
 
-  //override def accelBody(in:StreamIn[Tup2[TI,Bit]], out:StreamOut[Tup2[TO,Bit]]) = {
-    //Foreach(0 until field) { f =>
-      //Foreach(0 until batch par ipb) { b =>
-        //val token = in.value
-        //insram(b,f) = token._1
-        //lastBit.enq(token._2, f==field-1)
-      //}
-    //}
-  //}
+  override def accelBody(in:StreamIn[Tup2[T,Bit]], out:StreamOut[Tup2[T,Bit]]) = {
+    val wLUT = LUT.fromSeq[T](weights.map { _.to[T] })
+    val lastBit = FIFO[Bit](10)
+    Foreach(*) { _ =>
+      val accum = SRAM[T](batch).buffer
+      Foreach(0 until field) { f =>
+        val w = wLUT(f)
+        Foreach(0 until batch par ipb) { b =>
+          val token = in.value
+          val firstIter = f == 0
+          val prod = token._1 * w
+          accum(b) = mux(firstIter, prod, prod + accum(b))
+          lastBit.enq(token._2, f==field-1)
+        }
+      }
+      Foreach(0 until batch par ipb) { b =>
+        out := Tup2(accum(b), lastBit.deq)
+      }
+    }
+  }
 
 }

@@ -1,8 +1,8 @@
 import os
 from util import *
 
-def main():
-    (opts, args) = parser.parse_known_args()
+def main(args=None):
+    (opts, args) = parser.parse_known_args(args=args)
     if opts.app is None:
         opts.app = ["*"]
     apps = []
