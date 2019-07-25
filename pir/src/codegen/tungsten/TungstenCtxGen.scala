@@ -28,6 +28,8 @@ trait TungstenCtxGen extends TungstenCodegen with TungstenTopGen {
         val (tp, name) = varOf(n)
         val numStages = numStagesOf(n)
         ctxExtVars.clear
+        declared.clear
+        emittedEn.clear
         getBuffer("fields").foreach { _.reset }
         getBuffer("inits").foreach { _.reset }
         getBuffer("computes").foreach { _.reset }
@@ -121,17 +123,33 @@ using   namespace std;
     }
   }
 
-  def declare(tp:String, name:String, rhs: => Any) = {
-    genCtxFields {
-      emitln(s"${tp} $name;")
-    }
+  val declared = mutable.Set[String]()
+
+  def declare(tp:String, name:String, rhs: => Any):Unit = {
+    val sig = s"$tp $name"
+    declare(sig)
     emitln(s"${name} = $rhs;")
   }
 
-  def declare(sig:String) = {
+  def declare(sig:String):Unit = {
+    assert(!declared.contains(sig), s"$sig has been declared")
+    declared += sig
     genCtxFields {
       emitln(s"$sig;")
     }
+  }
+
+  def getSig(n:IR) = {
+    val vec = n.getVec
+    if (vec > 1) {
+      s"${n.qtp} ${n.qref}[${vec}]"
+    } else {
+      s"${n.qtp} ${n.qref}"
+    }
+  }
+
+  def declare(n:IR):Unit = {
+    declare(s"${getSig(n)};")
   }
 
   /*
@@ -176,12 +194,7 @@ using   namespace std;
   }
 
   def emitVec(n:IR)(rhs: Option[String] => Any) = {
-    val vec = n.getVec
-    if (vec > 1) {
-      declare(s"${n.qtp} ${n.qref}[${vec}];")
-    } else {
-      declare(s"${n.qtp} ${n.qref};")
-    }
+    declare(n)
     emitAssign(n)(rhs)
   }
 
@@ -197,18 +210,27 @@ using   namespace std;
     }
   }
 
+  val emittedEn = mutable.Set[Input[PIRNode]]()
   def emitEn(en:Input[PIRNode]):Unit = {
-    emitVec(en) { i => quoteEn(en, i) }
+    if (!emittedEn.contains(en) & en.getVec > 1) {
+      emittedEn += en
+      emitVec(en) { i => quoteEn(en, i) }
+    }
   }
 
   def quoteEn(en:Input[PIRNode], i:Option[String]):String = {
     val name = en.as[Field[PIRNode]].name
-    val default = name match {
-      case "en" => true
-      case "done" => false
+    if (en.getVec > 1 && i.isEmpty) {
+      emitEn(en.as[Input[PIRNode]])
+      s"${en.src}_${name}"
+    } else {
+      val default = name match {
+        case "en" => true
+        case "done" => false
+      }
+      var ens = en.connected.map { _.qidx(i) }
+      ens.distinct.reduceOption[String]{ _ + " & " + _ }.getOrElse(default.toString)
     }
-    var ens = en.connected.map { _.qidx(i) }
-    ens.distinct.reduceOption[String]{ _ + " & " + _ }.getOrElse(default.toString)
   }
 
 }

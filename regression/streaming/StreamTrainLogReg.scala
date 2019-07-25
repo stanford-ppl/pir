@@ -9,6 +9,7 @@ class StreamTrainLogReg_2 extends StreamTrainLogReg[Float]()(opf=2)
 class StreamTrainLogReg_3 extends StreamTrainLogReg[Float]()(opb=2, opf=2)
 class StreamTrainLogReg_4 extends StreamTrainLogReg[Float]()(opb=4, opf=2)
 class StreamTrainLogReg_5 extends StreamTrainLogReg[Float]()(opb=2, opf=4)
+class StreamTrainLogReg_6 extends StreamTrainLogReg[Float](field=5)()
 
 // Reference https://blog.goodaudience.com/logistic-regression-from-scratch-in-numpy-5841c09e425f 
 @spatial abstract class StreamTrainLogReg[T:Num](

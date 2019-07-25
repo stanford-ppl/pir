@@ -53,7 +53,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
             }
           }
           genCtxComputeEnd {
-            emitIf(s"${n.done.qref}") {
+            emitIf(n.done.qany) {
               emitln(s"$name->Pop();")
             }
           }
@@ -89,12 +89,13 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
           }
         }
       }
+      declare(n)
       genCtxComputeEnd {
         val ctrlerEn = ctrler.map { ctrler => s"$ctrler->Enabled()"}.getOrElse(true)
-        emitIfElse(s"$ctrlerEn & ${n.en.qref}") {
-          emitVec(n) { i => 
+        emitIfElse(s"$ctrlerEn") {
+          emitAssign(n) { i => 
             n match {
-              case n:BufferWrite => n.data.qidx(i)
+              case n:BufferWrite => s"${n.en.qidx(i)} ? ${n.data.qidx(i)} : ${n.qidx(i)}" 
               case n:TokenWrite => s"true"
             }
           }
@@ -106,7 +107,8 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
             }
           }
         }
-        emitIf(s"${n.done.qref}") {
+        //TODO: coalesce
+        emitIf(n.done.qany) {
           if (withPipe) emitln(s"$name->Push(make_token(${n.qref}));")
           else n.out.T.foreach { send =>
             emitln(s"${nameOf(send)}->Push(make_token(${n.qref}));")
@@ -126,9 +128,9 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       addEscapeVar(mem)
       emitln(s"int $n = 0;")
       emitln(s"Active();")
-      emitIf(n.en.qref){
+      emitIf(n.en.qany){
         emitln(s"${n} = toT<${n.qtp}>($mem->Read(), 0);")
-        emitIf(n.done.qref) {
+        emitIf(n.done.qany) {
           emitln(s"${mem}->Pop();")
         }
       }
@@ -137,7 +139,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       val mem = n.mem.T
       addEscapeVar(mem)
       emitln(s"Active();")
-      emitIf(s"${n.en.qref} && ${n.done.qref}"){
+      emitIf(s"${n.en.qany} && ${n.done.qany}"){
         emitln(s"$mem->Push(make_token(${n.data.qref}));")
       }
 
@@ -176,16 +178,6 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
     case n => super.emitNode(n)
   }
 
-  override def quoteRef(n:Any):String = n match {
-    case n@InputField(x:BufferRegRead, "in") if !x.nonBlocking => varOf(x)._2.field("data")
-    case n@InputField(x:BufferRegRead, f@("writeEn" | "writeDone")) => varOf(x)._2.field(f)
-    case n@InputField(x:LocalOutAccess, "in") => varOf(x)._2
-    case n@InputField(_:LocalAccess, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
-    case n@InputField(_:MemWrite, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
-    case n@InputField(access:Access, "done") if !n.isConnected => "false"
-    case n => super.quoteRef(n)
-  }
-
   def emitAccess(n:Access, prev:Boolean=false)(func:String => Unit) = {
     val mem = n.mem.T
     if (n.port.nonEmpty) {
@@ -208,6 +200,15 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       .getOrElse{ 100 }
     dbg(s"fifoDepth=$fifoDepth")
   } 
+
+  override def quoteRef(n:Any):String = n match {
+    case n@InputField(x:BufferRegRead, "in") if !x.nonBlocking => varOf(x)._2.field("data")
+    case n@InputField(x:BufferRegRead, f@("writeEn" | "writeDone")) => varOf(x)._2.field(f)
+    case n@InputField(x:LocalOutAccess, "in") => varOf(x)._2
+    case n@InputField(_:LocalAccess, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
+    case n@InputField(_:Access, "en" | "done") => quoteEn(n.as[Input[PIRNode]], None)
+    case n => super.quoteRef(n)
+  }
 
   override def varOf(n:PIRNode):(String,String) = n match {
     case n:LocalOutAccess if n.nonBlocking =>
