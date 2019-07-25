@@ -96,19 +96,19 @@ def getBackends():
     return backends
 
 def cat(path):
-    print(cstr(CYAN,path + " ==============="))
+    print(cstr(CYAN,os.path.abspath(path) + " ==============="))
     if not os.path.exists(path): return
     with open(path, "r") as f:
         for line in f:
             sys.stdout.write(line)
 
 def tail(path):
-    print(cstr(CYAN,path + " ==============="))
+    print(cstr(CYAN,os.path.abspath(path) + " ==============="))
     if not os.path.exists(path): return
     subprocess.call(["tail", path])
 
 def vim(path):
-    print(cstr(CYAN,path + " ==============="))
+    print(cstr(CYAN,os.path.abspath(path) + " ==============="))
     if not os.path.exists(path): return
     subprocess.call(["vim", path])
 
