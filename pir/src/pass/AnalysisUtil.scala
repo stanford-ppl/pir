@@ -129,6 +129,7 @@ trait AnalysisUtil { self:PIRPass =>
       case n:GlobalInput => n.in.inferVec
       case InputField(n:Shuffle, "from" | "base") => zipMap(n.base.singleConnected.get.inferVec, n.from.singleConnected.get.inferVec) { case (a,b) => Math.max(a,b) }
       case n@InputField(_:LocalInAccess, "en" | "done") => n.as[Input[PIRNode]].connected.map { o => o.inferVec }.maxOption.getOrElse(Some(1))
+      case InputField(n:FlatBankedAccess, "done") => Some(1)
       case InputField(n:FlatBankedAccess, field) => Some(n.mem.T.nBanks)
       case InputField(n:Controller, "en" | "parentEn") => Some(1)
       case n:Input[_] if n.isConnected && n.connected.size==1 => n.singleConnected.get.inferVec
