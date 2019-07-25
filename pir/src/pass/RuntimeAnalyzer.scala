@@ -70,10 +70,10 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
       val ctrlers = n.ctrlers
       val forevers = ctrlers.filter { _.isForever }
       val (infiniteForever, stopForever) = forevers.partition { _.as[LoopController].stopWhen.T.isEmpty }
-      if (ctrlers.isEmpty) None
+      if (ctrlers.isEmpty) if (passTwo) Some(Unknown) else None
       else if (infiniteForever.nonEmpty) Some(Infinite)
       else if (stopForever.nonEmpty) Some(Unknown)
-      else None
+      else if (passTwo) Some(Unknown) else None
     }
     c
   }
