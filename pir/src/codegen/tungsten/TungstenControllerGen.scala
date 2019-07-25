@@ -62,7 +62,9 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       super.visitNode(n)
 
       n.to[HostOutController].foreach { ctrler =>
-        emitln(s"Complete(1);")
+        emitIf(s"$ctrler->Enabled()") {
+          emitln(s"Complete(1);")
+        }
         genCtxInits {
           emitln(s"Expect(1);")
         }

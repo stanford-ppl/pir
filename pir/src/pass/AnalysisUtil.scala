@@ -47,10 +47,10 @@ trait AnalysisUtil { self:PIRPass =>
   implicit class NodeRuntimeOp[N<:IR](n:N) {
     def vecMeta:MetadataLike[Int] = n.getMeta[Int]("vec")
     def inferVec:Option[Int] = n.getMeta[Int]("vec").orElseUpdate { compVec(n) }
-    def getVec:Int = n.inferVec.getOrElse(throw PIRException(s"Don't know how to infer vec of $n"))
+    def getVec:Int = n.inferVec.getOrElse(throw PIRException(s"Don't know how to infer vec of ${dquote(n)}"))
     def setVec(v:Int) = n.getMeta[Int]("vec").apply(v)
     def inferTp:Option[BitType] = n.getMeta[BitType]("tp").orElseUpdate { compType(n) }
-    def getTp:BitType = n.inferTp.getOrElse(throw PIRException(s"Don't know how to infer type of $n"))
+    def getTp:BitType = n.inferTp.getOrElse(throw PIRException(s"Don't know how to infer type of ${dquote(n)}"))
     def setTp(v:BitType) = n.getMeta[BitType]("tp").apply(v)
     def setTp(v:Option[BitType]) = n.getMeta[BitType]("tp").update(v)
   }
@@ -128,7 +128,8 @@ trait AnalysisUtil { self:PIRPass =>
       // During staging time GlobalInput might temporarily not connect to GlobalOutput
       case n:GlobalInput => n.in.inferVec
       case InputField(n:Shuffle, "from" | "base") => zipMap(n.base.singleConnected.get.inferVec, n.from.singleConnected.get.inferVec) { case (a,b) => Math.max(a,b) }
-      case InputField(n:BufferWrite, "en") => Some(1)
+      case n@InputField(_:LocalInAccess, "en" | "done") => n.as[Input[PIRNode]].connected.map { o => o.inferVec }.maxOption.getOrElse(Some(1))
+      case InputField(n:FlatBankedAccess, "done") => Some(1)
       case InputField(n:FlatBankedAccess, field) => Some(n.mem.T.nBanks)
       case InputField(n:Controller, "en" | "parentEn") => Some(1)
       case n:Input[_] if n.isConnected && n.connected.size==1 => n.singleConnected.get.inferVec
@@ -169,7 +170,7 @@ trait AnalysisUtil { self:PIRPass =>
       case Const((_:Boolean)::_) => Some(Bool)
       case Const((_:Int)::_) => Some(Fix(true, 32, 0))
       case Const((_:Float)::_) => Some(Flt(23, 8))
-      case InputField(n, "en" | "parentEn") => Some(Bool)
+      case InputField(n, "en" | "parentEn" | "done") => Some(Bool)
       case n:Input[_] if n.isConnected && n.connected.size == 1 => n.singleConnected.get.inferTp
       case n:Any => None
     }

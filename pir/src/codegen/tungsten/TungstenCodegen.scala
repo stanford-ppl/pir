@@ -88,6 +88,9 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
         if (vec > 1) s"$q[$i]" else s"$q"
       }
     }
+    def qany:String = {
+      if (n.getVec > 1) s"Any<${n.getVec}>(${qref})" else qref
+    }
     def qtp:String = n.getTp.qtp
     def tokenTp = qtp match {
       case "int" | "int8_t" | "int16_t" if n.getVec == 1 => "TT_INT"

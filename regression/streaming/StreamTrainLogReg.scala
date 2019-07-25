@@ -9,6 +9,7 @@ class StreamTrainLogReg_2 extends StreamTrainLogReg[Float]()(opf=2)
 class StreamTrainLogReg_3 extends StreamTrainLogReg[Float]()(opb=2, opf=2)
 class StreamTrainLogReg_4 extends StreamTrainLogReg[Float]()(opb=4, opf=2)
 class StreamTrainLogReg_5 extends StreamTrainLogReg[Float]()(opb=2, opf=4)
+class StreamTrainLogReg_6 extends StreamTrainLogReg[Float](field=5)()
 
 // Reference https://blog.goodaudience.com/logistic-regression-from-scratch-in-numpy-5841c09e425f 
 @spatial abstract class StreamTrainLogReg[T:Num](
@@ -66,10 +67,12 @@ class StreamTrainLogReg_5 extends StreamTrainLogReg[Float]()(opb=2, opf=4)
 
   def main(args: Array[String]): Unit = {
     val inFile = buildPath(IR.config.genDir, "tungsten", "in.csv")
+    val outFile = buildPath(IR.config.genDir, "tungsten", "out.csv")
     val wFile = buildPath(IR.config.genDir, "tungsten", "weights.csv")
     val goldBias = hostMain(inFile, wFile)
 
     val in  = StreamIn[Tup2[T,Bit]](FileEOFBus[Tup2[T,Bit]](inFile))
+    val out  = StreamOut[Tup2[T,Bit]](FileEOFBus[Tup2[T,Bit]](outFile))
     val wDRAM = DRAM[T](field)
     val bArg = ArgOut[T]
     Accel{
@@ -108,6 +111,7 @@ class StreamTrainLogReg_5 extends StreamTrainLogReg[Float]()(opb=2, opf=4)
         }
         if (lastBatch) wDRAM(0::field par ipf) store weights
         bArg := bias.value
+        out := Tup2(bias.value, lastBatch)
         stop := lastBatch
       }
     }
