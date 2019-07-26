@@ -22,6 +22,11 @@ trait TungstenCtxGen extends TungstenCodegen with TungstenTopGen {
       if (cuParam.traceOut[TopParam].scheduled) 1 else cuParam.numStage
   }
 
+  override def quote(n:Any) = n match {
+    case n:Context if config.asModule => s"${topName}_$n"
+    case n => super.quote(n)
+  }
+
   override def emitNode(n:N) = n match {
     case n:Context =>
       dbgblk(s"emitNode($n)") {
@@ -35,7 +40,7 @@ trait TungstenCtxGen extends TungstenCodegen with TungstenTopGen {
         getBuffer("computes").foreach { _.reset }
         getBuffer("computes-mid").foreach { _.reset }
         getBuffer("computes-end").foreach { _.reset }
-        enterFile(dirName, s"$n.h", false) {
+        enterFile(dirName, s"${quote(n)}.h", false) {
           genCtxCompute {
             visitNode(n)
           }
@@ -43,7 +48,7 @@ trait TungstenCtxGen extends TungstenCodegen with TungstenTopGen {
           emitln("""
 using   namespace std;
 """)    
-          emitBlock(s"""class $n: public Context<$numStages>""") {
+          emitBlock(s"""class ${quote(n)}: public Context<$numStages>""") {
             emitln(s"public:")
             getBuffer("fields").foreach { _.flushTo(sw) }
             ctxExtVars.foreach { case (tp, field) => 
@@ -51,7 +56,7 @@ using   namespace std;
             }
             emitln(s"public:")
             val constructorArgs = ctxExtVars.map { case (tp, field) => s"$tp* _$field" }.mkString(",")
-            val constructor = s"""explicit $n($constructorArgs):Context<$numStages>("$n")"""
+            val constructor = s"""explicit ${quote(n)}($constructorArgs):Context<$numStages>("${quote(n)}")"""
             emitBlock(constructor) {
               ctxExtVars.foreach { case (tp, field) =>
                 emitln(s"$field = _$field;")
@@ -85,12 +90,17 @@ using   namespace std;
           emit(s""";""")
         }
         genTop {
-          emitln(s"""#include "$n.h"""")
+          emitln(s"""#include "${quote(n)}.h"""")
         }
         genTopMember(n, ctxExtVars.map { _._2 }.map { _.& }, end=true)
       }
 
     case n => super.emitNode(n)
+  }
+
+  override def varOf(n:PIRNode):(String, String) = n match {
+    case n:Context => (s"${quote(n)}",s"ctx_${quote(n)}")
+    case n => super.varOf(n)
   }
 
   val ctxExtVars = mutable.ListBuffer[(String, String)]()

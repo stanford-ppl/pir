@@ -61,9 +61,8 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     throw PIRException(s"Loop in tungsten codegen. Unvisited ${unvisited}")
   }
 
-  def varOf(n:PIRNode):(String, String) = n match {
-    case n:Context => (s"$n",s"ctx_$n")
-    case n => throw PIRException(s"Don't know varOf($n)")
+  def varOf(n:PIRNode):(String, String) = {
+    throw PIRException(s"Don't know varOf($n)")
   }
   def nameOf(n:PIRNode) = varOf(n)._2
   def tpOf(n:PIRNode) = varOf(n)._1

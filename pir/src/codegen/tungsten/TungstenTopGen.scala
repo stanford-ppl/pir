@@ -9,6 +9,8 @@ import scala.collection.mutable
 
 trait TungstenTopGen extends TungstenCodegen {
 
+  lazy val topFile = s"$topName.h"
+
   def emitTopHeader = {
     genTop {
       emitln(
@@ -36,7 +38,13 @@ trait TungstenTopGen extends TungstenCodegen {
 using namespace std;
 
 """)
-      emitln(s"""#include "hostio.h"""")
+      if (config.asModule) {
+        val hostio = s"${topName}_hostio.h"
+        moveFile(buildPath(dirName, s"hostio.h"), buildPath(dirName,hostio))
+        emitln(s"""#include "$hostio"""")
+      } else {
+        emitln(s"""#include "hostio.h"""")
+      }
     }
   }
   
@@ -95,7 +103,7 @@ using namespace std;
 
   override def initPass = {
     super.initPass
-    emitln(s"""#include "Top.h"""")
+    emitln(s"""#include "$topFile"""")
     emitln(s"""using namespace std;""")
     emitBSln("void RunAccel()")
     if (!noPlaceAndRoute) {
@@ -162,7 +170,7 @@ using namespace std;
 
   protected def emitInit = {}
 
-  protected def genTop(block: => Unit) = enterFile(dirName, "Top.h")(block)
+  protected def genTop(block: => Unit) = enterFile(dirName, topFile)(block)
 
   private def genTopFields(block: => Unit) = enterBuffer("top", level=1)(block)
 

@@ -52,6 +52,12 @@ trait FileIOUtil {
     deleteFile(new File(path))
   }
 
+  def moveFile(src:String, dst:String):Unit = {
+    if (src == dst) return
+    val srcFile = new File(src)
+    srcFile.renameTo(new File(dst))
+  }
+
   def copyFile(src: String, dst: String):Unit = {
     if (src == dst) return
     if (Files.exists(Paths.get(dst))) {
