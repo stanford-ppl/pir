@@ -46,7 +46,9 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
         }
       }
       if (n.getCtrl.isLeaf) {
-        emitln("Active();")
+        emitIf(s"$n->Enabled()") {
+          emitln("Active();")
+        }
       }
 
       // If last level controller is loop controller, generate lane valids
