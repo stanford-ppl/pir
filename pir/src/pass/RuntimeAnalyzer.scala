@@ -6,7 +6,7 @@ import prism.graph._
 import prism.util._
 import scala.collection.mutable
 
-class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTraversal with UnitTraversal {
+class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTraversal with UnitTraversal with RuntimeUtil {
   val forward = true
 
   var passTwo = false
@@ -42,11 +42,11 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
     passTwo = false
   }
 
-  implicit class RuntimeOp[N<:IR](n:N) extends NodeRuntimeOp[N](n) {
-    def getIter:Value[Long] = n.getMeta[Value[Long]]("iter").getOrElseUpdate(compIter(n.as[PIRNode]))
+  implicit class RuntimeOp2[N<:IR](n:N) extends RuntimeOp1[N](n) {
+    override def getScheduleFactor = n.getMeta[Int]("scheduleFactor").getOrElseUpdate(compScheduleFactor(n.as[Context]))
+    override def getIter:Value[Long] = n.getMeta[Value[Long]]("iter").getOrElseUpdate(compIter(n.as[PIRNode]))
     def getScale:Value[Long] = n.getMeta[Value[Long]]("scale").getOrElseUpdate(compScale(n))
     def getCount:Option[Value[Long]] = n.getMeta[Value[Long]]("count").orElseUpdate(compCount(n.as[PIRNode]))
-    def getScheduleFactor = n.getMeta[Int]("scheduleFactor").getOrElseUpdate(compScheduleFactor(n.as[Context]))
   }
 
   /*
@@ -116,6 +116,43 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
     }
   }
 
+
+}
+
+trait RuntimeUtil extends AnalysisUtil { self:PIRPass =>
+
+  implicit class RuntimeOp1[N<:IR](n:N) extends NodeRuntimeOp[N](n) {
+    def getScheduleFactor = compScheduleFactor(n.as[Context])
+    def getIter:Value[Long] = compIter(n.as[PIRNode])
+  }
+
+  def compIter(n:PIRNode):Value[Long] = dbgblk(s"compIter($n)"){
+    n match {
+      case n:Counter if n.isForever => Infinite
+      case n:Counter if !n.isForever => 
+        val min = n.min.T.get.getBound.toValue
+        val max = n.max.T.get.getBound.toValue
+        val step = n.step.T.get.getBound.toValue
+        val par = n.par
+        (max - min) /! (step * par)
+      case n:LoopController if n.stopWhen.T.nonEmpty => Unknown
+      case n:LoopController =>
+        n.cchain.T.map { _.getIter }.reduce { _ * _ }
+      case n:Controller if n.getCtrl.schedule != Fork => Finite(1l)
+      case n:FringeDenseLoad =>
+        val size = n.size.T.getBound.toValue
+        val dataPar = n.data.T.getVec
+        size /! (n.data.getTp.bytePerWord.get * dataPar)
+      case n:FringeDenseStore =>
+        val size = n.size.T.getBound.toValue
+        val dataPar = n.data.T.getVec
+        size /! (n.data.getTp.bytePerWord.get * dataPar)
+      case n:FringeSparseLoad => Finite(1l)
+      case n:FringeSparseStore => Finite(1l)
+      case n => Unknown
+    }
+  }
+
   def compScale(n:Any):Value[Long] = dbgblk(s"compScale($n)"){
     n match {
       case OutputField(ctrler:Controller, "done") => ctrler.getIter *  compScale(ctrler.valid)
@@ -152,32 +189,4 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
     }
   }
 
-  def compIter(n:PIRNode):Value[Long] = dbgblk(s"compIter($n)"){
-    n match {
-      case n:Counter if n.isForever => Infinite
-      case n:Counter if !n.isForever => 
-        val min = n.min.T.get.getBound.toValue
-        val max = n.max.T.get.getBound.toValue
-        val step = n.step.T.get.getBound.toValue
-        val par = n.par
-        (max - min) /! (step * par)
-      case n:LoopController if n.stopWhen.T.nonEmpty => Unknown
-      case n:LoopController =>
-        n.cchain.T.map { _.getIter }.reduce { _ * _ }
-      case n:Controller if n.getCtrl.schedule != Fork => Finite(1l)
-      case n:FringeDenseLoad =>
-        val size = n.size.T.getBound.toValue
-        val dataPar = n.data.T.getVec
-        size /! (n.data.getTp.bytePerWord.get * dataPar)
-      case n:FringeDenseStore =>
-        val size = n.size.T.getBound.toValue
-        val dataPar = n.data.T.getVec
-        size /! (n.data.getTp.bytePerWord.get * dataPar)
-      case n:FringeSparseLoad => Finite(1l)
-      case n:FringeSparseStore => Finite(1l)
-      case n => Unknown
-    }
-  }
-
-    
 }

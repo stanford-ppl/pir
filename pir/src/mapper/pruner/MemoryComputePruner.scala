@@ -44,13 +44,19 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
   }
 
   /*
-   * Recursively split k by first remove out the largest addr calculation stage.
+   * Recursively split k by first remove out the largest addr calculation ctx that doesn't have
+   * local dependency.
    * */
   def split(k:GlobalContainer, vcost:List[Cost[_]]):Set[CUMap.K] = dbgblk(s"split($k)"){
-    val addrCtxs = k.collectDown[Context]().filterNot { ctx => ctx.streaming.get }
+    val addrCtxs = k.collectDown[Context]().filterNot { ctx => 
+      val localDeps = ctx.siblingDeps().filterNot { _.isInstanceOf[GlobalInput] }
+      dbg(s"$ctx localDeps=$localDeps")
+      ctx.streaming.get || localDeps.nonEmpty
+    }
     if (addrCtxs.isEmpty) return Set.empty
 
     val addrCtx = addrCtxs.maxBy { _.getCost[StageCost].quantity }
+    dbg(s"move addrCtx=$addrCtx")
     val global = within(pirTop) { ComputeContainer() }
     val gouts = addrCtx.depeds().collect { case gout:GlobalOutput => gout }
     swapParent(addrCtx, global)
@@ -68,6 +74,7 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
       case _ => false
     }
     val nkcost = getCosts(k)
+    //breakPoint(s"split $k")
     if (notFit(nkcost, vcost)) {
       split(k, vcost) + global
     } else {

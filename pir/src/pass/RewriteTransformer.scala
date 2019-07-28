@@ -6,11 +6,14 @@ import pir.mapper._
 import prism.graph._
 import prism.graph.implicits._
 import spade.param._
+import prism.util._
 
 import scala.collection.mutable
 
 // BFS is slightly faster than DFS
-class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTransformer with BFSBottomUpTopologicalTraversal with UnitTraversal with BufferAnalyzer {
+class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTransformer 
+  with BFSBottomUpTopologicalTraversal with UnitTraversal 
+  with BufferAnalyzer with RuntimeUtil {
 
   val forward = true
 
@@ -41,6 +44,18 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     case (in1, in2) if in1.connected.size != in2.connected.size => false
     case (in1, in2) => (in1.connected, in2.connected).zipped.forall { outputMatch _ }
   }
+
+  def matchRate(a1:LocalAccess, a2:LocalAccess) = {
+    (compScale(a1), compScale(a2)) match {
+      case (Unknown, _) => false
+      case (_, Unknown) => false
+      case (s1, s2) => s1 == s2
+    }
+  }
+
+  override def compScheduleFactor(n:Context):Int = 1 
+  // HACK: For now, don't care whether it's scheduled or not to check
+  // rate matching
 
   val WrittenByConstData = MatchRule[MemRead, (MemRead, Const)] { reader =>
     val ConstData = MatchRule[MemWrite, Const] { write =>
@@ -116,7 +131,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   // w1 -> r2s
   val RouteThrough2 = MatchRule[BufferWrite, (BufferWrite, BufferRead, BufferWrite)] { w2 =>
     w2.data.T match {
-      case r1:BufferRead if !initializerHasRun & matchInput(r1.done, w2.done) 
+      case r1:BufferRead if !initializerHasRun & matchRate(r1, w2) 
                           & !w2.en.isConnected & w2.outAccesses.forall { !_.nonBlocking } =>
         val w1 = r1.inAccess.as[BufferWrite]
         Some((w1, r1, w2))

@@ -52,11 +52,18 @@ class StreamInfKmeans_7 extends StreamInfKmeans[scala.Int,Int]()(ipf=8, opk=4, o
         } { _ + _ }
         dists(k) = dist.value
       }
+      val dfifo1 = FIFO(10)
+      val dfifo2 = FIFO(10)
+      Foreach(0 until K par ipk) { k =>
+        val d = dists(k)
+        dfifo1.enq(d)
+        dfifo2.enq(d)
+      }
       val minDist = Reg[T]
-      Reduce(minDist)(0 until K par ipk) { k => dists(k) } { Num[T].min(_,_) }
+      Reduce(minDist)(0 until K par ipk) { k => dfifo1.deq } { Num[T].min(_,_) }
       val minIdx = Reg[Int]
       Reduce(minIdx)(0 until K par ipk) { k =>
-        mux(dists(k) == minDist.value, k, K+1)
+        mux(dfifo2.deq == minDist.value, k, K+1)
       } { min(_,_) }
       outsram(b) = minIdx.value
     }
