@@ -2,6 +2,7 @@ import os
 from util import *
 
 def main(args=None):
+    parser.add_argument('-H', '--hybrid', action='store_true', default=False)
     (opts, args) = parser.parse_known_args(args=args)
     if opts.app is None:
         opts.app = ["*"]
@@ -25,6 +26,7 @@ def main(args=None):
     else:
         java_cmd += "-Dci=true "
     java_cmd += "-Dproject={} ".format(opts.project)
+    java_cmd += "-Dhybrid={} ".format("true" if opts.hybrid else "false")
     java_cmd += "\"; "
     java_cmd += " project {}; testOnly {}".format(opts.project, ' '.join(opts.app))
     java_cmd += "\""
