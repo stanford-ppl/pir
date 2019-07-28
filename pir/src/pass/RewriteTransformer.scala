@@ -93,8 +93,9 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
 
   XRule[BufferRead] { n =>
     if (n.ctx.get.streaming.get) None else {
-      n.inAccess.as[BufferWrite].data match {
-        case SC(OutputField(c:Const, "out")) =>
+      val writer = n.inAccess.as[BufferWrite]
+      writer.data match {
+        case SC(OutputField(c:Const, "out")) if !writer.en.isConnected =>
           dbgblk(s"WrittenByConstData($n, $c)") {
             val mc = within(n.parent.get, n.getCtrl) { allocConst(c.value) }
             swapOutput(n.out, mc.out)
@@ -228,8 +229,9 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
 
   XRule[BufferRead] { r2 =>
     val w2 = r2.inAccess.as[BufferWrite]
+    val usedAsStopWhen = r2.out.exists { case InputField(n:Controller, "stopWhen") => true; case _ => false }
     w2.data.T match {
-      case r1:BufferRead if matchRate(w2, r1) & !w2.en.isConnected & !r2.nonBlocking =>
+      case r1:BufferRead if matchRate(w2, r1) & !w2.en.isConnected & !r2.nonBlocking & !usedAsStopWhen =>
         val w1 = r1.inAccess.as[BufferWrite]
         dbgblk(s"Route through $w1 -> $r1 -> $w2 -> $r2 detected => ") {
           dbg(s" => $w1 -> $r2")
