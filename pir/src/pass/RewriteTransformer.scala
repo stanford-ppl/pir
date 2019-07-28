@@ -92,14 +92,16 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   }
 
   XRule[BufferRead] { n =>
-    n.inAccess.as[BufferWrite].data match {
-      case SC(OutputField(c:Const, "out")) =>
-        dbgblk(s"WrittenByConstData($n, $c)") {
-          val mc = within(n.parent.get, n.getCtrl) { allocConst(c.value) }
-          swapOutput(n.out, mc.out)
-        }
-        Some(n)
-      case _ => None
+    if (n.ctx.get.streaming.get) None else {
+      n.inAccess.as[BufferWrite].data match {
+        case SC(OutputField(c:Const, "out")) =>
+          dbgblk(s"WrittenByConstData($n, $c)") {
+            val mc = within(n.parent.get, n.getCtrl) { allocConst(c.value) }
+            swapOutput(n.out, mc.out)
+          }
+          Some(n)
+        case _ => None
+      }
     }
   }
 
@@ -224,8 +226,6 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     }
   }
 
-  // w1 -> go1 -> gi1 -> r1 -> w2 -> go2 -> gi2 -> r2
-  // w1 -> go1 -> gi2 -> r2
   XRule[BufferRead] { r2 =>
     val w2 = r2.inAccess.as[BufferWrite]
     w2.data.T match {
@@ -233,11 +233,23 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
         val w1 = r1.inAccess.as[BufferWrite]
         dbgblk(s"Route through $w1 -> $r1 -> $w2 -> $r2 detected => ") {
           dbg(s" => $w1 -> $r2")
-          val go1 = w1.gout.get
-          val gi2 = r2.gin.get
-          val go2 = gi2.in.T
-          swapConnection(gi2.in, go2.out, go1.out)
-          Some(r2)
+          val go1 = w1.gout
+          val gi2 = r2.gin
+          (go1, gi2) match {
+            case (Some(go1), Some(gi2)) =>
+              // w1 -> go1 -> gi1 -> r1 -> w2 -> go2 -> gi2 -> r2
+              // w1 -> go1 -> gi2 -> r2
+              val go2 = gi2.in.T
+              swapConnection(gi2.in, go2.out, go1.out)
+              Some(r2)
+            case (Some(go1), None) =>
+              // w1 -> go1 -> gi1 -> r1 -> w2 -> r2
+              // w1 -> go1 -> gi1 -> r2
+              val gi1 = r1.gin.get
+              swapConnection(r2.in, w2.out, gi1.out)
+              Some(r2)
+            case (go1, go2) => None //TODO
+          }
         }
       case _ => None
     }
