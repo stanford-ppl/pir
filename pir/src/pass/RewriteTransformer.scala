@@ -200,25 +200,46 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   // w1 -> r2s
   XRule[BufferWrite] { w2 =>
     w2.data.T match {
-      case r1:BufferRead if !initializerHasRun & matchRate(r1, w2) 
-                          & !w2.en.isConnected & w2.outAccesses.forall { !_.nonBlocking } =>
-        val w1 = r1.inAccess.as[BufferWrite]
-        val r2s = w2.outAccesses
-        dbgblk(s"Route through $w1 -> $r1 -> $w2 -> $r2s detected => ") {
-          dbg(s" => $w1 -> $r2s")
-          mirrorSyncMeta(w2, w1)
-          r2s.foreach { out => 
-            val prevIn = out.in.connected
-            swapInput(out, w2.out, w1.out)
-            if (prevIn != out.in.connected) {
-              val name = zipReduce(r1.name.v, out.name.v) { _ + "/" + _ }
-              out.name.reset
-              out.name.update(name)
+      case r1:BufferRead  =>
+        if (!initializerHasRun & matchRate(r1, w2) 
+            & !w2.en.isConnected & w2.outAccesses.forall { !_.nonBlocking }) {
+          val w1 = r1.inAccess.as[BufferWrite]
+          val r2s = w2.outAccesses
+          dbgblk(s"Route through $w1 -> $r1 -> $w2 -> $r2s detected => ") {
+            dbg(s" => $w1 -> $r2s")
+            mirrorSyncMeta(w2, w1)
+            r2s.foreach { out => 
+              val prevIn = out.in.connected
+              swapInput(out, w2.out, w1.out)
+              if (prevIn != out.in.connected) {
+                val name = zipReduce(r1.name.v, out.name.v) { _ + "/" + _ }
+                out.name.reset
+                out.name.update(name)
+              }
             }
           }
-        }
-        Some(w2)
+          Some(w2)
+        } else None
       case _ =>  None
+    }
+  }
+
+  // w1 -> go1 -> gi1 -> r1 -> w2 -> go2 -> gi2 -> r2
+  // w1 -> go1 -> gi2 -> r2
+  XRule[BufferRead] { r2 =>
+    val w2 = r2.inAccess.as[BufferWrite]
+    w2.data.T match {
+      case r1:BufferRead if matchRate(w2, r1) & !w2.en.isConnected & !r2.nonBlocking =>
+        val w1 = r1.inAccess.as[BufferWrite]
+        dbgblk(s"Route through $w1 -> $r1 -> $w2 -> $r2 detected => ") {
+          dbg(s" => $w1 -> $r2")
+          val go1 = w1.gout.get
+          val gi2 = r2.gin.get
+          val go2 = gi2.in.T
+          swapConnection(gi2.in, go2.out, go1.out)
+          Some(r2)
+        }
+      case _ => None
     }
   }
 

@@ -44,6 +44,10 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
               }
               emitln(s"$name->Init(make_token($init));")
             }
+            val ctrler = n.collectPeer[Controller]().headOption
+            ctrler.foreach { ctrler =>
+              emitln(s"${ctrler}->AddInput(${nameOf(n)});")
+            }
           }
           genCtxComputeBegin {
             emitIf(s"$name->Valid()") {
@@ -126,21 +130,49 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
     case n:MemRead if n.mem.T.isFIFO =>
       val mem = n.mem.T
       addEscapeVar(mem)
-      emitln(s"int $n = 0;")
-      emitln(s"Active();")
-      emitIf(n.en.qany){
-        emitln(s"${n} = toT<${n.qtp}>($mem->Read(), 0);")
+      val (tp, name) = varOf(mem)
+      genCtxInits {
+        val ctrler = n.collectPeer[Controller]().headOption
+        ctrler.foreach { ctrler =>
+          emitln(s"${ctrler}->AddInput(${name});")
+        }
+      }
+      genCtxComputeBegin {
+        emitIf(s"$name->Valid()") {
+          emitVec(n) { i =>
+            s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
+          }
+        }
+      }
+      genCtxComputeEnd {
         emitIf(n.done.qany) {
-          emitln(s"${mem}->Pop();")
+          emitln(s"$name->Pop();")
         }
       }
 
     case n:MemWrite if n.mem.T.isFIFO =>
       val mem = n.mem.T
+      val (tp, name) = varOf(mem)
       addEscapeVar(mem)
-      emitln(s"Active();")
-      emitIf(s"${n.en.qany} && ${n.done.qany}"){
-        emitln(s"$mem->Push(make_token(${n.data.qref}));")
+      val ctrler = n.collectPeer[Controller]().headOption
+      genCtxInits {
+        emitln(s"AddSend(${name});");
+        ctrler.foreach { ctrler =>
+          emitln(s"${ctrler}->AddOutput(${name});")
+        }
+      }
+      declare(n)
+      genCtxComputeEnd {
+        val ctrlerEn = ctrler.map { ctrler => s"$ctrler->Enabled()"}.getOrElse(true)
+        emitIf(s"$ctrlerEn") {
+          emitAssign(n) { i => 
+            s"${n.en.qidx(i)} ? ${n.data.qidx(i)} : ${n.qidx(i)}" 
+          }
+        }
+        //TODO: coalesce
+        emitIf(n.done.qany) {
+          emitln(s"${name}->Push(make_token(${n.qref}));")
+        }
       }
 
     case n:FlatBankedRead =>
@@ -232,7 +264,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       }
       (s"ValPipeline<Token, $pipeDepth>", s"pipe_$n")
     case n:FIFO =>
-      (s"FIFO<Token, ${fifoDepth}>", s"$n")
+      (s"FIFO<Token, ${n.depth.get}>", s"$n")
     case n:SRAM =>
       (s"NBufferSRAM<${n.getDepth}, ${n.qtp}, ${n.bankSize}, ${n.nBanks}>", s"$n")
     case n:LUT =>

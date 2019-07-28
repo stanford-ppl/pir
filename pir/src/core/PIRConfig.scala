@@ -5,7 +5,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   /* ------------------- Compiler --------------------  */
   register("ctrl", default=true, info="Enable control logic generation")
   register("splitting", default=true, info="Enable splitting")
-  register("splitting-algo", default="alias_weighted_igraph", info="splitting algorithm. [weighted_igraph, alias_igraph, alias_weighted_igraph]") 
+  register("split-algo", default="DFS", info="splitting algorithm. [DFS, BFS]") 
   register("mapping", default=true, info="Enable mapping")
   register("arch", default="MyDesign", info="Default architecture for mapping")
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
@@ -18,6 +18,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
 
   def arch = option[String]("arch")
   def enableSplitting = option[Boolean]("splitting")
+  def splitAlgo = option[String]("split-algo")
   def enableMapping = option[Boolean]("mapping")
   def deadicatedDAG = option[Boolean]("dedicated-dag")
   def enableRouteElim = option[Boolean]("rt-elm")

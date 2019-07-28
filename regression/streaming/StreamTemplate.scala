@@ -13,7 +13,7 @@ import scala.reflect._
   // in multiple cycles
   def transposeInput[T:Bits](in:StreamIn[Tup2[T,Bit]]) = {
     val insram = SRAM[T](batch, field)
-    val lastBit = FIFO[Bit](10)
+    val lastBit = FIFO[Bit](100)
     Foreach(0 until field) { f =>
       Foreach(0 until batch par ipb) { b =>
         val token = in.value

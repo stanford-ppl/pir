@@ -8,8 +8,9 @@ import prism.collection.immutable._
 
 trait ComputePartitioner extends CUPruner {
 
-  lazy val schedular = new PIRTraversal with DFSTopologicalTraversal with Schedular {
-    val forward = false
+  lazy val schedular = config.splitAlgo match {
+    case "BFS" => new PIRTraversal with BFSTopologicalTraversal with Schedular { val forward = false }
+    case "DFS" => new PIRTraversal with DFSTopologicalTraversal with Schedular { val forward = false }
   }
 
   def split[T](k:T, vcost:List[Cost[_]]):List[T] = dbgblk(s"split($k)") {
@@ -21,7 +22,6 @@ trait ComputePartitioner extends CUPruner {
         val globals = ctxs.map { ctx =>
           within(pirTop) {
             val global = ComputeContainer()
-            //val gouts = ctx.collectOut[GlobalOutput]()
             val gouts = ctx.depeds().collect { case gout:GlobalOutput => gout }
             swapParent(ctx, global)
             gouts.foreach { gout => swapParent(gout, global) }

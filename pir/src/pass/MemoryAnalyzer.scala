@@ -7,11 +7,11 @@ import prism.graph._
 
 trait MemoryAnalyzer extends PIRTransformer { self:BufferAnalyzer =>
 
-  def insertToken(fctx:Context, tctx:Context):TokenRead = {
+  def insertToken(fctx:Context, tctx:Context, isFIFO:Boolean=false):TokenRead = {
     val fctrl = fctx.ctrl.get
     val tctrl = tctx.ctrl.get
     dbgblk(s"InsertToken(fctx=$fctx($fctrl), tctx=$tctx($tctrl))") {
-      val (enq, deq) = compEnqDeq(isFIFO=false, fctx, tctx, None, Nil)
+      val (enq, deq) = compEnqDeq(isFIFO=isFIFO, fctx, tctx, None, Nil)
       val write = within(fctx, fctrl) {
         allocate[TokenWrite](_.done.isConnectedTo(enq)) {
           TokenWrite().done(enq)

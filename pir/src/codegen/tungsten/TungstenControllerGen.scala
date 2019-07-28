@@ -38,7 +38,6 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
         }
         emitln(s"controllers.push_back($n);");
         val inputs = n.collectPeer[LocalOutAccess]().filterNot { _.nonBlocking }.map { nameOf }
-        emitln(s"${n}->SetInputs({${inputs.mkString(",")}});")
         n.to[LoopController].foreach { n =>
           n.cchain.foreach { ctr =>
             emitln(s"$n->AddCounter(${ctr});")

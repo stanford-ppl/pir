@@ -47,13 +47,13 @@ class StreamInfKmeans_7 extends StreamInfKmeans[scala.Int,Int]()(ipf=8, opk=4, o
       Foreach(0 until K par opk) { k =>
         val dist = Reg[T]
         Reduce(dist)(0 until field par ipf) { f =>
-          val d = Arith[T].abs(insram(b,f) - cLUT(k,f))
+          val d = insram(b,f) - cLUT(k,f)
           d * d
         } { _ + _ }
         dists(k) = dist.value
       }
-      val dfifo1 = FIFO(10)
-      val dfifo2 = FIFO(10)
+      val dfifo1 = FIFO(4)
+      val dfifo2 = FIFO(4)
       Foreach(0 until K par ipk) { k =>
         val d = dists(k)
         dfifo1.enq(d)

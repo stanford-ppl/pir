@@ -29,13 +29,14 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     toBuffer &= noReadEnable
     toBuffer &= singleWriter && singleFIFOReader
     toBuffer &= !mem.nonBlocking.get
+    //toBuffer &= mem.depth.get <= 16 // put large FIFO in PMU TODO: not working yet
     if (noBankedAccess && !noReadEnable) {
       val access = mem.outAccesses.filter { _.en.isConnected }
       throw PIRException(s"$mem (${mem.name.v}, ${mem.srcCtx.v}) has read enables at \n${access.map { a =>
         s"$a (${a.srcCtx.v.getOrElse("No context")})"
       }.mkString("\n")}")
     }
-    var toEnBuffer = noBankedAccess && singleWriter && singleFIFOReader
+    var toEnBuffer = noBankedAccess && singleWriter && singleFIFOReader && false
     if (toBuffer) {
       bufferLowering(mem)
     } else if (toEnBuffer) {
@@ -101,7 +102,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     //breakPoint(s"insert token for $mem")
     multiBufferBarrierInsertion(mem)
     enforceDataDependencyInSameController(mem)
-    fifoBarrierInsertion(mem)
+    //fifoBarrierInsertion(mem)
     mem.accesses.foreach { access =>
       val ctx = access.ctx.get
       bufferInput(ctx, fromCtx=Some(depCtx(ctx)))
@@ -143,18 +144,34 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
   }
 
   def lowerAccess(mem:Memory, memCU:MemoryContainer, access:Access) = dbgblk(s"lowerAccess($mem, $memCU, $access)") {
-    val mergeCtx = within(memCU, access.ctx.get.getCtrl) { Context().streaming(true) }
-    swapParent(access, mergeCtx)
+    val ctx = within(memCU, access.ctx.get.getCtrl) { Context() }
+    if (mem.isFIFO) {
+      ctx.streaming(false)
+    } else {
+      ctx.streaming(true)
+    }
+    swapParent(access, ctx)
     access match {
       case access:MemRead =>
         bufferOutput(access.out)
       case access:MemWrite =>
-        bufferInput(access.data)
-        bufferInput(access.en)
+        if (!mem.isFIFO) {
+          bufferInput(access.data)
+          bufferInput(access.en)
+        }
         //val writeEns = access.en.T
         //dbg(s"writeEns=$writeEns")
         //val fromValid = writeEns.forall { case en:CounterValid => true }
         //if (!fromValid) bufferInput(access.en)
+    }
+    // Connect access.done
+    if (mem.isFIFO) {
+      access.done(valid(access.getCtrl, ctx))
+    } else if (mem.depth.get > 1 && access.port.get.nonEmpty) {
+      val ctrlMap = leastMatchedPeers(mem.accesses.filterNot{_.port.get.isEmpty}.map { _.getCtrl} ).get
+      val ctrl = ctrlMap(access.getCtrl)
+      access.done(done(ctrl, ctx))
+      bufferInput(access.done)
     }
   }
 
@@ -167,8 +184,14 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     val addrCtxs = mutable.Map[BankedAccess, Context]()
     val red = within(mergeCtx, mergeCtrl) {
       val requests = accesses.map { access =>
+        // Optimize for fully unrolled case
+        val constAddr = accesses.forall { access =>
+          access.offset.connected.forall { case (OutputField(c:Const, "out")) => true; case _ => false } &&
+          access.offset.connected.forall { case (OutputField(c:Const, "out")) => true; case _ => false } &&
+          !access.en.isConnected
+        }
         val addrCtx = access match {
-          case access if accesses.size == 1 => mergeCtx
+          case access if accesses.size == 1 || constAddr => mergeCtx
           case access => within(memCU, access.ctx.get.getCtrl) { Context() }
           //case access:BankedWrite => access.ctx.get // Writer also have new context per access
           //inside PMU so when splitting PMU the shuffles are duplicated
@@ -176,7 +199,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
         addrCtxs += access -> addrCtx
         dbg(s"addrCtx for $access = $addrCtx")
         swapParent(access, addrCtx)
-        within(addrCtx, access.getCtrl) {
+        within(addrCtx, addrCtx.getCtrl) {
           flattenBankAddr(access)
           lowerLUTAccess(mem, access)
           val bank = access.bank.connected
@@ -301,7 +324,8 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
   }
 
     // Insert token for sequencial control dependency
-  def sequencedScheduleBarrierInsertion(mem:Memory) = {
+  def sequencedScheduleBarrierInsertion(mem:Memory):Unit = {
+    if (mem.isFIFO) return
     dbgblk(s"sequencedScheduleBarrierInsertion($mem)") {
       val ctrls = mem.accesses.toStream.flatMap { a => a.getCtrl.ancestorTree }.distinct
       ctrls.foreach { ctrl =>
@@ -332,6 +356,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
   }
 
   def multiBufferBarrierInsertion(mem:Memory):Unit = {
+    if (mem.isFIFO) return
     // None multi buffer doesn't need to connect access.done
     if (mem.depth.get == 1) return
     dbgblk(s"multiBufferBarrierInsertion($mem)") {
@@ -395,14 +420,14 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     }
   }
 
-  def fifoBarrierInsertion(mem:Memory):Unit = {
-    if (!mem.isFIFO) return
-    dbgblk(s"fifoBarrierInsertion($mem)") {
-      val w = assertOne(mem.inAccesses, s"$mem.inAccesses")
-      val r = assertOne(mem.outAccesses, s"$mem.outAccesses")
-      insertToken(w.ctx.get,r.ctx.get)
-    }
-  }
+  //def fifoBarrierInsertion(mem:Memory):Unit = {
+    //if (!mem.isFIFO) return
+    //dbgblk(s"fifoBarrierInsertion($mem)") {
+      //val w = assertOne(mem.inAccesses, s"$mem.inAccesses")
+      //val r = assertOne(mem.outAccesses, s"$mem.outAccesses")
+      //insertToken(w.ctx.get,r.ctx.get,isFIFO=true)
+    //}
+  //}
 
   def bufferLowering(mem:Memory) = dbgblk(s"bufferLowering($mem)") {
     mem.outAccesses.foreach { outAccess =>
