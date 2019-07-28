@@ -34,6 +34,7 @@ class ComputePruner(implicit compiler:PIR) extends CUPruner with ComputePartitio
         dbg(s"kcost=$kcost")
         dbg(s"vcost=$vcost")
         val ks = split(k, vcost).toSet
+        info(s"Split $k into ${ks.size} CUs $kcost")
         newFG(fg, k, ks, vs)
       case x => super.recover(x)
     }

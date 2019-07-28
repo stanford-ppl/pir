@@ -20,7 +20,6 @@ trait CUPruner extends ConstrainPruner with CUCostUtil with PIRTransformer with 
   def recover(x:EOption[CUMap]):EOption[CUMap] = x
 
   def newFG(fg:CUMap, k:CUMap.K, ks:Set[CUMap.K], vs:Set[CUMap.V]) = {
-    info(s"Split $k into ${ks.size} CUs")
     assert(ks.size > 1, s"$k not partitioned")
     val vcosts = vs.map { v => getCosts(v) }
     ks.foreach { k => 

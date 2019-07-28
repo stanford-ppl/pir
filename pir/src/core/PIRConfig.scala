@@ -14,10 +14,12 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("force-align", default=false, info="Remove control signals that handle unaligned parallalization")
   register("shuffle-hack", default=false, info="Workaround to enable optimization of Shuffle elimination prevented by unrolling bug")
   register("igraph", default=false, info="Enable igraph codegen")
+  register("dedicated-dag", default=false, info="Force DRAM AG are only used to map DRAM Address Calculation")
 
   def arch = option[String]("arch")
   def enableSplitting = option[Boolean]("splitting")
   def enableMapping = option[Boolean]("mapping")
+  def deadicatedDAG = option[Boolean]("dedicated-dag")
   def enableRouteElim = option[Boolean]("rt-elm")
   def aggressive_dce = option[Boolean]("ag-dce")
   def printStat = option[Boolean]("stat")

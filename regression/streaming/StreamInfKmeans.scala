@@ -53,7 +53,7 @@ class StreamInfKmeans_7 extends StreamInfKmeans[scala.Int,Int]()(ipf=8, opk=4, o
         dists(k) = dist.value
       }
       val minDist = Reg[T]
-      Reduce(minDist)(0 until K par ipf) { k => dists(k) } { Num[T].min(_,_) }
+      Reduce(minDist)(0 until K par ipk) { k => dists(k) } { Num[T].min(_,_) }
       val minIdx = Reg[Int]
       Reduce(minIdx)(0 until K par ipk) { k =>
         mux(dists(k) == minDist.value, k, K+1)

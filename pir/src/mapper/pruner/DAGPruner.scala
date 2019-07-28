@@ -19,6 +19,14 @@ class DAGPruner(implicit compiler:PIR) extends CUPruner {
         if (fits) {
           x.filterNotAtKey(k) { v => nonDAGs.contains(v) }
         } else Right(x)
+      }.flatMap { x =>
+        if (config.deadicatedDAG) {
+          flatFold(x.freeKeys.filterNot { _.isDAG.get }, x) { case (x, k) =>
+            val vs = x.freeValuesOf(k)
+            val (isDAGs, nonDAGs) = vs.partition { _.params.get.isInstanceOf[DramAGParam] }
+            x.filterNotAtKey(k) { v => isDAGs.contains(v) }
+          }
+        } else Right(x)
       }.asInstanceOf[EOption[T]]
     case x => super.prune(x)
   }
