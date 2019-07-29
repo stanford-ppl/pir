@@ -79,7 +79,9 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
   }
 
   def countByController(n:Context) = dbgblk(s"countByContrller($n)"){
-    n.ctrlers.map { _.getIter }.reduceOption { _ * _ }
+    val ctrlers = n.ctrlers
+    dbg(s"$n.ctrlers=$ctrlers")
+    ctrlers.map { _.getIter }.reduceOption { _ * _ }
   }
 
   def compCount(n:PIRNode):Option[Value[Long]] = {
@@ -94,6 +96,7 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
           var inferByInput = false
           inferByInput ||= n.streaming.get
           inferByInput ||= ctrlers.exists { ctrler => ctrler.isForever && !ctrler.hasBranch }
+          inferByInput ||= ctrlers.isEmpty
           if (inferByInput) countByReads(n)
           else countByController(n)
         case n:BufferRead if n.nonBlocking =>

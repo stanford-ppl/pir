@@ -47,12 +47,12 @@ trait GarbageCollector { self:PIRTransformer =>
     }.toList
     var dead = ns.flatMap { _._1.descendents }
     collector.resetTraversal
-    dead ++= collector.traverseNodes(ns).filterNot { isLive(_) == Some(true) }
+    dead ++= collector.traverseNodes(ns).filter { isDead(_) }
     removeNodes(dead)
   }
 
   private def isDead(n:PIRNode):Boolean = {
-    if (isLive(n) == Some(true)) return false
+    if (n.descendentTree.forall { n => isLive(n) == Some(true) }) return false
     visitOut(n).isEmpty
   }
 
