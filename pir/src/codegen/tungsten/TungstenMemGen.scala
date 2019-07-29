@@ -70,7 +70,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         addEscapeVar(send)
         genCtxInits {
           emitln(s"AddSend(${nameOf(send)});");
-          emitln(s"""${data.mem.T}->SetSend("$data", $send);""")
+          emitln(s"""${data.mem.T}->SetSend("$data", ${nameOf(send)});""")
         }
       }
 
