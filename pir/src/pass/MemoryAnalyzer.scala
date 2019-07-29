@@ -112,8 +112,15 @@ trait MemoryAnalyzer extends PIRTransformer { self:BufferAnalyzer =>
     }
   }
 
+  private def equalValue(a:Any, b:Any):Boolean = {
+    (a,b) match {
+      case (a:Iterable[_], b:Iterable[_]) => a.size == b.size && (a,b).zipped.forall { (a,b) => equalValue(a,b) }
+      case (a,b) => a == b && (a.getClass == b.getClass)
+    }
+  }
+
   def allocConst(value:Any) = allocate[Const] { c => 
-    c.value == value &&
+    equalValue(c.value,value) &&
     stackTop[Ctrl].fold(true) { ctrl => c.getCtrl == ctrl }
   } { 
     Const(value)
