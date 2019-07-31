@@ -34,6 +34,7 @@ trait TungstenCtxGen extends TungstenCodegen with TungstenTopGen {
         val numStages = numStagesOf(n)
         ctxExtVars.clear
         declared.clear
+        members.clear
         emittedEn.clear
         getBuffer("fields").foreach { _.reset }
         getBuffer("inits").foreach { _.reset }
@@ -63,7 +64,15 @@ using   namespace std;
               }
               getBuffer("inits").foreach { _.flushTo(sw) }
             }
+            emitBlock(s"void Clock()") {
+              members.foreach { m => 
+                emitln(s"$m->Clock();")
+              }
+            }
             emitBlock(s"void Eval()") {
+              members.foreach { m => 
+                emitln(s"$m->Eval();")
+              }
               getBuffer("computes-begin").foreach { _.flushTo(sw) }
               val checkIO = n.collectChildren[LocalAccess].filterNot{_.nonBlocking}.nonEmpty
               if (checkIO) {
@@ -124,12 +133,14 @@ using   namespace std;
     if (!ctxExtVars.contains(v)) ctxExtVars += v
   }
 
+  private val members = mutable.ListBuffer[Any]()
   def emitNewMember(tp:String, name:Any) = {
     genCtxFields {
       emitln(s"""$tp* $name = new $tp("$name");""")
     }
     genCtxInits {
-      emitln(s"AddChild($name);");
+      members += name
+      emitln(s"AddChild($name, false);");
     }
   }
 
