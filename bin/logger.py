@@ -186,8 +186,6 @@ def removeRules(conf, opts):
     for p in reruns:
         if p == 'genpir':
             remove(conf['AccelMain'], opts)
-        elif p == 'runproute':
-            remove(conf['prouteSummary'], opts)
         elif p == 'runpsim':
             remove(conf['gentrace'], opts)
             remove(conf['genpsim'], opts)
@@ -292,11 +290,13 @@ def parse(conf, opts):
     return conf
 
 def parse_success(conf):
-    # for p in ['runp2p', 'runhybrid']:
-    for p in ['runp2p']:
+    for p in ['runp2p', 'runhybrid']:
+    # for p in ['runp2p']:
+        conf[p+'_success'] = False
         if conf[p+'_complete'] != True: return False
         if conf[p+'_deadlock']: return False
         if conf[p+'_err'] is not None: return False
+        conf[p+'_success'] = True
     return True
 
 def parse_genpir(pirsrc, conf, opts):

@@ -60,6 +60,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     mks.foreach { nk =>
       insertGlobalOutput(nk)
     }
+    removeNodes(k.collectDown[TokenRead]())
     free(k)
     //breakPoint(s"$k, $mks")
     mks.foreach { mk => free(mk.collectChildren[GlobalOutput]) }
