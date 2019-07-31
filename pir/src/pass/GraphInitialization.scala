@@ -140,6 +140,8 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
           reduceOps = reduceOps.tail
           dbg(s"reader=$reader")
           dbg(s"reduceOps=$reduceOps")
+          val readerParent = reader.parent.get
+          val readerCtrl = reader.getCtrl
           val (init, input) = reduceOps.head match {
             case op@OpDef(Mux) =>
               reduceOps = reduceOps.tail
@@ -153,9 +155,9 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
           }
           dbg(s"init=${dquote(init)}")
           dbg(s"input=${dquote(input)}")
-          val accumOp = within(reader.parent.get, reader.getCtrl) {
+          val accumOp = within(readerParent, readerCtrl) {
             val firstIter = writer.getCtrl.ctrler.get.to[LoopController].map { _ .firstIter }
-            val en = reader.getCtrl.ctrler.get.valid
+            val en = readerCtrl.ctrler.get.valid
             stage(RegAccumOp(reduceOps).in(input).en(writer.en.connected, en).first(firstIter).init(init))
           }
           disconnect(writer, reduceOps.last)
