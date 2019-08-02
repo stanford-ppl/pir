@@ -40,7 +40,11 @@ using namespace std;
 """)
       if (config.asModule) {
         val hostio = s"${topName}_hostio.h"
-        moveFile(buildPath(dirName, s"hostio.h"), buildPath(dirName,hostio))
+        withOpen(buildPath(dirName,hostio), false) {
+          getLines(buildPath(dirName, s"hostio.h")).foreach { line =>
+            emitln(line.replace("AllocAllMems", s"AllocAllMems_${topName}"))
+          }
+        }
         emitln(s"""#include "$hostio"""")
       } else {
         emitln(s"""#include "hostio.h"""")
