@@ -68,6 +68,10 @@ trait ScalaUtilFunc {
     assert(list.toSet.size == list.size, s"$info is not unique=$list")
   }
 
+  def testOne[A](list:Iterable[A]):Option[A] = {
+    if (list.size == 1) Some(list.head) else None
+  }
+
   def zipOption[A,B,T](a:Option[A], b:Option[B]):Option[(A,B)] = {
     (a,b).zipped.headOption
   }

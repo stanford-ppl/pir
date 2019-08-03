@@ -10,16 +10,18 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
   val forward = true
 
   var passTwo = false
+  val ctxs = mutable.ListBuffer[Context]()
 
   override def visitNode(n:N) = {
     n.to[Context].foreach { n =>
+      ctxs += n
       n.getCount
     }
   }
 
   override def finPass = {
     passTwo = true
-    val ctxs = pirTop.collectDown[Context]()
+    dbg(s"passTwo ----------------")
     ctxs.foreach { _.count.reset }
     // Two passes to handle cycle in data flow graph
     ctxs.foreach { n =>
@@ -38,6 +40,7 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
         }
       }
     }
+    ctxs.clear
     super.finPass
     passTwo = false
   }
@@ -54,16 +57,19 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
    * and ctrlers nonEmpty
    * */
   def countByReads(n:Context):Option[Value[Long]] = dbgblk(s"countByReads($n)") {
-    val counts = n.reads.flatMap { read => 
-      if (!passTwo && read.initToken.get) None 
-      else if (read.nonBlocking) { read.getCount; None }
-      else read.getCount.map { _ * read.getScale }
+    var reads = n.reads.filterNot { read =>
+      if (read.nonBlocking) { read.getCount; true } else false
+    }
+    if (!passTwo) reads = reads.filterNot { _.initToken.get }
+    dbg(s"reads=$reads passTwo=$passTwo")
+    val counts = reads.flatMap { read => 
+      read.getCount.map { _ * read.getScale }
     }
     val (unknown, known) = counts.partition { _.unknown }
     val (finite, infinite) = known.partition { _.isFinite }
     val c = if (unknown.nonEmpty) Some(Unknown)
     else if (finite.nonEmpty) assertIdentical(finite, 
-    s"$n.reads.count reads=${n.reads.map { r => (r, r.getCount) }} countByController=${countByController(n)}")
+    s"$n.reads.count reads=${reads.map { r => (r, r.getCount) }} countByController=${countByController(n)}")
     else if (infinite.nonEmpty) Some(Infinite)
     else if (n.collectFirstChild[FringeStreamWrite].nonEmpty) None
     else { // reads is empty
@@ -191,5 +197,40 @@ trait RuntimeUtil extends AnalysisUtil { self:PIRPass =>
       1
     }
   }
+
+  def outputMatch(out1:Output[PIRNode], out2:Output[PIRNode]) = (out1, out2) match {
+    case (out1, out2) if out1 == out2 => true
+    case (OutputField(Const(out1), "out"), OutputField(Const(out2), "out")) if out1 == out2 => true
+    case (OutputField(Const(List(out1)), "out"), OutputField(Const(out2), "out")) if out1 == out2 => true
+    case (OutputField(Const(out1), "out"), OutputField(Const(List(out2)), "out")) if out1 == out2 => true
+    case (OutputField(c1:UnitController, "valid" | "done"), OutputField(c2:UnitController, "valid" | "done")) => c1 == c2
+    case (out1, out2) => false
+  }
+
+  def matchInput(in1:Input[PIRNode], in2:Input[PIRNode]) = (in1, in2) match {
+    case (in1, in2) if in1.connected.size != in2.connected.size => false
+    case (InputField(_,"en" | "done"), InputField(_,"en" | "done")) => //TODO: order doesn't matter
+      (in1.connected, in2.connected).zipped.forall { outputMatch _ }
+    case (in1, in2) => (in1.connected, in2.connected).zipped.forall { outputMatch _ }
+  }
+
+  def matchInput(in1:Input[PIRNode], connected:List[Output[PIRNode]]) = {
+    (in1.connected, connected).zipped.forall { case (o1, o2) =>
+      (in1.connected, connected).zipped.forall { outputMatch _ }
+    }
+  }
+
+  def matchInput(in1:Input[PIRNode], out:Output[PIRNode]) = {
+    in1.connected.forall { outputMatch(_,out) }
+  }
+
+  def matchRate(a1:LocalAccess, a2:LocalAccess) = {
+    (compScale(a1), compScale(a2)) match {
+      case (Unknown, _) => false
+      case (_, Unknown) => false
+      case (s1, s2) => s1 == s2
+    }
+  }
+
 
 }

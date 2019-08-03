@@ -86,12 +86,16 @@ class StreamTrainLogReg_6 extends StreamTrainLogReg[Float](field=5)()
         val (trainX, trainY, lastBit, lastBatch) = transposeTrainInput[T](in) // trainX [batch, field], trainY [batch]
         Sequential.Foreach(iters by 1) { iter =>
           val dZ = SRAM[T](batch)
+          val dots = SRAM[T](batch)
           Foreach(0 until batch par opb) { b =>
             val dot = Reg[T]
             Reduce(dot)(0 until field par ipf) { f =>
               trainX(b,f) * weights(f)
             } { _ + _ }
-            val A = sigmoid(dot.value + bias.value)
+            dots(b) = dot
+          }
+          Foreach(0 until batch par ipb) { b =>
+            val A = sigmoid(dots(b) + bias.value)
             dZ(b) = A - trainY(b)
           }
           val dW = SRAM[T](field)

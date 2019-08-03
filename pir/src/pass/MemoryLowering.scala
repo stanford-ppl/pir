@@ -444,12 +444,15 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           val (en, done) = if (mem.isFIFO) {
             (Nil, enq :: inAccess.en.connected)
           } else {
-            (inAccess.en.connected, enq)
+            (inAccess.en.connected, List(enq))
           }
+          dbg(s"en=${en.map{dquote}}")
+          dbg(s"done=${done.map{dquote}}")
+          dbg(s"data=${inAccess.data.connected}")
           allocate[BufferWrite]{ write => 
-            write.data.evalTo(inAccess.data.connected) &&
-            write.en.evalTo(en) && 
-            write.done.evalTo(done)
+            matchInput(write.data, inAccess.data) &&
+            matchInput(write.en,en) && 
+            matchInput(write.done,done)
           } {
             stage(BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(en).done(done))
           }
@@ -481,9 +484,9 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
         val read = if (mem.nonBlocking.get) {
           val write = within(inAccess.parent.get, inAccess.ctrl.get) {
             allocate[BufferWrite]{ write => 
-              write.data.evalTo(inAccess.data.connected) &&
-              write.en.evalTo(inAccess.en.connected) && 
-              write.done.isConnectedTo(enq)
+              matchInput(write.data, inAccess.data) &&
+              matchInput(write.en,inAccess.en) && 
+              matchInput(write.done,enq)
             } {
               stage(BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(inAccess.en.connected).done(enq))
             }
@@ -504,20 +507,20 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           )
           val (write,writeEn,writeDone) = within(inAccess.parent.get, inAccess.ctrl.get) {
             (allocate[BufferWrite]{ write => 
-              write.data.evalTo(inAccess.data.connected) &&
-              write.done.isConnectedTo(enq)
+              matchInput(write.data, inAccess.data) &&
+              matchInput(write.done,enq)
             } {
               stage(BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).done(enq))
             },
             allocate[BufferWrite]{ write => 
-              write.data.evalTo(inAccess.en.connected) &&
-              write.done.isConnectedTo(enq)
+              matchInput(write.data, inAccess.en) &&
+              matchInput(write.done, enq)
             } {
               stage(BufferWrite().data(inAccess.en.connected).done(enq))
             },
             allocate[BufferWrite]{ write => 
-              write.data.evalTo(wdone) &&
-              write.done.isConnectedTo(enq)
+              matchInput(write.data, wdone) &&
+              matchInput(write.done, enq)
             } {
               stage(BufferWrite().data(wdone).done(enq))
             })

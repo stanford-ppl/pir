@@ -13,7 +13,7 @@ import scala.collection.mutable
 // BFS is slightly faster than DFS
 class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTransformer 
   with BFSBottomUpTopologicalTraversal with UnitTraversal 
-  with BufferAnalyzer with RuntimeUtil {
+  with BufferAnalyzer {
 
   val forward = true
 
@@ -29,28 +29,6 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     globalInsertHasRun = compiler.hasRun[GlobalInsertion]
     initializerHasRun = compiler.hasRun[TargetInitializer]
     memoryPrunerHashRun = compiler.hasRun[MemoryPruner]
-  }
-
-  def outputMatch(out1:Output[PIRNode], out2:Output[PIRNode]) = (out1, out2) match {
-    case (out1, out2) if out1 == out2 => true
-    case (OutputField(Const(out1), "out"), OutputField(Const(out2), "out")) if out1 == out2 => true
-    case (OutputField(Const(List(out1)), "out"), OutputField(Const(out2), "out")) if out1 == out2 => true
-    case (OutputField(Const(out1), "out"), OutputField(Const(List(out2)), "out")) if out1 == out2 => true
-    case (OutputField(c1:UnitController, "valid" | "done"), OutputField(c2:UnitController, "valid" | "done")) => c1 == c2
-    case (out1, out2) => false
-  }
-
-  def matchInput(in1:Input[PIRNode], in2:Input[PIRNode]) = (in1, in2) match {
-    case (in1, in2) if in1.connected.size != in2.connected.size => false
-    case (in1, in2) => (in1.connected, in2.connected).zipped.forall { outputMatch _ }
-  }
-
-  def matchRate(a1:LocalAccess, a2:LocalAccess) = {
-    (compScale(a1), compScale(a2)) match {
-      case (Unknown, _) => false
-      case (_, Unknown) => false
-      case (s1, s2) => s1 == s2
-    }
   }
 
   override def compScheduleFactor(n:Context):Int = 1 
@@ -166,6 +144,36 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     } else None
   }
 
+  XRule[MemRead] { read =>
+    val mem = read.mem.T
+    if (mem.inAccesses.isEmpty) {
+      mem.inits.v.fold { 
+        err(s"Reading undefined memory ${quoteSrcCtx(mem)}")
+      }{ inits =>
+        dbgblk(s"Embed Reg initial value($mem)"){
+          val const = within(read.parent.get, read.getCtrl) {
+            stage(Const(inits))
+          }
+          swapOutput(read.out, const.out)
+        }
+      }
+      Some(read)
+    } else {
+      testOne(mem.inAccesses).map{ write =>
+        if (write.getCtrl == read.getCtrl) {
+          if (write.order.get < read.order.get) {
+            dbgblk(s"Remove $write -> $mem -> $read") {
+              swapOutput(read.out, write.as[MemWrite].data.singleConnected.get)
+            }
+          } else {
+            //TODO: Pipe reg accum
+          }
+          Some(write)
+        } else None
+      }
+    }
+  }
+
   /*
    * w1 -> m1 -> r1 -> w2 -> m2
    * mw1 -> m2
@@ -241,7 +249,37 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     }
   }
 
-  Rule[OpDef] { n =>
+  XRule[BankedRead] { read =>
+    val mem = read.mem.T
+    testOne(mem.inAccesses).map { w =>
+      val write = w.as[BankedWrite]
+      if (write.order.get < read.order.get) {
+        val matchBank = matchInput(read.bank, write.bank)
+        val matchOfst = matchInput(read.offset, write.offset)
+        val matchEn = matchInput(read.en, write.en)
+        dbg(s"matchBank=$matchBank")
+        dbg(s"matchOfst=$matchOfst")
+        dbg(s"matchEn=$matchEn")
+        if (matchBank && matchOfst && matchEn) dbgblk(s"RouteThroughMemory") {
+          val fifoWrite = within(write.getCtrl, write.parent.get) {
+            stage(MemWrite().data(write.data.singleConnected.get))
+          }
+          val fifo = within(mem.parent.get) {
+            val fifo = Reg().addAccess(fifoWrite)
+            fifo.mirrorMetas(mem)
+            stage(fifo)
+          }
+          val fifoRead = within(read.getCtrl, read.parent.get) {
+            stage(MemRead().setMem(fifo))
+          }
+          dbg(s"$write -> $mem -> $read => $fifoWrite -> $fifo -> $fifoRead")
+          swapOutput(read.out, fifoRead.out)
+        }
+      }
+    }
+  }
+
+  XRule[OpDef] { n =>
     (n.op, n.inputs.map{_.T}) match {
       //TODO: fix this
       case (FixEql, List(iter:CounterIter, Const(c))) if config.option[Boolean]("shuffle-hack") =>
