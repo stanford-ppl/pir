@@ -2,6 +2,7 @@ import spatial.dsl._
 import spatial.lib.ML._
 import utils.io.files._
 import spatial.lang.{FileBus,FileEOFBus}
+import spatial.metadata.bounds._
 
 class StreamTrainLogReg_0 extends StreamTrainLogReg[Float]()()
 class StreamTrainLogReg_1 extends StreamTrainLogReg[Float]()(opb=2)
@@ -72,17 +73,16 @@ class StreamTrainLogReg_6 extends StreamTrainLogReg[Float](field=5)()
     val goldBias = hostMain(inFile, wFile)
 
     val in  = StreamIn[Tup2[T,Bit]](FileEOFBus[Tup2[T,Bit]](inFile))
+    in.count = numBatch * (field + 1)
     val out  = StreamOut[Tup2[T,Bit]](FileEOFBus[Tup2[T,Bit]](outFile))
     val wDRAM = DRAM[T](field)
-    val bArg = ArgOut[T]
     Accel{
-      val stop = Reg[Bit](false)
       val weights = SRAM[T](field)
       val bias = Reg[T](init.to[T])
       Foreach(0 until field) { f =>
         weights(f) = init.to[T]
       }
-      Sequential(breakWhen=stop).Foreach(*) { _ =>
+      Foreach(*) { _ =>
         val (trainX, trainY, lastBit, lastBatch) = transposeTrainInput[T](in) // trainX [batch, field], trainY [batch]
         Sequential.Foreach(iters by 1) { iter =>
           val dZ = SRAM[T](batch)
@@ -109,13 +109,18 @@ class StreamTrainLogReg_6 extends StreamTrainLogReg[Float](field=5)()
           }
           bias := bias.value - learnRate.to[T] * dB.value
         }
-        if (lastBatch) wDRAM(0::field par ipf) store weights
-        bArg := bias.value
-        out := Tup2(bias.value, lastBatch)
-        stop := lastBatch
+        Foreach(0 until batch par ipb) { b =>
+          val lb = lastBit.deq
+          val v = mux(b==(batch-1), weights(0),
+                  mux(b==(batch-2), bias.value,
+                  0.to[T]))
+          out := Tup2(v, lb)
+        }
       }
     }
-    val cksum = checkGold[T](wDRAM, wFile) && checkGold[T](bArg, goldBias)
+    val outData:Matrix[T] = loadCSV2D[T](outFile)
+    val goldWeights = loadCSV1D[T](wFile)
+    val cksum = approxEql[T](outData(N-1,0),goldWeights(0)) && approxEql[T](outData(N-2,0),goldBias.to[T])
     println("PASS: " + cksum + s" (${this.getClass.getSimpleName})")  
     assert(cksum)
   }

@@ -39,7 +39,8 @@ trait Ops extends Enumeration {
         if (lit.size == vec) {
           Some(Literal(lit.map { case Literal(c) => c }))
         } else if (nonlit.size == vec) {
-          Some(assertIdentical(nonlit, s"Non literal returned by eval const=$const").get)
+          val values = nonlit.toSet
+          if (values.size == 1) Some(values.head) else None
         } else { // Both literal and non literal
           None
         }

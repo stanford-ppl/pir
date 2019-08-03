@@ -2,6 +2,7 @@ import spatial.dsl._
 import spatial.lang.{FileBus,FileEOFBus}
 import utils.io.files._
 import scala.reflect._
+import spatial.metadata.bounds._
 
 @spatial abstract class StreamTemplate extends StreamHostTemplate with DSETest {
   
@@ -13,7 +14,7 @@ import scala.reflect._
   // in multiple cycles
   def transposeInput[T:Bits](in:StreamIn[Tup2[T,Bit]]) = {
     val insram = SRAM[T](batch, field)
-    val lastBit = FIFO[Bit](100)
+    val lastBit = FIFO[Bit](10)
     Foreach(0 until field) { f =>
       Foreach(0 until batch par ipb) { b =>
         val token = in.value
@@ -80,6 +81,7 @@ import scala.reflect._
     writeGoldStream(goldMat, goldFile)
 
     val in  = StreamIn[Tup2[TI,Bit]](FileEOFBus[Tup2[TI,Bit]](inFile))
+    in.count = numBatch * field
     val out = StreamOut[Tup2[TO,Bit]](FileEOFBus[Tup2[TO,Bit]](outFile))
     Accel{
       Foreach(*) { _ =>

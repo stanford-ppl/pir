@@ -121,8 +121,7 @@ trait AnalysisUtil { self:PIRPass =>
       case n:PrintIf => n.msg.inferVec
       case n:AssertIf => n.msg.inferVec
       case n:ExitIf => n.msg.inferVec
-      case n@OpDef(Mux) => zipMap(n.inputs(1).inferVec, n.inputs(2).inferVec) { case (a,b) => Math.max(a,b) }
-      case n@OpDef(_:FixOp | _:FltOp | _:BitOp | _:TextOp | BitsAsData) => flatReduce(n.inputs.map{ _.inferVec}) { case (a,b) => Math.max(a,b) }
+      case n@OpDef(_:FixOp | _:FltOp | _:BitOp | _:TextOp | Mux | BitsAsData) => flatReduce(n.inputs.map{ _.inferVec}) { case (a,b) => Math.max(a,b) }
       case n:Shuffle => n.to.T.inferVec
       case n:GlobalOutput => n.in.T.inferVec
       // During staging time GlobalInput might temporarily not connect to GlobalOutput
