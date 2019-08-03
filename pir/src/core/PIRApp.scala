@@ -87,6 +87,7 @@ trait PIRApp extends PIR with Logging {
     addPass(globalInsertion) ==>
     saveSession(buildPath(config.outDir,"pir1.ckpt")) ==>
     // ------ Load hardware constrain ----- 
+    addPass(enableMapping,report) ==>
     addPass(initializer) ==>
     addPass(new ParamHtmlIRPrinter(s"param.html", pirenv.spadeParam)) ==>
     addPass(enableDot, new PIRCtxDotGen(s"simple7.dot")) ==>

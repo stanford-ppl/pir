@@ -21,6 +21,8 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
         dbg(s"kcost=$kcost")
         dbg(s"vcost=$vcost")
         val ks = split(k, kcost, vcost).toSet
+        info(s"Split $k into ${ks.size} CUs $kcost")
+        //breakPoint(s"$k")
         newFG(fg, k, ks, vs)
       case x => super.recover(x)
     }
@@ -169,6 +171,3 @@ trait BankPartitioner extends Logging {
   }
 }
 
-case class SRAMBankNotFit(k:CUMap.K, bank:Int) extends MappingFailure {
-  val msg = s"BankNotFit at key=$k. Number of banks=$bank"
-}

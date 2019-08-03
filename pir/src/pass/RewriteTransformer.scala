@@ -35,15 +35,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   // HACK: For now, don't care whether it's scheduled or not to check
   // rate matching
   
-  val rules = mutable.ListBuffer[Rule[_]]()
   val xrules = mutable.ListBuffer[XRule[_]]()
-
-  case class Rule[A:ClassTag](lambda:A => Unit) {
-    rules += this
-    def apply(x:Any):Unit = {
-      x.to[A].foreach { x => lambda(x) }
-    }
-  }
 
   case class XRule[A:ClassTag](lambda:A => Option[Any]) {
     xrules += this
@@ -296,6 +288,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     }
   }
 
+
   XRule[Shuffle] { n =>
     (n.from, n.to, n.base) match {
       case (SC(OutputField(Const(from:List[_]),"out")), SC(OutputField(Const(to:List[_]),"out")), base) if from.intersect(to).isEmpty => 
@@ -344,23 +337,23 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     }
   }
 
-  Rule[PIRNode] { n =>
+  XRule[PIRNode] { n =>
     n.localIns.filter { _.as[Field[_]].name == "en" }.foreach { en =>
       en.connected.distinct.foreach {
         case out@OutputField(Const(true), "out") => 
           en.disconnectFrom(out)
-          dbg(s"${en.src}.${en} disconnect ${dquote(out)}")
+          dbg(s"${dquote(en)} disconnect ${dquote(out)}")
         case out@OutputField(Const(vs:List[_]), "out") if vs.forall { _ == true } => 
           en.disconnectFrom(out)
-          dbg(s"${en.src}.${en} disconnect ${dquote(out)}")
+          dbg(s"${dquote(en)} disconnect ${dquote(out)}")
         case _ => 
       }
     }
+    None // Non exclusive rule
   }
 
   override def visitNode(n:N):T = /*dbgblk(s"visitNode:${quote(n)}") */{
     super.visitNode(n)
-    rules.foreach { _(n) }
     xrules.foldLeft[Option[_]](None) { 
       case (None, rule) => rule(n)
       case (Some(n), rule) => Some(n)

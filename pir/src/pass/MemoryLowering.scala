@@ -183,13 +183,13 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
     dbg(s"mergeCtx=$mergeCtx")
     val addrCtxs = mutable.Map[BankedAccess, Context]()
     val red = within(mergeCtx, mergeCtrl) {
+      // Optimize for fully unrolled case
+      val constAddr = accesses.forall { access =>
+        access.offset.connected.forall { case (OutputField(c:Const, "out")) => true; case _ => false } &&
+        access.offset.connected.forall { case (OutputField(c:Const, "out")) => true; case _ => false } &&
+        !access.en.isConnected
+      }
       val requests = accesses.map { access =>
-        // Optimize for fully unrolled case
-        val constAddr = accesses.forall { access =>
-          access.offset.connected.forall { case (OutputField(c:Const, "out")) => true; case _ => false } &&
-          access.offset.connected.forall { case (OutputField(c:Const, "out")) => true; case _ => false } &&
-          !access.en.isConnected
-        }
         val addrCtx = access match {
           case access if accesses.size == 1 || constAddr => mergeCtx
           case access => within(memCU, access.ctx.get.getCtrl) { Context() }
