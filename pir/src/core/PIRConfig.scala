@@ -12,7 +12,6 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("rt-elm", default=true, info="Enable route through elimination")
   register("stat", default=false, info="Printing statistics")
   register("force-align", default=false, info="Remove control signals that handle unaligned parallalization")
-  register("shuffle-hack", default=false, info="Workaround to enable optimization of Shuffle elimination prevented by unrolling bug")
   register("igraph", default=false, info="Enable igraph codegen")
   register("dedicated-dag", default=false, info="Force DRAM AG are only used to map DRAM Address Calculation")
 
