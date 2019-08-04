@@ -192,16 +192,17 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTransformer with Dependen
     val headAccess = accesses.head
     val mergeCtrl = headAccess.getCtrl
     val mergeCtx = within(memCU, headAccess.ctx.get.getCtrl) { Context() }
+    // Optimize for fully unrolled case
+    val constAddr = accesses.forall { access =>
+      access.bank.connected.forall { case (OutputField(c:Const, "out")) => true; case _ => false } &&
+      access.offset.connected.forall { case (OutputField(c:Const, "out")) => true; case _ => false } &&
+      !access.en.isConnected
+    }
     dbg(s"mergeCtrl = $mergeCtrl")
     dbg(s"mergeCtx=$mergeCtx")
+    dbg(s"constAddr=$constAddr")
     val addrCtxs = mutable.Map[BankedAccess, Context]()
     val red = within(mergeCtx, mergeCtrl) {
-      // Optimize for fully unrolled case
-      val constAddr = accesses.forall { access =>
-        access.offset.connected.forall { case (OutputField(c:Const, "out")) => true; case _ => false } &&
-        access.offset.connected.forall { case (OutputField(c:Const, "out")) => true; case _ => false } &&
-        !access.en.isConnected
-      }
       val requests = accesses.map { access =>
         val addrCtx = access match {
           case access if accesses.size == 1 || constAddr => mergeCtx
@@ -298,7 +299,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTransformer with Dependen
   def flattenBankAddr(access:BankedAccess):Unit = dbgblk(s"flattenBankAddr($access)"){
     val mem = access.mem.T
     val parent = access.parent.get
-    within(parent, access.getCtrl) {
+    within(parent, parent.getCtrl) {
       // Flatten BankeAddress
       if (access.bank.T.size > 1) {
         def flattenND(inds:List[Output[PIRNode]], dims:List[Int]):Output[PIRNode] = {

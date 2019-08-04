@@ -23,8 +23,8 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
   override def handle(e:Throwable) = {
     super.handle(e)
     if (config.enableDot && config.debug) {
-      new PIRIRDotGen(s"top_err.dot").run
-      new PIRCtxDotGen(s"ctx_err.dot").run
+      new PIRIRDotGen(s"top.dot").run
+      new PIRCtxDotGen(s"ctx.dot").run
     }
   }
 

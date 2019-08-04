@@ -291,13 +291,11 @@ def parse(conf, opts):
 
 def parse_success(conf):
     for p in ['runp2p', 'runhybrid']:
-    # for p in ['runp2p']:
-        conf[p+'_success'] = False
-        if conf[p+'_complete'] != True: return False
-        if conf[p+'_deadlock']: return False
-        if conf[p+'_err'] is not None: return False
-        conf[p+'_success'] = True
-    return True
+        conf[p+'_success'] = \
+            conf[p+'_complete'] and \
+            not conf[p+'_deadlock'] and \
+            conf[p+'_err'] is None
+    return conf['runp2p_success']
 
 def parse_genpir(pirsrc, conf, opts):
     if os.path.exists(pirsrc):

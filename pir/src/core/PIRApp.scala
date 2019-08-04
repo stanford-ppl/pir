@@ -70,27 +70,27 @@ trait PIRApp extends PIR with Logging {
     addPass(rewriter) ==>
     addPass(deadCodeEliminator) ==>
     addPass(contextInsertion) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"simple2.dot")) ==>
+    addPass(enableDot, new PIRCtxDotGen(s"ctx2.dot")) ==>
     addPass(enableDot, new PIRIRDotGen(s"top3.dot")) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"simple3.dot")) ==>
+    addPass(enableDot, new PIRCtxDotGen(s"ctx3.dot")) ==>
     addPass(memLowering) ==>
     addPass(enableDot, new PIRIRDotGen(s"top4.dot")) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"simple4.dot")) ==>
+    addPass(enableDot, new PIRCtxDotGen(s"ctx4.dot")) ==>
     addPass(depDuplications).dependsOn(memLowering) ==>
     addPass(enableDot, new PIRIRDotGen(s"top5.dot")) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"simple5.dot")) ==>
+    addPass(enableDot, new PIRCtxDotGen(s"ctx5.dot")) ==>
     addPass(rewriter) ==>
     addPass(deadCodeEliminator) ==>
     //addPass(contextAnalyzer) ==>
     addPass(enableDot, new PIRIRDotGen(s"top6.dot")) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"simple6.dot")) ==>
+    addPass(enableDot, new PIRCtxDotGen(s"ctx6.dot")) ==>
     addPass(globalInsertion) ==>
     saveSession(buildPath(config.outDir,"pir1.ckpt")) ==>
     // ------ Load hardware constrain ----- 
     addPass(enableMapping,report) ==>
     addPass(initializer) ==>
     addPass(new ParamHtmlIRPrinter(s"param.html", pirenv.spadeParam)) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"simple7.dot")) ==>
+    addPass(enableDot, new PIRCtxDotGen(s"ctx7.dot")) ==>
     addPass(enableDot, new PIRIRDotGen(s"top7.dot")) ==>
     addPass(enableDot, new PIRGlobalDotGen(s"global7.dot"))
     // ------- Mapping  --------
@@ -107,14 +107,14 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, matchPruner) ==>
     addPass(modAnalyzer) ==>
     addPass(enableMapping, placerAndRouter) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"simple8.dot")) ==>
+    addPass(enableDot, new PIRCtxDotGen(s"ctx8.dot")) ==>
     addPass(enableDot, new PIRIRDotGen(s"top8.dot")) ==>
     //addPass(enableDot, new PIRNetworkDotGen(s"net.dot"))
     saveSession(buildPath(config.outDir,"pir2.ckpt")) ==>
     // ------- Codegen  --------
     addPass(enableMapping,report) ==>
     addPass(runtimeAnalyzer).dependsOn(placerAndRouter) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"simple9.dot")) ==>
+    addPass(enableDot, new PIRCtxDotGen(s"ctx9.dot")) ==>
     addPass(enableDot, new PIRIRDotGen(s"top9.dot"))
     addPass(enableDot, new PIRGlobalDotGen(s"global.dot"))
     // Igraph
@@ -131,7 +131,7 @@ trait PIRApp extends PIR with Logging {
     addPass(genPsim && runPsim, psimRunner).dependsOn(prouteRunner)
     //addPass(psimParser)
     //addPass(enableDot, new PIRIRDotGen(s"top10.dot"))
-    //addPass(enableDot, new PIRCtxDotGen(s"simple10.dot"))
+    //addPass(enableDot, new PIRCtxDotGen(s"ctx10.dot"))
 
     //addPass(areaPowerStat).dependsOn(psimConfigCodegen, cuPlacer)
 

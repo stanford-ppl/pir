@@ -39,7 +39,7 @@ trait RewriteUtil { self: PIRTransformer =>
     }
   }
 
-  RewriteRule[MemRead](s"WritteByConstData") { reader =>
+  RewriteRule[MemRead](s"WrittenByConstData") { reader =>
     val ConstData = MatchRule[MemWrite, Const] { write =>
       write.data.T match {
         case c@Const(_) if !write.en.isConnected && write.waitFors.isEmpty => Some(c)
@@ -368,7 +368,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
 
   override def visitNode(n:N):T = /*dbgblk(s"visitNode:${quote(n)}") */{
     super.visitNode(n)
-    rewriteRules.foldLeft[Option[_]](None) {
+    val res = rewriteRules.foldLeft[Option[_]](None) {
       case (None, rule) => rule(n).map { case (o1, o2) =>
           dbgblk(s"${rule.name}") {
             swapOutput(o1.as, o2.as)
@@ -377,7 +377,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
         }.getOrElse(None)
       case (Some(n), rule) => Some(n)
     }
-    transferRules.foldLeft[Option[_]](None) { 
+    transferRules.foldLeft[Option[_]](res) { 
       case (None, rule) => rule(n)
       case (Some(n), rule) => Some(n)
     }
