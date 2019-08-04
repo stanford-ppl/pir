@@ -77,14 +77,14 @@ class StreamTrainLogReg_6 extends StreamTrainLogReg[Float](field=5)()
     val out  = StreamOut[Tup2[T,Bit]](FileEOFBus[Tup2[T,Bit]](outFile))
     val wDRAM = DRAM[T](field)
     Accel{
-      val weights = SRAM[T](field)
-      val bias = Reg[T](init.to[T])
+      val weights = SRAM[T](field).buffer
+      val bias = Reg[T](init.to[T]).buffer
       Foreach(0 until field) { f =>
         weights(f) = init.to[T]
       }
       Foreach(*) { _ =>
         val (trainX, trainY, lastBit, lastBatch) = transposeTrainInput[T](in) // trainX [batch, field], trainY [batch]
-        Sequential.Foreach(iters by 1) { iter =>
+        Foreach(iters by 1) { iter =>
           val dZ = SRAM[T](batch)
           val dots = SRAM[T](batch)
           Foreach(0 until batch par opb) { b =>
