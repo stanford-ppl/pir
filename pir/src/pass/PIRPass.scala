@@ -45,7 +45,11 @@ trait ControlTreeTraversal extends PIRPass {
   type N = ControlTree
   def top = compiler.pirenv.pirTop.topCtrl
 }
-trait PIRTransformer extends PIRPass with Transformer with GarbageCollector {
+trait PIRTransformer extends PIRPass with Transformer 
+with GarbageCollector
+with RewriteUtil
+with BufferAnalyzer
+{
   override def mirrorField[N<:Node[N]](
     nodes:Iterable[FieldNode[N]], 
     mapping:mutable.Map[IR,IR]
@@ -91,4 +95,21 @@ trait PIRTransformer extends PIRPass with Transformer with GarbageCollector {
     }
     m
   }
+
+  def stage[T<:PIRNode](n:T):T = dbgblk(s"stage($n)"){
+    val tp = n.inferTp
+    n.localIns.foreach { in => 
+      in.inferVec
+      in.inferTp
+    }
+    val vec = n.inferVec
+    dbgn(n)
+    n
+  }
+
+  def stage(out:Output[PIRNode]):Output[PIRNode] = {
+    stage(out.src)
+    rewriteRules.foldLeft(out) { (out, rule) => rule.apply(out).as[Output[PIRNode]] }
+  }
+
 }

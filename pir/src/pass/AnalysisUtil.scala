@@ -174,17 +174,6 @@ trait AnalysisUtil { self:PIRPass =>
     }
   }
 
-  def stage[T<:PIRNode](n:T):T = dbgblk(s"stage($n)"){
-    val tp = n.inferTp
-    n.localIns.foreach { in => 
-      in.inferVec
-      in.inferTp
-    }
-    val vec = n.inferVec
-    dbgn(n)
-    n
-  }
-
   def quoteSrcCtx(n:PIRNode) = {
     var msg = dquote(n)
     n.ctx.map { ctx => msg += s" ($ctx)"}

@@ -10,41 +10,36 @@ import prism.util._
 
 import scala.collection.mutable
 
-// BFS is slightly faster than DFS
-class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTransformer 
-  with BFSBottomUpTopologicalTraversal with UnitTraversal 
-  with BufferAnalyzer {
+trait RewriteUtil { self: PIRTransformer =>
+  // run when the node is created
+  val rewriteRules = mutable.ListBuffer[RewriteRule[_]]()
+  // run during RewriteTransformer
+  val transferRules = mutable.ListBuffer[TransferRule[_]]()
 
-  val forward = true
-
-  var memLowerHasRun = false
-  var memPrunerHasRun = false
-  var globalInsertHasRun = false
-  var initializerHasRun = false
-  var memoryPrunerHashRun = false
-
-  override def initPass = {
-    super.initPass
-    memLowerHasRun = compiler.hasRun[MemoryLowering]
-    globalInsertHasRun = compiler.hasRun[GlobalInsertion]
-    initializerHasRun = compiler.hasRun[TargetInitializer]
-    memoryPrunerHashRun = compiler.hasRun[MemoryPruner]
+  case class RewriteRule[A:ClassTag](name:String)(lambda:A => Option[(Output[_],Output[_])]) {
+    rewriteRules += this
+    def apply(x:PIRNode):Option[(Output[_],Output[_])] = {
+      x.to[A].flatMap { x => lambda(x) }
+    }
+    def apply(o:Output[_]):Output[_] = {
+      o.src.to[A].map { x =>
+        lambda(x).map { case (o1, o2) =>
+          if (o1 == o) {
+            dbg(s"$name rewrite ${dquote(o1)} to ${dquote(o2)}")
+            o2
+          } else o1
+        }.getOrElse(o)
+      }.getOrElse(o)
+    }
   }
-
-  override def compScheduleFactor(n:Context):Int = 1 
-  // HACK: For now, don't care whether it's scheduled or not to check
-  // rate matching
-  
-  val xrules = mutable.ListBuffer[XRule[_]]()
-
-  case class XRule[A:ClassTag](lambda:A => Option[Any]) {
-    xrules += this
-    def apply(x:Any):Option[Any] = {
+  case class TransferRule[A:ClassTag](lambda:A => Option[Any]) {
+    transferRules += this
+    def apply(x:PIRNode):Option[Any] = {
       x.to[A].flatMap { x => lambda(x) }
     }
   }
 
-  XRule[MemRead] { reader =>
+  RewriteRule[MemRead](s"WritteByConstData") { reader =>
     val ConstData = MatchRule[MemWrite, Const] { write =>
       write.data.T match {
         case c@Const(_) if !write.en.isConnected && write.waitFors.isEmpty => Some(c)
@@ -53,31 +48,12 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     }
     reader.mem.T.inAccesses match {
       case List(writer@ConstData(c)) if writer.order.get < reader.order.get && matchInput(writer.en, reader.en) => 
-        dbgblk(s"WrittenByConstData($reader, $c)") {
-          swapOutput(reader.out, c.out)
-        }
-        Some(reader)
+        Some((reader.out, c.out))
       case _ => None
     }
   }
 
-  XRule[BufferRead] { n =>
-    dbg(s"$n ${n.ctx}")
-    if (n.ctx.get.streaming.get) None else {
-      val writer = n.inAccess.as[BufferWrite]
-      writer.data match {
-        case SC(OutputField(c:Const, "out")) if !writer.en.isConnected =>
-          dbgblk(s"WrittenByConstData($n, $c)") {
-            val mc = within(n.parent.get, n.getCtrl) { allocConst(c.value) }
-            swapOutput(n.out, mc.out)
-          }
-          Some(n)
-        case _ => None
-      }
-    }
-  }
-
-  XRule[OpDef] { case n@OpDef(op) =>
+  RewriteRule[OpDef](s"EvalOp") { case n@OpDef(op) =>
     val ins = n.inputs.map { 
       _.connected match {
         case List(OutputField(Const(c), "out")) => Literal(c)
@@ -90,17 +66,116 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
         exp match {
           case Literal(c) =>
             val const = within(n.parent.get, n.ctrl.get) { allocConst(c) }
-            swapOutput(n.out, const.out)
-            addAndVisitNode(const, ())
+            (n.out, const.out)
           case List(out:Output[_]) =>
-            swapOutput(n.out, out.as[Output[PIRNode]])
+            (n.out, out)
         }
       }
     }
   }
 
+  RewriteRule[OpDef](s"FirstIter") { n =>
+    (n.op, n.inputs.map{_.T}) match {
+      //TODO: fix this
+      case (FixEql, List(iter:CounterIter, Const(c))) if config.option[Boolean]("shuffle-hack") =>
+        val ctr = iter.counter.T
+        ctr.min.T match {
+          case Some(Const(min)) if min == c => 
+            Some((n.out, ctr.isFirstIter))
+          case _ => None
+        }
+      case (_) => None
+    }
+  }
+
+  def memoryPrunerHashRun = compiler.hasRun[MemoryPruner]
+
+  RewriteRule[Shuffle](s"Shuffle") { n =>
+    (n.from, n.to, n.base) match {
+      case (SC(OutputField(Const(from:List[_]),"out")), SC(OutputField(Const(to:List[_]),"out")), base) if from.intersect(to).isEmpty => 
+        dbgblk(s"ShuffleUnmatch($n, from=${dquote(n.from.T)}, to=${dquote(n.to.T)})") {
+          val c = within(n.ctx.get, n.getCtrl) {
+            allocConst(List.fill(n.inferVec.get)(n.filled))
+          }
+          Some((n.out, c.out))
+        }
+      case (from, to, base) if (!memoryPrunerHashRun) => None
+      case (from, to, base) if (matchInput(n.from, n.to) & n.base.T.getVec == n.from.T.getVec & n.getVec == n.to.T.getVec) => None
+        dbgblk(s"ShuffleMatch($n, from=${dquote(n.from.T)}, to=${dquote(n.to.T)})") {
+          val base = assertOne(n.base.connected, s"$n.base.connected")
+          Some((n.out, base))
+        }
+      case (SC(OutputField(Const(from),"out")), SC(OutputField(Const(to),"out")), SC(OutputField(Const(base),"out"))) => 
+        def get(i:Int) = {
+          (from, base) match {
+            case (from:Int, base) => if (from == i) base else n.filled
+            case (from:List[_], base) => 
+              val idx = from.indexWhere { _ == i }
+              if (idx == -1) n.filled else {
+                base match {
+                  case base:List[_] => base(idx)
+                  case base => base
+                }
+              }
+            case from => throw PIRException(s"from=$from")
+          }
+        }
+        val value = to match {
+          case to:List[_] => to.map { i => get(i.as[Int]) }
+          case to:Int => get(to)
+        }
+        dbgblk(s"ShuffleResolve($n)") {
+          dbg(s"from=$from to=$to base=$base value=$value")
+          val c = within(n.ctx.get, n.getCtrl) {
+            allocConst(value)
+          }
+          Some((n.out, c.out))
+        }
+      case (from, to, base) => None
+    }
+  }
+
+}
+
+// BFS is slightly faster than DFS
+class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTransformer 
+  with BFSBottomUpTopologicalTraversal with UnitTraversal 
+  with BufferAnalyzer with RewriteUtil {
+
+  val forward = true
+
+  var memLowerHasRun = false
+  var memPrunerHasRun = false
+  var globalInsertHasRun = false
+  var initializerHasRun = false
+  var _memoryPrunerHashRun = false
+  override def memoryPrunerHashRun = _memoryPrunerHashRun
+
+  override def initPass = {
+    super.initPass
+    memLowerHasRun = compiler.hasRun[MemoryLowering]
+    globalInsertHasRun = compiler.hasRun[GlobalInsertion]
+    initializerHasRun = compiler.hasRun[TargetInitializer]
+    _memoryPrunerHashRun = compiler.hasRun[MemoryPruner]
+  }
+
+  TransferRule[PIRNode] { n =>
+    n.localIns.filter { _.as[Field[_]].name == "en" }.foreach { en =>
+      en.connected.distinct.foreach {
+        case out@OutputField(Const(true), "out") => 
+          en.disconnectFrom(out)
+          dbg(s"${dquote(en)} disconnect ${dquote(out)}")
+        case out@OutputField(Const(vs:List[_]), "out") if vs.forall { _ == true } => 
+          en.disconnectFrom(out)
+          dbg(s"${dquote(en)} disconnect ${dquote(out)}")
+        case _ => 
+      }
+    }
+    None // Non exclusive rule
+  }
+
   // Counter valids with par < maxValid should be always true
-  XRule[Counter] { counter =>
+  TransferRule[Counter] { counter =>
     if (counter.valids.exists { _.out.isConnected }) {
       val min = counter.min.T
       val step = counter.step.T
@@ -136,7 +211,23 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     } else None
   }
 
-  XRule[MemRead] { read =>
+  TransferRule[BufferRead] { n =>
+    dbg(s"$n ${n.ctx}")
+    if (n.ctx.get.streaming.get) None else {
+      val writer = n.inAccess.as[BufferWrite]
+      writer.data match {
+        case SC(OutputField(c:Const, "out")) if !writer.en.isConnected =>
+          dbgblk(s"WrittenByConstData($n, $c)") {
+            val mc = within(n.parent.get, n.getCtrl) { allocConst(c.value) }
+            swapOutput(n.out, mc.out)
+          }
+          Some(n)
+        case _ => None
+      }
+    }
+  }
+
+  TransferRule[MemRead] { read =>
     val mem = read.mem.T
     if (mem.inAccesses.isEmpty) {
       mem.inits.v.fold { 
@@ -170,7 +261,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
    * w1 -> m1 -> r1 -> w2 -> m2
    * mw1 -> m2
    * */
-  XRule[MemWrite] { w2 =>
+  TransferRule[MemWrite] { w2 =>
     if (!initializerHasRun && !memLowerHasRun && !globalInsertHasRun) {
       w2.data.T match {
         case r1:MemRead if matchInput(w2.en, r1.en) =>
@@ -200,7 +291,11 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     } else None
   }
 
-  XRule[BufferRead] { r2 =>
+  override def compScheduleFactor(n:Context):Int = 1 
+  // HACK: For now, don't care whether it's scheduled or not to check
+  // rate matching
+  
+  TransferRule[BufferRead] { r2 =>
     val w2 = r2.inAccess.as[BufferWrite]
     w2.data.T match {
       case r1:BufferRead if matchRate(w2, r1) & !w2.en.isConnected & !r2.nonBlocking =>
@@ -241,7 +336,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     }
   }
 
-  XRule[BankedRead] { read =>
+  TransferRule[BankedRead] { read =>
     val mem = read.mem.T
     testOne(mem.inAccesses).map { w =>
       val write = w.as[BankedWrite]
@@ -271,90 +366,18 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     }
   }
 
-  XRule[OpDef] { n =>
-    (n.op, n.inputs.map{_.T}) match {
-      //TODO: fix this
-      case (FixEql, List(iter:CounterIter, Const(c))) if config.option[Boolean]("shuffle-hack") =>
-        val ctr = iter.counter.T
-        ctr.min.T match {
-          case Some(Const(min)) if min == c => 
-            dbgblk(s"FirstIter($ctr)") {
-              swapOutput(n.out, ctr.isFirstIter)
-            }
-            Some(n)
-          case _ => None
-        }
-      case (_) => None
-    }
-  }
-
-
-  XRule[Shuffle] { n =>
-    (n.from, n.to, n.base) match {
-      case (SC(OutputField(Const(from:List[_]),"out")), SC(OutputField(Const(to:List[_]),"out")), base) if from.intersect(to).isEmpty => 
-        dbgblk(s"ShuffleUnmatch($n, from=${dquote(n.from.T)}, to=${dquote(n.to.T)})") {
-          val c = within(n.ctx.get, n.getCtrl) {
-            allocConst(List.fill(n.inferVec.get)(n.filled))
-          }
-          swapOutput(n.out, c.out)
-        }
-        Some(n)
-      case (from, to, base) if (!memoryPrunerHashRun) => None
-      case (from, to, base) if (matchInput(n.from, n.to) & n.base.T.getVec == n.from.T.getVec & n.getVec == n.to.T.getVec) => None
-        dbgblk(s"ShuffleMatch($n, from=${dquote(n.from.T)}, to=${dquote(n.to.T)})") {
-          val base = assertOne(n.base.connected, s"$n.base.connected")
-          swapOutput(n.out, base)
-        }
-        Some(n)
-      case (SC(OutputField(Const(from),"out")), SC(OutputField(Const(to),"out")), SC(OutputField(Const(base),"out"))) => 
-        def get(i:Int) = {
-          (from, base) match {
-            case (from:Int, base) => if (from == i) base else n.filled
-            case (from:List[_], base) => 
-              val idx = from.indexWhere { _ == i }
-              if (idx == -1) n.filled else {
-                base match {
-                  case base:List[_] => base(idx)
-                  case base => base
-                }
-              }
-            case from => throw PIRException(s"from=$from")
-          }
-        }
-        val value = to match {
-          case to:List[_] => to.map { i => get(i.as[Int]) }
-          case to:Int => get(to)
-        }
-        dbgblk(s"ShuffleResolve($n)") {
-          dbg(s"from=$from to=$to base=$base value=$value")
-          val c = within(n.ctx.get, n.getCtrl) {
-            allocConst(value)
-          }
-          swapOutput(n.out, c.out)
-        }
-        Some(n)
-      case (from, to, base) => None
-    }
-  }
-
-  XRule[PIRNode] { n =>
-    n.localIns.filter { _.as[Field[_]].name == "en" }.foreach { en =>
-      en.connected.distinct.foreach {
-        case out@OutputField(Const(true), "out") => 
-          en.disconnectFrom(out)
-          dbg(s"${dquote(en)} disconnect ${dquote(out)}")
-        case out@OutputField(Const(vs:List[_]), "out") if vs.forall { _ == true } => 
-          en.disconnectFrom(out)
-          dbg(s"${dquote(en)} disconnect ${dquote(out)}")
-        case _ => 
-      }
-    }
-    None // Non exclusive rule
-  }
-
   override def visitNode(n:N):T = /*dbgblk(s"visitNode:${quote(n)}") */{
     super.visitNode(n)
-    xrules.foldLeft[Option[_]](None) { 
+    rewriteRules.foldLeft[Option[_]](None) {
+      case (None, rule) => rule(n).map { case (o1, o2) =>
+          dbgblk(s"${rule.name}") {
+            swapOutput(o1.as, o2.as)
+          }
+          Some(n)
+        }.getOrElse(None)
+      case (Some(n), rule) => Some(n)
+    }
+    transferRules.foldLeft[Option[_]](None) { 
       case (None, rule) => rule(n)
       case (Some(n), rule) => Some(n)
     }

@@ -4,7 +4,7 @@ package pass
 import pir.node._
 import prism.graph._
 
-trait BufferAnalyzer extends MemoryAnalyzer {
+trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
   /*
    * escaped node will be buffered between dep ctx and scope
    * */
@@ -151,7 +151,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
 
 }
 
-class BufferInsertion(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with BufferAnalyzer {
+class BufferInsertion(implicit compiler:PIR) extends PIRTraversal with PIRTransformer with SiblingFirstTraversal with UnitTraversal {
   val forward = false
 
   override def visitNode(n:N) = n match {

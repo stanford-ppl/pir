@@ -4,7 +4,7 @@ package pass
 import pir.node._
 import prism.graph._
 
-class ContextAnalyzer(implicit compiler:PIR) extends BufferAnalyzer {
+class ContextAnalyzer(implicit compiler:PIR) extends PIRTransformer {
 
   override def runPass = {
     pirTop.collectDown[Context]().foreach(analyzeCtx)

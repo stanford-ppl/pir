@@ -7,7 +7,7 @@ import prism.graph._
 import spade.param._
 import scala.collection.mutable
 
-class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with DependencyAnalyzer with CUCostUtil {
+class MemoryLowering(implicit compiler:PIR) extends PIRTransformer with DependencyAnalyzer with CUCostUtil {
 
   override def runPass = {
     pirTop.collectDown[Memory]().foreach(lowerMem)
@@ -61,7 +61,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
         // swap bank addr with offset. 
         read.offset.disconnect
         val bk = within(read.parent.get, read.getCtrl) {
-          stage(Const(List.tabulate(read.getVec) { i => bankid + i }))
+          stage(Const(List.tabulate(read.getVec) { i => bankid + i }).out)
         }
         read.offset(bk)
         bankid += read.getVec
@@ -205,18 +205,18 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           val bank = access.bank.connected
           var ofsOut = access.offset.singleConnected.get
           access.en.singleConnected.foreach { en =>
-            ofsOut = stage(OpDef(Mux).addInput(en, ofsOut, allocConst(-1).out)).out
+            ofsOut = stage(OpDef(Mux).addInput(en, ofsOut, allocConst(-1).out).out)
           }
-          val ofs = stage(Shuffle(-1).from(bank).to(allocConst(mem.bankids.get)).base(ofsOut))
+          val ofs = stage(Shuffle(-1).from(bank).to(allocConst(mem.bankids.get)).base(ofsOut).out)
           val data = access match {
             case access:BankedWrite => 
               val shuffle = stage(Shuffle(0).from(bank).to(allocConst(mem.bankids.get)).base(access.data.connected))
               bufferInput(shuffle.base) // Prevent copying data producer into addrCtx
-              Some(shuffle)
+              Some(shuffle.out)
             case access => None
           }
-          dbg(s"ofs:$ofs data:$data")
-          (ofs.out, data.map{_.out})
+          dbg(s"ofs:${dquote(ofs)} data:${data.map{dquote}}")
+          (ofs, data)
         }
       }
       var red:List[(Output[PIRNode], Option[Output[PIRNode]])] = requests.toList
@@ -230,7 +230,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
               dt.inputs.foreach { in => bufferInput(in) }
               dt
             }
-            (of.out, dt.map { _.out })
+            (stage(of.out), dt.map { dt => stage(dt.out) })
           case List((o1, d1)) => (o1, d1)
         }.toList
       }
@@ -292,7 +292,7 @@ class MemoryLowering(implicit compiler:PIR) extends BufferAnalyzer with Dependen
           assert(inds.size == dims.size, s"flattenND inds=$inds dims=$dims have different size for access=$access")
           val i::irest = inds
           val d::drest = dims
-          stage(OpDef(FixFMA).addInput(i,allocConst(drest.product), flattenND(irest, drest))).out
+          stage(OpDef(FixFMA).addInput(i,allocConst(drest.product), flattenND(irest, drest)).out)
         }
         val dims = mem match {
           case mem:SRAM => mem.banks.get
