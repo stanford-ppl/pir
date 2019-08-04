@@ -74,19 +74,19 @@ trait RewriteUtil { self: PIRTransformer =>
     }
   }
 
-  RewriteRule[OpDef](s"FirstIter") { n =>
-    (n.op, n.inputs.map{_.T}) match {
-      //TODO: fix this
-      case (FixEql, List(iter:CounterIter, Const(c))) if config.option[Boolean]("shuffle-hack") =>
-        val ctr = iter.counter.T
-        ctr.min.T match {
-          case Some(Const(min)) if min == c => 
-            Some((n.out, ctr.isFirstIter))
-          case _ => None
-        }
-      case (_) => None
-    }
-  }
+  //RewriteRule[OpDef](s"FirstIter") { n =>
+    //(n.op, n.inputs.map{_.T}) match {
+      ////TODO: fix this
+      //case (FixEql, List(iter:CounterIter, Const(c))) if config.option[Boolean]("shuffle-hack") =>
+        //val ctr = iter.counter.T
+        //ctr.min.T match {
+          //case Some(Const(min)) if min == c => 
+            //Some((n.out, ctr.isFirstIter))
+          //case _ => None
+        //}
+      //case (_) => None
+    //}
+  //}
 
   def memoryPrunerHashRun = compiler.hasRun[MemoryPruner]
 
