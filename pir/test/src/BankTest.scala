@@ -18,7 +18,7 @@ class BankTest extends UnitTest {
   }
 
   def check(kcost:SRAMCost, vcost:SRAMCost) = {
-    val parts = bp.splitBanks(kcost, vcost)
+    val parts = bp.splitBanks(ListBuffer.empty, kcost, vcost).toList
     val bankPerCU = parts.map { _.size }.max
     val totalBanks = parts.map { _.size }.sum
     val bankMult = totalBanks /! kcost.bank
@@ -27,6 +27,32 @@ class BankTest extends UnitTest {
     assert(bankPerCU <= vcost.bank, s"partitioner exceeds number of banks")
     assert(totalBanks >= kcost.bank, s"partitioner total banks < banks")
     assert(sizePerBank * bankPerCU <= vcost.size, s"partition size exceeds sram size")
+  }
+
+  "MergeTest1" should "success" in {
+    val g1 = List.fill(3)(1)
+    val g2 = List.fill(3)(2)
+    val list = Set(g1,g2)
+    val res = bp.merge(list, sizeLimit=5)
+    assert(res == list)
+  }
+
+  "MergeTest2" should "success" in {
+    val g1 = List.fill(3)(1)
+    val g2 = List.fill(3)(2)
+    val list = Set(g1,g2)
+    val res = bp.merge(list, sizeLimit=6)
+    assert(res == Set(g1 ++ g2))
+  }
+
+  "MergeTest3" should "success" in {
+    val g1 = List.fill(1)(1)
+    val g2 = List.fill(4)(2)
+    val g3 = List.fill(5)(3)
+    val g4 = List.fill(2)(4)
+    val list = Set(g1,g2,g3,g4)
+    val res = bp.merge(list, sizeLimit=6)
+    assert(res == Set(g1 ++ g3, g2++g4))
   }
 
 }

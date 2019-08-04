@@ -32,7 +32,7 @@ class StreamInfSVM_5 extends StreamInfSVM[scala.Float,Float]()(ipf=8, opb=4)
     val bool = r.nextBoolean
     (vec,bool)
   }
-  val alphas:Seq[HT] = Seq.tabulate(vectors.size) { i =>
+  val alphas:Seq[HT] = Seq.tabulate(V) { i =>
     r.nextFloat
   }
   val b:HT = r.nextFloat
