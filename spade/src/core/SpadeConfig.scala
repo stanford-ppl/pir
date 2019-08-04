@@ -27,7 +27,7 @@ class SpadeConfig(compiler:Compiler) extends prism.Config(compiler) {
   register[Int]("argin", default=6, info="number of ArgIn")
   register[Int]("argout", default=4, info="number of ArgOut")
   register[Int]("tokenout", default=5, info="number of TokenOut")
-  register[Int]("fifo-depth", default=4, info="Depth of FIFO for all CUs")
+  register[Int]("fifo-depth", default=16, info="Depth of FIFO for all CUs")
   register[Int]("vfifo", default=4, info="Number of vector FIFO within Terminal")
   register[Int]("vlink", default=2, info="Number of vector link between switches")
   register[Int]("slink", default=4, info="Number of scalar link between switches")

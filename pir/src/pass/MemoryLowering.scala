@@ -175,6 +175,19 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTransformer with Dependen
     }
   }
 
+  def annotateAccessPattern(access:BankedAccess) = {
+    val mem = access.mem.T
+    access.bank.T match {
+      case List(Const(c)) =>
+        dbg(s"$mem add pattern ${c}")
+        c match {
+          case c:List[_] => mem.accessGroup.get += c.as[List[Int]]
+          case c:Int => mem.accessGroup.get += List(c)
+        }
+      case _ =>
+    }
+  }
+
   def lowerBankedAccesses(mem:Memory, memCU:MemoryContainer, accesses:Set[BankedAccess]) = dbgblk(s"lowerBankedAccesses($mem, $memCU, $accesses)") {
     val headAccess = accesses.head
     val mergeCtrl = headAccess.getCtrl
@@ -202,6 +215,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTransformer with Dependen
         within(addrCtx, addrCtx.getCtrl) {
           flattenBankAddr(access)
           lowerLUTAccess(mem, access)
+          annotateAccessPattern(access)
           val bank = access.bank.connected
           var ofsOut = access.offset.singleConnected.get
           access.en.singleConnected.foreach { en =>
