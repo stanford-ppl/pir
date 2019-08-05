@@ -17,12 +17,12 @@ class StreamInfNN_7 extends StreamInfNN[scala.Float,Float]()()
   val numBatch:scala.Int = 16,
   val batch:scala.Int = 4,
   val L1:scala.Int = 32,
-  val L2:scala.Int = 32,
-  val L3:scala.Int = 1,
+  val L2:scala.Int = 32
 )(
   val op1:scala.Int = 1,
   val op2:scala.Int = 1,
-  val op3:scala.Int = 1,
+  val mp1:scala.Int = 1, // L1/ip1
+  val mp2:scala.Int = 1, // L2/ip2
   val opb:scala.Int = 1,
   val ipf:scala.Int = math.min(field, 16),
   val ip1:scala.Int = math.min(L1,16),
@@ -30,6 +30,9 @@ class StreamInfNN_7 extends StreamInfNN[scala.Float,Float]()()
   val ipb:scala.Int = math.min(16,batch),
 )(implicit ev:Cast[Text,T]) extends StreamInference[HT,T,T] {
 
+  val mpf = 1
+  val L3 = 1
+  val op3 = 1
   val W1 = Seq.tabulate(field, L1) { (i,j) => (i*L1 +j) }
   val W2 = Seq.tabulate(L1, L2) { (i,j) => (i*L2 +j) }
   val W3 = Seq.tabulate(L1, L3) { (i,j) => (i*L3 +j) }
@@ -49,9 +52,9 @@ class StreamInfNN_7 extends StreamInfNN[scala.Float,Float]()()
     Foreach(0 until batch par opb) { b =>
       val l1 = SRAM[T](L1)
       val l2 = SRAM[T](L2)
-      denselayer_tiled[T](w1, b1, ipf, 1, op1, relu[T] _, out=l1){ i => insram(b,i) }
-      denselayer_tiled[T](w2, b2, ip1, op1, op2, relu[T] _, in=l1, out=l2)
-      denselayer_tiled[T](w3, b3, ip2, op2, op3, activation[T](x => x), in=l2){ case (o,d) => outsram(b) = d }
+      denselayer_tiled[T](w1, b1, ipf, mpf, op1, relu[T] _, out=l1){ i => insram(b,i) }
+      denselayer_tiled[T](w2, b2, ip1, mp1, op2, relu[T] _, in=l1, out=l2)
+      denselayer_tiled[T](w3, b3, ip2, mp2, op3, activation[T](x => x), in=l2){ case (o,d) => outsram(b) = d }
     }
     outsram
   }

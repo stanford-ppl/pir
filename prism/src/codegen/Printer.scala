@@ -110,6 +110,9 @@ trait Printer extends FormatPrinter {
   def closeStream:Option[StreamWriter] = {
     popStream.map { stream =>
       stream.close
+      streamMap.find { case (_,`stream`) => true; case _ => false }.foreach {
+        case (k,v) => streamMap -= k
+      }
       stream
     }
   }
