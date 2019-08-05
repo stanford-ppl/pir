@@ -25,19 +25,19 @@ class StreamInfNN4_0 extends StreamInfNN[scala.Int,Int]()()
   val ip2:scala.Int = math.min(L2,16),
   val ip3:scala.Int = math.min(L3,16),
   val ipb:scala.Int = math.min(16,batch),
-)(implicit ev:Cast[Text,T]) extends StreamInference[HT,T,T] {
+)(implicit ev:Cast[Text,T]) extends StreamInference[scala.Float,T,T] {
 
   val mpf = 1
   val L4 = 1
   val op4 = 1
-  val W1 = Seq.tabulate(field, L1) { (i,j) => (i*L1 +j) }
-  val W2 = Seq.tabulate(L1, L2) { (i,j) => (i*L2 +j) }
-  val W3 = Seq.tabulate(L2, L3) { (i,j) => (i*L3 +j) }
-  val W4 = Seq.tabulate(L3, L4) { (i,j) => (i*L4 +j) }
-  val B1 = Seq.tabulate(L1) { i => i }
-  val B2 = Seq.tabulate(L2) { i => i }
-  val B3 = Seq.tabulate(L3) { i => i }
-  val B4 = Seq.tabulate(L4) { i => i }
+  val W1:Seq[Seq[scala.Float]] = Seq.tabulate(field, L1) { (i,j) => (i*L1 +j) }
+  val W2:Seq[Seq[scala.Float]] = Seq.tabulate(L1, L2) { (i,j) => (i*L2 +j) }
+  val W3:Seq[Seq[scala.Float]] = Seq.tabulate(L2, L3) { (i,j) => (i*L3 +j) }
+  val W4:Seq[Seq[scala.Float]] = Seq.tabulate(L3, L4) { (i,j) => (i*L4 +j) }
+  val B1:Seq[scala.Float] = Seq.tabulate(L1) { i => i }
+  val B2:Seq[scala.Float] = Seq.tabulate(L2) { i => i }
+  val B3:Seq[scala.Float] = Seq.tabulate(L3) { i => i }
+  val B4:Seq[scala.Float] = Seq.tabulate(L4) { i => i }
 
   def accelBody(insram:SRAM2[T]) = { // insram [batch, field]
     // Layer 1
@@ -62,12 +62,12 @@ class StreamInfNN4_0 extends StreamInfNN[scala.Int,Int]()()
     outsram
   }
 
-  def hostBody(inData:Seq[Seq[HT]]) = {
+  def hostBody(inData:Seq[Seq[scala.Float]]) = {
     inData.map { fields =>
-      val l1 = unstaged_denselayer[HT](fields, W1, B1, unstaged_relu _)
-      val l2 = unstaged_denselayer[HT](l1, W2, B2, unstaged_relu _)
-      val l3 = unstaged_denselayer[HT](l2, W3, B3, unstaged_relu _)
-      val l4 = unstaged_denselayer[HT](l3, W4, B4, { x => x })
+      val l1 = unstaged_denselayer[scala.Float](fields, W1, B1, unstaged_relu _)
+      val l2 = unstaged_denselayer[scala.Float](l1, W2, B2, unstaged_relu _)
+      val l3 = unstaged_denselayer[scala.Float](l2, W3, B3, unstaged_relu _)
+      val l4 = unstaged_denselayer[scala.Float](l3, W4, B4, { x => x })
       l4.head
     }
   }
