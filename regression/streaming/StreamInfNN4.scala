@@ -67,7 +67,7 @@ class StreamInfNN4_0 extends StreamInfNN[scala.Int,Int]()()
       val l1 = unstaged_denselayer[HT](fields, W1, B1, unstaged_relu _)
       val l2 = unstaged_denselayer[HT](l1, W2, B2, unstaged_relu _)
       val l3 = unstaged_denselayer[HT](l2, W3, B3, unstaged_relu _)
-      val l4 = unstaged_denselayer[HT](l2, W4, B4, { x => x })
+      val l4 = unstaged_denselayer[HT](l3, W4, B4, { x => x })
       l4.head
     }
   }
