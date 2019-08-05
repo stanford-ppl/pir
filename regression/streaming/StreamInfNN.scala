@@ -35,7 +35,7 @@ class StreamInfNN_7 extends StreamInfNN[scala.Float,Float]()()
   val op3 = 1
   val W1 = Seq.tabulate(field, L1) { (i,j) => (i*L1 +j) }
   val W2 = Seq.tabulate(L1, L2) { (i,j) => (i*L2 +j) }
-  val W3 = Seq.tabulate(L1, L3) { (i,j) => (i*L3 +j) }
+  val W3 = Seq.tabulate(L2, L3) { (i,j) => (i*L3 +j) }
   val B1 = Seq.tabulate(L1) { i => i }
   val B2 = Seq.tabulate(L2) { i => i }
   val B3 = Seq.tabulate(L3) { i => i }
