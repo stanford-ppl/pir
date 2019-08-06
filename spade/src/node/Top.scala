@@ -21,6 +21,19 @@ trait SpadeNodeUtil extends CollectorImplicit {
     }
   }
   implicit class SpadeTopOp(n:Top) {
-    def cus = n.collectDown[Routable]().filterNot { _.isConnector }
+    def cus(implicit compiler:Compiler) = {
+      val rts = n.collectDown[Routable]().filterNot { _.isConnector }
+      if (n.param.isAsic || n.param.isInf) rts else {
+        var reservePCUs = compiler.config.option[Int]("reserve-pcu")
+        var reservePMUs = compiler.config.option[Int]("reserve-pmu")
+        rts.filterNot { cu =>
+          cu.params match {
+            case Some(param:PCUParam) if reservePCUs > 0 => reservePCUs-=1; true
+            case Some(param:PMUParam) if reservePMUs > 0 => reservePMUs-=1; true
+            case param => false
+          }
+        }
+      }
+    }
   }
 }
