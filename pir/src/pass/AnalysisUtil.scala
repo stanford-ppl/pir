@@ -164,10 +164,12 @@ trait AnalysisUtil { self:PIRPass =>
       case Const(_:Boolean) => Some(Bool)
       case Const(_:Int) => Some(Fix(true, 32, 0))
       case Const(_:Float) => Some(Flt(23, 8))
+      case Const(_:Double) => Some(Flt(23, 8))
       case Const(_:String) => Some(Text)
       case Const((_:Boolean)::_) => Some(Bool)
       case Const((_:Int)::_) => Some(Fix(true, 32, 0))
       case Const((_:Float)::_) => Some(Flt(23, 8))
+      case Const((_:Double)::_) => Some(Flt(23, 8))
       case InputField(n, "en" | "parentEn" | "done") => Some(Bool)
       case n:Input[_] if n.isConnected && n.connected.size == 1 => n.singleConnected.get.inferTp
       case n:Any => None

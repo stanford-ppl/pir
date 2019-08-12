@@ -51,24 +51,24 @@ class StreamInfNN4_0 extends StreamInfNN[scala.Int,Int]()()
     val b4 = LUT.fromSeq[T](B4.map { _.to[T]})
     val outsram = SRAM[T](batch)
     Foreach(0 until batch par opb) { b =>
-      val l1 = SRAM[T](L1)
-      val l2 = SRAM[T](L2)
-      val l3 = SRAM[T](L3)
-      denselayer_tiled[T](w1, b1, ipf, mpf, op1, relu[T] _, out=l1){ i => insram(b,i) }
-      denselayer_tiled[T](w2, b2, ip1, mp1, op2, relu[T] _, in=l1, out=l2)
-      denselayer_tiled[T](w3, b3, ip2, mp2, op3, relu[T] _, in=l2, out=l3)
-      denselayer_tiled[T](w4, b4, ip3, mp3, op4, activation[T](x => x), in=l3){ case (o,d) => outsram(b) = d }
+      val h1 = SRAM[T](L1)
+      val h2 = SRAM[T](L2)
+      val h3 = SRAM[T](L3)
+      denselayer[T](w1, b1, relu[T] _, in=insram(b,_), nlout=h1.update)(ipf, mpf, op1)
+      denselayer[T](w2, b2, relu[T] _, in=h1(_), nlout=h2.update)(ip1, mp1, op2)
+      denselayer[T](w3, b3, relu[T] _, in=h2(_), nlout=h3.update)(ip2, mp2, op3)
+      denselayer[T](w4, b4, identity[T], in=h3(_), outsram.update)(ip3, mp3, op4)
     }
     outsram
   }
 
   def hostBody(inData:Seq[Seq[scala.Float]]) = {
     inData.map { fields =>
-      val l1 = unstaged_denselayer[scala.Float](fields, W1, B1, unstaged_relu _)
-      val l2 = unstaged_denselayer[scala.Float](l1, W2, B2, unstaged_relu _)
-      val l3 = unstaged_denselayer[scala.Float](l2, W3, B3, unstaged_relu _)
-      val l4 = unstaged_denselayer[scala.Float](l3, W4, B4, { x => x })
-      l4.head
+      val (h1,l1) = unstaged_denselayer[scala.Float](fields, W1, B1, unstaged_relu _)
+      val (h2,l2) = unstaged_denselayer[scala.Float](h1, W2, B2, unstaged_relu _)
+      val (h3,l3) = unstaged_denselayer[scala.Float](h2, W3, B3, unstaged_relu _)
+      val (h4,l4) = unstaged_denselayer[scala.Float](h3, W4, B4, unstaged_identity _)
+      h4.head
     }
   }
 

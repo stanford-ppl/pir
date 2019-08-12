@@ -210,21 +210,6 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
     case n => super.emitNode(n)
   }
 
-  def emitAccess(n:Access, prev:Boolean=false)(func:String => Unit) = {
-    val mem = n.mem.T
-    if (n.port.nonEmpty) {
-      if (!prev)
-        emitln(s"""auto* ${n}_buffer = $mem->GetBuffer("$n");""")
-      else
-        emitln(s"""auto* ${n}_buffer = $mem->GetPrevBuffer("$n");""")
-      func(s"${n}_buffer")
-    } else {
-      emitBlock(s"for (auto* ${n}_buffer: $mem->buffers)") {
-        func(s"""${n}_buffer""");
-      }
-    }
-  }
-
   var fifoDepth = -1
   override def initPass = {
     super.initPass

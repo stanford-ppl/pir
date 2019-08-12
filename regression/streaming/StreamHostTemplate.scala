@@ -1,5 +1,6 @@
 import utils.io.files._
 import scala.reflect._
+import java.io._
 
 abstract class StreamHostTemplate {
   val field:scala.Int
@@ -32,11 +33,34 @@ abstract class StreamHostTemplate {
     inputMat.map { _.transpose }.flatten
   }
 
-  def generateRandomTrainInput[HT:Numeric:ClassTag](inFile:String):(Seq[Seq[HT]], Seq[HT]) = {
-    generateRandomInput(inFile, field=field+1).map { record =>
-      val (fields, Seq(label)) = record.splitAt(record.size-1)
-      (fields, label)
-    }.unzip
+  def generateRandomTrainInput[HT:Fractional:ClassTag](inFile:String):(Seq[Seq[HT]], Seq[HT]) = {
+    val frac = implicitly[Fractional[HT]]
+    import frac._
+    createDirectories(dirName(inFile))
+    val numToken = N * (field + 1)
+    val r = scala.util.Random
+    val data = (0 until numBatch*batch).map { batch =>
+      (0 until field).map { field => r.nextInt(numToken) }
+    }
+    val label = data.map { fields =>
+      fields.head * 3 / 10 + fields.last * 5 / 10 + fields.sum / field
+    }
+    val matrix = (data, label).zipped.map { (fields, label) =>
+      fields :+ label
+    }.grouped(batch).map { _.transpose } // [numBatch, field, batch]
+
+    val pw = new PrintWriter(new File(inFile))
+    var ctr = 0
+    matrix.foreach { fields =>
+      fields.foreach { batch =>
+        batch.foreach { e =>
+          pw.write(s"${e},${if (ctr == numToken-1) 1 else 0}\n")
+          ctr += 1
+        }
+      }
+    }
+    pw.close
+    (data, label)
   }
 
   // Takes in a gold vector in N
