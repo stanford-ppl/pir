@@ -173,7 +173,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
       val mem = n.collectDown[Memory]().map { quote(_) }
       if (mem.nonEmpty) s"${q}\n${mem.mkString(",")}" 
       else {
-        val scs = n.collectDown[Context]().flatMap { _.srcCtx.v }
+        val scs = n.collectDown[Context]().flatMap { _.getCtrl.srcCtx.v }
         s"${q}\n${scs.mkString("\n")}"
       }
     }

@@ -112,7 +112,11 @@ trait Ops extends Enumeration {
   val FltNeg       = new FltOp with Op1 { override def eval(ins:List[Any]) = m(ins) { case Literal(a:Float)::Nil => Literal(-a) } }
   val FltAdd       = new FltOp with Op2 { override def eval(ins:List[Any]) = m(ins) { case Literal(a:Float)::Literal(b:Float)::Nil => Literal(a + b) } }
   val FltSub       = new FltOp with Op2 { override def eval(ins:List[Any]) = m(ins) { case Literal(a:Float)::Literal(b:Float)::Nil => Literal(a - b) } }
-  val FltMul       = new FltOp with Op2 { override def eval(ins:List[Any]) = m(ins) { case Literal(a:Float)::Literal(b:Float)::Nil => Literal(a * b) } }
+  val FltMul       = new FltOp with Op2 { override def eval(ins:List[Any]) = m(ins) { 
+    case Literal(a:Float)::Literal(b:Float)::Nil => Literal(a * b)
+    case Literal(1)::b::Nil => b 
+    case a::Literal(1)::Nil => a
+  }}
   val FltDiv       = new FltOp with Op2 { override def eval(ins:List[Any]) = m(ins) { case Literal(a:Float)::Literal(b:Float)::Nil => Literal(a / b) } }
   val FltMod       = new FltOp with Op2 
   val FltRecip     = new FltOp with Op1 { override def eval(ins:List[Any]) = m(ins) { case Literal(a:Float)::Nil => Literal(1/a) } }

@@ -246,8 +246,10 @@ trait ScalaUtilFunc {
 
   final val SINGLE_PRECISION = 32
 
-  case class MatchRule[A:ClassTag, B](lambda:A => Option[B]) {
-    def unapply(x:A):Option[B] = lambda(x)
+  case class MatchRule[A:ClassTag, B](lambda:PartialFunction[A,Option[B]]) {
+    def unapply(x:A):Option[B] = {
+      if (lambda.isDefinedAt(x)) lambda(x) else None
+    }
   }
 
   def getAllSubstrings(str: String): Set[String] = {

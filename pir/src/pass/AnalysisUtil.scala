@@ -55,19 +55,19 @@ trait AnalysisUtil { self:PIRPass =>
     def setTp(v:Option[BitType]) = n.getMeta[BitType]("tp").update(v)
   }
 
-  val StreamWriteContext = MatchRule[Context, FringeStreamWrite] { n =>
+  val StreamWriteContext = MatchRule[Context, FringeStreamWrite] { case n =>
     n.collectFirstChild[FringeStreamWrite]
   }
 
-  val StreamReadContext = MatchRule[Context, FringeStreamRead] { n =>
+  val StreamReadContext = MatchRule[Context, FringeStreamRead] { case n =>
     n.collectFirstChild[FringeStreamRead]
   }
 
-  val DRAMContext = MatchRule[Context, DRAMCommand] { n =>
+  val DRAMContext = MatchRule[Context, DRAMCommand] { case n =>
     n.collectFirstChild[DRAMCommand]
   }
 
-  val UnderControlBlock = MatchRule[PIRNode, ControlBlock] { n =>
+  val UnderControlBlock = MatchRule[PIRNode, ControlBlock] { case n =>
     n.ancestors.collectFirst { case n:ControlBlock => n }
   }
 

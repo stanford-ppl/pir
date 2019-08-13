@@ -61,8 +61,6 @@ trait StreamTrainMLPHost extends StreamHostTemplate {
       printMatrix(pw,"trainX",trainX)
       printVector(pw,"trainY",trainY)
       Range(start=0, end=iters, step=1).foreach { iter =>
-        val dl2s = ListBuffer[Seq[Float]]()
-        val dl1s = ListBuffer[Seq[Float]]()
         val (h1, l1) = trainX.map { fields => unstaged_denselayer[Float](fields, W1, B1, unstaged_relu _) }.unzip
         val (h2, l2) = h1.map { h1 => unstaged_denselayer[Float](h1, W2, B2, unstaged_relu _) }.unzip
         val (h3, l3) = h2.map { h2 => unstaged_denselayer[Float](h2, W3, B3, unstaged_identity _) }.unzip
@@ -79,19 +77,17 @@ trait StreamTrainMLPHost extends StreamHostTemplate {
 
         val avgLoss = loss.map { _.head }.sum/batch
         dprintln(pw,s"loss: ${avgLoss}")
+        dprintln(pw,s"check: ${B3(0)}, ${B2(0)}, ${B1(0)}, ${W3(0)(0)}, ${W2(0)(0)}, ${W1(0)(0)}")
         printMatrix(pw,"dyhat", dyhat)
+        printMatrix(pw,"h1", h1)
+        printMatrix(pw,"h2", h2)
+        printMatrix(pw,"h3", h3)
         printMatrix(pw,"W1", W1)
         printMatrix(pw,"W2", W2)
         printMatrix(pw,"W3", W3)
-        printMatrix(pw,"dW1", dW1)
-        printMatrix(pw,"dW2", dW2)
-        printMatrix(pw,"dW3", dW3)
         printVector(pw,"B1", B1)
         printVector(pw,"B2", B2)
         printVector(pw,"B3", B3)
-        printVector(pw,"dB1", dB1)
-        printVector(pw,"dB2", dB2)
-        printVector(pw,"dB3", dB3)
         printMatrix(pw,"dl1", dl1)
         printMatrix(pw,"dl2", dl2)
         pw.flush
@@ -105,6 +101,7 @@ trait StreamTrainMLPHost extends StreamHostTemplate {
     writeCSVNow(B1, b1file)
     writeCSVNow(B2, b2file)
     writeCSVNow(B3, b3file)
+    Console.println("done host")
   }
 
   val debug = true

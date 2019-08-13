@@ -74,6 +74,38 @@ trait RewriteUtil { self: PIRTransformer =>
     }
   }
 
+  RewriteRule[OpDef](s"ShiftAdd") { 
+    case n@OpDef(FixAdd) =>
+      val ConstShift = MatchRule[OpDef, (Output[_],Any)] { case n@OpDef(FixSLA) =>
+        val (const, nonConst) = n.inputs.map { _.singleConnected.get }.partition {
+          case OutputField(c:Const, _) => true
+          case _ => false
+        }
+        const.headOption.flatMap { out =>
+          val value = out.src.as[Const].value
+          val mulIn = nonConst.head
+          value match {
+            case v:List[_] => Some((mulIn, v.map { v => (0 until v.as[Int]).map { _ => 2}.product }))
+            case v:Int => Some(mulIn,((0 until v).map { _ => 2}.product))
+            case _ => None
+          }
+        }
+      }
+      def FMA(mulIn:Output[_], c:Any, addIn:Output[_]) = {
+        val fma = within(n.parent.get, n.getCtrl) {
+          val const = allocConst(c)
+          stage(OpDef(FixFMA).addInput(mulIn, const.out, addIn).out)
+        }
+        Some(n.out, fma)
+      }
+      (n.inputs(0), n.inputs(1)) match {
+        case (SC(OutputField(ConstShift(mulIn, value), _)), SC(addIn)) => FMA(mulIn,value,addIn.as[Output[_]])
+        case (SC(addIn), SC(OutputField(ConstShift(mulIn, value), _))) => FMA(mulIn,value,addIn.as[Output[_]])
+        case _ => None
+      }
+    case n => None
+  }
+
   //RewriteRule[OpDef](s"FirstIter") { n =>
     //(n.op, n.inputs.map{_.T}) match {
       ////TODO: fix this
@@ -402,6 +434,6 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
 
 }
 object SC {
-  def unapply(x:Edge[_,_,_]) = x.singleConnected
+  def unapply(x:Edge[_,_,_]):Option[Edge[_,_,_]] = x.singleConnected.as
 }
 
