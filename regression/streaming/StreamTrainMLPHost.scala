@@ -101,10 +101,9 @@ trait StreamTrainMLPHost extends StreamHostTemplate {
     writeCSVNow(B1, b1file)
     writeCSVNow(B2, b2file)
     writeCSVNow(B3, b3file)
-    Console.println("done host")
   }
 
-  val debug = true
+  val debug = false
   def dprintln(pw:java.io.PrintWriter, msg:String) = {
     if (debug) {
       pw.write(msg + "\n")

@@ -74,6 +74,12 @@ def getMessage(conf, opts):
     msg.append(conf['app'])
     succeeded = False
 
+    for f in opts.message.split(","):
+        if f in conf:
+            msg.append(cstr(CYAN, f + ':' + str(get(conf,f))))
+        # else:
+            # print("{} not in config. options: {}".format(f, ','.join([k for k in conf])))
+
     if get(conf,'genpir'):
         msg.append(cstr(GREEN, 'genpir'))
     else:
@@ -147,14 +153,8 @@ def getMessage(conf, opts):
 
     printtst('runhybrid')
 
-    if len(opts.filter) > 0:
-        msg = [get(conf,'app')]
-
-    for f in opts.message.split(","):
-        if f in conf:
-            msg.append(cstr(CYAN, f + ':' + str(get(conf,f))))
-        # else:
-            # print("{} not in config. options: {}".format(f, ','.join([k for k in conf])))
+    # if len(opts.filter) > 0:
+        # msg = [get(conf,'app')]
 
     return ' '.join(msg)
 
@@ -249,18 +249,16 @@ def logApp(conf, opts):
         tail(conf['runp2p'])
         tail(conf['runhybrid'])
 
+rules = []
+def addRule(func):
+    rules.append(func) 
+
 def parse(conf, opts):
     app = conf['app']
     backend = conf['backend']
     if 'Tst' in backend:
         backend = backend + "_" + conf['project']
     conf["freq"] = 1e9
-    # conf['mappir'] = os.path.join(opts.gendir,backend,app,"log/mappir.log")
-    # conf['runpir'] = os.path.join(opts.gendir,backend,app,"log/runpir.log")
-    # conf['genpsim'] = os.path.join(opts.gendir,backend,app,"log/genpsim.log")
-    # conf['gentrace'] = os.path.join(opts.gendir,backend,app,"log/gentrace.log")
-    # conf['runpsim'] = os.path.join(opts.gendir,backend,app,"log/runpsim.log")
-    # conf['psimsh'] = os.path.join(opts.gendir,backend,app,"log/runpsim.sh")
     conf['runproute'] = os.path.join(opts.gendir,backend,app,"log/runproute.log")
     conf['proutesh'] = os.path.join(opts.gendir,backend,app,"log/runproute.sh")
     conf['prouteSummary'] = os.path.join(opts.gendir,backend,app,"plastisim","summary.csv")
@@ -272,21 +270,17 @@ def parse(conf, opts):
     conf['runp2p'] = os.path.join(opts.gendir,backend,app,"log/runp2p.log")
     conf['runhybrid'] = os.path.join(opts.gendir,backend,app,"log/runhybrid.log")
     parse_genpir(conf['AccelMain'], conf, opts)
-    # parseLog('runpir', parsers, conf)
-    # parseLog('mappir', parsers, conf)
-    # parseLog('genpsim', parsers, conf)
-    # parseLog('gentrace', parsers, conf)
-    # parseLog('runpsim', parsers, conf)
-    # parseLog('psimsh', parsers, conf)
-    parseLog('gentst', parsers, conf)
-    parseLog('resreport', parsers, conf)
-    parseLog('proutesh', parsers, conf)
-    parseLog('runproute', parsers, conf)
+    parseLog('gentst', conf)
+    parseLog('resreport', conf)
+    parseLog('proutesh', conf)
+    parseLog('runproute', conf)
     parse_proutesummary(conf['prouteSummary'], conf, opts)
-    parseLog('maketst', parsers, conf)
-    parseLog('runp2p', parsers, conf)
-    parseLog('runhybrid', parsers, conf)
+    parseLog('maketst', conf)
+    parseLog('runp2p', conf)
+    parseLog('runhybrid', conf)
     conf['succeeded'] = parse_success(conf)
+    for rule in rules:
+        rule(conf, opts)
     return conf
 
 def parse_success(conf):
@@ -315,108 +309,93 @@ def parse_genpir(pirsrc, conf, opts):
         else:
             conf['genpir_err'] = None
 
-parsers = []
 Parser(
     'cycle', 
     'Simulation complete at cycle:',
-    lambda lines: int(lines[0].split('Simulation complete at cycle:')[1]),
-    parsers=parsers,
+    lambda lines,conf: int(lines[0].split('Simulation complete at cycle:')[1]),
     logs=['runpsim']
 )
 Parser(
     'lbw', 
     'Total DRAM:',
-    lambda lines: float(lines[0].split("(")[1].split("GB/s R")[0].strip()),
-    parsers=parsers,
+    lambda lines,conf: float(lines[0].split("(")[1].split("GB/s R")[0].strip()),
     logs=['runpsim']
 )
 Parser(
     'sbw', 
     'Total DRAM:',
-    lambda lines: float(lines[0].split(",")[1].split("GB/s W")[0].strip()),
-    parsers=parsers,
+    lambda lines,conf: float(lines[0].split(",")[1].split("GB/s W")[0].strip()),
     logs=['runpsim']
 )
 Parser(
     'deadlock', 
     'POSSIBLE DEADLOCK',
-    lambda lines: True,
+    lambda lines,conf: True,
     default=False,
-    parsers=parsers,
     logs=['runpsim']
 )
 
 Parser(
     'cycle', 
     'Simulation complete at cycle ',
-    lambda lines: int(lines[0].split('Simulation complete at cycle ')[1].split(" ")[0]),
-    parsers=parsers,
+    lambda lines,conf: int(lines[0].split('Simulation complete at cycle ')[1].split(" ")[0]),
     logs=['runp2p', 'runhybrid']
 )
 Parser(
     'err', 
     ["error", "fail", "exception", "Exception", "fault", "terminated by signal"],
-    lambda lines: lines[0],
-    parsers=parsers,
+    lambda lines,conf: lines[0],
     logs=['runp2p', 'runhybrid', 'maketst', 'runproute', 'gentst']
 )
 Parser(
     'pass', 
     ["PASS: "],
-    lambda lines: bool(lines[0].split('PASS: ')[1].split(" (")[0]),
-    parsers=parsers,
+    lambda lines,conf: bool(lines[0].split('PASS: ')[1].split(" (")[0]),
     logs=['runp2p', 'runhybrid']
 )
 Parser(
     'deadlock', 
     'DEADLOCK',
-     lambda lines: True,
+     lambda lines,conf: True,
     default=False,
-    parsers=parsers,
     logs=['runp2p', 'runhybrid']
 )
 Parser(
     'complete', 
     'Complete Simulation',
-     lambda lines: True,
+     lambda lines,conf: True,
     default=False,
-    parsers=parsers,
     logs=['runp2p', 'runhybrid']
 )
 Parser(
     'dram_power', 
     'Average DRAM Power',
-    lambda lines: float(lines[0].split(':')[1].split("W")[0]),
-    parsers=parsers,
+    lambda lines,conf: float(lines[0].split(':')[1].split("W")[0]),
     logs=['runp2p', 'runhybrid']
 )
 Parser(
     'rbw', 
     'Average DRAM Read Bandwidth: ',
-    lambda lines: float(lines[0].split(':')[1].split("GB/s")[0]),
-    parsers=parsers,
+    lambda lines,conf: float(lines[0].split(':')[1].split("GB/s")[0]),
     logs=['runp2p', 'runhybrid']
 )
 Parser(
     'wbw', 
     'Average DRAM Write Bandwidth: ',
-    lambda lines: float(lines[0].split(':')[1].split("GB/s")[0]),
-    parsers=parsers,
+    lambda lines,conf: float(lines[0].split(':')[1].split("GB/s")[0]),
     logs=['runp2p', 'runhybrid']
 )
 Parser(
     'time', 
     ["Runtime:"],
-    lambda lines: lines[0].split("Runtime:")[1].strip(),
-    parsers=parsers,
+    lambda lines,conf: lines[0].split("Runtime:")[1].strip(),
     logs=['maketst', 'runp2p', 'runhybrid', 'runproute'],
     prefix=True,
 )
 Parser(
     'time', 
     ["Compilation failed in", "Compilation succeed in"],
-    lambda lines: float(lines[0].split("in ")[1].split("s")[0].strip()),
-    parsers=parsers,
+    lambda lines,conf: float(lines[0].split("in ")[1].split("s")[0].strip()),
     logs=['gentst'],
     prefix=True,
 )
@@ -424,8 +403,7 @@ Parser(
 Parser(
     'notFit', 
     'Not enough resource of type',
-    lambda lines: lines[0],
-    parsers=parsers,
+    lambda lines,conf: lines[0],
     logs=['gentst'],
 )
 pattern = ["MC", "DAG", "PMU", "PCU"]
@@ -433,8 +411,7 @@ for pat in pattern:
     Parser(
         pat, 
         pat,
-        lambda lines, pat=pat: int(lines[0].split(pat+",")[1].split(",")[0].strip()),
-        parsers=parsers,
+        lambda lines,conf, pat=pat: int(lines[0].split(pat+",")[1].split(",")[0].strip()),
         logs=['resreport'],
     )
 pattern = ["MC", "DAG", "PMU", "PCU"]
@@ -442,82 +419,71 @@ for pat in pattern:
     Parser(
         pat+"_Total", 
         pat,
-        lambda lines, pat=pat: int(lines[0].split(",")[2].strip()),
-        parsers=parsers,
+        lambda lines,conf, pat=pat: int(lines[0].split(",")[2].strip()),
         logs=['resreport'],
     )
 Parser(
     'row', 
     '--row=',
-    lambda lines: int(lines[-1].split("--row=")[-1].split(",")[0]),
-    parsers=parsers,
+    lambda lines,conf: int(lines[-1].split("--row=")[-1].split(",")[0]),
     logs=['gentst'],
 )
 
 Parser(
     'col', 
     '--col=',
-    lambda lines: int(lines[-1].split("--col=")[-1].split(",")[0].split("]")[0]),
-    parsers=parsers,
+    lambda lines,conf: int(lines[-1].split("--col=")[-1].split(",")[0].split("]")[0]),
     logs=['gentst'],
 )
 
 Parser(
     'algo', 
     '',
-    lambda lines: lines[0].split("-a ")[1].split(" ")[0],
-    parsers=parsers,
+    lambda lines,conf: lines[0].split("-a ")[1].split(" ")[0],
     logs=['proutesh'],
 )
 Parser(
     'pattern', 
     '',
-     lambda lines: lines[0].split("-T ")[1].split(" ")[0],
-    parsers=parsers,
+     lambda lines,conf: lines[0].split("-T ")[1].split(" ")[0],
     logs=['proutesh'],
 )
 Parser(
     'slink', 
     '',
-     lambda lines: int(lines[0].split("-e ")[1].split(" ")[0]),
-    parsers=parsers,
+     lambda lines,conf: int(lines[0].split("-e ")[1].split(" ")[0]),
     logs=['proutesh'],
 )
 Parser(
     'vlink', 
     '',
-     lambda lines: int(lines[0].split("-x ")[1].split(" ")[0]),
-    parsers=parsers,
+     lambda lines,conf: int(lines[0].split("-x ")[1].split(" ")[0]),
     logs=['proutesh'],
 )
 Parser(
     'prtime', 
     '',
-     lambda lines: int(lines[0].split("-S ")[1].split(" ")[0]),
-    parsers=parsers,
+     lambda lines,conf: int(lines[0].split("-S ")[1].split(" ")[0]),
     logs=['proutesh'],
 )
 Parser(
     'vcLimit', 
     '',
-     lambda lines: int(lines[0].split("-q")[1].split("-")[0].strip()),
-    parsers=parsers,
+     lambda lines,conf: int(lines[0].split("-q")[1].split("-")[0].strip()),
     logs=['proutesh'],
 )
 
 Parser(
     'link_prop', 
     '',
-    lambda lines: lines[0].split("-l ")[1].split(" ")[0],
-    parsers=parsers,
+    lambda lines,conf: lines[0].split("-l ")[1].split(" ")[0],
     logs=['psimsh'],
 )
 Parser(
     'flit_data_width', 
     '-i',
-    lambda lines: lines[0].split("-i")[1].split(" ")[0],
+    lambda lines,conf: lines[0].split("-i")[1].split(" ")[0],
     default=512,
-    parsers=parsers,
     logs=['psimsh'],
 )
 
@@ -576,29 +542,56 @@ def show_gen(opts):
             numRun += 1
             if conf['succeeded']: numSucc += 1
         summarize(backend, opts, confs)
-        if numRun != 0 and len(opts.filter) == 0:
+        if numRun != 0:
             print('Succeeded {} / {} ({:0.2f}) %'.format(numSucc, numRun, numSucc*100.0/numRun))
 
 def applyFilter(conf, opts):
-    matched = False
-    if len(opts.filter) > 0:
-        for f in opts.filter:
-            if f(conf):
-                matched = True
+    return all([f(conf) for f in opts.filter]);
+    # matched = False
+    # if len(opts.filter) > 0:
+        # for f in opts.filter:
+            # if f(conf):
+                # matched = True
+    # else:
+        # matched = True
+    # return matched
+
+cond = ["<",">","=","<=",">="]
+def condfunc(k, c, v):
+    c = float(c)
+    v = float(v)
+    if k == "<":
+        return c < v
+    if k == ">":
+        return c > v
+    if k == "<=":
+        return c <= v
+    if k == ">=":
+        return c >= v
+    if k == "=":
+        return c == v
+
+def setFilter(fs, opts):
+    for k in cond:
+        if k in fs:
+            pat,v = fs.split(k)
+            opts.filter.append(lambda conf: get(conf,pat) is not None and condfunc(k, conf[pat], v))
+            return
+    if ":" in fs:
+        p,pat = fs.split(":",1)
+        if pat == "None":
+            opts.filter.append(lambda conf: p in conf and conf[p] is None)
+            return
+        opts.filter.append(lambda conf: get(conf,p) is not None and fnmatch.fnmatch(str(conf[p]), pat))
     else:
-        matched = True
-    return matched
+        p = fs
+        opts.filter.append(lambda conf: get(conf,p) is not None and conf[p])
 
 def setFilterRules(opts):
     opts.filter = []
     if opts.filter_str is None: return
     for fs in opts.filter_str:
-        if ":" in fs:
-            p,pat = fs.split(":",1)
-            opts.filter.append(lambda conf: p in conf and conf[p] is not None and fnmatch.fnmatch(str(conf[p]), pat))
-        else:
-            p = fs
-            opts.filter.append(lambda conf: p in conf and conf[p] is not None and conf[p])
+        setFilter(fs, opts)
 
 def main(args=None):
     (opts, args) = parser.parse_known_args(args=args)

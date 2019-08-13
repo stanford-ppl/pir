@@ -40,7 +40,7 @@ abstract class StreamHostTemplate {
     val numToken = N * (field + 1)
     val r = scala.util.Random
     val data = (0 until numBatch*batch).map { batch =>
-      (0 until field).map { field => r.nextInt(numToken) }
+      (0 until field).map { field => r.nextInt(100) }
     }
     val label = data.map { fields =>
       fields.head * 3 / 10 + fields.last * 5 / 10 + fields.sum / field

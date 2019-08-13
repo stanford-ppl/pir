@@ -55,14 +55,14 @@ class StreamTrainMLP_1 extends StreamTrainMLP[Float](numBatch=16, iters=4)()
   def b3file = buildPath(IR.config.genDir, "tungsten", "b3.csv")
 
   def newSRAM2(D1:scala.Int, D2:scala.Int) = {
-    val sram = SRAM[T](D1, D2)
+    val sram = SRAM[T](D1, D2).buffer
     Foreach(0 until D1, 0 until D2) { case (i,j) =>
       sram(i,j) = init.to[T]
     }
     sram
   }
   def newSRAM1(D1:scala.Int) = {
-    val sram = SRAM[T](D1)
+    val sram = SRAM[T](D1).buffer
     Foreach(0 until D1) { i =>
       sram(i) = init.to[T]
     }
@@ -83,7 +83,7 @@ class StreamTrainMLP_1 extends StreamTrainMLP[Float](numBatch=16, iters=4)()
       val b3 = newSRAM1(L3)
       Foreach(*) { _ =>
         val (trainX, trainY, lastBit, lastBatch) = transposeTrainInput[T](in) // trainX [batch, field], trainY [batch]
-        Sequential.Foreach(iters by 1) { iter =>
+        Foreach(iters by 1) { iter =>
           val h1 = SRAM[T](batch,L1)
           val h2 = SRAM[T](batch,L2)
           val h3 = SRAM[T](batch,L3)
