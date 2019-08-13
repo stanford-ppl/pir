@@ -556,7 +556,7 @@ def applyFilter(conf, opts):
         # matched = True
     # return matched
 
-cond = ["<",">","=","<=",">="]
+cond = ["<",">","==","<=",">="]
 def condfunc(k, c, v):
     c = float(c)
     v = float(v)
@@ -568,7 +568,7 @@ def condfunc(k, c, v):
         return c <= v
     if k == ">=":
         return c >= v
-    if k == "=":
+    if k == "==":
         return c == v
 
 def setFilter(fs, opts):
@@ -579,6 +579,9 @@ def setFilter(fs, opts):
             return
     if ":" in fs:
         p,pat = fs.split(":",1)
+        if pat == "notNone":
+            opts.filter.append(lambda conf: p in conf and conf[p] is not None)
+            return
         if pat == "None":
             opts.filter.append(lambda conf: p in conf and conf[p] is None)
             return
