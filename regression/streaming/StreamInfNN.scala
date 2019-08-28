@@ -54,7 +54,7 @@ class StreamInfNN_7 extends StreamInfNN[scala.Float,Float]()()
       val h2 = SRAM[T](L2)
       denselayer[T](w1, b1, relu[T] _, in=insram(b,_), nlout=h1.update)(ipf, mpf, op1)
       denselayer[T](w2, b2, relu[T] _, in=h1(_), nlout=h2.update)(ip1, mp1, op2)
-      denselayer[T](w3, b3, identity[T], in=h2(_), nlout=outsram.update)(ip2, mp2, op3)
+      denselayer[T](w3, b3, identity[T], in=h2(_), nlout={ (i,d) => outsram.update(b, d) })(ip2, mp2, op3)
     }
     outsram
   }

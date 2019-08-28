@@ -93,7 +93,7 @@ trait RewriteUtil { self: PIRTransformer =>
       }
       def FMA(mulIn:Output[_], c:Any, addIn:Output[_]) = {
         val fma = within(n.parent.get, n.getCtrl) {
-          val const = allocConst(c)
+          val const = allocConst(c).tp(addIn.src.as[PIRNode].getTp)
           stage(OpDef(FixFMA).addInput(mulIn, const.out, addIn).out)
         }
         Some(n.out, fma)
@@ -105,20 +105,6 @@ trait RewriteUtil { self: PIRTransformer =>
       }
     case n => None
   }
-
-  //RewriteRule[OpDef](s"FirstIter") { n =>
-    //(n.op, n.inputs.map{_.T}) match {
-      ////TODO: fix this
-      //case (FixEql, List(iter:CounterIter, Const(c))) if config.option[Boolean]("shuffle-hack") =>
-        //val ctr = iter.counter.T
-        //ctr.min.T match {
-          //case Some(Const(min)) if min == c => 
-            //Some((n.out, ctr.isFirstIter))
-          //case _ => None
-        //}
-      //case (_) => None
-    //}
-  //}
 
   def memoryPrunerHashRun = compiler.hasRun[MemoryPruner]
 

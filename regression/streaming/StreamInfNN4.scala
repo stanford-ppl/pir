@@ -57,7 +57,7 @@ class StreamInfNN4_0 extends StreamInfNN[scala.Int,Int]()()
       denselayer[T](w1, b1, relu[T] _, in=insram(b,_), nlout=h1.update)(ipf, mpf, op1)
       denselayer[T](w2, b2, relu[T] _, in=h1(_), nlout=h2.update)(ip1, mp1, op2)
       denselayer[T](w3, b3, relu[T] _, in=h2(_), nlout=h3.update)(ip2, mp2, op3)
-      denselayer[T](w4, b4, identity[T], in=h3(_), outsram.update)(ip3, mp3, op4)
+      denselayer[T](w4, b4, identity[T], in=h3(_), nlout={ (i,d) => outsram.update(b, d) })(ip3, mp3, op4)
     }
     outsram
   }
