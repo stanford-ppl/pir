@@ -21,6 +21,8 @@ parser.add_argument('-d', '--diff', dest='show_diff', action='store_true', defau
 parser.add_argument('-H', '--history', dest='show_history', action='store_true', default=False,
         help='showing history')
 parser.add_argument('--logdir', default="{}/spatial/pir/logs/".format(os.environ['HOME']))
+parser.add_argument('--spatial_dir', default="{}/spatial/".format(os.environ['HOME']))
+parser.add_argument('--pir_dir', default="{}/spatial/pir".format(os.environ['HOME']))
 parser.add_argument('-f', '--filter', dest='filter_str', action='append', help='Filter apps')
 parser.add_argument('-m', '--message', default='', help='Additional fields to print in message')
 
@@ -50,39 +52,13 @@ def load_history(opts):
     else:
         opts.history = history
 
-def show_diff(conf, opts):
-    msg = getMessage(conf, opts)
-    if not opts.show_message: return
-
-    if not opts.show_diff:
-        print(msg)
-        return
-
-    if opts.history is None:
-        print("No history to compare with")
-        return
-
-    diffkey = 'succeeded'
-    # diffkey = 'genpir'
-
-    history = opts.history
-    prevsucc = history[(history.app==conf['app']) & (history.project == conf['project']) & \
-            (history.backend==conf['backend']) & history[diffkey]]
-
-    if not conf[diffkey] and prevsucc.shape[0] > 0:
-        times = get_col(prevsucc, 'time')
-        pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
-        print('{} {}'.format(msg, cstr(RED,'(Regression)')))
-        print('{} {} {}'.format(getMessage(pconf, opts), pconf['sha'], pconf['time']))
-    if conf[diffkey] and prevsucc.shape[0] == 0:
-        print('{} {}'.format(msg, cstr(GREEN,'(New)')))
-
 def summarize(backend, opts, confs):
     if not opts.summarize: return
-    sha = confs[0]['sha']
+    spatial_sha = confs[0]['spatial_sha']
     time = confs[0]['time']
     timeshort = time[2:].replace("-","").replace(" ","_").replace(":","")
-    summary_path = "{}/{}_{}_{}_{}.csv".format(opts.logdir, timeshort, backend, opts.project, sha)
+    summary_path = "{}/{}_{}_{}_{}.csv".format(opts.logdir, timeshort, backend, opts.project,
+            spatial_sha)
     # create new csv
     conf = confs[0]
     with open(summary_path, "w") as f:
@@ -97,6 +73,12 @@ def getMessage(conf, opts):
     msg.append(conf['backend'])
     msg.append(conf['app'])
     succeeded = False
+
+    for f in opts.message.split(","):
+        if f in conf:
+            msg.append(cstr(CYAN, f + ':' + str(get(conf,f))))
+        # else:
+            # print("{} not in config. options: {}".format(f, ','.join([k for k in conf])))
 
     if get(conf,'genpir'):
         msg.append(cstr(GREEN, 'genpir'))
@@ -158,10 +140,6 @@ def getMessage(conf, opts):
         if get(conf,p + '_time') is not None:
             msg.append('[{}]'.format(get(conf,p + '_time')))
 
-        for f in opts.message.split(","):
-            if get(conf,f) is not None:
-                msg.append(cstr(color, f + ':' + str(get(conf,f))))
-
     printtst('runp2p')
 
     if get(conf,'runproute_err') is not None:
@@ -175,8 +153,8 @@ def getMessage(conf, opts):
 
     printtst('runhybrid')
 
-    if len(opts.filter) > 0:
-        msg = [get(conf,'app')]
+    # if len(opts.filter) > 0:
+        # msg = [get(conf,'app')]
 
     return ' '.join(msg)
 
@@ -208,8 +186,6 @@ def removeRules(conf, opts):
     for p in reruns:
         if p == 'genpir':
             remove(conf['AccelMain'], opts)
-        elif p == 'runproute':
-            remove(conf['prouteSummary'], opts)
         elif p == 'runpsim':
             remove(conf['gentrace'], opts)
             remove(conf['genpsim'], opts)
@@ -218,8 +194,48 @@ def removeRules(conf, opts):
             remove(conf[p], opts)
     return reruns
 
+def print_message(conf, opts):
+    msg = getMessage(conf, opts)
+    if not opts.summarize and not opts.show_diff:
+        print(msg)
+
+    if not opts.show_history and not opts.show_diff:
+        return
+
+    if opts.history is None:
+        print("No history to compare with")
+        return
+
+    diffkey = 'succeeded'
+    # diffkey = 'genpir'
+
+    history = opts.history
+
+    history = history[(history.app==conf['app']) & (history.project == conf['project']) & \
+            (history.backend==conf['backend'])]
+    prevsucc =  history[history[diffkey]]
+
+    if opts.show_diff:
+        if not conf[diffkey] and prevsucc.shape[0] > 0:
+            times = get_col(prevsucc, 'time')
+            pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
+            print('{} {}'.format(msg, cstr(RED,'(Regression)')))
+            print('{} {} {} {}'.format(getMessage(pconf, opts), pconf['spatial_sha'], 
+                get(pconf,'pir_sha'), pconf['time']))
+        if conf[diffkey] and prevsucc.shape[0] == 0:
+            print('{} {}'.format(msg, cstr(GREEN,'(New)')))
+    elif opts.show_history:
+        history = prevsucc
+        if history.shape[0] > 0:
+            times = sorted(get_col(history, 'time'))
+            history = history.sort_values('time')
+            for idx, row in history.iterrows():
+                pconf = to_conf(row)
+                print('{} {} {} {}'.format(getMessage(pconf, opts), pconf['spatial_sha'], 
+                    get(pconf,'pir_sha'), pconf['time']))
+
 def logApp(conf, opts):
-    show_diff(conf, opts)
+    print_message(conf, opts)
     reruns = removeRules(conf, opts)
     if opts.show_app:
         # tail(conf['runpir'])
@@ -233,51 +249,47 @@ def logApp(conf, opts):
         tail(conf['runp2p'])
         tail(conf['runhybrid'])
 
+rules = []
+def addRule(func):
+    rules.append(func) 
+
 def parse(conf, opts):
     app = conf['app']
     backend = conf['backend']
     if 'Tst' in backend:
         backend = backend + "_" + conf['project']
     conf["freq"] = 1e9
-    # conf['mappir'] = os.path.join(opts.gendir,backend,app,"log/mappir.log")
-    # conf['runpir'] = os.path.join(opts.gendir,backend,app,"log/runpir.log")
-    # conf['genpsim'] = os.path.join(opts.gendir,backend,app,"log/genpsim.log")
-    # conf['gentrace'] = os.path.join(opts.gendir,backend,app,"log/gentrace.log")
-    # conf['runpsim'] = os.path.join(opts.gendir,backend,app,"log/runpsim.log")
-    # conf['psimsh'] = os.path.join(opts.gendir,backend,app,"log/runpsim.sh")
     conf['runproute'] = os.path.join(opts.gendir,backend,app,"log/runproute.log")
     conf['proutesh'] = os.path.join(opts.gendir,backend,app,"log/runproute.sh")
     conf['prouteSummary'] = os.path.join(opts.gendir,backend,app,"plastisim","summary.csv")
     conf['AccelMain'] = os.path.join(opts.gendir,backend,app,"pir","AccelMain.scala")
     conf['logpath'] = os.path.join(opts.gendir,backend,app,"log/")
     conf['gentst'] = os.path.join(opts.gendir,backend,app,"log/gentst.log")
+    conf['resreport'] = os.path.join(opts.gendir,backend,app,"pir/out/resource.csv")
     conf['maketst'] = os.path.join(opts.gendir,backend,app,"log/maketst.log")
     conf['runp2p'] = os.path.join(opts.gendir,backend,app,"log/runp2p.log")
     conf['runhybrid'] = os.path.join(opts.gendir,backend,app,"log/runhybrid.log")
     parse_genpir(conf['AccelMain'], conf, opts)
-    # parseLog('runpir', parsers, conf)
-    # parseLog('mappir', parsers, conf)
-    # parseLog('genpsim', parsers, conf)
-    # parseLog('gentrace', parsers, conf)
-    # parseLog('runpsim', parsers, conf)
-    # parseLog('psimsh', parsers, conf)
-    parseLog('gentst', parsers, conf)
-    parseLog('proutesh', parsers, conf)
-    parseLog('runproute', parsers, conf)
+    parseLog('gentst', conf)
+    parseLog('resreport', conf)
+    parseLog('proutesh', conf)
+    parseLog('runproute', conf)
     parse_proutesummary(conf['prouteSummary'], conf, opts)
-    parseLog('maketst', parsers, conf)
-    parseLog('runp2p', parsers, conf)
-    parseLog('runhybrid', parsers, conf)
+    parseLog('maketst', conf)
+    parseLog('runp2p', conf)
+    parseLog('runhybrid', conf)
     conf['succeeded'] = parse_success(conf)
+    for rule in rules:
+        rule(conf, opts)
     return conf
 
 def parse_success(conf):
     for p in ['runp2p', 'runhybrid']:
-        if conf[p+'_complete'] != True: return False
-        if conf[p+'_deadlock']: return False
-        if conf[p+'_deadlock']: return False
-        if conf[p+'_err'] is not None: return False
-    return True
+        conf[p+'_success'] = \
+            conf[p+'_complete'] and \
+            not conf[p+'_deadlock'] and \
+            conf[p+'_err'] is None
+    return conf['runp2p_success']
 
 def parse_genpir(pirsrc, conf, opts):
     if os.path.exists(pirsrc):
@@ -297,199 +309,181 @@ def parse_genpir(pirsrc, conf, opts):
         else:
             conf['genpir_err'] = None
 
-parsers = []
 Parser(
     'cycle', 
     'Simulation complete at cycle:',
-    lambda lines: int(lines[0].split('Simulation complete at cycle:')[1]),
-    parsers=parsers,
+    lambda lines,conf: int(lines[0].split('Simulation complete at cycle:')[1]),
     logs=['runpsim']
 )
 Parser(
     'lbw', 
     'Total DRAM:',
-    lambda lines: float(lines[0].split("(")[1].split("GB/s R")[0].strip()),
-    parsers=parsers,
+    lambda lines,conf: float(lines[0].split("(")[1].split("GB/s R")[0].strip()),
     logs=['runpsim']
 )
 Parser(
     'sbw', 
     'Total DRAM:',
-    lambda lines: float(lines[0].split(",")[1].split("GB/s W")[0].strip()),
-    parsers=parsers,
+    lambda lines,conf: float(lines[0].split(",")[1].split("GB/s W")[0].strip()),
     logs=['runpsim']
 )
 Parser(
     'deadlock', 
     'POSSIBLE DEADLOCK',
-    lambda lines: True,
+    lambda lines,conf: True,
     default=False,
-    parsers=parsers,
     logs=['runpsim']
 )
 
 Parser(
     'cycle', 
     'Simulation complete at cycle ',
-    lambda lines: int(lines[0].split('Simulation complete at cycle ')[1].split(" ")[0]),
-    parsers=parsers,
+    lambda lines,conf: int(lines[0].split('Simulation complete at cycle ')[1].split(" ")[0]),
     logs=['runp2p', 'runhybrid']
 )
 Parser(
     'err', 
     ["error", "fail", "exception", "Exception", "fault", "terminated by signal"],
-    lambda lines: lines[0],
-    parsers=parsers,
+    lambda lines,conf: lines[0],
     logs=['runp2p', 'runhybrid', 'maketst', 'runproute', 'gentst']
 )
 Parser(
     'pass', 
     ["PASS: "],
-    lambda lines: bool(lines[0].split('PASS: ')[1].split(" (")[0]),
-    parsers=parsers,
+    lambda lines,conf: bool(lines[0].split('PASS: ')[1].split(" (")[0]),
     logs=['runp2p', 'runhybrid']
 )
 Parser(
     'deadlock', 
     'DEADLOCK',
-     lambda lines: True,
+     lambda lines,conf: True,
     default=False,
-    parsers=parsers,
     logs=['runp2p', 'runhybrid']
 )
 Parser(
     'complete', 
     'Complete Simulation',
-     lambda lines: True,
+     lambda lines,conf: True,
     default=False,
-    parsers=parsers,
     logs=['runp2p', 'runhybrid']
 )
 Parser(
     'dram_power', 
     'Average DRAM Power',
-    lambda lines: float(lines[0].split(':')[1].split("W")[0]),
-    parsers=parsers,
+    lambda lines,conf: float(lines[0].split(':')[1].split("W")[0]),
     logs=['runp2p', 'runhybrid']
 )
 Parser(
     'rbw', 
     'Average DRAM Read Bandwidth: ',
-    lambda lines: float(lines[0].split(':')[1].split("GB/s")[0]),
-    parsers=parsers,
+    lambda lines,conf: float(lines[0].split(':')[1].split("GB/s")[0]),
     logs=['runp2p', 'runhybrid']
 )
 Parser(
     'wbw', 
     'Average DRAM Write Bandwidth: ',
-    lambda lines: float(lines[0].split(':')[1].split("GB/s")[0]),
-    parsers=parsers,
+    lambda lines,conf: float(lines[0].split(':')[1].split("GB/s")[0]),
     logs=['runp2p', 'runhybrid']
 )
 Parser(
     'time', 
     ["Runtime:"],
-    lambda lines: lines[0].split("Runtime:")[1].strip(),
-    parsers=parsers,
-    logs=['maketst', 'runp2p', 'runhybrid', 'runproute']
+    lambda lines,conf: lines[0].split("Runtime:")[1].strip(),
+    logs=['maketst', 'runp2p', 'runhybrid', 'runproute'],
+    prefix=True,
 )
 Parser(
     'time', 
     ["Compilation failed in", "Compilation succeed in"],
-    lambda lines: float(lines[0].split("in ")[1].split("s")[0].strip()),
-    parsers=parsers,
+    lambda lines,conf: float(lines[0].split("in ")[1].split("s")[0].strip()),
     logs=['gentst'],
+    prefix=True,
 )
 
 Parser(
     'notFit', 
     'Not enough resource of type',
-    lambda lines: lines[0],
-    parsers=parsers,
+    lambda lines,conf: lines[0],
     logs=['gentst'],
 )
-pattern = ["MC Usage:", "DAG Usage:", "PMU Usage:", "PCU Usage:"]
+pattern = ["MC", "DAG", "PMU", "PCU"]
 for pat in pattern:
-    key = pat.replace(" Usage:", "")
     Parser(
-        key, 
+        pat, 
         pat,
-        lambda lines, pat=pat: float(lines[0].split(pat)[1].split("%")[0].strip()),
-        parsers=parsers,
-        logs=['gentst'],
+        lambda lines,conf, pat=pat: int(lines[0].split(pat+",")[1].split(",")[0].strip()),
+        logs=['resreport'],
+    )
+pattern = ["MC", "DAG", "PMU", "PCU"]
+for pat in pattern:
+    Parser(
+        pat+"_Total", 
+        pat,
+        lambda lines,conf, pat=pat: int(lines[0].split(",")[2].strip()),
+        logs=['resreport'],
     )
 Parser(
     'row', 
     '--row=',
-    lambda lines: int(lines[-1].split("--row=")[-1].split(",")[0]),
-    parsers=parsers,
+    lambda lines,conf: int(lines[-1].split("--row=")[-1].split(",")[0]),
     logs=['gentst'],
 )
 
 Parser(
     'col', 
     '--col=',
-    lambda lines: int(lines[-1].split("--col=")[-1].split(",")[0].split("]")[0]),
-    parsers=parsers,
+    lambda lines,conf: int(lines[-1].split("--col=")[-1].split(",")[0].split("]")[0]),
     logs=['gentst'],
 )
 
 Parser(
     'algo', 
     '',
-    lambda lines: lines[0].split("-a ")[1].split(" ")[0],
-    parsers=parsers,
+    lambda lines,conf: lines[0].split("-a ")[1].split(" ")[0],
     logs=['proutesh'],
 )
 Parser(
     'pattern', 
     '',
-     lambda lines: lines[0].split("-T ")[1].split(" ")[0],
-    parsers=parsers,
+     lambda lines,conf: lines[0].split("-T ")[1].split(" ")[0],
     logs=['proutesh'],
 )
 Parser(
     'slink', 
     '',
-     lambda lines: int(lines[0].split("-e ")[1].split(" ")[0]),
-    parsers=parsers,
+     lambda lines,conf: int(lines[0].split("-e ")[1].split(" ")[0]),
     logs=['proutesh'],
 )
 Parser(
     'vlink', 
     '',
-     lambda lines: int(lines[0].split("-x ")[1].split(" ")[0]),
-    parsers=parsers,
+     lambda lines,conf: int(lines[0].split("-x ")[1].split(" ")[0]),
     logs=['proutesh'],
 )
 Parser(
     'prtime', 
     '',
-     lambda lines: int(lines[0].split("-S ")[1].split(" ")[0]),
-    parsers=parsers,
+     lambda lines,conf: int(lines[0].split("-S ")[1].split(" ")[0]),
     logs=['proutesh'],
 )
 Parser(
     'vcLimit', 
     '',
-     lambda lines: int(lines[0].split("-q")[1].split("-")[0].strip()),
-    parsers=parsers,
+     lambda lines,conf: int(lines[0].split("-q")[1].split("-")[0].strip()),
     logs=['proutesh'],
 )
 
 Parser(
     'link_prop', 
     '',
-    lambda lines: lines[0].split("-l ")[1].split(" ")[0],
-    parsers=parsers,
+    lambda lines,conf: lines[0].split("-l ")[1].split(" ")[0],
     logs=['psimsh'],
 )
 Parser(
     'flit_data_width', 
     '-i',
-    lambda lines: lines[0].split("-i")[1].split(" ")[0],
+    lambda lines,conf: lines[0].split("-i")[1].split(" ")[0],
     default=512,
-    parsers=parsers,
     logs=['psimsh'],
 )
 
@@ -517,9 +511,12 @@ def parse_proutesummary(log, conf, opts):
 
 def show_gen(opts):
     gitmsg = subprocess.check_output("git log --pretty=format:'%h,%ad' -n 1 --date=iso".split(" "),
-            cwd=opts.logdir + '../../').replace("'","")
-    sha = gitmsg.split(",")[0]
+            cwd=opts.spatial_dir).replace("'","")
+    spatial_sha = gitmsg.split(",")[0]
     time = gitmsg.split(",")[1].split(" -")[0].strip()
+    gitmsg = subprocess.check_output("git log --pretty=format:'%h' -n 1".split(" "),
+            cwd=opts.pir_dir).replace("'","")
+    pir_sha = gitmsg.split(",")[0]
     for backend in opts.backend:
         numRun = 0
         numSucc = 0
@@ -528,10 +525,11 @@ def show_gen(opts):
         else:
             apps = getApps(backend, opts)
         confs = []
-        opts.show_app = len(apps)==1 and not opts.summarize
+        opts.show_app = len(apps)==1 and not opts.summarize and not opts.show_history
         for app in apps:
             conf = OrderedDict()
-            conf['sha'] = sha
+            conf['spatial_sha'] = spatial_sha
+            conf['pir_sha'] = pir_sha
             conf['time'] = time
             conf['app'] = app
             conf['project'] = opts.project
@@ -544,53 +542,62 @@ def show_gen(opts):
             numRun += 1
             if conf['succeeded']: numSucc += 1
         summarize(backend, opts, confs)
-        if numRun != 0 and len(opts.filter) == 0:
+        if numRun != 0:
             print('Succeeded {} / {} ({:0.2f}) %'.format(numSucc, numRun, numSucc*100.0/numRun))
 
-def show_history(opts):
-    history = opts.history
-    history = history[history.project == opts.project]
-
-    for backend in opts.backend:
-        btab = history[history.backend==backend]
-        apps = btab.app.unique()
-
-        for app in apps:
-            tab = btab
-            tab = tab[tab.app == app]
-            succeeded = tab[tab.succeeded]
-            if succeeded.shape[0] > 0:
-                times = get_col(succeeded, 'time')
-                pconf = to_conf(succeeded.iloc[np.argmax(times), :])
-                print('{} {} {}'.format(getMessage(pconf, opts), pconf['sha'], pconf['time']))
-            else:
-                times = get_col(tab, 'time')
-                pconf = to_conf(tab.iloc[np.argmax(times), :])
-                print('{} {} {}'.format(getMessage(pconf, opts), pconf['sha'], pconf['time']))
-
 def applyFilter(conf, opts):
-    matched = False
-    if len(opts.filter) > 0:
-        for f in opts.filter:
-            if f(conf):
-                matched = True
+    return all([f(conf) for f in opts.filter]);
+    # matched = False
+    # if len(opts.filter) > 0:
+        # for f in opts.filter:
+            # if f(conf):
+                # matched = True
+    # else:
+        # matched = True
+    # return matched
+
+cond = ["<",">","==","<=",">="]
+def condfunc(k, c, v):
+    c = float(c)
+    v = float(v)
+    if k == "<":
+        return c < v
+    if k == ">":
+        return c > v
+    if k == "<=":
+        return c <= v
+    if k == ">=":
+        return c >= v
+    if k == "==":
+        return c == v
+
+def setFilter(fs, opts):
+    for k in cond:
+        if k in fs:
+            pat,v = fs.split(k)
+            opts.filter.append(lambda conf: get(conf,pat) is not None and condfunc(k, conf[pat], v))
+            return
+    if ":" in fs:
+        p,pat = fs.split(":",1)
+        if pat == "notNone":
+            opts.filter.append(lambda conf: p in conf and conf[p] is not None)
+            return
+        if pat == "None":
+            opts.filter.append(lambda conf: p in conf and conf[p] is None)
+            return
+        opts.filter.append(lambda conf: get(conf,p) is not None and fnmatch.fnmatch(str(conf[p]), pat))
     else:
-        matched = True
-    return matched
+        p = fs
+        opts.filter.append(lambda conf: get(conf,p) is not None and conf[p])
 
 def setFilterRules(opts):
     opts.filter = []
     if opts.filter_str is None: return
     for fs in opts.filter_str:
-        if ":" in fs:
-            p,pat = fs.split(":",1)
-            opts.filter.append(lambda conf: p in conf and conf[p] is not None and fnmatch.fnmatch(str(conf[p]), pat))
-        else:
-            p = fs
-            opts.filter.append(lambda conf: p in conf and conf[p] is not None and conf[p])
+        setFilter(fs, opts)
 
-def main():
-    (opts, args) = parser.parse_known_args()
+def main(args=None):
+    (opts, args) = parser.parse_known_args(args=args)
     path = opts.path.rstrip('/')
     if opts.path_type == "app":
         path, app = path.rsplit('/',1)
@@ -611,13 +618,8 @@ def main():
             opts.project = backend.split("_")[1]
             opts.backend[i] = backend.split("_")[0]
 
-    opts.show_message = not opts.summarize 
-
     setFilterRules(opts)
     if opts.show_diff or opts.show_history:
         load_history(opts)
-    if opts.show_history:
-        show_history(opts)
-    else:
-        show_gen(opts)
+    show_gen(opts)
 

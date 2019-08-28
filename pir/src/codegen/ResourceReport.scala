@@ -12,17 +12,37 @@ class ResourceReport(implicit design:PIR) extends PIRTraversal with CSVCodegen w
   val fileName = "resource.csv"
 
   override def runPass = {
-    report(topMap)
+    reportAlloc
+    if (compiler.hasRun[PlaceAndRoute]) {
+      reportUsage(topMap)
+    }
   }
 
-  def report(x:Any):Unit =  x match {
-    case Right(m) => report(m)
-    case m:TopMap => m.fields.foreach(report)
-    case m:CUMap =>  report(m)
+  def reportAlloc = {
+    sinfo(s"Allocation: ")
+    val (dags, rest1) = pirTop.collectDown[GlobalContainer]().partition { _.isDAG.get }
+    sinfo(s"DAGs: ${dags.size}")
+    rest1.groupBy { _.getClass }.foreach {
+      case (cl, globals) if cl == classOf[ComputeContainer]=>
+        sinfo(s"PCUs: ${globals.size}")
+      case (cl, globals) if cl == classOf[MemoryContainer]=>
+        sinfo(s"PMUs: ${globals.size}")
+      case (cl, globals) if cl == classOf[ArgFringe] =>
+        sinfo(s"ArgFringe: ${globals.size}")
+      case (cl, globals) if cl == classOf[DRAMFringe] =>
+        sinfo(s"MCs: ${globals.size}")
+    }
+  }
+
+  def reportUsage(x:Any):Unit =  x match {
+    case Right(m) => reportUsage(m)
+    case m:TopMap => m.fields.foreach(reportUsage)
+    case m:CUMap =>  reportUsage(m)
     case _ => 
   }
 
-  def report(x:CUMap) = {
+  def reportUsage(x:CUMap) = {
+    sinfo(s"Usage: ")
     val cus = spadeTop.cus
     var groups = cus.groupBy { _.params.get }
     groups = groups.filterNot { case (param:ArgFringeParam, _) => true; case _ => false }
@@ -36,7 +56,7 @@ class ResourceReport(implicit design:PIR) extends PIRTraversal with CSVCodegen w
       row(s"Used") = used.size
       row(s"Total") = cus.size
       row(s"Usage") = usage
-      sinfo(s"${quote(param)} Usage: ${usage} %")
+      sinfo(s"${quote(param)} Usage: (${used.size}/${cus.size}) ${usage} %")
     }
   }
 

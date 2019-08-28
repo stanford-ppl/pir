@@ -14,14 +14,15 @@ def main():
     parser.add_argument('-c', '--conti', default=False, action='store_true', 
         help='Continue from previous regression')
     (opts, args) = parser.parse_known_args()
-    os.system('mkdir -p logs/')
+    if not os.path.exists("logs/"):
+        os.mkdir('logs/')
     os.system('sbt "; project pir; publishAll"')
     apps = opts.app
     if apps is None: apps = []
     if opts.project is None:
         opts.project = ['pirTest', 'test']
     if (opts.backend is None):
-        opts.backend = ['Tst', 'MDTst', 'MDHTst']
+        opts.backend = ['Tst']
     for project in opts.project:
         for backend in opts.backend:
             gendir = backend
@@ -29,8 +30,8 @@ def main():
                 gendir = backend + "_" + project
             if not opts.conti:
                 os.system('rm -r ../gen/{}'.format(gendir))
-            os.system('bin/spatial -t {} -p {} -b {} {} --save=false --dot=false --debug=false'.format(opts.thread, project,backend,
-                ' '.join(['-a ' + a for a in apps])))
+            os.system('bin/spatial -t {} -p {} -b {} {} {} --save=false --dot=false --debug=false'.format(opts.thread, project,backend,
+                ' '.join(['-a ' + a for a in apps]), ' '.join(args)))
             os.system('bin/log ../gen/{} -d -p {} -b {}'.format(gendir, project,
                 opts.backend))
             os.system('bin/log ../gen/{} -s -p {} -b {}'.format(gendir, project,

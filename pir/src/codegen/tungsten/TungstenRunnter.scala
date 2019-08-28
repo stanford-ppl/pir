@@ -24,7 +24,7 @@ class TungstenRunner(implicit compiler: PIR) extends PIRPass with Printer {
     deleteFile(tstLog)
     var failed = false
     val exitCode = shellProcess("tungsten", s"bash runtst.sh", config.appDir, tstLog) { line =>
-      if (line.contains("error")) {
+      if (line.contains("error") || line.contains("exception")) {
         failed = true
         info(Console.RED, s"tungsten", line)
       } else if (line.contains("PASS: true")) {
@@ -39,7 +39,8 @@ class TungstenRunner(implicit compiler: PIR) extends PIRPass with Printer {
     if (exitCode != 0 || failed) {
       fail(s"Tungsten failed. details in $tstLog")
     }
+    shell(header=Some("tungsten"), command=s"python bin/annotate.py", cwd=Some(config.tstOut))
+    
   }
 
 }
-

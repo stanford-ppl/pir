@@ -14,6 +14,7 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
   with GraphUtilImplicits 
   with CollectorImplicit
   with AnalysisUtil
+  with RuntimeUtil
   {
 
   override def states = compiler.pirenv.states
@@ -22,8 +23,8 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
   override def handle(e:Throwable) = {
     super.handle(e)
     if (config.enableDot && config.debug) {
-      new PIRIRDotGen(s"top_err.dot").run
-      new PIRCtxDotGen(s"ctx_err.dot").run
+      new PIRIRDotGen(s"top.dot").run
+      new PIRCtxDotGen(s"ctx.dot").run
     }
   }
 
@@ -44,7 +45,11 @@ trait ControlTreeTraversal extends PIRPass {
   type N = ControlTree
   def top = compiler.pirenv.pirTop.topCtrl
 }
-trait PIRTransformer extends PIRPass with Transformer {
+trait PIRTransformer extends PIRPass with Transformer 
+with GarbageCollector
+with RewriteUtil
+with BufferAnalyzer
+{
   override def mirrorField[N<:Node[N]](
     nodes:Iterable[FieldNode[N]], 
     mapping:mutable.Map[IR,IR]
@@ -59,6 +64,22 @@ trait PIRTransformer extends PIRPass with Transformer {
     input.vecMeta.reset
     super.swapConnection(input, from, to)
     input.inferVec
+    free(from.src.as[PIRNode])
+  }
+
+  override def swapOutput[N<:Node[N]](from:Output[N], to:Output[N]) = {
+    super.swapOutput(from, to)
+    free(from.src.as[PIRNode])
+  }
+
+  override def swapInput[N<:Node[N]](node:Node[N], from:Output[N], to:Output[N]):Unit = {
+    super.swapInput(node, from, to)
+    free(from.src.as[PIRNode])
+  }
+
+  override def swapInput[N<:Node[N]](node:Node[N], from:Node[N], to:Output[N]):Unit = {
+    super.swapInput(node, from, to)
+    free(from.as[PIRNode])
   }
 
   override def mirrorN(
@@ -74,4 +95,21 @@ trait PIRTransformer extends PIRPass with Transformer {
     }
     m
   }
+
+  def stage[T<:PIRNode](n:T):T = dbgblk(s"stage($n)"){
+    val tp = n.inferTp
+    n.localIns.foreach { in => 
+      in.inferVec
+      in.inferTp
+    }
+    val vec = n.inferVec
+    dbgn(n)
+    n
+  }
+
+  def stage(out:Output[PIRNode]):Output[PIRNode] = {
+    stage(out.src)
+    rewriteRules.foldLeft(out) { (out, rule) => rule.apply(out).as[Output[PIRNode]] }
+  }
+
 }

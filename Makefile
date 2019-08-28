@@ -1,12 +1,16 @@
 all: pir
 
 env:
-	virtualenv env
+	virtualenv -p python2 env
+	env/bin/pip install -r requirements.txt
 
 clean:
 	#rm -rf out
 	#rm -f docs/api
 	sbt clean
+	make -C tungsten/ clean
+	make -C plastiroute/ clean
+	make -C plastisim/ clean
 
 distclean: clean
 	make -C docs/manual clean
@@ -15,7 +19,7 @@ tag:
 	ctags -R src/ apps/
 	#sbt gen-ctags
 
-install: pir psim proute tungsten
+install: pir psim proute tungsten env
 
 update: pir psim-update proute-update tungsten-update
 

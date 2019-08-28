@@ -14,8 +14,6 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with PIRTr
 
   val liveMap = mutable.Map[N, Boolean]()
 
-  var depDupHasRun = false
-
   override def resetTraversal = {
     super.resetTraversal
     liveMap.clear
@@ -29,14 +27,6 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with PIRTr
     val toRemove = liveMap.flatMap { case (n, false) => Some(n); case (n, true) => None }
     removeNodes(toRemove)
   }
-
-  //override def depFunc(n:N) = n match {
-    //case n:Controller => 
-      //n.ctx.get.children.collect{ case c:Controller => c }.flatMap { _.depeds }
-    //case n => 
-      //val ctrler = n.collectUp[Controller]().headOption
-      //if (ctrler.nonEmpty) List(ctrler.head) else super.depFunc(n)
-  //}
 
   // Breaking loop in traversal
   override def visitIn(n:N):List[N] = n match {
@@ -73,19 +63,9 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with PIRTr
     }
   }
 
-  def isLive(n:N):Option[Boolean] = n match {
+  override def isLive(n:N):Option[Boolean] = n match {
     case n if liveMap.contains(n) => Some(liveMap(n))
-    case n:HostRead => Some(true)
-    case n:HostWrite => Some(true)
-    case n:TokenRead => Some(true)
-    case n:AssertIf => Some(true)
-    case n:ExitIf => Some(true)
-    case n:FringeStreamRead => Some(true)
-    case n:HostInController => Some(true)
-    case n:HostOutController => Some(true)
-    case n:Controller if !depDupHasRun => Some(true)
-    case n if n.isUnder[Controller] && !depDupHasRun => Some(true)
-    case n => None
+    case n => super.isLive(n)
   }
 
   override def isDepFree(n:N) = 

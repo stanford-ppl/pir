@@ -37,8 +37,10 @@ NC        = '\033[0m'
 def cstr(color, msg):
     return "{}{}{}".format(color, msg, NC)
 
+parsers = []
 class Parser:
-    def __init__(self, key, pattern, parseLambda, default=None, parsers=None, logs=[]):
+    def __init__(self, key, pattern, parseLambda, 
+            default=None, logs=[], prefix=False):
         self.key = key
         if type(pattern) == list:
             patterns = pattern
@@ -47,26 +49,30 @@ class Parser:
         self.patterns = patterns
         self.parseLambda = parseLambda
         self.default = default
-        if parsers is not None:
-            parsers.append(self)
+        parsers.append(self)
         self.logs = logs
+        self.prefix = prefix or len(self.logs) > 1
+
+    def getKey(self,log):
+        if not self.prefix: return self.key
+        else: return log + "_" + self.key
 
     def setDefault(self, conf, log):
-        conf[log + "_" + self.key] = self.default
+        conf[self.getKey(log)] = self.default
 
     def parse(self, found, conf, log):
         lines = [line for pat in self.patterns for line in found[pat]]
         if len(lines) != 0:
-            conf[log + "_" + self.key] = self.parseLambda(lines)
+            conf[self.getKey(log)] = self.parseLambda(lines, conf)
 
-def parseLog(log, parsers, conf):
-    parsers = [p for p in parsers if log in p.logs]
-    for parser in parsers:
+def parseLog(log, conf):
+    ps = [p for p in parsers if log in p.logs]
+    for parser in ps:
         parser.setDefault(conf, log)
     if not os.path.exists(conf[log]): return
-    patterns = [pat for parser in parsers for pat in parser.patterns] 
+    patterns = [pat for parser in ps for pat in parser.patterns] 
     found = grep(conf[log], patterns)
-    for parser in parsers:
+    for parser in ps:
         parser.parse(found, conf, log)
 
 def getApps(backend, opts):
@@ -90,19 +96,19 @@ def getBackends():
     return backends
 
 def cat(path):
-    print(cstr(CYAN,path + " ==============="))
+    print(cstr(CYAN,os.path.abspath(path) + " ==============="))
     if not os.path.exists(path): return
     with open(path, "r") as f:
         for line in f:
             sys.stdout.write(line)
 
 def tail(path):
-    print(cstr(CYAN,path + " ==============="))
+    print(cstr(CYAN,os.path.abspath(path) + " ==============="))
     if not os.path.exists(path): return
     subprocess.call(["tail", path])
 
 def vim(path):
-    print(cstr(CYAN,path + " ==============="))
+    print(cstr(CYAN,os.path.abspath(path) + " ==============="))
     if not os.path.exists(path): return
     subprocess.call(["vim", path])
 

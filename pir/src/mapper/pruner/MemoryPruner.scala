@@ -2,6 +2,7 @@ package pir
 package mapper
 
 import pir.node._
+import pir.util._
 import prism.graph._
 import spade.param._
 import prism.collection.immutable._
@@ -21,6 +22,8 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
         dbg(s"kcost=$kcost")
         dbg(s"vcost=$vcost")
         val ks = split(k, kcost, vcost).toSet
+        info(s"Split $k into ${ks.size} CUs $kcost")
+        //breakPoint(s"$k")
         newFG(fg, k, ks, vs)
       case x => super.recover(x)
     }
@@ -28,11 +31,15 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
 
   def split(k:CUMap.K, kcost:SRAMCost, vcost:SRAMCost):List[GlobalContainer] = dbgblk(s"split($k)"){
     val mem = k.collectDown[Memory]().head
-    val parts = splitBanks(kcost, vcost)
+    val parts = splitBanks(mem.accessGroup.get, kcost, vcost).toList
     val totalBanks = parts.map { _.size }.sum
     val bankMult = totalBanks /! kcost.bank
     val numCU = parts.size
 
+    dbg(s"parts:")
+    parts.foreach { part =>
+      dbg(part.mkString(","))
+    }
     dbg(s"bankMult=$bankMult bankMult=$bankMult totalBanks=$totalBanks")
 
     val nodes = k.descendentTree
@@ -60,23 +67,11 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     mks.foreach { nk =>
       insertGlobalOutput(nk)
     }
+    removeNodes(k.collectDown[TokenRead]())
+    free(k)
     //breakPoint(s"$k, $mks")
-    val usedByRemove = k.accum(visitFunc = { n =>
-      val ns = visitGlobalOut(n)
-      n.to[Shuffle].foreach { n =>
-        if (ns.nonEmpty) err(s"Deleted Shuffle $n when remove use of deleted MemoryContainer $k are still used by $ns")
-      }
-      ns
-    })
-    removeNodes(nodes)
-    removeNodes(usedByRemove)
-    //breakPoint(s"$k, $mks")
+    mks.foreach { mk => free(mk.collectChildren[GlobalOutput]) }
     mks
-  }
-
-  def removeUnusedConst(global:CUMap.K) = {
-    val consts = global.collectDown[Const]().filter { !_.out.isConnected }
-    removeNodes(consts)
   }
 
   def visitIn(n:PIRNode) = n match {
@@ -90,10 +85,11 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     reads.groupBy { _.global.get }.foreach { case (global, reads) =>
       reads.groupBy { _.ctx.get }.foreach { case (ctx, reads) =>
         val read = assertOne(reads, s"reads of $br in $ctx")
-          within(ctx, read.ctrl.get) {
-            read.out.T.foreach { deped =>
-              dbgblk(s"Merge $read => $deped in $ctx") {
-              val (toSwap, toMerge) = deped match {
+        val rctrl = read.ctrl.get
+        within(ctx, rctrl) {
+          read.out.T.foreach { deped =>
+            dbgblk(s"Merge $read => $deped in $ctx") {
+              val (toSwap:Output[PIRNode], toMerge) = deped match {
                 case Unbox(shuffle:Shuffle, from, Const(toBanks), base) => 
                   dbg(s"Read by $shuffle.to(Const($toBanks))")
                   val toMerge = mappings.map { mapping => 
@@ -151,16 +147,16 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
           }
           bufferInput(ctx)
         }
-        dupDeps(ctx, from=None).values.foreach { _.as[PIRNode].ctrl(read.ctrl.get,reset=true) }
+        dupDeps(ctx, from=None).values.foreach { _.as[PIRNode].ctrl(rctrl,reset=true) }
       }
       insertGlobalInput(global)
-      removeUnusedConst(global)
     }
   }
 }
 
 trait BankPartitioner extends Logging {
-  def splitBanks(kcost:SRAMCost, vcost:SRAMCost) = {
+
+  def splitBanks(accessGroup:ListBuffer[List[Int]], kcost:SRAMCost, vcost:SRAMCost) = {
     var sizePerBank = kcost.size /! kcost.bank
     var cuPerBank = sizePerBank /! vcost.size
     var bankPerCU = Math.min(vcost.size / sizePerBank, vcost.bank)
@@ -177,10 +173,74 @@ trait BankPartitioner extends Logging {
     bankPerCU = Math.min(vcost.size / sizePerBank, vcost.bank)
 
     dbg(s"totalBanks=$totalBanks, numCU=$numCU, bankMult=$bankMult, bankPerCU=$bankPerCU")
-    (0 until totalBanks).grouped(bankPerCU).toList
+    partitionBanks(accessGroup, totalBanks, bankPerCU)
   }
+
+  // Objective: 
+  // Partition totalBanks into subgroups such that each group cannot exceed bankPerCU while 
+  // 1. minimizing # of groups
+  // 2. minimizing # of groups accessed by access bundles
+  def partitionBanks(accessGroup:ListBuffer[List[Int]], totalBanks:Int, bankPerCU:Int):Set[List[Int]] = {
+    // ListBuffer[List[Int]]: List of staticially analyzed access bundle.
+    dbg(s"accessGroup:")
+    accessGroup.foreach { access =>
+      dbg(s"${access.mkString(",")}")
+    }
+    
+    // Map [AccessGroup, List[Bank]]
+    val touchedBy = (0 until totalBanks).groupBy { bank =>
+      accessGroup.zipWithIndex.flatMap { case (banks, accessId) => if (banks.contains(bank)) Some(accessId) else None }
+    }
+    val partition = touchedBy.map { case (aids, banks) => (aids, banks) }
+
+    // TODO: use union find to speedup this
+    var groups:Set[List[Int]] = partition.flatMap { case (aids, banks) =>
+      dbg(s"aids:$aids banks:$banks ")
+      if (aids.nonEmpty)  {
+        assert(banks.size <= bankPerCU, s"aids=$aids, banks=$banks, bankPerCU:$bankPerCU")
+        List(banks.toList)
+      } else {
+        banks.grouped(bankPerCU).map{_.toList}.toList
+      }
+    }.toSet
+
+    def groupsOf(aid:Int):Set[List[Int]] = {
+      accessGroup(aid).map { bank => groups.find {_.contains(bank) }.get }.toSet
+    }
+
+    (0 until accessGroup.size).sortBy { aid => groupsOf(aid).size }.foreach { aid =>
+      val accessGrps = groupsOf(aid)
+      groups = merge(accessGrps, bankPerCU) ++ groups.filterNot { accessGrps.contains(_) }
+    }
+
+    groups = merge(groups, bankPerCU)
+
+    groups
+  }
+
+  private def merge(unmergable:Set[List[Int]], mergable:Set[List[Int]], sizeLimit:Int):Set[List[Int]] = {
+    val group = if (mergable.size == 0) unmergable else {
+      val head = mergable.maxBy { _.size }
+      val rest = mergable - head
+      rest.find { _.size + head.size <= sizeLimit }.fold {
+        merge(unmergable + head, rest, sizeLimit)
+      } { mergeWith =>
+        val merged = head ++ mergeWith
+        if (head.size + mergeWith.size == sizeLimit) {
+          merge(unmergable + merged, rest.filterNot { _ == mergeWith}, sizeLimit)
+        } else {
+          merge(unmergable, rest.map { case `mergeWith` => merged; case grp => grp }, sizeLimit)
+        }
+      }
+    }
+    group.map { _.sorted }
+  }
+
+  // Merge lists in list with sizeLimit for each sublist until they cannot be further merged
+  def merge(list:Set[List[Int]], sizeLimit:Int):Set[List[Int]] = {
+    val (unmergable, mergable) = list.partition { _.size >= sizeLimit }
+    merge(unmergable, mergable, sizeLimit)
+  }
+
 }
 
-case class SRAMBankNotFit(k:CUMap.K, bank:Int) extends MappingFailure {
-  val msg = s"BankNotFit at key=$k. Number of banks=$bank"
-}

@@ -6,16 +6,15 @@ import prism.graph._
 import prism.util._
 import scala.collection.mutable
 
-trait AnalysisUtil extends Logging { self:PIRPass =>
+trait AnalysisUtil { self:PIRPass =>
 
   def noPlaceAndRoute = spadeParam.isAsic || spadeParam.isP2P || spadeParam.isInf
 
   implicit class CtxUtil(ctx:Context) {
-    def reads:Seq[LocalOutAccess] = ctx.collectChildren[LocalOutAccess].filterNot { _.isLocal }
-    def writes:Seq[LocalInAccess] = ctx.collectChildren[LocalInAccess].filterNot { _.isLocal }
+    def reads:Seq[LocalOutAccess] = ctx.collectDown[LocalOutAccess]().filterNot { _.isLocal }
+    def writes:Seq[LocalInAccess] = ctx.collectDown[LocalInAccess]().filterNot { _.isLocal }
     def ctrs:Seq[Counter] = ctx.collectDown[Counter]()
-    def cb = ctx.collectFirstChild[ControlBlock]
-    def ctrlers = ctx.cb.map { _.collectChildren[Controller] }.getOrElse(Nil)
+    def ctrlers = ctx.collectDown[Controller]()
     def ctrler(ctrl:ControlTree) = {
       assertOneOrLess(
         ctx.ctrlers.filter { _.ctrl.get == ctrl }, 
@@ -48,27 +47,27 @@ trait AnalysisUtil extends Logging { self:PIRPass =>
   implicit class NodeRuntimeOp[N<:IR](n:N) {
     def vecMeta:MetadataLike[Int] = n.getMeta[Int]("vec")
     def inferVec:Option[Int] = n.getMeta[Int]("vec").orElseUpdate { compVec(n) }
-    def getVec:Int = n.inferVec.getOrElse(throw PIRException(s"Don't know how to infer vec of $n"))
+    def getVec:Int = n.inferVec.getOrElse(throw PIRException(s"Don't know how to infer vec of ${dquote(n)}"))
     def setVec(v:Int) = n.getMeta[Int]("vec").apply(v)
     def inferTp:Option[BitType] = n.getMeta[BitType]("tp").orElseUpdate { compType(n) }
-    def getTp:BitType = n.inferTp.getOrElse(throw PIRException(s"Don't know how to infer type of $n"))
+    def getTp:BitType = n.inferTp.getOrElse(throw PIRException(s"Don't know how to infer type of ${dquote(n)}"))
     def setTp(v:BitType) = n.getMeta[BitType]("tp").apply(v)
     def setTp(v:Option[BitType]) = n.getMeta[BitType]("tp").update(v)
   }
 
-  val StreamWriteContext = MatchRule[Context, FringeStreamWrite] { n =>
+  val StreamWriteContext = MatchRule[Context, FringeStreamWrite] { case n =>
     n.collectFirstChild[FringeStreamWrite]
   }
 
-  val StreamReadContext = MatchRule[Context, FringeStreamRead] { n =>
+  val StreamReadContext = MatchRule[Context, FringeStreamRead] { case n =>
     n.collectFirstChild[FringeStreamRead]
   }
 
-  val DRAMContext = MatchRule[Context, DRAMCommand] { n =>
+  val DRAMContext = MatchRule[Context, DRAMCommand] { case n =>
     n.collectFirstChild[DRAMCommand]
   }
 
-  val UnderControlBlock = MatchRule[PIRNode, ControlBlock] { n =>
+  val UnderControlBlock = MatchRule[PIRNode, ControlBlock] { case n =>
     n.ancestors.collectFirst { case n:ControlBlock => n }
   }
 
@@ -106,7 +105,12 @@ trait AnalysisUtil extends Logging { self:PIRPass =>
       case n:TokenWrite => Some(1)
       case n:TokenRead => Some(1)
       case n:MemWrite => n.data.inferVec
-      case n:MemRead => n.broadcast.v.map { _.size }.orElse(n.mem.banks.get.headOption)
+      case WithMem(n:MemRead, mem:Reg) => 
+        val b = n.mem.banks.get.head
+        Some(b)
+      //case WithMem(n:MemRead, mem:FIFO) => Some(n.getCtrl.par.get) // doesn't work for stream in
+      //out under stream controller
+      case WithMem(n:MemRead, mem:FIFO) => n.broadcast.v.map { _.size }.orElse(Some(n.mem.banks.get.head))
       case n:BankedWrite => zipMap(n.data.inferVec, n.offset.inferVec) { case (a,b) => Math.max(a,b) }
       case n:BankedRead => n.offset.inferVec // Before lowering
       case n:FlatBankedAccess => Some(n.mem.nBanks)
@@ -116,14 +120,14 @@ trait AnalysisUtil extends Logging { self:PIRPass =>
       case n:PrintIf => n.msg.inferVec
       case n:AssertIf => n.msg.inferVec
       case n:ExitIf => n.msg.inferVec
-      case n@OpDef(Mux) => zipMap(n.inputs(1).inferVec, n.inputs(2).inferVec) { case (a,b) => Math.max(a,b) }
-      case n@OpDef(_:FixOp | _:FltOp | _:BitOp | _:TextOp | BitsAsData) => flatReduce(n.inputs.map{ _.inferVec}) { case (a,b) => Math.max(a,b) }
+      case n@OpDef(_:FixOp | _:FltOp | _:BitOp | _:TextOp | Mux | BitsAsData) => flatReduce(n.inputs.map{ _.inferVec}) { case (a,b) => Math.max(a,b) }
       case n:Shuffle => n.to.T.inferVec
       case n:GlobalOutput => n.in.T.inferVec
       // During staging time GlobalInput might temporarily not connect to GlobalOutput
       case n:GlobalInput => n.in.inferVec
       case InputField(n:Shuffle, "from" | "base") => zipMap(n.base.singleConnected.get.inferVec, n.from.singleConnected.get.inferVec) { case (a,b) => Math.max(a,b) }
-      case InputField(n:BufferWrite, "en") => Some(1)
+      case n@InputField(_:LocalInAccess, "en" | "done") => n.as[Input[PIRNode]].connected.map { o => o.inferVec }.maxOption.getOrElse(Some(1))
+      case InputField(n:FlatBankedAccess, "done") => Some(1)
       case InputField(n:FlatBankedAccess, field) => Some(n.mem.T.nBanks)
       case InputField(n:Controller, "en" | "parentEn") => Some(1)
       case n:Input[_] if n.isConnected && n.connected.size==1 => n.singleConnected.get.inferVec
@@ -160,25 +164,16 @@ trait AnalysisUtil extends Logging { self:PIRPass =>
       case Const(_:Boolean) => Some(Bool)
       case Const(_:Int) => Some(Fix(true, 32, 0))
       case Const(_:Float) => Some(Flt(23, 8))
+      case Const(_:Double) => Some(Flt(23, 8))
       case Const(_:String) => Some(Text)
       case Const((_:Boolean)::_) => Some(Bool)
       case Const((_:Int)::_) => Some(Fix(true, 32, 0))
       case Const((_:Float)::_) => Some(Flt(23, 8))
-      case InputField(n, "en" | "parentEn") => Some(Bool)
+      case Const((_:Double)::_) => Some(Flt(23, 8))
+      case InputField(n, "en" | "parentEn" | "done") => Some(Bool)
       case n:Input[_] if n.isConnected && n.connected.size == 1 => n.singleConnected.get.inferTp
       case n:Any => None
     }
-  }
-
-  def stage[T<:PIRNode](n:T):T = dbgblk(s"stage($n)"){
-    val tp = n.inferTp
-    n.localIns.foreach { in => 
-      in.inferVec
-      in.inferTp
-    }
-    val vec = n.inferVec
-    dbgn(n)
-    n
   }
 
   def quoteSrcCtx(n:PIRNode) = {

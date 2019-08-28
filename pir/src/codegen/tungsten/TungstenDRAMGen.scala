@@ -9,16 +9,29 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
 
   override def initPass = {
     super.initPass
-    val dramFile = buildPath(config.tstHome, "ini", "DRAM.ini")
-    val systemFile = buildPath(config.tstHome, "ini", "system.ini")
-    genTopMember("DRAMController", "DRAM", Seq("DRAM".qstr, dramFile.qstr, systemFile.qstr, ".".qstr, s"{}", s"{}"), extern=true, end=false, escape=true)
+    // DRAMSim
+    //val dramFile = buildPath(config.tstHome, "ini", "DRAM.ini")
+    //val systemFile = buildPath(config.tstHome, "ini", "system.ini")
+    //copyFile(dramFile, buildPath(config.tstOut, "DRAM.ini"))
+    //copyFile(systemFile, buildPath(config.tstOut, "system.ini"))
+    //genTopMember("DRAMController", "DRAM", Seq("DRAM".qstr, "DRAM.ini".qstr, "system.ini".qstr, ".".qstr, s"{}", s"{}"), extern=true, end=false, escape=true)
+
+    // Ramulator 
+    val configFile = s"${spadeParam.memTech}-config.cfg"
+    val configPath = buildPath(config.tstHome, "configs", configFile)
+    copyFile(configPath, buildPath(config.tstOut, configFile))
+    genTopMember("DRAMController", "DRAM", Seq("DRAM".qstr, configFile.qstr, s"{}", s"{}"), extern=true, end=false, escape=true)
   }
 
   override def emitNode(n:N) = n match {
-    case DRAMContext(cmd) => super.visitNode(n)
+    case DRAMContext(cmd) => 
+      enterBuffer("dummy"){ 
+        super.visitNode(n)
+      }
+      getBuffer("dummy").foreach { _.reset }
 
     case n:DRAMAddr =>
-      emitln(s"${n.qtp} $n = (${n.qtp}) ${n.dram.sname.get};")
+      declare(n.qtp, n.qref, s"(${n.qtp}) ${n.dram.sname.get}")
 
     case n:FringeDenseLoad =>
       val offset = nameOf(n.offset.T.as[BufferRead]).&

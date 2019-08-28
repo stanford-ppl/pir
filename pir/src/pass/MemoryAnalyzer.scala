@@ -5,13 +5,13 @@ import pir.node._
 import pir.mapper._
 import prism.graph._
 
-trait MemoryAnalyzer extends PIRTransformer { self:BufferAnalyzer =>
+trait MemoryAnalyzer { self:PIRTransformer =>
 
-  def insertToken(fctx:Context, tctx:Context):TokenRead = {
+  def insertToken(fctx:Context, tctx:Context, isFIFO:Boolean=false):TokenRead = {
     val fctrl = fctx.ctrl.get
     val tctrl = tctx.ctrl.get
     dbgblk(s"InsertToken(fctx=$fctx($fctrl), tctx=$tctx($tctrl))") {
-      val (enq, deq) = compEnqDeq(isFIFO=false, fctx, tctx, None, Nil)
+      val (enq, deq) = compEnqDeq(isFIFO=isFIFO, fctx, tctx, None, Nil)
       val write = within(fctx, fctrl) {
         allocate[TokenWrite](_.done.isConnectedTo(enq)) {
           TokenWrite().done(enq)
@@ -33,10 +33,11 @@ trait MemoryAnalyzer extends PIRTransformer { self:BufferAnalyzer =>
     dbgblk(s"compEnqDeq(isFIFO=$isFIFO, o=${dquote(o)}, i=${dquote(i)})") {
       dbg(s"out=$from.$out")
       dbg(s"ins=${ins.map { in => s"${in.src}.$in"}.mkString(",")}")
-      (o, i) match {
-        case (o,i) if isFIFO => (valid(o, octx), valid(i, ictx))
-        case (o,i) if o == i => (done(o, octx), done(i, ictx))
-        case (o,i) =>
+      (out, ins) match {
+        case (out,ins) if isFIFO => (valid(o, octx), valid(i, ictx))
+        case (out,Seq(InputField(n:LoopController, "stopWhen"))) if o == i => (childDone(o, octx), childDone(i, ictx))
+        case (out,ins) if o == i => (done(o, octx), done(i, ictx)) // This should be childDone other than hack for block reduce token
+        case (out,ins) =>
           val lca = leastCommonAncesstor(o,i).get
           val oAncesstors = o.ancestorTree
           val iAncesstors = i.ancestorTree
@@ -46,9 +47,9 @@ trait MemoryAnalyzer extends PIRTransformer { self:BufferAnalyzer =>
           // in case of one ctrl is ancesstor of another
           def octrl = oAncesstors(oidx-1)
           def ictrl = iAncesstors(iidx-1)
-          if (lca == o)      (childDone(o, octx), done(ictrl, ictx))
-          else if (lca == i) (done(octrl, octx), childDone(i, ictx))
-          else               (done(octrl, octx), done(ictrl, ictx))
+          val enq = if (lca == o) childDone(o, octx) else done(octrl, octx)
+          val deq = if (lca == i) childDone(i, ictx) else done(ictrl, ictx)
+          (enq,deq)
       }
     }
   }
@@ -61,12 +62,14 @@ trait MemoryAnalyzer extends PIRTransformer { self:BufferAnalyzer =>
       ctrl.ctrler.get.valid
     } else {
        //Distributed controller
-      assertOneOrLess(ctx.ctrlers.filter { _.getCtrl == ctrl }, 
-        s"$ctrl.valid in $ctx").map { _.valid }.getOrElse {
-          //assert(this.isInstanceOf[CUPruner], s"$ctx has no Controller for $ctrl")
-          dbg(s"$ctx has no Controller for $ctrl. Use Const(true) instead")
-          within(ctx, ctrl) { allocConst(true).out }
-        }
+      //assertOneOrLess(ctx.ctrlers.filter { _.getCtrl == ctrl }, 
+        //s"$ctrl.valid in $ctx").map { _.valid }.getOrElse {
+          ////assert(this.isInstanceOf[CUPruner], s"$ctx has no Controller for $ctrl")
+          //val c = within(ctx, ctrl) { allocConst(true) }
+          //dbg(s"$ctx has no Controller for $ctrl. Use $c instead")
+          //c.out
+        //}
+      ctx.getCtrler(ctrl).valid
     }
   }
 
@@ -109,8 +112,15 @@ trait MemoryAnalyzer extends PIRTransformer { self:BufferAnalyzer =>
     }
   }
 
+  private def equalValue(a:Any, b:Any):Boolean = {
+    (a,b) match {
+      case (a:Iterable[_], b:Iterable[_]) => a.size == b.size && (a,b).zipped.forall { (a,b) => equalValue(a,b) }
+      case (a,b) => a == b && (a.getClass == b.getClass)
+    }
+  }
+
   def allocConst(value:Any) = allocate[Const] { c => 
-    c.value == value &&
+    equalValue(c.value,value) &&
     stackTop[Ctrl].fold(true) { ctrl => c.getCtrl == ctrl }
   } { 
     Const(value)

@@ -35,6 +35,7 @@ trait Printer extends FormatPrinter {
       toStream.flush
       outputStream.reset
     }
+    def reset = outputStream.reset
   }
   case class FileWriter(filePath:String, append:Boolean) extends StreamWriter {
     override lazy val outputStream:FileOutputStream = {
@@ -109,6 +110,9 @@ trait Printer extends FormatPrinter {
   def closeStream:Option[StreamWriter] = {
     popStream.map { stream =>
       stream.close
+      streamMap.find { case (_,`stream`) => true; case _ => false }.foreach {
+        case (k,v) => streamMap -= k
+      }
       stream
     }
   }

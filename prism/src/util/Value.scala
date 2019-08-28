@@ -33,7 +33,7 @@ object Value {
 
     def /! (v:Value[A]):Value[A] = {
       v match {
-        case Infinite => throw PIRException(s"Divide by Infinite")
+        case Infinite => Unknown
         case v => t.zipMap(v) { (t,v) => t /! v }
       }
     }

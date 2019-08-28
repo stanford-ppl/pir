@@ -27,6 +27,7 @@ trait DefaultParamLoader extends Transformer {
           case ("pattern", x, arg) if optIs("net","inf") => transform(InfinatePattern())
           case ("pattern", x, arg) if optIs("pattern","checkerboard") => transform(Checkerboard())
           case ("pattern", x, arg) if optIs("pattern","mcmcstrip") => transform(MCMColumnStrip())
+          case ("memTech", x, arg) => getOptOrElse("mem-tech", arg)
           case (_, x, arg) => transform(arg)
         }
       case n:Checkerboard =>

@@ -4,7 +4,7 @@ package pass
 import pir.node._
 import prism.graph._
 
-trait BufferAnalyzer extends MemoryAnalyzer {
+trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
   /*
    * escaped node will be buffered between dep ctx and scope
    * */
@@ -106,8 +106,9 @@ trait BufferAnalyzer extends MemoryAnalyzer {
       out.src match {
         case dep:GlobalInput if dep.isDescendentOf(global) => dep
         case dep:GlobalInput => 
-          ins.foreach { in => swapConnection(in, out, dep.in.T.out) }
-          insertGlobalInput(global, dep.in.T.out, ins)
+          val gout = dep.in.T.out
+          ins.foreach { in => swapConnection(in, out, gout) }
+          insertGlobalInput(global, gout, ins)
         case dep =>
           val gin = within(global) { 
             allocate[GlobalInput] { _.in.isConnectedTo(out) } { stage(GlobalInput().in(out)) } 
@@ -150,7 +151,7 @@ trait BufferAnalyzer extends MemoryAnalyzer {
 
 }
 
-class BufferInsertion(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with BufferAnalyzer {
+class BufferInsertion(implicit compiler:PIR) extends PIRTraversal with PIRTransformer with SiblingFirstTraversal with UnitTraversal {
   val forward = false
 
   override def visitNode(n:N) = n match {

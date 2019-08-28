@@ -4,6 +4,7 @@ package codegen
 import pir.node._
 import prism.codegen._
 import prism.util._
+import prism.graph._
 
 class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDotCodegen { self =>
   def fileName = fn
@@ -67,6 +68,7 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
   }
 
   override def color(attr:DotAttr, n:N) = n match {
+    case n:LocalOutAccess if n.nonBlocking => attr.fillcolor("darkorange").style(filled)
     case n:LocalOutAccess => attr.fillcolor(gold).style(filled)
     case n:Memory => attr.fillcolor(chartreuse).style(filled)
     case n:GlobalInput if n.psimState == Some(".") && n.out.T.map { _.ctx.get}.exists { _.psimState != Some("DONE") } => attr.setNode.fillcolor("firebrick1").style(filled)
@@ -125,9 +127,18 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
 
 }
 
+class PIRTopDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fileName) {
+  override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
+    (from, to) match {
+      case (OutputField(from:GlobalOutput, _), InputField(to:GlobalInput,_)) =>
+      case (from, to) => super.emitEdge(from, to, attr)
+    }
+  }
+}
+
 class PIRCtxDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fileName) {
   override def visitFunc(n:N) = n match {
-    case n:Context => n.children.collect { case n:LocalAccess => n; case n:Access => n; case c:FringeCommand => c }
+    case n:Context => n.descendents.collect { case n:LocalAccess => n; case n:Access => n; case c:FringeCommand => c }.toList
     case n => super.visitFunc(n)
   }
 }
@@ -161,7 +172,10 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
     super.quote(n).foldAt(n.to[GlobalContainer]) { (q, n) =>
       val mem = n.collectDown[Memory]().map { quote(_) }
       if (mem.nonEmpty) s"${q}\n${mem.mkString(",")}" 
-      else q
+      else {
+        val scs = n.collectDown[Context]().flatMap { _.getCtrl.srcCtx.v }
+        s"${q}\n${scs.mkString("\n")}"
+      }
     }
   }
 

@@ -1,8 +1,12 @@
 import spatial.dsl._
 import spatial.lang.{FileBus,FileEOFBus}
 import utils.io.files._
+import scala.reflect._
+import spatial.metadata.bounds._
 
 @spatial abstract class StreamTemplate extends StreamHostTemplate with DSETest {
+  
+  val ipb:scala.Int
 
   // Takes in input stream and put last bit into a FIFO,
   // transpose the data into SRAM in size [batch x field]
@@ -12,7 +16,7 @@ import utils.io.files._
     val insram = SRAM[T](batch, field)
     val lastBit = FIFO[Bit](10)
     Foreach(0 until field) { f =>
-      Foreach(0 until batch par batch) { b =>
+      Foreach(0 until batch par ipb) { b =>
         val token = in.value
         insram(b,f) = token._1
         lastBit.enq(token._2, f==field-1)
@@ -24,21 +28,21 @@ import utils.io.files._
   def transposeTrainInput[T:Bits](in:StreamIn[Tup2[T,Bit]]) = {
     val trainX = SRAM[T](batch, field)
     val trainY = SRAM[T](batch)
-    val lastBit = SRAM[Bit](batch)
+    val lastBit = FIFO[Bit](10)
     Foreach(0 until field+1) { f =>
-      Foreach(0 until batch par batch) { b =>
+      Foreach(0 until batch par ipb) { b =>
         val token = in.value
         if (f != field) {
           trainX(b,f) = token._1
         }
         trainY(b) = token._1
         val lb = token._2
-        lastBit(b) = lb
+        lastBit.enq(lb, f==field)
       }
     }
     val lastBatch = Reg[Bit]
-    Reduce(lastBatch)(0 until batch par batch) { b =>
-      lastBit(b)
+    Reduce(lastBatch)(0 until batch par ipb) { b =>
+      lastBit.deq
     } { _ | _ }
     (trainX, trainY, lastBit, lastBatch.value)
   }
@@ -46,14 +50,15 @@ import utils.io.files._
   // Takes an output sram of size [batch] and last bit FIFO, send the data to a output stream
   // vectorized by batch
   def transposeOutput[T:Bits](outsram:SRAM1[T], lastBit:FIFO[Bit], out:StreamOut[Tup2[T,Bit]]) = {
-    Foreach(0 until batch par batch) { b =>
+    Foreach(0 until batch par ipb) { b =>
       out := Tup2(outsram(b), lastBit.deq)
     }
   }
 
 }
 
-@spatial abstract class StreamInference[HI:Numeric,TI:Bits,TO:Bits](implicit ev:Cast[Text,TO]) extends StreamTemplate {
+@spatial abstract class StreamInference[HI:Numeric:ClassTag,TI:Bits,TO:Bits](implicit ev:Cast[Text,TO]) extends StreamTemplate {
+  val transpose:scala.Boolean = true
   val tibits = implicitly[Bits[TI]]
   val tobits = implicitly[Bits[TO]]
 
@@ -61,6 +66,11 @@ import utils.io.files._
   def hostBody(inDataMat:Seq[Seq[HI]]):Seq[Any]
   // Takes in a 2D sram in shape [batch x field] and return a sram of size [batch]
   def accelBody(insram:SRAM2[TI]):SRAM1[TO]
+
+  def accelBody(in:StreamIn[Tup2[TI,Bit]], out:StreamOut[Tup2[TO,Bit]]) = {
+  }
+
+  def init:Unit = {}
 
   def main(args: Array[String]): Unit = {
     val inFile = buildPath(IR.config.genDir, "tungsten", "in.csv")
@@ -71,12 +81,18 @@ import utils.io.files._
     writeGoldStream(goldMat, goldFile)
 
     val in  = StreamIn[Tup2[TI,Bit]](FileEOFBus[Tup2[TI,Bit]](inFile))
+    in.count = numBatch * field
     val out = StreamOut[Tup2[TO,Bit]](FileEOFBus[Tup2[TO,Bit]](outFile))
     Accel{
       Foreach(*) { _ =>
-        val (insram, lastBit) = transposeInput(in)
-        val outsram = accelBody(insram)
-        transposeOutput(outsram, lastBit, out)
+        If(transpose) {
+          val (insram, lastBit) = transposeInput(in)
+          val outsram = accelBody(insram)
+          transposeOutput(outsram, lastBit, out)
+        }
+      }
+      If(!transpose) {
+        accelBody(in, out)
       }
     }
     val outData:Matrix[TO] = loadCSV2D[TO](outFile)

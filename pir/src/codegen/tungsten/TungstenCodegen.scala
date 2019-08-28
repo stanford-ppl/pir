@@ -8,12 +8,12 @@ import scala.collection.mutable
 
 class TungstenPIRGen(implicit design:PIR) extends TungstenCodegen 
   with TungstenTopGen 
-  with TungstenCtxGen 
   with TungstenDRAMGen 
+  with TungstenIOGen
+  with TungstenCtxGen 
   with TungstenControllerGen
   with TungstenOpGen
   with TungstenMemGen
-  with TungstenIOGen
   with TungstenStreamGen
 
 trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal with CppCodegen {
@@ -41,87 +41,32 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     case n => super.quote(n)
   }
 
-  override def visitIn(n:N) = n match {
-    case n:LocalOutAccess => Nil
-    case n => super.visitIn(n)
+  def filterEdge(out:Output[PIRNode], in:Input[PIRNode]) = (out,in) match {
+    case (_, InputField(_:LocalOutAccess, "done")) => false
+    case (OutputField(_:LocalInAccess, _), InputField(_:LocalOutAccess, _)) => false
+    case (_,InputField(_:LoopController, "stopWhen")) => false
+    case _ => true
   }
 
-  override def visitOut(n:N) = n match {
-    case n:LocalInAccess => super.visitOut(n).filterNot{_.isInstanceOf[LocalOutAccess]}
-    case n => super.visitOut(n)
+  override def visitIn(n:N) = n.siblingDeps(filter=Some(filterEdge)).toList
+
+  override def visitOut(n:N) = n.siblingDepeds(filter=Some(filterEdge)).toList
+
+  override def visitFunc(n:N):List[N] = n match {
+    case n:Top => n.children.flatMap { _.children }
+    case n => super.visitFunc(n)
   }
 
-  def varOf(n:PIRNode):(String, String) = n match {
-    case n:Context => (s"$n",s"ctx_$n")
-    case n => throw PIRException(s"Don't know varOf($n)")
+  override def selectFrontier(unvisited:List[N]) = {
+    throw PIRException(s"Loop in tungsten codegen. Unvisited ${unvisited}")
+  }
+
+  def varOf(n:PIRNode):(String, String) = {
+    throw PIRException(s"Don't know varOf($n)")
   }
   def nameOf(n:PIRNode) = varOf(n)._2
   def tpOf(n:PIRNode) = varOf(n)._1
 
-
-  def quoteEn(en:Input[PIRNode], i:Option[String]):String = {
-    var ens = en.connected.map { _.qidx(i) }
-    en match {
-      case InputField(_:BufferWrite | _:InAccess | _:RegAccumOp, "en") =>
-        val n = en.src
-        n.ctx.get.ctrler(n.getCtrl).foreach { ctrler =>
-          ens :+= ctrler.valid.qidx(i)
-        }
-      case _ =>
-    }
-    ens.reduceOption[String]{ _ + " & " + _ }.getOrElse("true")
-  }
-
-  def emitEn(en:Input[PIRNode]):Unit = {
-    emitVec(en) { i => quoteEn(en, i) }
-  }
-
-  /*
-   * Emit n as a vector even when n.getVec is 1
-   * */
-  def emitToVec(n:IR)(rhs: Option[String] => Any) = {
-    val vec = n.getVec
-    if (vec > 1) {
-      emitln(s"${n.qtp} ${n.qref}[${vec}] = {};")
-      emitBlock(s"for (int i = 0; i < ${vec}; i++)") {
-        emitln(s"${n.qref}[i] = ${rhs(Some("i"))};")
-      }
-    } else {
-      emitln(s"${n.qtp} ${n.qref}[] = {${rhs(None)}};")
-    }
-  }
-
-  /*
-   * Right hand side is a vector. Emit lhs as vector if vec > 1, otherwise as scalar
-   * */
-  def emitUnVec(lhs:IR)(rhs:Any) = {
-    if (lhs.getVec > 1) {
-      emitln(s"auto& $lhs = $rhs;")
-    } else {
-      emitln(s"${lhs.qtp} $lhs = $rhs[0];")
-    }
-  }
-
-  def emitVec(n:IR)(rhs: Option[String] => Any) = {
-    val vec = n.getVec
-    if (vec > 1) {
-      emitln(s"${n.qtp} ${n.qref}[${vec}] = {};")
-      emitBlock(s"for (int i = 0; i < ${vec}; i++)") {
-        emitln(s"${n.qref}[i] = ${rhs(Some("i"))};")
-      }
-    } else {
-      emitln(s"${n.qtp} ${n.qref} = ${rhs(None)};")
-    }
-  }
-
-  def emitVec(n:IR, rhs:List[Any]) = {
-    assert(n.getVec == rhs.size)
-    if (n.getVec==1) {
-      emitln(s"${n.qtp} ${n} = ${rhs.head};")
-    } else {
-      emitln(s"${n.qtp} ${n}[] = {${rhs.mkString(",")}};")
-    }
-  }
 
   def quoteRef(n:Any):String = n match {
     case n:Input[_] => quoteRef(n.singleConnected.getOrElse(throw PIRException(s"Don't know how to quoteRef for ${dquote(n)}")))
@@ -141,6 +86,9 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
         val vec = n.as[IR].getVec
         if (vec > 1) s"$q[$i]" else s"$q"
       }
+    }
+    def qany:String = {
+      if (n.getVec > 1) s"Any<${n.getVec}>(${qref})" else qref
     }
     def qtp:String = n.getTp.qtp
     def tokenTp = qtp match {

@@ -8,8 +8,9 @@ import prism.collection.immutable._
 
 trait ComputePartitioner extends CUPruner {
 
-  lazy val schedular = new PIRTraversal with DFSTopologicalTraversal with Schedular {
-    val forward = false
+  lazy val schedular = config.splitAlgo match {
+    case "BFS" => new PIRTraversal with BFSTopologicalTraversal with Schedular { val forward = false }
+    case "DFS" => new PIRTraversal with DFSTopologicalTraversal with Schedular { val forward = false }
   }
 
   def split[T](k:T, vcost:List[Cost[_]]):List[T] = dbgblk(s"split($k)") {
@@ -21,8 +22,7 @@ trait ComputePartitioner extends CUPruner {
         val globals = ctxs.map { ctx =>
           within(pirTop) {
             val global = ComputeContainer()
-            //val gouts = ctx.collectOut[GlobalOutput]()
-            val gouts = ctx.depeds.collect { case gout:GlobalOutput => gout }
+            val gouts = ctx.depeds().collect { case gout:GlobalOutput => gout }
             swapParent(ctx, global)
             gouts.foreach { gout => swapParent(gout, global) }
             global
@@ -45,7 +45,9 @@ trait ComputePartitioner extends CUPruner {
           }
         }
          // need to run in two pass to avoid duplicated allocation
+        alias ++= ctxs.map { ctx => (ctx, k) }
         ctxs.foreach { ctx => bufferInput(ctx) }
+        alias.clear
         dupDeps(ctxs, from=Some(k))
         (part::parts).foreach { removeCache }
         removeNodes(k.descendentTree)
@@ -61,6 +63,12 @@ trait ComputePartitioner extends CUPruner {
           split(new Partition(head), vcost) ++ split(new Partition(tail),vcost)
         }
     }).as[List[T]]
+  }
+
+  val alias = scala.collection.mutable.Map[Context,Context]()
+
+  override def valid(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
+    super.valid(ctrl, alias.get(ctx).getOrElse(ctx))
   }
 
   def include(n:PIRNode) = n match {

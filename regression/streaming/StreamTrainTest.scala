@@ -5,7 +5,7 @@ import spatial.lang.{FileBus,FileEOFBus}
 import spatial.metadata.bounds._
 import spatial.metadata.memory._
 
-class StreamTrainTest_0 extends StreamTrainTest[Float]
+class StreamTrainTest_0 extends StreamTrainTest[Float]()()
 
 // Reference https://blog.goodaudience.com/logistic-regression-from-scratch-in-numpy-5841c09e425f 
 @spatial abstract class StreamTrainTest[T:Num](
@@ -14,10 +14,11 @@ class StreamTrainTest_0 extends StreamTrainTest[Float]
   val numBatch:scala.Int = 16,
   val batch:scala.Int = 4,
   val iters:scala.Int = 2,
+)(
   val op:scala.Int = 1,
   val kp:scala.Int = 1,
-  val ipf:scala.Int = 8, // field
-  val ipb:scala.Int = 4, // batch
+  val ipf:scala.Int = math.min(field, 16),
+  val ipb:scala.Int = math.min(batch, 16), // batch
 )(implicit ev:Cast[T,Text], ev2:Cast[Text,T]) extends StreamTraining {
 
   def main(args: Array[String]): Unit = {
@@ -41,7 +42,7 @@ class StreamTrainTest_0 extends StreamTrainTest[Float]
       //Stream(breakWhen=stop).Foreach(*) { _ =>
       Sequential(breakWhen=stop).Foreach(*) { _ =>
         val (trainX, trainY, lastBit, lastBatch) = transposeTrainInput[T](in) // trainX [batch, field], trainY [batch]
-        Sequential.Foreach(iters by 1) { epoch =>
+        Sequential.Foreach(iters by 1) { iter =>
           Foreach(0 until batch) { b =>
             Foreach(0 until field par ipf) { f =>
               sumX(f) = sumX(f) + trainX(b,f)
@@ -56,10 +57,10 @@ class StreamTrainTest_0 extends StreamTrainTest[Float]
           }
         }
         if (lastBatch) {
-          xDRAM(0::field par ipf).store(sumX).setBarrier(0)
+          xDRAM(0::field par ipf).store(sumX)
         }
-        bArg.write(sumY.value, lastBatch).setBarrier(0)
-        (stop := lastBatch).waitFor(0)
+        bArg.write(sumY.value)
+        stop := lastBatch
       }
     }
     val cksum = checkGold[T](xDRAM, goldXFile) & checkGold[T](bArg, goldY)

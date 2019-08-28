@@ -5,7 +5,7 @@ import pir.node._
 import prism.graph._
 import prism.util._
 
-class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRPass {
+class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
 
   override def runPass = {
     if (compiler.pirenv._states.isEmpty) stageGraph

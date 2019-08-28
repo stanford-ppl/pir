@@ -68,6 +68,10 @@ trait ScalaUtilFunc {
     assert(list.toSet.size == list.size, s"$info is not unique=$list")
   }
 
+  def testOne[A](list:Iterable[A]):Option[A] = {
+    if (list.size == 1) Some(list.head) else None
+  }
+
   def zipOption[A,B,T](a:Option[A], b:Option[B]):Option[(A,B)] = {
     (a,b).zipped.headOption
   }
@@ -242,8 +246,10 @@ trait ScalaUtilFunc {
 
   final val SINGLE_PRECISION = 32
 
-  case class MatchRule[A:ClassTag, B](lambda:A => Option[B]) {
-    def unapply(x:A):Option[B] = lambda(x)
+  case class MatchRule[A:ClassTag, B](lambda:PartialFunction[A,Option[B]]) {
+    def unapply(x:A):Option[B] = {
+      if (lambda.isDefinedAt(x)) lambda(x) else None
+    }
   }
 
   def getAllSubstrings(str: String): Set[String] = {

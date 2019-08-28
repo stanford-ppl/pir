@@ -9,6 +9,8 @@ import scala.collection.mutable
 
 trait TungstenTopGen extends TungstenCodegen {
 
+  lazy val topFile = s"$topName.h"
+
   def emitTopHeader = {
     genTop {
       emitln(
@@ -36,7 +38,17 @@ trait TungstenTopGen extends TungstenCodegen {
 using namespace std;
 
 """)
-      emitln(s"""#include "hostio.h"""")
+      if (config.asModule) {
+        val hostio = s"${topName}_hostio.h"
+        withOpen(buildPath(dirName,hostio), false) {
+          getLines(buildPath(dirName, s"hostio.h")).foreach { line =>
+            emitln(line.replace("AllocAllMems", s"AllocAllMems_${topName}"))
+          }
+        }
+        emitln(s"""#include "$hostio"""")
+      } else {
+        emitln(s"""#include "hostio.h"""")
+      }
     }
   }
   
@@ -95,18 +107,18 @@ using namespace std;
 
   override def initPass = {
     super.initPass
-    emitln(s"""#include "Top.h"""")
+    emitln(s"""#include "$topFile"""")
     emitln(s"""using namespace std;""")
     emitBSln("void RunAccel()")
     if (!noPlaceAndRoute) {
       val pattern = spadeParam.pattern.as[GridPattern]
       val row = pattern.row
       val col = pattern.col
-      genTopMember("DynamicNetwork<4, 4>", "net", Seq(s"{${col+2}, ${row}}", "net".qstr), end=false, extern=true, escape=true)
-      genTopMember("StaticNetwork<4, 4>", "statnet", Seq("statnet".qstr), end=false, extern=true, escape=true)
+      genTopMember("DynamicNetwork<4, 8, 1>", "net", Seq(s"{${col+2}, ${row}}", "net".qstr), end=false, extern=true, escape=true)
+      genTopMember("StaticNetwork<4, 1>", "statnet", Seq("statnet".qstr), end=false, extern=true, escape=true)
       genTopMember("IdealNetwork<2>", "idealnet", Seq("idealnet".qstr), end=false, extern=true, escape=true)
     } else {
-      genTopMember("DynamicNetwork<4, 4>", "net", Seq(s"{4, 4}", "net".qstr), end=false, extern=true, escape=true)
+      genTopMember("DynamicNetwork<4, 8, 1>", "net", Seq(s"{4, 4}", "net".qstr), end=false, extern=true, escape=true)
       genTopMember("StaticNetwork<4, 4>", "statnet", Seq("statnet".qstr), end=false, extern=true, escape=true)
       genTopMember("IdealNetwork<2>", "idealnet", Seq("idealnet".qstr), end=false, extern=true, escape=true)
     }
@@ -162,7 +174,7 @@ using namespace std;
 
   protected def emitInit = {}
 
-  protected def genTop(block: => Unit) = enterFile(dirName, "Top.h")(block)
+  protected def genTop(block: => Unit) = enterFile(dirName, topFile)(block)
 
   private def genTopFields(block: => Unit) = enterBuffer("top", level=1)(block)
 

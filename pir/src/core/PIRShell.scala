@@ -15,12 +15,15 @@ trait PIRShell extends PIRApp with Logging {
 }
 
 object pload extends PIRShell with Session {
+  override def setArgs(args:Array[String]) = {
+    var addArgs = ""
+    addArgs += s" --load --debug --dot"
+    super.setArgs(addArgs.split(" ") ++ args)
+  }
   override def loadSession = {
     import config._
-    var args = ""
     val appPath = buildPath(dirName(option[String]("ckpt")), "../../")
-    args += s" --load --debug --dot --path=$appPath"
-    setOption(args.split(" ").map(_.trim).toList)
+    setOption(List(s"--path=$appPath"))
     super[Session].loadSession
     if (pirenv._states.isEmpty) {
       err(s"Load session failed", false)
@@ -31,20 +34,22 @@ object pload extends PIRShell with Session {
   
 object psh extends PIRShell with Session {
 
+  override def setArgs(args:Array[String]) = {
+    var addArgs = ""
+    addArgs += s" --load --debug --dot"
+    super.setArgs(addArgs.split(" ") ++ args)
+  }
   override def loadSession = {
     import config._
-    var args = ""
     val appPath = buildPath(dirName(option[String]("ckpt")), "../../")
-    args += s" --load --debug --dot --path=$appPath"
-    setOption(args.split(" ").map(_.trim).toList)
+    setOption(List(s"--path=$appPath"))
     val start = getArgOption[Int]("start-id").flatMap { _.getValue }.getOrElse(-1)
     super[Session].loadSession
     if (pirenv._states.isEmpty) {
       err(s"Load session failed", false)
       sys.exit(0)
     }
-    args = s"--start-id=$start "
-    setOption(args.split(" ").map(_.trim).toList)
+    setOption(List(s"--start-id=$start "))
   }
 
   override def initSession = {

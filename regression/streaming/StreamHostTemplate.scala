@@ -1,4 +1,6 @@
 import utils.io.files._
+import scala.reflect._
+import java.io._
 
 abstract class StreamHostTemplate {
   val field:scala.Int
@@ -9,28 +11,56 @@ abstract class StreamHostTemplate {
   def numToken = N * field
 
   // Return inData in size N x field
-  def generateRandomInput[HT:Numeric](inFile:String, field:scala.Int=field):Seq[Seq[HT]] = {
+  def generateRandomInput[HT:Numeric:ClassTag](inFile:String, field:scala.Int=field):Seq[Seq[HT]] = {
     createDirectories(dirName(inFile))
     val r = scala.util.Random
     val numToken = N * field
-    val inDataOnly = Seq.tabulate(numToken) { i => r.nextInt(numToken) }
-    val inData = Seq.tabulate(numToken,2) { (i,j) =>
-      if (j == 0) inDataOnly(i)
-      else if (i == numToken-1) 1
-      else 0
+    val inDataOnly = Array.ofDim[Int](numToken)
+    val inData = Array.ofDim[Int](numToken,2)
+    (0 until numToken).foreach { i =>
+      val t = r.nextInt(numToken)
+      inDataOnly(i) = t
+      (0 until 2).foreach { j =>
+        inData(i)(j) = if (j == 0) inDataOnly(i)
+                      else if (i == numToken-1) 1
+                      else 0
+      }
     }
-    writeCSVNow2D(inData, inFile)
+    writeCSVNow2D(inData.map{_.toSeq}.toSeq, inFile)
     // size in numBatch x field x batch
     val inputMat = inDataOnly.grouped(batch).toSeq.grouped(field).toSeq
     // size in (numBatch x batch) x field = N x field
     inputMat.map { _.transpose }.flatten
   }
 
-  def generateRandomTrainInput[HT:Numeric](inFile:String):(Seq[Seq[HT]], Seq[HT]) = {
-    generateRandomInput(inFile, field=field+1).map { record =>
-      val (fields, Seq(label)) = record.splitAt(record.size-1)
-      (fields, label)
-    }.unzip
+  def generateRandomTrainInput[HT:Fractional:ClassTag](inFile:String):(Seq[Seq[HT]], Seq[HT]) = {
+    val frac = implicitly[Fractional[HT]]
+    import frac._
+    createDirectories(dirName(inFile))
+    val numToken = N * (field + 1)
+    val r = scala.util.Random
+    val data = (0 until numBatch*batch).map { batch =>
+      (0 until field).map { field => r.nextInt(100) }
+    }
+    val label = data.map { fields =>
+      fields.head * 3 / 10 + fields.last * 5 / 10 + fields.sum / field
+    }
+    val matrix = (data, label).zipped.map { (fields, label) =>
+      fields :+ label
+    }.grouped(batch).map { _.transpose } // [numBatch, field, batch]
+
+    val pw = new PrintWriter(new File(inFile))
+    var ctr = 0
+    matrix.foreach { fields =>
+      fields.foreach { batch =>
+        batch.foreach { e =>
+          pw.write(s"${e},${if (ctr == numToken-1) 1 else 0}\n")
+          ctr += 1
+        }
+      }
+    }
+    pw.close
+    (data, label)
   }
 
   // Takes in a gold vector in N

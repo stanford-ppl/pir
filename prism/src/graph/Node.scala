@@ -120,7 +120,17 @@ trait Node[N<:Node[N]] extends IR { self:N =>
     }.toVector.groupBy { _._1 }.mapValues { _.map { _._2 } }
   }
 
-  def deps:Vector[N] = depsFrom.keys.flatMap(_.src.descendentTree).toVector.distinct
+  def deps(
+    filter:Option[(Output[N], Input[N]) => Boolean]=None,
+  ):Vector[N] = {
+    var outs = depsFrom.keys
+    filter.foreach { filter =>
+      outs = depsFrom.filter { case (o,ins) =>
+        ins.exists { in => filter(o,in) }
+      }.keys
+    }
+    outs.flatMap(_.src.descendentTree).toVector.distinct
+  }
 
   /*
    * A map of internal outs to seq of external inputs
@@ -135,13 +145,27 @@ trait Node[N<:Node[N]] extends IR { self:N =>
     }.toVector.groupBy { _._2 }.mapValues { _.map { _._1 } }
   }
 
-  def depeds:Vector[N] = depedsTo.values.flatten.flatMap { _.src.descendentTree}.toVector.distinct
+  def depeds(
+    filter:Option[(Output[N], Input[N]) => Boolean]=None,
+  ) = {
+    var ins = depedsTo.values
+    filter.foreach { filter =>
+      ins = depedsTo.map { case (o,ins) =>
+        ins.filter { in => filter(o,in) }
+      }
+    }
+    ins.flatten.flatMap { _.src.descendentTree}.toVector.distinct
+  }
 
-  def siblingDeps:Vector[N] = deps.flatMap(matchLevel)
-  def globalDeps:Vector[N] = deps.filter { d => matchLevel(d).isEmpty }
-  def siblingDepeds:Vector[N] = depeds.flatMap(matchLevel)
-  def globalDepeds:Vector[N] = depeds.filter { d => matchLevel(d).isEmpty }
-  def neighbors:Vector[N] = deps ++ depeds
+  def siblingDeps(
+    filter:Option[(Output[N], Input[N]) => Boolean]=None,
+  ):Vector[N] = deps(filter).flatMap(matchLevel)
+  def globalDeps:Vector[N] = deps().filter { d => matchLevel(d).isEmpty }
+  def siblingDepeds(
+    filter:Option[(Output[N], Input[N]) => Boolean]=None,
+  ):Vector[N] = depeds(filter).flatMap(matchLevel)
+  def globalDepeds:Vector[N] = depeds().filter { d => matchLevel(d).isEmpty }
+  def neighbors:Vector[N] = deps() ++ depeds()
 
 }
 object Node {

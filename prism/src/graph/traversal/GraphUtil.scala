@@ -24,17 +24,17 @@ trait GraphUtil {
   /*
    * Visit inputs of a node
    * */
-  def visitLocalIn[N<:Node[N]](n:Node[N]):List[N] = n.siblingDeps.toList
+  def visitLocalIn[N<:Node[N]](n:Node[N]):List[N] = n.siblingDeps().toList
 
   /*
    * Visit outputs of a node 
    * */
-  def visitLocalOut[N<:Node[N]](n:Node[N]):List[N] = n.siblingDepeds.toList
+  def visitLocalOut[N<:Node[N]](n:Node[N]):List[N] = n.siblingDepeds().toList
 
   def visitLocal[N<:Node[N]](n:Node[N]):List[N] = visitLocalIn(n) ++ visitLocalOut(n) 
 
-  def visitGlobalIn[N<:Node[N]](n:Node[N]):List[N] = n.deps.toList
-  def visitGlobalOut[N<:Node[N]](n:Node[N]):List[N] = n.depeds.toList
+  def visitGlobalIn[N<:Node[N]](n:Node[N]):List[N] = n.deps().toList
+  def visitGlobalOut[N<:Node[N]](n:Node[N]):List[N] = n.depeds().toList
 
   /*
    * For each node returned by visitFunc, swap node to its ancesstor with type T if it has one.

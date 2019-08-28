@@ -4,7 +4,7 @@ package pass
 import pir.node._
 import prism.graph._
 
-class ContextAnalyzer(implicit compiler:PIR) extends BufferAnalyzer {
+class ContextAnalyzer(implicit compiler:PIR) extends PIRTransformer {
 
   override def runPass = {
     pirTop.collectDown[Context]().foreach(analyzeCtx)
@@ -28,7 +28,7 @@ class ContextAnalyzer(implicit compiler:PIR) extends BufferAnalyzer {
   def tokenInInsertion(ctx:Context):Unit = {
     if (ctx.collectUp[ArgFringe]().nonEmpty) return
     if (ctx.collectDown[StreamCommand]().nonEmpty) return
-    val nonLutInputs = ctx.deps.filterNot { _.isInstanceOf[LUT] }
+    val nonLutInputs = ctx.deps(filter=Some({ case (OutputField(n:LUT, _), _) => false; case _ => true }))
     if (nonLutInputs.isEmpty) {
       val hostInCtx = pirTop.argFringe.collectDown[HostInController]().head.ctx.get
       dbg(s"$ctx doesn't have any non lut inputs.")

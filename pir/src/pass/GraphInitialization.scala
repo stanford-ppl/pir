@@ -20,7 +20,6 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         dbg(s"Resetting $d.ctrl = $ctrl")
       }
       n.en.disconnect
-      // TODO: migrate this enable signal to write enable of all memory and read enable of sram
     }
     //n.to[LoopController].foreach { n =>
       //n.stopWhen.T.foreach { n =>
@@ -38,14 +37,44 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         //}
       //}
     //}
-    n.to[LoopController].foreach { n =>
-      n.stopWhen.T.foreach { n =>
-        n.to[MemRead].foreach { read =>
-          val mem = read.mem.T
-          mem.nonBlocking := true
-        }
-      }
-    }
+    //n.to[LoopController].foreach { n =>
+      //n.stopWhen.T.foreach { read =>
+        //read.to[MemRead].foreach { read =>
+          //read.ctrl.reset
+          //read.ctrl(n.getCtrl.parent.get)
+          //val mem = read.mem.T
+          //mem.nonBlocking := true
+        //}
+      //}
+    //}
+    //n.to[LoopController].foreach { n =>
+      //n.stopWhen.T.foreach { read =>
+        //var writer = read.as[MemRead].mem.T.inAccesses.head.as[MemWrite]
+        //var data = writer.data.singleConnected.get
+        //data.src match {
+          //case read:MemRead =>
+            //writer = read.as[MemRead].mem.T.inAccesses.head.as[MemWrite]
+            //data = writer.data.singleConnected.get
+        //}
+        //val ens = writer.en.connected
+        //var stop = within(writer.getCtrl, writer.parent.get) {
+          //(data +: ens).reduce[Output[PIRNode]]{ case (a,b) =>
+            //stage(OpDef(FixAnd).addInput(a,b)).out
+          //}
+        //}
+        //n.stopWhen.disconnect
+        //if (writer.getCtrl != n.getCtrl) {
+          //val write = within(writer.getCtrl, writer.parent.get) {
+            //stage(MemWrite().data(stop))
+          //}
+          //val fifo = within(pirTop) { stage(Reg().depth(2).addAccess(write)) }
+          //stop = within(n.getCtrl, n.parent.get) {
+            //stage(MemRead().setMem(fifo)).out
+          //}
+        //}
+        //n.stopWhen(stop)
+      //}
+    //}
     n.to[Def].foreach { _.getVec }
     n.to[Access].foreach { _.getVec }
     n.to[DRAMAddr].foreach { n =>
@@ -73,20 +102,6 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     n.to[HostRead].foreach { n =>
       n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
     }
-
-    //n.to[FringeSparseStore].foreach { n =>
-      //// hack to get range of scatter
-      //val addr = n.addr.T.as[MemRead].mem.T.inAccesses.head
-      //val ctr = assertOne(addr.getCtrl.ctrler.get.as[LoopController].cchain, s"$n loop cchain")
-      //val max = ctr.max.T.get
-      //max match {
-        //case max:Const if max.getCtrl == n.getCtrl=>
-          //max.ctrl.reset
-          //max.ctrl(addr.getCtrl)
-        //case _ =>
-      //}
-      //n.range(max)
-    //}
 
     n.to[DRAMStoreCommand].foreach { n =>
       val write = within(pirTop, n.getCtrl) {
@@ -125,6 +140,8 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
           reduceOps = reduceOps.tail
           dbg(s"reader=$reader")
           dbg(s"reduceOps=$reduceOps")
+          val readerParent = reader.parent.get
+          val readerCtrl = reader.getCtrl
           val (init, input) = reduceOps.head match {
             case op@OpDef(Mux) =>
               reduceOps = reduceOps.tail
@@ -138,14 +155,13 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
           }
           dbg(s"init=${dquote(init)}")
           dbg(s"input=${dquote(input)}")
-          val accumOp = within(reader.parent.get, reader.getCtrl) {
+          val accumOp = within(readerParent, readerCtrl) {
             val firstIter = writer.getCtrl.ctrler.get.to[LoopController].map { _ .firstIter }
-            val en = reader.getCtrl.ctrler.get.valid
+            val en = readerCtrl.ctrler.get.valid
             stage(RegAccumOp(reduceOps).in(input).en(writer.en.connected, en).first(firstIter).init(init))
           }
           disconnect(writer, reduceOps.last)
           swapOutput(reduceOps.last.as[DefNode[PIRNode]].output.get, accumOp.out)
-          removeNodes(reduceOps :+ writer :+ reader :+ writer.mem.T)
         }
       }
     }
