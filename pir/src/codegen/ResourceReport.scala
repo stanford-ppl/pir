@@ -7,31 +7,36 @@ import spade.param._
 import prism.codegen._
 import prism.graph._
 
-class ResourceReport(implicit design:PIR) extends PIRTraversal with CSVCodegen with ChildFirstTraversal with UnitTraversal {
+trait Report extends PIRPass with prism.codegen.Codegen {
+  def sinfo(x:Any) = {
+    if (config.printStat) info(s"$x")
+    dbg(x)
+  }
+
+  override def quote(x:Any) = x match {
+    case x:ArgFringeParam => s"ArgFringe"
+    case x:PCUParam => s"PCU"
+    case x:PMUParam => s"PMU"
+    case x:DramAGParam => s"DAG"
+    case x:MCParam => s"MC"
+    case x:Checkerboard => s"${x.row} x ${x.col} checkerboard"
+    case x:AsicPattern => s"asic"
+    case x:InfinatePattern => "infinite"
+    case x => super.quote(x)
+  }
+
+  def pct(nom:Int, den:Int) =  if (den == 0) 0 else nom * 100.0f / den
+  def fstr(float:Float) = f"$float%.1f"
+  def pctstr(a:Int, b:Int) = s"${a} / ${b} (${fstr(pct(a,b))}%)"
+
+}
+
+class ResourceReport(implicit design:PIR) extends Report with PIRTraversal with CSVCodegen with ChildFirstTraversal with UnitTraversal {
 
   val fileName = "resource.csv"
 
   override def runPass = {
-    reportAlloc
-    if (compiler.hasRun[PlaceAndRoute]) {
-      reportUsage(topMap)
-    }
-  }
-
-  def reportAlloc = {
-    sinfo(s"Allocation: ")
-    val (dags, rest1) = pirTop.collectDown[GlobalContainer]().partition { _.isDAG.get }
-    sinfo(s"DAGs: ${dags.size}")
-    rest1.groupBy { _.getClass }.foreach {
-      case (cl, globals) if cl == classOf[ComputeContainer]=>
-        sinfo(s"PCUs: ${globals.size}")
-      case (cl, globals) if cl == classOf[MemoryContainer]=>
-        sinfo(s"PMUs: ${globals.size}")
-      case (cl, globals) if cl == classOf[ArgFringe] =>
-        sinfo(s"ArgFringe: ${globals.size}")
-      case (cl, globals) if cl == classOf[DRAMFringe] =>
-        sinfo(s"MCs: ${globals.size}")
-    }
+    reportUsage(topMap)
   }
 
   def reportUsage(x:Any):Unit =  x match {
@@ -58,26 +63,6 @@ class ResourceReport(implicit design:PIR) extends PIRTraversal with CSVCodegen w
       row(s"Usage") = usage
       sinfo(s"${quote(param)} Usage: (${used.size}/${cus.size}) ${usage} %")
     }
-  }
-
-  override def quote(x:Any) = x match {
-    case x:ArgFringeParam => s"ArgFringe"
-    case x:PCUParam => s"PCU"
-    case x:PMUParam => s"PMU"
-    case x:DramAGParam => s"DAG"
-    case x:MCParam => s"MC"
-    case x:Checkerboard => s"${x.row} x ${x.col} checkerboard"
-    case x:AsicPattern => s"asic"
-    case x:InfinatePattern => "infinite"
-  }
-
-  def pct(nom:Int, den:Int) =  if (den == 0) 0 else nom * 100.0f / den
-  def fstr(float:Float) = f"$float%.1f"
-  def pctstr(a:Int, b:Int) = s"${a} / ${b} (${fstr(pct(a,b))}%)"
-
-  def sinfo(x:Any) = {
-    if (config.printStat) info(s"$x")
-    dbg(x)
   }
 
 }

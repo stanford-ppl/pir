@@ -39,7 +39,11 @@ trait FormatPrinter { self:Printer =>
   def emitBSln(bs:String):Unit = emitBSln(Some(bs),None, None)
   def emitBSln(bs:String, b:Braces):Unit = emitBSln(Some(bs), Some(b), None)
   def emitBSln(bs:Option[String], b:Option[Braces], es:Option[String]):Unit = { 
-    emitln(s"${bs.fold(""){ bs => s"$bs "}}${b.getOrElse(CurlyBraces).s}${es.fold(""){ es => s" $es"}}"); incLevel
+    emit("")
+    writeBSln(bs, b, es)
+  }
+  def writeBSln(bs:Option[String], b:Option[Braces], es:Option[String]):Unit = { 
+    writeln(s"${bs.fold(""){ bs => s"$bs "}}${b.getOrElse(CurlyBraces).s}${es.fold(""){ es => s" $es"}}"); incLevel
   }
 
   def emitBS:Unit = emitBS(None, None, None)

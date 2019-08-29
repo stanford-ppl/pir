@@ -1,0 +1,76 @@
+package pir
+package codegen
+
+import pir.node._
+import pir.mapper._
+import spade.param._
+import prism.codegen._
+import prism.graph._
+
+class ProgramReport(implicit design:PIR) extends Report with PIRTraversal with JsonCodegen with ChildFirstTraversal with UnitTraversal {
+
+  val fileName = "program.json"
+  override val denseFormat = false
+
+  override def runPass = {
+    val globals = pirTop.collectChildren[GlobalContainer]
+    emitb {
+      reportAlloc(globals)
+      reportOps(globals)
+    }
+  }
+
+  def reportAlloc(globals:Iterable[GlobalContainer]) = {
+    sinfo(s"Allocation: ")
+    val (dags, rest1) = globals.partition { _.isDAG.get }
+    sinfo(s"DAGs: ${dags.size}")
+    emitkv(s"DAG:", dags.size)
+    rest1.groupBy { _.getClass }.foreach {
+      case (cl, globals) if cl == classOf[ComputeContainer]=>
+        sinfo(s"PCUs: ${globals.size}")
+        emitkv(s"PCU:", globals.size)
+      case (cl, globals) if cl == classOf[MemoryContainer]=>
+        sinfo(s"PMUs: ${globals.size}")
+        emitkv(s"PMU:", globals.size)
+      case (cl, globals) if cl == classOf[ArgFringe] =>
+        sinfo(s"ArgFringe: ${globals.size}")
+        emitkv(s"AFG:", globals.size)
+      case (cl, globals) if cl == classOf[DRAMFringe] =>
+        sinfo(s"MCs: ${globals.size}")
+        emitkv(s"MC:", globals.size)
+    }
+  }
+
+  def getOp(n:OpNode) = n match {
+    case n:OpDef => Some(n.op)
+    case n:RegAccumOp => Some(n.op)
+    case _ => None
+  }
+
+  def reportOps(globals:Iterable[GlobalContainer]) = {
+    emitkb("IR") {
+      globals.foreach { global =>
+        emitkb(global) {
+          val ctxs = global.collectChildren[Context]
+          ctxs.foreach { ctx =>
+            val ops = ctx.collectDown[OpNode]().map { 
+              case n@OpDef(op) => s"$op|${n.srcCtx.v.getOrElse("")}"
+              case n@RegAccumOp(List(op)) => s"RegAccum-$op|${n.srcCtx.v.getOrElse("")}"
+              case n => s"$n|${n.srcCtx.v.getOrElse("")}"
+            }
+            emitkv(ctx, ops)
+          }
+        }
+      }
+    }
+  }
+
+  override def quote(n:Any):String = n match {
+    case n:PIRNode => super.quote(s"$n")
+    case n:Opcode => super.quote(s"$n")
+    case _ => super.quote(n)
+  }
+
+}
+
+
