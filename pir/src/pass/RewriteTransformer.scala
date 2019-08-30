@@ -74,6 +74,25 @@ trait RewriteUtil { self: PIRTransformer =>
     }
   }
 
+  RewriteRule[RegAccumOp](s"RegAccumFMA") { 
+    case n@RegAccumOp(List(OpDef(FixAdd | FltAdd))) =>
+      n.in.T match {
+        case mul@OpDef(FixMul | FltMul) =>
+          val accum = within(n.parent.get, n.ctrl.get) {
+            stage(RegAccumFMA()
+              .in1(mul.inputs(0).connected)
+              .in2(mul.inputs(1).connected)
+              .en(n.en.connected)
+              .first(n.first.connected)
+              .init(n.init.connected)
+            )
+          }
+          Some((n.out, accum.out))
+        case _ => None
+      }
+    case _ => None
+  }
+
   RewriteRule[OpDef](s"ShiftAdd") { 
     case n@OpDef(FixAdd) =>
       val ConstShift = MatchRule[OpDef, (Output[_],Any)] { case n@OpDef(FixSLA) =>

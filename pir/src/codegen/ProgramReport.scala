@@ -53,10 +53,18 @@ class ProgramReport(implicit design:PIR) extends Report with PIRTraversal with J
         emitkb(global) {
           val ctxs = global.collectChildren[Context]
           ctxs.foreach { ctx =>
-            val ops = ctx.collectDown[OpNode]().map { 
-              case n@OpDef(op) => s"$op|${n.srcCtx.v.getOrElse("")}"
-              case n@RegAccumOp(List(op)) => s"RegAccum-$op|${n.srcCtx.v.getOrElse("")}"
-              case n => s"$n|${n.srcCtx.v.getOrElse("")}"
+            val ops = ctx.collectDown[OpNode]().view.map { 
+              case n@OpDef(op) => (n,op)
+              case n@RegAccumOp(List(op)) => (n,s"RegAccum-${op.as[OpDef].op}")
+              case n@RegAccumFMA() => (n,s"RegAccumFMA")
+              case n => (n,n)
+            }.map { case (n,op) => 
+              val vec = n match {
+                case n@RegAccumOp(_) => n.in.T.getVec
+                case n@RegAccumFMA() => math.max(n.in1.T.getVec, n.in2.T.getVec)
+                case _ => n.getVec
+              }
+              s"${vec}|$op|${n.srcCtx.v.getOrElse("")}"
             }
             emitkv(ctx, ops)
           }

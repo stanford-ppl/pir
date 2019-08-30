@@ -117,6 +117,7 @@ trait AnalysisUtil { self:PIRPass =>
       case n:BufferWrite => n.data.inferVec
       case n:BufferRead => n.in.inferVec
       case n:RegAccumOp => Some(1)
+      case n:RegAccumFMA => Some(1)
       case n:PrintIf => n.msg.inferVec
       case n:AssertIf => n.msg.inferVec
       case n:ExitIf => n.msg.inferVec
@@ -154,6 +155,7 @@ trait AnalysisUtil { self:PIRPass =>
       case n:GlobalInput => n.in.inferTp
       case n:GlobalOutput => n.in.inferTp
       case n:RegAccumOp => n.in.inferTp
+      case n:RegAccumFMA => n.in1.inferTp
       case n:MemRead => n.mem.inferTp
       case n:MemWrite => n.data.inferTp
       case n:Memory => assertOptionUnify(n.inAccesses, s"$n.type") { w => w.inferTp }

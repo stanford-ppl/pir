@@ -181,7 +181,7 @@ case class PCUParam(
   numReg:Int=16,
   numSin:Int=6,
   numSout:Int=4,
-  numVin:Int=6,
+  numVin:Int=8,
   numVout:Int=4,
 ) extends CUParam {
   val sramParam = connectField(SRAMParam(count=0))

@@ -21,7 +21,7 @@ trait JsonCodegen extends Codegen {
     write(quote(value))
   }
 
-  def emitkv(key:Any, value:List[Any]) = {
+  def emitkv(key:Any, value:Iterable[Any]) = {
     emitk(key)
     write(s"[${value.map(quote).mkString(",")}]")
   }
