@@ -124,7 +124,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       genTopMember(n, Seq(n.qstr))
 
     case n:Memory =>
-      val accesses = n.accesses.map { a => s"""make_tuple(${a.id}, ${n.isInAccess}, ${a.port.get.isEmpty})""" }.mkString(",")
+      val accesses = n.accesses.map { a => s"""make_tuple(${a.id}, ${a.isInAccess}, ${a.port.get.isEmpty})""" }.mkString(",")
       genTopMember(n, Seq(n.qstr, s"{$accesses}"))
 
     case n:MemRead if n.mem.T.isFIFO =>
@@ -176,6 +176,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       }
 
     case n:FlatBankedRead =>
+      emitln(s"// ${n}")
       addEscapeVar(n.mem.T)
       emitln(s"Active();")
       emitln(s"""${n.mem.T}->SetupRead(${n.id},make_token(${n.offset.qref}));""")
@@ -184,6 +185,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       }
 
     case n:FlatBankedWrite =>
+      emitln(s"// ${n}")
       addEscapeVar(n.mem.T)
       emitln(s"Active();")
       emitln(s"""${n.mem.T}->Write(${n.id}, make_token(${n.data.qref}), make_token(${n.offset.qref}));""")
@@ -192,6 +194,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       }
 
     case n:MemRead =>
+      emitln(s"// ${n}")
       addEscapeVar(n.mem.T)
       emitln(s"""auto $n = ${n.mem.T}->Read("$n");""")
       emitln(s"Active();")
@@ -200,6 +203,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       }
 
     case n:MemWrite =>
+      emitln(s"// ${n}")
       addEscapeVar(n.mem.T)
       emitln(s"Active();")
       emitln(s"""if (${n.en.qref}) ${n.mem.T}->Write(${n.id}, ${n.data.T});""")
