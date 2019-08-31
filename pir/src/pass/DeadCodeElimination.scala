@@ -37,6 +37,8 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with PIRTr
   }
 
   override def visitOut(n:N):List[N] = n match {
+    case n:CounterIter => super.visitOut(n)
+    case n:CounterValid => super.visitOut(n)
     case n@UnderControlBlock(cb) if depDupHasRun => 
       super.visitOut(cb).tryFilter { case x:LocalOutAccess => false; case _ => true }.toList
     case n:ControlBlock if depDupHasRun => 
