@@ -14,7 +14,7 @@ class DotProduct_5 extends DotProduct(op=3)
   ts:scala.Int = 32,
   ip:scala.Int = 16
 ) extends DSETest {
-  type X = Float
+  type X = Int
 
   def dotproduct[T:Num](aIn: Array[T], bIn: Array[T]): T = {
 
@@ -50,7 +50,7 @@ class DotProduct_5 extends DotProduct(op=3)
     println("expected: " + gold)
     println("result: " + result)
 
-    val cksum = approxEql(gold, result)
+    val cksum = approxEql(gold, result, 0)
     println("PASS: " + cksum + " (DotProduct)")
     assert(cksum)
   }
