@@ -1,6 +1,7 @@
 import spatial.dsl._
 
 class UnalignParTest_0 extends UnalignParTest(op2=3)
+class UnalignParTest_1 extends UnalignParTest(op2=2)
 
 @spatial abstract class UnalignParTest(
   M:scala.Int = 64,

@@ -16,7 +16,7 @@ class DotProduct_5 extends DotProduct(op=3)
 ) extends DSETest {
   type X = Int
 
-  def dotproduct[T:Num](aIn: Array[T], bIn: Array[T]): T = {
+  def dotproduct[T:Num](aIn: Array[T], bIn: Array[T]) = {
 
     val a = DRAM[T](N)
     val b = DRAM[T](N)
@@ -36,7 +36,7 @@ class DotProduct_5 extends DotProduct(op=3)
         dp_flat(ts, ip) { ii => (aBlk(ii), bBlk(ii)) }
       }{_+_}
     }
-    getArg(out)
+    out
   }
 
 
@@ -44,13 +44,10 @@ class DotProduct_5 extends DotProduct(op=3)
     val a = Array.tabulate(N){ i => i.to[X] }
     val b = Array.tabulate(N){ i => i.to[X] }
 
-    val result = dotproduct[X](a, b)
+    val out = dotproduct[X](a, b)
     val gold = a.zip(b){_*_}.reduce{_+_}
 
-    println("expected: " + gold)
-    println("result: " + result)
-
-    val cksum = approxEql(gold, result, 0)
+    val cksum = checkGold(out, gold)
     println("PASS: " + cksum + " (DotProduct)")
     assert(cksum)
   }

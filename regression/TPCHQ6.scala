@@ -5,14 +5,7 @@ class TPCHQ6_1 extends TPCHQ6(op=1, ip=1)
 class TPCHQ6_2 extends TPCHQ6(op=2, ip=16) 
 class TPCHQ6_3 extends TPCHQ6(op=2, ip=1) 
 class TPCHQ6_4 extends TPCHQ6(op=4, ip=16) 
-//class TPCHQ6_2 extends TPCHQ6(op=3) 
-//class TPCHQ6_3 extends TPCHQ6(op=4) 
-//class TPCHQ6_4 extends TPCHQ6(op=5) 
-//class TPCHQ6_5 extends TPCHQ6(op=6) 
-//class TPCHQ6_6 extends TPCHQ6(op=7) 
-//class TPCHQ6_7 extends TPCHQ6(op=8) 
-//class TPCHQ6_8 extends TPCHQ6(op=10) 
-//class TPCHQ6_9 extends TPCHQ6(op=12) 
+class TPCHQ6_5 extends TPCHQ6(op=3) 
 
 @spatial abstract class TPCHQ6(
   N:scala.Int = 1024,

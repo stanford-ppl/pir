@@ -9,6 +9,16 @@ import scala.collection.mutable
 
 class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with PIRTransformer {
 
+  override def finPass = {
+    super.finPass
+    pirTop.topCtrl.descendentTree.foreach { setUID }
+    pirTop.collectChildren[Controller].foreach { ctrler =>
+      ctrler.en.neighbors.collect { case v:CounterValid => v }.foreach { v =>
+        disconnect(ctrler.en, v)
+      }
+    }
+  }
+
   override def visitNode(n:N) = {
     n.to[Controller].foreach { n =>
       n.srcCtx.v.foreach { v => n.ctrl.get.srcCtx := v }
@@ -19,7 +29,6 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         d.ctrl := ctrl
         dbg(s"Resetting $d.ctrl = $ctrl")
       }
-      n.en.disconnect
     }
     //n.to[LoopController].foreach { n =>
       //n.stopWhen.T.foreach { n =>
@@ -192,6 +201,19 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       }
     }
     ctrler
+  }
+
+  // UID is the unrolled ids of outer loop controllers
+  def setUID(ctrl:ControlTree) = {
+    val uid = ctrl.ctrler.get.en.neighbors.collect { case v:CounterValid => v }
+    .groupBy { _.getCtrl }.toList.sortBy { _._1.ancestors.size } // Outer most to inner most
+    .flatMap { case (pctrl, vs) => 
+      val ps = vs.sortBy { _.counter.T.idx.get }.map { case CounterValid(List(i)) => i }
+      dbg(s"$ctrl: $pctrl[${ps.mkString(",")}]")
+      ps
+    }
+    dbg(s"$ctrl.uid=[${uid.mkString(",")}]")
+    ctrl.uid := uid
   }
 
 }
