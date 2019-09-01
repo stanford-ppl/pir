@@ -112,6 +112,24 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
     }
 
+    n.to[FringeDenseStore].foreach { n =>
+      // Transfer write enable on store valid and store data to valid
+      val vwrite = n.valid.T.as[MemRead].mem.T.inAccesses.head.as[MemWrite]
+      if (vwrite.en.isConnected) {
+        within(vwrite.parent.get, vwrite.getCtrl) {
+          val vdata = vwrite.data.singleConnected.get
+          val vs = vdata::vwrite.en.connected
+          val v = vs.reduce[Output[PIRNode]]{ case (v1,v2) =>
+            stage(OpDef(And).addInput(v1,v2)).out
+          }
+          vwrite.data.disconnect
+          vwrite.data(v)
+          vwrite.en.disconnect
+          n.data.T.as[MemRead].mem.T.inAccesses.head.as[MemWrite].en.disconnect
+        }
+      }
+    }
+
     n.to[DRAMStoreCommand].foreach { n =>
       val write = within(pirTop, n.getCtrl) {
         val ack = n.ack.T.as[MemWrite].mem.T.outAccesses.head
