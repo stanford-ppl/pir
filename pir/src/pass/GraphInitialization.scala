@@ -205,12 +205,13 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
 
   // UID is the unrolled ids of outer loop controllers
   def setUID(ctrl:ControlTree) = {
-    val uid = ctrl.ctrler.get.en.neighbors.collect { case v:CounterValid => v }
-    .groupBy { _.getCtrl }.toList.sortBy { _._1.ancestors.size } // Outer most to inner most
-    .flatMap { case (pctrl, vs) => 
-      val ps = vs.sortBy { _.counter.T.idx.get }.map { case CounterValid(List(i)) => i }
-      dbg(s"$ctrl: $pctrl[${ps.mkString(",")}]")
-      ps
+    val uid = ctrl.ctrler.v.fold[List[Int]](Nil) { _.en.neighbors.collect { case v:CounterValid => v }
+      .groupBy { _.getCtrl }.toList.sortBy { _._1.ancestors.size } // Outer most to inner most
+      .flatMap { case (pctrl, vs) => 
+        val ps = vs.sortBy { _.counter.T.idx.get }.map { case CounterValid(List(i)) => i }
+        dbg(s"$ctrl: $pctrl[${ps.mkString(",")}]")
+        ps
+      }
     }
     dbg(s"$ctrl.uid=[${uid.mkString(",")}]")
     ctrl.uid := uid
