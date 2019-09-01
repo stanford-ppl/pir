@@ -469,11 +469,20 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTransformer with Dependen
             matchInput(write.en,en) && 
             matchInput(write.done,done)
           } {
-            stage(BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(en).done(done))
+            stage(BufferWrite()
+              .presetVec(inAccess.inferVec.get)
+              .data(inAccess.data.connected)
+              .mirrorMetas(inAccess)
+              .en(en).done(done))
           }
         }
         val read = within(outAccess.parent.get, outAccess.ctrl.get) {
-          stage(BufferRead().in(write.out).mirrorMetas(mem).mirrorMetas(outAccess).done(deq).presetVec(outAccess.inferVec.get))
+          stage(BufferRead()
+            .in(write.out)
+            .mirrorMetas(mem)
+            .mirrorMetas(outAccess)
+            .done(deq)
+            .presetVec(outAccess.inferVec.get))
         }
         if (inAccess.order.get > outAccess.order.get ) {
           dbg(s"$read.initToken = true")
@@ -503,14 +512,20 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTransformer with Dependen
               matchInput(write.en,inAccess.en) && 
               matchInput(write.done,enq)
             } {
-              stage(BufferWrite().data(inAccess.data.connected).mirrorMetas(inAccess).en(inAccess.en.connected).done(enq))
+              stage(BufferWrite()
+                .data(inAccess.data.connected)
+                .presetVec(inAccess.inferVec.get)
+                .mirrorMetas(inAccess)
+                .en(inAccess.en.connected)
+                .done(enq))
             }
           }
           within(outAccess.parent.get, outAccess.ctrl.get) {
             stage(BufferRead()
               .in(write.out)
               .mirrorMetas(mem)
-              .mirrorMetas(outAccess).presetVec(outAccess.inferVec.get))
+              .mirrorMetas(outAccess)
+              .presetVec(outAccess.inferVec.get))
           }
         } else {
           val (wdone, deq) = compEnqDeq(

@@ -104,7 +104,20 @@ trait AnalysisUtil { self:PIRPass =>
       case Const(v) => Some(1)
       case n:TokenWrite => Some(1)
       case n:TokenRead => Some(1)
-      case n:MemWrite => n.data.inferVec
+      case n:MemWrite => n.broadcast.v.map { _.size }.orElse { 
+        if (n.mem.isConnected) {
+          n.mem.T match {
+            case mem:FIFO =>
+              n.getCtrl.schedule match {
+                case Streaming => Some(n.mem.banks.get.head)
+                case _ => Some(n.getCtrl.par.get)
+              }
+            case mem:Reg => n.data.inferVec
+          }
+        } else {
+          n.data.inferVec
+        }
+      }
       case WithMem(n:MemRead, mem:Reg) => 
         val b = n.mem.banks.get.head
         Some(b)
