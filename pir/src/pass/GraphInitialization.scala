@@ -118,7 +118,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       if (vwrite.en.isConnected) {
         within(vwrite.parent.get, vwrite.getCtrl) {
           val vdata = vwrite.data.singleConnected.get
-          val vs = vdata::vwrite.en.connected
+          val vs = (vdata::vwrite.en.connected++n.getCtrl.ctrler.get.en.connected).toSet
           val v = vs.reduce[Output[PIRNode]]{ case (v1,v2) =>
             stage(OpDef(And).addInput(v1,v2)).out
           }
