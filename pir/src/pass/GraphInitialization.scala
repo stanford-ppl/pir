@@ -133,7 +133,14 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     // Remove loop lane valid dependent enable
     n.to[MemRead].foreach { read =>
       read.en.T.foreach {
-        case v:CounterValid => read.en.disconnectFrom(v.out)
+        case v:CounterValid if v.getCtrl.isLeaf => read.en.disconnectFrom(v.out)
+        case _ =>
+      }
+    }
+
+    n.to[MemWrite].foreach { read =>
+      read.en.T.foreach {
+        case v:CounterValid if v.getCtrl.isLeaf => read.en.disconnectFrom(v.out)
         case _ =>
       }
     }
