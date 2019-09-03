@@ -160,7 +160,7 @@ case class CounterValid(is:List[Int])(implicit env:Env) extends Def {
 
 abstract class Controller(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
-  val en = new InputField[Option[PIRNode]]("en")
+  val en = new InputField[List[PIRNode]]("en")
   val parentEn = new InputField[Option[PIRNode]]("parentEn")
 
   val valid = new OutputField[List[PIRNode]]("valid")

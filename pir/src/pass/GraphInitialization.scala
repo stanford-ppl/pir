@@ -130,6 +130,14 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       }
     }
 
+    // Remove loop lane valid dependent enable
+    n.to[MemRead].foreach { read =>
+      read.en.T.foreach {
+        case v:CounterValid => read.en.disconnectFrom(v.out)
+        case _ =>
+      }
+    }
+
     n.to[DRAMStoreCommand].foreach { n =>
       val write = within(pirTop, n.getCtrl) {
         val ack = n.ack.T.as[MemWrite].mem.T.outAccesses.head
@@ -139,12 +147,18 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       }
       argOut(write).name(s"${n}_ack")
     }
-
-    // Remove loop lane valid dependent enable
-    n.to[MemRead].foreach { read =>
-      read.en.T.foreach {
-        case v:CounterValid => read.en.disconnectFrom(v.out)
-        case _ =>
+    
+    n.to[BankedAccess].foreach { access =>
+      val ctrl = access.getCtrl
+      ctrl.ancestorTree.foreach { c =>
+        c.ctrler.v.foreach { ctrler =>
+          val ens = ctrler.en.T.collect { case v:CounterValid => v }
+          ens.foreach { en =>
+            if (!access.en.isConnectedTo(en.out)) {
+              access.en(en.out)
+            }
+          }
+        }
       }
     }
 
