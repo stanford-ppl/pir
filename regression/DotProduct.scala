@@ -7,6 +7,8 @@ class DotProduct_2 extends DotProduct(ip=1, op=2)
 class DotProduct_3 extends DotProduct(op=2)
 class DotProduct_4 extends DotProduct(op=8)
 class DotProduct_5 extends DotProduct(op=3)
+class DotProduct_6 extends DotProduct(op=1, ip=5)
+class DotProduct_7 extends DotProduct(op=3, ip=5)
 
 @spatial abstract class DotProduct(
   N:scala.Int = 1024,

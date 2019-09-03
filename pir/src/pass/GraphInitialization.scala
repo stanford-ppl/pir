@@ -140,6 +140,14 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       argOut(write).name(s"${n}_ack")
     }
 
+    // Remove loop lane valid dependent enable
+    n.to[MemRead].foreach { read =>
+      read.en.T.foreach {
+        case v:CounterValid => read.en.disconnectFrom(v.out)
+        case _ =>
+      }
+    }
+
     if (config.enableSimDebug) {
       n.to[PrintIf].foreach { n =>
         n.tp.reset
@@ -223,7 +231,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
 
   // UID is the unrolled ids of outer loop controllers
   def setUID(ctrl:ControlTree) = {
-    val uid = ctrl.ctrler.v.fold[List[Int]](Nil) { _.en.neighbors.collect { case v:CounterValid => v }
+    val cuid = ctrl.ctrler.v.fold[List[Int]](Nil) { _.en.neighbors.collect { case v:CounterValid => v }
       .groupBy { _.getCtrl }.toList.sortBy { _._1.ancestors.size } // Outer most to inner most
       .flatMap { case (pctrl, vs) => 
         val ps = vs.sortBy { _.counter.T.idx.get }.map { case CounterValid(List(i)) => i }
@@ -231,6 +239,8 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         ps
       }
     }
+    val puid = ctrl.parent.map { _.uid.get }.getOrElse(Nil)
+    val uid = puid ++ cuid
     dbg(s"$ctrl.uid=[${uid.mkString(",")}]")
     ctrl.uid := uid
   }

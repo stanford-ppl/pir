@@ -2,7 +2,8 @@ import spatial.dsl._
 
 class UnalignParTest_0 extends UnalignParTest(op2=3)
 class UnalignParTest_1 extends UnalignParTest(op2=2)
-class UnalignParTest_2 extends UnalignParTest(ips=5)
+class UnalignParTest_2 extends UnalignParTest(ips1=5)
+class UnalignParTest_3 extends UnalignParTest(op2=3,ips1=5)
 
 @spatial abstract class UnalignParTest(
   M:scala.Int = 64,
@@ -10,7 +11,8 @@ class UnalignParTest_2 extends UnalignParTest(ips=5)
   ts1:scala.Int = 16,
   ts2:scala.Int = 16,
   ip:scala.Int = 16,
-  ips:scala.Int = 16,
+  ips1:scala.Int = 16,
+  ips2:scala.Int = 1,
   ip1:scala.Int = 16,
   ip2:scala.Int = 1,
   op1:scala.Int = 1,
@@ -45,7 +47,7 @@ class UnalignParTest_2 extends UnalignParTest(ips=5)
           val outTile = SRAM[T](ts1, ts2)
           // (64, 32)
           Foreach(ts1 par ip2, ts2 par ip1){ (ii,jj) => outTile(ii, jj) = b1(ii) * b2(jj) } // 2
-          out(i::i+ts1, j::j+ts2 par ips) store outTile
+          out(i::i+ts1 par ips2, j::j+ts2 par ips1) store outTile
         }
       }
     }
@@ -65,5 +67,4 @@ class UnalignParTest_2 extends UnalignParTest(ips=5)
 
   }
 }
-
 
