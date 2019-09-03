@@ -7,6 +7,7 @@ class LogReg_2 extends LogReg(op=2)
 class LogReg_3 extends LogReg(op=2, mp=2)
 class LogReg_4 extends LogReg(op=2, mp=4)
 class LogReg_5 extends LogReg(op=4, mp=2)
+class LogReg_6 extends LogReg(op=3, mp=3)
 //class LogReg_2 extends LogReg(mp=3)
 //class LogReg_3 extends LogReg(mp=4)
 //class LogReg_4 extends LogReg(mp=5)
@@ -24,7 +25,7 @@ class LogReg_5 extends LogReg(op=4, mp=2)
   ts:scala.Int = 32,
   op:scala.Int = 1,
   mp:scala.Int = 1
-) extends DSETest {
+) extends SpatialTest {
 
   type X = Float //FixPt[TRUE,_16,_16]
 

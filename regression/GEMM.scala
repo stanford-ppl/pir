@@ -10,15 +10,20 @@ class GEMM_7 extends GEMM(loop_j = 2, ip = 1, ts=16, its=16, dim=32)
 class GEMM_8 extends GEMM(loop_j = 2, ip = 8, ts=16, its=16, dim=32)
 class GEMM_9 extends GEMM(loop_j = 2, ip = 16, ts=32, its=32, dim=64)
 class GEMM_10 extends GEMM(loop_i = 2,loop_j = 2, ip=1, ts=16, its=16, dim=32)
-class GEMM_11 extends GEMM(loop_kk = 2,loop_i = 2, ip=1, ts=16, its=16, dim=32)
-class GEMM_12 extends GEMM(loop_kk = 2,loop_j = 2, ip=1, ts=16, its=16, dim=32)
-class GEMM_13 extends GEMM(loop_ii = 2,loop_jj = 2, ip=1, ts=16, its=16, dim=32)
-class GEMM_14 extends GEMM(loop_ii = 2,loop_kk = 2, ip=1, ts=16, its=16, dim=32)
-class GEMM_15 extends GEMM(loop_kk = 2,loop_i = 2,loop_j = 2, ip=1, ts=16, its=16, dim=32)
-class GEMM_16 extends GEMM(loop_ii = 2,loop_jj = 2, loop_kk=2, ip=1, ts=16, its=16, dim=32)
-class GEMM_17 extends GEMM(loop_kk = 2,loop_i = 2,loop_j = 2, ip=16, ts=32, its=32, dim=64)
-class GEMM_18 extends GEMM(loop_ii = 2,loop_jj = 2, loop_kk=2, ip=16, ts=32, its=32, dim=64)
-class GEMM_19 extends GEMM(loop_i = 3)
+class GEMM_11 extends GEMM(loop_kk=2,loop_i=2, ip=1, ts=16, its=16, dim=32)
+class GEMM_12 extends GEMM(loop_kk=2,loop_j=2, ip=1, ts=16, its=16, dim=32)
+class GEMM_13 extends GEMM(loop_ii=2,loop_jj=2, ip=1, ts=16, its=16, dim=32)
+class GEMM_14 extends GEMM(loop_ii=2,loop_kk=2, ip=1, ts=16, its=16, dim=32)
+class GEMM_15 extends GEMM(loop_kk=2,loop_i=2, loop_j=2, ip=1, ts=16, its=16, dim=32)
+class GEMM_16 extends GEMM(loop_ii=2,loop_jj=2, loop_kk=2, ip=1, ts=16, its=16, dim=32)
+class GEMM_17 extends GEMM(loop_kk=2,loop_i=2,loop_j = 2, ip=16, ts=32, its=32, dim=64)
+class GEMM_18 extends GEMM(loop_ii=2,loop_jj=2, loop_kk=2, ip=16, ts=32, its=32, dim=64)
+class GEMM_19 extends GEMM(loop_i=3)
+class GEMM_20 extends GEMM(loop_i=3, loop_j=3)
+class GEMM_21 extends GEMM(loop_ii=3, loop_i = 3, loop_j=3)
+class GEMM_22 extends GEMM(loop_ii=3, loop_kk = 3)
+class GEMM_23 extends GEMM(loop_j=3, ip = 5)
+class GEMM_24 extends GEMM(loop_ii=3, loop_j=3, ip = 5)
 //class GEMM_3 extends GEMM(loop_i = 4,loop_j = 4)
 //class GEMM_4 extends GEMM(loop_i = 2,loop_j = 2)
 //class GEMM_5 extends GEMM(loop_i = 1,loop_j = 2)
@@ -38,7 +43,7 @@ class GEMM_19 extends GEMM(loop_i = 3)
   loop_i:scala.Int = 1,
   loop_j:scala.Int = 1,
   ip:scala.Int = 16 
-) extends SpatialTest with DSETest { // Regression (Dense) // Args: 128
+) extends SpatialTest {
                                                                                                   
   //type T = Float
   type T = Int

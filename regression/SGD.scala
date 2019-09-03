@@ -4,16 +4,7 @@ class SGD_0 extends SGD
 class SGD_1 extends SGD(mp1=1, mp2=2) 
 class SGD_2 extends SGD(mp1=2, mp2=1) 
 class SGD_3 extends SGD(mp1=2, mp2=2) 
-//class SGD_4 extends SGD(mp1=1, mp2=4) 
-//class SGD_5 extends SGD(mp1=4, mp2=1) 
-//class SGD_6 extends SGD(mp1=3, mp2=3) 
-//class SGD_7 extends SGD(mp1=4, mp2=2) 
-//class SGD_8 extends SGD(mp1=2, mp2=4) 
-//class SGD_9 extends SGD(mp1=3, mp2=4) 
-//class SGD_10 extends SGD(mp1=4, mp2=3) 
-//class SGD_11 extends SGD(mp1=4, mp2=4) 
-//class SGD_12 extends SGD(mp1=4, mp2=5) 
-//class SGD_13 extends SGD(mp1=5, mp2=4) 
+class SGD_4 extends SGD(mp1=3, mp2=3) 
 
 @spatial abstract class SGD(
   D:scala.Int=32,
@@ -23,7 +14,7 @@ class SGD_3 extends SGD(mp1=2, mp2=2)
   mp1:scala.Int=1,
   mp2:scala.Int=1,
   ip:scala.Int=16
-) extends DSETest {
+) extends SpatialTest {
 
   val A = 0.0001f
 

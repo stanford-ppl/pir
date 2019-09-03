@@ -16,7 +16,7 @@
   //conv2_par:scala.Int=1,
   //mat1_par:scala.Int=1,
   //mat2_par:scala.Int=1
-//) extends DSETest {
+//) extends SpatialTest {
 
   //val BATCH_SIZE = 4
 

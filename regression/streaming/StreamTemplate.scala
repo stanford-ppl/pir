@@ -4,7 +4,7 @@ import utils.io.files._
 import scala.reflect._
 import spatial.metadata.bounds._
 
-@spatial abstract class StreamTemplate extends StreamHostTemplate with DSETest {
+@spatial abstract class StreamTemplate extends StreamHostTemplate with SpatialTest {
   
   val ipb:scala.Int
 

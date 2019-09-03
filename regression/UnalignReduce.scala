@@ -7,7 +7,7 @@ class UnalignReduce_0 extends UnalignReduce(op=3, ip=5)
   ts1:scala.Int = 16,
   ip:scala.Int = 16,
   op:scala.Int = 1,
-) extends DSETest with SpatialTest {
+) extends SpatialTest {
 
   type T = Int
 

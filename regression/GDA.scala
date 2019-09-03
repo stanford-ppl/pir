@@ -7,7 +7,8 @@ class GDA_3 extends GDA(mp2=2, C=32, R=64, ts=32)
 class GDA_4 extends GDA(mp1=2, mp2=2, C=32, R=64, ts=32)
 class GDA_5 extends GDA(mp2=2, C=32, R=64, ts=32, ip=8)
 class GDA_6 extends GDA(mp2=4)
-class GDA_14 extends GDA(mp1 = 2,mp2 = 2)
+class GDA_7 extends GDA(mp1 = 2,mp2 = 2)
+class GDA_8 extends GDA(op=3, mp1 = 3,mp2 = 3)
 
 @spatial abstract class GDA(
   C:scala.Int = 128,
@@ -17,7 +18,7 @@ class GDA_14 extends GDA(mp1 = 2,mp2 = 2)
   mp1:scala.Int = 1,
   mp2:scala.Int = 1,
   ip:scala.Int = 16
-) extends SpatialTest with DSETest { self => // Regression (Dense) // Args: 64
+) extends SpatialTest { self =>
 
   type X = Float
 

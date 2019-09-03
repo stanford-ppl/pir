@@ -7,7 +7,7 @@ class IfTest_0 extends IfTest(op=1)
   ts:scala.Int = 16,
   ip:scala.Int = 16,
   op:scala.Int = 1,
-) extends DSETest with SpatialTest {
+) extends SpatialTest {
 
   type T = Int
 

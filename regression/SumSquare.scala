@@ -13,7 +13,7 @@ class SumSquare_5 extends SumSquare(ip=3, op=2)
   op:scala.Int = 1,
   ts:scala.Int = 32,
   ip:scala.Int = 16
-) extends DSETest {
+) extends SpatialTest {
   type T = Int
 
   def sumSquare(aIn: Array[T]): T = {

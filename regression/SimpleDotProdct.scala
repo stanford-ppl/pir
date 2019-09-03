@@ -9,7 +9,7 @@ class SimpleDotProduct_1 extends SimpleDotProduct(op=2)
   op:scala.Int = 1,
   ts:scala.Int = 32,
   ip:scala.Int = 1
-) extends DSETest {
+) extends SpatialTest {
   type T = FixPt[TRUE,_32,_0]
 
   def dotproduct(aIn: Array[T], bIn: Array[T]): T = {

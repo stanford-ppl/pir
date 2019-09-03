@@ -15,7 +15,7 @@ class DotProduct_7 extends DotProduct(op=3, ip=5)
   op:scala.Int = 1,
   ts:scala.Int = 32,
   ip:scala.Int = 16
-) extends DSETest {
+) extends SpatialTest {
   type X = Int
 
   def dotproduct[T:Num](aIn: Array[T], bIn: Array[T]) = {

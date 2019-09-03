@@ -17,7 +17,7 @@ class UnalignParTest_3 extends UnalignParTest(op2=3,ips1=5)
   ip2:scala.Int = 1,
   op1:scala.Int = 1,
   op2:scala.Int = 1
-) extends DSETest with SpatialTest { // Regression (Dense) // Args: 640 640
+) extends SpatialTest { // Regression (Dense) // Args: 640 640
 
   type T = Int
 

@@ -12,7 +12,7 @@ class TPCHQ6_5 extends TPCHQ6(op=3)
   ts:scala.Int = 64,
   op:scala.Int = 1,
   ip:scala.Int = 16,
-) extends DSETest { // Regression (Dense) // Args: 3840
+) extends SpatialTest { // Regression (Dense) // Args: 3840
 
   type FT = Int
 

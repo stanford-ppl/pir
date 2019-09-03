@@ -23,7 +23,7 @@ class OuterProduct_11 extends OuterProduct(op1=3,op2=3)
   ip2:scala.Int = 1,
   op1:scala.Int = 1,
   op2:scala.Int = 1
-) extends DSETest with SpatialTest { // Regression (Dense) // Args: 640 640
+) extends SpatialTest { // Regression (Dense) // Args: 640 640
 
   type X = Int
 
