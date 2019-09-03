@@ -1,6 +1,7 @@
 import spatial.dsl._
 
 class UnalignReduce_0 extends UnalignReduce(op=3, ip=5)
+class UnalignReduce_1 extends UnalignReduce(op=3)
 
 @spatial abstract class UnalignReduce(
   N:scala.Int = 64,
@@ -20,7 +21,7 @@ class UnalignReduce_0 extends UnalignReduce(op=3, ip=5)
         val sram = SRAM[T](ts1)
         Foreach(0 until ts1 par ip) { ii =>
           sram(ii) = ii + i
-          fifo.enq(ii)
+          fifo.enq(ii + i)
         }
         val iacc = Reg[T]
         Reduce(iacc)(0 until ts1 par ip) { ii =>
