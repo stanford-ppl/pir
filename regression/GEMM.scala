@@ -18,7 +18,7 @@ class GEMM_15 extends GEMM(loop_kk = 2,loop_i = 2,loop_j = 2, ip=1, ts=16, its=1
 class GEMM_16 extends GEMM(loop_ii = 2,loop_jj = 2, loop_kk=2, ip=1, ts=16, its=16, dim=32)
 class GEMM_17 extends GEMM(loop_kk = 2,loop_i = 2,loop_j = 2, ip=16, ts=32, its=32, dim=64)
 class GEMM_18 extends GEMM(loop_ii = 2,loop_jj = 2, loop_kk=2, ip=16, ts=32, its=32, dim=64)
-//class GEMM_19 extends GEMM(loop_i = 3)
+class GEMM_19 extends GEMM(loop_i = 3)
 //class GEMM_3 extends GEMM(loop_i = 4,loop_j = 4)
 //class GEMM_4 extends GEMM(loop_i = 2,loop_j = 2)
 //class GEMM_5 extends GEMM(loop_i = 1,loop_j = 2)
