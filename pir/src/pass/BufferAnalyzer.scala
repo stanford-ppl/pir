@@ -66,7 +66,7 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
       val depCtx = fromCtx.getOrElse { dep.ctx.get }
       val read = dbgblk(s"insertBuffer(depOut=$dep.$depOut, depedIn=$deped.$depedIn)") {
         val (enq, deq) = compEnqDeq(isFIFO=true, depCtx, depedCtx, Some(depOut), List(depedIn))
-        val write = within(depCtx, dep.getCtrl) {
+        val write = within(depCtx, depCtx.getCtrl) {
           allocate[BufferWrite] { write => 
             write.data.canReach(depOut, visitEdges=visitInEdges _) &&
             write.done.canReach(enq, visitEdges=visitInEdges _)
@@ -74,7 +74,7 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
             stage(BufferWrite().data(depOut).done(enq))
           }
         }
-        val read = within(depedCtx, dep.getCtrl) {
+        val read = within(depedCtx, depedCtx.getCtrl) {
           allocate[BufferRead] { read => 
             read.in.canReach(write.out, visitEdges=visitInEdges _) &&
             read.done.canReach(deq, visitEdges=visitInEdges _)
