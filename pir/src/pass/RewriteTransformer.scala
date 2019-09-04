@@ -74,6 +74,25 @@ trait RewriteUtil { self: PIRTransformer =>
     }
   }
 
+  RewriteRule[RegAccumOp](s"RegAccumFMA") { 
+    case n@RegAccumOp(List(OpDef(FixAdd | FltAdd))) =>
+      n.in.T match {
+        case mul@OpDef(FixMul | FltMul) =>
+          val accum = within(n.parent.get, n.ctrl.get) {
+            stage(RegAccumFMA()
+              .in1(mul.inputs(0).connected)
+              .in2(mul.inputs(1).connected)
+              .en(n.en.connected)
+              .first(n.first.connected)
+              .init(n.init.connected)
+            )
+          }
+          Some((n.out, accum.out))
+        case _ => None
+      }
+    case _ => None
+  }
+
   RewriteRule[OpDef](s"ShiftAdd") { 
     case n@OpDef(FixAdd) =>
       val ConstShift = MatchRule[OpDef, (Output[_],Any)] { case n@OpDef(FixSLA) =>
@@ -195,23 +214,23 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   // Counter valids with par < maxValid should be always true
   TransferRule[Counter] { counter =>
     if (counter.valids.exists { _.out.isConnected }) {
-      val min = counter.min.T
-      val step = counter.step.T
-      val max = counter.max.T
-      val par = counter.par
-      val maxValid = (min, step, max) match {
-        case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) =>
-          var bound = ((max - min) /! step) % par
-          if (bound == 0) {
-            bound = par
-          }
-          dbg(s"Constant loop bounds min=$min, step=$step, max=$max, par=$par (0 until $bound)")
-          bound
-        case _ =>
-          dbg(s"None constant loop bounds min=$min, step=$step, max=$max, par=$par (0 until 1)")
-          1
-      }
-      dbgblk(s"CounterConstValid($counter, $maxValid)") {
+      dbgblk(s"CounterConstValid($counter)") {
+        val min = counter.min.T
+        val step = counter.step.T
+        val max = counter.max.T
+        val par = counter.par
+        val maxValid = (min, step, max) match {
+          case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) =>
+            var bound = ((max - min) /! step) % par
+            if (bound == 0) {
+              bound = par
+            }
+            dbg(s"Constant loop bounds min=$min, step=$step, max=$max, par=$par (0 until $bound)")
+            bound
+          case _ =>
+            dbg(s"None constant loop bounds min=$min, step=$step, max=$max, par=$par (0 until 1)")
+            1
+        }
         val ctrler = counter.parent.get
         var const:Const = null
         counter.valids.foreach { case valid@CounterValid(is) =>

@@ -11,7 +11,7 @@ class LUTTest_4 extends LUTTest(ts=16, op=2, N=32)
   op:scala.Int = 1,
   ts:scala.Int = 32,
   ip:scala.Int = 16
-) extends DSETest {
+) extends SpatialTest {
   type T = Int
 
   def main(args: Array[String]): Unit = {

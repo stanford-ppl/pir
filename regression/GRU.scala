@@ -12,7 +12,7 @@ import spatial.dsl._
 @spatial abstract class GRUApp(
   hp:scala.Int=1,
   rp:scala.Int=1
-) extends DSETest with RNNHelper {
+) extends SpatialTest with RNNHelper {
 
   val innerPar = 16
   val nHiddenUnits = 512

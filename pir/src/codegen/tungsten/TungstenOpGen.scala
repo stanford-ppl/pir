@@ -49,6 +49,28 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
         }
       }
 
+    case n@RegAccumFMA() =>
+      genCtxFields {
+        emitln(s"${n.qtp} $n = 0;")
+      }
+      emitIf(s"${n.en.qref}") {
+        val vec = math.max(n.in1.getVec, n.in2.getVec)
+        emitBlock(s"for (int i = 0; i < ${vec}; i++)") {
+          // If firstIter is not connected, the reduction controller is a fully unrolled Unit
+          // Controller
+          val laneValids = if (n.first.isConnected) "laneValids[i]" else "true"
+          emitIf(laneValids) {
+            emitln(s"${n.qtp} mul = ${n.in1.T.qidx("i")} * ${n.in2.T.qidx("i")};")
+            val initOrInput = n.init.singleConnected match {
+              case Some(init) => init.qidx("i")
+              case None => "mul"
+            }
+            val firstIter = n.first.singleConnected.map { _.qidx("i") }.getOrElse("true")
+            emitln(s"$n = ($firstIter && i == 0) ? $initOrInput : $n + mul;")
+          }
+        }
+      }
+
     case n@Shuffle(filled) =>
       emitToVec(n.from) { i => n.from.singleConnected.get.qidx(i) }
       emitToVec(n.to) { i => n.to.singleConnected.get.qidx(i) }

@@ -9,7 +9,7 @@ import spatial.dsl._
 @spatial abstract class LSTMApp(
   hp:scala.Int=1,
   rp:scala.Int=1
-) extends DSETest with RNNHelper {
+) extends SpatialTest with RNNHelper {
 
   val nHiddenUnits = 512
   val nGates = 4

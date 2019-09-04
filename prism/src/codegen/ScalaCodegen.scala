@@ -8,25 +8,25 @@ trait ScalaCodegen extends Codegen {
     emitln(s"// $s")
   }
 
-  def emitComma(implicit ms:CollectionStatus):Unit = { 
-    if (ms.inScope) { 
-      if (ms.firstPair) ms.firstPair = false 
-      else writeln(s",")
-    }
-  }
+  //def emitComma(implicit ms:CollectionStatus):Unit = { 
+    //if (ms.inScope) { 
+      //if (ms.firstPair) ms.firstPair = false 
+      //else writeln(s",")
+    //}
+  //}
 
-  def emitComma(s:String)(implicit ms:CollectionStatus):Unit = { 
-    emitComma
-    emit(s)
-  }
+  //def emitComma(s:String)(implicit ms:CollectionStatus):Unit = { 
+    //emitComma
+    //emit(s)
+  //}
 
-  def emitInst(s:String)(block: CollectionStatus=>Unit)(e:String)(implicit ms:CollectionStatus=new CollectionStatus()):Unit = { 
-    emitComma;
-    emitBlock(s, None, Some(e), Parentheses) {
-      block(new CollectionStatus())
-      writeln("")
-    }
-  }
+  //def emitInst(s:String)(block: CollectionStatus=>Unit)(e:String)(implicit ms:CollectionStatus=new CollectionStatus()):Unit = { 
+    //emitComma;
+    //emitBlock(s, None, Some(e), Parentheses) {
+      //block(new CollectionStatus())
+      //writeln("")
+    //}
+  //}
 
   def emitLambda[T](s:String)(block: =>T):T = { 
     emitBlock(s=s, ss=None, es=None)(block)

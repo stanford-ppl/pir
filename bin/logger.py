@@ -269,6 +269,7 @@ def parse(conf, opts):
     conf['maketst'] = os.path.join(opts.gendir,backend,app,"log/maketst.log")
     conf['runp2p'] = os.path.join(opts.gendir,backend,app,"log/runp2p.log")
     conf['runhybrid'] = os.path.join(opts.gendir,backend,app,"log/runhybrid.log")
+    conf['p2pstat'] = os.path.join(opts.gendir,backend,app,"log/p2pstat.log")
     parse_genpir(conf['AccelMain'], conf, opts)
     parseLog('gentst', conf)
     parseLog('resreport', conf)
@@ -278,6 +279,7 @@ def parse(conf, opts):
     parseLog('maketst', conf)
     parseLog('runp2p', conf)
     parseLog('runhybrid', conf)
+    parseLog('p2pstat', conf)
     conf['succeeded'] = parse_success(conf)
     for rule in rules:
         rule(conf, opts)
@@ -399,6 +401,15 @@ Parser(
     logs=['gentst'],
     prefix=True,
 )
+
+for key in ["All", "FU", "Fix", "Flt", "Other", "Prog FU"]:
+    Parser(
+        'OPS-{}'.format(key), 
+        key,
+        lambda lines,conf: lines[0].split(": ")[1].strip(),
+        logs=['p2pstat'],
+        prefix=False,
+    )
 
 Parser(
     'notFit', 

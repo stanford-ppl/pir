@@ -9,7 +9,10 @@ class ControlTreeDotGen(val fileName:String)(implicit compiler:PIR) extends Cont
   override def quote(n:Any) = super.quote(n)
     .foldAt(n.as[ControlTree].sname.v) { (q, v) => s"$q[$v]" }
     .foldAt(n.to[ControlTree]) { (q,n) => 
-      s"$q\n${n.schedule}\npar=${n.par.v.fold("") { s => s.toString }}\n${n.srcCtx.v.fold(""){ s => s }}"
+      s"$q\n${n.schedule}" + 
+      n.par.v.fold("") { s => s"\npar=$s" } +
+      n.srcCtx.v.fold(""){ s => s"\n$s" } +
+      n.uid.v.fold("") { uid => s"\nuid=[${uid.mkString(",")}]"}
     }
 
 }

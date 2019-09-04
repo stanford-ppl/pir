@@ -1,6 +1,6 @@
 import spatial.dsl._
 
-@spatial class BreakTest extends DSETest {
+@spatial class BreakTest extends SpatialTest {
   def main(args: Array[String]): Unit = {
     val out = ArgOut[Int]
     Accel{
@@ -21,7 +21,7 @@ import spatial.dsl._
   }
 }
 
-@spatial class BreakTest2 extends DSETest {
+@spatial class BreakTest2 extends SpatialTest {
   def main(args: Array[String]): Unit = {
     val out = ArgOut[Int]
     Accel{

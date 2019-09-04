@@ -10,6 +10,7 @@ class Kmeans_5 extends Kmeans(mp1=2,mp2=2)
 class Kmeans_6 extends Kmeans(mp2=2,mp3=2)
 class Kmeans_7 extends Kmeans(mp1=2,mp3=2)
 class Kmeans_8 extends Kmeans(mp1=2,mp2=2,mp3=2)
+class Kmeans_9 extends Kmeans(mp1=3,mp2=3,mp3=3)
 
 @spatial abstract class Kmeans(
   K:scala.Int = 64,
@@ -20,7 +21,7 @@ class Kmeans_8 extends Kmeans(mp1=2,mp2=2,mp3=2)
   mp1:scala.Int = 1,
   mp2:scala.Int = 1,
   mp3:scala.Int = 1
-) extends DSETest { self =>
+) extends SpatialTest { self =>
   type X = Int
 
   override def runtimeArgs = "2 256"

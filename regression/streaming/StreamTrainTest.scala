@@ -63,7 +63,8 @@ class StreamTrainTest_0 extends StreamTrainTest[Float]()()
         stop := lastBatch
       }
     }
-    val cksum = checkGold[T](xDRAM, goldXFile) & checkGold[T](bArg, goldY)
+    val goldData = loadCSV1D[T](goldXFile)
+    val cksum = checkGold[T](xDRAM, goldData, 0.1) & checkGold[T](bArg, goldY, 0.1)
     println("PASS: " + cksum + s" (${this.getClass.getSimpleName})")  
     assert(cksum)
   }

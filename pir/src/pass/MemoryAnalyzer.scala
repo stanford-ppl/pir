@@ -7,20 +7,20 @@ import prism.graph._
 
 trait MemoryAnalyzer { self:PIRTransformer =>
 
-  def insertToken(fctx:Context, tctx:Context, isFIFO:Boolean=false):TokenRead = {
+  def insertToken(fctx:Context, tctx:Context):TokenRead = {
+    val isFIFO = false
     val fctrl = fctx.ctrl.get
     val tctrl = tctx.ctrl.get
     dbgblk(s"InsertToken(fctx=$fctx($fctrl), tctx=$tctx($tctrl))") {
       val (enq, deq) = compEnqDeq(isFIFO=isFIFO, fctx, tctx, None, Nil)
-      val write = within(fctx, fctrl) {
+      val write = within(fctx, enq.src.getCtrl) {
         allocate[TokenWrite](_.done.isConnectedTo(enq)) {
-          TokenWrite().done(enq)
+          stage(TokenWrite().done(enq))
         }
       }
-      dbg(s"add $write")
-      within(tctx, tctrl) {
+      within(tctx, deq.src.getCtrl) {
         allocate[TokenRead](read => read.in.isConnectedTo(write.out) && read.done.isConnectedTo(deq)) {
-          TokenRead().in(write).done(deq)
+          stage(TokenRead().in(write).done(deq))
         }
       }
     }
@@ -49,6 +49,7 @@ trait MemoryAnalyzer { self:PIRTransformer =>
           def ictrl = iAncesstors(iidx-1)
           val enq = if (lca == o) childDone(o, octx) else done(octrl, octx)
           val deq = if (lca == i) childDone(i, ictx) else done(ictrl, ictx)
+          dbg(s"enqCtrl=${enq.src.getCtrl} deqCtrl=${deq.src.getCtrl}")
           (enq,deq)
       }
     }

@@ -111,8 +111,17 @@ case class ExitIf()(implicit env:Env) extends OpNode with Def {
 }
 // op can be eigher a string, if from spatial, or a list of reduction op if
 // transformed in graph initialization
+case class RegAccumFMA()(implicit env:Env) extends OpNode with Def {
+  val in1 = new InputField[PIRNode]("in1")
+  val in2 = new InputField[PIRNode]("in2")
+  val en = new InputField[Set[PIRNode]]("en")
+  val first = new InputField[Option[PIRNode]]("first")
+  val init = new InputField[Option[PIRNode]]("init")
+}
+// op can be eigher a string, if from spatial, or a list of reduction op if
+// transformed in graph initialization
 case class RegAccumOp(op:Any)(implicit env:Env) extends OpNode with Def {
-  val in = new InputField[PIRNode]("input")
+  val in = new InputField[PIRNode]("in")
   val en = new InputField[Set[PIRNode]]("en")
   val first = new InputField[Option[PIRNode]]("first")
   val init = new InputField[Option[PIRNode]]("init")
@@ -151,7 +160,7 @@ case class CounterValid(is:List[Int])(implicit env:Env) extends Def {
 
 abstract class Controller(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
-  val en = new InputField[Option[PIRNode]]("en")
+  val en = new InputField[List[PIRNode]]("en")
   val parentEn = new InputField[Option[PIRNode]]("parentEn")
 
   val valid = new OutputField[List[PIRNode]]("valid")

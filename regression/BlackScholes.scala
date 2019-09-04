@@ -8,7 +8,7 @@ class BlackScholes_1 extends BlackScholes(ip=1)
   ts:scala.Int = 64,
   op:scala.Int = 1,
   ip:scala.Int = 16
-) extends DSETest {
+) extends SpatialTest {
 
   val margin = 0.5f // Validates true if within +/- margin
 

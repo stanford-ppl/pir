@@ -70,7 +70,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
         addEscapeVar(send)
         genCtxInits {
           emitln(s"AddSend(${nameOf(send)});");
-          emitln(s"""${data.mem.T}->SetSend("$data", ${nameOf(send)});""")
+          emitln(s"""${data.mem.T}->SetSend(${data.id}, ${nameOf(send)});""")
         }
       }
 
@@ -124,7 +124,7 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       genTopMember(n, Seq(n.qstr))
 
     case n:Memory =>
-      val accesses = n.accesses.map { a => s"""make_tuple("$a", ${a.port.get.isEmpty})""" }.mkString(",")
+      val accesses = n.accesses.map { a => s"""make_tuple(${a.id}, ${a.isInAccess}, ${a.port.get.isEmpty})""" }.mkString(",")
       genTopMember(n, Seq(n.qstr, s"{$accesses}"))
 
     case n:MemRead if n.mem.T.isFIFO =>
@@ -176,35 +176,39 @@ trait TungstenMemGen extends TungstenCodegen with TungstenCtxGen {
       }
 
     case n:FlatBankedRead =>
+      emitln(s"// ${n}")
       addEscapeVar(n.mem.T)
       emitln(s"Active();")
-      emitln(s"""${n.mem.T}->SetupRead("$n",make_token(${n.offset.qref}));""")
+      emitln(s"""${n.mem.T}->SetupRead(${n.id},make_token(${n.offset.qref}));""")
       genCtxComputeEnd {
-        emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
+        emitln(s"""${n.mem.T}->SetDone(${n.id}, ${n.done.qref});""")
       }
 
     case n:FlatBankedWrite =>
+      emitln(s"// ${n}")
       addEscapeVar(n.mem.T)
       emitln(s"Active();")
-      emitln(s"""${n.mem.T}->Write("$n", make_token(${n.data.qref}), make_token(${n.offset.qref}));""")
+      emitln(s"""${n.mem.T}->Write(${n.id}, make_token(${n.data.qref}), make_token(${n.offset.qref}));""")
       genCtxComputeEnd {
-        emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
+        emitln(s"""${n.mem.T}->SetDone(${n.id}, ${n.done.qref});""")
       }
 
     case n:MemRead =>
+      emitln(s"// ${n}")
       addEscapeVar(n.mem.T)
       emitln(s"""auto $n = ${n.mem.T}->Read("$n");""")
       emitln(s"Active();")
       genCtxComputeEnd {
-        emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
+        emitln(s"""${n.mem.T}->SetDone(${n.id}, ${n.done.qref});""")
       }
 
     case n:MemWrite =>
+      emitln(s"// ${n}")
       addEscapeVar(n.mem.T)
       emitln(s"Active();")
-      emitln(s"""if (${n.en.qref}) ${n.mem.T}->Write("$n", ${n.data.T});""")
+      emitln(s"""if (${n.en.qref}) ${n.mem.T}->Write(${n.id}, ${n.data.T});""")
       genCtxComputeEnd {
-        emitln(s"""${n.mem.T}->SetDone("$n", ${n.done.qref});""")
+        emitln(s"""${n.mem.T}->SetDone(${n.id}, ${n.done.qref});""")
       }
 
     case n => super.emitNode(n)

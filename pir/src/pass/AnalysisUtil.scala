@@ -83,7 +83,7 @@ trait AnalysisUtil { self:PIRPass =>
   }
 
   import spade.param._
-  def compVec(n:IR):Option[Int] = dbgblk(s"compVec(${dquote(n)})") {
+  def compVec(n:IR):Option[Int] = /*dbgblk(s"compVec(${dquote(n)})") */{
     n match {
       case OutputField(n:Controller, "done") => Some(1)
       case OutputField(n:Controller, "childDone") => Some(1)
@@ -104,7 +104,20 @@ trait AnalysisUtil { self:PIRPass =>
       case Const(v) => Some(1)
       case n:TokenWrite => Some(1)
       case n:TokenRead => Some(1)
-      case n:MemWrite => n.data.inferVec
+      case n:MemWrite => n.broadcast.v.map { _.size }.orElse { 
+        if (n.mem.isConnected) {
+          n.mem.T match {
+            case mem:FIFO =>
+              n.getCtrl.schedule match {
+                case Streaming => Some(n.mem.banks.get.head)
+                case _ => Some(n.getCtrl.par.get)
+              }
+            case mem:Reg => n.data.inferVec
+          }
+        } else {
+          n.data.inferVec
+        }
+      }
       case WithMem(n:MemRead, mem:Reg) => 
         val b = n.mem.banks.get.head
         Some(b)
@@ -117,6 +130,7 @@ trait AnalysisUtil { self:PIRPass =>
       case n:BufferWrite => n.data.inferVec
       case n:BufferRead => n.in.inferVec
       case n:RegAccumOp => Some(1)
+      case n:RegAccumFMA => Some(1)
       case n:PrintIf => n.msg.inferVec
       case n:AssertIf => n.msg.inferVec
       case n:ExitIf => n.msg.inferVec
@@ -136,7 +150,7 @@ trait AnalysisUtil { self:PIRPass =>
     }
   }
 
-  def compType(n:IR):Option[BitType] = dbgblk(s"compType(${dquote(n)})") {
+  def compType(n:IR):Option[BitType] = /*dbgblk(s"compType(${dquote(n)})") */{
     n match {
       case OutputField(n:Controller, "valid") => Some(Bool)
       case OutputField(n:Controller, "done") => Some(Bool)
@@ -154,6 +168,7 @@ trait AnalysisUtil { self:PIRPass =>
       case n:GlobalInput => n.in.inferTp
       case n:GlobalOutput => n.in.inferTp
       case n:RegAccumOp => n.in.inferTp
+      case n:RegAccumFMA => n.in1.inferTp
       case n:MemRead => n.mem.inferTp
       case n:MemWrite => n.data.inferTp
       case n:Memory => assertOptionUnify(n.inAccesses, s"$n.type") { w => w.inferTp }

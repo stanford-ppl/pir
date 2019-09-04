@@ -6,7 +6,7 @@ class BankEnable_0 extends BankEnable
 @spatial abstract class BankEnable(
   N:scala.Int = 32,
   ip:scala.Int = 16
-) extends DSETest {
+) extends SpatialTest {
   type T = Float
 
   def main(args: Array[String]): Unit = {

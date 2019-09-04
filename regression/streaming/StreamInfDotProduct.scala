@@ -8,6 +8,7 @@ class StreamInfDotProduct_2 extends StreamInfDotProduct[scala.Int,Int]()(ipf=4)
 class StreamInfDotProduct_3 extends StreamInfDotProduct[scala.Int,Int]()(ipf=4, opb=2)
 class StreamInfDotProduct_4 extends StreamInfDotProduct[scala.Int,Int]()(ipf=8, opb=4)
 class StreamInfDotProduct_5 extends StreamInfDotProduct[scala.Int,Int]()(transpose=false)
+//class StreamInfDotProduct_6 extends StreamInfDotProduct[scala.Int,Float](field=16,numBatch=1024,batch=16)()
 
 @spatial abstract class StreamInfDotProduct[HT:Numeric:ClassTag,T:Num](
   val field:scala.Int = 8,

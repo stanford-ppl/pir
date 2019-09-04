@@ -9,6 +9,16 @@ import scala.collection.mutable
 
 class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with PIRTransformer {
 
+  override def finPass = {
+    super.finPass
+    pirTop.topCtrl.descendentTree.foreach { setUID }
+    pirTop.collectChildren[Controller].foreach { ctrler =>
+      ctrler.en.neighbors.collect { case v:CounterValid => v }.foreach { v =>
+        disconnect(ctrler.en, v)
+      }
+    }
+  }
+
   override def visitNode(n:N) = {
     n.to[Controller].foreach { n =>
       n.srcCtx.v.foreach { v => n.ctrl.get.srcCtx := v }
@@ -19,7 +29,6 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         d.ctrl := ctrl
         dbg(s"Resetting $d.ctrl = $ctrl")
       }
-      n.en.disconnect
     }
     //n.to[LoopController].foreach { n =>
       //n.stopWhen.T.foreach { n =>
@@ -103,6 +112,32 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
     }
 
+    n.to[FringeDenseStore].foreach { n =>
+      // Transfer write enable on store valid and store data to valid
+      val vwrite = n.valid.T.as[MemRead].mem.T.inAccesses.head.as[MemWrite]
+      if (vwrite.en.isConnected) {
+        within(vwrite.parent.get, vwrite.getCtrl) {
+          val vdata = vwrite.data.singleConnected.get
+          val vs = (vdata::vwrite.en.connected++n.getCtrl.ctrler.get.en.connected).toSet
+          val v = vs.reduce[Output[PIRNode]]{ case (v1,v2) =>
+            stage(OpDef(And).addInput(v1,v2)).out
+          }
+          vwrite.data.disconnect
+          vwrite.data(v)
+          vwrite.en.disconnect
+          n.data.T.as[MemRead].mem.T.inAccesses.head.as[MemWrite].en.disconnect
+        }
+      }
+    }
+
+    // Remove loop lane valid dependent enable
+    n.to[MemRead].foreach { read =>
+      read.en.T.foreach {
+        case v:CounterValid => read.en.disconnectFrom(v.out)
+        case _ =>
+      }
+    }
+
     n.to[DRAMStoreCommand].foreach { n =>
       val write = within(pirTop, n.getCtrl) {
         val ack = n.ack.T.as[MemWrite].mem.T.outAccesses.head
@@ -111,6 +146,20 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         }
       }
       argOut(write).name(s"${n}_ack")
+    }
+    
+    n.to[BankedAccess].foreach { access =>
+      val ctrl = access.getCtrl
+      ctrl.ancestorTree.foreach { c =>
+        c.ctrler.v.foreach { ctrler =>
+          val ens = ctrler.en.T.collect { case v:CounterValid => v }
+          ens.foreach { en =>
+            if (!access.en.isConnectedTo(en.out)) {
+              access.en(en.out)
+            }
+          }
+        }
+      }
     }
 
     if (config.enableSimDebug) {
@@ -192,6 +241,22 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       }
     }
     ctrler
+  }
+
+  // UID is the unrolled ids of outer loop controllers
+  def setUID(ctrl:ControlTree) = {
+    val cuid = ctrl.ctrler.v.fold[List[Int]](Nil) { _.en.neighbors.collect { case v:CounterValid => v }
+      .groupBy { _.getCtrl }.toList.sortBy { _._1.ancestors.size } // Outer most to inner most
+      .flatMap { case (pctrl, vs) => 
+        val ps = vs.sortBy { _.counter.T.idx.get }.map { case CounterValid(List(i)) => i }
+        dbg(s"$ctrl: $pctrl[${ps.mkString(",")}]")
+        ps
+      }
+    }
+    val puid = ctrl.parent.map { _.uid.get }.getOrElse(Nil)
+    val uid = puid ++ cuid
+    dbg(s"$ctrl.uid=[${uid.mkString(",")}]")
+    ctrl.uid := uid
   }
 
 }

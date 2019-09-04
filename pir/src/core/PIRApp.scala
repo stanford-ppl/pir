@@ -46,7 +46,8 @@ trait PIRApp extends PIR with Logging {
   lazy val prouteLinkGen = new PlastirouteLinkGen()
   lazy val prouteNodeGen = new PlastirouteNodeGen()
   lazy val dramTraceGen = new DRAMTraceCodegen()
-  lazy val report = new ResourceReport()
+  lazy val resReport = new ResourceReport()
+  lazy val progReport = new ProgramReport()
   lazy val igraphGen = new IgraphCodegen()
   //lazy val areaPowerStat = new AreaPowerStat()
   
@@ -87,7 +88,7 @@ trait PIRApp extends PIR with Logging {
     addPass(globalInsertion) ==>
     saveSession(buildPath(config.outDir,"pir1.ckpt")) ==>
     // ------ Load hardware constrain ----- 
-    addPass(enableMapping,report) ==>
+    addPass(enableMapping,progReport) ==>
     addPass(initializer) ==>
     addPass(new ParamHtmlIRPrinter(s"param.html", pirenv.spadeParam)) ==>
     addPass(enableDot, new PIRCtxDotGen(s"ctx7.dot")) ==>
@@ -113,7 +114,8 @@ trait PIRApp extends PIR with Logging {
     //addPass(enableDot, new PIRNetworkDotGen(s"net.dot"))
     saveSession(buildPath(config.outDir,"pir2.ckpt")) ==>
     // ------- Codegen  --------
-    addPass(enableMapping,report) ==>
+    addPass(enableMapping,progReport) ==>
+    addPass(enableMapping,resReport) ==>
     addPass(runtimeAnalyzer).dependsOn(placerAndRouter) ==>
     addPass(enableDot, new PIRCtxDotGen(s"ctx9.dot")) ==>
     addPass(enableDot, new PIRTopDotGen(s"top9.dot"))

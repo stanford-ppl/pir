@@ -1,7 +1,7 @@
 //import spatial.dsl._
 //import forge.tags._
 
-//@spatial class SplitStream extends DSETest {
+//@spatial class SplitStream extends SpatialTest {
 
   //override protected def pirArgs = super.pirArgs :+ "--count=stream_in,2046"
 

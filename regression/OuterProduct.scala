@@ -9,10 +9,9 @@ class OuterProduct_5 extends OuterProduct(ip=16, op1=2, op2=2)
 class OuterProduct_6 extends OuterProduct(ip=16, op2=1, ip1=2, ip2=8)
 class OuterProduct_7 extends OuterProduct(ip=16, op2=2, ip1=2, ip2=8)
 class OuterProduct_8 extends OuterProduct(ip=16, op2=2, ip1=4, ip2=4)
-//class OuterProduct_2 extends OuterProduct(op2=4)
-//class OuterProduct_3 extends OuterProduct(op2=6)
-//class OuterProduct_4 extends OuterProduct(op2=8)
-//class OuterProduct_5 extends OuterProduct(op2=10)
+class OuterProduct_9 extends OuterProduct(op2=3)
+class OuterProduct_10 extends OuterProduct(op1=3)
+class OuterProduct_11 extends OuterProduct(op1=3,op2=3)
 
 @spatial abstract class OuterProduct(
   M:scala.Int = 256,
@@ -24,9 +23,9 @@ class OuterProduct_8 extends OuterProduct(ip=16, op2=2, ip1=4, ip2=4)
   ip2:scala.Int = 1,
   op1:scala.Int = 1,
   op2:scala.Int = 1
-) extends DSETest with SpatialTest { // Regression (Dense) // Args: 640 640
+) extends SpatialTest { // Regression (Dense) // Args: 640 640
 
-  type X = FixPt[TRUE,_32,_0]
+  type X = Int
 
 
   def outerproduct[T:Num](a: Array[T], b: Array[T]) = {
@@ -68,17 +67,8 @@ class OuterProduct_8 extends OuterProduct(ip=16, op2=2, ip1=4, ip2=4)
 
     val out = outerproduct(a, b)
     val gold = (0 :: M, 0 :: N) { (i,j) => a(i) * b(j) }
-    //println(s"Result:")
-    //printMatrix(getMatrix(out))
-    //println(s"Gold:")
-    //printMatrix(gold)
-    val gold_cksum = gold.flatten.map(a => a).reduce{_+_}
-    val result_cksum = getMem(out).map(a => a).reduce{_+_}
-    println("expected cksum: " + gold_cksum)
-    println("result cksum:   " + result_cksum)
-    // (0 until M*N) foreach { i => assert(result(i) == gold(i)) }
 
-    val cksum = result_cksum == gold_cksum
+    val cksum = checkGold(out, gold, 0)
     println("PASS: " + cksum + " (OuterProduct)")
     assert(cksum)
 

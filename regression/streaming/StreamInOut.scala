@@ -1,7 +1,7 @@
 import spatial.dsl._
 import spatial.lang.{FileBus,FileEOFBus}
 
-@spatial class StreamInOutStop extends DSETest {
+@spatial class StreamInOutStop extends SpatialTest {
   val inFile = "in.csv"
   val outFile = "out.csv"
   val numToken = 10

@@ -10,8 +10,9 @@ trait DotCodegen extends Codegen {
   def dotFile:String = fileName.replace(".dot", ".html")
   lazy val dotPath = getAbsolutePath(buildPath(dirName, dotFile))
 
-  val regex = "\\[[0-9]*\\]".r
-  def q(s:Any) = regex.replaceAllIn(s.toString, "")
+  //val regex = "\\[[0-9]*\\]".r
+  //def q(s:Any) = regex.replaceAllIn(s.toString, "")
+  def q(s:Any) = s.toString
 
   def emitNode(n:Any, attr:DotAttr) = {
     val attrMap = attr.node
