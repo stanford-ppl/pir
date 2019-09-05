@@ -32,12 +32,12 @@ trait PageRankHost extends SpatialTest {
     val initRank = 1.0f / N
     val goldRank = Iterator.tabulate(iters) { i => i }.foldLeft(Seq.fill(N)(initRank)) { case (prevRank, iter) =>
       prevRank.view.zipWithIndex.map { case (rank, n) =>
-        val len = lenData(n)
+        val len = ofstData(n+1) - ofstData(n)
         val ofst = ofstData(n)
         val neighbors = edgeData.view.slice(ofst, ofst+len)
         val sum = neighbors.map { e =>
           val neighborRank = prevRank(e)
-          val neighborLen = lenData(e)
+          val neighborLen = ofstData(e+1) - ofstData(e)
           neighborRank / neighborLen
         }.reduce { _ + _ }
         sum * damp + ((1 - damp) / N)

@@ -84,8 +84,15 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       emitUnVec(n)(s"${n}_shuffled")
 
     case n:OpDef => emitVec(n) { i => 
-      val ins = n.inputs.map { _.qidx(i) }
-      quoteOp(n.op, n.getTp, ins, n.inputs.map { _.getTp}, quoteSrcCtx(n))
+      var ins = n.inputs.map { _.qidx(i) }
+      var intps = n.inputs.map { _.getTp}
+      n.op match {
+        case FixDiv | FltDiv =>
+          ins = ins :+ i.map { i => s"laneValids[$i]" }.getOrElse("true")
+          intps = intps :+ Bool
+        case _ =>
+      }
+      quoteOp(n.op, n.getTp, ins, intps, quoteSrcCtx(n))
     }
 
     case n:PrintIf =>
@@ -114,7 +121,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       case FixAdd                   => s"$a + $b"
       case FixSub                   => s"$a - $b"
       case FixMul                   => s"$a * $b"
-      case FixDiv                   => s"""SafeDiv($a, $b, "$ctx")"""
+      case FixDiv                   => s"""$c ? SafeDiv($a, $b, "$ctx") : $a"""
       case FixRecip                 => s"1 / $a"
       case FixMod if ntp.isFraction =>
         val Fix(s,i,f) = ntp
