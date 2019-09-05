@@ -27,6 +27,12 @@ trait PageRankHost extends SpatialTest {
     writeCSVNow(lenData, lenPath)
     writeCSVNow(ofstData, ofstPath)
     writeCSVNow(edgeData, edgePath)
+  }
+
+  def compGold = {
+    val ofstData = loadCSVNow(ofstPath, delim=",") { _.toInt }
+    val edgeData = loadCSVNow(edgePath, delim=",") { _.toInt }
+    val N = ofstData.size - 1
 
     // Gold Page Rank
     val initRank = 1.0f / N
@@ -43,6 +49,7 @@ trait PageRankHost extends SpatialTest {
         sum * damp + ((1 - damp) / N)
       }
     }
+    createDirectories(dirName(goldPath))
     writeCSVNow(goldRank, goldPath)
   }
 
