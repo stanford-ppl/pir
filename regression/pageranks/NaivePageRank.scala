@@ -8,57 +8,17 @@ class NaivePageRank_3 extends NaivePageRank()(opN=3,opts=3,ipls=16, ip=16)
 class NaivePageRank_4 extends NaivePageRank(iters=2)(ipls=1, ip=1)
 
 @spatial class NaivePageRank(
-  ts: scala.Int=32,
-  iters:scala.Int = 1, // number of iterations
-  damp:scala.Float = 0.125f,
+  val ts: scala.Int=32,
+  val iters:scala.Int = 1, // number of iterations
+  val damp:scala.Float = 0.125f,
 )(
   opN:scala.Int = 1, // N / ts
   opts:scala.Int = 1, // tile par
   ipls:scala.Int = 16, // load store par
   ip:scala.Int = 16,
-) extends SpatialTest {
+) extends SpatialTest with PageRankHost {
 
   type T = FixPt[TRUE, _16, _16] // Float
-
-  val maxEdge = 100
-
-  def lenPath = buildPath(IR.config.genDir, "tungsten", "len.csv")
-  def ofstPath = buildPath(IR.config.genDir, "tungsten", "ofst.csv")
-  def edgePath = buildPath(IR.config.genDir, "tungsten", "edges.csv")
-  def goldPath = buildPath(IR.config.genDir, "tungsten", "gold.csv")
-
-  def genData = {
-    val N = 128
-    val lenData = Seq.tabulate(N) { i => i % (maxEdge-1)+1 }
-    val ofstData = lenData.foldLeft(List(0)) { case (prev, len) => prev :+ (prev.last + len) }
-    val edgeData = lenData.view.zipWithIndex.flatMap { case (len, i) => 
-      Seq.tabulate(len) { i => 
-        val n = 2*(i+1) % N
-        IfElse(n == i) { (n + 1) % N } { n }
-      }
-    }
-    createDirectories(dirName(lenPath))
-    writeCSVNow(lenData, lenPath)
-    writeCSVNow(ofstData, ofstPath)
-    writeCSVNow(edgeData, edgePath)
-
-    // Gold Page Rank
-    val initRank = 1.0f / N
-    val goldRank = Iterator.tabulate(iters) { i => i }.foldLeft(Seq.fill(N)(initRank)) { case (prevRank, iter) =>
-      prevRank.view.zipWithIndex.map { case (rank, n) =>
-        val len = lenData(n)
-        val ofst = ofstData(n)
-        val neighbors = edgeData.view.slice(ofst, ofst+len)
-        val sum = neighbors.map { e =>
-          val neighborRank = prevRank(e)
-          val neighborLen = lenData(e)
-          neighborRank / neighborLen
-        }.reduce { _ + _ }
-        sum * damp + ((1 - damp) / N)
-      }
-    }
-    writeCSVNow(goldRank, goldPath)
-  }
 
   def main(args: Array[String]): Unit = {
     genData
@@ -120,4 +80,3 @@ class NaivePageRank_4 extends NaivePageRank(iters=2)(ipls=1, ip=1)
   }
 
 }
-
