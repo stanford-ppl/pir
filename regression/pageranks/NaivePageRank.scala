@@ -74,11 +74,7 @@ class NaivePageRank_4 extends NaivePageRank(iters=2)(ipls=1, ip=1)
       }
     }
 
-    val goldRank = loadCSV1D[T](goldPath)
-    val cksum = checkGold(pageranks, goldRank, margin=0.05)
-    println("PASS: " + cksum)
-    assert(cksum)
-
+    checkGold(pageranks)
   }
 
 }
