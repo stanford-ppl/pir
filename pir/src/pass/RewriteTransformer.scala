@@ -279,6 +279,8 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
       }
       Some(read)
     } else {
+      // Use pipeline register to carry intermediate result if read and write are on the same
+      // controller
       testOne(mem.inAccesses).map{ write =>
         if (write.getCtrl == read.getCtrl) {
           if (write.order.get < read.order.get) {

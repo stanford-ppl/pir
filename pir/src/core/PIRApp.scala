@@ -91,9 +91,9 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping,progReport) ==>
     addPass(initializer) ==>
     addPass(new ParamHtmlIRPrinter(s"param.html", pirenv.spadeParam)) ==>
+    addPass(enableDot, new PIRGlobalDotGen(s"global7.dot"))
     addPass(enableDot, new PIRCtxDotGen(s"ctx7.dot")) ==>
     addPass(enableDot, new PIRTopDotGen(s"top7.dot")) ==>
-    addPass(enableDot, new PIRGlobalDotGen(s"global7.dot"))
     addPass(enableDot, new PIRIRPrinter(s"IR7.txt"))
     // ------- Mapping  --------
     addPass(enableMapping, hardPruner) ==>
@@ -117,9 +117,9 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping,progReport) ==>
     addPass(enableMapping,resReport) ==>
     addPass(runtimeAnalyzer).dependsOn(placerAndRouter) ==>
+    addPass(enableDot, new PIRGlobalDotGen(s"global.dot"))
     addPass(enableDot, new PIRCtxDotGen(s"ctx9.dot")) ==>
     addPass(enableDot, new PIRTopDotGen(s"top9.dot"))
-    addPass(enableDot, new PIRGlobalDotGen(s"global.dot"))
     addPass(enableDot, new PIRIRPrinter(s"IR9.txt"))
     // Igraph
     addPass(enableIgraph, igraphGen).dependsOn(runtimeAnalyzer)

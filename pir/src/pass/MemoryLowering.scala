@@ -33,7 +33,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTransformer with Dependen
     if (noBankedAccess && !noReadEnable) {
       val access = mem.outAccesses.filter { _.en.isConnected }
       throw PIRException(s"$mem (${mem.name.v}, ${mem.srcCtx.v}) has read enables at \n${access.map { a =>
-        s"$a (${a.srcCtx.v.getOrElse("No context")})"
+        s"$a (${a.srcCtx.v.getOrElse("No context")}) ${a.en.connected.map { dquote}.mkString(",")}"
       }.mkString("\n")}")
     }
     var toEnBuffer = noBankedAccess && singleWriter && singleFIFOReader && false

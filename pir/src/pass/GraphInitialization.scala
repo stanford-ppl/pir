@@ -130,6 +130,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       }
     }
 
+    // TODO: proper handle of FIFO enables
     // Remove loop lane valid dependent enable
     n.to[MemRead].foreach { read =>
       read.en.T.foreach {
@@ -137,6 +138,16 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         case _ =>
       }
     }
+
+    n.to[MemWrite].foreach { write =>
+      if (write.mem.T.isFIFO) {
+        write.en.T.foreach {
+          case v:CounterValid => write.en.disconnectFrom(v.out)
+          case _ =>
+        }
+      }
+    }
+
 
     n.to[DRAMStoreCommand].foreach { n =>
       val write = within(pirTop, n.getCtrl) {
