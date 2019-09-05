@@ -22,6 +22,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       dbg(s"$n")
       val ctrler = n.ctrlers.last
       emitln(s"$ctrler->SetEn(${ctrler.en.qref});")
+      n.collectChildren[LoopController].foreach { _.cchain.T.foreach { super.visitNode(_) } }
       emitIf(s"${ctrler}->Enabled()") {
         super.visitNode(n)
       }
