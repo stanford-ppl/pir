@@ -21,7 +21,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case n:ControlBlock => 
       dbg(s"$n")
       val ctrler = n.ctrlers.last
-      emitln(s"$ctrler->SetEn(${ctrler.en.qref});")
+      emitln(s"$ctrler->SetEn(${ctrler.en.qref}); // ${ctrler.getCtrl}")
       n.collectChildren[LoopController].foreach { _.cchain.T.foreach { super.visitNode(_) } }
       emitIf(s"${ctrler}->Enabled()") {
         super.visitNode(n)
@@ -94,7 +94,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       emitln(s"$n->setMin(${n.min.T.get});")
       emitln(s"$n->setStep(${n.step.T.get});")
       emitln(s"$n->setMax(${n.max.T.get});")
-      emitln(s"$n->Eval();")
+      emitln(s"$n->Eval(); // ${n.getCtrl}")
 
     case n@CounterIter(is) =>
       val ctr = n.counter.T
