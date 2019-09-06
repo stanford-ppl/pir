@@ -23,6 +23,7 @@ class NaivePageRankCSR_4 extends NaivePageRankCSR(iters=2)(ipls=1, ip=1)
 
   def main(args: Array[String]): Unit = {
     genData
+    compGold
 
     val ofstData = loadCSV1D[Int](ofstPath)
     val edgeData = loadCSV1D[Int](edgePath)
