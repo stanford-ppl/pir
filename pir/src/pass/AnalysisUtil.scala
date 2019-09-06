@@ -139,7 +139,7 @@ trait AnalysisUtil { self:PIRPass =>
       // During staging time GlobalInput might temporarily not connect to GlobalOutput
       case n:GlobalInput => n.in.inferVec
       case InputField(n:Shuffle, "from" | "base") => zipMap(n.base.singleConnected.get.inferVec, n.from.singleConnected.get.inferVec) { case (a,b) => Math.max(a,b) }
-      case n@InputField(_:LocalInAccess, "en" | "done") => n.as[Input[PIRNode]].connected.map { o => o.inferVec }.maxOption.getOrElse(Some(1))
+      case n@InputField(_:LocalAccess | _:RegAccumOp | _:RegAccumFMA, "en" | "done") => n.as[Input[PIRNode]].connected.map { o => o.inferVec }.maxOption.getOrElse(Some(1))
       case InputField(n:FlatBankedAccess, "done") => Some(1)
       case InputField(n:FlatBankedAccess, field) => Some(n.mem.T.nBanks)
       case InputField(n:Controller, "en" | "parentEn") => Some(1)
