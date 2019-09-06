@@ -218,6 +218,7 @@ def print_message(conf, opts):
 
     if opts.show_diff:
         if not conf[diffkey] and prevsucc.shape[0] > 0:
+            times = get_col(prevsucc, 'time')
             pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
             print('{} {}'.format(msg, cstr(RED,'(Regression)')))
             print('{} {} {} {}'.format(getMessage(pconf, opts), pconf['spatial_sha'], 
