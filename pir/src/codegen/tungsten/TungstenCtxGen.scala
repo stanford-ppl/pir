@@ -152,11 +152,19 @@ using   namespace std;
     emitln(s"${name} = $rhs;")
   }
 
-  def declare(sig:String):Unit = {
+  def declareInit(tp:String, name:String, init:Option[Any]):Unit = {
+    val sig = s"$tp $name"
+    declare(sig, init)
+  }
+
+  def declare(sig:String, init:Option[Any]=None):Unit = {
     assert(!declared.contains(sig), s"$sig has been declared")
     declared += sig
     genCtxFields {
-      emitln(s"$sig;")
+      init match {
+        case Some(init) => emitln(s"$sig = $init;")
+        case None => emitln(s"$sig;")
+      }
     }
   }
 
@@ -221,13 +229,18 @@ using   namespace std;
 
   def emitVec(n:IR, rhs:List[Any]) = {
     assert(n.getVec == rhs.size)
-    if (n.getVec==1) {
-      declare(n.qtp, n.qref, rhs.head)
-    } else {
-      declare(s"${n.qtp} ${n.qref}[${n.getVec}]")
-      rhs.view.zipWithIndex.foreach { case (e,i) => 
-        emitln(s"${n.qref}[$i] = ${e};")
-      }
+    n match {
+      case n:Const if n.getVec == 1 =>
+        declareInit(n.qtp, n.qref, Some(rhs.head))
+      case n:Const =>
+        declareInit(n.qtp, s"${n.qref}[${n.getVec}]", Some(s"{${rhs.mkString(",")}};"))
+      case _ if n.getVec == 1 =>
+        declare(n.qtp, n.qref, rhs.head)
+      case _ =>
+        declare(s"${n.qtp} ${n.qref}[${n.getVec}]")
+        rhs.view.zipWithIndex.foreach { case (e,i) => 
+          emitln(s"${n.qref}[$i] = ${e};")
+        }
     }
   }
 
