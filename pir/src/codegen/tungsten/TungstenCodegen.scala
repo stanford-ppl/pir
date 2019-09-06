@@ -42,7 +42,6 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   }
 
   def filterEdge(out:Output[PIRNode], in:Input[PIRNode]) = (out,in) match {
-    case (_, InputField(_:LocalOutAccess, "done")) => false
     case (OutputField(_:LocalInAccess, _), InputField(_:LocalOutAccess, _)) => false
     case (_,InputField(_:LoopController, "stopWhen")) => false
     case _ => true
@@ -89,6 +88,9 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     }
     def qany:String = {
       if (n.getVec > 1) s"Any<${n.getVec}>(${qref})" else qref
+    }
+    def qall:String = {
+      if (n.getVec > 1) s"All<${n.getVec}>(${qref})" else qref
     }
     def qtp:String = n.getTp.qtp
     def tokenTp = qtp match {
