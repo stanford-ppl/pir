@@ -164,10 +164,10 @@ trait RuntimeUtil extends AnalysisUtil { self:PIRPass =>
 
   def compScale(n:Any):Value[Long] = dbgblk(s"compScale($n)"){
     n match {
-      case OutputField(ctrler:Controller, "done") => ctrler.getIter *  compScale(ctrler.valid)
-      case OutputField(ctrler:Controller, "valid" | "childDone") => 
-        val children = ctrler.valid.connected.filter { _.asInstanceOf[Field[_]].name == "parentEn" }.map { _.src.as[Controller] }
-        assertUnify(children, s"$ctrler.valid.scale") { child => compScale(child.done) }.getOrElse(Finite(ctrler.ctx.get.getScheduleFactor))
+      case OutputField(ctrler:Controller, "done") => ctrler.getIter *  compScale(ctrler.childDone)
+      case OutputField(ctrler:Controller, "childDone" | "childDone") => 
+        val children = ctrler.childDone.connected.filter { _.asInstanceOf[Field[_]].name == "parentEn" }.map { _.src.as[Controller] }
+        assertUnify(children, s"$ctrler.childDone.scale") { child => compScale(child.done) }.getOrElse(Finite(ctrler.ctx.get.getScheduleFactor))
       case OutputField(n:Const, _) => Finite(n.ctx.get.getScheduleFactor)
       case n:LocalAccess => 
         (n, n.done.connected) match {
@@ -203,7 +203,7 @@ trait RuntimeUtil extends AnalysisUtil { self:PIRPass =>
     case (OutputField(Const(out1), "out"), OutputField(Const(out2), "out")) if out1 == out2 => true
     case (OutputField(Const(List(out1)), "out"), OutputField(Const(out2), "out")) if out1 == out2 => true
     case (OutputField(Const(out1), "out"), OutputField(Const(List(out2)), "out")) if out1 == out2 => true
-    case (OutputField(c1:UnitController, "valid" | "done"), OutputField(c2:UnitController, "valid" | "done")) => c1 == c2
+    case (OutputField(c1:UnitController, "childDone" | "done"), OutputField(c2:UnitController, "childDone" | "done")) => c1 == c2
     case (out1, out2) => false
   }
 

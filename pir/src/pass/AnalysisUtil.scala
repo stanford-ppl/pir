@@ -87,7 +87,6 @@ trait AnalysisUtil { self:PIRPass =>
     n match {
       case OutputField(n:Controller, "done") => Some(1)
       case OutputField(n:Controller, "childDone") => Some(1)
-      case OutputField(n:Controller, "valid") => Some(1)
       case OutputField(n:LoopController, "firstIter") => Some(1)
       case OutputField(n:FringeDenseStore, "ack") => Some(1)
       case OutputField(n:FringeStreamRead, "done") => Some(1)
@@ -152,7 +151,6 @@ trait AnalysisUtil { self:PIRPass =>
 
   def compType(n:IR):Option[BitType] = /*dbgblk(s"compType(${dquote(n)})") */{
     n match {
-      case OutputField(n:Controller, "valid") => Some(Bool)
       case OutputField(n:Controller, "done") => Some(Bool)
       case OutputField(n:LoopController, "firstIter") => Some(Bool)
       case OutputField(n:Controller, "childDone") => Some(Bool)

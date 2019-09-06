@@ -34,7 +34,7 @@ trait MemoryAnalyzer { self:PIRTransformer =>
       dbg(s"out=$from.$out")
       dbg(s"ins=${ins.map { in => s"${in.src}.$in"}.mkString(",")}")
       (out, ins) match {
-        case (out,ins) if isFIFO => (valid(o, octx), valid(i, ictx))
+        case (out,ins) if isFIFO => (childDone(o, octx), childDone(i, ictx))
         case (out,Seq(InputField(n:LoopController, "stopWhen"))) if o == i => (childDone(o, octx), childDone(i, ictx))
         case (out,ins) if o == i => (done(o, octx), done(i, ictx)) // This should be childDone other than hack for block reduce token
         case (out,ins) =>
@@ -55,22 +55,15 @@ trait MemoryAnalyzer { self:PIRTransformer =>
     }
   }
 
-  def valid(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
+  def childDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
     if (ctx.streaming.get) {
       within(ctx, ctrl) { allocConst(true).out }
     } else if (!compiler.hasRun[DependencyDuplication]) {
       // Centralized controller
-      ctrl.ctrler.get.valid
+      ctrl.ctrler.get.childDone
     } else {
        //Distributed controller
-      //assertOneOrLess(ctx.ctrlers.filter { _.getCtrl == ctrl }, 
-        //s"$ctrl.valid in $ctx").map { _.valid }.getOrElse {
-          ////assert(this.isInstanceOf[CUPruner], s"$ctx has no Controller for $ctrl")
-          //val c = within(ctx, ctrl) { allocConst(true) }
-          //dbg(s"$ctx has no Controller for $ctrl. Use $c instead")
-          //c.out
-        //}
-      ctx.getCtrler(ctrl).valid
+      ctx.getCtrler(ctrl).childDone
     }
   }
 
@@ -81,16 +74,6 @@ trait MemoryAnalyzer { self:PIRTransformer =>
     } else {
       //Distributed controller
       ctx.getCtrler(ctrl).done
-    }
-  }
-
-  def childDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
-    if (!compiler.hasRun[DependencyDuplication]) {
-      // Centralized controller
-      ctrl.ctrler.get.childDone
-    } else {
-      //Distributed controller
-      ctx.getCtrler(ctrl).childDone
     }
   }
 

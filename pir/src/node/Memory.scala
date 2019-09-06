@@ -163,7 +163,6 @@ abstract class Controller(implicit env:Env) extends PIRNode {
   val en = new InputField[List[PIRNode]]("en")
   val parentEn = new InputField[Option[PIRNode]]("parentEn")
 
-  val valid = new OutputField[List[PIRNode]]("valid")
   val done = new OutputField[List[PIRNode]]("done")
   val childDone = new OutputField[List[PIRNode]]("childDone")
 
@@ -215,7 +214,7 @@ trait MemoryUtil extends CollectorImplicit {
 
   implicit class ControllerOp(n:Controller) {
     def childCtrlers:Seq[Controller] = {
-      n.valid.T.collect { case ctrler:Controller => ctrler }
+      n.childDone.T.collect { case ctrler:Controller => ctrler }
     }
     def isLeaf = childCtrlers.isEmpty
     def leaves:Seq[Controller] = {

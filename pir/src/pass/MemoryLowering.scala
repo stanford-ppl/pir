@@ -166,7 +166,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTransformer with Dependen
     }
     // Connect access.done
     if (mem.isFIFO) {
-      access.done(valid(access.getCtrl, ctx))
+      access.done(childDone(access.getCtrl, ctx))
     } else if (mem.depth.get > 1 && access.port.get.nonEmpty) {
       val ctrlMap = leastMatchedPeers(mem.accesses.filterNot{_.port.get.isEmpty}.map { _.getCtrl} ).get
       val ctrl = ctrlMap(access.getCtrl)

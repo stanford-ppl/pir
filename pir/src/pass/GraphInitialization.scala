@@ -216,8 +216,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
           dbg(s"input=${dquote(input)}")
           val accumOp = within(readerParent, readerCtrl) {
             val firstIter = writer.getCtrl.ctrler.get.to[LoopController].map { _ .firstIter }
-            val en = readerCtrl.ctrler.get.valid
-            stage(RegAccumOp(reduceOps).in(input).en(writer.en.connected, en).first(firstIter).init(init))
+            stage(RegAccumOp(reduceOps).in(input).en(writer.en.connected).first(firstIter).init(init))
           }
           disconnect(writer, reduceOps.last)
           swapOutput(reduceOps.last.as[DefNode[PIRNode]].output.get, accumOp.out)
@@ -247,7 +246,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     tree.ctrler(ctrler)
     tree.parent.foreach { parent =>
       parent.ctrler.v.foreach { pctrler =>
-        ctrler.parentEn(pctrler.valid)
+        ctrler.parentEn(pctrler.childDone)
       }
     }
     ctrler

@@ -96,9 +96,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
     }
 
     case n:PrintIf =>
-      var ens = n.en.qref :: Nil
-      n.ctx.get.ctrler(n.ctrl.get).foreach { ctrler => ens +:= ctrler.valid.qref }
-      emitIf(s"${ens.distinct.reduce { _ + " && " + _ }}") {
+      emitIf(n.en.qref) {
         emitBlock(s"for (int i = 0; i < ${n.msg.T.getVec}; i++)") {
           emitln(s"cout << ${n.msg.T.qidx("i")};")
         }
