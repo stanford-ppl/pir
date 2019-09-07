@@ -22,10 +22,9 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
   override def finPass = {
     passTwo = true
     dbg(s"passTwo ----------------")
-    ctxs.foreach { _.count.reset }
     // Two passes to handle cycle in data flow graph
     ctxs.foreach { n =>
-      val count = n.getCount.get
+      val count = compCount(n).get
       if (n.collectDown[HostOutController]().nonEmpty & count.isKnown) {
         assert(count == Finite(1), s"Host out count != 1: $count")
       }
