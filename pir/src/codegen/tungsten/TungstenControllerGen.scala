@@ -58,7 +58,9 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
           }
         }
       }
-      emitln(s"$n->SetEn(${n.en.qref}); // ${n.getCtrl}")
+      if (n.en.isConnected) {
+        emitln(s"$n->SetEn(${n.en.qref}); // ${n.getCtrl}")
+      }
 
       n.to[LoopController].foreach { n =>
         n.stopWhen.T.foreach { stop =>

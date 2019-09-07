@@ -45,7 +45,10 @@ trait TungstenMemGen extends TungstenCtxGen {
             }
             emitln(s"${ctrler}->AddInput(${nameOf(n)});")
           }
-          emitln(s"// $n")
+          emitEn(n.en)
+          if (n.en.isConnected) {
+            emitln(s"${ctrler}->SetInputEn(${nameOf(n)}, ${n.en.qany});")
+          }
           genCtxComputeBegin {
             emitIf(s"$name->Valid()") {
               emitVec(n) { i =>
@@ -54,7 +57,6 @@ trait TungstenMemGen extends TungstenCtxGen {
             }
           }
           genCtxComputeEnd {
-            emitEn(n.en)
             val ctrlerEn = s"$ctrler->Enabled()"
             emitIf(ctrlerEn + " & " + n.done.qref + " & " + n.en.qany) {
               emitln(s"$name->Pop();")

@@ -12,7 +12,6 @@ class OuterProduct_8 extends OuterProduct(ip=16, op2=2, ip1=4, ip2=4)
 class OuterProduct_9 extends OuterProduct(op2=3)
 class OuterProduct_10 extends OuterProduct(op1=3)
 class OuterProduct_11 extends OuterProduct(op1=3,op2=3)
-class OuterProduct_12 extends OuterProduct(M=32,N=32,ts1=16,ts2=16,ip=1,ip1=1,ip2=1)
 
 @spatial abstract class OuterProduct(
   M:scala.Int = 256,
