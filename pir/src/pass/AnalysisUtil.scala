@@ -64,7 +64,7 @@ trait AnalysisUtil { self:PIRPass =>
   }
 
   val DRAMContext = MatchRule[Context, DRAMCommand] { case n =>
-    n.collectFirstChild[DRAMCommand]
+    n.collectDown[DRAMCommand]().headOption
   }
 
   val UnderControlBlock = MatchRule[PIRNode, ControlBlock] { case n =>

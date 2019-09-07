@@ -74,18 +74,18 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     case n => s"$n"
   }
 
+  def quoteIdx(n:Any, i:Option[String]):String = {
+    val q = quoteRef(n)
+    i.fold(q) { i => 
+      val vec = n.as[IR].getVec
+      if (vec > 1) s"$q[$i]" else s"$q"
+    }
+  }
+
   implicit class IRGenOp(n:IR) {
     def qref:String = quoteRef(n)
-    def qidx(i:String):String = {
-      qidx(Some(i))
-    }
-    def qidx(i:Option[String]):String = {
-      val q = quoteRef(n)
-      i.fold(q) { i => 
-        val vec = n.as[IR].getVec
-        if (vec > 1) s"$q[$i]" else s"$q"
-      }
-    }
+    def qidx(i:String):String = qidx(Some(i))
+    def qidx(i:Option[String]):String = quoteIdx(n, i)
     def qany:String = {
       if (n.getVec > 1) s"Any<${n.getVec}>(${qref})" else qref
     }

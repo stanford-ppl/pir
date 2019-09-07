@@ -52,12 +52,14 @@ case class MemRead()(implicit env:Env) extends ReadAccess
 case class MemWrite()(implicit env:Env) extends WriteAccess
 
 trait LocalAccess extends PIRNode {
-  val done = new InputField[List[PIRNode]]("done")
+  // en is branch-dependent
+  // done is branch independent
+  // Check valid when en is true
+  // Pop when if done and all en are true
+  val en = new InputField[Set[PIRNode]]("en") // if not connected, default true
+  val done = new InputField[Option[PIRNode]]("done") // if not connected, default false
 }
-trait LocalInAccess extends LocalAccess with Def {
-  // En is anded with done. But done is branch independent
-  val en = new InputField[List[PIRNode]]("en")
-}
+trait LocalInAccess extends LocalAccess with Def
 trait LocalOutAccess extends LocalAccess with Def with MemoryNode {
   val in = new InputField[PIRNode]("in")
   val initToken = Metadata[Boolean]("initToken", default=false)

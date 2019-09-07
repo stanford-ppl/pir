@@ -13,12 +13,12 @@ trait MemoryAnalyzer { self:PIRTransformer =>
     val tctrl = tctx.ctrl.get
     dbgblk(s"InsertToken(fctx=$fctx($fctrl), tctx=$tctx($tctrl))") {
       val (enq, deq) = compEnqDeq(isFIFO=isFIFO, fctx, tctx, None, Nil)
-      val write = within(fctx, enq.src.getCtrl) {
+      val write = within(fctx, fctrl) {
         allocate[TokenWrite](_.done.isConnectedTo(enq)) {
           stage(TokenWrite().done(enq))
         }
       }
-      within(tctx, deq.src.getCtrl) {
+      within(tctx, tctrl) {
         allocate[TokenRead](read => read.in.isConnectedTo(write.out) && read.done.isConnectedTo(deq)) {
           stage(TokenRead().in(write).done(deq))
         }

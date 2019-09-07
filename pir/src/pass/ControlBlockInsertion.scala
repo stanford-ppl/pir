@@ -24,18 +24,30 @@ class ControlBlockInsertion(implicit compiler:PIR) extends PIRTransformer with B
       cb.children.foreach { c => swapParent(c, ctx) }
       removeNodes(List(cb))
     }
-    val ctrlers = ctx.collectChildren[Controller]
-    var ctrls = ctrlers.map { _.getCtrl }
-    val map = ctx.children.view.filter { c => ctrls.contains(c.getCtrl) }.groupBy { _.getCtrl }
-    ctrls = ctrls.sortBy { _.ancestors.size }
-    if (ctrls.nonEmpty) {
-      ctrls.tail.foldLeft[PIRNode](ctx) { case (prev, ctrl) =>
-        val cb = within(prev, ctrl) { ControlBlock() }
-        map(ctrl).foreach { n => swapParent(n, cb) }
-        cb
+
+    // Insert one control block per ctrl. Controller and buffer reads are outside control block
+    val map = ctx.children.view.groupBy { _.getCtrl }
+    val ctrls = map.keys.toSeq.sortBy { _.ancestors.size }
+
+    ctrls.foldLeft[PIRNode](ctx) { case (prev, ctrl) =>
+      val (extern, intern) = map(ctrl).partition { case ctrler:Controller => true; case buffer:LocalOutAccess => true; case const:Const => true; case _ => false }
+      extern.foreach { n => swapParent(n, prev) }
+      val ctrlers = extern.collect { case ctrler:Controller => true }
+      if (ctrlers.isEmpty) {
+        // Make it easier for codegen. One to one correspondance between ctrl and controller
+        val ctrler = within(prev, ctrl) { stage(UnitController()) }
+        ctrler.collectPeer[LocalAccess]().foreach { la =>
+          la.done.singleConnected match {
+            case Some(OutputField(c@Const(true), _)) if c.getCtrl == ctrl =>
+              swapConnection(la.done, c.out, ctrler.childDone)
+            case _ =>
+          }
+        }
       }
+      val cb = within(prev, ctrl) { stage(ControlBlock()) }
+      intern.foreach { n => swapParent(n, cb) }
+      cb
     }
   }
 
 }
-

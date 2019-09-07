@@ -249,7 +249,6 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
   override def quoteRef(n:Any):String = n match {
     case InputField(n:Shuffle, field) => s"${n}_$field"
-    case n@InputField(_:OpNode, "en") => quoteEn(n.as[Input[PIRNode]], None)
     case n => super.quoteRef(n)
   }
 

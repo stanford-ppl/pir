@@ -116,48 +116,23 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       // Transfer write enable on store valid and store data to valid
       val vwrite = n.valid.T.as[MemRead].mem.T.inAccesses.head.as[MemWrite]
       within(vwrite.parent.get, vwrite.getCtrl) {
-        //TODO: revisit this. Shoud only need to take out the invalid write relate to counter valid
+        val ctrl = vwrite.getCtrl
+        val ens = ctrl.ancestorTree.view.flatMap { c =>
+          c.ctrler.v.view.flatMap { ctrler =>
+            ctrler.en.T.collect { case v:CounterValid => v.out }
+          }
+        }.toSet[Output[PIRNode]]
         val vdata = vwrite.data.singleConnected.get
-        val vs = (vdata::vwrite.en.connected++n.getCtrl.ctrler.get.en.connected).toSet
+        val vs = ens + vdata
         val v = vs.reduce[Output[PIRNode]]{ case (v1,v2) =>
           stage(OpDef(And).addInput(v1,v2)).out
         }
         vwrite.data.disconnect
         vwrite.data(v)
-        vwrite.en.disconnect
-        n.data.T.as[MemRead].mem.T.inAccesses.head.as[MemWrite].en.disconnect
       }
     }
 
-    // TODO: proper handle of FIFO enables
-    // Remove loop lane valid dependent enable
-    n.to[MemRead].foreach { read =>
-      read.en.T.foreach {
-        case v:CounterValid => read.en.disconnectFrom(v.out)
-        case _ =>
-      }
-    }
-
-    n.to[MemWrite].foreach { write =>
-      if (write.mem.T.isFIFO) {
-        write.en.T.foreach {
-          case v:CounterValid => write.en.disconnectFrom(v.out)
-          case _ =>
-        }
-      }
-    }
-
-
-    n.to[DRAMStoreCommand].foreach { n =>
-      val write = within(pirTop, n.getCtrl) {
-        val ack = n.ack.T.as[MemWrite].mem.T.outAccesses.head
-        within(ack.getCtrl) {
-          stage(MemWrite().data(ack))
-        }
-      }
-      argOut(write).name(s"${n}_ack")
-    }
-    
+    // Add loop valid related enables. Should add to all accesses but might be a bit expensive
     n.to[BankedAccess].foreach { access =>
       val ctrl = access.getCtrl
       ctrl.ancestorTree.foreach { c =>
@@ -170,6 +145,16 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
           }
         }
       }
+    }
+
+    n.to[DRAMStoreCommand].foreach { n =>
+      val write = within(pirTop, n.getCtrl) {
+        val ack = n.ack.T.as[MemWrite].mem.T.outAccesses.head
+        within(ack.getCtrl) {
+          stage(MemWrite().data(ack))
+        }
+      }
+      argOut(write).name(s"${n}_ack")
     }
 
     if (config.enableSimDebug) {

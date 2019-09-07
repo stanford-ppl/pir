@@ -7,7 +7,7 @@ import prism.codegen._
 import scala.collection.mutable
 import spade.param._
 
-trait TungstenCtxGen extends TungstenCodegen with TungstenTopGen {
+trait TungstenCtxGen extends TungstenTopGen {
 
   def numStagesOf(ctx:Context) = ctx.global.get match {
     case g:ArgFringe => 1
@@ -27,15 +27,19 @@ trait TungstenCtxGen extends TungstenCodegen with TungstenTopGen {
     case n => super.quote(n)
   }
 
+  def getCtrler(n:N):Controller = n match {
+    case n:ControlBlock => assertOne(n.collectPeer[Controller](), s"$n.ctrler")
+    case n:LocalOutAccess => assertOne(n.collectPeer[Controller](), s"$n.ctrler")
+    case n => getCtrler(assertOne(n.collectUp[ControlBlock](), s"$n.cb"))
+  }
+
   override def emitNode(n:N) = n match {
     case n:Context =>
       dbgblk(s"emitNode($n)") {
         val (tp, name) = varOf(n)
-        val numStages = numStagesOf(n)
         ctxExtVars.clear
         declared.clear
         members.clear
-        emittedEn.clear
         getBuffer("fields").foreach { _.reset }
         getBuffer("inits").foreach { _.reset }
         getBuffer("computes").foreach { _.reset }
@@ -49,7 +53,7 @@ trait TungstenCtxGen extends TungstenCodegen with TungstenTopGen {
           emitln("""
 using   namespace std;
 """)    
-          emitBlock(s"""class ${quote(n)}: public Context<$numStages>""") {
+          emitBlock(s"""class ${quote(n)}: public Context""") {
             emitln(s"public:")
             getBuffer("fields").foreach { _.flushTo(sw) }
             ctxExtVars.foreach { case (tp, field) => 
@@ -57,7 +61,7 @@ using   namespace std;
             }
             emitln(s"public:")
             val constructorArgs = ctxExtVars.map { case (tp, field) => s"$tp* _$field" }.mkString(",")
-            val constructor = s"""explicit ${quote(n)}($constructorArgs):Context<$numStages>("${quote(n)}")"""
+            val constructor = s"""explicit ${quote(n)}($constructorArgs):Context("${quote(n)}")"""
             emitBlock(constructor) {
               ctxExtVars.foreach { case (tp, field) =>
                 emitln(s"$field = _$field;")
@@ -70,30 +74,17 @@ using   namespace std;
               }
             }
             emitBlock(s"void Eval()") {
-              members.foreach { m => 
-                emitln(s"$m->Eval();")
-              }
               getBuffer("computes-begin").foreach { _.flushTo(sw) }
               val checkIO = n.collectChildren[LocalAccess].filterNot{_.nonBlocking}.nonEmpty
-              if (checkIO) {
-                emitIf(s"InputsValid() && OutputsReady()") {
-                  getBuffer("computes").foreach { _.flushTo(sw) }
-                  getBuffer("computes-mid").foreach { _.flushTo(sw) }
-                }
-              } else {
-                getBuffer("computes").foreach { _.flushTo(sw) }
-                getBuffer("computes-mid").foreach { _.flushTo(sw) }
-              }
+              getBuffer("computes").foreach { _.flushTo(sw) }
+              getBuffer("computes-mid").foreach { _.flushTo(sw) }
               emitln(s"EvalControllers();")
-              if (checkIO) {
-                emitIf(s"InputsValid() && OutputsReady()") {
-                  getBuffer("computes-end").foreach { _.flushTo(sw) }
-                }
-              } else {
-                getBuffer("computes-end").foreach { _.flushTo(sw) }
-              }
               getBuffer("computes-end").foreach { _.flushTo(sw) }
-              emitln(s"EvalPipe();")
+              getBuffer("computes-end").foreach { _.flushTo(sw) }
+              members.foreach { 
+                case _:Controller | _:Counter => 
+                case m => emitln(s"$m->Eval();")
+              }
             }
           }
           emit(s""";""")
@@ -244,27 +235,11 @@ using   namespace std;
     }
   }
 
-  val emittedEn = mutable.Set[Input[PIRNode]]()
-  def emitEn(en:Input[PIRNode]):Unit = {
-    if (!emittedEn.contains(en) & en.getVec > 1) {
-      emittedEn += en
-      emitVec(en) { i => quoteEn(en, i) }
-    }
-  }
-
-  def quoteEn(en:Input[PIRNode], i:Option[String]):String = {
-    val name = en.as[Field[PIRNode]].name
-    if (en.getVec > 1 && i.isEmpty) {
-      emitEn(en.as[Input[PIRNode]])
-      s"${en.src}_${name}"
-    } else {
-      val default = name match {
-        case "en" => true
-        case "done" => false
-      }
-      var ens = en.connected.map { _.qidx(i) }
-      ens.distinct.reduceOption[String]{ _ + " & " + _ }.getOrElse(default.toString)
-    }
+  override def quoteRef(n:Any):String = n match {
+    case n@InputField(_, "en") => 
+      var ens = n.as[Input[PIRNode]].connected.map { _.qref }
+      ens.distinct.reduceOption[String]{ _ + " & " + _ }.getOrElse("true")
+    case n => super.quoteRef(n)
   }
 
 }

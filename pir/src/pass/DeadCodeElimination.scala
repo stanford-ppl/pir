@@ -30,7 +30,9 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with PIRTr
 
   // Breaking loop in traversal
   override def visitIn(n:N):List[N] = n match {
-    case n:LocalOutAccess => n.in.neighbors.toList ++ n.done.neighbors.filterNot { case c:Controller => true; case _ => false }
+    case n:LocalOutAccess => n.in.neighbors.toList ++ 
+      n.done.neighbors.filterNot { case c:Controller => true; case _ => false } ++
+      n.en.neighbors.filterNot { case c:Controller => true; case _ => false }
     case n@UnderControlBlock(cb) if depDupHasRun => super.visitIn(cb)
     case n if depDupHasRun => cover[PIRNode, ControlBlock](super.visitIn(n))
     case n => super.visitIn(n)
