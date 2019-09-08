@@ -1,4 +1,5 @@
 import spatial.dsl._
+import utils.io.files._
 
 class UnalignParTest_0 extends UnalignParTest(op2=3)
 class UnalignParTest_1 extends UnalignParTest(op2=2)
@@ -59,9 +60,48 @@ class UnalignParTest_3 extends UnalignParTest(op2=3,ips1=5)
     val b = Array.tabulate(N) { i => i }
 
     val out = outerproduct(a, b)
-    val gold = (0 :: M, 0 :: N) { (i,j) => a(i) * b(j) }
+    val gold = (0 :: M, 0 :: N) { (i,j) => a(i) * b(j) }.flatten
+    val result = getMem(out)
 
-    val cksum = checkGold(out, gold, 0)
+    writeCSV1D(gold, buildPath(IR.config.genDir, "tungsten", "gold.csv"),delim="\n")
+    writeCSV1D(result, buildPath(IR.config.genDir, "tungsten", "out.csv"),delim="\n")
+    val cksum = approxEql(result, gold, 0)
+    println("PASS: " + cksum)
+    assert(cksum)
+
+  }
+}
+
+
+class UnalignStore_0 extends UnalignStore(ip=5)
+
+@spatial abstract class UnalignStore(
+  N:scala.Int = 64,
+  ts:scala.Int = 16,
+  ip:scala.Int = 16,
+  op:scala.Int = 1,
+) extends SpatialTest { // Regression (Dense) // Args: 640 640
+
+  type T = Int
+
+  def main(args: Array[String]): Unit = {
+
+    val out = DRAM[T](N)
+
+    Accel {
+      Foreach(N by ts par op){ i =>
+        val outTile = SRAM[T](ts)
+        Foreach(ts par ip){ ii => outTile(ii) = i + ii } // 2
+        out(i::i+ts par ip) store outTile
+      }
+    }
+    
+    val gold = (0::N) { i => i }
+    val result = getMem(out)
+
+    writeCSV1D(gold, buildPath(IR.config.genDir, "tungsten", "gold.csv"),delim="\n")
+    writeCSV1D(result, buildPath(IR.config.genDir, "tungsten", "out.csv"),delim="\n")
+    val cksum = approxEql(result, gold, 0)
     println("PASS: " + cksum)
     assert(cksum)
 
