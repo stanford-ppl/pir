@@ -19,10 +19,4 @@ class GlobalInsertion(implicit compiler:PIR) extends PIRTraversal with SiblingFi
     case _ => super.visitNode(n)
   }
 
-  override def finPass = {
-    val globals = pirTop.collectDown[GlobalContainer]()
-    globals.foreach(insertGlobalIO)
-    super.finPass
-  }
-
 }

@@ -28,7 +28,7 @@ trait ComputePartitioner extends CUPruner {
             global
           }
         }
-        globals.foreach { insertGlobalIO }
+        //globals.foreach { insertGlobalIO }
         removeNodes(k.descendentTree)
         globals
       case k:Context =>

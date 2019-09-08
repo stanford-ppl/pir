@@ -93,8 +93,8 @@ class DebugTransformer(implicit compiler:PIR) extends PIRTransformer with Buffer
         case _ => Nil
       }
       write.en(ens)
-      insertGlobalOutput(fctx.global.get)
-      insertGlobalInput(tctx.global.get)
+      //insertGlobalOutput(fctx.global.get)
+      //insertGlobalInput(tctx.global.get)
     } else {
       (from, to) match {
         case (from:BufferWrite, to:BufferWrite) =>

@@ -103,8 +103,8 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, hardPruner) ==> // prune on newly created CUs by memoryComputePruner
     addPass(enableMapping, computePruner) ==>
     addPass(enableMapping, dagPruner) ==>
-    addPass(sanityCheck) ==>
     addPass(ctrlBlockInsert) ==>
+    addPass(sanityCheck) ==>
     //addPass(debugTransformer) ==>
     addPass(enableMapping, matchPruner) ==>
     addPass(modAnalyzer) ==>

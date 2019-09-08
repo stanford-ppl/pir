@@ -60,7 +60,7 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
 
   protected def switch[C<:Cost[C]:ClassTag](x:Any, ct:ClassTag[_])(cfunc:PartialFunction[Any, C]) = if (ct == classTag[C] && cfunc.isDefinedAt(x)) Some(cfunc(x)) else None
 
-  def isVec(n:PIRNode) = {
+  def isVec(n:prism.graph.IR) = {
     if (n.getTp == Bool) n.getVec > spadeParam.wordWidth
     else n.getVec > 1
   }
@@ -100,7 +100,8 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
 
     } orElse switch[InputCost](x,ct) {
       case x: GlobalContainer =>
-        val ins = x.collectDown[GlobalInput]()
+        //val ins = x.collectDown[GlobalInput]()
+        val ins = x.depsFrom.keys
         val (vins, sins) = ins.partition { isVec(_) }
         InputCost(sins.size, vins.size)
           .scheduledBy(x.collectDown[Context]().map { _.collectDown[OpNode]().size }.min)
@@ -114,7 +115,8 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
 
     } orElse switch[OutputCost](x,ct) {
       case x: GlobalContainer => 
-        val outs = x.collectDown[GlobalOutput]()
+        //val outs = x.collectDown[GlobalOutput]()
+        val outs = x.depedsTo.keys
         val (vouts, souts) = outs.partition { isVec(_) }
         OutputCost(souts.size, vouts.size)
           .scheduledBy(x.collectDown[Context]().map { _.collectDown[OpNode]().size }.min)

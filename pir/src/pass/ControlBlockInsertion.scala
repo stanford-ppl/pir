@@ -7,15 +7,15 @@ import spade.param._
 
 import scala.collection.mutable
 
-class ControlBlockInsertion(implicit compiler:PIR) extends PIRTransformer with BufferAnalyzer {
+class ControlBlockInsertion(implicit compiler:PIR) extends PIRTransformer with BufferAnalyzer with GlobalIOInsertion {
   
   override def runPass = {
-    insertControBlock
-  }
-
-  def insertControBlock:Unit = {
-    val ctxs = pirTop.collectDown[Context]()
-    ctxs.foreach(insertControBlock)
+    val globals = pirTop.collectChildren[GlobalContainer]
+    globals.foreach { global => 
+      val ctxs = global.collectChildren[Context]
+      ctxs.foreach { insertControBlock(_) }
+      insertGlobalIO(global)
+    }
   }
 
   def insertControBlock(ctx:Context):Unit = {
