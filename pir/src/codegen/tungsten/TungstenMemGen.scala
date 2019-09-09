@@ -47,18 +47,23 @@ trait TungstenMemGen extends TungstenCtxGen {
           }
           emitEn(n.en)
           if (n.en.isConnected) {
-            emitln(s"${ctrler}->SetInputEn(${nameOf(n)}, ${n.en.qany});")
+            emitln(s"$name->SetReadEn(${n.en.qref});")
           }
-          genCtxComputeBegin {
-            emitIf(s"$name->Valid()") {
-              emitVec(n) { i =>
-                s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
-              }
+          emitIf(s"$name->Valid()") {
+            emitVec(n) { i =>
+              s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
             }
           }
+          //genCtxComputeBegin {
+            //emitIf(s"$name->Valid()") {
+              //emitVec(n) { i =>
+                //s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
+              //}
+            //}
+          //}
           genCtxComputeEnd {
             val ctrlerEn = s"$ctrler->Enabled()"
-            emitIf(ctrlerEn + " & " + n.done.qref + " & " + n.en.qany) {
+            emitIf(ctrlerEn + " & " + n.done.qref) {
               emitln(s"$name->Pop();")
             }
           }
@@ -93,29 +98,51 @@ trait TungstenMemGen extends TungstenCtxGen {
       declare(n)
       genCtxComputeEnd {
         val ctrlerEn = s"$ctrler->Enabled()"
-        emitEn(n.en)
-        emitIfElse(s"$ctrlerEn") {
+        emitIf(s"$ctrlerEn") {
+          emitEn(n.en)
           emitAssign(n) { i => 
             n match {
               case n:BufferWrite => s"${n.en.qidx(i)} ? ${n.data.qidx(i)} : ${n.qidx(i)}" 
               case n:TokenWrite => s"true"
             }
           }
-        } {
-          val outs = n.out.T.collect { case out:LocalOutAccess if out.ctx.get == ctx => out }
-          assertOneOrLess(outs, s"written LocalOutAccess").foreach { out =>
-            genCtxComputeBegin {
-              emitAssign(n) { i => out.qidx(i) }
+          emitIf(n.done.qref + " & " + n.en.qany) {
+            emitln(s"Token data = make_token(${n.qref});")
+            if (n.en.getVec > 1) {
+              emitln(s"set_token_en<${n.en.getVec}>(data, ${n.en.qref});")
+            }
+            if (withPipe) emitln(s"$name->Push(data);")
+            else n.out.T.foreach { send =>
+              emitln(s"${nameOf(send)}->Push(data);")
             }
           }
         }
-        emitIf(ctrlerEn + " & " + n.done.qref + " & " + n.en.qany) {
-          if (withPipe) emitln(s"$name->Push(make_token(${n.qref}));")
-          else n.out.T.foreach { send =>
-            emitln(s"${nameOf(send)}->Push(make_token(${n.qref}));")
-          }
-        }
       }
+      //genCtxComputeEnd {
+        //val ctrlerEn = s"$ctrler->Enabled()"
+        //emitEn(n.en)
+        //emitIfElse(s"$ctrlerEn") {
+          //emitAssign(n) { i => 
+            //n match {
+              //case n:BufferWrite => s"${n.en.qidx(i)} ? ${n.data.qidx(i)} : ${n.qidx(i)}" 
+              //case n:TokenWrite => s"true"
+            //}
+          //}
+        //} {
+          //val outs = n.out.T.collect { case out:LocalOutAccess if out.ctx.get == ctx => out }
+          //assertOneOrLess(outs, s"written LocalOutAccess").foreach { out =>
+            //genCtxComputeBegin {
+              //emitAssign(n) { i => out.qidx(i) }
+            //}
+          //}
+        //}
+        //emitIf(ctrlerEn + " & " + n.done.qref + " & " + n.en.qany) {
+          //if (withPipe) emitln(s"$name->Push(make_token(${n.qref}));")
+          //else n.out.T.foreach { send =>
+            //emitln(s"${nameOf(send)}->Push(make_token(${n.qref}));")
+          //}
+        //}
+      //}
 
     case n:FIFO =>
       genTopMember(n, Seq(n.qstr))
@@ -249,7 +276,7 @@ trait TungstenMemGen extends TungstenCtxGen {
       (s"NBlockBufferReg<Token>", s"fifo_$n")
     case n:BufferRegRead =>
       (s"BufferReg<${n.in.getVec}, $fifoDepth>", s"fifo_$n")
-    case n:BufferRead if n.out.getVec != n.in.getVec =>
+    case n:BufferRead if isRateMatchingFIFO(n) =>
       (s"RateMatchingTokenFIFO<${n.qtp}, ${fifoDepth*n.in.getVec}, ${n.in.getVec}, ${n.out.getVec}>", s"fifo_$n") 
     case n:BufferRead =>
       (s"FIFO<Token, ${fifoDepth}>", s"fifo_$n")

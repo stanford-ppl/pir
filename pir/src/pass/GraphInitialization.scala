@@ -103,8 +103,10 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       n.localOuts.foreach { out =>
         if (out.isConnected) {
           val fifo = out.collectFirst[FIFO]()
-          out.setVec(fifo.banks.get.head)
           out.setTp(fifo.tp.v)
+          if (!n.isInstanceOf[DRAMCommand]) {
+            out.setVec(fifo.banks.get.head)
+          }
         }
       }
     }
@@ -112,18 +114,20 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
     }
 
+    // TODO: add enable to cmd issuer and returned ack instead
     n.to[FringeDenseStore].foreach { n =>
       // Transfer write enable on store valid and store data to valid
       val vwrite = n.valid.T.as[MemRead].mem.T.inAccesses.head.as[MemWrite]
+      val dwrite = n.data.T.as[MemRead].mem.T.inAccesses.head.as[MemWrite]
       within(vwrite.parent.get, vwrite.getCtrl) {
         val ctrl = vwrite.getCtrl
-        val ens = ctrl.ancestorTree.view.flatMap { c =>
+        val ctrlEns = ctrl.ancestorTree.view.flatMap { c =>
           c.ctrler.v.view.flatMap { ctrler =>
             ctrler.en.T.collect { case v:CounterValid => v.out }
           }
         }.toSet[Output[PIRNode]]
         val vdata = vwrite.data.singleConnected.get
-        val vs = ens + vdata
+        val vs = ctrlEns + vdata
         val v = vs.reduce[Output[PIRNode]]{ case (v1,v2) =>
           stage(OpDef(And).addInput(v1,v2)).out
         }

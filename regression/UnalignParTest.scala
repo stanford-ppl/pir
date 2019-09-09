@@ -74,6 +74,7 @@ class UnalignParTest_3 extends UnalignParTest(op2=3,ips1=5)
 
 
 class UnalignStore_0 extends UnalignStore(ip=5)
+class UnalignStore_1 extends UnalignStore(ip=5, op=3)
 
 @spatial abstract class UnalignStore(
   N:scala.Int = 64,
@@ -108,3 +109,41 @@ class UnalignStore_0 extends UnalignStore(ip=5)
   }
 }
 
+class UnalignLoad_0 extends UnalignLoad(ip=5, op=1)
+class UnalignLoad_1 extends UnalignLoad(ip=5, op=3)
+
+@spatial abstract class UnalignLoad(
+  N:scala.Int = 64,
+  ts:scala.Int = 16,
+  ip:scala.Int = 16,
+  op:scala.Int = 1,
+) extends SpatialTest { // Regression (Dense) // Args: 640 640
+
+  type T = Int
+
+  def main(args: Array[String]): Unit = {
+
+    val aIn = Array.tabulate(N){ i => i.to[T] }
+    val a = DRAM[T](N)
+    val out = ArgOut[T]
+    setMem(a, aIn)
+
+    Accel {
+      val accO = Reg[T](0.to[T])
+      out := Reduce(accO)(N by ts par op){i =>
+        val aBlk = SRAM[T](ts)
+        aBlk load a(i::i+ts par ip)
+        val sum = Reg[T]
+        Reduce(sum)(ts par ip) { i => aBlk(i) } { _ + _ }
+        sum.value
+      }{_+_}
+    }
+    
+    val gold = (0::N) { i => i }.reduce { _ + _ }
+
+    val cksum = checkGold(out, gold)
+    println("PASS: " + cksum)
+    assert(cksum)
+
+  }
+}

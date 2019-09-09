@@ -118,9 +118,9 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping,resReport) ==>
     addPass(runtimeAnalyzer).dependsOn(placerAndRouter) ==>
     addPass(enableDot, new PIRGlobalDotGen(s"global.dot"))
-    addPass(enableDot, new PIRCtxDotGen(s"ctx9.dot")) ==>
-    addPass(enableDot, new PIRTopDotGen(s"top9.dot"))
-    addPass(enableDot, new PIRIRPrinter(s"IR9.txt"))
+    addPass(enableDot, new PIRCtxDotGen(s"ctx.dot")) ==>
+    addPass(enableDot, new PIRTopDotGen(s"top.dot"))
+    addPass(enableDot, new PIRIRPrinter(s"IR.txt"))
     // Igraph
     addPass(enableIgraph, igraphGen).dependsOn(runtimeAnalyzer)
     // Plastiroute

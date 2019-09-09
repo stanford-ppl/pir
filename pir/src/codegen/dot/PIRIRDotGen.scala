@@ -69,6 +69,7 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
   }
 
   override def color(attr:DotAttr, n:N) = n match {
+    case n:BufferRead if isRateMatchingFIFO(n) => attr.fillcolor("darkorange").style(filled)
     case n:LocalOutAccess if n.nonBlocking => attr.fillcolor("darkorange").style(filled)
     case n:LocalOutAccess => attr.fillcolor(gold).style(filled)
     case n:Memory => attr.fillcolor(chartreuse).style(filled)

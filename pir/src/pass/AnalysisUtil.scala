@@ -71,6 +71,8 @@ trait AnalysisUtil { self:PIRPass =>
     n.ancestors.collectFirst { case n:ControlBlock => n }
   }
 
+  def isRateMatchingFIFO(n:BufferRead) = n.out.getVec != n.in.getVec | n.en.getVec > 1
+
   def boundProp(n:PIRNode):Option[Any] = dbgblk(s"boundProp($n)"){
     n match {
       case Const(v) => Some(v)
@@ -82,14 +84,37 @@ trait AnalysisUtil { self:PIRPass =>
     }
   }
 
+  val ConnectedByDRAMCmd = MatchRule[IR, Int] { case n =>
+    val burstSize = 512 // TODO: get from spadeparam
+    n match {
+      case OutputField(read:BufferRead, _) =>
+        read.out.connected match {
+          case List(InputField(cmd:FringeDenseStore, "data" | "valid")) => Some(burstSize /! cmd.data.getTp.nbits.get)
+          case List(InputField(cmd:FringeSparseLoad, "addr")) => Some(1)
+          case List(InputField(cmd:FringeSparseStore, "addr" | "data")) => Some(1)
+          case _ => None
+        }
+      case n:MemWrite =>
+        n.data.singleConnected match {
+          case Some(OutputField(cmd:FringeDenseLoad, "data")) => cmd.data.inferVec
+          case Some(OutputField(cmd:FringeSparseStore, "data")) => cmd.data.inferVec
+          case _ => None
+        }
+      case OutputField(cmd:FringeDenseLoad, "data") => Some(burstSize /! cmd.data.getTp.nbits.get)
+      case OutputField(cmd:FringeSparseLoad, "data") => Some(1)
+      case _ => None
+    }
+  }
+
   import spade.param._
-  def compVec(n:IR):Option[Int] = /*dbgblk(s"compVec(${dquote(n)})") */{
+  def compVec(n:IR):Option[Int] = dbgblk(s"compVec(${dquote(n)})") {
     n match {
       case OutputField(n:Controller, "done") => Some(1)
       case OutputField(n:Controller, "childDone") => Some(1)
       case OutputField(n:LoopController, "firstIter") => Some(1)
       case OutputField(n:FringeDenseStore, "ack") => Some(1)
       case OutputField(n:FringeStreamRead, "done") => Some(1)
+      case ConnectedByDRAMCmd(vec) => Some(vec)
       case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferVec
       case n:Controller => None
       case n:Memory => None

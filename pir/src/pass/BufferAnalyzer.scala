@@ -69,7 +69,8 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
         val write = within(depCtx, depCtx.getCtrl) {
           allocate[BufferWrite] { write => 
             write.data.canReach(depOut, visitEdges=visitInEdges _) &&
-            write.done.canReach(enq, visitEdges=visitInEdges _)
+            write.done.canReach(enq, visitEdges=visitInEdges _) &&
+            !write.en.isConnected //TODO: buffer function should also allow enable as input
           } {
             stage(BufferWrite().data(depOut).done(enq))
           }
@@ -77,7 +78,8 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
         val read = within(depedCtx, depedCtx.getCtrl) {
           allocate[BufferRead] { read => 
             read.in.canReach(write.out, visitEdges=visitInEdges _) &&
-            read.done.canReach(deq, visitEdges=visitInEdges _)
+            read.done.canReach(deq, visitEdges=visitInEdges _) &&
+            !read.en.isConnected
           } {
             stage(BufferRead().in(write.out).done(deq))
           }

@@ -42,7 +42,14 @@ trait RewriteUtil { self: PIRTransformer =>
   RewriteRule[MemRead](s"WrittenByConstData") { reader =>
     val ConstData = MatchRule[MemWrite, Const] { write =>
       write.data.T match {
-        case c@Const(_) if !write.en.isConnected && write.waitFors.isEmpty => Some(c)
+        case cn@Const(c) if !write.en.isConnected && write.waitFors.isEmpty => 
+          val const = c match {
+            case c:List[_] => assert(c.size == reader.getVec); cn
+            case c if reader.getVec > 1 => 
+              within(cn.getCtrl, cn.parent.get) { allocConst(List.fill(reader.getVec) { c }).tp(cn.inferTp.get) }
+            case c => cn
+          }
+          Some(const)
         case _ => None
       }
     }
@@ -249,7 +256,6 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   }
 
   TransferRule[BufferRead] { n =>
-    dbg(s"$n ${n.ctx}")
     if (n.ctx.get.streaming.get) None else {
       val writer = n.inAccess.as[BufferWrite]
       writer.data match {
@@ -309,7 +315,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
           val w1s = m1.inAccesses
           if (w1s.size == 1 && m1.isFIFO == m2.isFIFO && !m2.nonBlocking.get) {
             val w1 = w1s.head.as[MemWrite]
-            if (matchInput(w1.en, w2.en)) {
+            if (matchInput(w1.en, w2.en) && matchInput(w1.en, r1.en)) {
               dbgblk(s"Route through (1) $w1 -> $m1 -> $r1 -> $w2 -> $m2 detected") {
                 disconnect(w2.mem, m2)
                 val mw1 = within(w1.parent.get) { mirrorAll(List(w1))(w1).as[MemWrite] }
@@ -337,14 +343,20 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   TransferRule[BufferRead] { r2 =>
     val w2 = r2.inAccess.as[BufferWrite]
     w2.data.T match {
-      case r1:BufferRead if matchRate(w2, r1) & !w2.en.isConnected & !r2.nonBlocking =>
+      case r1:BufferRead if matchRate(w2, r1) & matchInput(r1.en, w2.en) & !r2.nonBlocking =>
         val w1 = r1.inAccess.as[BufferWrite]
         dbgblk(s"Route through (3) $w1 -> $r1 -> $w2 -> $r2 detected => ") {
           dbg(s" => $w1 -> $r2")
+          r1.presetVec.v.foreach { v => r2.presetVec(v) } // Most before swapConncetion
+          mirrorSyncMeta(w2, w1)
+          zipReduce(r1.name.v, r2.name.v) { _ + "/" + _ }.foreach { name =>
+            r2.name.reset
+            r2.name.update(name)
+          }
           val go1 = w1.gout
           val gi2 = r2.gin
           (go1, gi2) match {
-            case (Some(go1), Some(gi2)) =>
+            case (Some(go1), Some(gi2)) => //TODO: shouldn't needed any more
               // w1 -> go1 -> gi1 -> r1 -> w2 -> go2 -> gi2 -> r2
               // w1 -> go1 -> gi2 -> r2
               val go2 = gi2.in.T
@@ -363,11 +375,6 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
               // w1 -> r1 -> w2 -> r2
               // w1 -> r2
               swapConnection(r2.in, w2.out, w1.out)
-          }
-          mirrorSyncMeta(w2, w1)
-          zipReduce(r1.name.v, r2.name.v) { _ + "/" + _ }.foreach { name =>
-            r2.name.reset
-            r2.name.update(name)
           }
           Some(r2)
         }
