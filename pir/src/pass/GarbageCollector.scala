@@ -7,7 +7,6 @@ import prism.graph.implicits._
 
 import scala.collection.mutable
 
-// BFS is slightly faster than DFS
 trait GarbageCollector { self:PIRTransformer =>
 
   // Visit until a live node
@@ -46,6 +45,11 @@ trait GarbageCollector { self:PIRTransformer =>
       else None
     }.toList
     var dead = ns.flatMap { _._1.descendents }
+    collector.prefix = prefix
+    collector.vf = visitFunc
+    collector.accumulate = accumulate
+    //collector.logging = Some(this)
+    collector.logging = None
     collector.resetTraversal
     dead ++= collector.traverseNodes(ns)
     removeNodes(dead)
