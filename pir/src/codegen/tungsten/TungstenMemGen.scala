@@ -63,7 +63,7 @@ trait TungstenMemGen extends TungstenCtxGen {
           //}
           genCtxComputeEnd {
             val ctrlerEn = s"$ctrler->Enabled()"
-            val cond = if (n.isFIFO) List(ctrlerEn, n.done.qref, n.en.qref) else List(n.done.qref)
+            val cond = if (n.isFIFO) List(ctrlerEn, n.done.qref, n.en.qany) else List(n.done.qref)
             emitIf(cond.mkString(" & ")) {
               emitln(s"$name->Pop();")
             }
@@ -108,7 +108,7 @@ trait TungstenMemGen extends TungstenCtxGen {
             }
           }
         }
-        val cond = if (n.isFIFO) List(ctrlerEn, n.done.qref, n.en.qref) else List(n.done.qref)
+        val cond = if (n.isFIFO) List(ctrlerEn, n.done.qref, n.en.qany) else List(n.done.qref)
         emitIf(cond.mkString(" & ")) {
           emitln(s"Token data = make_token(${n.qref});")
           if (n.en.getVec > 1) {
