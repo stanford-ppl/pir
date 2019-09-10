@@ -71,7 +71,8 @@ trait AnalysisUtil { self:PIRPass =>
     n.ancestors.collectFirst { case n:ControlBlock => n }
   }
 
-  def isRateMatchingFIFO(n:BufferRead) = n.out.getVec != n.in.getVec | n.en.getVec > 1
+  def isRateMatchingFIFO(n:BufferRead) = (n.out.getVec != n.in.getVec) | (n.en.isConnected & n.en.getVec > 1)
+  //def isRateMatchingFIFO(n:BufferRead) = n.out.getVec != n.in.getVec | n.en.getVec > 1
 
   def boundProp(n:PIRNode):Option[Any] = dbgblk(s"boundProp($n)"){
     n match {
