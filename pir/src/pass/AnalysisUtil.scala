@@ -88,13 +88,24 @@ trait AnalysisUtil { self:PIRPass =>
   val ConnectedByDRAMCmd = MatchRule[IR, Int] { case n =>
     val burstSize = 512 // TODO: get from spadeparam
     n match {
-      case OutputField(read:BufferRead, _) =>
-        read.out.connected match {
-          case List(InputField(cmd:FringeDenseStore, "data" | "valid")) => Some(burstSize /! cmd.data.getTp.nbits.get)
-          case List(InputField(cmd:FringeSparseLoad, "addr")) => Some(1)
-          case List(InputField(cmd:FringeSparseStore, "addr" | "data")) => Some(1)
-          case _ => None
+      case n@InputField(cmd:FringeDenseStore, "data" | "valid") => 
+        n.as[Input[PIRNode]].connected.foreach { o =>
+          o.resetMeta("vec")  
+          o.setVec(burstSize /! cmd.data.getTp.nbits.get)
         }
+        Some(burstSize /! cmd.data.getTp.nbits.get)
+      case n@InputField(cmd:FringeSparseLoad, "addr") => 
+        n.as[Input[PIRNode]].connected.foreach { o =>
+          o.resetMeta("vec")  
+          o.setVec(1)
+        }
+        Some(1)
+      case n@InputField(cmd:FringeSparseStore, "addr" | "data") => 
+        n.as[Input[PIRNode]].connected.foreach { o =>
+          o.resetMeta("vec")  
+          o.setVec(1)
+        }
+        Some(1)
       case n:MemWrite =>
         n.data.singleConnected match {
           case Some(OutputField(cmd:FringeDenseLoad, "data")) => cmd.data.inferVec
@@ -168,7 +179,7 @@ trait AnalysisUtil { self:PIRPass =>
       case InputField(_:Access | _:LocalAccess, "done") => Some(1)
       case n@InputField(_:RegAccumOp | _:RegAccumFMA, "en") => n.as[Input[PIRNode]].connected.map { o => o.inferVec }.maxOption.getOrElse(Some(1))
       case InputField(n:TokenAccess, "en") => Some(1)
-      case InputField(n:BufferWrite, "en") => n.data.inferVec
+      case InputField(n:BufferWrite, "en") => n.inferVec
       case InputField(n:BufferRead, "en") => n.out.inferVec
       case InputField(n:FlatBankedAccess, field) => Some(n.mem.T.nBanks)
       case InputField(n:Controller, "en" | "parentEn") => Some(1)

@@ -534,7 +534,7 @@ def applyHistFilter(history, fs, opts):
         if pat == "None":
             return history[history[pat].isnull]
         mask = []
-        for v in history[pat].values:
+        for v in history[p].values:
             mask.append(fnmatch.fnmatch(str(v), pat))
         return history[mask]
     else:
@@ -546,10 +546,8 @@ def show_history(opts):
 
     history = opts.history
 
-    diffkey = 'succeeded'
-    prevsucc =  history[history['succeeded']]
-
-    history = prevsucc
+    # diffkey = 'succeeded'
+    # history =  history[history['succeeded']]
 
     if opts.filter_str is not None:
         for fs in opts.filter_str:
@@ -577,10 +575,10 @@ def show_history(opts):
 
 def show_gen(opts):
     gitmsg = subprocess.check_output("git log --pretty=format:'%h' -n 1".split(" "),
-            cwd=opts.pir_dir).replace("'","")
+            cwd=opts.spatial_dir).replace("'","")
     spatial_sha = gitmsg.split(",")[0]
     gitmsg = subprocess.check_output("git log --pretty=format:'%h,%ad' -n 1 --date=iso".split(" "),
-            cwd=opts.spatial_dir).replace("'","")
+            cwd=opts.pir_dir).replace("'","")
     pir_sha = gitmsg.split(",")[0]
     time = gitmsg.split(",")[1].split(" -")[0].strip()
     for backend in opts.backend:
