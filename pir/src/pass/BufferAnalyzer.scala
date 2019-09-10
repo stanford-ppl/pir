@@ -68,20 +68,22 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
         val (enq, deq) = compEnqDeq(isFIFO=true, depCtx, depedCtx, Some(depOut), List(depedIn))
         val write = within(depCtx, depCtx.getCtrl) {
           allocate[BufferWrite] { write => 
+            !write.isFIFO &&
             write.data.canReach(depOut, visitEdges=visitInEdges _) &&
             write.done.canReach(enq, visitEdges=visitInEdges _) &&
             !write.en.isConnected //TODO: buffer function should also allow enable as input
           } {
-            stage(BufferWrite().data(depOut).done(enq))
+            stage(BufferWrite(isFIFO=false).data(depOut).done(enq))
           }
         }
         val read = within(depedCtx, depedCtx.getCtrl) {
           allocate[BufferRead] { read => 
+            !read.isFIFO &&
             read.in.canReach(write.out, visitEdges=visitInEdges _) &&
             read.done.canReach(deq, visitEdges=visitInEdges _) &&
             !read.en.isConnected
           } {
-            stage(BufferRead().in(write.out).done(deq))
+            stage(BufferRead(isFIFO=true).in(write.out).done(deq))
           }
         }
         swapConnection(depedIn, depOut, read.out)

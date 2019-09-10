@@ -64,10 +64,10 @@ trait LocalOutAccess extends LocalAccess with Def with MemoryNode {
   val in = new InputField[PIRNode]("in")
   val initToken = Metadata[Boolean]("initToken", default=false)
 }
-case class BufferWrite()(implicit env:Env) extends LocalInAccess {
+case class BufferWrite(isFIFO:Boolean)(implicit env:Env) extends LocalInAccess {
   val data = new InputField[PIRNode]("data")
 }
-case class BufferRead()(implicit env:Env) extends LocalOutAccess
+case class BufferRead(isFIFO:Boolean)(implicit env:Env) extends LocalOutAccess
 case class BufferRegRead()(implicit env:Env) extends LocalOutAccess {
   val writeEn = new InputField[Option[PIRNode]]("writeEn")
   val writeDone = new InputField[Option[PIRNode]]("writeDone")
@@ -103,6 +103,12 @@ trait AccessUtil {
         assert(n.depth.get==1)
         true
       case _ => false
+    }
+    def isFIFO = n match {
+      case n:BufferRead => n.isFIFO
+      case n:BufferWrite => n.isFIFO
+      case n:TokenRead => false
+      case n:TokenWrite => false
     }
   }
   implicit class LocalInAccessOp(n:LocalInAccess) {

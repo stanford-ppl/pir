@@ -454,11 +454,12 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTransformer with Dependen
         )
         val write = within(inAccess.parent.get, inAccess.ctrl.get) {
           allocate[BufferWrite]{ write => 
+            write.isFIFO == mem.isFIFO &&
             matchInput(write.data, inAccess.data) &&
             matchInput(write.en,inAccess.en.connected) && 
             matchInput(write.done,enq)
           } {
-            stage(BufferWrite()
+            stage(BufferWrite(mem.isFIFO)
               .presetVec(inAccess.inferVec.get)
               .data(inAccess.data.connected)
               .mirrorMetas(inAccess)
@@ -468,11 +469,12 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTransformer with Dependen
         }
         val read = within(outAccess.parent.get, outAccess.ctrl.get) {
           allocate[BufferRead]{ read => 
+            read.isFIFO == mem.isFIFO &&
             matchInput(read.in, write.out) &&
             matchInput(read.en,outAccess.en.connected) && 
             matchInput(read.done,deq)
           } {
-            stage(BufferRead()
+            stage(BufferRead(mem.isFIFO)
               .in(write.out)
               .mirrorMetas(mem)
               .mirrorMetas(outAccess)
