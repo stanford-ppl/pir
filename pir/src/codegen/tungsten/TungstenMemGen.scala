@@ -63,7 +63,7 @@ trait TungstenMemGen extends TungstenCtxGen {
           //}
           genCtxComputeEnd {
             val ctrlerEn = s"$ctrler->Enabled()"
-            emitIf(ctrlerEn + " & " + n.done.qref) {
+            emitIf(n.done.qref + " & " + ctrlerEn) {
               emitln(s"$name->Pop();")
             }
           }
@@ -106,15 +106,15 @@ trait TungstenMemGen extends TungstenCtxGen {
               case n:TokenWrite => s"true"
             }
           }
-          emitIf(n.done.qref + " & " + n.en.qany) {
-            emitln(s"Token data = make_token(${n.qref});")
-            if (n.en.getVec > 1) {
-              emitln(s"set_token_en<${n.en.getVec}>(data, ${n.en.qref});")
-            }
-            if (withPipe) emitln(s"$name->Push(data);")
-            else n.out.T.foreach { send =>
-              emitln(s"${nameOf(send)}->Push(data);")
-            }
+        }
+        emitIf(n.done.qref + " & " + s"$ctrler->Enabled()") {
+          emitln(s"Token data = make_token(${n.qref});")
+          if (n.en.getVec > 1) {
+            emitln(s"set_token_en<${n.en.getVec}>(data, ${n.en.qref});")
+          }
+          if (withPipe) emitln(s"$name->Push(data);")
+          else n.out.T.foreach { send =>
+            emitln(s"${nameOf(send)}->Push(data);")
           }
         }
       }
@@ -266,7 +266,11 @@ trait TungstenMemGen extends TungstenCtxGen {
     //case n@InputField(x:BufferRegRead, "in") if !x.nonBlocking => varOf(x)._2.field("data")
     //case n@InputField(x:BufferRegRead, f@("writeEn" | "writeDone")) => varOf(x)._2.field(f)
     case n@InputField(a@(_:LocalAccess | _:Access), "en") => s"${a}_en"
-    case n@InputField(_:Access | _:LocalAccess, "done") => n.as[Input[PIRNode]].singleConnected.map { _.qref }.getOrElse("false")
+    case n@InputField(_:Access | _:LocalAccess, "done") => 
+      n.as[Input[PIRNode]].singleConnected.map { 
+        case done@OutputField(read:BufferRead, _) => read.done.qref + " & " + done.qref
+        case done => done.qref
+      }.getOrElse("false")
     case n@InputField(x:LocalOutAccess, "in") => varOf(x)._2
     case n => super.quoteRef(n)
   }
