@@ -62,7 +62,9 @@ with BufferAnalyzer
 
   override def swapConnection[N<:Node[N]](input:Input[N], from:Output[N], to:Output[N]):Unit = {
     input.vecMeta.reset
+    to.vecMeta.reset
     super.swapConnection(input, from, to)
+    to.inferVec
     input.inferVec
     free(from.src.as[PIRNode])
   }

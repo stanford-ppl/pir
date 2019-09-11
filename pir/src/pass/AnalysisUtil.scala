@@ -88,24 +88,16 @@ trait AnalysisUtil { self:PIRPass =>
   val ConnectedByDRAMCmd = MatchRule[IR, Int] { case n =>
     val burstSize = 512 // TODO: get from spadeparam
     n match {
-      case n@InputField(cmd:FringeDenseStore, "data" | "valid") => 
-        n.as[Input[PIRNode]].connected.foreach { o =>
-          o.resetMeta("vec")  
-          o.setVec(burstSize /! cmd.data.getTp.nbits.get)
+      case n@InputField(cmd:FringeDenseStore, "data" | "valid") => Some(burstSize /! cmd.data.getTp.nbits.get)
+      case n@InputField(cmd:FringeSparseLoad, "addr") => Some(1)
+      case n@InputField(cmd:FringeSparseStore, "addr" | "data") => Some(1)
+      case OutputField(read:BufferRead, _) =>
+        read.out.connected match {
+          case List(i@InputField(cmd:FringeDenseStore, "data" | "valid")) => i.inferVec
+          case List(i@InputField(cmd:FringeSparseLoad, "addr")) => i.inferVec
+          case List(i@InputField(cmd:FringeSparseStore, "addr" | "data")) => i.inferVec
+          case _ => None
         }
-        Some(burstSize /! cmd.data.getTp.nbits.get)
-      case n@InputField(cmd:FringeSparseLoad, "addr") => 
-        n.as[Input[PIRNode]].connected.foreach { o =>
-          o.resetMeta("vec")  
-          o.setVec(1)
-        }
-        Some(1)
-      case n@InputField(cmd:FringeSparseStore, "addr" | "data") => 
-        n.as[Input[PIRNode]].connected.foreach { o =>
-          o.resetMeta("vec")  
-          o.setVec(1)
-        }
-        Some(1)
       case n:MemWrite =>
         n.data.singleConnected match {
           case Some(OutputField(cmd:FringeDenseLoad, "data")) => cmd.data.inferVec

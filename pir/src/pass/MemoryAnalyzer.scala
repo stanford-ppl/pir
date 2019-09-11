@@ -107,7 +107,7 @@ trait MemoryAnalyzer { self:PIRTransformer =>
     equalValue(c.value,value) &&
     stackTop[Ctrl].fold(true) { ctrl => c.getCtrl == ctrl }
   } { 
-    Const(value)
+    stage(Const(value))
   }
 
 }

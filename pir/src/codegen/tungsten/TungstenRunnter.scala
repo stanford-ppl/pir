@@ -14,11 +14,11 @@ class TungstenRunner(implicit compiler: PIR) extends PIRPass with Printer {
       emitln(s"""cd tungsten""")
       emitln("rm -f tungsten")
       emitln(s"""make""")
-      //if (!noPlaceAndRoute) {
-        //emitln("""cp script_hybrid script""")
-      //} else {
-        //emitln("""cp script_p2p script""")
-      //}
+      if (!noPlaceAndRoute) {
+        emitln("""cp script_hybrid script""")
+      } else {
+        emitln("""cp script_p2p script""")
+      }
       emitln("""./tungsten "$@"""")
     }
     deleteFile(tstLog)
