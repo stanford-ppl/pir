@@ -101,11 +101,13 @@ trait AnalysisUtil { self:PIRPass =>
       case n:MemWrite =>
         n.data.singleConnected match {
           case Some(OutputField(cmd:FringeDenseLoad, "data")) => cmd.data.inferVec
-          case Some(OutputField(cmd:FringeSparseStore, "data")) => cmd.data.inferVec
+          case Some(OutputField(cmd:FringeSparseLoad, "data")) => cmd.data.inferVec
+          case Some(OutputField(cmd:FringeSparseStore, "ack")) => cmd.ack.inferVec
           case _ => None
         }
       case OutputField(cmd:FringeDenseLoad, "data") => Some(burstSize /! cmd.data.getTp.nbits.get)
       case OutputField(cmd:FringeSparseLoad, "data") => Some(1)
+      case OutputField(cmd:FringeSparseStore, "ack") => Some(1)
       case _ => None
     }
   }
@@ -162,6 +164,7 @@ trait AnalysisUtil { self:PIRPass =>
       case n:PrintIf => n.msg.inferVec
       case n:AssertIf => n.msg.inferVec
       case n:ExitIf => n.msg.inferVec
+      case n:AccumAck => Some(1)
       case n@OpDef(_:FixOp | _:FltOp | _:BitOp | _:TextOp | Mux | BitsAsData) => flatReduce(n.inputs.map{ _.inferVec}) { case (a,b) => Math.max(a,b) }
       case n:Shuffle => n.to.T.inferVec
       case n:GlobalOutput => n.in.T.inferVec
@@ -190,6 +193,7 @@ trait AnalysisUtil { self:PIRPass =>
       case n:CounterIter => Some(Fix(true, 32, 0))
       case n:CounterValid => Some(Bool)
       case n:PrintIf => Some(Bool)
+      case n:AccumAck => Some(Bool)
       case n:Shuffle => n.base.inferTp
       case n:TokenRead => Some(Bool)
       case n:TokenWrite => Some(Bool)

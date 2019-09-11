@@ -155,7 +155,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       val write = within(pirTop, n.getCtrl) {
         val ack = n.ack.T.as[MemWrite].mem.T.outAccesses.head
         within(ack.getCtrl) {
-          stage(MemWrite().data(ack))
+          stage(MemWrite().data(stage(AccumAck().ack(ack))))
         }
       }
       argOut(write).name(s"${n}_ack")

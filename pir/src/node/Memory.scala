@@ -90,24 +90,27 @@ trait Def extends PIRNode with DefNode[PIRNode] {
 }
 
 case class Const(value:Any)(implicit env:Env) extends Def
+case class AccumAck()(implicit env:Env) extends Def {
+  val ack = new InputField[PIRNode]("ack")
+}
+case class PrintIf()(implicit env:Env) extends Def {
+  val en = new InputField[List[PIRNode]]("en")
+  val msg = new InputField[PIRNode]("mgs")
+}
+case class AssertIf()(implicit env:Env) extends Def {
+  val en = new InputField[List[PIRNode]]("en")
+  val cond = new InputField[List[PIRNode]]("cond")
+  val msg = new InputField[PIRNode]("mgs")
+}
+case class ExitIf()(implicit env:Env) extends Def {
+  val en = new InputField[List[PIRNode]]("en")
+  val cond = new InputField[List[PIRNode]]("cond")
+  val msg = new InputField[PIRNode]("mgs")
+}
 trait OpNode extends PIRNode
 case class OpDef(op:Opcode)(implicit env:Env) extends OpNode with Def {
   def addInput(xs:Any*) = DynamicInputFields[PIRNode]("input", xs)
   def inputs = getDynamicInputFields[PIRNode]("input")
-}
-case class PrintIf()(implicit env:Env) extends OpNode with Def {
-  val en = new InputField[List[PIRNode]]("en")
-  val msg = new InputField[PIRNode]("mgs")
-}
-case class AssertIf()(implicit env:Env) extends OpNode with Def {
-  val en = new InputField[List[PIRNode]]("en")
-  val cond = new InputField[List[PIRNode]]("cond")
-  val msg = new InputField[PIRNode]("mgs")
-}
-case class ExitIf()(implicit env:Env) extends OpNode with Def {
-  val en = new InputField[List[PIRNode]]("en")
-  val cond = new InputField[List[PIRNode]]("cond")
-  val msg = new InputField[PIRNode]("mgs")
 }
 // op can be eigher a string, if from spatial, or a list of reduction op if
 // transformed in graph initialization
