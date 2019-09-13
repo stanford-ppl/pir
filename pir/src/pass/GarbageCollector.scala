@@ -24,8 +24,8 @@ trait GarbageCollector { self:PIRTransformer =>
   }
 
   private def visitFunc(n:PIRNode):List[PIRNode] = {
-    val deps = visitIn(n).filter { x => visitOut(x).forall(x => collector.isVisited(x, -1)) }
-    val parents = visitUp(n).filter { x => visitDown(x).forall(x => collector.isVisited(x, -1)) }
+    val deps = visitIn(n).filter { x => visitOut(x).forall(x => collector.isVisited(x, -1)) && !mustLive(x) }
+    val parents = visitUp(n).filter { x => visitDown(x).forall(x => collector.isVisited(x, -1)) && !mustLive(x) }
     dbg(s"$n deps=$deps parent=$parents")
     (deps ++ parents).distinct
   }
@@ -41,7 +41,7 @@ trait GarbageCollector { self:PIRTransformer =>
   def free(nodes:Iterable[PIRNode]):Unit = dbgblk(s"free(${nodes.map{dquote(_)}})"){
     depDupHasRun = self.as[PIRPass].compiler.hasRunAll[DependencyDuplication]
     val ns = nodes.flatMap { n => 
-      if (isDead(n)) Some((n, -1))
+      if (mustDead(n)) Some((n, -1))
       else None
     }.toList
     var dead = ns.flatMap { _._1.descendents }
@@ -55,10 +55,9 @@ trait GarbageCollector { self:PIRTransformer =>
     removeNodes(dead)
   }
 
-  private def isDead(n:PIRNode):Boolean = {
-    if (n.descendentTree.exists { n => isLive(n) == Some(true) }) return false
-    visitOut(n).isEmpty
-  }
+  private def mustLive(n:PIRNode) = n.descendentTree.exists { n => isLive(n) == Some(true) }
+
+  private def mustDead(n:PIRNode):Boolean = !mustLive(n) && visitOut(n).isEmpty
 
   def free(input:Input[PIRNode]):Unit = dbgblk(s"free(${dquote(input)})") {
     val ns = input.neighbors
