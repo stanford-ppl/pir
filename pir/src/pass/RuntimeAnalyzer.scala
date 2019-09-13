@@ -111,6 +111,8 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
           n.writeDone.T.foreach { _.getCount }
           n.writeEn.T.foreach { _.getCount }
           n.in.T.getCount.map { _ /! n.writeDone.collectFirst[BufferWrite]().data.singleConnected.get.getScale }
+        case WrittenBy(OutputField(_:FringeStreamRead, "lastBit")) => 
+          Some(Finite(1))
         case n:LocalOutAccess =>
           n.in.T.getCount.map { _ * n.in.getVec /! n.out.getVec }
         case n:LocalInAccess =>
@@ -176,6 +178,7 @@ trait RuntimeUtil extends AnalysisUtil { self:PIRPass =>
           case (n:BufferWrite, done) if n.ctx.get.streaming.get =>
             n.data.singleConnected.get match {
               case OutputField(n:FringeDenseStore, "ack") => n.getIter * n.ctx.get.getScheduleFactor
+              case OutputField(n:FringeStreamRead, "lastBit") => Unknown
               case out => Finite(n.ctx.get.getScheduleFactor)
             }
           case (n:BufferRead, done) if n.ctx.get.streaming.get =>
