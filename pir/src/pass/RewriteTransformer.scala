@@ -119,7 +119,8 @@ trait RewriteUtil { self: PIRTransformer =>
       }
       def FMA(mulIn:Output[_], c:Any, addIn:Output[_]) = {
         val fma = within(n.parent.get, n.getCtrl) {
-          val const = allocConst(c).tp(addIn.src.as[PIRNode].getTp)
+          val tp = addIn.src.as[PIRNode].getTp
+          val const = allocConst(c,tp=Some(tp)).tp(tp)
           stage(OpDef(FixFMA).addInput(mulIn, const.out, addIn).out)
         }
         Some(n.out, fma)

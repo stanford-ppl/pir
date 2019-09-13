@@ -129,7 +129,7 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
 
 }
 
-trait RuntimeUtil extends AnalysisUtil { self:PIRPass =>
+trait RuntimeUtil extends TypeUtil { self:PIRPass =>
 
   implicit class RuntimeOp1[N<:IR](n:N) extends NodeRuntimeOp[N](n) {
     def getScheduleFactor = compScheduleFactor(n.as[Context])

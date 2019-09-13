@@ -291,7 +291,7 @@ trait TungstenMemGen extends TungstenCtxGen {
     case n:BufferRegRead =>
       (s"BufferReg<${n.in.getVec}, $fifoDepth>", s"fifo_$n")
     case n:BufferRead if isRateMatchingFIFO(n) =>
-      (s"RateMatchingTokenFIFO<${n.qtp}, ${fifoDepth*n.in.getVec}, ${n.in.getVec}, ${n.out.getVec}>", s"fifo_$n") 
+      (s"RateMatchingTokenFIFO<${n.qtp}, ${fifoDepth*math.max(n.in.getVec, n.out.getVec)}, ${n.in.getVec}, ${n.out.getVec}>", s"fifo_$n") 
     case n:BufferRead =>
       (s"FIFO<Token, ${fifoDepth}>", s"fifo_$n")
     case n:TokenRead =>
