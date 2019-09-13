@@ -103,8 +103,10 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       n.localOuts.foreach { out =>
         if (out.isConnected) {
           val fifo = out.collectFirst[FIFO]()
-          out.setVec(fifo.banks.get.head)
           out.setTp(fifo.tp.v)
+          if (!n.isInstanceOf[DRAMCommand]) {
+            out.setVec(fifo.banks.get.head)
+          }
         }
       }
     }
@@ -112,42 +114,29 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
     }
 
+    // TODO: add enable to cmd issuer and returned ack instead
     n.to[FringeDenseStore].foreach { n =>
       // Transfer write enable on store valid and store data to valid
       val vwrite = n.valid.T.as[MemRead].mem.T.inAccesses.head.as[MemWrite]
-      if (vwrite.en.isConnected) {
-        within(vwrite.parent.get, vwrite.getCtrl) {
-          val vdata = vwrite.data.singleConnected.get
-          val vs = (vdata::vwrite.en.connected++n.getCtrl.ctrler.get.en.connected).toSet
-          val v = vs.reduce[Output[PIRNode]]{ case (v1,v2) =>
-            stage(OpDef(And).addInput(v1,v2)).out
+      val dwrite = n.data.T.as[MemRead].mem.T.inAccesses.head.as[MemWrite]
+      within(vwrite.parent.get, vwrite.getCtrl) {
+        val ctrl = vwrite.getCtrl
+        val ctrlEns = ctrl.ancestorTree.view.flatMap { c =>
+          c.ctrler.v.view.flatMap { ctrler =>
+            ctrler.en.T.collect { case v:CounterValid => v.out }
           }
-          vwrite.data.disconnect
-          vwrite.data(v)
-          vwrite.en.disconnect
-          n.data.T.as[MemRead].mem.T.inAccesses.head.as[MemWrite].en.disconnect
+        }.toSet[Output[PIRNode]]
+        val vdata = vwrite.data.singleConnected.get
+        val vs = ctrlEns + vdata
+        val v = vs.reduce[Output[PIRNode]]{ case (v1,v2) =>
+          stage(OpDef(And).addInput(v1,v2)).out
         }
+        vwrite.data.disconnect
+        vwrite.data(v)
       }
     }
 
-    // Remove loop lane valid dependent enable
-    n.to[MemRead].foreach { read =>
-      read.en.T.foreach {
-        case v:CounterValid => read.en.disconnectFrom(v.out)
-        case _ =>
-      }
-    }
-
-    n.to[DRAMStoreCommand].foreach { n =>
-      val write = within(pirTop, n.getCtrl) {
-        val ack = n.ack.T.as[MemWrite].mem.T.outAccesses.head
-        within(ack.getCtrl) {
-          stage(MemWrite().data(ack))
-        }
-      }
-      argOut(write).name(s"${n}_ack")
-    }
-    
+    // Add loop valid related enables. Should add to all accesses but might be a bit expensive
     n.to[BankedAccess].foreach { access =>
       val ctrl = access.getCtrl
       ctrl.ancestorTree.foreach { c =>
@@ -160,6 +149,16 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
           }
         }
       }
+    }
+
+    n.to[DRAMStoreCommand].foreach { n =>
+      val write = within(pirTop, n.getCtrl) {
+        val ack = n.ack.T.as[MemWrite].mem.T.outAccesses.head
+        within(ack.getCtrl) {
+          stage(MemWrite().data(stage(AccumAck().ack(ack))))
+        }
+      }
+      argOut(write).name(s"${n}_ack")
     }
 
     if (config.enableSimDebug) {
@@ -206,8 +205,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
           dbg(s"input=${dquote(input)}")
           val accumOp = within(readerParent, readerCtrl) {
             val firstIter = writer.getCtrl.ctrler.get.to[LoopController].map { _ .firstIter }
-            val en = readerCtrl.ctrler.get.valid
-            stage(RegAccumOp(reduceOps).in(input).en(writer.en.connected, en).first(firstIter).init(init))
+            stage(RegAccumOp(reduceOps).in(input).en(writer.en.connected).first(firstIter).init(init))
           }
           disconnect(writer, reduceOps.last)
           swapOutput(reduceOps.last.as[DefNode[PIRNode]].output.get, accumOp.out)
@@ -237,7 +235,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     tree.ctrler(ctrler)
     tree.parent.foreach { parent =>
       parent.ctrler.v.foreach { pctrler =>
-        ctrler.parentEn(pctrler.valid)
+        ctrler.parentEn(pctrler.childDone)
       }
     }
     ctrler

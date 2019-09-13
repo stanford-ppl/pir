@@ -42,7 +42,6 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   }
 
   def filterEdge(out:Output[PIRNode], in:Input[PIRNode]) = (out,in) match {
-    case (_, InputField(_:LocalOutAccess, "done")) => false
     case (OutputField(_:LocalInAccess, _), InputField(_:LocalOutAccess, _)) => false
     case (_,InputField(_:LoopController, "stopWhen")) => false
     case _ => true
@@ -75,20 +74,23 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     case n => s"$n"
   }
 
+  def quoteIdx(n:Any, i:Option[String]):String = {
+    val q = quoteRef(n)
+    i.fold(q) { i => 
+      val vec = n.as[IR].getVec
+      if (vec > 1) s"$q[$i]" else s"$q"
+    }
+  }
+
   implicit class IRGenOp(n:IR) {
     def qref:String = quoteRef(n)
-    def qidx(i:String):String = {
-      qidx(Some(i))
-    }
-    def qidx(i:Option[String]):String = {
-      val q = quoteRef(n)
-      i.fold(q) { i => 
-        val vec = n.as[IR].getVec
-        if (vec > 1) s"$q[$i]" else s"$q"
-      }
-    }
+    def qidx(i:String):String = qidx(Some(i))
+    def qidx(i:Option[String]):String = quoteIdx(n, i)
     def qany:String = {
       if (n.getVec > 1) s"Any<${n.getVec}>(${qref})" else qref
+    }
+    def qall:String = {
+      if (n.getVec > 1) s"All<${n.getVec}>(${qref})" else qref
     }
     def qtp:String = n.getTp.qtp
     def tokenTp = qtp match {

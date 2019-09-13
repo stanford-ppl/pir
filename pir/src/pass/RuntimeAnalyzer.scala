@@ -22,10 +22,9 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
   override def finPass = {
     passTwo = true
     dbg(s"passTwo ----------------")
-    ctxs.foreach { _.count.reset }
     // Two passes to handle cycle in data flow graph
     ctxs.foreach { n =>
-      val count = n.getCount.get
+      val count = compCount(n).get
       if (n.collectDown[HostOutController]().nonEmpty & count.isKnown) {
         assert(count == Finite(1), s"Host out count != 1: $count")
       }
@@ -112,8 +111,10 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
           n.writeDone.T.foreach { _.getCount }
           n.writeEn.T.foreach { _.getCount }
           n.in.T.getCount.map { _ /! n.writeDone.collectFirst[BufferWrite]().data.singleConnected.get.getScale }
+        case WrittenBy(OutputField(_:FringeStreamRead, "lastBit")) => 
+          Some(Finite(1))
         case n:LocalOutAccess =>
-          n.in.T.getCount
+          n.in.T.getCount.map { _ * n.in.getVec /! n.out.getVec }
         case n:LocalInAccess =>
           n.ctx.get.getCount.map { _ /! n.getScale }
         case n:GlobalInput =>
@@ -128,7 +129,7 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
 
 }
 
-trait RuntimeUtil extends AnalysisUtil { self:PIRPass =>
+trait RuntimeUtil extends TypeUtil { self:PIRPass =>
 
   implicit class RuntimeOp1[N<:IR](n:N) extends NodeRuntimeOp[N](n) {
     def getScheduleFactor = compScheduleFactor(n.as[Context])
@@ -150,11 +151,11 @@ trait RuntimeUtil extends AnalysisUtil { self:PIRPass =>
       case n:Controller if n.getCtrl.schedule != Fork => Finite(1l)
       case n:FringeDenseLoad =>
         val size = n.size.T.getBound.toValue
-        val dataPar = n.data.T.getVec
+        val dataPar = n.data.getVec
         size /! (n.data.getTp.bytePerWord.get * dataPar)
       case n:FringeDenseStore =>
         val size = n.size.T.getBound.toValue
-        val dataPar = n.data.T.getVec
+        val dataPar = n.data.getVec
         size /! (n.data.getTp.bytePerWord.get * dataPar)
       case n:FringeSparseLoad => Finite(1l)
       case n:FringeSparseStore => Finite(1l)
@@ -164,27 +165,28 @@ trait RuntimeUtil extends AnalysisUtil { self:PIRPass =>
 
   def compScale(n:Any):Value[Long] = dbgblk(s"compScale($n)"){
     n match {
-      case OutputField(ctrler:Controller, "done") => ctrler.getIter *  compScale(ctrler.valid)
-      case OutputField(ctrler:Controller, "valid" | "childDone") => 
-        val children = ctrler.valid.connected.filter { _.asInstanceOf[Field[_]].name == "parentEn" }.map { _.src.as[Controller] }
-        assertUnify(children, s"$ctrler.valid.scale") { child => compScale(child.done) }.getOrElse(Finite(ctrler.ctx.get.getScheduleFactor))
+      case OutputField(ctrler:Controller, "done") => ctrler.getIter *  compScale(ctrler.childDone)
+      case OutputField(ctrler:Controller, "childDone" | "childDone") => 
+        val children = ctrler.childDone.connected.filter { _.asInstanceOf[Field[_]].name == "parentEn" }.map { _.src.as[Controller] }
+        assertUnify(children, s"$ctrler.childDone.scale") { child => compScale(child.done) }.getOrElse(Finite(ctrler.ctx.get.getScheduleFactor))
       case OutputField(n:Const, _) => Finite(n.ctx.get.getScheduleFactor)
       case n:LocalAccess => 
-        (n, n.done.connected) match {
+        (n, n.done.singleConnected.get) match {
+          case (n, done) if n.en.isConnected => Unknown
           case (n:BufferWrite, _) if n.en.isConnected => Unknown // Branch dependent
-          case (n:TokenAccess, List(OutputField(r:BufferRead, _))) => compScale(r.inAccess.as[BufferWrite].data.singleConnected.get)
-          case (n:BufferWrite, List(done)) if n.ctx.get.streaming.get =>
+          case (n:TokenAccess, OutputField(r:BufferRead, _)) => compScale(r.inAccess.as[BufferWrite].data.singleConnected.get)
+          case (n:BufferWrite, done) if n.ctx.get.streaming.get =>
             n.data.singleConnected.get match {
               case OutputField(n:FringeDenseStore, "ack") => n.getIter * n.ctx.get.getScheduleFactor
+              case OutputField(n:FringeStreamRead, "lastBit") => Unknown
               case out => Finite(n.ctx.get.getScheduleFactor)
             }
-          case (n:BufferRead, List(done)) if n.ctx.get.streaming.get =>
+          case (n:BufferRead, done) if n.ctx.get.streaming.get =>
             n.out.connected.head match {
               case InputField(n:DRAMDenseCommand, "size" | "offset") => n.getIter * n.ctx.get.getScheduleFactor
               case in => Finite(n.ctx.get.getScheduleFactor)
             }
-          case (n, List(done)) => compScale(done) 
-          case (n, done) if done.size > 1 => Unknown
+          case (n, done) => compScale(done) 
         }
       case n => throw PIRException(s"Don't know how to compute scale of $n")
     }
@@ -203,7 +205,7 @@ trait RuntimeUtil extends AnalysisUtil { self:PIRPass =>
     case (OutputField(Const(out1), "out"), OutputField(Const(out2), "out")) if out1 == out2 => true
     case (OutputField(Const(List(out1)), "out"), OutputField(Const(out2), "out")) if out1 == out2 => true
     case (OutputField(Const(out1), "out"), OutputField(Const(List(out2)), "out")) if out1 == out2 => true
-    case (OutputField(c1:UnitController, "valid" | "done"), OutputField(c2:UnitController, "valid" | "done")) => c1 == c2
+    case (OutputField(c1:UnitController, "childDone" | "done"), OutputField(c2:UnitController, "childDone" | "done")) => c1 == c2
     case (out1, out2) => false
   }
 

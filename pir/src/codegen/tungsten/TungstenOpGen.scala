@@ -23,6 +23,9 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
     case n@Const(v:String) => emitVec(n, List.fill(n.getVec)(s""""${v.replace("\n", "\\n")}""""))
     case n@Const(v) => emitVec(n, List.fill(n.getVec)(v))
 
+    case n:AccumAck =>
+      emitVec(n) { i => "true" };
+
     case n@RegAccumOp(op) =>
       genCtxFields {
         emitln(s"${n.qtp} $n = 0;")
@@ -84,14 +87,19 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       emitUnVec(n)(s"${n}_shuffled")
 
     case n:OpDef => emitVec(n) { i => 
-      val ins = n.inputs.map { _.qidx(i) }
-      quoteOp(n.op, n.getTp, ins, n.inputs.map { _.getTp}, quoteSrcCtx(n))
+      var ins = n.inputs.map { _.qidx(i) }
+      var intps = n.inputs.map { _.getTp}
+      n.op match {
+        case FixDiv | FltDiv =>
+          ins = ins :+ i.map { i => s"laneValids[$i]" }.getOrElse("true")
+          intps = intps :+ Bool
+        case _ =>
+      }
+      quoteOp(n.op, n.getTp, ins, intps, quoteSrcCtx(n))
     }
 
     case n:PrintIf =>
-      var ens = n.en.qref :: Nil
-      n.ctx.get.ctrler(n.ctrl.get).foreach { ctrler => ens +:= ctrler.valid.qref }
-      emitIf(s"${ens.distinct.reduce { _ + " && " + _ }}") {
+      emitIf(n.en.qref) {
         emitBlock(s"for (int i = 0; i < ${n.msg.T.getVec}; i++)") {
           emitln(s"cout << ${n.msg.T.qidx("i")};")
         }
@@ -114,7 +122,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       case FixAdd                   => s"$a + $b"
       case FixSub                   => s"$a - $b"
       case FixMul                   => s"$a * $b"
-      case FixDiv                   => s"""SafeDiv($a, $b, "$ctx")"""
+      case FixDiv                   => s"""$c ? SafeDiv($a, $b, "$ctx") : $a"""
       case FixRecip                 => s"1 / $a"
       case FixMod if ntp.isFraction =>
         val Fix(s,i,f) = ntp
@@ -244,7 +252,6 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
   override def quoteRef(n:Any):String = n match {
     case InputField(n:Shuffle, field) => s"${n}_$field"
-    case n@InputField(_:OpNode, "en") => quoteEn(n.as[Input[PIRNode]], None)
     case n => super.quoteRef(n)
   }
 

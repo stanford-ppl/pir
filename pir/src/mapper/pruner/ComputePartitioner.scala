@@ -28,7 +28,7 @@ trait ComputePartitioner extends CUPruner {
             global
           }
         }
-        globals.foreach { insertGlobalIO }
+        //globals.foreach { insertGlobalIO }
         removeNodes(k.descendentTree)
         globals
       case k:Context =>
@@ -67,8 +67,8 @@ trait ComputePartitioner extends CUPruner {
 
   val alias = scala.collection.mutable.Map[Context,Context]()
 
-  override def valid(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
-    super.valid(ctrl, alias.get(ctx).getOrElse(ctx))
+  override def childDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
+    super.childDone(ctrl, alias.get(ctx).getOrElse(ctx))
   }
 
   def include(n:PIRNode) = n match {

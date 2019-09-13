@@ -61,8 +61,8 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
     val gouts = addrCtx.depeds().collect { case gout:GlobalOutput => gout }
     swapParent(addrCtx, global)
     gouts.foreach { gout => swapParent(gout, global) }
-    insertGlobalIO(global)
-    insertGlobalIO(k)
+    //insertGlobalIO(global)
+    //insertGlobalIO(k)
     k.collectChildren[GlobalInput].foreach { gin =>
       if (!gin.out.isConnected) removeNodes(List(gin))
     }

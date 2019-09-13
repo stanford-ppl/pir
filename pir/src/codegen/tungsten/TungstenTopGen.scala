@@ -101,6 +101,7 @@ using namespace std;
         topMembers.get(x).flatMap { mem =>
           if (mem.escape) Some(true) else None
         }
+      else if (x == "top") Some(true)
       else None
     }.getOrElse(super.isPointer(x))
   }
@@ -163,11 +164,12 @@ using namespace std;
       }
     }
 
-    emitln(s"$topName top$topArgs;")
+    emitln(s"$topName* top = new $topName$topArgs;")
     getBuffer("extern-end").foreach { _.flushTo(sw) }
     emitln(s"""Module DUT({$dutArgs}, "DUT");""")
     emitln(s"""REPL repl(&DUT, std::cout);""")
     emitln(s"""repl.Command("source script");""")
+    emitln(s"""delete top;""")
     emitBEln
     super.finPass
   }

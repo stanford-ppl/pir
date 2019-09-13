@@ -25,6 +25,7 @@ parser.add_argument('--spatial_dir', default="{}/spatial/".format(os.environ['HO
 parser.add_argument('--pir_dir', default="{}/spatial/pir".format(os.environ['HOME']))
 parser.add_argument('-f', '--filter', dest='filter_str', action='append', help='Filter apps')
 parser.add_argument('-m', '--message', default='', help='Additional fields to print in message')
+parser.add_argument('-pf', '--print_fields', default=False, action='store_true', help='Print fields')
 
 def to_conf(tab, **kws):
     tab = lookup(tab, drop=False, **kws)
@@ -199,7 +200,7 @@ def print_message(conf, opts):
     if not opts.summarize and not opts.show_diff:
         print(msg)
 
-    if not opts.show_history and not opts.show_diff:
+    if not opts.show_diff:
         return
 
     if opts.history is None:
@@ -224,15 +225,6 @@ def print_message(conf, opts):
                 get(pconf,'pir_sha'), pconf['time']))
         if conf[diffkey] and prevsucc.shape[0] == 0:
             print('{} {}'.format(msg, cstr(GREEN,'(New)')))
-    elif opts.show_history:
-        history = prevsucc
-        if history.shape[0] > 0:
-            times = sorted(get_col(history, 'time'))
-            history = history.sort_values('time')
-            for idx, row in history.iterrows():
-                pconf = to_conf(row)
-                print('{} {} {} {}'.format(getMessage(pconf, opts), pconf['spatial_sha'], 
-                    get(pconf,'pir_sha'), pconf['time']))
 
 def logApp(conf, opts):
     print_message(conf, opts)
@@ -520,14 +512,75 @@ def parse_proutesummary(log, conf, opts):
                 if k in conf:
                     conf[k] = row[k]
 
+def applyHistFilter(history, fs, opts):
+    for k in cond:
+        if k in fs:
+            pat,v = fs.split(k)
+            if pat in history.columns.values:
+                if k == "<":
+                    return history[history[pat] < float(v)]
+                if k == "<=":
+                    return history[history[pat] <= float(v)]
+                if k == ">":
+                    return history[history[pat] > float(v)]
+                if k == ">=":
+                    return history[history[pat] >= float(v)]
+                if k == "==":
+                    return history[history[pat] == float(v)]
+    if ":" in fs:
+        p,pat = fs.split(":",1)
+        if pat == "notNone":
+            return history[history[pat].notnull]
+        if pat == "None":
+            return history[history[pat].isnull]
+        mask = []
+        for v in history[p].values:
+            mask.append(fnmatch.fnmatch(str(v), pat))
+        return history[mask]
+    else:
+        pat = fs
+        return history[history[pat]]
+
+def show_history(opts):
+    if not opts.show_history: return
+
+    history = opts.history
+
+    # diffkey = 'succeeded'
+    # history =  history[history['succeeded']]
+
+    if opts.filter_str is not None:
+        for fs in opts.filter_str:
+            history = applyHistFilter(history, fs, opts)
+
+    if opts.project is not None:
+        history = lookup(history, project=opts.project, drop=False)
+
+    if opts.backend is not None:
+        history = history[history["backend"].isin(opts.backend)]
+
+    if opts.app is not None:
+        mask = []
+        for app in history["app"]:
+            mask.append(any([fnmatch.fnmatch(app, pat) for pat in opts.app]))
+        history = history[mask]
+
+    history = history.sort_values(["project", "app", "backend", "time"])
+
+    if history.shape[0] > 0:
+        for idx, row in history.iterrows():
+            pconf = to_conf(row)
+            print('{} {} {} {}'.format(getMessage(pconf, opts), pconf['spatial_sha'], 
+                get(pconf,'pir_sha'), pconf['time']))
+
 def show_gen(opts):
-    gitmsg = subprocess.check_output("git log --pretty=format:'%h,%ad' -n 1 --date=iso".split(" "),
+    gitmsg = subprocess.check_output("git log --pretty=format:'%h' -n 1".split(" "),
             cwd=opts.spatial_dir).replace("'","")
     spatial_sha = gitmsg.split(",")[0]
-    time = gitmsg.split(",")[1].split(" -")[0].strip()
-    gitmsg = subprocess.check_output("git log --pretty=format:'%h' -n 1".split(" "),
+    gitmsg = subprocess.check_output("git log --pretty=format:'%h,%ad' -n 1 --date=iso".split(" "),
             cwd=opts.pir_dir).replace("'","")
     pir_sha = gitmsg.split(",")[0]
+    time = gitmsg.split(",")[1].split(" -")[0].strip()
     for backend in opts.backend:
         numRun = 0
         numSucc = 0
@@ -609,6 +662,18 @@ def setFilterRules(opts):
 
 def main(args=None):
     (opts, args) = parser.parse_known_args(args=args)
+
+    if opts.show_diff or opts.show_history:
+        load_history(opts)
+    if opts.print_fields:
+        fields = sorted(opts.history.columns.values)
+        for f in fields:
+            print(f)
+        return
+    if opts.show_history:
+        show_history(opts)
+        return
+
     path = opts.path.rstrip('/')
     if opts.path_type == "app":
         path, app = path.rsplit('/',1)
@@ -630,7 +695,5 @@ def main(args=None):
             opts.backend[i] = backend.split("_")[0]
 
     setFilterRules(opts)
-    if opts.show_diff or opts.show_history:
-        load_history(opts)
     show_gen(opts)
 

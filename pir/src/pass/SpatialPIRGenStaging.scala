@@ -100,7 +100,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
     tree.ctrler(ctrler)
     tree.parent.foreach { parent =>
       parent.ctrler.v.foreach { pctrler =>
-        ctrler.parentEn(pctrler.valid)
+        ctrler.parentEn(pctrler.childDone)
       }
     }
     ctrler

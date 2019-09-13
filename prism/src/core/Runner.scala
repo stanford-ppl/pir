@@ -25,9 +25,9 @@ case class Runner(session:Session, id:Int) extends Serializable with RunnerStatu
     this
   }
   def dependsOn(deps:Pass*):this.type = {
-    val runners = deps.map { dep =>
-      val runners = session.passes(dep).filterNot { _ == this }
-      runners.last
+    val runners = deps.flatMap { dep =>
+      val runners = session.passes.get(dep).getOrElse(Nil).filterNot { _ == this }
+      runners.lastOption
     }
     runners.foreach { dependsOn }
     this

@@ -13,7 +13,7 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
   with PIRDebugger 
   with GraphUtilImplicits 
   with CollectorImplicit
-  with AnalysisUtil
+  with TypeUtil
   with RuntimeUtil
   {
 
@@ -62,7 +62,9 @@ with BufferAnalyzer
 
   override def swapConnection[N<:Node[N]](input:Input[N], from:Output[N], to:Output[N]):Unit = {
     input.vecMeta.reset
+    to.vecMeta.reset
     super.swapConnection(input, from, to)
+    to.inferVec
     input.inferVec
     free(from.src.as[PIRNode])
   }

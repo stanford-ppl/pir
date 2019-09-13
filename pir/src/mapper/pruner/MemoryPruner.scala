@@ -64,9 +64,9 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
       //breakPoint(s"$k, $bankRead")
       mergeReads(k, mem, bankRead, mappings)
     }
-    mks.foreach { nk =>
-      insertGlobalOutput(nk)
-    }
+    //mks.foreach { nk =>
+      //insertGlobalOutput(nk)
+    //}
     removeNodes(k.collectDown[TokenRead]())
     free(k)
     //breakPoint(s"$k, $mks")
@@ -149,7 +149,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
         }
         dupDeps(ctx, from=None).values.foreach { _.as[PIRNode].ctrl(rctrl,reset=true) }
       }
-      insertGlobalInput(global)
+      //insertGlobalInput(global)
     }
   }
 }

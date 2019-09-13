@@ -91,9 +91,9 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping,progReport) ==>
     addPass(initializer) ==>
     addPass(new ParamHtmlIRPrinter(s"param.html", pirenv.spadeParam)) ==>
+    addPass(enableDot, new PIRGlobalDotGen(s"global7.dot"))
     addPass(enableDot, new PIRCtxDotGen(s"ctx7.dot")) ==>
     addPass(enableDot, new PIRTopDotGen(s"top7.dot")) ==>
-    addPass(enableDot, new PIRGlobalDotGen(s"global7.dot"))
     addPass(enableDot, new PIRIRPrinter(s"IR7.txt"))
     // ------- Mapping  --------
     addPass(enableMapping, hardPruner) ==>
@@ -103,8 +103,8 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, hardPruner) ==> // prune on newly created CUs by memoryComputePruner
     addPass(enableMapping, computePruner) ==>
     addPass(enableMapping, dagPruner) ==>
-    addPass(sanityCheck) ==>
     addPass(ctrlBlockInsert) ==>
+    addPass(sanityCheck) ==>
     //addPass(debugTransformer) ==>
     addPass(enableMapping, matchPruner) ==>
     addPass(modAnalyzer) ==>
@@ -117,10 +117,10 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping,progReport) ==>
     addPass(enableMapping,resReport) ==>
     addPass(runtimeAnalyzer).dependsOn(placerAndRouter) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"ctx9.dot")) ==>
-    addPass(enableDot, new PIRTopDotGen(s"top9.dot"))
     addPass(enableDot, new PIRGlobalDotGen(s"global.dot"))
-    addPass(enableDot, new PIRIRPrinter(s"IR9.txt"))
+    addPass(enableDot, new PIRCtxDotGen(s"ctx.dot")) ==>
+    addPass(enableDot, new PIRTopDotGen(s"top.dot"))
+    addPass(enableDot, new PIRIRPrinter(s"IR.txt"))
     // Igraph
     addPass(enableIgraph, igraphGen).dependsOn(runtimeAnalyzer)
     // Plastiroute

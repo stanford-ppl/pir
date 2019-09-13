@@ -52,20 +52,22 @@ case class MemRead()(implicit env:Env) extends ReadAccess
 case class MemWrite()(implicit env:Env) extends WriteAccess
 
 trait LocalAccess extends PIRNode {
-  val done = new InputField[List[PIRNode]]("done")
+  // en is branch-dependent
+  // done is branch independent
+  // Check valid when en is true
+  // Pop when if done and all en are true
+  val en = new InputField[Set[PIRNode]]("en") // if not connected, default true
+  val done = new InputField[Option[PIRNode]]("done") // if not connected, default false
 }
-trait LocalInAccess extends LocalAccess with Def {
-  // En is anded with done. But done is branch independent
-  val en = new InputField[List[PIRNode]]("en")
-}
+trait LocalInAccess extends LocalAccess with Def
 trait LocalOutAccess extends LocalAccess with Def with MemoryNode {
   val in = new InputField[PIRNode]("in")
   val initToken = Metadata[Boolean]("initToken", default=false)
 }
-case class BufferWrite()(implicit env:Env) extends LocalInAccess {
+case class BufferWrite(isFIFO:Boolean)(implicit env:Env) extends LocalInAccess {
   val data = new InputField[PIRNode]("data")
 }
-case class BufferRead()(implicit env:Env) extends LocalOutAccess
+case class BufferRead(isFIFO:Boolean)(implicit env:Env) extends LocalOutAccess
 case class BufferRegRead()(implicit env:Env) extends LocalOutAccess {
   val writeEn = new InputField[Option[PIRNode]]("writeEn")
   val writeDone = new InputField[Option[PIRNode]]("writeDone")
@@ -102,6 +104,12 @@ trait AccessUtil {
         true
       case _ => false
     }
+    def isFIFO = n match {
+      case n:BufferRead => n.isFIFO
+      case n:BufferWrite => n.isFIFO
+      case n:TokenRead => false
+      case n:TokenWrite => false
+    }
   }
   implicit class LocalInAccessOp(n:LocalInAccess) {
     def outAccesses:List[LocalOutAccess] = n.out.collect[LocalOutAccess](visitGlobalOut _)
@@ -117,7 +125,7 @@ object WithMem {
   def unapply(x:Access) = Some((x, x.mem.T))
 }
 object WithData {
-  def unapply(x:Any) = x match {
+  def unapply(x:PIRNode) = x match {
     case x:WriteAccess => Some((x, x.data.T))
     case x:BufferWrite => Some((x, x.data.T))
     case x => None
@@ -126,5 +134,12 @@ object WithData {
 object WithInAccess {
   def unapply(x:Memory) = {
     if (x.inAccesses.size == 1) Some((x, x.inAccesses.head)) else None
+  }
+}
+object WrittenBy {
+  def unapply(x:PIRNode) = x match {
+    case x:WriteAccess => x.data.singleConnected
+    case x:BufferWrite => x.data.singleConnected
+    case _ => None
   }
 }

@@ -90,24 +90,27 @@ trait Def extends PIRNode with DefNode[PIRNode] {
 }
 
 case class Const(value:Any)(implicit env:Env) extends Def
+case class AccumAck()(implicit env:Env) extends Def {
+  val ack = new InputField[PIRNode]("ack")
+}
+case class PrintIf()(implicit env:Env) extends Def {
+  val en = new InputField[List[PIRNode]]("en")
+  val msg = new InputField[PIRNode]("mgs")
+}
+case class AssertIf()(implicit env:Env) extends Def {
+  val en = new InputField[List[PIRNode]]("en")
+  val cond = new InputField[List[PIRNode]]("cond")
+  val msg = new InputField[PIRNode]("mgs")
+}
+case class ExitIf()(implicit env:Env) extends Def {
+  val en = new InputField[List[PIRNode]]("en")
+  val cond = new InputField[List[PIRNode]]("cond")
+  val msg = new InputField[PIRNode]("mgs")
+}
 trait OpNode extends PIRNode
 case class OpDef(op:Opcode)(implicit env:Env) extends OpNode with Def {
   def addInput(xs:Any*) = DynamicInputFields[PIRNode]("input", xs)
   def inputs = getDynamicInputFields[PIRNode]("input")
-}
-case class PrintIf()(implicit env:Env) extends OpNode with Def {
-  val en = new InputField[List[PIRNode]]("en")
-  val msg = new InputField[PIRNode]("mgs")
-}
-case class AssertIf()(implicit env:Env) extends OpNode with Def {
-  val en = new InputField[List[PIRNode]]("en")
-  val cond = new InputField[List[PIRNode]]("cond")
-  val msg = new InputField[PIRNode]("mgs")
-}
-case class ExitIf()(implicit env:Env) extends OpNode with Def {
-  val en = new InputField[List[PIRNode]]("en")
-  val cond = new InputField[List[PIRNode]]("cond")
-  val msg = new InputField[PIRNode]("mgs")
 }
 // op can be eigher a string, if from spatial, or a list of reduction op if
 // transformed in graph initialization
@@ -163,7 +166,6 @@ abstract class Controller(implicit env:Env) extends PIRNode {
   val en = new InputField[List[PIRNode]]("en")
   val parentEn = new InputField[Option[PIRNode]]("parentEn")
 
-  val valid = new OutputField[List[PIRNode]]("valid")
   val done = new OutputField[List[PIRNode]]("done")
   val childDone = new OutputField[List[PIRNode]]("childDone")
 
@@ -215,7 +217,7 @@ trait MemoryUtil extends CollectorImplicit {
 
   implicit class ControllerOp(n:Controller) {
     def childCtrlers:Seq[Controller] = {
-      n.valid.T.collect { case ctrler:Controller => ctrler }
+      n.childDone.T.collect { case ctrler:Controller => ctrler }
     }
     def isLeaf = childCtrlers.isEmpty
     def leaves:Seq[Controller] = {

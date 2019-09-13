@@ -6,7 +6,7 @@ import prism.graph._
 import prism.util._
 import scala.collection.mutable
 
-trait AnalysisUtil { self:PIRPass =>
+trait TypeUtil { self:PIRPass =>
 
   def noPlaceAndRoute = spadeParam.isAsic || spadeParam.isP2P || spadeParam.isInf
 
@@ -64,12 +64,15 @@ trait AnalysisUtil { self:PIRPass =>
   }
 
   val DRAMContext = MatchRule[Context, DRAMCommand] { case n =>
-    n.collectFirstChild[DRAMCommand]
+    n.collectDown[DRAMCommand]().headOption
   }
 
   val UnderControlBlock = MatchRule[PIRNode, ControlBlock] { case n =>
     n.ancestors.collectFirst { case n:ControlBlock => n }
   }
+
+  def isRateMatchingFIFO(n:BufferRead) = (n.out.getVec != n.in.getVec) | (n.en.isConnected & n.en.getVec > 1)
+  //def isRateMatchingFIFO(n:BufferRead) = n.out.getVec != n.in.getVec | n.en.getVec > 1
 
   def boundProp(n:PIRNode):Option[Any] = dbgblk(s"boundProp($n)"){
     n match {
@@ -82,15 +85,42 @@ trait AnalysisUtil { self:PIRPass =>
     }
   }
 
+  val ConnectedByDRAMCmd = MatchRule[IR, Int] { case n =>
+    val burstSize = 512 // TODO: get from spadeparam
+    n match {
+      case n@InputField(cmd:FringeDenseStore, "data" | "valid") => Some(burstSize /! cmd.data.getTp.nbits.get)
+      case n@InputField(cmd:FringeSparseLoad, "addr") => Some(1)
+      case n@InputField(cmd:FringeSparseStore, "addr" | "data") => Some(1)
+      case OutputField(read:BufferRead, _) =>
+        read.out.connected match {
+          case List(i@InputField(cmd:FringeDenseStore, "data" | "valid")) => i.inferVec
+          case List(i@InputField(cmd:FringeSparseLoad, "addr")) => i.inferVec
+          case List(i@InputField(cmd:FringeSparseStore, "addr" | "data")) => i.inferVec
+          case _ => None
+        }
+      case n:MemWrite =>
+        n.data.singleConnected match {
+          case Some(OutputField(cmd:FringeDenseLoad, "data")) => cmd.data.inferVec
+          case Some(OutputField(cmd:FringeSparseLoad, "data")) => cmd.data.inferVec
+          case Some(OutputField(cmd:FringeSparseStore, "ack")) => cmd.ack.inferVec
+          case _ => None
+        }
+      case OutputField(cmd:FringeDenseLoad, "data") => Some(burstSize /! cmd.data.getTp.nbits.get)
+      case OutputField(cmd:FringeSparseLoad, "data") => Some(1)
+      case OutputField(cmd:FringeSparseStore, "ack") => Some(1)
+      case _ => None
+    }
+  }
+
   import spade.param._
-  def compVec(n:IR):Option[Int] = /*dbgblk(s"compVec(${dquote(n)})") */{
+  def compVec(n:IR):Option[Int] = dbgblk(s"compVec(${dquote(n)})") {
     n match {
       case OutputField(n:Controller, "done") => Some(1)
       case OutputField(n:Controller, "childDone") => Some(1)
-      case OutputField(n:Controller, "valid") => Some(1)
       case OutputField(n:LoopController, "firstIter") => Some(1)
       case OutputField(n:FringeDenseStore, "ack") => Some(1)
       case OutputField(n:FringeStreamRead, "done") => Some(1)
+      case ConnectedByDRAMCmd(vec) => Some(vec)
       case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferVec
       case n:Controller => None
       case n:Memory => None
@@ -134,14 +164,18 @@ trait AnalysisUtil { self:PIRPass =>
       case n:PrintIf => n.msg.inferVec
       case n:AssertIf => n.msg.inferVec
       case n:ExitIf => n.msg.inferVec
+      case n:AccumAck => Some(1)
       case n@OpDef(_:FixOp | _:FltOp | _:BitOp | _:TextOp | Mux | BitsAsData) => flatReduce(n.inputs.map{ _.inferVec}) { case (a,b) => Math.max(a,b) }
       case n:Shuffle => n.to.T.inferVec
       case n:GlobalOutput => n.in.T.inferVec
       // During staging time GlobalInput might temporarily not connect to GlobalOutput
       case n:GlobalInput => n.in.inferVec
       case InputField(n:Shuffle, "from" | "base") => zipMap(n.base.singleConnected.get.inferVec, n.from.singleConnected.get.inferVec) { case (a,b) => Math.max(a,b) }
-      case n@InputField(_:LocalInAccess, "en" | "done") => n.as[Input[PIRNode]].connected.map { o => o.inferVec }.maxOption.getOrElse(Some(1))
-      case InputField(n:FlatBankedAccess, "done") => Some(1)
+      case InputField(_:Access | _:LocalAccess, "done") => Some(1)
+      case n@InputField(_:RegAccumOp | _:RegAccumFMA, "en") => n.as[Input[PIRNode]].connected.map { o => o.inferVec }.maxOption.getOrElse(Some(1))
+      case InputField(n:TokenAccess, "en") => Some(1)
+      case InputField(n:BufferWrite, "en") => n.inferVec
+      case InputField(n:BufferRead, "en") => n.out.inferVec
       case InputField(n:FlatBankedAccess, field) => Some(n.mem.T.nBanks)
       case InputField(n:Controller, "en" | "parentEn") => Some(1)
       case n:Input[_] if n.isConnected && n.connected.size==1 => n.singleConnected.get.inferVec
@@ -152,7 +186,6 @@ trait AnalysisUtil { self:PIRPass =>
 
   def compType(n:IR):Option[BitType] = /*dbgblk(s"compType(${dquote(n)})") */{
     n match {
-      case OutputField(n:Controller, "valid") => Some(Bool)
       case OutputField(n:Controller, "done") => Some(Bool)
       case OutputField(n:LoopController, "firstIter") => Some(Bool)
       case OutputField(n:Controller, "childDone") => Some(Bool)
@@ -160,6 +193,7 @@ trait AnalysisUtil { self:PIRPass =>
       case n:CounterIter => Some(Fix(true, 32, 0))
       case n:CounterValid => Some(Bool)
       case n:PrintIf => Some(Bool)
+      case n:AccumAck => Some(Bool)
       case n:Shuffle => n.base.inferTp
       case n:TokenRead => Some(Bool)
       case n:TokenWrite => Some(Bool)

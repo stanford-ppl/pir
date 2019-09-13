@@ -26,18 +26,19 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
         emitln(s"last |= ${n.streams.last.qidx("i")};")
       }
       n.lastBit.T.foreach { last =>
+        val ctrler = getCtrler(n)
+        val ctrlerEn = s"$ctrler->Enabled()"
         last.as[BufferWrite].out.T.foreach { send =>
           addEscapeVar(send)
           genCtxInits {
-            emitln(s"AddSend(${nameOf(send)});");
+            emitln(s"$ctrler->AddOutput(${nameOf(send)});");
           }
-          emitIf(s"last") {
+          emitIf(s"last & $ctrlerEn") {
             emitln(s"""${nameOf(send)}->Push(make_token(true));""")
             emitln(s"$file.close();")
           }
         }
       }
-      emitln("Active();");
       if (config.asModule && bus.withLastBit) {
         genCtxInits {
           emitln(s"Expect(1);")
@@ -74,17 +75,18 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
         }
         n.streams.foreach { stream =>
           emitUnVec(stream.T)(s"${stream.T}_vec")
+          val ctrler = getCtrler(n)
+          val ctrlerEn = s"$ctrler->Enabled()"
           stream.T.as[BufferWrite].out.T.foreach { send =>
             addEscapeVar(send)
             genCtxInits {
-              emitln(s"AddSend(${nameOf(send)});");
+              emitln(s"$ctrler->AddOutput(${nameOf(send)});");
             }
-            emitIf("validToken") {
+            emitIf(s"validToken & $ctrlerEn") {
               emitln(s"""${nameOf(send)}->Push(make_token(${stream.T}));""")
             }
           }
         }
-        emitln(s"Active();")
       } {
         emitIf(s"eof = $file.eof()") {
           emitln(s"$file.close();")

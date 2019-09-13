@@ -63,12 +63,13 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
       .append("active", n.active.v)
       .append("state", n.psimState)
       .append("activeRate", n.activeRate) +
-      n.getCtrl.uid.v.fold("") { uid => s"\nuid=[${uid.mkString(",")}]"} +
+      n.getCtrl.uid.v.fold("") { uid => s"\nuid=[${uid.mkString(",")}], par=${n.getCtrl.par.get}"} +
       n.ctrl.get.srcCtx.v.fold("") { sc => s"\n$sc" }
     }
   }
 
   override def color(attr:DotAttr, n:N) = n match {
+    case n:BufferRead if isRateMatchingFIFO(n) => attr.fillcolor("darkorange").style(filled)
     case n:LocalOutAccess if n.nonBlocking => attr.fillcolor("darkorange").style(filled)
     case n:LocalOutAccess => attr.fillcolor(gold).style(filled)
     case n:Memory => attr.fillcolor(chartreuse).style(filled)
@@ -107,7 +108,7 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
     val newAttr = from.src match {
       case from:GlobalOutput if from.vec.v.nonEmpty & isVecLink(from) => attr.setEdge.style(bold)
       case from:GlobalOutput if from.vec.v.nonEmpty & isCtrlLink(from) => attr.setEdge.color(red).style(dashed)
-      case _ =>  attr
+      case _ =>  attr.setEdge
     }
     super.emitEdge(from, to, newAttr)
   }
@@ -169,13 +170,25 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
     //case n:Top => super.color(attr,n)
   //}
   
+  override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
+    from match {
+      case from@OutputField(fromsrc:GlobalOutput, _) if fromsrc.isUnder[ArgFringe] && from.connected.size > 5 => 
+      case from@OutputField(fromsrc:GlobalOutput, _) => super.emitEdge(from,to,attr.setEdge.attr("id",fromsrc.id).attr("label",fromsrc.id))
+      case _ => super.emitEdge(from,to,attr)
+    }
+  }
+  
   override def quote(n:Any) = {
     super.quote(n).foldAt(n.to[GlobalContainer]) { (q, n) =>
       val mem = n.collectDown[Memory]().map { quote(_) }
+      val cmd = n.collectDown[FringeCommand]().map { quote(_) }
       if (mem.nonEmpty) s"${q}\n${mem.mkString(",")}" 
+      else if (cmd.nonEmpty) s"${q}\n${cmd.mkString(",")}"
       else {
-        val scs = n.collectDown[Context]().flatMap { _.getCtrl.srcCtx.v }
-        s"${q}\n${scs.mkString("\n")}"
+        val ctxs = n.collectDown[Context]().map { ctx =>
+          ctx.getCtrl.srcCtx.v.map { sc => s"c${ctx.id}|${sc}" }.getOrElse(s"c${ctx.id}")
+        }
+        s"${q}\n${ctxs.mkString("\n")}"
       }
     }
   }
