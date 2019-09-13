@@ -54,6 +54,7 @@ trait Misc {
   def warn(msg:Any) = info(Console.YELLOW, "warn", msg)
   def warn(predicate:Boolean, s:Any):Unit = if (predicate) warn(s) 
   def err(msg:Any, exception:Boolean=true):Unit = { info(Console.RED, "error", msg); if (exception) throw PIRException(s"$msg") }
+  def bug(msg:Any, exception:Boolean=true):Unit = { info(Console.RED, "bug", msg); if (exception) throw PIRException(s"$msg") }
 
   def ask(question:String) = {
     info(question)

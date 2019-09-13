@@ -108,8 +108,12 @@ trait DependencyAnalyzer extends PIRTransformer {
     ctx.collectDown[Controller]().groupBy { _.ctrl.get }.foreach { case (ctrl, ctrlers) =>
       assert(ctrlers.size==1, s"More than one controller for $ctrl in $ctx. ctrlers=$ctrlers")
     }
-    val nonMemNeighbors = ctx.neighbors.filterNot { n => 
-      n.isInstanceOf[Memory] || n.isInstanceOf[LocalAccess] || n.isInstanceOf[GlobalIO]
+    val girun = compiler.hasRun[GlobalInsertion]
+    val nonMemNeighbors = ctx.neighbors.filterNot { 
+      case n:Memory => true
+      case n:GlobalIO => true
+      case n:LocalAccess => true
+      case n => false
     }
     assert(nonMemNeighbors.isEmpty, 
       s"$ctx has non Memory neighbors after DependencyDuplication = $nonMemNeighbors")

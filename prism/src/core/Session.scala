@@ -67,13 +67,17 @@ trait Session { self:Compiler =>
   var currRun:Runner = _
   def runSession:Boolean = {
     passes.foreach { case (pass, _) => pass.reset }
-    runners.foreach { runner =>
-      if (runner.id < config.startRunId) runner.setSucceed
-      if (runner.id >= config.startRunId && config.endRunId.fold(true) { runner.id < _ }) {
-        currRun = runner
-        runner.run
-      }
+    val error = runners.foldLeft(false) { 
+      case (false,runner) =>
+        if (runner.id < config.startRunId) runner.setSucceed
+        if (runner.id >= config.startRunId && config.endRunId.fold(true) { runner.id < _ }) {
+          currRun = runner
+          runner.run
+        }
+        runner.compileErr
+      case (true,runner) => true
     }
+    if (error) return false
     val failed = runners.filter { _.failed }
     if (failed.nonEmpty) {
       err(s"Failed passes:", false)

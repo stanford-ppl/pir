@@ -11,6 +11,7 @@ trait PrismLocalAlias extends Misc with MappingUtil with ScalaUtil with FileIOUt
 
   type PIRException = prism.exceptions.PIRException
   val PIRException = prism.exceptions.PIRException
+  val CompileError = prism.exceptions.CompileError
 
   type Codegen = prism.codegen.Codegen
   type Printer = prism.codegen.Printer

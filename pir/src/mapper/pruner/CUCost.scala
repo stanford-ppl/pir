@@ -28,7 +28,6 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
     }
   }
 
-
   def scheduleBy(s:Int, v:Int, numOp: => Int):(Int,Int) = /*dbgblk(s"scheduleBy($s, $v, $numOp)") */{
     if (spadeParam.scheduled) {
       val factor = spadeParam.vecNetParam.fold { 1 } { vecNet =>
@@ -64,6 +63,8 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
     if (n.getTp == Bool) n.getVec > spadeParam.wordWidth
     else n.getVec > 1
   }
+
+  def stageCost(op:OpNode) = 1
 
   protected def compCost(x:Any, ct:ClassTag[_]) = {
     switch[AFGCost](x,ct) {
@@ -134,7 +135,7 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
         ctxs.map { _.getCost[StageCost] }.fold(StageCost()) { _ + _ }
       case n:Context =>
         val ops = n.collectDown[OpNode]()
-        StageCost(ops.size)
+        StageCost(ops.map(stageCost).sum)
       case n:CUParam => 
         StageCost(n.numStage)
       case n:Parameter => StageCost(0)
