@@ -21,8 +21,9 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
         dbg(s"Recover $k")
         dbg(s"kcost=$kcost")
         dbg(s"vcost=$vcost")
+        val mem = quoteSrcCtx(k.collectDown[Memory]().head)
         val ks = split(k, kcost, vcost).toSet
-        info(s"Split $k into ${ks.size} CUs $kcost")
+        info(s"Split $k $mem into ${ks.size} CUs $kcost")
         //breakPoint(s"$k")
         newFG(fg, k, ks, vs)
       case x => super.recover(x)
@@ -44,11 +45,19 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
 
     val nodes = k.descendentTree
 
+    if (bankMult > 1) {
+      val banks = mem.banks.get
+      mem.banks.reset
+      mem.banks(banks :+ bankMult)
+      info(s"${mem.totalBanks}")
+    }
+
     val toBanks = nodes.collect { case s:Shuffle => s.to.T }
     val mappings = parts.map { bankids =>
       val mapping = mutable.Map[IR,IR]()
       mapping ++= toBanks.map { to => to -> stage(Const(bankids.toList)).mirrorMetas(to) }
       mapping += (mem -> mirror[Memory](mem).bankids(bankids.toList, reset=true).numPart(numCU)) 
+      val mm = mapping(mem).as[Memory]
       within(pirTop) { mirrorAll(nodes, mapping=mapping) }
     }
     val mks = mappings.map { _(k).as[GlobalContainer] }
@@ -64,9 +73,6 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
       //breakPoint(s"$k, $bankRead")
       mergeReads(k, mem, bankRead, mappings)
     }
-    //mks.foreach { nk =>
-      //insertGlobalOutput(nk)
-    //}
     removeNodes(k.collectDown[TokenRead]())
     free(k)
     //breakPoint(s"$k, $mks")
@@ -156,7 +162,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
 
 trait BankPartitioner extends Logging {
 
-  def splitBanks(accessGroup:ListBuffer[List[Int]], kcost:SRAMCost, vcost:SRAMCost) = {
+  def splitBanks(accessGroup:ListBuffer[List[Int]], kcost:SRAMCost, vcost:SRAMCost):Set[List[Int]] = {
     var sizePerBank = kcost.size /! kcost.bank
     var cuPerBank = sizePerBank /! vcost.size
     var bankPerCU = Math.min(vcost.size / sizePerBank, vcost.bank)
