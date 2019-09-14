@@ -122,8 +122,9 @@ def grep(path, patterns):
     for p in paths:
         with open(p, 'r') as f:
             for line in f:
+                ncline = line.replace(RED,'').replace(NC,'')
                 for pattern in patterns:
-                    if pattern in line:
+                    if pattern in ncline:
                         found[pattern].append(line)
     return found
 

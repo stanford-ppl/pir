@@ -42,9 +42,9 @@ trait RewriteUtil { self: PIRTransformer =>
   RewriteRule[MemRead](s"WrittenByConstData") { reader =>
     val ConstData = MatchRule[MemWrite, Const] { write =>
       write.data.T match {
-        case cn@Const(c) if !write.en.isConnected && write.waitFors.isEmpty => 
+        case cn@Const(c) if !write.en.isConnected && write.waitFors.isEmpty && cn.getVec == reader.getVec => 
           val const = c match {
-            case c:List[_] => assert(c.size == reader.getVec); cn
+            case c:List[_] => assert(c.size == reader.getVec, s"$c.vec=${c.size} $reader.vec=${reader.getVec}"); cn
             case c if reader.getVec > 1 => 
               within(cn.getCtrl, cn.parent.get) { allocConst(List.fill(reader.getVec) { c }).tp(cn.inferTp.get) }
             case c => cn
@@ -260,7 +260,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     if (n.ctx.get.streaming.get) None else {
       val writer = n.inAccess.as[BufferWrite]
       writer.data match {
-        case SC(OutputField(c:Const, "out")) if !writer.en.isConnected =>
+        case SC(OutputField(c:Const, "out")) if !writer.en.isConnected && c.getVec == n.getVec =>
           dbgblk(s"WrittenByConstData($n, $c)") {
             val mc = within(n.parent.get, n.getCtrl) { allocConst(c.value) }
             swapOutput(n.out, mc.out)
