@@ -3,9 +3,9 @@ package mapper
 
 import pir.node._
 import pir.util._
-import prism.graph._
 import spade.param._
 import prism.collection.immutable._
+import prism.graph._
 import scala.collection.mutable
 
 class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner {
@@ -21,52 +21,64 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
         dbg(s"Recover $k")
         dbg(s"kcost=$kcost")
         dbg(s"vcost=$vcost")
+        val mem = quoteSrcCtx(k.collectDown[Memory]().head)
         val ks = split(k, kcost, vcost).toSet
-        info(s"Split $k into ${ks.size} CUs $kcost")
+        info(s"Split $k $mem into ${ks.size} CUs $kcost")
         //breakPoint(s"$k")
         newFG(fg, k, ks, vs)
       case x => super.recover(x)
     }
   }
 
+  def getAccessPattern(mem:Memory) = {
+    mem.accesses.map { access =>
+      access.as[FlatBankedAccess].offset.collect[Shuffle]().flatMap { shuffle =>
+        shuffle.from.T match {
+          case Const(c:List[_]) => Some(c.as[List[Int]])
+          case Const(c:Int) => Some(List(c))
+          case _ => None
+        }
+      }
+    }.flatten.distinct
+  }
+
   def split(k:CUMap.K, kcost:SRAMCost, vcost:SRAMCost):List[GlobalContainer] = dbgblk(s"split($k)"){
     val mem = k.collectDown[Memory]().head
-    val parts = splitBanks(mem.accessGroup.get, kcost, vcost).toList
-    val totalBanks = parts.map { _.size }.sum
-    val bankMult = totalBanks /! kcost.bank
-    val numCU = parts.size
+    val (totalBanks, bankPerCU, numCU, sizePerBank, bankMult) = splitBanks(kcost, vcost)
 
+    if (bankMult > 1) {
+      mem.accesses.foreach { access =>
+        updateAddrCalc(access.as[FlatBankedAccess], bankMult, sizePerBank)
+      }
+      val banks = mem.banks.get
+      mem.banks.reset
+      mem.banks(banks :+ bankMult)
+    }
+
+    val accessGrps = getAccessPattern(mem)
+    val parts = partitionBanks(accessGrps, totalBanks, bankPerCU).toList
     dbg(s"parts:")
     parts.foreach { part =>
       dbg(part.mkString(","))
     }
-    dbg(s"bankMult=$bankMult bankMult=$bankMult totalBanks=$totalBanks")
 
     val nodes = k.descendentTree
-
     val toBanks = nodes.collect { case s:Shuffle => s.to.T }
     val mappings = parts.map { bankids =>
       val mapping = mutable.Map[IR,IR]()
       mapping ++= toBanks.map { to => to -> stage(Const(bankids.toList)).mirrorMetas(to) }
       mapping += (mem -> mirror[Memory](mem).bankids(bankids.toList, reset=true).numPart(numCU)) 
+      val mm = mapping(mem).as[Memory]
       within(pirTop) { mirrorAll(nodes, mapping=mapping) }
     }
     val mks = mappings.map { _(k).as[GlobalContainer] }
-
-    // TODO: update bank address calculation if bankMult is not one
-    if (bankMult > 1) {
-      warn(s"Capacity splitting to $bankMult. TODO: update bank address calculation")
-    }
-    
+   
     // Merge bankReads of multiple partitions
     val bankReads = k.collectDown[FlatBankedRead]()
     bankReads.foreach { bankRead =>
       //breakPoint(s"$k, $bankRead")
       mergeReads(k, mem, bankRead, mappings)
     }
-    //mks.foreach { nk =>
-      //insertGlobalOutput(nk)
-    //}
     removeNodes(k.collectDown[TokenRead]())
     free(k)
     //breakPoint(s"$k, $mks")
@@ -78,6 +90,39 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     case n:BufferRead => n.in.neighbors.toList
     case n:BufferWrite => n.data.neighbors.toList
     case n => visitGlobalIn(n)
+  }
+
+  def updateAddrCalc(access:FlatBankedAccess, bankMult:Int, sizePerBank:Int) = {
+    val ofstShuffle = access.offset.collect[Shuffle]().groupBy { _.getCtrl }
+    val dataShuffles = access.to[FlatBankedWrite].map { access =>
+      access.data.collect[Shuffle]().groupBy { _.getCtrl }
+    }
+    val readShuffles = access.to[FlatBankedRead].map { access =>
+      access.out.collect[Shuffle]().groupBy { _.getCtrl }
+    }
+    ofstShuffle.foreach { case (ctrl, List(ofstShuffle)) =>
+      val bank = ofstShuffle.from.singleConnected.get
+      val offset = ofstShuffle.base.singleConnected.get
+      within(ofstShuffle.parent.get, ofstShuffle.getCtrl) {
+        val bm = allocConst(bankMult, tp=Some(Fix(true,32,0)))
+        val bs = allocConst(sizePerBank, tp=Some(Fix(true,32,0)))
+        val newOfst = stage(OpDef(FixMod).addInput(offset, bs).out)
+        val newBank = stage(OpDef(FixDiv).addInput(offset, bs).out)
+        val newFlatBank = stage(OpDef(FixFMA).addInput(bank, bm, newBank).out)
+        swapConnection(ofstShuffle.base, offset, newOfst)
+        swapConnection(ofstShuffle.from, bank, newFlatBank)
+        dataShuffles.foreach { dataShuffles =>
+          val dataShuffle = assertOne(dataShuffles(ctrl), s"shuffle for $ctrl")
+          swapConnection(dataShuffle.from, bank, newFlatBank)
+        }
+        readShuffles.foreach { readShuffles =>
+          val readShuffle = assertOne(readShuffles(ctrl), s"shuffle for $ctrl")
+          swapConnection(readShuffle.to, readShuffle.to.singleConnected.get, newFlatBank)
+          bufferInput(readShuffle.to)
+          dupDeps(readShuffle.ctx.get, from=Some(ofstShuffle.ctx.get))
+        }
+      }
+    }
   }
 
   def mergeReads(k:CUMap.K, mem:Memory, br:FlatBankedRead, mappings:List[mutable.Map[IR, IR]]) = dbgblk(s"mergeReads($k, $br)") {
@@ -120,18 +165,18 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
                     mshuffle.out
                   }
                   (shuffle.out, toMerge)
-                case out => 
-                  err(s"Read by non Shuffle $out")
-                  // Shuffle eliminated, which means bankAddr was constant and was
-                  // original bankIds. Likely from capacity splitting.
-                  val toMerge = mappings.map { mapping => 
-                    val mmem = mapping(mem).as[Memory]
-                    val mbr = mapping(br).as[FlatBankedRead]
-                    val fromBanks = mmem.bankids.get
-                    val toBanks = mem.bankids.get
-                    stage(Shuffle(0).base(mbr.out).from(allocConst(fromBanks)).to(allocConst(toBanks))).out
-                  }
-                  (read.out, toMerge)
+                //case out => 
+                  //err(s"Read by non Shuffle $out")
+                  //// Shuffle eliminated, which means bankAddr was constant and was
+                  //// original bankIds. Likely from capacity splitting.
+                  //val toMerge = mappings.map { mapping => 
+                    //val mmem = mapping(mem).as[Memory]
+                    //val mbr = mapping(br).as[FlatBankedRead]
+                    //val fromBanks = mmem.bankids.get
+                    //val toBanks = mem.bankids.get
+                    //stage(Shuffle(0).base(mbr.out).from(allocConst(fromBanks)).to(allocConst(toBanks))).out
+                  //}
+                  //(read.out, toMerge)
               }
 
               var red:List[Output[PIRNode]] = toMerge
@@ -149,14 +194,13 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
         }
         dupDeps(ctx, from=None).values.foreach { _.as[PIRNode].ctrl(rctrl,reset=true) }
       }
-      //insertGlobalInput(global)
     }
   }
 }
 
 trait BankPartitioner extends Logging {
 
-  def splitBanks(accessGroup:ListBuffer[List[Int]], kcost:SRAMCost, vcost:SRAMCost) = {
+  def splitBanks(kcost:SRAMCost, vcost:SRAMCost) = {
     var sizePerBank = kcost.size /! kcost.bank
     var cuPerBank = sizePerBank /! vcost.size
     var bankPerCU = Math.min(vcost.size / sizePerBank, vcost.bank)
@@ -173,14 +217,14 @@ trait BankPartitioner extends Logging {
     bankPerCU = Math.min(vcost.size / sizePerBank, vcost.bank)
 
     dbg(s"totalBanks=$totalBanks, numCU=$numCU, bankMult=$bankMult, bankPerCU=$bankPerCU")
-    partitionBanks(accessGroup, totalBanks, bankPerCU)
+    (totalBanks, bankPerCU, numCU, sizePerBank, bankMult)
   }
 
   // Objective: 
   // Partition totalBanks into subgroups such that each group cannot exceed bankPerCU while 
   // 1. minimizing # of groups
   // 2. minimizing # of groups accessed by access bundles
-  def partitionBanks(accessGroup:ListBuffer[List[Int]], totalBanks:Int, bankPerCU:Int):Set[List[Int]] = {
+  def partitionBanks(accessGroup:List[List[Int]], totalBanks:Int, bankPerCU:Int):Set[List[Int]] = {
     // ListBuffer[List[Int]]: List of staticially analyzed access bundle.
     dbg(s"accessGroup:")
     accessGroup.foreach { access =>

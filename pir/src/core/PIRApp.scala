@@ -82,7 +82,6 @@ trait PIRApp extends PIR with Logging {
     addPass(enableDot, new PIRCtxDotGen(s"ctx5.dot")) ==>
     addPass(rewriter) ==>
     addPass(deadCodeEliminator) ==>
-    //addPass(contextAnalyzer) ==>
     addPass(enableDot, new PIRTopDotGen(s"top6.dot")) ==>
     addPass(enableDot, new PIRCtxDotGen(s"ctx6.dot")) ==>
     addPass(globalInsertion) ==>
@@ -91,10 +90,10 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping,progReport) ==>
     addPass(initializer) ==>
     addPass(new ParamHtmlIRPrinter(s"param.html", pirenv.spadeParam)) ==>
-    addPass(enableDot, new PIRGlobalDotGen(s"global7.dot"))
+    addPass(enableDot, new PIRGlobalDotGen(s"global7.dot")) ==>
     addPass(enableDot, new PIRCtxDotGen(s"ctx7.dot")) ==>
     addPass(enableDot, new PIRTopDotGen(s"top7.dot")) ==>
-    addPass(enableDot, new PIRIRPrinter(s"IR7.txt"))
+    addPass(enableDot, new PIRIRPrinter(s"IR7.txt")) ==>
     // ------- Mapping  --------
     addPass(enableMapping, hardPruner) ==>
     addPass(enableMapping, memoryPruner) ==>
@@ -117,10 +116,10 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping,progReport) ==>
     addPass(enableMapping,resReport) ==>
     addPass(runtimeAnalyzer).dependsOn(placerAndRouter) ==>
-    addPass(enableDot, new PIRGlobalDotGen(s"global.dot"))
+    addPass(enableDot, new PIRGlobalDotGen(s"global.dot")) ==>
     addPass(enableDot, new PIRCtxDotGen(s"ctx.dot")) ==>
-    addPass(enableDot, new PIRTopDotGen(s"top.dot"))
-    addPass(enableDot, new PIRIRPrinter(s"IR.txt"))
+    addPass(enableDot, new PIRTopDotGen(s"top.dot")) ==>
+    addPass(enableDot, new PIRIRPrinter(s"IR.txt")) ==>
     // Igraph
     addPass(enableIgraph, igraphGen).dependsOn(runtimeAnalyzer)
     // Plastiroute

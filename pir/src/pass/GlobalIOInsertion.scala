@@ -52,7 +52,7 @@ trait GlobalIOInsertion extends PIRTransformer {
   ):GlobalOutput = dbgblk(s"insertGlobalOutput($global, ${dquote(out)}, ${dquote(ins)})"){
     out.src match {
       case depedFrom:GlobalOutput if depedFrom.isDescendentOf(global) => depedFrom
-      case depedFrom:GlobalOutput => throw PIRException(s"impossible case insertGlobalOutput")
+      case depedFrom:GlobalOutput => bug(s"impossible case insertGlobalOutput")
       case depedFrom =>
         val gout = within(global) { 
           allocate[GlobalOutput]{ _.in.isConnectedTo(out) } { stage(GlobalOutput().in(out)) }

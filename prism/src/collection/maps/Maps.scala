@@ -2,6 +2,7 @@ package prism
 package collection
 
 import scala.collection.Map
+import prism.exceptions._
 
 abstract class MapType[TK:ClassTag,TV:ClassTag] extends Serializable {
   type K = TK
@@ -44,7 +45,7 @@ trait UniMap[K,V] extends MapLike[K,V] {
   type UM <: Map[K, _VV]
 
   val map:UM
-  def apply(n:K):VV = { map.get(n).map(_VVtoVV).getOrElse(throw PIRException(s"$n not found in $this")) }
+  def apply(n:K):VV = { map.get(n).map(_VVtoVV).getOrElse(bug(s"$n not found in $this")) }
   def foreach(lambda:((K,VV)) => Unit):Unit = map.foreach{ case (k,_vv) => lambda(k, _VVtoVV(_vv)) }
   def map[B](lambda:((K,VV)) => B):Iterable[B] = map.map{ case (k,_vv) => lambda(k, _VVtoVV(_vv)) }
   def get(n:K):Option[VV] =  { val m = map; m.get(n).map { _vv => _VVtoVV(_vv) } }

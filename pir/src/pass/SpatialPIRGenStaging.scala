@@ -127,6 +127,10 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
     mem
   }
 
+  def hostIO():Reg = {
+    err(s"Plasticine doesn't support HostIO")
+  }
+
   val argOuts = scala.collection.mutable.ListBuffer[Reg]()
   def argOut() = {
     within(pirTop.argFringe) {

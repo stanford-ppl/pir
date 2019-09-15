@@ -14,8 +14,8 @@ trait Table[C, V, E] extends Serializable {
     val (c,v) = x match {
       case (x1, x2) => (x1.asInstanceOf[C], x2.asInstanceOf[V])
     }
-    if (!values.contains(c)) throw PIRException(s"column $c is not in $columns")
-    if (!values(c).contains(v)) throw PIRException(s"column value $v is not in ${values(c)}")
+    if (!values.contains(c)) bug(s"column $c is not in $columns")
+    if (!values(c).contains(v)) bug(s"column value $v is not in ${values(c)}")
     (c,v)
   }
 

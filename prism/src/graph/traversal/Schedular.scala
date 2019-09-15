@@ -31,7 +31,7 @@ trait Schedular extends Traversal {
     this match {
       case self:HierarchicalTraversal => 
         self.traverseScope(n.asInstanceOf[self.N], zero.asInstanceOf[List[self.N]]).asInstanceOf[List[N]]
-      case _ => throw PIRException(s"cannot scheduleScope(n) on non HierarchicalTraversal $this")
+      case _ => bug(s"cannot scheduleScope(n) on non HierarchicalTraversal $this")
     }
   }
 
@@ -40,7 +40,7 @@ trait Schedular extends Traversal {
     this match {
       case self:TopologicalTraversal => 
         self.traverseScope(ns.asInstanceOf[List[self.N]], zero.asInstanceOf[List[self.N]]).asInstanceOf[List[N]]
-      case _ => throw PIRException(s"cannot scheduleScope(ns) on non TopologicalTraversal $this")
+      case _ => bug(s"cannot scheduleScope(ns) on non TopologicalTraversal $this")
     }
   }
 }

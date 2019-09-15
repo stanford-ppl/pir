@@ -22,13 +22,10 @@ trait ComputePartitioner extends CUPruner {
         val globals = ctxs.map { ctx =>
           within(pirTop) {
             val global = ComputeContainer()
-            val gouts = ctx.depeds().collect { case gout:GlobalOutput => gout }
             swapParent(ctx, global)
-            gouts.foreach { gout => swapParent(gout, global) }
             global
           }
         }
-        //globals.foreach { insertGlobalIO }
         removeNodes(k.descendentTree)
         globals
       case k:Context =>
@@ -72,10 +69,13 @@ trait ComputePartitioner extends CUPruner {
   }
 
   def include(n:PIRNode) = n match {
-    case n:OpNode => true
-    case n:LocalInAccess => true
-    //case n:LocalOutAccess => true // Not include read so they can be duplicated at each partition
-    case n => false
+    case n:LocalOutAccess => false // Not include read so they can be duplicated at each partition
+    case n:Const => false
+    case n:ControlBlock => false
+    case UnderControlBlock(cb) => false
+    //case n:LocalInAccess => true
+    case n:Def => true
+    //case n => true
   }
 
   override protected def compCost(x:Any, ct:ClassTag[_]) = {

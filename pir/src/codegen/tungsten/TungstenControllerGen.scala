@@ -53,7 +53,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       genCtxInits {
         emitln(s"AddCtrler($n);");
         n.to[LoopController].foreach { n =>
-          n.cchain.foreach { ctr =>
+          n.cchain.T.foreach { ctr =>
             emitln(s"$n->AddCounter(${ctr});")
           }
         }

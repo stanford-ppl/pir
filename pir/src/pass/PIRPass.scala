@@ -66,22 +66,30 @@ with BufferAnalyzer
     super.swapConnection(input, from, to)
     to.inferVec
     input.inferVec
-    free(from.src.as[PIRNode])
+    withLive(to.src) {
+      free(from.src.as[PIRNode])
+    }
   }
 
   override def swapOutput[N<:Node[N]](from:Output[N], to:Output[N]) = {
     super.swapOutput(from, to)
-    free(from.src.as[PIRNode])
+    withLive(to.src) {
+      free(from.src.as[PIRNode])
+    }
   }
 
   override def swapInput[N<:Node[N]](node:Node[N], from:Output[N], to:Output[N]):Unit = {
     super.swapInput(node, from, to)
-    free(from.src.as[PIRNode])
+    withLive(to.src) {
+      free(from.src.as[PIRNode])
+    }
   }
 
   override def swapInput[N<:Node[N]](node:Node[N], from:Node[N], to:Output[N]):Unit = {
     super.swapInput(node, from, to)
-    free(from.as[PIRNode])
+    withLive(to.src) {
+      free(from.as[PIRNode])
+    }
   }
 
   override def mirrorN(

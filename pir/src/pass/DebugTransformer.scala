@@ -67,7 +67,7 @@ class DebugTransformer(implicit compiler:PIR) extends PIRTransformer with Buffer
       dst.waitFors.v.foreach { ids =>
         ids.foreach { id =>
           val srcs = barrier.get(id).getOrElse {
-            throw PIRException(s"$dst (${dst.srcCtx.v.getOrElse("No source context")}) watis on barrier $id not exists!")
+            err(s"$dst (${dst.srcCtx.v.getOrElse("No source context")}) watis on barrier $id not exists!")
           }
           srcs.foreach { src =>
             src match {
@@ -100,7 +100,7 @@ class DebugTransformer(implicit compiler:PIR) extends PIRTransformer with Buffer
         case (from:BufferWrite, to:BufferWrite) =>
           to.en(from.en.connected)
         case (from, to) =>
-          throw PIRException(s"TODO: insert barrier between ${dquote(from)} ${dquote(to)}")
+          todo(s"insert barrier between ${dquote(from)} ${dquote(to)}")
       }
     }
   }

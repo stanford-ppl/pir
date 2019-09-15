@@ -1,4 +1,5 @@
 package prism
+import prism.exceptions._
 
 case class Runner(session:Session, id:Int) extends Serializable with RunnerStatus {
   var _pass:Option[Pass] = None
@@ -53,9 +54,13 @@ case class Runner(session:Session, id:Int) extends Serializable with RunnerStatu
       Try(pass.run) match {
         case Success(_) if isRunning => setSucceed
         case Success(_) => 
+        case Failure(e:CompileError) => 
+          setError
+        case Failure(e:PIRException) => 
+          setFailed
         case Failure(e:Throwable) => 
           setFailed
-          err(s"$name throw $e", exception=false)
+          bug(s"$name throw $e", exception=false)
           pass.handle(e)
       }
       info(s"Finished ${cstr(Console.CYAN, name)} in ${toc("ms")}ms")
@@ -77,6 +82,7 @@ trait RunnerStatus {
   def initPending = { initStatus = Pending; init }
   def setSucceed = status = Succeeded
   def setFailed = status = Failed
+  def setError = status = Error
   def setRunning = status = Running
 
   def shouldRun = status match {
@@ -90,6 +96,7 @@ trait RunnerStatus {
   def hasRun = status match {
     case Succeeded => true
     case Failed => true
+    case Error => true
     case _ => false
   }
 
@@ -103,6 +110,8 @@ trait RunnerStatus {
     case _ => false
   }
 
+  def compileErr = status == Error
+
   def isPending = status == Pending
 
   def isRunning = status == Running
@@ -113,6 +122,7 @@ trait RunnerStatus {
   case object Pending extends Status
   case object Succeeded extends Status
   case object Failed extends Status
+  case object Error extends Status
 }
 
 case class SessionRestoreFailure(msg:String) extends PIRException

@@ -15,7 +15,7 @@ trait HtmlIRPrinter extends IRPrinter with HtmlCodegen {
               block
             } catch {
               case e:Exception =>
-                err(s"Exception $e during IRPrinter on. Stack trace printed in log", exception=false)
+                err[Unit](s"Exception $e during IRPrinter on. Stack trace printed in log", exception=false)
                 text(s"Exception $e during IRPrinter on. Stack trace printed in log")
                 flush
                 dbg(s"Exception:$e")

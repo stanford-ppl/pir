@@ -46,11 +46,11 @@ trait CUPruner extends ConstrainPruner with CUCostUtil with PIRTransformer with 
     super.fail(f)
     f match {
       case e@InvalidFactorGraph(fg, k:CUMap.K) =>
-        err(s"Constrain failed on $k", exception=false)
-        err(s"$k costs:", exception=false)
+        err[Unit](s"Constrain failed on $k", exception=false)
+        err[Unit](s"$k costs:", exception=false)
         val kc = getCosts(k)
         kc.foreach { kc =>
-          err(s"${kc}:", exception=false)
+          err[Unit](s"${kc}:", exception=false)
         }
       case _ =>
     }

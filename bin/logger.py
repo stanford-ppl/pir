@@ -337,7 +337,7 @@ Parser(
 )
 Parser(
     'err', 
-    ["error", "fail", "exception", "Exception", "fault", "terminated by signal"],
+    ["[bug]", "error", "fail", "exception", "Exception", "fault", "terminated by signal"],
     lambda lines,conf: lines[0],
     logs=['runp2p', 'runhybrid', 'maketst', 'runproute', 'gentst']
 )

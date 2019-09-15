@@ -3,6 +3,7 @@ package collection1
 
 import scala.collection.Map
 import scala.collection.Set
+import prism.exceptions._
 
 abstract class MapType[TK:ClassTag,TV:ClassTag,TVV:ClassTag] extends Serializable {
   type K = TK

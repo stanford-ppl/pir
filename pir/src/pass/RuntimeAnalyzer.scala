@@ -121,7 +121,7 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
           n.in.T.getCount
         case n:GlobalOutput =>
           n.in.T.getCount
-        case n => throw PIRException(s"Don't know how to compute count of $n")
+        case n => bug(s"Don't know how to compute count of $n")
       }
     }
   }
@@ -188,7 +188,7 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
             }
           case (n, done) => compScale(done) 
         }
-      case n => throw PIRException(s"Don't know how to compute scale of $n")
+      case n => bug(s"Don't know how to compute scale of $n")
     }
   }
 

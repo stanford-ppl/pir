@@ -21,21 +21,13 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTransformer with Dependen
     val noBankedAccess = accesses.forall { !_.isInstanceOf[BankedAccess] }
     val singleWriter = mem.inAccesses.size == 1
     val singleFIFOReader = !mem.isFIFO | mem.outAccesses.size == 1
-    //val noReadEnable = mem.outAccesses.forall { !_.en.isConnected } 
-    //dbg(s"noReadEnable=$noReadEnable")
     var toBuffer = true
     toBuffer &= noBankedAccess
-    // If read access is branch dependent, the ctx cannot block on the input for its activation
-    //toBuffer &= noReadEnable
     toBuffer &= singleWriter && singleFIFOReader
     toBuffer &= !mem.nonBlocking.get
-    //toBuffer &= mem.depth.get <= 16 // put large FIFO in PMU TODO: not working yet
-    //if (noBankedAccess && !noReadEnable) {
-      //val access = mem.outAccesses.filter { _.en.isConnected }
-      //throw PIRException(s"$mem (${mem.name.v}, ${mem.srcCtx.v}) has read enables at \n${access.map { a =>
-        //s"$a (${a.srcCtx.v.getOrElse("No context")}) ${a.en.connected.map { dquote}.mkString(",")}"
-      //}.mkString("\n")}")
-    //}
+    if (mem.isFIFO && !singleWriter) {
+      todo(s"Do not support multiple writers to FIFO on Plasticine yet")
+    }
     if (toBuffer) {
       bufferLowering(mem)
     } else {
@@ -172,19 +164,6 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTransformer with Dependen
     }
   }
 
-  def annotateAccessPattern(access:BankedAccess) = {
-    val mem = access.mem.T
-    access.bank.T match {
-      case List(Const(c)) =>
-        dbg(s"$mem add pattern ${c}")
-        c match {
-          case c:List[_] => mem.accessGroup.get += c.as[List[Int]]
-          case c:Int => mem.accessGroup.get += List(c)
-        }
-      case _ =>
-    }
-  }
-
   def lowerBankedAccesses(mem:Memory, memCU:MemoryContainer, accesses:Set[BankedAccess]) = dbgblk(s"lowerBankedAccesses($mem, $memCU, $accesses)") {
     val headAccess = accesses.head
     val mergeCtrl = headAccess.getCtrl
@@ -213,7 +192,6 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTransformer with Dependen
         within(addrCtx, addrCtx.getCtrl) {
           flattenBankAddr(access)
           lowerLUTAccess(mem, access)
-          annotateAccessPattern(access)
           val bank = access.bank.connected
           var ofsOut = access.offset.singleConnected.get
           access.en.singleConnected.foreach { en =>
