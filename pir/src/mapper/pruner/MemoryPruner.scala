@@ -32,14 +32,14 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
 
   def getAccessPattern(mem:Memory) = {
     mem.accesses.map { access =>
-      access.as[FlatBankedAccess].offset.collect[Shuffle]().map { shuffle =>
+      access.as[FlatBankedAccess].offset.collect[Shuffle]().flatMap { shuffle =>
         shuffle.from.T match {
-          case Const(c:List[_]) => c.as[List[Int]]
-          case Const(c:Int) => List(c)
-          case _ => Nil
+          case Const(c:List[_]) => Some(c.as[List[Int]])
+          case Const(c:Int) => Some(List(c))
+          case _ => None
         }
-      }.flatten
-    }.filter { _.nonEmpty }
+      }
+    }.flatten.distinct
   }
 
   def split(k:CUMap.K, kcost:SRAMCost, vcost:SRAMCost):List[GlobalContainer] = dbgblk(s"split($k)"){
