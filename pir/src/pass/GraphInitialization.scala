@@ -174,7 +174,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     // Spaital IR:
     // accum.write (reduce(mux(dummy, input, initOrInput), accum.read))
     // Mux can be eliminated if input == initOrInput
-    n.to[InAccess].foreach { writer =>
+    n.to[MemWrite].foreach { writer =>
       if (writer.isInnerReduceOp.get && writer.mem.isInnerAccum.get) {
         dbgblk(s"Transforming Reduce Op $writer") {
           var reduceOps = writer.accum(visitFunc = { case n:PIRNode => 
@@ -207,8 +207,19 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
             val firstIter = writer.getCtrl.ctrler.get.to[LoopController].map { _ .firstIter }
             stage(RegAccumOp(reduceOps).in(input).en(writer.en.connected).first(firstIter).init(init))
           }
-          disconnect(writer, reduceOps.last)
-          swapOutput(reduceOps.last.as[DefNode[PIRNode]].output.get, accumOp.out)
+          val redOp = reduceOps.last.as[DefNode[PIRNode]]
+          if (redOp.output.get.neighbors.collect { case w:MemWrite => true }.size == 2) {
+            // 1. 
+            // val acc1 = redOp(input, acc1) // isInnerAccum
+            // val acc2 = redOp(input, acc1)
+            disconnect(writer, redOp)
+            swapOutput(reduceOps.last.as[DefNode[PIRNode]].output.get, accumOp.out)
+          } else {
+            // 1. 
+            // val acc1 = redOp(input, acc1) // isInnerAccum
+            // val ... = acc1.read
+            swapConnection(writer.data, redOp.output.get, accumOp.out)
+          }
         }
       }
     }
