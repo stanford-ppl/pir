@@ -10,7 +10,7 @@ import scala.collection.mutable
 trait GarbageCollector { self:PIRTransformer =>
 
   // Visit until a live node
-  private def prefix(n:PIRNode) = isLive(n).fold(false) { l => l }
+  private def prefix(n:PIRNode) = mustLive(n)
 
   private def visitIn(n:PIRNode):List[PIRNode] = n match {
     case n@UnderControlBlock(cb) if depDupHasRun => visitGlobalIn(cb)
@@ -30,7 +30,7 @@ trait GarbageCollector { self:PIRTransformer =>
     (deps ++ parents).distinct
   }
 
-  private def accumulate(prev:Set[PIRNode], n:PIRNode) = if (!prev.contains(n) && (isLive(n) != Some(true))) (prev + n) else prev
+  private def accumulate(prev:Set[PIRNode], n:PIRNode) = if (!prev.contains(n) && !mustLive(n)) (prev + n) else prev
 
   private lazy val collector = PrefixTraversal.get[PIRNode,Set[PIRNode]](prefix _, visitFunc _, accumulate _, Set.empty[PIRNode], None)
 
@@ -55,14 +55,23 @@ trait GarbageCollector { self:PIRTransformer =>
     removeNodes(dead)
   }
 
-  private def mustLive(n:PIRNode) = n.descendentTree.exists { n => isLive(n) == Some(true) }
+  private def mustLive(n:PIRNode) = n.descendentTree.exists { n => isLive(n) == Some(true) } || liveNodes.contains(n)
 
-  private def mustDead(n:PIRNode):Boolean = !mustLive(n) && visitOut(n).isEmpty
+  private def mustDead(n:PIRNode):Boolean = !mustLive(n) && visitOut(n).isEmpty && !liveNodes.contains(n)
 
   def free(input:Input[PIRNode]):Unit = dbgblk(s"free(${dquote(input)})") {
     val ns = input.neighbors
     input.disconnect
     free(ns)
+  }
+
+  private var liveNodes:Set[Any] = Set.empty
+  def withLive[T](live:Any*)(block: => T):T = {
+    val prev = liveNodes
+    liveNodes = live.toSet
+    val res = block
+    liveNodes = prev
+    res
   }
 
   def isLive(n:PIRNode):Option[Boolean] = n match {
