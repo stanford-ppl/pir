@@ -139,7 +139,7 @@ trait TypeUtil { self:PIRPass =>
           n.mem.T match {
             case mem:FIFO =>
               n.getCtrl.schedule match {
-                case Streaming => Some(n.mem.banks.get.head)
+                case Streaming => Some(n.mem.T.banks.get.head)
                 case _ => Some(n.getCtrl.par.get)
               }
             case mem:Reg => n.data.inferVec
@@ -149,14 +149,14 @@ trait TypeUtil { self:PIRPass =>
         }
       }
       case WithMem(n:MemRead, mem:Reg) => 
-        val b = n.mem.banks.get.head
+        val b = n.mem.T.banks.get.head
         Some(b)
       //case WithMem(n:MemRead, mem:FIFO) => Some(n.getCtrl.par.get) // doesn't work for stream in
       //out under stream controller
-      case WithMem(n:MemRead, mem:FIFO) => n.broadcast.v.map { _.size }.orElse(Some(n.mem.banks.get.head))
+      case WithMem(n:MemRead, mem:FIFO) => n.broadcast.v.map { _.size }.orElse(Some(n.mem.T.banks.get.head))
       case n:BankedWrite => zipMap(n.data.inferVec, n.offset.inferVec) { case (a,b) => Math.max(a,b) }
       case n:BankedRead => n.offset.inferVec // Before lowering
-      case n:FlatBankedAccess => Some(n.mem.nBanks)
+      case n:FlatBankedAccess => Some(n.mem.T.nBanks)
       case n:BufferWrite => n.data.inferVec
       case n:BufferRead => n.in.inferVec
       case n:RegAccumOp => Some(1)

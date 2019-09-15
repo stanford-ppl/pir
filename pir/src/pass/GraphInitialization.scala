@@ -175,7 +175,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     // accum.write (reduce(mux(dummy, input, initOrInput), accum.read))
     // Mux can be eliminated if input == initOrInput
     n.to[MemWrite].foreach { writer =>
-      if (writer.isInnerReduceOp.get && writer.mem.isInnerAccum.get) {
+      if (writer.isInnerReduceOp.get && writer.mem.T.isInnerAccum.get) {
         dbgblk(s"Transforming Reduce Op $writer") {
           var reduceOps = writer.accum(visitFunc = { case n:PIRNode => 
               visitGlobalIn(n).filter { _.isInnerReduceOp.get }

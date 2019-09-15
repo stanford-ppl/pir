@@ -26,6 +26,7 @@ trait RewriteUtil { self: PIRTransformer =>
         lambda(x).map { case (o1, o2) =>
           if (o1 == o) {
             dbg(s"$name rewrite ${dquote(o1)} to ${dquote(o2)}")
+            swapOutput(o1.as, o2.as)
             o2
           } else o1
         }.getOrElse(o)
@@ -60,7 +61,7 @@ trait RewriteUtil { self: PIRTransformer =>
     }
   }
 
-  RewriteRule[OpDef](s"EvalOp") { case n@OpDef(op) =>
+  RewriteRule[OpDef](s"ConstProp") { case n@OpDef(op) =>
     val ins = n.inputs.map { 
       _.connected match {
         case List(OutputField(Const(c), "out")) => Literal(c)
@@ -100,8 +101,36 @@ trait RewriteUtil { self: PIRTransformer =>
     case _ => None
   }
 
-  RewriteRule[OpDef](s"ShiftAdd") { 
-    case n@OpDef(FixAdd) =>
+  private def andMask(c:Int) = {
+    val posMask = c.log2 - 1 
+    posMask + Int.MinValue
+  }
+  RewriteRule[OpDef](s"StrengthReduction") { 
+    case n@OpDef(FixDiv) => // Div pow of 2 to shift
+      n.inputs(1) match {
+        case SC(OutputField(cn@Const(c:List[_]), _)) if c.as[List[Int]].forall { c => c.isPowOf2 & (c > 0) } =>
+          val samt = within(n.parent.get, n.getCtrl) { allocConst(c.as[List[Int]].map { _.log2 }, Some(cn.getTp)) }
+          val shift = stage(OpDef(FixSRA).addInput(n.inputs(0).singleConnected.get, samt))
+          Some(n.out, shift.out)
+        case SC(OutputField(cn@Const(c:Int), _)) if c.isPowOf2 & (c > 0) => 
+          val samt = within(n.parent.get, n.getCtrl) { allocConst(c.log2, Some(cn.getTp)) }
+          val shift = stage(OpDef(FixSRA).addInput(n.inputs(0).singleConnected.get, samt))
+          Some(n.out, shift.out)
+        case _ => None
+      }
+    //case n@OpDef(FixMod) => // mod pow of 2 to and //TODO: fix this
+      //n.inputs(1) match {
+        //case SC(OutputField(cn@Const(c:List[_]), _)) if c.as[List[Int]].forall { c => c.isPowOf2 & (c > 0) } =>
+          //val mask = within(n.parent.get, n.getCtrl) { allocConst(c.as[List[Int]].map { andMask }, Some(cn.getTp)) }
+          //val and = stage(OpDef(FixAnd).addInput(n.inputs(0).singleConnected.get, mask))
+          //Some(n.out, and.out)
+        //case SC(OutputField(cn@Const(c:Int), _)) if c.isPowOf2 & (c > 0) => 
+          //val mask = within(n.parent.get, n.getCtrl) { allocConst(andMask(c), Some(cn.getTp)) }
+          //val and = stage(OpDef(FixAnd).addInput(n.inputs(0).singleConnected.get, mask))
+          //Some(n.out, and.out)
+        //case _ => None
+      //}
+    case n@OpDef(FixAdd) => // ShiftAdd to FMA
       val ConstShift = MatchRule[OpDef, (Output[_],Any)] { case n@OpDef(FixSLA) =>
         val (const, nonConst) = n.inputs.map { _.singleConnected.get }.partition {
           case OutputField(c:Const, _) => true

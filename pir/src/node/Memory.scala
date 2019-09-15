@@ -33,7 +33,6 @@ trait MemoryNode extends PIRNode {
 abstract class Memory(implicit env:Env) extends MemoryNode with DefNode[PIRNode] {
 
   val nonBlocking = Metadata[Boolean]("nonBlocking", default=false)
-  val accessGroup = Metadata[ListBuffer[List[Int]]]("accessGroup", default=ListBuffer.empty[List[Int]])
   /*  ------- Fields -------- */
   val in = new InputField[List[Access]]("in")
   val out = new OutputField[List[Access]]("out")
@@ -195,7 +194,7 @@ trait MemoryUtil extends CollectorImplicit {
   implicit class MemOp[M<:Memory](n:M) {
     def inAccesses = n.collect[InAccess](visitGlobalIn _)
     def outAccesses = n.collect[OutAccess](visitGlobalOut _)
-    def accesses = inAccesses ++ outAccesses
+    def accesses:List[Access] = inAccesses ++ outAccesses
 
     def isFIFO = n match {
       case n:FIFO => true

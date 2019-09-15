@@ -189,11 +189,15 @@ trait ScalaUtilFunc {
   implicit class LongOp(i:Long) {
     // Round up division
     def /! (d:Long) = (i + d - 1) / d
+    def isPowOf2 = (i != 0) && ((i & (i - 1)) == 0)
+    def log2 = (math.log(i)/math.log(2)).toLong
   }
 
   implicit class IntOp(i:Int) {
     // Round up division
     def /! (d:Int) = (i + d - 1) / d
+    def isPowOf2 = (i != 0) && ((i & (i - 1)) == 0)
+    def log2 = (math.log(i)/math.log(2)).toInt
   }
 
   implicit class NumOp[N:Numeric](i:N) {
