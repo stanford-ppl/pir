@@ -68,7 +68,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def runPsim = option[Boolean]("run-psim") && genPsim
   def loadPsim = getOption[String]("load-psim")
   def enableTrace = genPsim && option[Boolean]("trace")
-  def psimHome = getOption[String]("psim-home").getOrElse(throw PIRException(s"psim-home is not set"))
+  def psimHome = getOption[String]("psim-home").getOrElse(err(s"psim-home is not set"))
   def psimOut = getOption[String]("psim-out").getOrElse { buildPath(appDir, s"plastisim") }
   def psimConfigName = "psim.conf"
   def psimConfigPath = buildPath(psimOut, psimConfigName)
@@ -85,7 +85,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("run-proute", default=false, info="Run Plastiroute") 
   register[String]("module-prefix", info="Prefix to top module path")
   register[String]("module-name", info="Name for top-level module")
-  def prouteHome = getOption[String]("proute-home").getOrElse(throw PIRException(s"proute-home is not set"))
+  def prouteHome = getOption[String]("proute-home").getOrElse(err(s"proute-home is not set"))
   def genProute = genPsim || genTungsten
   def runproute = option[Boolean]("run-proute") || runPsim || runTst 
   def proutePlaceName = "final.place"
@@ -109,7 +109,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def genTungsten = enableCodegen && option[Boolean]("tungsten")
   def runTst = option[Boolean]("run-tst")
   def tstOut = buildPath(appDir, "tungsten")
-  def tstHome = getOption[String]("tungsten-home").getOrElse(throw PIRException(s"tungsten-home is not set"))
+  def tstHome = getOption[String]("tungsten-home").getOrElse(err(s"tungsten-home is not set"))
   def tstLog = buildPath(appDir, "runtst.log")
   def enableSimDebug = option[Boolean]("debug-tst")
 

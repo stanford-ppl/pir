@@ -22,7 +22,7 @@ trait IRPrinter extends Pass with DFSTopDownTopologicalTraversal with Codegen {
         block
       } catch {
         case e:Exception =>
-          err(s"Exception $e during IRPrinter on. Stack trace printed in log", exception=false)
+          err[Unit](s"Exception $e during IRPrinter on. Stack trace printed in log", exception=false)
           emitln(s"Exception $e during IRPrinter on. Stack trace printed in log")
           flush
           dbg(s"Exception:$e")

@@ -1,4 +1,5 @@
 package prism
+import prism.exceptions._
 
 case class Runner(session:Session, id:Int) extends Serializable with RunnerStatus {
   var _pass:Option[Pass] = None
@@ -53,9 +54,10 @@ case class Runner(session:Session, id:Int) extends Serializable with RunnerStatu
       Try(pass.run) match {
         case Success(_) if isRunning => setSucceed
         case Success(_) => 
-        case Failure(CompileError(msg)) => 
+        case Failure(e:CompileError) => 
           setError
-          err(msg, exception=false)
+        case Failure(e:PIRException) => 
+          setFailed
         case Failure(e:Throwable) => 
           setFailed
           bug(s"$name throw $e", exception=false)

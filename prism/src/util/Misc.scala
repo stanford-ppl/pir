@@ -2,6 +2,7 @@ package prism
 package util
 
 import sys.process._
+import prism.exceptions._
 
 trait Misc {
   def tic(msg:String):Unit = {
@@ -53,9 +54,10 @@ trait Misc {
   def infor(msg:String) = emit(s"[pir] ${msg}\r")
   def warn(msg:Any) = info(Console.YELLOW, "warn", msg)
   def warn(predicate:Boolean, s:Any):Unit = if (predicate) warn(s) 
-  def err(msg:Any, exception:Boolean=true):Unit = { info(Console.RED, "error", msg); if (exception) throw PIRException(s"$msg") }
-  def bug(msg:Any, exception:Boolean=true):Unit = { info(Console.RED, "bug", msg); if (exception) throw PIRException(s"$msg") }
-
+  def err[T](msg:Any, exception:Boolean=true):T = { info(Console.RED, "error", msg); if (exception) throw CompileError(s"$msg") else ().as[T] }
+  def bug[T](msg:Any, exception:Boolean=true):T = { info(Console.RED, "bug", msg); if (exception) throw PIRException(s"$msg") else ().as[T] }
+  def todo[T](msg:Any, exception:Boolean=true):T = { info(Console.RED, "error", "TODO: " + msg); if (exception) throw TODOException(s"$msg") else ().as[T] }
+ 
   def ask(question:String) = {
     info(question)
     scala.io.StdIn.readLine()
@@ -151,7 +153,7 @@ trait Misc {
     )
     logFile.foreach { _.close }
 
-    if (exitCode != 0) err(s"failed $command", false)
+    if (exitCode != 0) err[Unit](s"failed $command", false)
     exitCode
   } 
 

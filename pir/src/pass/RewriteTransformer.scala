@@ -162,7 +162,7 @@ trait RewriteUtil { self: PIRTransformer =>
                   case base => base
                 }
               }
-            case from => throw PIRException(s"from=$from")
+            case from => bug(s"from=$from")
           }
         }
         val value = to match {

@@ -188,7 +188,7 @@ trait Ops extends Enumeration {
       case (x:Long, y:Long) => x / y
       case (x:Float, y:Float) => x / y
       case (x:Double, y:Double) => x / y
-      case _ => throw PIRException(s"Don't know how to compute div for $x and $y")
+      case _ => bug(s"Don't know how to compute div for $x and $y")
     }
   }
 

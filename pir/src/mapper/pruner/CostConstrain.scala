@@ -45,7 +45,7 @@ trait CostUtil extends Logging {
       kc.prefix != vc.prefix
     case (kc:SetCost[_,_], vc:SetCost[_,_]) =>
       kc.set.exists { k => !vc.set.contains(k) }
-    case _ => throw PIRException(s"Don't know how to compare $kc with $vc")
+    case _ => bug(s"Don't know how to compare $kc with $vc")
   }
 
 }

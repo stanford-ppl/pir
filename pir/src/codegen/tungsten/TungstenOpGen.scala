@@ -33,7 +33,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       def reduceOp(a:Any, b:Any) = op match {
         case List(op:OpDef) => 
           quoteOp(op.op, n.getTp, List(a.toString,b.toString), List(n.getTp, n.getTp), quoteSrcCtx(n))
-        case op => throw PIRException(s"Unsupported reduce ops =$op")
+        case op => bug(s"Unsupported reduce ops =$op")
       }
       val in = n.in.T
       emitIf(s"${n.en.qref}") {
@@ -246,7 +246,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       case GenericToText            => s"to_string($a)"
       //case CharArrayToText        =>
       //case OneHotMux              =>
-      case op                       => throw PIRException(s"TODO: unsupported op $op")
+      case op                       => bug(s"TODO: unsupported op $op")
     }
   }
 

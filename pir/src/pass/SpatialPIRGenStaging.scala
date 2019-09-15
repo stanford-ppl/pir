@@ -128,7 +128,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
   }
 
   def hostIO():Reg = {
-    throw CompileError(s"Plasticine doesn't support HostIO")
+    err(s"Plasticine doesn't support HostIO")
   }
 
   val argOuts = scala.collection.mutable.ListBuffer[Reg]()

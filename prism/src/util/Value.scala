@@ -24,7 +24,7 @@ object Value {
 
     def - (v:Value[A]) = { 
       v match {
-        case Infinite => throw PIRException(s"Subtract by Infinite")
+        case Infinite => bug(s"Subtract by Infinite")
         case v => t.zipMap(v) { (t,v) => num.minus(t,v) }
       }
     }

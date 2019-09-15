@@ -66,7 +66,7 @@ trait FieldNode[N<:Node[N]] extends Node[N] { self:N =>
           assertOne(nodes, s"$self.$this.T=Node[_]")
       }
       t.to[T].getOrElse {
-        throw PIRException(s"$self.$this=$t cannot be evaluated to ${Tct}")
+        bug(s"$self.$this=$t cannot be evaluated to ${Tct}")
       }
     }
     def node:Node[N] forSome { type N <:Node[N] } = n

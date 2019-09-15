@@ -159,23 +159,23 @@ trait ScalaUtilFunc {
         constructor.newInstance(args.map(_.asInstanceOf[Object]):_*).asInstanceOf[T]
       } catch {
         case e:java.lang.IllegalArgumentException =>
-          err(s"Error during newInstance of node $cl", exception=false)
+          err[Unit](s"Error during newInstance of node $cl", exception=false)
           val expected = constructor.getParameterTypes()
           val got = args.map(_.getClass)
-          err(s"Expected (${expected.size}):", exception=false)
+          err[Unit](s"Expected (${expected.size}):", exception=false)
           expected.foreach { e =>
-            err(s"$e", exception=false)
+            err[Unit](s"$e", exception=false)
           }
-          err(s"Got (${got.size}):", exception=false)
+          err[Unit](s"Got (${got.size}):", exception=false)
           got.foreach { e =>
-            err(s"$e", exception=false)
+            err[Unit](s"$e", exception=false)
           }
           throw e
         case e:java.lang.reflect.InvocationTargetException =>
-          err(s"InvocationTargetException during newInstance of node $this", exception=false)
-          err(s"args=$args", exception=false)
-          err(s"Cause:", exception=false)
-          err(s"${e.getCause}", exception=false)
+          err[Unit](s"InvocationTargetException during newInstance of node $this", exception=false)
+          err[Unit](s"args=$args", exception=false)
+          err[Unit](s"Cause:", exception=false)
+          err[Unit](s"${e.getCause}", exception=false)
           throw e
         case e:Throwable => throw e
       }
@@ -203,7 +203,7 @@ trait ScalaUtilFunc {
       case (i:Long,d:Long) => (i + d - 1) / d
       case (i:Double,d:Double) => (i / d).ceil
       case (i:Float,d:Float) => (i / d).ceil
-      case (_,_) => throw PIRException(s"Don't know how to do roundup div")
+      case (_,_) => bug(s"Don't know how to do roundup div")
     }).as[N]
 
     def log2:N = i match {

@@ -81,7 +81,7 @@ trait MemoryAnalyzer { self:PIRTransformer =>
     filter:T => Boolean = (n:T) => true
   )(newNode: => T):T = {
     val ct = implicitly[ClassTag[T]]
-    val container = stackTop[PIRParent].getOrElse(throw PIRException(s"allocate[$ct] outside PIRParent env")).as[PIRNode]
+    val container = stackTop[PIRParent].getOrElse(bug(s"allocate[$ct] outside PIRParent env")).as[PIRNode]
     (container, classTag[T]) match {
       case (container:Top, ct) if ct == classTag[Const] => newNode // allocation is too expensive performance-wise, just get a new one
       case (container, ct) if ct == classTag[Const] => 

@@ -57,18 +57,16 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   }
 
   override def selectFrontier(unvisited:List[N]) = {
-    throw PIRException(s"Loop in tungsten codegen. Unvisited ${unvisited}")
+    bug(s"Loop in tungsten codegen. Unvisited ${unvisited}")
   }
 
-  def varOf(n:PIRNode):(String, String) = {
-    throw PIRException(s"Don't know varOf($n)")
-  }
+  def varOf(n:PIRNode):(String, String) = bug(s"Don't know varOf($n)")
   def nameOf(n:PIRNode) = varOf(n)._2
   def tpOf(n:PIRNode) = varOf(n)._1
 
 
   def quoteRef(n:Any):String = n match {
-    case n:Input[_] => quoteRef(n.singleConnected.getOrElse(throw PIRException(s"Don't know how to quoteRef for ${dquote(n)}")))
+    case n:Input[_] => quoteRef(n.singleConnected.getOrElse(bug(s"Don't know how to quoteRef for ${dquote(n)}")))
     case n:Output[_] => quoteRef(n.src)
     //case n:PIRNode => if (n.getVec > 1) s"${n}[i]" else s"${n}"
     case n => s"$n"
@@ -103,7 +101,7 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
       case "float" if n.getVec == 1 => "TT_FLOAT"
       case "float" if n.getVec > 1 => "TT_FLOATVEC"
       case "bool" if n.getVec == 1 => "TT_BOOL"
-      case _ => throw PIRException(s"Unsupported token type $n")
+      case _ => bug(s"Unsupported token type $n")
     }
   }
 

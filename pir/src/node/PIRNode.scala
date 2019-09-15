@@ -99,7 +99,7 @@ case class ControlTree(schedule:CtrlSchedule)(implicit env:Env) extends EnvNode[
     if (this == that) 0
     else if (this.isAncestorOf(that)) 1
     else if (that.isAncestorOf(this)) -1
-    else throw PIRException(s"Cannot compare $this with $that")
+    else bug(s"Cannot compare $this with $that")
   }
 
   def isLeaf = children.isEmpty

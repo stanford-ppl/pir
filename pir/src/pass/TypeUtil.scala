@@ -47,10 +47,10 @@ trait TypeUtil { self:PIRPass =>
   implicit class NodeRuntimeOp[N<:IR](n:N) {
     def vecMeta:MetadataLike[Int] = n.getMeta[Int]("vec")
     def inferVec:Option[Int] = n.getMeta[Int]("vec").orElseUpdate { compVec(n) }
-    def getVec:Int = n.inferVec.getOrElse(throw PIRException(s"Don't know how to infer vec of ${dquote(n)}"))
+    def getVec:Int = n.inferVec.getOrElse(bug(s"Don't know how to infer vec of ${dquote(n)}"))
     def setVec(v:Int) = n.getMeta[Int]("vec").apply(v)
     def inferTp:Option[BitType] = n.getMeta[BitType]("tp").orElseUpdate { compType(n) }
-    def getTp:BitType = n.inferTp.getOrElse(throw PIRException(s"Don't know how to infer type of ${dquote(n)}"))
+    def getTp:BitType = n.inferTp.getOrElse(bug(s"Don't know how to infer type of ${dquote(n)}"))
     def setTp(v:BitType) = n.getMeta[BitType]("tp").apply(v)
     def setTp(v:Option[BitType]) = n.getMeta[BitType]("tp").update(v)
   }

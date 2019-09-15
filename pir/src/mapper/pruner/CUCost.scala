@@ -163,7 +163,7 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
       case n:Parameter => OpCost(Set.empty)
 
     } getOrElse {
-      throw PIRException(s"Don't know how to compute $ct of $x")
+      bug(s"Don't know how to compute $ct of $x")
     }
   }
 

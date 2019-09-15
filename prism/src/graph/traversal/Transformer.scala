@@ -242,7 +242,7 @@ trait Transformer extends Logging {
 
   def getEnv = this match {
     case env:BuildEnvironment => env
-    case _ => throw PIRException(s"Cannot find env")
+    case _ => bug(s"Cannot find env")
   }
 
   implicit class ProductOp[T<:ND with Product](x:T) {
