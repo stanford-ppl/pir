@@ -114,25 +114,23 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
     }
 
-    // TODO: add enable to cmd issuer and returned ack instead
-    n.to[FringeDenseStore].foreach { n =>
-      // Transfer write enable on store valid and store data to valid
-      val vwrite = n.valid.T.as[MemRead].mem.T.inAccesses.head.as[MemWrite]
-      val dwrite = n.data.T.as[MemRead].mem.T.inAccesses.head.as[MemWrite]
-      within(vwrite.parent.get, vwrite.getCtrl) {
-        val ctrl = vwrite.getCtrl
-        val ctrlEns = ctrl.ancestorTree.view.flatMap { c =>
-          c.ctrler.v.view.flatMap { ctrler =>
-            ctrler.en.T.collect { case v:CounterValid => v.out }
-          }
-        }.toSet[Output[PIRNode]]
-        val vdata = vwrite.data.singleConnected.get
-        val vs = ctrlEns + vdata
-        val v = vs.reduce[Output[PIRNode]]{ case (v1,v2) =>
-          stage(OpDef(And).addInput(v1,v2)).out
+    // Handle disabled load store from unaligned parallelization
+    n.to[FringeCommand].foreach { n =>
+      val reads = n.collectIn[MemRead]()
+      val writes = n.collectOut[MemWrite]()
+      (reads ++ writes).foreach { access =>
+        val setters = access match {
+          case read:MemRead => read.mem.T.inAccesses
+          case write:MemWrite => write.mem.T.outAccesses
         }
-        vwrite.data.disconnect
-        vwrite.data(v)
+        setters.foreach { setter => 
+          val ctrlEns = access.getCtrl.ancestorTree.view.flatMap { c =>
+            c.ctrler.v.view.flatMap { ctrler =>
+              ctrler.en.T.collect { case v:CounterValid => v.out }
+            }
+          }.toSet[Output[PIRNode]]
+          setter.en(ctrlEns)
+        }
       }
     }
 
