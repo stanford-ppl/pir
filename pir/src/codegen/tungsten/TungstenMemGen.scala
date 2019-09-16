@@ -54,16 +54,8 @@ trait TungstenMemGen extends TungstenCtxGen {
               s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
             }
           }
-          //genCtxComputeBegin {
-            //emitIf(s"$name->Valid()") {
-              //emitVec(n) { i =>
-                //s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
-              //}
-            //}
-          //}
           genCtxComputeEnd {
-            val ctrlerEn = s"$ctrler->Enabled()"
-            val cond = if (n.isFIFO) List(ctrlerEn, n.done.qref, n.en.qany) else List(n.done.qref)
+            val cond = if (n.isFIFO) List(n.done.qref, n.en.qany) else List(n.done.qref)
             emitIf(cond.mkString(" & ")) {
               emitln(s"$name->Pop();")
             }
@@ -108,7 +100,7 @@ trait TungstenMemGen extends TungstenCtxGen {
             }
           }
         }
-        val cond = if (n.isFIFO) List(ctrlerEn, n.done.qref, n.en.qany) else List(n.done.qref)
+        val cond = if (n.isFIFO) List(n.done.qref, n.en.qany) else List(n.done.qref)
         emitIf(cond.mkString(" & ")) {
           emitln(s"Token data = make_token(${n.qref});")
           if (n.en.getVec > 1) {
@@ -122,31 +114,6 @@ trait TungstenMemGen extends TungstenCtxGen {
           }
         }
       }
-      //genCtxComputeEnd {
-        //val ctrlerEn = s"$ctrler->Enabled()"
-        //emitEn(n.en)
-        //emitIfElse(s"$ctrlerEn") {
-          //emitAssign(n) { i => 
-            //n match {
-              //case n:BufferWrite => s"${n.en.qidx(i)} ? ${n.data.qidx(i)} : ${n.qidx(i)}" 
-              //case n:TokenWrite => s"true"
-            //}
-          //}
-        //} {
-          //val outs = n.out.T.collect { case out:LocalOutAccess if out.ctx.get == ctx => out }
-          //assertOneOrLess(outs, s"written LocalOutAccess").foreach { out =>
-            //genCtxComputeBegin {
-              //emitAssign(n) { i => out.qidx(i) }
-            //}
-          //}
-        //}
-        //emitIf(ctrlerEn + " & " + n.done.qref + " & " + n.en.qany) {
-          //if (withPipe) emitln(s"$name->Push(make_token(${n.qref}));")
-          //else n.out.T.foreach { send =>
-            //emitln(s"${nameOf(send)}->Push(make_token(${n.qref}));")
-          //}
-        //}
-      //}
 
     case n:FIFO =>
       genTopMember(n, Seq(n.qstr))
@@ -261,7 +228,11 @@ trait TungstenMemGen extends TungstenCtxGen {
   } 
 
   def emitEn(en:Input[PIRNode]):Unit = {
-    emitVec(en) { i => 
+    declare(en)
+    genCtxComputeBegin {
+      emitAssign(en) { i => "false" }
+    }
+    emitAssign(en) { i =>
       var ens = en.connected.map { _.qidx(i) }
       ens.distinct.reduceOption[String]{ _ + " & " + _ }.getOrElse("true")
     }

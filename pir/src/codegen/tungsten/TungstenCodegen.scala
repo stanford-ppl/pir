@@ -56,6 +56,10 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     case n => super.visitFunc(n)
   }
 
+  //override def visitNode(n:N) = dbgblk(s"visitNode($n)"){
+    //super.visitNode(n)
+  //}
+
   override def selectFrontier(unvisited:List[N]) = {
     bug(s"Loop in tungsten codegen. Unvisited ${unvisited}")
   }

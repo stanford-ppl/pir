@@ -43,6 +43,7 @@ trait TungstenCtxGen extends TungstenTopGen {
         getBuffer("fields").foreach { _.reset }
         getBuffer("inits").foreach { _.reset }
         getBuffer("computes").foreach { _.reset }
+        getBuffer("computes-begin").foreach { _.reset }
         getBuffer("computes-mid").foreach { _.reset }
         getBuffer("computes-end").foreach { _.reset }
         enterFile(dirName, s"${quote(n)}.h", false) {
