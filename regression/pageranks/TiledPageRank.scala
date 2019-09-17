@@ -62,14 +62,14 @@ class TiledPageRank_4 extends TiledPageRank(iters=2)(ipls=1, ip=1)
             neighbors load edges(start::start+len)
             val farNeighbors = FIFO[Int](maxEdge)
             val farFIFO = FIFO[Bit](maxEdge)
-            val farBigFIFO = FIFO[Bit](maxEdge) // Map these big FIFOs to PMU
-            val neighborBigFIFO = FIFO[Int](maxEdge) // Map these big FIFOs to PMU
+            //val farBigFIFO = FIFO[Bit](maxEdge) // Map this big FIFO to PMU
+            val nearIdxFIFO = FIFO[Int](maxEdge)
             Foreach(0 until len par ip) { k => 
               val neighbor = neighbors.deq
+              nearIdxFIFO.enq(neighbor - i)
               val far = (neighbor < i) | (neighbor >= (i+ts))
               farFIFO.enq(far)
-              farBigFIFO.enq(far)
-              neighborBigFIFO.enq(neighbor)
+              //farBigFIFO.enq(far)
               farNeighbors.enq(neighbor, far)
             }
             val farCount = Reg[Int]
@@ -82,10 +82,10 @@ class TiledPageRank_4 extends TiledPageRank(iters=2)(ipls=1, ip=1)
             farNeighborLens gather lens(farNeighbors, farCount.value)
             val rankSum = Reg[T]
             Reduce(rankSum)(0 until len) { k =>
-              val neighbor = neighborBigFIFO.deq
-              val far = farBigFIFO.deq
+              val neighbor = neighbors.deq
+              val far = farFIFO.deq
               val near = !far
-              val nearIdx = neighbor - i
+              val nearIdx = nearIdxFIFO.deq
               val nearNeighborRank = prRTile.read(Seq(nearIdx), Set(near))
               val nearNeighborLen = lenTile.read(Seq(nearIdx), Set(near))
               val neighborRank = mux(far, farNeighborRanks.deq(far), nearNeighborRank)
