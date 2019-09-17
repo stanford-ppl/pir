@@ -38,7 +38,7 @@ class SpadeConfig(compiler:Compiler) extends prism.Config(compiler) {
   register[Int]("pcu-cfifo", info="Number of scalar fifo in pcu")
   register[Int]("pcu-stage", default=6, info="Number of stages in pmu")
   register[Int]("pmu-stage", default=6, info="Number of stages in pmu")
-  register[Int]("dag-stage", default=6, info="Number of stages in pmu")
+  register[Int]("dag-stage", default=15, info="Number of stages in pmu")
   register[Int]("pmu-vfifo", info="Number of vector fifo in pmu")
   register[Int]("pmu-sfifo", info="Number of scalar fifo in pmu")
   register[Int]("pmu-cfifo", info="Number of scalar fifo in pmu")

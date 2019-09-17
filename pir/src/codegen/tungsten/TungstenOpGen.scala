@@ -106,6 +106,19 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       }
       emitVec(n) { i => "true" }
 
+    case n:AssertIf =>
+      emitIf(n.en.qref) {
+        emitBlock(s"for (int i = 0; i < ${n.cond.getVec}; i++)") {
+          emitIf("! " + n.cond.qidx(Some("i"))) {
+            n.msg.T.foreach { msg =>
+              emitln(s"cout << ${msg.qidx(Some("i"))} << endl;")
+              emitln(s"assert(false);")
+            }
+          }
+        }
+      }
+      emitVec(n) { i => "true" }
+
     case n => super.emitNode(n)
   }
 

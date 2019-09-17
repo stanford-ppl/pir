@@ -159,13 +159,15 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       argOut(write).name(s"${n}_ack")
     }
 
-    if (config.enableSimDebug) {
-      n.to[PrintIf].foreach { n =>
+    n match {
+      case n@(_:PrintIf | _:AssertIf | _:ExitIf) =>
         n.tp.reset
         n.tp := Bool
-        val write = within(n.parent.get, n.getCtrl) { stage(MemWrite().data(n.out)) }
-        argOut(write)
-      }
+        if (config.enableSimDebug) {
+          val write = within(n.parent.get, n.getCtrl) { stage(MemWrite().data(n.as[Def].out)) }
+          argOut(write)
+        }
+      case _ =>
     }
     
     // Convert reduction operation

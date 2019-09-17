@@ -79,6 +79,7 @@ trait GarbageCollector { self:PIRTransformer =>
     case n:HostWrite => Some(true)
     case n:TokenRead => Some(true)
     case n:AssertIf => Some(true)
+    case n:PrintIf => Some(true)
     case n:ExitIf => Some(true)
     case n:FringeStreamRead => Some(true)
     case n:HostInController => Some(true)

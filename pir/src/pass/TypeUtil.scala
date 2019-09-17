@@ -162,8 +162,8 @@ trait TypeUtil { self:PIRPass =>
       case n:RegAccumOp => Some(1)
       case n:RegAccumFMA => Some(1)
       case n:PrintIf => n.msg.inferVec
-      case n:AssertIf => n.msg.inferVec
-      case n:ExitIf => n.msg.inferVec
+      case n:AssertIf => n.cond.inferVec
+      case n:ExitIf => n.cond.inferVec
       case n:AccumAck => Some(1)
       case n@OpDef(_:FixOp | _:FltOp | _:BitOp | _:TextOp | Mux | BitsAsData) => flatReduce(n.inputs.map{ _.inferVec}) { case (a,b) => Math.max(a,b) }
       case n:Shuffle => n.to.T.inferVec

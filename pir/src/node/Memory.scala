@@ -99,7 +99,7 @@ case class PrintIf()(implicit env:Env) extends Def {
 case class AssertIf()(implicit env:Env) extends Def {
   val en = new InputField[List[PIRNode]]("en")
   val cond = new InputField[List[PIRNode]]("cond")
-  val msg = new InputField[PIRNode]("mgs")
+  val msg = new InputField[Option[PIRNode]]("msg")
 }
 case class ExitIf()(implicit env:Env) extends Def {
   val en = new InputField[List[PIRNode]]("en")

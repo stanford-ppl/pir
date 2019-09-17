@@ -158,11 +158,11 @@ case class DramAGParam(
     FIFOParam("word",count=4,depth=16)
   ),
   numCounters:Int=16,
-  numStage:Int=6,
+  numStage:Int=15,
   ops:Set[Opcode]=noFltOps,
   numReg:Int=16,
   numSin:Int=4,
-  numSout:Int=4,
+  numSout:Int=5,
   numVin:Int=4,
   numVout:Int=4,
 ) extends CUParam {
