@@ -48,26 +48,26 @@ class NaivePageRank_4 extends NaivePageRank(iters=2)(ipls=1, ip=1)
     Accel { 
       Sequential.Foreach(iters by 1) { iter =>
         Foreach(0 until argN.value by ts par opN) { i =>
-          val prTile = SRAM[T](ts)
-          val lenTile = SRAM[Int](ts)
-          val ofstTile = SRAM[Int](ts)
+          val prTile = FIFO[T](ts)
+          val lenTile = FIFO[Int](ts)
+          val ofstTile = FIFO[Int](ts)
           ofstTile load ofsts(i :: i + ts par ipls)
           lenTile load lens(i :: i + ts par ipls)
           Foreach(ts by 1 par opts) { j =>
-            val start = ofstTile(j)
-            val len = lenTile(j)
-            val neighbors = SRAM[Int](maxEdge)
+            val start = ofstTile.deq
+            val len = lenTile.deq
+            val neighbors = FIFO[Int](maxEdge)
             neighbors load edges(start::start+len)
-            val neighborRanks = SRAM[T](maxEdge)
-            neighborRanks gather pageranks(neighbors par ipls, len)
-            val neighborLens = SRAM[Int](maxEdge)
-            neighborLens gather lens(neighbors par ipls, len)
+            val neighborRanks = FIFO[T](maxEdge)
+            neighborRanks gather pageranks(neighbors, len)
+            val neighborLens = FIFO[Int](maxEdge)
+            neighborLens gather lens(neighbors, len)
             val rankSum = Reg[T]
             Reduce(rankSum)(0 until len par ip) { k =>
-              val nrank = mux(iter===0, argIR.value, neighborRanks(k))
-              nrank / neighborLens(k).to[T]
+              val nrank = mux(iter===0, argIR.value, neighborRanks.deq)
+              nrank / neighborLens.deq.to[T]
             } { _ + _ }
-            prTile(j) = rankSum.value * damp + ((1-damp).to[T] / argN.value.to[T])
+            prTile.enq(rankSum.value * damp + ((1-damp).to[T] / argN.value.to[T]))
           }
           pageranks(i::i+ts par ipls) store prTile
         }
