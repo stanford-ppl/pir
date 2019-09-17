@@ -126,9 +126,10 @@ using   namespace std;
   }
 
   private val members = mutable.ListBuffer[Any]()
-  def emitNewMember(tp:String, name:Any) = {
+  def emitNewMember(tp:String, name:Any, args:Any*) = {
     genCtxFields {
-      emitln(s"""$tp* $name = new $tp("$name");""")
+      val fullargs = name.qstr +: args
+      emitln(s"""$tp* $name = new $tp(${fullargs.mkString(",")});""")
     }
     genCtxInits {
       members += name

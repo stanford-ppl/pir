@@ -78,7 +78,17 @@ trait TungstenMemGen extends TungstenCtxGen {
       val (tp, name) = varOf(n)
       val ctx = n.ctx.get
       val withPipe = ctx.collectDown[OpNode]().nonEmpty
-      if (withPipe) emitNewMember(tp, name)
+      if (withPipe) {
+        val data = n match {
+          case n:BufferWrite => n.data.T
+          case n:TokenWrite => n.done.T
+        }
+        val pipeDepth = data match {
+          case _:FlatBankedRead | _:StreamCommand | _:DRAMCommand => 1
+          case _ => numStagesOf(n.ctx.get)
+        }
+        emitNewMember(tp, name, pipeDepth)
+      }
       val ctrler = getCtrler(n)
       n.out.T.foreach { send =>
         if (!send.isDescendentOf(ctx)) addEscapeVar(send)
@@ -89,7 +99,7 @@ trait TungstenMemGen extends TungstenCtxGen {
         }
       }
       declare(n)
-      genCtxComputeEnd {
+      genCtxComputeEnd { // Data of write can be controller.done. So must evaluate data after controller is evaluated
         val ctrlerEn = s"$ctrler->Enabled()"
         emitIf(s"$ctrlerEn") {
           emitEn(n.en)
@@ -276,15 +286,7 @@ trait TungstenMemGen extends TungstenCtxGen {
     case n:TokenRead =>
       (s"FIFO<Token, ${n.getDepth}>", s"fifo_$n")
     case n:LocalInAccess =>
-      val data = n match {
-        case n:BufferWrite => n.data.T
-        case n:TokenWrite => n.done.T
-      }
-      val pipeDepth = data match {
-        case data:FlatBankedRead => 1
-        case _ => numStagesOf(n.ctx.get)
-      }
-      (s"ValPipeline<Token, $pipeDepth>", s"pipe_$n")
+      (s"ValReadyPipeline<Token>", s"pipe_$n")
     case n:FIFO =>
       (s"FIFO<Token, ${n.depth.get}>", s"$n")
     case n:SRAM =>
