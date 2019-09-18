@@ -46,9 +46,7 @@ trait TungstenMemGen extends TungstenCtxGen {
             emitln(s"${ctrler}->AddInput(${nameOf(n)});")
           }
           emitEn(n.en)
-          if (n.en.isConnected) {
-            emitln(s"$name->SetReadEn(${n.en.qref});")
-          }
+          emitln(s"$name->SetReadEn(${n.en.qref});")
           emitIf(s"$name->Valid()") {
             emitVec(n) { i =>
               s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
@@ -252,6 +250,18 @@ trait TungstenMemGen extends TungstenCtxGen {
     }
     emitAssign(en) { i =>
       var ens = en.connected.map { _.qidx(i) }
+      // TODO: handle this before codegen. Make lane valid an output of LoopController
+      val isFIFO = en.src match {
+        case src:LocalAccess => src.isFIFO
+        case src:Access => src.mem.T.isFIFO
+      }
+      if (isFIFO) {
+        getCtrler(en.src).to[LoopController].foreach { ctrler =>
+          if (ctrler.getCtrl.isLeaf) {
+            ens +:= s"laneValids[${i.getOrElse(0)}]"
+          }
+        }
+      }
       ens.distinct.reduceOption[String]{ _ + " & " + _ }.getOrElse("true")
     }
   }

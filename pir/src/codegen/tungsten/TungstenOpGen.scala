@@ -37,6 +37,10 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       }
       val in = n.in.T
       emitIf(s"${n.en.qref}") {
+        val firstIter = n.first.singleConnected.map { _.qidx("i") }.getOrElse("true")
+        emitIf(s"${firstIter}") {
+          emitln(s"$n = 0;")
+        }
         emitBlock(s"for (int i = 0; i < ${in.getVec}; i++)") {
           // If firstIter is not connected, the reduction controller is a fully unrolled Unit
           // Controller
@@ -46,7 +50,6 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
               case Some(init) => init.qidx("i")
               case None => in.qidx("i")
             }
-            val firstIter = n.first.singleConnected.map { _.qidx("i") }.getOrElse("true")
             emitln(s"$n = ($firstIter && i == 0) ? $initOrInput : ${reduceOp(n, in.qidx("i"))};")
           }
         }
