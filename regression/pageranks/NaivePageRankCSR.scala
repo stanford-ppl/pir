@@ -46,7 +46,7 @@ class NaivePageRankCSR_4 extends NaivePageRankCSR(iters=2)(ipls=1, ip=1)
     Accel { 
       Sequential.Foreach(iters by 1) { iter =>
         Foreach(0 until argN.value by ts par opN) { i =>
-          val prTile = FIFO[T](ts)
+          val prTile = SRAM[T](ts)
           val ofstTile = SRAM[Int](rts)
           ofstTile load ofsts(i :: i + rts par ipls)
           Foreach(ts by 1 par opts) { j =>
@@ -71,7 +71,7 @@ class NaivePageRankCSR_4 extends NaivePageRankCSR(iters=2)(ipls=1, ip=1)
               val nrank = mux(iter===0, argIR.value, neighborRanks.deq)
               nrank / neighborLen.to[T]
             } { _ + _ }
-            prTile.enq(rankSum.value * damp + ((1-damp).to[T] / argN.value.to[T]))
+            prTile(j) = rankSum.value * damp + ((1-damp).to[T] / argN.value.to[T])
           }
           pageranks(i::i+ts par ipls) store prTile
         }

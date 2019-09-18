@@ -26,7 +26,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTransformer with Dependen
     toBuffer &= singleWriter && singleFIFOReader
     toBuffer &= !mem.nonBlocking.get
     if (mem.isFIFO && !singleWriter) {
-      todo(s"Do not support multiple writers to FIFO on Plasticine yet")
+      todo(s"Do not support multiple writers to FIFO on Plasticine yet ${quoteSrcCtx(mem)}")
     }
     if (toBuffer) {
       bufferLowering(mem)
