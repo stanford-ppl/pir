@@ -107,7 +107,7 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
   override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
     val newAttr = from.src match {
       case from:GlobalOutput if from.vec.v.nonEmpty & isVecLink(from) => attr.setEdge.style(bold)
-      case from:GlobalOutput if from.vec.v.nonEmpty & isCtrlLink(from) => attr.setEdge.color(red).style(dashed)
+      case from:GlobalOutput if from.vec.v.nonEmpty & isCtrlLink(from) => attr.setEdge.style(dashed)
       case _ =>  attr.setEdge
     }
     super.emitEdge(from, to, newAttr)
@@ -171,25 +171,51 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
   //}
   
   override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
-    from match {
-      case from@OutputField(fromsrc:GlobalOutput, _) if fromsrc.isUnder[ArgFringe] && from.connected.size > 5 => 
-      case from@OutputField(fromsrc:GlobalOutput, _) => super.emitEdge(from,to,attr.setEdge.attr("id",fromsrc.id).attr("label",fromsrc.id))
+    (from, to) match {
+      case (from@OutputField(fromsrc:GlobalOutput, _), to) if fromsrc.isUnder[ArgFringe] && from.connected.size > 5 => 
+      case (from@OutputField(fromsrc:GlobalOutput, _), to@InputField(tosrc:GlobalInput, _)) => 
+        var tooltip = s"${fromsrc.in.neighbors.mkString(",")}\n${tosrc.out.neighbors.mkString(",")}"
+        fromsrc.count.v.foreach { c => 
+          c match {
+            case Finite(c) => tooltip += s"\ncount=$c"
+            case Infinite => tooltip += s"\ncount=$c"
+            case Unknown =>
+          }
+        }
+        tooltip += s"\ntp=${fromsrc.getTp}\nvec=${fromsrc.getVec}"
+        super.emitEdge(from,to,attr.setEdge.attr("id",tosrc.id).attr("label",fromsrc.id).attr("labeltooltip", tooltip))
       case _ => super.emitEdge(from,to,attr)
     }
   }
-  
-  override def quote(n:Any) = {
-    super.quote(n).foldAt(n.to[GlobalContainer]) { (q, n) =>
+
+  override def setAttrs(n:N):DotAttr = n match {
+    case n:GlobalContainer =>
       val mem = n.collectDown[Memory]().map { quote(_) }
       val cmd = n.collectDown[FringeCommand]().map { quote(_) }
-      if (mem.nonEmpty) s"${q}\n${mem.mkString(",")}" 
-      else if (cmd.nonEmpty) s"${q}\n${cmd.mkString(",")}"
-      else {
-        val ctxs = n.collectDown[Context]().map { ctx =>
-          ctx.getCtrl.srcCtx.v.map { sc => s"c${ctx.id}|${sc}" }.getOrElse(s"c${ctx.id}")
-        }
-        s"${q}\n${ctxs.mkString("\n")}"
+      var tooltip = s"$n"
+      if (mem.nonEmpty) tooltip += s"\n${mem.mkString(",")}" 
+      if (cmd.nonEmpty) tooltip += s"\n${cmd.mkString(",")}"
+      val ctxs = n.collectDown[Context]().map { ctx =>
+        ctx.getCtrl.srcCtx.v.map { sc => s"${ctx}|${sc}" }.getOrElse(s"${ctx}")
       }
+      tooltip += s"\n${ctxs.mkString("\n")}"
+      super.setAttrs(n).attr("tooltip", tooltip)
+    case n => super.setAttrs(n)
+  }
+  
+  override def quote(n:Any) = {
+    super.quote(n).foldAt(n.to[GlobalContainer]) { (q, n) => 
+      val tp = n match {
+        case n:ArgFringe => "A"
+        case n:ComputeContainer => "C"
+        case n:MemoryContainer => "M"
+        case n:DRAMFringe => "D"
+      }
+      var l = s"${tp}${n.id}"
+      n.collectDown[Memory]().foreach { mem =>
+        mem.name.v.foreach { name => l += s"\n$name" }
+      }
+      l
     }
   }
 

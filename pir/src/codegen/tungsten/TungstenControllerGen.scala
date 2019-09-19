@@ -18,7 +18,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
 
   override def emitNode(n:N) = n match {
     case n:ControlBlock => 
-      val ctrler = getCtrler(n).get
+      val ctrler = getCtrler(n)
       emitIf(s"${ctrler}->Enabled()") {
         if (n.getCtrl.isLeaf) {
           emitln("Active();")
