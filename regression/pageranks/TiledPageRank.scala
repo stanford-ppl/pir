@@ -62,31 +62,26 @@ class TiledPageRank_4 extends TiledPageRank(iters=2)(ipls=1, ip=1)
             neighbors load edges(start::start+len)
             val farNeighbors = FIFO[Int](maxEdge)
             val farFIFO = FIFO[Bit](maxEdge)
+            val farSRAM = SRAM[Bit](maxEdge)
             val nearIdxFIFO = FIFO[Int](maxEdge)
             Foreach(0 until len par ip) { k => 
               val neighbor = neighbors.deq
               nearIdxFIFO.enq(neighbor - i)
               val far = (neighbor < i) | (neighbor >= (i+ts))
               farFIFO.enq(far)
+              farSRAM(k) = far
               farNeighbors.enq(neighbor, far)
             }
             val farCount = Reg[Int]
             Reduce(farCount)(0 until len par ip) { k => 
-              mux(farFIFO.deq, 1, 0)
+              mux(farSRAM(k), 1, 0)
             } { _ + _ }
             val farNeighborRanks = FIFO[T](maxEdge)
+            farNeighborRanks gather pageranks(farNeighbors, farCount.value)
             val farNeighborLens = FIFO[Int](maxEdge)
-            Foreach(0 until farCount.value) { k =>
-              val farNeighbor = farNeighbors.deq
-              farNeighborRanks.enq(farNeighbor.to[T] + 1.to[T])
-              farNeighborLens.enq(k+1)
-            }
-            //val farNeighborRanks = FIFO[T](maxEdge)
-            //farNeighborRanks gather pageranks(farNeighbors, farCount.value)
-            //val farNeighborLens = FIFO[Int](maxEdge)
-            //farNeighborLens gather lens(farNeighbors, farCount.value)
-            val rankSum = Reg[T]
-            Reduce(rankSum)(0 until len) { k =>
+            farNeighborLens gather lens(farNeighbors, farCount.value)
+            val inRanks = SRAM[T](maxEdge)
+            Foreach(0 until len) { k =>
               val neighbor = neighbors.deq
               val far = farFIFO.deq
               val near = !far
@@ -96,7 +91,11 @@ class TiledPageRank_4 extends TiledPageRank(iters=2)(ipls=1, ip=1)
               val neighborRank = mux(far, farNeighborRanks.deq(far), nearNeighborRank)
               val neighborLen = mux(far, farNeighborLens.deq(far), nearNeighborLen).to[T]
               val nrank = mux(iter===0, argIR.value, neighborRank)
-              nrank / neighborLen
+              inRanks(k) = nrank / neighborLen
+            }
+            val rankSum = Reg[T]
+            Reduce(rankSum)(0 until len) { k =>
+              inRanks(k)
             } { _ + _ }
             prTile(j) = rankSum.value * damp + ((1-damp).to[T] / argN.value.to[T])
           }

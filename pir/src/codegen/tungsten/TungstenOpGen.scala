@@ -39,21 +39,22 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       emitIf(s"${n.en.qref}") {
         val firstIter = n.first.singleConnected.map { _.qidx("i") }.getOrElse("true")
         emitIf(s"${firstIter}") {
-          val init =  op match {
-            case List(OpDef(FixAdd | FltAdd)) => Some(0)
-            case List(OpDef(FixMul | FltMul)) => Some(1)
-            case _ => None
-          }
-          init.fold {
-            emitln(s"""ASSERT(false, "Reduction of 0 elements with unknown identity value ${quoteSrcCtx(n)}");""")
-          } { init =>
-            emitln(s"$n = $init;")
-          }
+          //val init =  op match {
+            //case List(OpDef(FixAdd | FltAdd)) => Some(0)
+            //case List(OpDef(FixMul | FltMul)) => Some(1)
+            //case _ => None
+          //}
+          //init.fold {
+            //emitln(s"""ASSERT(false, "Reduction of 0 elements with unknown identity value ${quoteSrcCtx(n)}");""")
+          //} { init =>
+            emitln(s"$n = 0;")
+            //emitln(s"$n = $init;")
+          //}
         }
         emitBlock(s"for (int i = 0; i < ${in.getVec}; i++)") {
           // If firstIter is not connected, the reduction controller is a fully unrolled Unit
           // Controller
-          val laneValid = getCtrler(n).to[LoopController].fold("true") { _.laneValid.qidx(Some("i")) }
+          val laneValid = getCtrler(n).flatMap { _.to[LoopController] }.fold("true") { _.laneValid.qidx(Some("i")) }
           emitIf(laneValid) {
             val initOrInput = n.init.singleConnected match {
               case Some(init) => init.qidx("i")
@@ -73,7 +74,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
         emitBlock(s"for (int i = 0; i < ${vec}; i++)") {
           // If firstIter is not connected, the reduction controller is a fully unrolled Unit
           // Controller
-          val laneValid = getCtrler(n).to[LoopController].fold("true") { _.laneValid.qidx(Some("i")) }
+          val laneValid = getCtrler(n).flatMap { _.to[LoopController] }.fold("true") { _.laneValid.qidx(Some("i")) }
           emitIf(laneValid) {
             emitln(s"${n.qtp} mul = ${n.in1.T.qidx("i")} * ${n.in2.T.qidx("i")};")
             val initOrInput = n.init.singleConnected match {
@@ -101,9 +102,10 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
     case n:OpDef => emitVec(n) { i => 
       var ins = n.inputs.map { _.qidx(i) }
       var intps = n.inputs.map { _.getTp}
+      val laneValid = getCtrler(n).flatMap { _.to[LoopController] }.fold("true") { _.laneValid.qidx(i) }
       n.op match {
         case FixDiv | FltDiv =>
-          ins = ins :+ i.map { i => s"laneValids[$i]" }.getOrElse("true")
+          ins = ins :+ laneValid
           intps = intps :+ Bool
         case _ =>
       }
