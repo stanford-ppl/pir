@@ -83,11 +83,11 @@ trait RewriteUtil { self: PIRTransformer =>
   }
 
   RewriteRule[RegAccumOp](s"RegAccumFMA") { 
-    case n@RegAccumOp(List(OpDef(FixAdd | FltAdd))) =>
+    case n@RegAccumOp(List(OpDef(FixAdd | FltAdd)), identity) =>
       n.in.T match {
         case mul@OpDef(FixMul | FltMul) =>
           val accum = within(n.parent.get, n.ctrl.get) {
-            stage(RegAccumFMA()
+            stage(RegAccumFMA(identity)
               .in1(mul.inputs(0).connected)
               .in2(mul.inputs(1).connected)
               .en(n.en.connected)

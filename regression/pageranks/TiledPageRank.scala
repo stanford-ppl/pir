@@ -72,7 +72,7 @@ class TiledPageRank_4 extends TiledPageRank(iters=2)(ipls=1, ip=1)
               farSRAM(k) = far
               farNeighbors.enq(neighbor, far)
             }
-            val farCount = Reg[Int]
+            val farCount = Reg[Int](0)
             Reduce(farCount)(0 until len par ip) { k => 
               mux(farSRAM(k), 1, 0)
             } { _ + _ }

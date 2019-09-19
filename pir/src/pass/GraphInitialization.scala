@@ -216,17 +216,17 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
               reduceOps = reduceOps.tail
               val init = op.inputs(2).singleConnected.get
               val input = op.inputs(1).singleConnected.get
-              // init = reduce(input, init)
               val mapping = mirrorAll(reduceOps, mapping=mutable.Map[IR,IR](init->reader.out, op.out->input))
               (Some(mapping(reduceOps.last)), input)
             case op@OpDef(_) =>
               (None, op.inputs(0).singleConnected.get)
           }
+          val identity = writer.mem.T.inits.v.getOrElse(bug(s"No identity value for reduction ${quoteSrcCtx(writer)}"))
           dbg(s"init=${dquote(init)}")
           dbg(s"input=${dquote(input)}")
           val accumOp = within(readerParent, readerCtrl) {
             val firstIter = writer.getCtrl.ctrler.get.to[LoopController].map { _ .firstIter }
-            stage(RegAccumOp(reduceOps).in(input).en(writer.en.connected).first(firstIter).init(init))
+            stage(RegAccumOp(reduceOps, identity).in(input).en(writer.en.connected).first(firstIter).init(init))
           }
           val redOp = reduceOps.last.as[DefNode[PIRNode]]
           if (redOp.output.get.neighbors.collect { case w:MemWrite => true }.size == 2) {

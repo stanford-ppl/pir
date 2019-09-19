@@ -26,7 +26,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
     case n:AccumAck =>
       emitVec(n) { i => "true" };
 
-    case n@RegAccumOp(op) =>
+    case n@RegAccumOp(op, identity) =>
       genCtxFields {
         emitln(s"${n.qtp} $n = 0;")
       }
@@ -36,24 +36,15 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
         case op => bug(s"Unsupported reduce ops =$op")
       }
       val in = n.in.T
+      val firstIter = n.first.singleConnected.map { _.qidx("0") }.getOrElse("true")
+      emitIf(s"${firstIter}") {
+        emitln(s"$n = $identity;")
+      }
       emitIf(s"${n.en.qref}") {
-        val firstIter = n.first.singleConnected.map { _.qidx("i") }.getOrElse("true")
-        emitIf(s"${firstIter}") {
-          //val init =  op match {
-            //case List(OpDef(FixAdd | FltAdd)) => Some(0)
-            //case List(OpDef(FixMul | FltMul)) => Some(1)
-            //case _ => None
-          //}
-          //init.fold {
-            //emitln(s"""ASSERT(false, "Reduction of 0 elements with unknown identity value ${quoteSrcCtx(n)}");""")
-          //} { init =>
-            emitln(s"$n = 0;")
-            //emitln(s"$n = $init;")
-          //}
-        }
         emitBlock(s"for (int i = 0; i < ${in.getVec}; i++)") {
           // If firstIter is not connected, the reduction controller is a fully unrolled Unit
           // Controller
+          val firstIter = n.first.singleConnected.map { _.qidx("i") }.getOrElse("true")
           val laneValid = getCtrler(n).flatMap { _.to[LoopController] }.fold("true") { _.laneValid.qidx(Some("i")) }
           emitIf(laneValid) {
             val initOrInput = n.init.singleConnected match {
@@ -65,9 +56,13 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
         }
       }
 
-    case n@RegAccumFMA() =>
+    case n@RegAccumFMA(identity) =>
       genCtxFields {
         emitln(s"${n.qtp} $n = 0;")
+      }
+      val firstIter = n.first.singleConnected.map { _.qidx("0") }.getOrElse("true")
+      emitIf(s"${firstIter}") {
+        emitln(s"$n = $identity;")
       }
       emitIf(s"${n.en.qref}") {
         val vec = math.max(n.in1.getVec, n.in2.getVec)

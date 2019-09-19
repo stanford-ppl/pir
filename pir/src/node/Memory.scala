@@ -113,7 +113,7 @@ case class OpDef(op:Opcode)(implicit env:Env) extends OpNode with Def {
 }
 // op can be eigher a string, if from spatial, or a list of reduction op if
 // transformed in graph initialization
-case class RegAccumFMA()(implicit env:Env) extends OpNode with Def {
+case class RegAccumFMA(identity:Any)(implicit env:Env) extends OpNode with Def {
   val in1 = new InputField[PIRNode]("in1")
   val in2 = new InputField[PIRNode]("in2")
   val en = new InputField[Set[PIRNode]]("en")
@@ -122,7 +122,7 @@ case class RegAccumFMA()(implicit env:Env) extends OpNode with Def {
 }
 // op can be eigher a string, if from spatial, or a list of reduction op if
 // transformed in graph initialization
-case class RegAccumOp(op:Any)(implicit env:Env) extends OpNode with Def {
+case class RegAccumOp(op:Any, identity:Any)(implicit env:Env) extends OpNode with Def {
   val in = new InputField[PIRNode]("in")
   val en = new InputField[Set[PIRNode]]("en")
   val first = new InputField[Option[PIRNode]]("first")
