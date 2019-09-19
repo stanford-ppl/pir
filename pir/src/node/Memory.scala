@@ -151,6 +151,9 @@ case class Counter(par:Int, isForever:Boolean=false)(implicit env:Env) extends P
   def iters = this.collectOut[CounterIter]()
   def valids = this.collectOut[CounterValid]()
   def ctrler = this.collectUp[Controller]().head
+
+  // Lane valids that can be statically derived
+  val constValids = new Metadata[List[Option[Boolean]]]("constValids")
 }
 
 case class CounterIter(is:List[Int])(implicit env:Env) extends Def {
@@ -171,6 +174,7 @@ abstract class Controller(implicit env:Env) extends PIRNode {
   def isForever = this.collectDown[Counter]().exists { _.isForever }
   def hasBranch = this.ctrl.v.get == Fork || this.to[LoopController].fold(false) { _.stopWhen.isConnected }
 
+  // Parallelization of the controller. Set during staging.
   val par = new Metadata[Int]("par")
 }
 
@@ -183,6 +187,9 @@ case class LoopController()(implicit env:Env) extends Controller {
   val cchain = new ChildField[Counter, List[Counter]]("cchain")
   val firstIter = new OutputField[List[PIRNode]]("firstIter")
   val stopWhen = new InputField[Option[PIRNode]]("stopWhen")
+  val laneValid = new OutputField[List[PIRNode]]("laneValid")
+
+  val constLaneValids = new Metadata[List[Option[Boolean]]]("constLaneValids")
 }
 
 case class ControlBlock()(implicit env:Env) extends PIRNode {

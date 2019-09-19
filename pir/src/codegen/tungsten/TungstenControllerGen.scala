@@ -12,6 +12,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case OutputField(ctrler:Controller, "done") => s"$ctrler->Done()"
     case OutputField(ctrler:Controller, "childDone") => s"$ctrler->ChildDone()"
     case OutputField(ctrler:LoopController, "firstIter") => s"$ctrler->FirstIter()"
+    case OutputField(ctrler:LoopController, "laneValid") => s"laneValid"
     case n => super.quoteRef(n)
   }
 
@@ -69,11 +70,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
             case (prev, ctr) => 
               prev.flatMap { valid => (0 until ctr.par).map { i => s"$valid & $ctr->Valids()[$i]" } }
           }
-          declare(s"bool laneValids[${laneValids.size}]")
-          laneValids.view.zipWithIndex.foreach { case (v, i) =>
-            emit(s"laneValids[$i] = $v;")
-          }
-          emitln(s"")
+          emitVec(n.laneValid, laneValids)
         }
       }
 

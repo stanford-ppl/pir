@@ -250,18 +250,6 @@ trait TungstenMemGen extends TungstenCtxGen {
     }
     emitAssign(en) { i =>
       var ens = en.connected.map { _.qidx(i) }
-      // TODO: handle this before codegen. Make lane valid an output of LoopController
-      val isFIFO = en.src match {
-        case src:LocalAccess => src.isFIFO
-        case src:Access => src.mem.T.isFIFO
-      }
-      if (isFIFO) {
-        getCtrler(en.src).to[LoopController].foreach { ctrler =>
-          if (ctrler.getCtrl.isLeaf) {
-            ens +:= s"laneValids[${i.getOrElse(0)}]"
-          }
-        }
-      }
       ens.distinct.reduceOption[String]{ _ + " & " + _ }.getOrElse("true")
     }
   }
