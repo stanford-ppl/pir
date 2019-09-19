@@ -118,6 +118,7 @@ trait TypeUtil { self:PIRPass =>
       case OutputField(n:Controller, "done") => Some(1)
       case OutputField(n:Controller, "childDone") => Some(1)
       case OutputField(n:LoopController, "firstIter") => Some(1)
+      case OutputField(n:LoopController, "laneValid") => Some(n.par.get)
       case OutputField(n:FringeDenseStore, "ack") => Some(1)
       case OutputField(n:FringeStreamRead, "done") => Some(1)
       case ConnectedByDRAMCmd(vec) => Some(vec)
@@ -188,6 +189,7 @@ trait TypeUtil { self:PIRPass =>
     n match {
       case OutputField(n:Controller, "done") => Some(Bool)
       case OutputField(n:LoopController, "firstIter") => Some(Bool)
+      case OutputField(n:LoopController, "laneValid") => Some(Bool)
       case OutputField(n:Controller, "childDone") => Some(Bool)
       case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferTp
       case n:CounterIter => Some(Fix(true, 32, 0))

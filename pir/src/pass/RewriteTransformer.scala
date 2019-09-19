@@ -242,6 +242,15 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
         case out@OutputField(Const(vs:List[_]), "out") if vs.forall { _ == true } => 
           en.disconnectFrom(out)
           dbg(s"${dquote(en)} disconnect ${dquote(out)}")
+        case out@OutputField(ctrler:LoopController, "laneValid") if ctrler.constLaneValids.get.forall { _.nonEmpty } =>
+          val const = within(ctrler.parent.get, ctrler.ctrl.get) { 
+            val laneValids = ctrler.constLaneValids.get.map { _.get }
+            if (laneValids.size == 1)
+              allocConst(laneValids.head)
+            else
+              allocConst(laneValids)
+          }
+          swapConnection(en, out, const.out)
         case _ => 
       }
     }
@@ -252,29 +261,15 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   TransferRule[Counter] { counter =>
     if (counter.valids.exists { _.out.isConnected }) {
       dbgblk(s"CounterConstValid($counter)") {
-        val min = counter.min.T
-        val step = counter.step.T
-        val max = counter.max.T
-        val par = counter.par
-        val maxValid = (min, step, max) match {
-          case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) =>
-            var bound = ((max - min) /! step) % par
-            if (bound == 0) {
-              bound = par
-            }
-            dbg(s"Constant loop bounds min=$min, step=$step, max=$max, par=$par (0 until $bound)")
-            bound
-          case _ =>
-            dbg(s"None constant loop bounds min=$min, step=$step, max=$max, par=$par (0 until 1)")
-            1
-        }
         val ctrler = counter.parent.get
         var const:Const = null
         counter.valids.foreach { case valid@CounterValid(is) =>
-          if (is.forall(_ < maxValid)) {
-            dbg(s"Set $valid with is=$is to true")
-            if (const == null)
-              const = within(ctrler.parent.get, counter.ctrl.get) { allocConst(true) }
+          if (is.forall { i => counter.constValids.get(i).nonEmpty }) {
+            val consts = is.map { i => counter.constValids.get(i).get }
+            dbg(s"Set $valid with is=$is to $consts")
+            const = within(ctrler.parent.get, counter.ctrl.get) { 
+              if (is.size == 1) allocConst(consts.head) else allocConst(consts)
+            }
             swapOutput(valid.out, const.out)
           }
         }

@@ -159,6 +159,27 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       argOut(write).name(s"${n}_ack")
     }
 
+    def connectLaneValid(access:Access):Unit = {
+      val ctrl = access.getCtrl
+      if (ctrl.isLeaf) {
+        ctrl.ctrler.v.foreach { 
+          case ctrler:LoopController =>
+            access.mem.T match {
+              case mem:Reg if ctrler.par.get > 1 | access.isInnerReduceOp.get => return
+              case _ => 
+                dbg(s"Connect $access to laneValid")
+                access.en(ctrler.laneValid)
+            }
+          case _ =>
+        }
+      }
+    }
+
+    // Add laneValids to enable of memory access
+    n.to[Access].foreach { connectLaneValid }
+
+    n.to[LoopController].foreach {analyzeLoopRange}
+    
     n match {
       case n@(_:PrintIf | _:AssertIf | _:ExitIf) =>
         n.tp.reset
@@ -169,7 +190,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         }
       case _ =>
     }
-    
+
     // Convert reduction operation
     // Spaital IR:
     // accum.write (reduce(mux(dummy, input, initOrInput), accum.read))
@@ -223,8 +244,58 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         }
       }
     }
+
     super.visitNode(n)
   } 
+
+  def analyzeCounterRange(n:Counter) = dbgblk(s"analyzeCounterRange($n)") {
+    val min = n.min.T
+    val step = n.step.T
+    val max = n.max.T
+    val par = n.par
+    val constValids = (min, step, max) match {
+      case (Some(Const(min:Int)), _, Some(Const(max:Int))) if max <= min =>
+        dbg(s"Loop will not run.")
+        List.fill(par)(Some(false))
+      case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) =>
+        var bound = ((max - min) /! step) % par
+        if (bound == 0) {
+          bound = par
+        }
+        dbg(s"Constant loop bounds min=$min, step=$step, max=$max, par=$par bound=$bound")
+        List.tabulate(par) { i => 
+          if (i < bound) Some(true) 
+          else if (i >= max) Some(false)
+          else None
+        }
+      case (Some(Const(min:Int)), _, Some(Const(max:Int))) if max > min =>
+        dbg(s"None constant loop bounds min=$min, step=$step, max=$max, par=$par")
+        List.tabulate(par) { i => 
+          if (i == 0) Some(true) 
+          else if (i >= max) Some(false)
+          else None
+        }
+      case _ =>
+        List.tabulate(par) { i => None }
+    }
+    dbg(s"$n.constValids=[${constValids.map { _.getOrElse("unknown") }.mkString(",")}]")
+    n.constValids := constValids
+  }
+
+  def analyzeLoopRange(n:LoopController) = dbgblk(s"analyzeLoopRange($n)"){
+    n.cchain.T.foreach(analyzeCounterRange)
+    val laneValids = n.cchain.T.foldLeft[List[Option[Boolean]]](Nil) { 
+      case (Nil, ctr) => List.tabulate(ctr.par) { i => ctr.constValids.get(i) }
+      case (prev, ctr) => 
+        prev.flatMap { valid => 
+          (0 until ctr.par).map { i => 
+            zipMap(valid, ctr.constValids.get(i)) { _ && _ }
+          }
+        }
+    }
+    dbg(s"$n.laneValids=[${laneValids.map { _.getOrElse("unknown") }.mkString(",")}]")
+    n.constLaneValids := laneValids
+  }
 
   def argOut(write:MemWrite) = {
     val reg = within(pirTop.argFringe, pirTop.topCtrl) { 

@@ -7,7 +7,7 @@ env:
 clean:
 	#rm -rf out
 	#rm -f docs/api
-	sbt clean
+	sbt "; project pir clean; project spade; clean ; project prism; clean"
 	make -C tungsten/ clean
 	make -C plastiroute/ clean
 	make -C plastisim/ clean

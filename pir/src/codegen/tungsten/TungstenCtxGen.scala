@@ -30,6 +30,7 @@ trait TungstenCtxGen extends TungstenTopGen {
   def getCtrler(n:N):Controller = n match {
     case n:ControlBlock => assertOne(n.collectPeer[Controller](), s"$n.ctrler")
     case n:LocalOutAccess => assertOne(n.collectPeer[Controller](), s"$n.ctrler")
+    case n:OpDef => assertOne(n.collectPeer[Controller](), s"$n.ctrler")
     case n => getCtrler(assertOne(n.collectUp[ControlBlock](), s"$n.cb"))
   }
 

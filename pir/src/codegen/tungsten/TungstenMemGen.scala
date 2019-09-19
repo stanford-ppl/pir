@@ -46,9 +46,7 @@ trait TungstenMemGen extends TungstenCtxGen {
             emitln(s"${ctrler}->AddInput(${nameOf(n)});")
           }
           emitEn(n.en)
-          if (n.en.isConnected) {
-            emitln(s"$name->SetReadEn(${n.en.qref});")
-          }
+          emitln(s"$name->SetReadEn(${n.en.qref});")
           emitIf(s"$name->Valid()") {
             emitVec(n) { i =>
               s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
