@@ -58,29 +58,30 @@ class TiledPageRank_4 extends TiledPageRank(iters=2)(ipls=1, ip=1)
           Foreach(ts by 1 par opts) { j =>
             val start = ofstTile(j)
             val len = lenTile(j)
-            val neighbors = FIFO[Int](maxEdge)
+            val neighbors = SRAM[Int](maxEdge)
             neighbors load edges(start::start+len)
-            val farNeighbors = FIFO[Int](maxEdge)
-            val farFIFO = FIFO[Bit](maxEdge)
-            val nearIdxFIFO = FIFO[Int](maxEdge)
-            Foreach(0 until len par ip) { k => 
-              val neighbor = neighbors.deq
-              nearIdxFIFO.enq(neighbor - i)
-              val far = (neighbor < i) | (neighbor >= (i+ts))
-              farFIFO.enq(far)
-              farNeighbors.enq(neighbor, far)
-            }
             val farCount = Reg[Int]
             Reduce(farCount)(0 until len par ip) { k => 
-              mux(farFIFO.deq, 1, 0)
+              val neighbor = neighbors(k)
+              val far = (neighbor < i) | (neighbor >= (i+ts))
+              mux(far, 1, 0)
             } { _ + _ }
+            val farNeighbors = FIFO[Int](maxEdge)
+            val nearIdxFIFO = FIFO[Int](maxEdge)
+            val farFIFO = FIFO[Bit](maxEdge)
+            Foreach(0 until len par ip) { k => 
+              val neighbor = neighbors(k)
+              val far = (neighbor < i) | (neighbor >= (i+ts))
+              farNeighbors.enq(neighbor, far)
+              nearIdxFIFO.enq(neighbor - i)
+              farFIFO.enq(far)
+            }
             val farNeighborRanks = FIFO[T](maxEdge)
             farNeighborRanks gather pageranks(farNeighbors, farCount.value)
             val farNeighborLens = FIFO[Int](maxEdge)
             farNeighborLens gather lens(farNeighbors, farCount.value)
-            val rankSum = Reg[T]
-            Reduce(rankSum)(0 until len) { k =>
-              val neighbor = neighbors.deq
+            val inRanks = SRAM[T](maxEdge)
+            Foreach(0 until len) { k =>
               val far = farFIFO.deq
               val near = !far
               val nearIdx = nearIdxFIFO.deq
@@ -89,7 +90,11 @@ class TiledPageRank_4 extends TiledPageRank(iters=2)(ipls=1, ip=1)
               val neighborRank = mux(far, farNeighborRanks.deq(far), nearNeighborRank)
               val neighborLen = mux(far, farNeighborLens.deq(far), nearNeighborLen).to[T]
               val nrank = mux(iter===0, argIR.value, neighborRank)
-              nrank / neighborLen
+              inRanks(k) = nrank / neighborLen
+            }
+            val rankSum = Reg[T]
+            Reduce(rankSum)(0 until len) { k =>
+              inRanks(k)
             } { _ + _ }
             prTile(j) = rankSum.value * damp + ((1-damp).to[T] / argN.value.to[T])
           }

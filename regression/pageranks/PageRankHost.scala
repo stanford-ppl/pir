@@ -50,7 +50,7 @@ trait PageRankHost extends SpatialTest {
       }
     }
     createDirectories(dirName(goldPath))
-    writeCSVNow(goldRank, goldPath)
+    writeCSVNow(goldRank, goldPath, toString={ x:Float => f"$x%e" })
   }
 
   import spatial.dsl._

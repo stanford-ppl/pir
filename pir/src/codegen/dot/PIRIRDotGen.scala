@@ -184,7 +184,8 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
           }
         }
         tooltip += s"\ntp=${fromsrc.getTp}\nvec=${fromsrc.getVec}"
-        super.emitEdge(from,to,attr.setEdge.attr("id",tosrc.id).attr("label",fromsrc.id).attr("labeltooltip", tooltip))
+        val dst = tosrc + "," + tosrc.out.neighbors.mkString(",")
+        super.emitEdge(from,to,attr.setEdge.attr("id",dst).attr("label",fromsrc.id).attr("labeltooltip", tooltip))
       case _ => super.emitEdge(from,to,attr)
     }
   }
