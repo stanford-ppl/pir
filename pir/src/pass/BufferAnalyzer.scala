@@ -8,13 +8,9 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
   /*
    * escaped node will be buffered between dep ctx and scope
    * */
-  def escape(depOut:Output[PIRNode], fromCtx:Option[Context], depedIn:Input[PIRNode], depedCtx:Context):Boolean = {
+  def escape(depOut:Output[PIRNode], depedIn:Input[PIRNode], depedCtx:Context):Boolean = {
     val dep = depOut.src
-    fromCtx match {
-      case Some(fromCtx) if fromCtx == depedCtx => return false
-      case None if dep.isDescendentOf(depedCtx) => return false
-      case _ =>
-    }
+    if (dep.isDescendentOf(depedCtx)) return false
     if (!dep.isUnder[Context]) return false
     (dep, depedIn) match {
       case (_,InputField(deped:LocalOutAccess, "in")) => false
@@ -76,7 +72,7 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     val dep = depOut.src
     val deped = depedIn.src
     val depedCtx = deped.ctx.get
-    if (escape(depOut, fromCtx, depedIn, depedCtx)) {
+    if (escape(depOut, depedIn, depedCtx)) {
       val depCtx = fromCtx.getOrElse { dep.ctx.get }
       val read = dbgblk(s"insertBuffer(depOut=${dquote(depOut)}, depedIn=$deped.$depedIn)") {
         val (enq, deq) = compEnqDeq(isFIFO=true, depCtx, depedCtx, Some(depOut), List(depedIn))
