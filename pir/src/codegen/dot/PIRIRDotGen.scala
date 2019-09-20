@@ -214,8 +214,18 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
         case n:DRAMFringe => "D"
       }
       var l = s"${tp}${n.id}"
-      n.collectDown[Memory]().foreach { mem =>
+      val mem = n.collectDown[Memory]()
+      mem.foreach { mem =>
         mem.name.v.foreach { name => l += s"\n$name" }
+      }
+      val cmd = n.collectDown[DRAMCommand]()
+      cmd.foreach { cmd =>
+        cmd.name.v.foreach { name => l += s"\n$name" }
+      }
+      if (mem.isEmpty && cmd.isEmpty) {
+        n.collectDown[LocalOutAccess]().foreach { mem =>
+          mem.name.v.foreach { name => l += s"\n$name" }
+        }
       }
       l
     }

@@ -7,10 +7,11 @@ import prism.graph._
 import spade.param._
 import scala.collection.mutable
 
-class MemoryLowering(implicit compiler:PIR) extends PIRTransformer with DependencyAnalyzer with CUCostUtil {
+class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with PIRTransformer with DependencyAnalyzer with CUCostUtil {
 
-  override def runPass = {
-    pirTop.collectDown[Memory]().foreach(lowerMem)
+  override def visitNode(n:N) = n match {
+    case n:Memory => lowerMem(n)
+    case _ => super.visitNode(n)
   }
 
   def lowerMem(mem:Memory):Unit = dbgblk(s"lowerMem(${dquote(mem)})"){
@@ -19,11 +20,11 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTransformer with Dependen
       dbg(s"access=$access order=${access.order.v}")
     }
     val noBankedAccess = accesses.forall { !_.isInstanceOf[BankedAccess] }
-    val singleWriter = mem.inAccesses.size == 1
-    val singleFIFOReader = !mem.isFIFO | mem.outAccesses.size == 1
+    val singleWriter = mem.inAccesses.size <= 1
+    val singleFIFOReader = !mem.isFIFO | mem.outAccesses.size <= 1
     var toBuffer = true
     toBuffer &= noBankedAccess
-    toBuffer &= singleWriter && singleFIFOReader
+    toBuffer &= singleWriter //&& singleFIFOReader
     toBuffer &= !mem.nonBlocking.get
     if (mem.isFIFO && !singleWriter) {
       todo(s"Do not support multiple writers to FIFO on Plasticine yet ${quoteSrcCtx(mem)}")

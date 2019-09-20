@@ -49,13 +49,13 @@ class NaivePageRank_4 extends NaivePageRank(iters=2)(ipls=1, ip=1)
       Sequential.Foreach(iters by 1) { iter =>
         Foreach(0 until argN.value by ts par opN) { i =>
           val prTile = SRAM[T](ts)
-          val lenTile = SRAM[Int](ts)
+          val lenTile = FIFO[Int](ts)
           val ofstTile = SRAM[Int](ts)
           ofstTile load ofsts(i :: i + ts par ipls)
-          lenTile load lens(i :: i + ts par ipls)
+          lenTile load lens(i :: i + ts)
           Foreach(ts by 1 par opts) { j =>
             val start = ofstTile(j)
-            val len = lenTile(j)
+            val len = lenTile.deq
             val neighbors = FIFO[Int](maxEdge)
             neighbors load edges(start::start+len)
             val neighborRanks = FIFO[T](maxEdge)

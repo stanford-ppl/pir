@@ -84,6 +84,9 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         //n.stopWhen(stop)
       //}
     //}
+    n.to[DRAMCommand].foreach { n =>
+      n.name(n.dram.sid)
+    }
     n.to[Def].foreach { _.getVec }
     n.to[Access].foreach { _.getVec }
     n.to[DRAMAddr].foreach { n =>
@@ -156,7 +159,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
           stage(MemWrite().data(stage(AccumAck().ack(ack))))
         }
       }
-      argOut(write).name(s"${n}_ack")
+      argOut(write).name(s"${n.dram.sid}_ack")
     }
 
     def connectLaneValid(access:Access):Unit = {
