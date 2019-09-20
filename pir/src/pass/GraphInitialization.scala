@@ -229,14 +229,14 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
             stage(RegAccumOp(reduceOps, identity).in(input).en(writer.en.connected).first(firstIter).init(init))
           }
           val redOp = reduceOps.last.as[DefNode[PIRNode]]
-          if (redOp.output.get.neighbors.collect { case w:MemWrite => true }.size == 2) {
+          if (redOp.output.get.neighbors.collect { case w:MemWrite => true }.size > 1) {
             // 1. 
             // val acc1 = redOp(input, acc1) // isInnerAccum
             // val acc2 = redOp(input, acc1)
             disconnect(writer, redOp)
             swapOutput(reduceOps.last.as[DefNode[PIRNode]].output.get, accumOp.out)
           } else {
-            // 1. 
+            // 2. 
             // val acc1 = redOp(input, acc1) // isInnerAccum
             // val ... = acc1.read
             swapConnection(writer.data, redOp.output.get, accumOp.out)

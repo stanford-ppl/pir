@@ -229,9 +229,9 @@ trait TypeUtil { self:PIRPass =>
 
   def quoteSrcCtx(n:PIRNode) = {
     var msg = dquote(n)
-    n.ctx.map { ctx => msg += s" ($ctx)"}
-    msg += " " + n.srcCtx.v.getOrElse("No spatial source context")
     n.name.v.foreach { n => msg += s": $n" }
+    msg += " " + n.srcCtx.v.getOrElse("No source context")
+    n.ctx.map { ctx => msg += s" ($ctx)"}
     msg
   }
 
