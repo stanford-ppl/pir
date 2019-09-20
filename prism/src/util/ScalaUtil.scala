@@ -38,19 +38,19 @@ trait ScalaUtilFunc {
 
   def assertUnify[A,B](list:Iterable[A],info: => String)(lambda:A => B):Option[B] = {
     val res = list.map(lambda)
-    assert(res.toSet.size<=1, s"$list doesnt have the same $info = $res")
+    assert(res.toSet.size<=1, s"$list doesn't have the same $info = $res")
     res.headOption
   }
 
   def assertOptionUnify[A,B](list:Iterable[A],info: => String)(lambda:A => Option[B]):Option[B] = {
     val res = list.flatMap(a => lambda(a))
-    assert(res.toSet.size<=1, s"$list doesnt have the same $info = $res")
+    assert(res.toSet.size<=1, s"$list doesn't have the same $info = $res")
     res.headOption
   }
 
   def assertIdentical[A](list:Iterable[A],info: => String):Option[A] = {
     val res = list
-    assert(res.toSet.size<=1, s"$list doesnt have the same $info = $res")
+    assert(res.toSet.size<=1, s"$list doesn't have the same $info = $res")
     res.headOption
   }
 

@@ -448,9 +448,10 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
         val readCtx = outAccess.parent.get.as[Context]
         val readCtrl = outAccess.ctrl.get
         val (remoteReadEns, localReadEns) = outAccess.en.connected.partition { !canDuplicate(_) }
+        dbg(s"remoteReadEns=${remoteReadEns.map(dquote)}")
         val remoteReadEn = if (remoteReadEns.nonEmpty) {
           val enCtx = within(pirTop, readCtrl) { 
-            allocate[Context]{ ctx => ctx.getCtrl == readCtrl && ctx != readCtx } { Context() }
+            allocate[Context]({ ctx => ctx.getCtrl == readCtrl && ctx != readCtx }, allowDuplicates=true) { Context() }
           }
           within(enCtx) {
             val en = remoteReadEns.reduce[Output[PIRNode]]{ case (en1, en2) => 

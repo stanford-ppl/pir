@@ -78,7 +78,8 @@ trait MemoryAnalyzer { self:PIRTransformer =>
   }
 
   def allocate[T<:PIRNode:ClassTag:TypeTag](
-    filter:T => Boolean = (n:T) => true
+    filter:T => Boolean = (n:T) => true,
+    allowDuplicates:Boolean = false
   )(newNode: => T):T = {
     val ct = implicitly[ClassTag[T]]
     val container = stackTop[PIRParent].getOrElse(bug(s"allocate[$ct] outside PIRParent env")).as[PIRNode]
@@ -88,7 +89,8 @@ trait MemoryAnalyzer { self:PIRTransformer =>
         container.children.find { case c:T => filter(c); case _ => false }.getOrElse { newNode }.as[T]
       case _ =>
         val nodes = container.collectDown[T]().filter(filter)
-        assertOneOrLess(nodes, s"$ct under $container").getOrElse {
+        val opt = if (allowDuplicates) nodes.headOption else assertOneOrLess(nodes, s"$ct under $container")
+        opt.getOrElse {
           val node = within(container) { newNode }
           dbg(s"allocate[$ct](container=$container) = ${dquote(node)}")
           node

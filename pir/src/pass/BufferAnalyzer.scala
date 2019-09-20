@@ -12,14 +12,15 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     val dep = depOut.src
     fromCtx match {
       case Some(fromCtx) if fromCtx == depedCtx => return false
-      case None => if (dep.isDescendentOf(depedCtx)) return false
+      case None if dep.isDescendentOf(depedCtx) => return false
       case _ =>
     }
     if (!dep.isUnder[Context]) return false
-    depedIn match {
-      case InputField(deped:LocalOutAccess, "in") => false
-      case depedIn if (depedCtx.streaming.get) => true
-      case _ => !canDuplicate(depOut)
+    (dep, depedIn) match {
+      case (_,InputField(deped:LocalOutAccess, "in")) => false
+      case (dep:LocalOutAccess, _) => false
+      case (_,depedIn) if depedCtx.streaming.get => true
+      case (dep,_) => !canDuplicate(depOut)
     }
   }
 
@@ -27,10 +28,10 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     val dep = depOut.src
     dep match {
       case dep:Const => true
+      case dep:LocalOutAccess => true
       case dep:CounterIter => true
       case dep:CounterValid => true
       case dep:Controller => true
-      case dep:LocalOutAccess => true
       case dep => false
     }
   }

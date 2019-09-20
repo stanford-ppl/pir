@@ -56,8 +56,10 @@ case class Runner(session:Session, id:Int) extends Serializable with RunnerStatu
         case Success(_) => 
         case Failure(e:CompileError) => 
           setError
+          pass.handle(e)
         case Failure(e:PIRException) => 
           setFailed
+          pass.handle(e)
         case Failure(e:Throwable) => 
           setFailed
           bug(s"$name throw $e", exception=false)
