@@ -259,7 +259,6 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
           }
           dbg(s"val $shuffle = Shuffle() // bankRead")
           bufferInput(shuffle.base)
-           //TODO: Potential optimization: to can also not buffer if not expensive to duplicate calculation.
           bufferInput(shuffle.to, fromCtx=Some(addrCtxs(access)))
           ins.foreach { in =>
             swapConnection(in, access.out, shuffle.out)
@@ -446,7 +445,22 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
               .done(enq))
           }
         }
-        val read = within(outAccess.parent.get, outAccess.ctrl.get) {
+        val readCtx = outAccess.parent.get.as[Context]
+        val readCtrl = outAccess.ctrl.get
+        val (remoteReadEns, localReadEns) = outAccess.en.connected.partition { !canDuplicate(_) }
+        val remoteReadEn = if (remoteReadEns.nonEmpty) {
+          val enCtx = within(pirTop, readCtrl) { 
+            allocate[Context]{ ctx => ctx.getCtrl == readCtrl && ctx != readCtx } { Context() }
+          }
+          within(enCtx) {
+            val en = remoteReadEns.reduce[Output[PIRNode]]{ case (en1, en2) => 
+              stage(OpDef(And).addInput(en1,en2).out)
+            }
+            dbg(s"remoteReadEn = ${dquote(en)}")
+            Some((enCtx,en))
+          }
+        } else None
+        val read = within(readCtx, readCtrl) {
           allocate[BufferRead]{ read => 
             read.isFIFO == mem.isFIFO &&
             matchInput(read.in, write.out) &&
@@ -457,10 +471,13 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
               .in(write.out)
               .mirrorMetas(mem)
               .mirrorMetas(outAccess)
-              .en(outAccess.en.connected)
+              .en(localReadEns).en(remoteReadEn.map{_._2})
               .done(deq)
               .presetVec(outAccess.inferVec.get))
           }
+        }
+        remoteReadEn.foreach { case (enCtx,en) =>
+          bufferInput(en, read.en, Some(enCtx))
         }
         if (inAccess.order.get > outAccess.order.get ) {
           dbg(s"$read.initToken = true")

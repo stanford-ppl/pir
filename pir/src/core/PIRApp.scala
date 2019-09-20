@@ -18,7 +18,6 @@ trait PIRApp extends PIR with Logging {
   lazy val contextAnalyzer = new ContextAnalyzer()
   lazy val contextInsertion = new ContextInsertion()
   lazy val depDuplications = new DependencyDuplication()
-  lazy val accessCtxCreation = new AccessContextCreation()
   lazy val bufferInsertion = new BufferInsertion()
   lazy val globalInsertion = new GlobalInsertion()
   lazy val graphInit = new GraphInitialization()

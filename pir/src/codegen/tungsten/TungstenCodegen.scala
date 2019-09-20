@@ -61,7 +61,7 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
   //}
 
   override def selectFrontier(unvisited:List[N]) = {
-    bug(s"Loop in tungsten codegen. Unvisited ${unvisited}")
+    bug(s"Loop in tungsten codegen. Unvisited ${unvisited.map { n => quoteSrcCtx(n) }}")
   }
 
   def varOf(n:PIRNode):(String, String) = bug(s"Don't know varOf($n)")

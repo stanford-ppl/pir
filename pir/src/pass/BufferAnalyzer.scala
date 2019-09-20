@@ -8,21 +8,30 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
   /*
    * escaped node will be buffered between dep ctx and scope
    * */
-  def escape(dep:PIRNode, depedIn:Input[PIRNode], depedCtx:Context) = {
-    (dep, depedIn, depedCtx) match {
-      case (dep, _, _) if dep.isDescendentOf(depedCtx) => false
-      case (dep, _, _) if !dep.isUnder[Context] => false
-      case (_, InputField(deped:LocalOutAccess, "in"), _) => false
+  def escape(depOut:Output[PIRNode], fromCtx:Option[Context], depedIn:Input[PIRNode], depedCtx:Context):Boolean = {
+    val dep = depOut.src
+    fromCtx match {
+      case Some(fromCtx) if fromCtx == depedCtx => return false
+      case None => if (dep.isDescendentOf(depedCtx)) return false
+      case _ =>
+    }
+    if (!dep.isUnder[Context]) return false
+    depedIn match {
+      case InputField(deped:LocalOutAccess, "in") => false
+      case depedIn if (depedCtx.streaming.get) => true
+      case _ => !canDuplicate(depOut)
+    }
+  }
 
-      case (_,_,ctx) if ctx.streaming.get => true
-
-      case (dep:Const, _, _) => false // duplicate later
-      case (dep:CounterIter, _, _) => false // duplicate later
-      case (dep:CounterValid, _, _) => false // duplicate later
-      case (dep:Controller, _, _) => false // duplicate later
-      case (dep:LocalOutAccess, _, _) => false // duplicate later
-
-      case (dep, _, _) => true
+  def canDuplicate(depOut:Output[PIRNode]) = {
+    val dep = depOut.src
+    dep match {
+      case dep:Const => true
+      case dep:CounterIter => true
+      case dep:CounterValid => true
+      case dep:Controller => true
+      case dep:LocalOutAccess => true
+      case dep => false
     }
   }
 
@@ -44,6 +53,10 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     }
   }
 
+  def bufferInput(out:Output[PIRNode], in:Input[PIRNode], fromCtx:Option[Context]):Option[BufferRead] = {
+    insertBuffer(out,in,fromCtx)
+  }
+
   def bufferOutput(out:Output[PIRNode]):Seq[BufferRead] = {
     out.connected.distinct.flatMap { in =>
       insertBuffer(out, in)
@@ -62,9 +75,9 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     val dep = depOut.src
     val deped = depedIn.src
     val depedCtx = deped.ctx.get
-    if (escape(dep, depedIn, depedCtx)) {
+    if (escape(depOut, fromCtx, depedIn, depedCtx)) {
       val depCtx = fromCtx.getOrElse { dep.ctx.get }
-      val read = dbgblk(s"insertBuffer(depOut=$dep.$depOut, depedIn=$deped.$depedIn)") {
+      val read = dbgblk(s"insertBuffer(depOut=${dquote(depOut)}, depedIn=$deped.$depedIn)") {
         val (enq, deq) = compEnqDeq(isFIFO=true, depCtx, depedCtx, Some(depOut), List(depedIn))
         val write = within(depCtx, depCtx.getCtrl) {
           allocate[BufferWrite] { write => 
