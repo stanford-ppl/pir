@@ -257,7 +257,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     val max = n.max.T
     val par = n.par
     val constValids = (min, step, max) match {
-      case (Some(Const(min:Int)), _, Some(Const(max:Int))) if max <= min =>
+      case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) if (max <= min && step > 0) | (max >= min && step < 0) =>
         dbg(s"Loop will not run.")
         List.fill(par)(Some(false))
       case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) =>

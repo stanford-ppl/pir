@@ -68,7 +68,7 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
     val (finite, infinite) = known.partition { _.isFinite }
     val c = if (unknown.nonEmpty) Some(Unknown)
     else if (finite.nonEmpty) assertIdentical(finite, 
-    s"$n.reads.count reads=${reads.map { r => (r, r.getCount) }} countByController=${countByController(n)}")
+    s"$n.reads.count reads=${reads.map { r => (r, r.getCount) }} countByController=${countByController(n)} \n${quoteSrcCtx(n)}")
     else if (infinite.nonEmpty) Some(Infinite)
     else if (n.collectFirstChild[FringeStreamWrite].nonEmpty) None
     else { // reads is empty
