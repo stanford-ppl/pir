@@ -50,8 +50,12 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     }
   }
 
-  def bufferInput(out:Output[PIRNode], in:Input[PIRNode], fromCtx:Option[Context]):Option[BufferRead] = {
-    insertBuffer(out,in,fromCtx)
+  def bufferInputFrom(out:Output[PIRNode], in:Input[PIRNode], fromCtx:Context):Option[BufferRead] = {
+    val saved = out.src.parent.get
+    swapParent(out.src, fromCtx)
+    val read = insertBuffer(out,in)
+    swapParent(out.src, saved)
+    read
   }
 
   def bufferOutput(out:Output[PIRNode]):Seq[BufferRead] = {

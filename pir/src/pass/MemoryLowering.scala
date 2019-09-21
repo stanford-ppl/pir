@@ -478,7 +478,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
           }
         }
         remoteReadEn.foreach { case (enCtx,en) =>
-          bufferInput(en, read.en, Some(enCtx))
+          bufferInputFrom(en, read.en, enCtx)
         }
         if (inAccess.order.get > outAccess.order.get ) {
           dbg(s"$read.initToken = true")
