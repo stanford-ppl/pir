@@ -7,7 +7,7 @@ import prism.graph._
 class DependencyDuplication(implicit compiler:PIR) extends DependencyAnalyzer with BufferAnalyzer {
 
   override def runPass = {
-    val ctxs = pirTop.collectDown[Context]()
+    val ctxs = pirTop.collectDown[Context]().toList
     // Compute and mirror in two passes to avoid duplication in mirroring
     ctxs.foreach {
       case ctx@DRAMContext(cmd) => cmd.localIns.foreach { in => bufferInput(in) }
@@ -44,7 +44,7 @@ trait DependencyAnalyzer extends PIRTransformer {
     x:PIRNode, 
     from:Option[Context]=None,
     to:Option[Context]=None,
-  ):Stream[PIRNode] = dbgblk(s"getDeps($x, from=$from, to=$to)"){
+  ):List[PIRNode] = dbgblk(s"getDeps($x, from=$from, to=$to)"){
     val toCtx = to.getOrElse(x.ancestorTree.collectFirst { case ctx:Context => ctx }.get)
     dbg(s"toCtx=$toCtx")
     def accumDeps(x:PIRNode) = x.accum(visitFunc=bound(from,toCtx,visitGlobalIn))
@@ -79,7 +79,7 @@ trait DependencyAnalyzer extends PIRTransformer {
       copyCtrlers
     }
     dbg(s"deps=$deps")
-    deps
+    deps.toList
   }
 
   def mirrorDeps(to:Context, from:Option[Context]):Map[IR,IR] = dbgblk(s"mirrorDeps($to, $from)") {
@@ -120,7 +120,7 @@ trait DependencyAnalyzer extends PIRTransformer {
   }
 
   def insertControlBlock(ctx:Context) = {
-    val ctrlers = ctx.collectDown[Controller]().sortBy { _.getCtrl.ancestors.size }
+    val ctrlers = ctx.collectDown[Controller]().toList.sortBy { _.getCtrl.ancestors.size }
     if (ctrlers.size > 0) {
       val cb = within(ctx, ctx.getCtrl) {
         ControlBlock().ctrlers(ctrlers)
@@ -130,7 +130,7 @@ trait DependencyAnalyzer extends PIRTransformer {
   }
 
   def dupDeps(ctxs:Iterable[Context], from:Option[Context]=None):Unit = {
-    val mappings = ctxs.map { ctx => (ctx, mirrorDeps(ctx, from)) }
+    val mappings = ctxs.map { ctx => (ctx, mirrorDeps(ctx, from)) }.toList
     mappings.foreach { case (ctx, mapping) => swapDeps(ctx, mapping) }
     ctxs.foreach { ctx => check(ctx) }
   }

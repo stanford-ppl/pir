@@ -49,7 +49,7 @@ trait GraphUtil {
    * descendents if it has one. Otherwise keep the node
    * */
   def cover[N<:Node[N],T<:N:ClassTag](ns:Stream[Node[N]]):Stream[N] = ns.flatMap { x =>
-    x.ancestors.collectFirst { case x:T => x }.map { _.descendentTree.toStream }.getOrElse(Stream(x.as[N]))
+    x.ancestors.collectFirst { case x:T => x }.map { _.descendentTree }.getOrElse(Stream(x.as[N]))
   }.distinct
 
   def leastCommonAncesstor[N<:Node[N]](n1:Node[N], n2:Node[N]):Option[N] = {

@@ -210,7 +210,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
           var reduceOps = writer.accum(visitFunc = { case n:PIRNode => 
               visitGlobalIn(n).filter { _.isInnerReduceOp.get }
             }
-          ).filterNot { _ == writer }.reverse
+          ).filterNot { _ == writer }.reverse.toList
           if (reduceOps.size < 2) {
             err(s"Unexpected reduce op for writer $writer: ${reduceOps}")
           }
