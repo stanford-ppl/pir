@@ -29,8 +29,8 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with PIRTr
   }
 
   // Breaking loop in traversal
-  override def visitIn(n:N):List[N] = n match {
-    case n:LocalOutAccess => n.in.neighbors.toList ++ 
+  override def visitIn(n:N):Stream[N] = n match {
+    case n:LocalOutAccess => n.in.neighbors.toStream ++ 
       n.done.neighbors.filterNot { case c:Controller => true; case _ => false } ++
       n.en.neighbors.filterNot { case c:Controller => true; case _ => false }
     case n@UnderControlBlock(cb) if depDupHasRun => 
@@ -40,14 +40,14 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with PIRTr
     case n => super.visitIn(n)
   }
 
-  override def visitOut(n:N):List[N] = n match {
+  override def visitOut(n:N):Stream[N] = n match {
     case n:CounterIter => super.visitOut(n)
     case n:CounterValid => super.visitOut(n)
     case n@UnderControlBlock(cb) if depDupHasRun => 
       super.visitOut(n) ++
-      super.visitOut(cb).tryFilter { case x:LocalOutAccess => false; case _ => true }.toList
+      super.visitOut(cb).tryFilter { case x:LocalOutAccess => false; case _ => true }.toStream
     case n:ControlBlock if depDupHasRun => 
-      super.visitOut(n).tryFilter { case x:LocalOutAccess => false; case _ => true }.toList
+      super.visitOut(n).tryFilter { case x:LocalOutAccess => false; case _ => true }.toStream
     case n => super.visitOut(n)
   }
 
@@ -80,7 +80,7 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with PIRTr
     (depFunc(n).exists { deped => isLive(deped) == Some(true)}) ||
     super.isDepFree(n)
 
-  override def selectFrontier(unvisited:List[N]) = {
+  override def selectFrontier(unvisited:Stream[N]) = {
     if (config.aggressive_dce) {
       dbgblk(s"Aggressive DCE: unvisited all dead") {
         unvisited.foreach { n => 
@@ -96,7 +96,7 @@ class DeadCodeElimination(implicit compiler:PIR) extends PIRTraversal with PIRTr
         }
       }
     }
-    Nil
+    Stream()
   }
 
   override def visitNode(n:N):T = /*dbgblk(s"visitNode:${quote(n)}")*/ {

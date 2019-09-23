@@ -11,10 +11,10 @@ import scala.collection.mutable
 trait ProgramOrderTraversal extends PIRTraversal with ChildFirstTraversal {
   lazy val ctrlMap = top.descendents.groupBy { _.ctrl.v }
 
-  override def visitFunc(n:N):List[N] = n match {
-    case n:Top => scheduleCtrl(n.topCtrl).toList
-    case n:Controller => scheduleCtrl(n.ctrl.get).toList
-    case n => Nil
+  override def visitFunc(n:N):Stream[N] = n match {
+    case n:Top => scheduleCtrl(n.topCtrl).toStream
+    case n:Controller => scheduleCtrl(n.ctrl.get).toStream
+    case n => Stream()
   }
 
   def scheduleCtrl(ctrl:ControlTree) = {

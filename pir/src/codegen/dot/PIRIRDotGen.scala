@@ -140,7 +140,7 @@ class PIRTopDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fil
 
 class PIRCtxDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fileName) {
   override def visitFunc(n:N) = n match {
-    case n:Context => n.descendents.collect { case n:LocalAccess => n; case n:Access => n; case c:FringeCommand => c }.toList
+    case n:Context => n.descendents.collect { case n:LocalAccess => n; case n:Access => n; case c:FringeCommand => c }.toStream
     case n => super.visitFunc(n)
   }
 }

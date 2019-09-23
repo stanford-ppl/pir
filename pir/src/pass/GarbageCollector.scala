@@ -21,18 +21,18 @@ trait GarbageCollector { self:PIRTransformer =>
   // Visit until a live node
   private def prefix(n:PIRNode) = mustLive(n)
 
-  private def visitIn(n:PIRNode):List[PIRNode] = n match {
+  private def visitIn(n:PIRNode):Stream[PIRNode] = n match {
     case n@UnderControlBlock(cb) if depDupHasRun => visitGlobalIn(cb)
     case n if depDupHasRun => cover[PIRNode, ControlBlock](visitGlobalIn(n))
     case n => visitGlobalIn(n)
   }
 
-  private def visitOut(n:PIRNode):List[PIRNode] = n match {
+  private def visitOut(n:PIRNode):Stream[PIRNode] = n match {
     case n@UnderControlBlock(cb) if depDupHasRun => visitGlobalOut(cb)
     case n => visitGlobalOut(n)
   }
 
-  private def visitFunc(n:PIRNode):List[PIRNode] = {
+  private def visitFunc(n:PIRNode):Stream[PIRNode] = {
     val deps = visitIn(n).toStream.filter { x => mustDead(x) }
     val parents = visitUp(n).toStream.flatMap { x => 
       if (aggressiveGC) {
@@ -42,7 +42,7 @@ trait GarbageCollector { self:PIRTransformer =>
       }
     }
     dbg(s"$n deps=${deps} parent=${parents}")
-    (deps ++ parents).distinct.toList
+    (deps ++ parents).distinct.toStream
   }
 
   private def accumulate(prev:Set[PIRNode], n:PIRNode) = if (!prev.contains(n) && !mustLive(n)) (prev + n) else prev
@@ -51,14 +51,14 @@ trait GarbageCollector { self:PIRTransformer =>
 
   var depDupHasRun = false
 
-  def free(nodes:PIRNode):Unit = free(List(nodes))
+  def free(nodes:PIRNode):Unit = free(Stream(nodes))
 
   def free(nodes:Iterable[PIRNode]):Unit = dbgblk(s"free(${nodes.map{dquote(_)}})"){
     depDupHasRun = self.as[PIRPass].compiler.hasRunAll[DependencyDuplication]
     val ns = nodes.flatMap { n => 
       if (mustDead(n)) Some((n, -1))
       else None
-    }.toList
+    }.toStream
     var dead = ns.flatMap { _._1.descendents }
     collector.prefix = prefix
     collector.vf = visitFunc

@@ -43,7 +43,7 @@ trait Traversal extends Logging {
     _scope = None
   }
 
-  def visitFunc(n:N):List[N]
+  def visitFunc(n:N):Stream[N]
   def visitFuncInScope(n:N) = visitFunc(n).filter(withinScope)
 
   def markVisitNode(n:N, prev:T):T = {
@@ -54,12 +54,12 @@ trait Traversal extends Logging {
 
   def visitNode(n:N, prev:T):T = prev
 
-  final def traverseNode(n:N, zero:T):T = traverseNodes(List(n), zero)
-  def traverseNode(n:N):T = traverseNodes(List(n), zero)
-  def traverseNodes(ns: => List[N], zero:T):T
-  def traverseNodes(ns: => List[N]):T = traverseNodes(ns, zero)
+  final def traverseNode(n:N, zero:T):T = traverseNodes(Stream(n), zero)
+  def traverseNode(n:N):T = traverseNodes(Stream(n), zero)
+  def traverseNodes(ns: => Stream[N], zero:T):T
+  def traverseNodes(ns: => Stream[N]):T = traverseNodes(ns, zero)
 
-  final def traverseNodesInScope(scope:List[N], ns: => List[N], zero:T) = {
+  final def traverseNodesInScope(scope:Stream[N], ns: => Stream[N], zero:T) = {
     _scope = Some(mutable.HashSet.empty ++ scope)
     val res = traverseNodes(ns, zero)
     _scope = None
@@ -70,7 +70,7 @@ trait Traversal extends Logging {
 
 trait DFSTraversal extends Traversal {
 
-  final def traverseNodes(ns: => List[N], zero:T):T = {
+  final def traverseNodes(ns: => Stream[N], zero:T):T = {
     var prev = zero 
     var nexts = ns.filterNot(isVisited)
     while (nexts.nonEmpty) {
@@ -97,7 +97,7 @@ trait BFSTraversal extends Traversal {
     queue.clear
   }
 
-  final def traverseNodes(ns: => List[N], zero:T):T = {
+  final def traverseNodes(ns: => Stream[N], zero:T):T = {
     queue ++= ns.filterNot(isScheduled)
     var prev = zero
     while (queue.nonEmpty) {
@@ -124,10 +124,10 @@ trait BFSTraversal extends Traversal {
 trait TopologicalTraversal extends GraphTraversal {
 
   val forward:Boolean
-  def visitIn(n:N):List[N] = visitGlobalIn(n)
-  def visitOut(n:N):List[N] = visitGlobalOut(n)
-  def depedFunc(n:N):List[N] = (if (forward) visitOut(n) else visitIn(n)).filter(withinScope)
-  def depFunc(n:N):List[N] = (if (forward) visitIn(n) else visitOut(n)).filter(withinScope)
+  def visitIn(n:N):Stream[N] = visitGlobalIn(n)
+  def visitOut(n:N):Stream[N] = visitGlobalOut(n)
+  def depedFunc(n:N):Stream[N] = (if (forward) visitOut(n) else visitIn(n)).filter(withinScope)
+  def depFunc(n:N):Stream[N] = (if (forward) visitIn(n) else visitOut(n)).filter(withinScope)
   def isDepFree(n:N) = depFunc(n).forall(isVisited)
 
   val frontier = mutable.Set[N]()
@@ -137,33 +137,33 @@ trait TopologicalTraversal extends GraphTraversal {
     frontier.clear
   }
 
-  def visitFunc(n:N):List[N] = visitDepFree(n) 
+  def visitFunc(n:N):Stream[N] = visitDepFree(n) 
   //implicit val nct:ClassTag[N]
   //private val cache = Cache((n:N) => visitDepFree(n))
-  //def visitFunc(n:N):List[N] = cache.memorize(n)
+  //def visitFunc(n:N):Stream[N] = cache.memorize(n)
   
   /*
    * Return dependent free nodes by checking whether dependent nodes are free
    * */
-  def visitDepFree(n:N):List[N] = {
+  def visitDepFree(n:N):Stream[N] = {
     val unvisited = depedFunc(n).filterNot(isVisited)
     val (depFree, notFree) = unvisited.partition(n => isDepFree(n))
     frontier ++= notFree
     depFree
   }
 
-  def filtering(backup:List[N])(filtered: List[N] => List[N]) = {
+  def filtering(backup:Stream[N])(filtered: Stream[N] => Stream[N]) = {
     val flist = filtered(backup)
     if (flist.isEmpty) backup else flist
   }
 
-  def selectFrontier(unvisited:List[N]) = {
+  def selectFrontier(unvisited:Stream[N]) = {
     val filtered = unvisited
       .tryFilter { n => frontier.contains(n) }
-    List(filtered.minBy { n => depFunc(n).size })
+    Stream(filtered.minBy { n => depFunc(n).size })
   }
 
-  def scheduleDepFree(nodes:List[N]):List[N] = {
+  def scheduleDepFree(nodes:Stream[N]):Stream[N] = {
     val unvisited = nodes.filterNot(isVisited) 
     var depFree = unvisited.filter(isDepFree) 
     if (unvisited.nonEmpty && depFree.isEmpty) {
@@ -173,7 +173,7 @@ trait TopologicalTraversal extends GraphTraversal {
     } else depFree
   }
 
-  def traverseScope(scope:List[N], zero:T) = {
+  def traverseScope(scope:Stream[N], zero:T) = {
     traverseNodesInScope(scope, scheduleDepFree(scope), zero)
   }
 
@@ -191,16 +191,16 @@ trait HierarchicalTraversal extends Traversal {
 trait HierarchicalTopologicalTraversal extends TopologicalTraversal with HierarchicalTraversal
 
 trait TopDownTraversal extends GraphTraversal with HierarchicalTraversal {
-  def visitFunc(n:N):List[N] = n.children
+  def visitFunc(n:N):Stream[N] = n.children
   def traverseScope(n:N, zero:T):T = traverseNode(n, zero)
 }
 trait ChildFirstTraversal extends DFSTraversal with TopDownTraversal // Pre-order
 trait SiblingFirstTraversal extends BFSTraversal with TopDownTraversal
 
 trait TopDownTopologicalTraversal extends HierarchicalTopologicalTraversal with TopDownTraversal {
-  override def visitIn(n:N):List[N] = visitLocalIn(n)
-  override def visitOut(n:N):List[N] = visitLocalOut(n)
-  override def visitFunc(n:N):List[N] = n match {
+  override def visitIn(n:N):Stream[N] = visitLocalIn(n)
+  override def visitOut(n:N):Stream[N] = visitLocalOut(n)
+  override def visitFunc(n:N):Stream[N] = n match {
     case n if n.children.nonEmpty => scheduleDepFree(n.children)
     case n => visitDepFree(n) // always scheduleDepFree works. But this is faster
   }
@@ -210,17 +210,17 @@ trait DFSTopDownTopologicalTraversal extends TopDownTopologicalTraversal with Ch
 trait BFSTopDownTopologicalTraversal extends TopDownTopologicalTraversal with SiblingFirstTraversal
 
 trait BottomUpTopologicalTraversal extends HierarchicalTopologicalTraversal {
-  override def depedFunc(n:N):List[N] = n.parent.toList ++ super.depedFunc(n)
-  override def depFunc(n:N):List[N] = n.children ++ super.depFunc(n)
+  override def depedFunc(n:N):Stream[N] = n.parent.toStream ++ super.depedFunc(n)
+  override def depFunc(n:N):Stream[N] = n.children ++ super.depFunc(n)
   override def isDepFree(n:N):Boolean = n.children.forall(isVisited) && depFunc(n).forall(isVisited) // performance optimization no need to evaluate depFunc(n) until children are visited
 
-  override def selectFrontier(unvisited:List[N]) = {
+  override def selectFrontier(unvisited:Stream[N]) = {
     val filtered = unvisited
       .tryFilter { n => frontier.contains(n) && n.children.isEmpty }
-    List(filtered.minBy { n => depFunc(n).size })
+    Stream(filtered.minBy { n => depFunc(n).size })
   }
 
-  def visitScope(n:N):List[N] = n.descendentTree.toList
+  def visitScope(n:N):Stream[N] = n.descendentTree.toStream
 
   def traverseScope(n:N, zero:T) = {
     val scope = visitScope(n)

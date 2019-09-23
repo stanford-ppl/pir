@@ -47,11 +47,11 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     case _ => true
   }
 
-  override def visitIn(n:N) = n.siblingDeps(filter=Some(filterEdge)).toList
+  override def visitIn(n:N) = n.siblingDeps(filter=Some(filterEdge)).toStream
 
-  override def visitOut(n:N) = n.siblingDepeds(filter=Some(filterEdge)).toList
+  override def visitOut(n:N) = n.siblingDepeds(filter=Some(filterEdge)).toStream
 
-  override def visitFunc(n:N):List[N] = n match {
+  override def visitFunc(n:N):Stream[N] = n match {
     case n:Top => n.children.flatMap { _.children }
     case n => super.visitFunc(n)
   }
@@ -60,7 +60,7 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     //super.visitNode(n)
   //}
 
-  override def selectFrontier(unvisited:List[N]) = {
+  override def selectFrontier(unvisited:Stream[N]) = {
     bug(s"Loop in tungsten codegen. Unvisited ${unvisited.map { n => quoteSrcCtx(n) }}")
   }
 

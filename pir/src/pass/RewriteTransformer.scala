@@ -55,7 +55,7 @@ trait RewriteUtil { self: PIRTransformer =>
       }
     }
     reader.mem.T.inAccesses match {
-      case List(writer@ConstData(c)) if writer.order.get < reader.order.get && matchInput(writer.en, reader.en) => 
+      case Stream(writer@ConstData(c)) if writer.order.get < reader.order.get && matchInput(writer.en, reader.en) => 
         Some((reader.out, c.out))
       case _ => None
     }
@@ -456,12 +456,12 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   }
 
   // Breaking loop in traversal
-  override def visitIn(n:N):List[N] = n match {
-    case n:LocalOutAccess => n.in.neighbors.toList
+  override def visitIn(n:N):Stream[N] = n match {
+    case n:LocalOutAccess => n.in.neighbors.toStream
     case n => super.visitIn(n)
   }
 
-  override def visitOut(n:N):List[N] = super.visitOut(n).filter {
+  override def visitOut(n:N):Stream[N] = super.visitOut(n).filter {
     case x:LocalOutAccess => x.in.isConnectedTo(n)
     case x => true
   }

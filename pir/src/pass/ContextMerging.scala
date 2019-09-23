@@ -28,7 +28,7 @@ class ContextMerging(implicit compiler:PIR) extends PIRTraversal with PIRTransfo
           ctx
         }
         assertUnify(ctxs, s"count") { _.count.v }
-        val to::rest = ctxs
+        val to+:rest = ctxs
         dbg(s"Merge $rest into $to")
         rest.foreach { ctx =>
           ctx.children.foreach { c => swapParent(c, to) }
@@ -36,7 +36,7 @@ class ContextMerging(implicit compiler:PIR) extends PIRTraversal with PIRTransfo
         removeNodes(rest)
         to.collectDown[LocalOutAccess]().groupBy { _.in.T }.foreach { case (in, reads) => 
           if (reads.size > 1) {
-            val read::rest = reads
+            val read+:rest = reads
             dbg(s"Remove redundant $rest")
             rest.foreach { r =>
               r.out.neighbors.foreach { deped =>

@@ -79,9 +79,8 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
     lowerLUT(mem)
     val bankids = (0 until mem.banks.get.product).toList
     mem.bankids := bankids
-    val accesses = mem.accesses
     List(mem.inAccesses, mem.outAccesses).foreach { accesses =>
-      groupAccess(mem, accesses).foreach { group =>
+      groupAccess(mem, accesses.toList).foreach { group =>
         group.head match {
           case _:BankedAccess => lowerBankedAccesses(mem, memCU, group.asInstanceOf[Set[BankedAccess]])
           case _ => lowerAccess(mem, memCU, assertOne(group, s"$mem.access group"))
@@ -329,7 +328,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
           if (accesses.nonEmpty) {
             dbgblk(s"Insert token for sequenced schedule of $ctrl") {
               accesses.sliding(2, 1).foreach{
-                case List((fromCtrl, from), (toCtrl, to)) =>
+                case Stream((fromCtrl, from), (toCtrl, to)) =>
                   from.foreach { fromAccess =>
                     to.foreach { toAccess =>
                       dbg(s"Insert token between $fromAccess ($fromCtrl) and $toAccess ($toCtrl)")

@@ -13,12 +13,12 @@ trait ComputePartitioner extends CUPruner {
     case "DFS" => new PIRTraversal with DFSTopologicalTraversal with Schedular { val forward = false }
   }
 
-  def split[T](k:T, vcost:List[Cost[_]]):List[T] = dbgblk(s"split($k)") {
+  def split[T](k:T, vcost:List[Cost[_]]):Stream[T] = dbgblk(s"split($k)") {
     val kcost = getCosts(k)
     dbg(s"kcost=$kcost")
     (k match {
       case k:ComputeContainer =>
-        val ctxs:List[Context] = k.collectDown[Context]().flatMap { ctx => split(ctx, vcost) }
+        val ctxs:Stream[Context] = k.collectDown[Context]().flatMap { ctx => split(ctx, vcost) }
         val globals = ctxs.map { ctx =>
           within(pirTop) {
             val global = ComputeContainer()
@@ -46,12 +46,12 @@ trait ComputePartitioner extends CUPruner {
         ctxs.foreach { ctx => bufferInput(ctx) }
         alias.clear
         dupDeps(ctxs, from=Some(k))
-        (part::parts).foreach { removeCache }
+        (part+:parts).foreach { removeCache }
         removeNodes(k.descendentTree)
         ctxs.foreach { ctx => if (ctx.ctrlers.isEmpty) ctx.streaming := true }
         ctxs
       case k:Partition =>
-        if (fit(kcost, vcost)) List(k)
+        if (fit(kcost, vcost)) Stream(k)
         else {
           val nodes = schedular.scheduleScope(k.scope)
           //dbg(s"schedule:")
@@ -59,7 +59,7 @@ trait ComputePartitioner extends CUPruner {
           val (head, tail) = nodes.splitAt(nodes.size/2)
           split(new Partition(head), vcost) ++ split(new Partition(tail),vcost)
         }
-    }).as[List[T]]
+    }).as[Stream[T]]
   }
 
   val alias = scala.collection.mutable.Map[Context,Context]()
@@ -103,7 +103,7 @@ trait ComputePartitioner extends CUPruner {
 
 }
 
-class Partition(val scope:List[PIRNode]) {
+class Partition(val scope:Stream[PIRNode]) {
   override def toString = s"${super.toString}(${scope.size})"
   def deps:Seq[PIRNode] = {
     val descendents = scope.flatMap { n => n.descendentTree }
@@ -128,6 +128,6 @@ class Partition(val scope:List[PIRNode]) {
 
 }
 object Partition {
-  def unapply(x:Partition):Option[List[PIRNode]] = Some(x.scope)
+  def unapply(x:Partition):Option[Stream[PIRNode]] = Some(x.scope)
 }
 

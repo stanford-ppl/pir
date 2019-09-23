@@ -64,12 +64,12 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     }
   }
 
-  private def visitInEdges(n:Node[PIRNode]):List[Input[PIRNode]] = n match {
-    case n:BufferRead => List(n.in)
-    case n:BufferWrite => List(n.data)
-    case n:GlobalInput => List(n.in)
-    case n:GlobalOutput => List(n.in)
-    case n => Nil
+  private def visitInEdges(n:Node[PIRNode]):Stream[Input[PIRNode]] = n match {
+    case n:BufferRead => Stream(n.in)
+    case n:BufferWrite => Stream(n.data)
+    case n:GlobalInput => Stream(n.in)
+    case n:GlobalOutput => Stream(n.in)
+    case n => Stream()
   }
 
   private def insertBuffer(depOut:Output[PIRNode], depedIn:Input[PIRNode], fromCtx:Option[Context]=None):Option[BufferRead] = {

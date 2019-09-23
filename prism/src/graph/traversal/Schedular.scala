@@ -3,11 +3,11 @@ package graph
 
 trait Schedular extends Traversal {
   type N
-  type T = List[N]
+  type T = Stream[N]
 
-  def zero = Nil
+  def zero = Stream()
 
-  def visitFunc(n:N):List[N]
+  def visitFunc(n:N):Stream[N]
 
   override def visitNode(n:N, prev:T):T = super.visitNode(n, prev:+n)
 
@@ -18,28 +18,28 @@ trait Schedular extends Traversal {
 
   def scheduleNodes(ns: Iterable[N]) = {
     resetTraversal
-    traverseNodes(ns.toList, zero)
+    traverseNodes(ns.toStream, zero)
   }
 
-  def scheduleNodesInScope(scope:List[N], ns: Iterable[N]) = {
+  def scheduleNodesInScope(scope:Stream[N], ns: Iterable[N]) = {
     resetTraversal
-    traverseNodesInScope(scope, ns.toList, zero)
+    traverseNodesInScope(scope, ns.toStream, zero)
   }
 
-  def scheduleScope(n:N):List[N] = {
+  def scheduleScope(n:N):Stream[N] = {
     resetTraversal
     this match {
       case self:HierarchicalTraversal => 
-        self.traverseScope(n.asInstanceOf[self.N], zero.asInstanceOf[List[self.N]]).asInstanceOf[List[N]]
+        self.traverseScope(n.asInstanceOf[self.N], zero.asInstanceOf[Stream[self.N]]).asInstanceOf[Stream[N]]
       case _ => bug(s"cannot scheduleScope(n) on non HierarchicalTraversal $this")
     }
   }
 
-  def scheduleScope(ns:List[N]):List[N] = {
+  def scheduleScope(ns:Stream[N]):Stream[N] = {
     resetTraversal
     this match {
       case self:TopologicalTraversal => 
-        self.traverseScope(ns.asInstanceOf[List[self.N]], zero.asInstanceOf[List[self.N]]).asInstanceOf[List[N]]
+        self.traverseScope(ns.asInstanceOf[Stream[self.N]], zero.asInstanceOf[Stream[self.N]]).asInstanceOf[Stream[N]]
       case _ => bug(s"cannot scheduleScope(ns) on non TopologicalTraversal $this")
     }
   }

@@ -18,12 +18,7 @@ class BankTest extends UnitTest {
   }
 
   def check(kcost:SRAMCost, vcost:SRAMCost) = {
-    val parts = bp.splitBanks(ListBuffer.empty, kcost, vcost).toList
-    val bankPerCU = parts.map { _.size }.max
-    val totalBanks = parts.map { _.size }.sum
-    val bankMult = totalBanks /! kcost.bank
-    val sizePerBank = kcost.size /! totalBanks
-    val numCU = parts.size
+    val (totalBanks, bankPerCU, numCU, sizePerBank, bankMult) = bp.splitBanks(kcost, vcost)
     assert(bankPerCU <= vcost.bank, s"partitioner exceeds number of banks")
     assert(totalBanks >= kcost.bank, s"partitioner total banks < banks")
     assert(sizePerBank * bankPerCU <= vcost.size, s"partition size exceeds sram size")

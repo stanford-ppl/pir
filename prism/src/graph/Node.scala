@@ -46,7 +46,7 @@ trait Node[N<:Node[N]] extends IR { self:N =>
   def isParentOf(m:Node[N]) = m.parent == Some(this)
 
   // Children
-  def children:List[N] = _children.toList
+  def children:Stream[N] = _children.toStream
   def addChild(cs:Node[N]*):this.type = { 
     cs.foreach { c =>
       assert(c != this, s"Cannot add self as a children node=$this")
@@ -70,7 +70,7 @@ trait Node[N<:Node[N]] extends IR { self:N =>
   def isChildOf(p:Node[N]) = p.children.contains(this)
   def isLeaf = children.isEmpty
 
-  def siblings:List[N] = parent.map { _.children.filterNot { _ == this} }.getOrElse(Nil)
+  def siblings:Stream[N] = parent.map { _.children.filterNot { _ == this} }.getOrElse(Stream())
   def ancestors:Stream[N] = {
     parent.toStream.flatMap { parent => parent +: parent.ancestors }
   }

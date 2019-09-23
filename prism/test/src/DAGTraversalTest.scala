@@ -43,7 +43,7 @@ class DAGTraversalTest extends UnitTest with Logging {
   "DAGTestBFS" should "success" in {
     val traversal = new BFSTraversal with Schedular {
       type N = TestPNode
-      def visitFunc(n:N):List[N] = visitLocalIn(n)
+      def visitFunc(n:N):Stream[N] = visitLocalIn(n)
     }
     var res = traversal.scheduleNode(e)
     assert(res.toSet==Set(e, g1))
@@ -54,7 +54,7 @@ class DAGTraversalTest extends UnitTest with Logging {
   "DAGTestDFS" should "success" in {
     val traversal = new DFSTraversal with Schedular {
       type N = TestPNode
-      def visitFunc(n:N):List[N] = visitLocalIn(n)
+      def visitFunc(n:N):Stream[N] = visitLocalIn(n)
     }
     var res = traversal.scheduleNode(e)
     assert(res.toSet==Set(e, g1))

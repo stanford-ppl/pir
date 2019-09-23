@@ -21,7 +21,7 @@ class DependencyDuplication(implicit compiler:PIR) extends DependencyAnalyzer wi
 
 trait DependencyAnalyzer extends PIRTransformer {
   
-  private def bound(from:Option[Context], to:Context,visitFunc:Node[PIRNode] => List[PIRNode]):Node[PIRNode] => List[PIRNode] = { n:Node[PIRNode] =>
+  private def bound(from:Option[Context], to:Context,visitFunc:Node[PIRNode] => Stream[PIRNode]):Node[PIRNode] => Stream[PIRNode] = { n:Node[PIRNode] =>
     var deps = visitFunc(n)
     deps = deps.filter {
       case x:Memory => false
@@ -44,7 +44,7 @@ trait DependencyAnalyzer extends PIRTransformer {
     x:PIRNode, 
     from:Option[Context]=None,
     to:Option[Context]=None,
-  ):List[PIRNode] = dbgblk(s"getDeps($x, from=$from, to=$to)"){
+  ):Stream[PIRNode] = dbgblk(s"getDeps($x, from=$from, to=$to)"){
     val toCtx = to.getOrElse(x.ancestorTree.collectFirst { case ctx:Context => ctx }.get)
     dbg(s"toCtx=$toCtx")
     def accumDeps(x:PIRNode) = x.accum(visitFunc=bound(from,toCtx,visitGlobalIn))
@@ -59,7 +59,7 @@ trait DependencyAnalyzer extends PIRTransformer {
         val hasInput = (deps ++ toCtx.children).exists { _.isInstanceOf[LocalOutAccess] }
         val hasCtrler = depcb.nonEmpty || tocb.nonEmpty
         if (!hasInput && !hasCtrler) {
-          deps ++= from.collectFirstChild[ControlBlock].map(accumDeps).getOrElse(Nil)
+          deps ++= from.collectFirstChild[ControlBlock].map(accumDeps).getOrElse(Stream())
           deps ++= from.descendents
           deps = deps.distinct
         }
@@ -129,7 +129,7 @@ trait DependencyAnalyzer extends PIRTransformer {
     }
   }
 
-  def dupDeps(ctxs:List[Context], from:Option[Context]=None):Unit = {
+  def dupDeps(ctxs:Iterable[Context], from:Option[Context]=None):Unit = {
     val mappings = ctxs.map { ctx => (ctx, mirrorDeps(ctx, from)) }
     mappings.foreach { case (ctx, mapping) => swapDeps(ctx, mapping) }
     ctxs.foreach { ctx => check(ctx) }

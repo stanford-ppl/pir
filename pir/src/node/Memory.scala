@@ -201,7 +201,7 @@ trait MemoryUtil extends CollectorImplicit {
   implicit class MemOp[M<:Memory](n:M) {
     def inAccesses = n.collect[InAccess](visitGlobalIn _)
     def outAccesses = n.collect[OutAccess](visitGlobalOut _)
-    def accesses:List[Access] = inAccesses ++ outAccesses
+    def accesses:Stream[Access] = inAccesses ++ outAccesses
 
     def isFIFO = n match {
       case n:FIFO => true

@@ -112,7 +112,7 @@ trait AccessUtil {
     }
   }
   implicit class LocalInAccessOp(n:LocalInAccess) {
-    def outAccesses:List[LocalOutAccess] = n.out.collect[LocalOutAccess](visitGlobalOut _)
+    def outAccesses:Stream[LocalOutAccess] = n.out.collect[LocalOutAccess](visitGlobalOut _)
     def gout:Option[GlobalOutput] = assertOneOrLess(n.out.T.collect { case gout:GlobalOutput => gout }, s"$n.gout")
   }
   implicit class LocalOutAccessOp(n:LocalOutAccess) {

@@ -56,7 +56,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     }
 
     val accessGrps = getAccessPattern(mem)
-    val parts = partitionBanks(accessGrps, totalBanks, bankPerCU).toList
+    val parts = partitionBanks(accessGrps.toList, totalBanks, bankPerCU).toList
     dbg(s"parts:")
     parts.foreach { part =>
       dbg(part.mkString(","))
@@ -87,8 +87,8 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
   }
 
   def visitIn(n:PIRNode) = n match {
-    case n:BufferRead => n.in.neighbors.toList
-    case n:BufferWrite => n.data.neighbors.toList
+    case n:BufferRead => n.in.neighbors.toStream
+    case n:BufferWrite => n.data.neighbors.toStream
     case n => visitGlobalIn(n)
   }
 
@@ -100,7 +100,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     val readShuffles = access.to[FlatBankedRead].map { access =>
       access.out.collect[Shuffle]().groupBy { _.getCtrl }
     }
-    ofstShuffle.foreach { case (ctrl, List(ofstShuffle)) =>
+    ofstShuffle.foreach { case (ctrl, Stream(ofstShuffle)) =>
       val bank = ofstShuffle.from.singleConnected.get
       val offset = ofstShuffle.base.singleConnected.get
       within(ofstShuffle.parent.get, ofstShuffle.getCtrl) {
