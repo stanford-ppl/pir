@@ -22,11 +22,12 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
 
   override def handle(e:Throwable) = {
     super.handle(e)
-    if (config.enableDot && config.debug) {
+    if (config.enableDot) {
       new PIRGlobalDotGen(s"global.dot").run
       new PIRCtxDotGen(s"ctx.dot").run
-      new PIRIRDotGen(s"top.dot").run
     }
+    if (config.enableVerboseDot)
+      new PIRIRDotGen(s"top.dot").run
   }
 
   override def dquote(x:Any) = x match {

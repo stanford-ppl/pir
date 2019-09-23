@@ -31,7 +31,8 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
         dbg(s"kcost=$kcost")
         dbg(s"vcost=$vcost")
         val ks = split(k, vcost).toSet
-        info(s"Split $k into ${ks.size + 1} CUs $kcost")
+        val mem = quoteSrcCtx(k.collectDown[Memory]().head)
+        info(s"Split $k ${mem} into ${ks.size + 1} CUs $kcost")
         val nkcost = getCosts(k)
         if (notFit(nkcost, vcost)) {
           warn(s"$k still not fit after splitting $nkcost")
