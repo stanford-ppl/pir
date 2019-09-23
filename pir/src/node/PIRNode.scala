@@ -102,8 +102,6 @@ case class ControlTree(schedule:CtrlSchedule)(implicit env:Env) extends EnvNode[
     else bug(s"Cannot compare $this with $that")
   }
 
-  def isLeaf = children.isEmpty
-
   env.initNode(this)
 }
 

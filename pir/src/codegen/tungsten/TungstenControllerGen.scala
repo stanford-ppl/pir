@@ -63,7 +63,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       super.visitNode(n)
 
       n.to[LoopController].foreach { n =>
-        if (n.isLeaf) {
+        if (n.getCtrl.isLeaf) {
           // If last level controller is loop controller, generate lane valids
           val laneValids = n.cchain.T.foldLeft(List[String]()) { 
             case (Nil, ctr) => List.tabulate(ctr.par) { i => s"$ctr->Valids()[$i]" }

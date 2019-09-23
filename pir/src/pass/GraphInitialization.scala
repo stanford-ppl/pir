@@ -9,6 +9,12 @@ import scala.collection.mutable
 
 class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with PIRTransformer {
 
+  override def runPass = {
+    withGC(false) {
+      super.runPass
+    }
+  }
+
   override def finPass = {
     super.finPass
     pirTop.topCtrl.descendentTree.foreach { setUID }

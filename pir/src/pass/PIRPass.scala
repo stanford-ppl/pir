@@ -120,7 +120,9 @@ with BufferAnalyzer
 
   def stage(out:Output[PIRNode]):Output[PIRNode] = {
     stage(out.src)
-    rewriteRules.foldLeft(out) { (out, rule) => rule.apply(out).as[Output[PIRNode]] }
+    withGC(false) {
+      rewriteRules.foldLeft(out) { (out, rule) => rule.apply(out).as[Output[PIRNode]] }
+    }
   }
 
 }

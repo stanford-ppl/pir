@@ -18,6 +18,7 @@ trait Transformer extends Logging {
         val connected = io.connected.map(_.src)
         io.disconnect
       }
+      removeNodes(node.children)
       node.parent.foreach { parent =>
         parent.removeChild(node)
         node.unsetParent

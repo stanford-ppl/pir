@@ -225,11 +225,10 @@ trait MemoryUtil extends CollectorImplicit {
     def childCtrlers:Seq[Controller] = {
       n.childDone.T.collect { case ctrler:Controller => ctrler }
     }
-    def isLeaf = childCtrlers.isEmpty
-    def leaves:Seq[Controller] = {
+    def leafCtrlers:Seq[Controller] = {
       val childCtrlers = this.childCtrlers
       if (childCtrlers.isEmpty) List(n)
-      else childCtrlers.flatMap { c => c.leaves }
+      else childCtrlers.flatMap { c => c.leafCtrlers }
     }
   }
 

@@ -9,6 +9,15 @@ import scala.collection.mutable
 
 trait GarbageCollector { self:PIRTransformer =>
 
+  private var aggressiveGC = true
+  def withGC[T](aggressiveGC:Boolean)(block: => T) = {
+    val saved = this.aggressiveGC
+    this.aggressiveGC = aggressiveGC
+    val res = block
+    this.aggressiveGC = saved
+    res
+  }
+
   // Visit until a live node
   private def prefix(n:PIRNode) = mustLive(n)
 
@@ -24,10 +33,16 @@ trait GarbageCollector { self:PIRTransformer =>
   }
 
   private def visitFunc(n:PIRNode):List[PIRNode] = {
-    val deps = visitIn(n).filter { x => visitOut(x).forall(x => collector.isVisited(x, -1)) && !mustLive(x) }
-    val parents = visitUp(n).filter { x => visitDown(x).forall(x => collector.isVisited(x, -1)) && !mustLive(x) }
-    dbg(s"$n deps=$deps parent=$parents")
-    (deps ++ parents).distinct
+    val deps = visitIn(n).toStream.filter { x => mustDead(x) }
+    val parents = visitUp(n).toStream.flatMap { x => 
+      if (aggressiveGC) {
+        (x.ancestorTree++x.leaves).filter { x => mustDead(x) }
+      } else {
+        if (mustDead(x)) Stream(x) else Stream()
+      }
+    }
+    dbg(s"$n deps=${deps} parent=${parents}")
+    (deps ++ parents).distinct.toList
   }
 
   private def accumulate(prev:Set[PIRNode], n:PIRNode) = if (!prev.contains(n) && !mustLive(n)) (prev + n) else prev
@@ -55,9 +70,18 @@ trait GarbageCollector { self:PIRTransformer =>
     removeNodes(dead)
   }
 
-  private def mustLive(n:PIRNode) = n.descendentTree.exists { n => isLive(n) == Some(true) } || liveNodes.contains(n)
+  private def mustLive(n:PIRNode) = {
+    n.descendentTree.exists { n => isLive(n) == Some(true) || liveNodes.contains(n) }
+  }
 
-  private def mustDead(n:PIRNode):Boolean = !mustLive(n) && visitOut(n).isEmpty && !liveNodes.contains(n)
+  private def mustDead(n:PIRNode):Boolean = {
+    if (mustLive(n)) return false
+    if (collector.isVisited((n,-1))) return true
+    val noLiveOut = visitOut(n).forall { x =>
+      collector.isVisited((x,-1))
+    }
+    noLiveOut
+  }
 
   def free(input:Input[PIRNode]):Unit = dbgblk(s"free(${dquote(input)})") {
     val ns = input.neighbors
@@ -75,6 +99,7 @@ trait GarbageCollector { self:PIRTransformer =>
   }
 
   def isLive(n:PIRNode):Option[Boolean] = n match {
+    case n:Top => Some(true)
     case n:HostRead => Some(true)
     case n:HostWrite => Some(true)
     case n:TokenRead => Some(true)
