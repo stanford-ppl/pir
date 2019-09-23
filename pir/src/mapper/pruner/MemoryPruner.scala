@@ -82,7 +82,6 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     removeNodes(k.collectDown[TokenRead]())
     free(k)
     //breakPoint(s"$k, $mks")
-    mks.foreach { mk => free(mk.collectChildren[GlobalOutput]) }
     mks
   }
 
@@ -165,18 +164,6 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
                     mshuffle.out
                   }
                   (shuffle.out, toMerge)
-                //case out => 
-                  //err(s"Read by non Shuffle $out")
-                  //// Shuffle eliminated, which means bankAddr was constant and was
-                  //// original bankIds. Likely from capacity splitting.
-                  //val toMerge = mappings.map { mapping => 
-                    //val mmem = mapping(mem).as[Memory]
-                    //val mbr = mapping(br).as[FlatBankedRead]
-                    //val fromBanks = mmem.bankids.get
-                    //val toBanks = mem.bankids.get
-                    //stage(Shuffle(0).base(mbr.out).from(allocConst(fromBanks)).to(allocConst(toBanks))).out
-                  //}
-                  //(read.out, toMerge)
               }
 
               var red:List[Output[PIRNode]] = toMerge

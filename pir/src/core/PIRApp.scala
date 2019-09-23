@@ -95,6 +95,7 @@ trait PIRApp extends PIR with Logging {
     addPass(enableVerboseDot, new PIRIRPrinter(s"IR7.txt")) ==>
     // ------- Mapping  --------
     addPass(enableMapping, hardPruner) ==>
+    addPass(enableMapping, memoryComputePruner) ==>
     addPass(enableMapping, memoryPruner) ==>
     addPass(rewriter) ==> // Remove unused shuffle
     addPass(enableMapping, memoryComputePruner) ==>

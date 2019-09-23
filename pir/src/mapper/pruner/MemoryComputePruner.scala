@@ -50,7 +50,7 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
    * */
   def split(k:GlobalContainer, vcost:List[Cost[_]]):Set[CUMap.K] = dbgblk(s"split($k)"){
     val addrCtxs = k.collectDown[Context]().filterNot { ctx => 
-      val localDeps = ctx.siblingDeps().filterNot { _.isInstanceOf[GlobalInput] }
+      val localDeps = ctx.siblingDeps()
       dbg(s"$ctx localDeps=$localDeps")
       ctx.streaming.get || localDeps.nonEmpty
     }
@@ -59,14 +59,7 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
     val addrCtx = addrCtxs.maxBy { _.getCost[StageCost].quantity }
     dbg(s"move addrCtx=$addrCtx")
     val global = within(pirTop) { ComputeContainer() }
-    val gouts = addrCtx.depeds().collect { case gout:GlobalOutput => gout }
     swapParent(addrCtx, global)
-    gouts.foreach { gout => swapParent(gout, global) }
-    //insertGlobalIO(global)
-    //insertGlobalIO(k)
-    k.collectChildren[GlobalInput].foreach { gin =>
-      if (!gin.out.isConnected) removeNodes(List(gin))
-    }
     resetCacheOn {
       case `k` => true
       case (`k`, _) => true
