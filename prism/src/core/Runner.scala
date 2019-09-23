@@ -39,12 +39,15 @@ case class Runner(session:Session, id:Int) extends Serializable with RunnerStatu
   }
 
   def run(implicit compiler:Compiler):Unit = {
-    if (!shouldRun) return
     if (hasRun) return
     dependencies.foreach { dependency =>
-      if (dependency.shouldRun && !dependency.succeeded) {
+      if (!dependency.succeeded) {
         return
       }
+    }
+    if (!shouldRun) {
+      setSucceed
+      return
     }
 
     setRunning
