@@ -10,12 +10,27 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
   val forward = true
 
   var passTwo = false
+  var maxCount:Long = 0
+  var maxCountCtx:String = ""
   val ctxs = mutable.ListBuffer[Context]()
+
+  override def initPass = {
+    super.initPass
+    maxCount = 0
+  }
 
   override def visitNode(n:N) = {
     n.to[Context].foreach { n =>
       ctxs += n
-      n.getCount
+      val count = n.getCount
+      count.foreach {
+        case Finite(count) =>
+          maxCount = math.max(maxCount, count)
+          n.getCtrl.srcCtx.v.foreach { ctx =>
+            maxCountCtx = ctx
+          }
+        case _ =>
+      }
     }
   }
 
@@ -42,6 +57,9 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
     ctxs.clear
     super.finPass
     passTwo = false
+    if (maxCount > 1000000) {
+      warn(f"maxCount=${maxCount}%.2e $maxCountCtx")
+    }
   }
 
   implicit class RuntimeOp2[N<:IR](n:N) extends RuntimeOp1[N](n) {
