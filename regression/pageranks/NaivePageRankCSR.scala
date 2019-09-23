@@ -33,8 +33,10 @@ class NaivePageRankCSR_4 extends NaivePageRankCSR(iters=2)(ipls=1, ip=1)
     val initRank = (1.0f.to[T] / N.to[T]).to[T]
     val argN = ArgIn[Int]
     val argIR = ArgIn[T]
+    val argIters = ArgIn[Int]
     setArg(argN, N)
     setArg(argIR, initRank)
+    setArg(argIters, iters)
 
     val pageranks = DRAM[T](N)
     val ofsts = DRAM[Int](N)
@@ -44,7 +46,7 @@ class NaivePageRankCSR_4 extends NaivePageRankCSR(iters=2)(ipls=1, ip=1)
 
     val rts = ts + 1
     Accel { 
-      Sequential.Foreach(iters by 1) { iter =>
+      Sequential.Foreach(argIters.value by 1) { iter =>
         Foreach(0 until argN.value by ts par opN) { i =>
           val prTile = SRAM[T](ts)
           val ofstTile = SRAM[Int](rts)
