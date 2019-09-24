@@ -65,7 +65,7 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
       .append("activeRate", n.activeRate) +
       n.getCtrl.uid.v.fold("") { uid => s"\nuid=[${uid.mkString(",")}], par=${n.getCtrl.par.get}"} +
       n.ctrl.get.srcCtx.v.fold("") { sc => s"\n$sc" } + 
-      s"op=${n.collectDown[OpDef]().size}"
+      s"\nop=${n.collectDown[OpNode]().size}"
     }
   }
 

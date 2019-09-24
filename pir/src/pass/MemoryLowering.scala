@@ -173,7 +173,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
   def lowerBankedAccesses(mem:Memory, memCU:MemoryContainer, accesses:Set[BankedAccess]) = dbgblk(s"lowerBankedAccesses($mem, $memCU, $accesses)") {
     val headAccess = accesses.head
     val mergeCtrl = headAccess.getCtrl
-    val mergeCtx = within(memCU, headAccess.ctx.get.getCtrl) { Context().streaming(true) }
+    val mergeCtx = within(memCU, headAccess.ctx.get.getCtrl) { Context() }
     // Optimize for fully unrolled case
     val constAddr = accesses.forall { access =>
       access.bank.connected.forall { case (OutputField(c:Const, "out")) => true; case _ => false } &&

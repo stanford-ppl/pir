@@ -38,7 +38,7 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
         val memPrunerHasRun = compiler.hasRun[MemoryPruner]
         if (memPrunerHasRun && notFit(nkcost, vcost)) {
           warn(s"$k still not fit after splitting $nkcost")
-          breakPoint(s"k=$k")
+          //breakPoint(s"k=$k")
           e
         } else {
           Right(fg ++ (k, vs) ++ (ks, spadeTop.cus.toSet))
@@ -71,7 +71,12 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
     if (addrCtxs.isEmpty) return Set.empty
 
     val addrCtx = addrCtxs.map { _.last }.maxBy { _.getCost[StageCost].quantity }
+    dbg(s"$addrCtx")
+    //if (k.id==12848) {
+      //breakPoint(s"$k")
+    //}
     dbg(s"move addrCtx=$addrCtx")
+    //breakPoint(s"move addrCtx=$addrCtx")
     val global = within(pirTop) { ComputeContainer() }
     swapParent(addrCtx, global)
     resetCacheOn {

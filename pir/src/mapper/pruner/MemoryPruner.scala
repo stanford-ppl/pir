@@ -156,7 +156,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
                     val mbankAddr = shuffle.to.collect[BufferWrite](visitIn _).headOption.map { bout =>
                       val bankAddr = bout.data.T
                       dbg(s"bout=$bout bankAddr=$bankAddr")
-                      mapping(bankAddr)
+                      mapping.get(bankAddr).getOrElse(bankAddr)
                     }
                     val mto = mbankAddr.getOrElse { to }
                     dbg(s"mbankAddr=$mbankAddr, mto=$mto")
