@@ -33,7 +33,7 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
         val ks = split(k, vcost).toSet
         val mem = quoteSrcCtx(k.collectDown[Memory]().head)
         info(s"Split $k ${mem} into ${ks.size + 1} CUs $kcost")
-        breakPoint(s"$k")
+        //breakPoint(s"$k")
         val nkcost = getCosts(k)
         val memPrunerHasRun = compiler.hasRun[MemoryPruner]
         if (memPrunerHasRun && notFit(nkcost, vcost)) {

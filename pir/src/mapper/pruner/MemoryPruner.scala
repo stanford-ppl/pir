@@ -24,7 +24,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
         val mem = quoteSrcCtx(k.collectDown[Memory]().head)
         val ks = split(k, kcost, vcost).toSet
         info(s"Split $k $mem into ${ks.size} CUs $kcost")
-        breakPoint(s"$k")
+        //breakPoint(s"$k")
         newFG(fg, k, ks, vs)
       case x => super.recover(x)
     }

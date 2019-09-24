@@ -5,7 +5,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   /* ------------------- Compiler --------------------  */
   register("ctrl", default=true, info="Enable control logic generation")
   register("splitting", default=true, info="Enable splitting")
-  register("split-algo", default="DFS", info="splitting algorithm. [DFS, BFS]") 
+  register("split-algo", default="BFS", info="splitting algorithm. [DFS, BFS]") 
   register("mapping", default=true, info="Enable mapping")
   register("arch", default="MyDesign", info="Default architecture for mapping")
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")

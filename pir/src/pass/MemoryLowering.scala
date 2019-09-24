@@ -80,14 +80,19 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
     val bankids = (0 until mem.banks.get.product).toList
     mem.bankids := bankids
     val accesses = mem.accesses
-    List(mem.inAccesses, mem.outAccesses).foreach { accesses =>
-      groupAccess(mem, accesses).foreach { group =>
+    val newAccesses = List(mem.inAccesses, mem.outAccesses).flatMap { accesses =>
+      groupAccess(mem, accesses).flatMap { group =>
         group.head match {
-          case _:BankedAccess => lowerBankedAccesses(mem, memCU, group.asInstanceOf[Set[BankedAccess]])
-          case _ => lowerAccess(mem, memCU, assertOne(group, s"$mem.access group"))
+          case _:BankedAccess => 
+            val newAccess = lowerBankedAccesses(mem, memCU, group.asInstanceOf[Set[BankedAccess]])
+            Some(newAccess)
+          case _ => 
+            lowerAccess(mem, memCU, assertOne(group, s"$mem.access group"))
+            None
         }
       }
     }
+    val addrCtxs:Map[Access, Context] = newAccesses.toMap // addrCtx -> newAccess
     sequencedScheduleBarrierInsertion(mem)
     //breakPoint(s"insert token for $mem")
     multiBufferBarrierInsertion(mem)
@@ -95,7 +100,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
     //fifoBarrierInsertion(mem)
     mem.accesses.foreach { access =>
       val ctx = access.ctx.get
-      bufferInput(ctx, fromCtx=Some(depCtx(ctx)))
+      bufferInput(ctx, fromCtx=addrCtxs.get(access))
     }
   }
 
@@ -168,7 +173,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
   def lowerBankedAccesses(mem:Memory, memCU:MemoryContainer, accesses:Set[BankedAccess]) = dbgblk(s"lowerBankedAccesses($mem, $memCU, $accesses)") {
     val headAccess = accesses.head
     val mergeCtrl = headAccess.getCtrl
-    val mergeCtx = within(memCU, headAccess.ctx.get.getCtrl) { Context() }
+    val mergeCtx = within(memCU, headAccess.ctx.get.getCtrl) { Context().streaming(true) }
     // Optimize for fully unrolled case
     val constAddr = accesses.forall { access =>
       access.bank.connected.forall { case (OutputField(c:Const, "out")) => true; case _ => false } &&
@@ -229,10 +234,6 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
       red
     }
 
-    if (addrCtxs.forall { _._2 != mergeCtx }) {
-      mergeCtx.streaming(true)
-    }
-
     val List((ofs, data)) = red
     val accessCtx = within(memCU, headAccess.ctx.get.getCtrl) { Context().streaming(true) }
     val newAccess = within(accessCtx) {
@@ -248,12 +249,13 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
     }
     bufferInput(accessCtx)
 
+    val addrCtx = addrCtxs.values.head
     // Connect access.done
     if (mem.depth.get > 1 && newAccess.port.get.nonEmpty) {
       val ctrlMap = leastMatchedPeers(mem.accesses.filterNot{_.port.get.isEmpty}.map { _.getCtrl} ).get
       val ctrl = ctrlMap(mergeCtrl)
       newAccess.done(done(ctrl, accessCtx))
-      bufferInput(newAccess.done, fromCtx=Some(depCtx(accessCtx)))
+      bufferInput(newAccess.done, fromCtx=Some(addrCtx))
     }
 
     newAccess.to[FlatBankedRead].foreach { newAccess =>
@@ -274,6 +276,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
 
     removeNodes(accesses)
     //breakPoint(s"lowerBankedAccesses $mem")
+    (newAccess, addrCtx)
   }
 
   def flattenBankAddr(access:BankedAccess):Unit = dbgblk(s"flattenBankAddr($access)"){
