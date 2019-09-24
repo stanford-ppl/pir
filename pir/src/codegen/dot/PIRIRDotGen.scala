@@ -64,7 +64,8 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
       .append("state", n.psimState)
       .append("activeRate", n.activeRate) +
       n.getCtrl.uid.v.fold("") { uid => s"\nuid=[${uid.mkString(",")}], par=${n.getCtrl.par.get}"} +
-      n.ctrl.get.srcCtx.v.fold("") { sc => s"\n$sc" }
+      n.ctrl.get.srcCtx.v.fold("") { sc => s"\n$sc" } + 
+      s"op=${n.collectDown[OpDef]().size}"
     }
   }
 
@@ -198,7 +199,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
       if (mem.nonEmpty) tooltip += s"\n${mem.mkString(",")}" 
       if (cmd.nonEmpty) tooltip += s"\n${cmd.mkString(",")}"
       val ctxs = n.collectDown[Context]().map { ctx =>
-        ctx.getCtrl.srcCtx.v.map { sc => s"${ctx}|${sc}" }.getOrElse(s"${ctx}")
+        quote(ctx)
       }
       tooltip += s"\n${ctxs.mkString("\n")}"
       super.setAttrs(n).attr("tooltip", tooltip)

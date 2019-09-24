@@ -38,6 +38,7 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
         val memPrunerHasRun = compiler.hasRun[MemoryPruner]
         if (memPrunerHasRun && notFit(nkcost, vcost)) {
           warn(s"$k still not fit after splitting $nkcost")
+          breakPoint(s"k=$k")
           e
         } else {
           Right(fg ++ (k, vs) ++ (ks, spadeTop.cus.toSet))
@@ -46,22 +47,30 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
     }
   }
 
+  private def visitIn(n:PIRNode) = visitLocalIn(n).collect { case ctx:Context => ctx }
+
   /*
    * Recursively split k by first remove out the largest addr calculation ctx that doesn't have
    * local dependency.
    * */
   def split(k:GlobalContainer, vcost:List[Cost[_]]):Set[CUMap.K] = dbgblk(s"split($k)"){
     val memPrunerHasRun = compiler.hasRun[MemoryPruner]
-    val addrCtxs = k.collectDown[Context]().filterNot { ctx => 
-      var cond = ctx.hasChild[Access]
-      if (!memPrunerHasRun) {
-        cond |= ctx.hasChild[Shuffle]
+    val mem = k.collectDown[Memory]().head
+    val addrCtxs = mem.accesses.map { access =>
+      val actx = access.ctx.get
+      actx.accum(visitFunc=visitIn).filterNot { 
+        case ctx:Context =>
+          var cond = ctx.hasChild[Access]
+          if (!memPrunerHasRun) {
+            cond |= ctx.hasChild[Shuffle]
+          }
+          cond
+        case _ => true
       }
-      cond
-    }
+    }.filter { _.nonEmpty }
     if (addrCtxs.isEmpty) return Set.empty
 
-    val addrCtx = addrCtxs.maxBy { _.getCost[StageCost].quantity }
+    val addrCtx = addrCtxs.map { _.last }.maxBy { _.getCost[StageCost].quantity }
     dbg(s"move addrCtx=$addrCtx")
     val global = within(pirTop) { ComputeContainer() }
     swapParent(addrCtx, global)
