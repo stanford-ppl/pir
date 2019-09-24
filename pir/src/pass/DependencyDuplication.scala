@@ -7,7 +7,7 @@ import prism.graph._
 class DependencyDuplication(implicit compiler:PIR) extends DependencyAnalyzer with BufferAnalyzer {
 
   override def runPass = {
-    val ctxs = pirTop.collectDown[Context]().toList
+    val ctxs = pirTop.collectDown[Context]()
     // Compute and mirror in two passes to avoid duplication in mirroring
     ctxs.foreach {
       case ctx@DRAMContext(cmd) => cmd.localIns.foreach { in => bufferInput(in) }
@@ -44,7 +44,7 @@ trait DependencyAnalyzer extends PIRTransformer {
     x:PIRNode, 
     from:Option[Context]=None,
     to:Option[Context]=None,
-  ):List[PIRNode] = dbgblk(s"getDeps($x, from=$from, to=$to)"){
+  ):Stream[PIRNode] = dbgblk(s"getDeps($x, from=$from, to=$to)"){
     val toCtx = to.getOrElse(x.ancestorTree.collectFirst { case ctx:Context => ctx }.get)
     dbg(s"toCtx=$toCtx")
     def accumDeps(x:PIRNode) = x.accum(visitFunc=bound(from,toCtx,visitGlobalIn))
@@ -79,11 +79,11 @@ trait DependencyAnalyzer extends PIRTransformer {
       copyCtrlers
     }
     dbg(s"deps=$deps")
-    deps.toList
+    deps
   }
 
   def mirrorDeps(to:Context, from:Option[Context]):Map[IR,IR] = dbgblk(s"mirrorDeps($to, $from)") {
-    val deps = getDeps(to, from, Some(to))
+    val deps = getDeps(to, from, Some(to)).force
     within(to) { mirrorAll(deps).toMap }
   }
 
@@ -120,17 +120,17 @@ trait DependencyAnalyzer extends PIRTransformer {
   }
 
   def insertControlBlock(ctx:Context) = {
-    val ctrlers = ctx.collectDown[Controller]().toList.sortBy { _.getCtrl.ancestors.size }
+    val ctrlers = ctx.collectDown[Controller]().sortBy { _.getCtrl.ancestors.size }
     if (ctrlers.size > 0) {
       val cb = within(ctx, ctx.getCtrl) {
-        ControlBlock().ctrlers(ctrlers)
+        ControlBlock().ctrlers(ctrlers.toList)
       }
       dbg(s"add $cb in $ctx")
     }
   }
 
-  def dupDeps(ctxs:Iterable[Context], from:Option[Context]=None):Unit = {
-    val mappings = ctxs.map { ctx => (ctx, mirrorDeps(ctx, from)) }.toList
+  def dupDeps(ctxs:Stream[Context], from:Option[Context]=None):Unit = {
+    val mappings = ctxs.map { ctx => (ctx, mirrorDeps(ctx, from)) }.force
     mappings.foreach { case (ctx, mapping) => swapDeps(ctx, mapping) }
     ctxs.foreach { ctx => check(ctx) }
   }

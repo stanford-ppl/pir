@@ -18,8 +18,7 @@ parser.add_argument('-G', '--isGen', dest="path_type", action='store_const', con
         default='backend')
 parser.add_argument('-s', '--summarize', action='store_true', default=False, help='summarize log into csv')
 parser.add_argument('-d', '--diff', dest='show_diff', action='store_true', default=False, help='showing difference')
-parser.add_argument('-H', '--history', dest='show_history', action='store_true', default=False,
-        help='showing history')
+parser.add_argument('-H', '--history', dest='history_depth', default=0, help='showing history')
 parser.add_argument('--logdir', default="{}/spatial/pir/logs/".format(os.environ['HOME']))
 parser.add_argument('--spatial_dir', default="{}/spatial/".format(os.environ['HOME']))
 parser.add_argument('--pir_dir', default="{}/spatial/pir".format(os.environ['HOME']))
@@ -566,6 +565,8 @@ def show_history(opts):
         history = history[mask]
 
     history = history.sort_values(["project", "app", "backend", "time"])
+    # hostory = history.groupby(["project", "app", "backend"]).apply(
+            # lambda grp: grp.sort_values(["time"]).head(opts.history_depth))
 
     if history.shape[0] > 0:
         for idx, row in history.iterrows():
@@ -662,6 +663,7 @@ def setFilterRules(opts):
 
 def main(args=None):
     (opts, args) = parser.parse_known_args(args=args)
+    opts.show_history = opts.history_depth > 0
 
     if opts.show_diff or opts.show_history:
         load_history(opts)

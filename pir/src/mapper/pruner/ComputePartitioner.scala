@@ -21,11 +21,11 @@ trait ComputePartitioner extends CUPruner {
         val ctxs:Stream[Context] = k.collectDown[Context]().flatMap { ctx => split(ctx, vcost) }
         val globals = ctxs.map { ctx =>
           within(pirTop) {
-            val global = ComputeContainer()
+            val global = stage(ComputeContainer())
             swapParent(ctx, global)
             global
           }
-        }
+        }.force
         removeNodes(k.descendentTree)
         globals
       case k:Context =>
@@ -33,9 +33,9 @@ trait ComputePartitioner extends CUPruner {
         val part = new Partition(scope)
         val parts = split(part, vcost)
         dbg(s"partitions=${parts.size}")
-        val ctxs = within(k.global.get, k.ctrl.get) {
-          parts.map { case part@Partition(scope) =>
-            val ctx = Context()
+        val ctxs = parts.map { case part@Partition(scope) =>
+          within(k.global.get, k.ctrl.get) {
+            val ctx = stage(Context())
             dbg(s"Create $ctx for $part")
             scope.foreach { n => swapParent(n, ctx) }
             ctx
@@ -83,7 +83,7 @@ trait ComputePartitioner extends CUPruner {
       case x: Partition => 
         val deps = x.deps.filter { d =>
           include(d) || d.isInstanceOf[LocalOutAccess]
-        }.distinct.toList
+        }.distinct
         dbg(s"deps=$deps")
         val ins = deps
         val (vins, sins) = ins.partition { _.getVec > 1 }
