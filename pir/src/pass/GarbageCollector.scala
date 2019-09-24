@@ -9,7 +9,7 @@ import scala.collection.mutable
 
 trait GarbageCollector { self:PIRTransformer =>
 
-  private var aggressiveGC = true
+  private var aggressiveGC = false
   def withGC[T](aggressiveGC:Boolean)(block: => T) = {
     val saved = this.aggressiveGC
     this.aggressiveGC = aggressiveGC
@@ -38,7 +38,7 @@ trait GarbageCollector { self:PIRTransformer =>
       if (aggressiveGC) {
         (x.ancestorTree++x.leaves).filter { x => mustDead(x) }
       } else {
-        if (mustDead(x)) Stream(x) else Stream()
+        Stream()
       }
     }
     dbg(s"$n deps=${deps} parent=${parents}")
