@@ -33,8 +33,10 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
         val ks = split(k, vcost).toSet
         val mem = quoteSrcCtx(k.collectDown[Memory]().head)
         info(s"Split $k ${mem} into ${ks.size + 1} CUs $kcost")
+        breakPoint(s"$k")
         val nkcost = getCosts(k)
-        if (notFit(nkcost, vcost)) {
+        val memPrunerHasRun = compiler.hasRun[MemoryPruner]
+        if (memPrunerHasRun && notFit(nkcost, vcost)) {
           warn(s"$k still not fit after splitting $nkcost")
           e
         } else {
@@ -49,10 +51,13 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
    * local dependency.
    * */
   def split(k:GlobalContainer, vcost:List[Cost[_]]):Set[CUMap.K] = dbgblk(s"split($k)"){
+    val memPrunerHasRun = compiler.hasRun[MemoryPruner]
     val addrCtxs = k.collectDown[Context]().filterNot { ctx => 
-      val localDeps = ctx.siblingDeps()
-      dbg(s"$ctx localDeps=$localDeps")
-      ctx.streaming.get || localDeps.nonEmpty
+      var cond = ctx.hasChild[Access]
+      if (!memPrunerHasRun) {
+        cond |= ctx.hasChild[Shuffle]
+      }
+      cond
     }
     if (addrCtxs.isEmpty) return Set.empty
 

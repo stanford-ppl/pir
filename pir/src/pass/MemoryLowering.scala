@@ -182,15 +182,14 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
     val red = within(mergeCtx, mergeCtrl) {
       val requests = accesses.map { access =>
         val addrCtx = access match {
-          case access if accesses.size == 1 || constAddr => mergeCtx
+          //case access if accesses.size == 1 || constAddr => mergeCtx
+          case access:BankedWrite => access.ctx.get 
           case access => within(memCU, access.ctx.get.getCtrl) { Context() }
-          //case access:BankedWrite => access.ctx.get // Writer also have new context per access
-          //inside PMU so when splitting PMU the shuffles are duplicated
         }
         addrCtxs += access -> addrCtx
         dbg(s"addrCtx for $access = $addrCtx")
         swapParent(access, addrCtx)
-        within(addrCtx, addrCtx.getCtrl) {
+        val (ofsOut,bank) = within(addrCtx, addrCtx.getCtrl) {
           flattenBankAddr(access)
           lowerLUTAccess(mem, access)
           val bank = access.bank.connected
@@ -198,27 +197,29 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
           access.en.singleConnected.foreach { en =>
             ofsOut = stage(OpDef(Mux).addInput(en, ofsOut, allocConst(-1).out).out)
           }
-          val ofs = stage(Shuffle(-1).from(bank).to(allocConst(mem.bankids.get)).base(ofsOut).out)
-          val data = access match {
-            case access:BankedWrite => 
-              val shuffle = stage(Shuffle(0).from(bank).to(allocConst(mem.bankids.get)).base(access.data.connected))
-              bufferInput(shuffle.base) // Prevent copying data producer into addrCtx
-              Some(shuffle.out)
-            case access => None
-          }
-          dbg(s"ofs:${dquote(ofs)} data:${data.map{dquote}}")
-          (ofs, data)
+          (ofsOut,bank)
         }
+        val ofs = stage(Shuffle(-1).from(bank).to(allocConst(mem.bankids.get)).base(ofsOut))
+        bufferInput(ofs.base, fromCtx=Some(addrCtx))
+        bufferInput(ofs.from, fromCtx=Some(addrCtx))
+        val data = access match {
+          case access:BankedWrite => 
+            val shuffle = stage(Shuffle(0).from(bank).to(allocConst(mem.bankids.get)).base(access.data.connected))
+            bufferInput(shuffle.base) // Prevent copying data producer into addrCtx
+            bufferInput(shuffle.from, fromCtx=Some(addrCtx))
+            Some(shuffle)
+          case access => None
+        }
+        dbg(s"ofs:${dquote(ofs)} data:${data.map{dquote}}")
+        (ofs.out, data.map { _.out })
       }
       var red:List[(Output[PIRNode], Option[Output[PIRNode]])] = requests.toList
       while(red.size > 1) {
         red = red.sliding(2,2).map{ 
           case List((o1, d1),(o2, d2)) =>
             val of = stage(OpDef(SelectNonNeg).addInput(o1, o2))
-            of.inputs.foreach { in => bufferInput(in) }
             val dt = zipOption(d1, d2).map { case (d1, d2) =>
               val dt = stage(OpDef(FixOr).addInput(d1,d2))
-              dt.inputs.foreach { in => bufferInput(in) }
               dt
             }
             (stage(of.out), dt.map { dt => stage(dt.out) })
@@ -226,6 +227,10 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
         }.toList
       }
       red
+    }
+
+    if (addrCtxs.forall { _._2 != mergeCtx }) {
+      mergeCtx.streaming(true)
     }
 
     val List((ofs, data)) = red
