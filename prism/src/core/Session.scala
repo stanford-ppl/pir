@@ -81,6 +81,7 @@ trait Session { self:Compiler =>
     val failed = runners.filter { _.failed }
     if (failed.nonEmpty) {
       err[Unit](s"Failed passes: ${failed.map{_.name}.mkString(",")}", false)
+      handle
     }
     failed.isEmpty
   }

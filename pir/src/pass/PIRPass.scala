@@ -21,24 +21,9 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
   override def config:PIRConfig = compiler.config
 
   override def handle(e:Throwable) = {
-    if (config.enableDot) {
-      tryDot(new PIRGlobalDotGen(s"global.dot"))
-      tryDot(new PIRCtxDotGen(s"ctx.dot"))
-    }
-    if (config.enableVerboseDot)
-      tryDot(new PIRIRDotGen(s"top.dot"))
+    compiler.handle(e)
     super.handle(e)
   }
-
-  def tryDot(dotGen:PIRIRDotGen) = {
-    try {
-      dotGen.run
-    } catch {
-      case e:Exception =>
-        bug[Unit](s"Fail to generate ${dotGen.fileName}", false)
-    }
-  }
-
 
   override def dquote(x:Any) = x match {
     case x:ControlTree if x.sname.nonEmpty => s"$x[${x.sname.get}]"

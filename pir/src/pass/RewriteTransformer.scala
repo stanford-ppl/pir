@@ -73,7 +73,7 @@ trait RewriteUtil { self: PIRTransformer =>
       dbgblk(s"EvalOp($n, $exp)") {
         exp match {
           case Literal(c) =>
-            val const = within(n.parent.get, n.ctrl.get) { allocConst(c) }
+            val const = within(n.parent.get, n.ctrl.get) { allocConst(c, tp=Some(n.getTp)) }
             (n.out, const.out)
           case List(out:Output[_]) =>
             (n.out, out)

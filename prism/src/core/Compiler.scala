@@ -18,6 +18,7 @@ trait Compiler extends FileIOUtil with ArgLoader with Session with Logging {
   } 
 
   def handle(e:Throwable):Try[Boolean]
+  def handle:Unit = {}
 
   def setArgs(inputArgs: Array[String]):Unit = {
     val args = loadArgs(inputArgs)
