@@ -88,12 +88,14 @@ trait DependencyAnalyzer extends PIRTransformer {
   }
 
   def swapDeps(ctx:Context, mapping:Map[IR,IR]) = dbgblk(s"swapDeps($ctx)"){
-    mapping.foreach { 
-      case (dep:PIRNode, mdep:PIRNode) =>
-        dep.localDepeds.filter { _.isDescendentOf(ctx) }.foreach { n =>
-          swapDep(n, dep, mdep)
-        }
-      case (dep, mdep) =>
+    withGC(false) {
+      mapping.foreach { 
+        case (dep:PIRNode, mdep:PIRNode) =>
+          dep.localDepeds.filter { _.isDescendentOf(ctx) }.foreach { n =>
+            swapDep(n, dep, mdep)
+          }
+        case (dep, mdep) =>
+      }
     }
     //breakPoint(s"swapDep($ctx)", None)
   }
