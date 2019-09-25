@@ -565,7 +565,7 @@ def show_history(opts):
         history = history[mask]
 
     history = history.groupby(["project", "app", "backend"]).apply(lambda x:
-            x.sort_values(["time"]).head(opts.history_depth))
+            x.sort_values(["time"]).tail(opts.history_depth))
 
     if history.shape[0] > 0:
         for idx, row in history.iterrows():
