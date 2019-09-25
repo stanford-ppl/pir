@@ -570,8 +570,14 @@ def show_history(opts):
     if history.shape[0] > 0:
         for idx, row in history.iterrows():
             pconf = to_conf(row)
-            print('{} {} {} {}'.format(getMessage(pconf, opts), pconf['spatial_sha'], 
-                get(pconf,'pir_sha'), pconf['time']))
+            pir_sha = get(pconf,'pir_sha')
+            if pir_sha is not None:
+                pirmsg = subprocess.check_output("git log --format=%B -n 1 {}".format(pir_sha).split(" "),
+                cwd=opts.pir_dir).replace("'","").replace("\n","")
+            else:
+                pirmsg = ""
+            print('{} {} {} {} {}'.format(getMessage(pconf, opts), pconf['spatial_sha'], 
+                pir_sha, pconf['time'], pirmsg))
 
 def show_gen(opts):
     gitmsg = subprocess.check_output("git log --pretty=format:'%h' -n 1".split(" "),
