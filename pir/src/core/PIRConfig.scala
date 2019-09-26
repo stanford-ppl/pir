@@ -15,6 +15,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("igraph", default=false, info="Enable igraph codegen")
   register("dedicated-dag", default=false, info="Force DRAM AG are only used to map DRAM Address Calculation")
   register("module", default=false, info="Generate the app as a module")
+  register[String]("pir-home", default=sys.env.get("PIR_HOME"), info="PIR Home")
 
   def arch = option[String]("arch")
   def enableSplitting = option[Boolean]("splitting")
@@ -26,7 +27,9 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def printStat = option[Boolean]("stat")
   def forceAlign = option[Boolean]("force-align")
   def enableIgraph = option[Boolean]("igraph")
+  def graphDir = buildPath(appDir, "graph")
   def asModule = enableCodegen && option[Boolean]("module")
+  def pirHome = getOption[String]("pir-home").getOrElse(err(s"pir-home is not set"))
 
   /* ------------------- Routing --------------------  */
   register("routing-algo", default="dor", info="If net=[dynamic] - [dor, planed, proute]. Option ignored for other network. dor - dimention order routing. planed - arbitrary source routing, proute - use plastiroute for place and route. If proute is chosen plastiroute will be launched from pir if $PLASTIROUTE_HOME is set") 
