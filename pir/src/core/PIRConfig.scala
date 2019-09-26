@@ -5,7 +5,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   /* ------------------- Compiler --------------------  */
   register("ctrl", default=true, info="Enable control logic generation")
   register("splitting", default=true, info="Enable splitting")
-  register("split-algo", default="DFS", info="splitting algorithm. [DFS, BFS]") 
+  register("split-algo", default="dfs", info="splitting algorithm. [dfs, bfs, solver]") 
   register("mapping", default=true, info="Enable mapping")
   register("arch", default="MyDesign", info="Default architecture for mapping")
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
@@ -14,6 +14,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("force-align", default=false, info="Remove control signals that handle unaligned parallalization")
   register("igraph", default=false, info="Enable igraph codegen")
   register("dedicated-dag", default=false, info="Force DRAM AG are only used to map DRAM Address Calculation")
+  register("module", default=false, info="Generate the app as a module")
 
   def arch = option[String]("arch")
   def enableSplitting = option[Boolean]("splitting")
@@ -25,7 +26,6 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def printStat = option[Boolean]("stat")
   def forceAlign = option[Boolean]("force-align")
   def enableIgraph = option[Boolean]("igraph")
-  register("module", default=false, info="Generate the app as a module")
   def asModule = enableCodegen && option[Boolean]("module")
 
   /* ------------------- Routing --------------------  */
