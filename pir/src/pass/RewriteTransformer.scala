@@ -368,7 +368,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   TransferRule[BufferRead] { r2 =>
     val w2 = r2.inAccess.as[BufferWrite]
     w2.data.T match {
-      case r1:BufferRead if matchRate(w2, r1) & matchInput(r1.en, w2.en) & !r2.nonBlocking =>
+      case r1:BufferRead if r1.isFIFO == r2.isFIFO && matchRate(w2, r1) & matchInput(r1.en, w2.en) & !r2.nonBlocking =>
         val w1 = r1.inAccess.as[BufferWrite]
         dbgblk(s"Route through (3) $w1 -> $r1 -> $w2 -> $r2 detected => ") {
           dbg(s" => $w1 -> $r2")

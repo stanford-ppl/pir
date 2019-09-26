@@ -188,7 +188,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
       val requests = accesses.map { access =>
         val addrCtx = access match {
           //case access if accesses.size == 1 || constAddr => mergeCtx
-          case access:BankedWrite => access.ctx.get 
+          //case access:BankedWrite => access.ctx.get 
           case access => within(memCU, access.ctx.get.getCtrl) { Context() }
         }
         addrCtxs += access -> addrCtx

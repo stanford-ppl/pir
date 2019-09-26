@@ -6,20 +6,9 @@ import prism.graph._
 import spade.param._
 import prism.collection.immutable._
 
-class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
+class MemoryComputePruner(implicit compiler:PIR) extends CUPruner with MemoryComputePartitioner {
 
-  override def getCosts(x:Any):List[Cost[_]] = {
-    x match {
-      case _:ComputeContainer => Nil
-      case _:DRAMFringe => Nil
-      case _ => 
-        x.getCost[StageCost] ::
-        x.getCost[InputCost] ::
-        x.getCost[OutputCost] ::
-        //x.getCost[FIFOCost] ::
-        Nil
-    }
-  }
+  override def getCosts(x:Any):List[Cost[_]] = getComputeCost(x)
 
   override def recover(x:EOption[CUMap]):EOption[CUMap] = {
     x match {
@@ -47,7 +36,28 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
     }
   }
 
-  private def visitIn(n:PIRNode) = visitLocalIn(n).collect { case ctx:Context => ctx }
+}
+
+trait MemoryComputePartitioner extends PIRTransformer with CUCostUtil {
+
+  def getComputeCost(x:Any):List[Cost[_]] = {
+    x match {
+      case _:ComputeContainer => Nil
+      case _:DRAMFringe => Nil
+      case _ => 
+        x.getCost[StageCost] ::
+        x.getCost[InputCost] ::
+        x.getCost[OutputCost] ::
+        //x.getCost[FIFOCost] ::
+        Nil
+    }
+  }
+
+  lazy val schedular = new PIRTraversal with BFSTopologicalTraversal with TreeSchedular { 
+    val forward = false
+    override def visitIn(n:N) = visitLocalIn(n).collect { case ctx:Context if !ctx.hasChild[Access] => ctx }
+    override def visitOut(n:N) = visitLocalOut(n).collect { case ctx:Context if !ctx.hasChild[Access] => ctx }
+  }
 
   /*
    * Recursively split k by first remove out the largest addr calculation ctx that doesn't have
@@ -58,23 +68,21 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
     val mem = k.collectDown[Memory]().head
     val addrCtxs = mem.accesses.map { access =>
       val actx = access.ctx.get
-      actx.accum(visitFunc=visitIn).filterNot { 
-        case ctx:Context =>
-          var cond = ctx.hasChild[Access]
-          if (!memPrunerHasRun) {
-            cond |= ctx.hasChild[Shuffle]
-          }
-          cond
-        case _ => true
-      }
-    }.filter { _.nonEmpty }
+      schedular.scheduleNode(actx).map { _.filterNot { 
+          case ctx:Context =>
+            var cond = ctx.hasChild[Access]
+            if (!memPrunerHasRun) {
+              cond |= ctx.hasChild[Shuffle]
+            }
+            cond
+          case _ => true
+        }
+      }.filterNot { _.isEmpty }
+    }.filterNot { _.isEmpty }
     if (addrCtxs.isEmpty) return Set.empty
 
-    val addrCtx = addrCtxs.map { _.last }.maxBy { _.getCost[StageCost].quantity }
-    dbg(s"$addrCtx")
-    //if (k.id==12848) {
-      //breakPoint(s"$k")
-    //}
+    val addrCtx = addrCtxs.toStream.map { _.last }.flatten.maxBy { _.getCost[StageCost].quantity }
+    dbg(s"addrCtxs=$addrCtxs")
     dbg(s"move addrCtx=$addrCtx")
     //breakPoint(s"move addrCtx=$addrCtx")
     val global = within(pirTop) { ComputeContainer() }
@@ -86,7 +94,7 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
       case (`addrCtx`, _) => true
       case _ => false
     }
-    val nkcost = getCosts(k)
+    val nkcost = getComputeCost(k)
     //breakPoint(s"split $k")
     if (notFit(nkcost, vcost)) {
       split(k, vcost) + global
@@ -94,5 +102,5 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner {
       Set(global)
     }
   }
-
 }
+

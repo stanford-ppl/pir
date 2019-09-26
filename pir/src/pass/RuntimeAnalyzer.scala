@@ -58,6 +58,7 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
     super.finPass
     passTwo = false
     if (maxCount > 1000000) {
+      dbg(s"maxCount=$maxCount")
       warn(f"maxCount=${maxCount}%.2e $maxCountCtx")
     }
   }

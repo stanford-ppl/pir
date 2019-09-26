@@ -20,11 +20,6 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
   override def states = compiler.pirenv.states
   override def config:PIRConfig = compiler.config
 
-  override def handle(e:Throwable) = {
-    compiler.handle(e)
-    super.handle(e)
-  }
-
   override def dquote(x:Any) = x match {
     case x:ControlTree if x.sname.nonEmpty => s"$x[${x.sname.get}]"
     case Const(v) => s"${super.dquote(x)}($v)"

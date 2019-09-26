@@ -8,26 +8,61 @@ import prism.collection.immutable._
 import prism.graph._
 import scala.collection.mutable
 
-class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner {
+class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner with MemoryComputePartitioner {
 
-  override def getCosts(x:Any):List[Cost[_]] = List(x.getCost[SRAMCost])
+  override def getCosts(x:Any):List[Cost[_]] = x match {
+    case global:GlobalContainer =>
+      global.to[MemoryContainer].map { x =>
+        List(x.getCost[SRAMCost], x.getCost[StageCost], x.getCost[InputCost], x.getCost[OutputCost])
+      }.getOrElse(Nil)
+    case _ => 
+      List(x.getCost[SRAMCost], x.getCost[StageCost], x.getCost[InputCost], x.getCost[OutputCost])
+  }
 
   override def recover(x:EOption[CUMap]):EOption[CUMap] = {
     x match {
       case Left(f@InvalidFactorGraph(fg:CUMap, k:CUMap.K)) =>
-        val kcost = getCosts(k).head.as[SRAMCost]
+        val kcost = getCosts(k)
         val vs = fg.freeValuesOf(k)
-        val vcost = assertOne(vs.map { getCosts(_) }, s"sramCost").head.as[SRAMCost]
+        val vcost = assertOne(vs.map { getCosts(_) }, s"MemoryCost")
         dbg(s"Recover $k")
         dbg(s"kcost=$kcost")
         dbg(s"vcost=$vcost")
         val mem = quoteSrcCtx(k.collectDown[Memory]().head)
-        val ks = split(k, kcost, vcost).toSet
-        info(s"Split $k $mem into ${ks.size} CUs $kcost")
+        val (ms, cs) = split(k, kcost, vcost)
+        info(s"Split $k $mem into ${ms.size} Memory CUs and ${cs.size} Compute CUs $kcost")
         //breakPoint(s"$k")
-        newFG(fg, k, ks, vs)
+        Right(fg.mapFreeMap { _ - k ++ ((ms, vs)) ++ ((cs, spadeTop.cus.toSet)) })
       case x => super.recover(x)
     }
+  }
+
+  def split(k:CUMap.K, kcost:List[Cost[_]], vcost:List[Cost[_]]):(Set[GlobalContainer],Set[GlobalContainer]) = dbgblk(s"split($k)"){
+    val mem = k.collectDown[Memory]().head
+    val kMemCost::kCompCost = kcost
+    val vMemCost::vCompCost = vcost
+    val (totalBanks, bankPerCU, numCU, sizePerBank, bankMult) = splitBanks(kMemCost.as[SRAMCost], vMemCost.as[SRAMCost])
+
+    val memNotFit = notFit(kMemCost, vMemCost)
+    val compNotFit = notFit(kCompCost, vCompCost)
+
+    // Capacity Splitting. Update bank calculation
+    if (memNotFit && bankMult > 1) {
+      mem.accesses.foreach { access =>
+        updateAddrCalc(access.as[FlatBankedAccess], bankMult, sizePerBank)
+      }
+      val banks = mem.banks.get
+      mem.banks.reset
+      mem.banks(banks :+ bankMult)
+    }
+
+    // Splitting address calculation
+    val compGlobals = if (compNotFit) { split(k, vCompCost) } else Set.empty[GlobalContainer]
+
+    // Partition Memory
+    val memGlobals = if (memNotFit) splitMemoryContainer(k,totalBanks,bankPerCU,numCU) else Set(k)
+
+    (memGlobals, compGlobals)
   }
 
   def getAccessPattern(mem:Memory) = {
@@ -42,19 +77,8 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     }.flatten.distinct
   }
 
-  def split(k:CUMap.K, kcost:SRAMCost, vcost:SRAMCost):List[GlobalContainer] = dbgblk(s"split($k)"){
+  def splitMemoryContainer(k:CUMap.K, totalBanks:Int, bankPerCU:Int, numCU:Int) = {
     val mem = k.collectDown[Memory]().head
-    val (totalBanks, bankPerCU, numCU, sizePerBank, bankMult) = splitBanks(kcost, vcost)
-
-    if (bankMult > 1) {
-      mem.accesses.foreach { access =>
-        updateAddrCalc(access.as[FlatBankedAccess], bankMult, sizePerBank)
-      }
-      val banks = mem.banks.get
-      mem.banks.reset
-      mem.banks(banks :+ bankMult)
-    }
-
     val accessGrps = getAccessPattern(mem)
     val parts = partitionBanks(accessGrps, totalBanks, bankPerCU).toList
     dbg(s"parts:")
@@ -82,7 +106,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     removeNodes(k.collectDown[TokenRead]())
     free(k)
     //breakPoint(s"$k, $mks")
-    mks
+    mks.toSet
   }
 
   def visitIn(n:PIRNode) = n match {

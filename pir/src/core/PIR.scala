@@ -31,7 +31,7 @@ trait PIR extends Compiler {
       dotGen.run
     } catch {
       case e:Exception =>
-        bug[Unit](s"Fail to generate ${dotGen.fileName}", false)
+        bug[Unit](s"Fail to generate ${dotGen.fileName} $e", false)
     }
   }
 
