@@ -68,6 +68,23 @@ def summarize(backend, opts, confs):
             summary.writerow(conf)
     print('Generate summary in {}'.format(summary_path))
 
+def query(conf, f):
+    if f == 'simfreq':
+        p2ptime = get(conf,'runp2p_time')
+        if p2ptime is None:
+            return None
+        p2ptime = p2ptime.split(":")
+        if len(p2ptime) == 2:
+            p2ptime.insert(0, 0)
+        hour,min,sec = [float(time) for time in p2ptime]
+        sec = hour * 60 * 60 + min * 60 + sec
+        ans = float(get(conf,'runp2p_cycle')) / sec / 1000
+        return '{}kHz'.format(round(ans,2))
+    elif f in conf:
+        return get(conf,f)
+    else:
+        return None
+
 def getMessage(conf, opts):
     msg = []
     msg.append(conf['backend'])
@@ -75,10 +92,8 @@ def getMessage(conf, opts):
     succeeded = False
 
     for f in opts.message.split(","):
-        if f in conf:
-            msg.append(cstr(CYAN, f + ':' + str(get(conf,f))))
-        # else:
-            # print("{} not in config. options: {}".format(f, ','.join([k for k in conf])))
+        ans = query(conf, f)
+        msg.append(cstr(CYAN, f + ':' + str(ans)))
 
     if get(conf,'genpir'):
         msg.append(cstr(GREEN, 'genpir'))
