@@ -93,6 +93,7 @@ def getMessage(conf, opts):
 
     for f in opts.message.split(","):
         ans = query(conf, f)
+        if ans is None: continue
         msg.append(cstr(CYAN, f + ':' + str(ans)))
 
     if get(conf,'genpir'):
