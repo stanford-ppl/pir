@@ -5,7 +5,7 @@ import spatial.lib.ML._
   type T = Int
 
   val N:scala.Int = 32
-  val ip:scala.Int = 1
+  val ip:scala.Int = 16
 
   def main(args: Array[String]): Unit = {
     val in = (0 until N) { i => i }
@@ -35,7 +35,7 @@ import spatial.lib.ML._
   type T = Int
 
   val N:scala.Int = 32
-  val ip:scala.Int = 1
+  val ip:scala.Int = 16
 
   def main(args: Array[String]): Unit = {
     val in = (0 until N) { i => i }
