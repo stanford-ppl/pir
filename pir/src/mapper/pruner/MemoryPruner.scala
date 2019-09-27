@@ -227,7 +227,7 @@ trait BankPartitioner extends Logging {
     sizePerBank = kcost.size /! totalBanks
     bankPerCU = Math.min(vcost.size / sizePerBank, vcost.bank)
 
-    dbg(s"totalBanks=$totalBanks, numCU=$numCU, bankMult=$bankMult, bankPerCU=$bankPerCU")
+    dbg(s"sizePerBank=$sizePerBank cuPerBank=$cuPerBank totalBanks=$totalBanks, numCU=$numCU, bankMult=$bankMult, bankPerCU=$bankPerCU")
     (totalBanks, bankPerCU, numCU, sizePerBank, bankMult)
   }
 
@@ -235,34 +235,28 @@ trait BankPartitioner extends Logging {
   // Partition totalBanks into subgroups such that each group cannot exceed bankPerCU while 
   // 1. minimizing # of groups
   // 2. minimizing # of groups accessed by access bundles
-  def partitionBanks(accessGroup:List[List[Int]], totalBanks:Int, bankPerCU:Int):Set[List[Int]] = {
+  def partitionBanks(accessGroup:List[List[Int]], totalBanks:Int, bankPerCU:Int):List[List[Int]] = {
     // ListBuffer[List[Int]]: List of staticially analyzed access bundle.
     dbg(s"accessGroup:")
     accessGroup.foreach { access =>
       dbg(s"${access.mkString(",")}")
     }
     
-    // Map [AccessGroup, List[Bank]]
+    // Map [AccessGroupIDs, List[Bank]]: Mapping of access group to list of banks the touched
     val touchedBy = (0 until totalBanks).groupBy { bank =>
       accessGroup.zipWithIndex.flatMap { case (banks, accessId) => if (banks.contains(bank)) Some(accessId) else None }
     }
-    val partition = touchedBy.map { case (aids, banks) => (aids, banks) }
-
     // TODO: use union find to speedup this
-    var groups:Set[List[Int]] = partition.flatMap { case (aids, banks) =>
-      dbg(s"aids:$aids banks:$banks ")
-      if (aids.nonEmpty)  {
-        assert(banks.size <= bankPerCU, s"aids=$aids, banks=$banks, bankPerCU:$bankPerCU")
-        List(banks.toList)
-      } else {
-        banks.grouped(bankPerCU).map{_.toList}.toList
-      }
-    }.toSet
+    // Initial group assignment
+    var groups:List[List[Int]] = (0 until totalBanks).map { i => List(i) }.toList
 
-    def groupsOf(aid:Int):Set[List[Int]] = {
-      accessGroup(aid).map { bank => groups.find {_.contains(bank) }.get }.toSet
+    // Bank groups touched by access ID
+    def groupsOf(aid:Int):List[List[Int]] = {
+      accessGroup(aid).map { bank => groups.find {_.contains(bank) }.get }
     }
 
+    // Starting with access that touch least # of groups, try to merge groups touched by this access
+    // And iteratively doing this for all accesses
     (0 until accessGroup.size).sortBy { aid => groupsOf(aid).size }.foreach { aid =>
       val accessGrps = groupsOf(aid)
       groups = merge(accessGrps, bankPerCU) ++ groups.filterNot { accessGrps.contains(_) }
@@ -273,28 +267,29 @@ trait BankPartitioner extends Logging {
     groups
   }
 
-  private def merge(unmergable:Set[List[Int]], mergable:Set[List[Int]], sizeLimit:Int):Set[List[Int]] = {
+  // Merge groups in list with sizeLimit for each sublist until they cannot be further merged
+  def merge(list:List[List[Int]], sizeLimit:Int):List[List[Int]] = {
+    val (unmergable, mergable) = list.partition { _.size >= sizeLimit }
+    merge(unmergable, mergable, sizeLimit)
+  }
+
+  // Recursively merge groups until they all over size limit or no longer can be combined
+  private def merge(unmergable:List[List[Int]], mergable:List[List[Int]], sizeLimit:Int):List[List[Int]] = {
     val group = if (mergable.size == 0) unmergable else {
       val head = mergable.maxBy { _.size }
-      val rest = mergable - head
+      val rest = mergable.filterNot { _ == head }
       rest.find { _.size + head.size <= sizeLimit }.fold {
-        merge(unmergable + head, rest, sizeLimit)
+        merge(unmergable :+ head, rest, sizeLimit)
       } { mergeWith =>
         val merged = head ++ mergeWith
         if (head.size + mergeWith.size == sizeLimit) {
-          merge(unmergable + merged, rest.filterNot { _ == mergeWith}, sizeLimit)
+          merge(unmergable :+ merged, rest.filterNot { _ == mergeWith }, sizeLimit)
         } else {
           merge(unmergable, rest.map { case `mergeWith` => merged; case grp => grp }, sizeLimit)
         }
       }
     }
     group.map { _.sorted }
-  }
-
-  // Merge lists in list with sizeLimit for each sublist until they cannot be further merged
-  def merge(list:Set[List[Int]], sizeLimit:Int):Set[List[Int]] = {
-    val (unmergable, mergable) = list.partition { _.size >= sizeLimit }
-    merge(unmergable, mergable, sizeLimit)
   }
 
 }
