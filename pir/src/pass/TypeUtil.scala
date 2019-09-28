@@ -185,7 +185,7 @@ trait TypeUtil { self:PIRPass =>
     }
   }
 
-  def compType(n:IR):Option[BitType] = /*dbgblk(s"compType(${dquote(n)})") */{
+  def compType(n:IR):Option[BitType] = /*dbgblk(s"compType(${dquote(n)})")*/ {
     n match {
       case OutputField(n:Controller, "done") => Some(Bool)
       case OutputField(n:LoopController, "firstIter") => Some(Bool)
@@ -205,8 +205,8 @@ trait TypeUtil { self:PIRPass =>
       case n:GlobalOutput => n.in.inferTp
       case n:RegAccumOp => n.in.inferTp
       case n:RegAccumFMA => n.in1.inferTp
-      case n:MemRead => n.mem.inferTp
-      case n:MemWrite => n.data.inferTp
+      case n:ReadAccess => n.mem.inferTp
+      case n:WriteAccess => n.data.inferTp
       case n:Memory => assertOptionUnify(n.inAccesses, s"$n.type") { w => w.inferTp }
       case n@OpDef(_:BitOp) => Some(Bool)
       case n@OpDef(_:TextOp) => Some(Text)
