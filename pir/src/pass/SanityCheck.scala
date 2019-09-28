@@ -66,8 +66,10 @@ class SanityCheck(implicit compiler:PIR) extends PIRTraversal with SiblingFirstT
         }
         val ctrlers = n.ctrlers
         if (ctrlers.nonEmpty) {
-          val cs = ctrlers.filter { _.getCtrl == n.getCtrl }
-          assert(cs.nonEmpty, s"$n doesn't have matched controller for ${n.getCtrl}")
+          val cs = ctrlers.groupBy { _.getCtrl.ancestors.size }
+          cs.foreach { case (depth, cs) =>
+            assertOne(cs, s"$n have multiple controllers at the same level ${depth}")
+          }
         }
       case n:GlobalIO => 
         if (n.neighbors.isEmpty) err(s"$n is not connected")
