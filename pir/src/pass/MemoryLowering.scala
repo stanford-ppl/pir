@@ -72,6 +72,10 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
     }
   }
 
+  // Allocate one new Context per controller. This approach might not work if the address
+  // calculation of different accesses in the same controller are data dependent on some other
+  // memory access, which will create cycle on that context
+  val addrCtxs = mutable.Map[ControlTree, Context]()
   def createMemGlobal(mem:Memory) = {
     val memCU = within(pirTop) { MemoryContainer() }
     // Create Memory Context
@@ -80,19 +84,16 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
     val bankids = (0 until mem.banks.get.product).toList
     mem.bankids := bankids
     val accesses = mem.accesses
-    val newAccesses = List(mem.inAccesses, mem.outAccesses).flatMap { accesses =>
-      groupAccess(mem, accesses).flatMap { group =>
+    List(mem.inAccesses, mem.outAccesses).foreach { accesses =>
+      groupAccess(mem, accesses).foreach { group =>
         group.head match {
           case _:BankedAccess => 
-            val newAccess = lowerBankedAccesses(mem, memCU, group.asInstanceOf[Set[BankedAccess]])
-            Some(newAccess)
+            lowerBankedAccesses(mem, memCU, group.asInstanceOf[Set[BankedAccess]])
           case _ => 
             lowerAccess(mem, memCU, assertOne(group, s"$mem.access group"))
-            None
         }
       }
     }
-    val addrCtxs:Map[Access, Context] = newAccesses.toMap // addrCtx -> newAccess
     sequencedScheduleBarrierInsertion(mem)
     //breakPoint(s"insert token for $mem")
     multiBufferBarrierInsertion(mem)
@@ -100,7 +101,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
     //fifoBarrierInsertion(mem)
     mem.accesses.foreach { access =>
       val ctx = access.ctx.get
-      bufferInput(ctx, fromCtx=addrCtxs.get(access))
+      bufferInput(ctx, fromCtx=addrCtxs.get(access.getCtrl))
     }
   }
 
@@ -183,15 +184,16 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
     dbg(s"mergeCtrl = $mergeCtrl")
     dbg(s"mergeCtx=$mergeCtx")
     dbg(s"constAddr=$constAddr")
-    val addrCtxs = mutable.Map[BankedAccess, Context]()
     val red = within(mergeCtx, mergeCtrl) {
       val requests = accesses.map { access =>
         val addrCtx = access match {
           //case access if accesses.size == 1 || constAddr => mergeCtx
           //case access:BankedWrite => access.ctx.get 
-          case access => within(memCU, access.ctx.get.getCtrl) { Context() }
+          case access => 
+            addrCtxs.getOrElseUpdate(access.getCtrl, {
+              within(memCU, access.ctx.get.getCtrl) { Context() }
+            })
         }
-        addrCtxs += access -> addrCtx
         dbg(s"addrCtx for $access = $addrCtx")
         swapParent(access, addrCtx)
         val (ofsOut,bank) = within(addrCtx, addrCtx.getCtrl) {
@@ -249,7 +251,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
     }
     bufferInput(accessCtx)
 
-    val addrCtx = addrCtxs(headAccess)
+    val addrCtx = addrCtxs(headAccess.getCtrl)
     // Connect access.done
     if (mem.depth.get > 1 && newAccess.port.get.nonEmpty) {
       val ctrlMap = leastMatchedPeers(mem.accesses.filterNot{_.port.get.isEmpty}.map { _.getCtrl} ).get
@@ -266,7 +268,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
           }
           dbg(s"val $shuffle = Shuffle() // bankRead")
           bufferInput(shuffle.base)
-          bufferInput(shuffle.to, fromCtx=Some(addrCtxs(access)))
+          bufferInput(shuffle.to, fromCtx=Some(addrCtxs(access.getCtrl)))
           ins.foreach { in =>
             swapConnection(in, access.out, shuffle.out)
           }
@@ -276,7 +278,6 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
 
     removeNodes(accesses)
     //breakPoint(s"lowerBankedAccesses $mem")
-    (newAccess, addrCtx)
   }
 
   def flattenBankAddr(access:BankedAccess):Unit = dbgblk(s"flattenBankAddr($access)"){
