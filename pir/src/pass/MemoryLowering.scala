@@ -249,7 +249,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
     }
     bufferInput(accessCtx)
 
-    val addrCtx = addrCtxs.values.head
+    val addrCtx = addrCtxs(headAccess)
     // Connect access.done
     if (mem.depth.get > 1 && newAccess.port.get.nonEmpty) {
       val ctrlMap = leastMatchedPeers(mem.accesses.filterNot{_.port.get.isEmpty}.map { _.getCtrl} ).get

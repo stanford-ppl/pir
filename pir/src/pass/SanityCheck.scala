@@ -7,6 +7,12 @@ import scala.collection.mutable
 
 class SanityCheck(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal {
 
+  var ctrlBlockInsertHashRun = false 
+  override def initPass = {
+    ctrlBlockInsertHashRun = compiler.hasRun[ControlBlockInsertion]
+    super.initPass
+  }
+
   override def visitNode(n:N) = {
     n match {
       case n:Top => 
@@ -21,15 +27,17 @@ class SanityCheck(implicit compiler:PIR) extends PIRTraversal with SiblingFirstT
           case c:GlobalIO =>
           case c => err(s"child of $n is $c")
         }
-        n.depsFrom.foreach { case (depOut, depsFrom) =>
-          depOut.src match {
-            case d:GlobalOutput =>
-            case d => err(s"$n input from ${d}.$depOut")
-          }
-          depsFrom.foreach { in =>
-            in.src match {
-              case f:GlobalInput =>
-              case f => err(s"$n input at ${f}.$in")
+        if (ctrlBlockInsertHashRun) {
+          n.depsFrom.foreach { case (depOut, depsFrom) =>
+            depOut.src match {
+              case d:GlobalOutput =>
+              case d => err(s"$n input from ${d}.$depOut")
+            }
+            depsFrom.foreach { in =>
+              in.src match {
+                case f:GlobalInput =>
+                case f => err(s"$n input at ${f}.$in")
+              }
             }
           }
         }
@@ -65,12 +73,11 @@ class SanityCheck(implicit compiler:PIR) extends PIRTraversal with SiblingFirstT
           }
         }
         val ctrlers = n.ctrlers
-        if (ctrlers.nonEmpty) {
-          val cs = ctrlers.groupBy { _.getCtrl.ancestors.size }
-          cs.foreach { case (depth, cs) =>
-            assertOne(cs, s"$n have multiple controllers at the same level ${depth}")
-          }
-        }
+        val ctrl = n.getCtrl
+        val ctrls = ctrl.ancestorTree
+        val externCtrlers = ctrlers.filter { ctrler => !ctrls.contains(ctrler.getCtrl) }
+        if (externCtrlers.nonEmpty)
+          bug(s"Unexpected ctrler $externCtrlers in ctx=${dquote(n)}")
       case n:GlobalIO => 
         if (n.neighbors.isEmpty) err(s"$n is not connected")
       case n =>

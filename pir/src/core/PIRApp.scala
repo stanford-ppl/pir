@@ -93,7 +93,8 @@ trait PIRApp extends PIR with Logging {
     addPass(enableDot, new PIRCtxDotGen(s"ctx7.dot")) ==>
     addPass(enableVerboseDot, new PIRTopDotGen(s"top7.dot")) ==>
     addPass(enableVerboseDot, new PIRIRPrinter(s"IR7.txt")) ==>
-    // ------- MappigetGlobalCostsng  --------
+    addPass(sanityCheck) ==>
+    // ------- Mapping  --------
     addPass(enableMapping, hardPruner) ==>
     addPass(enableMapping, memoryPruner) ==>
     addPass(rewriter) ==> // Remove unused shuffle
