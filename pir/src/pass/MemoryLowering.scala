@@ -103,6 +103,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
       val ctx = access.ctx.get
       bufferInput(ctx, fromCtx=addrCtxs.get(access.getCtrl))
     }
+    addrCtxs.clear
   }
 
   // Remove accesses that are been broadcasted

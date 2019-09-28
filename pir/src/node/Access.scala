@@ -32,6 +32,10 @@ trait BankedAccess extends Access {
 trait FlatBankedAccess extends Access { // lowered access
   val offset = new InputField[PIRNode]("offset")
 }
+trait LockedAccess extends Access {
+  val addr = new InputField[PIRNode]("addr")
+  val lock = new InputField[Option[PIRNode]]("lock")
+}
 trait InAccess extends Access { // Memory as output
   val mem = new OutputField[Memory]("mem")
 }
@@ -46,6 +50,8 @@ trait WriteAccess extends InAccess {
 trait ReadAccess extends OutAccess
 case class BankedRead()(implicit env:Env) extends ReadAccess with BankedAccess
 case class BankedWrite()(implicit env:Env) extends WriteAccess with BankedAccess
+case class LockedRead()(implicit env:Env) extends ReadAccess with LockedAccess 
+case class LockedWrite()(implicit env:Env) extends WriteAccess with LockedAccess
 case class FlatBankedRead()(implicit env:Env) extends ReadAccess with FlatBankedAccess
 case class FlatBankedWrite()(implicit env:Env) extends WriteAccess with FlatBankedAccess
 case class MemRead()(implicit env:Env) extends ReadAccess

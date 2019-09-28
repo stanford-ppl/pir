@@ -46,6 +46,7 @@ case class FIFO()(implicit env:Env) extends Memory
 case class SRAM()(implicit env:Env) extends Memory
 case class RegFile()(implicit env:Env) extends Memory
 case class LUT()(implicit env:Env) extends Memory
+case class LockSRAM()(implicit env:Env) extends Memory
 
 case class Top()(implicit env:Env) extends PIRNode {
   var topCtrl:ControlTree = _
