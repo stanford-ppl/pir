@@ -78,6 +78,11 @@ object PIRNode extends MemoryUtil with AccessUtil {
     def global = n.collectUp[GlobalContainer]().headOption
     def isUnder[T:ClassTag] = n.ancestors.exists { _.to[T].nonEmpty }
   }
+
+  implicit class MetadataIRUtil[T<:MetadataIR](n:T) {
+    def vec(v:Int) = n.getMeta[Int]("vec")(v)
+    def tp(v:BitType) = n.getMeta[BitType]("tp")(v)
+  }
 }
 
 sealed abstract class CtrlSchedule

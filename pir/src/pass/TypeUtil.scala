@@ -114,12 +114,8 @@ trait TypeUtil { self:PIRPass =>
   import spade.param._
   def compVec(n:IR):Option[Int] = dbgblk(s"compVec(${dquote(n)})") {
     n match {
-      case OutputField(n:Controller, "done") => Some(1)
-      case OutputField(n:Controller, "childDone") => Some(1)
-      case OutputField(n:LoopController, "firstIter") => Some(1)
       case OutputField(n:LoopController, "laneValid") => Some(n.par.get)
       case OutputField(n:FringeDenseStore, "ack") => Some(1)
-      case OutputField(n:FringeStreamRead, "done") => Some(1)
       case ConnectedByDRAMCmd(vec) => Some(vec)
       case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferVec
       case n:Controller => None
@@ -127,9 +123,6 @@ trait TypeUtil { self:PIRPass =>
       case n:PIRNode if n.presetVec.nonEmpty => n.presetVec.v
       case n:CounterIter => Some(n.is.size)
       case n:CounterValid => Some(n.is.size)
-      case n:DRAMAddr => Some(1)
-      case n:HostWrite => Some(1)
-      case n:HostRead => Some(1)
       case Const(v:List[_]) => Some(v.size)
       case Const(v) => Some(1)
       case n:TokenWrite => Some(1)
@@ -156,28 +149,24 @@ trait TypeUtil { self:PIRPass =>
       case WithMem(n:MemRead, mem:FIFO) => n.broadcast.v.map { _.size }.orElse(Some(n.mem.T.banks.get.head))
       case n:BankedWrite => zipMap(n.data.inferVec, n.offset.inferVec) { case (a,b) => Math.max(a,b) }
       case n:BankedRead => n.offset.inferVec // Before lowering
+      case n:LockWrite => Some(n.getCtrl.par.get)
       case n:FlatBankedAccess => Some(n.mem.T.nBanks)
       case n:BufferWrite => n.data.inferVec
       case n:BufferRead => n.in.inferVec
-      case n:RegAccumOp => Some(1)
-      case n:RegAccumFMA => Some(1)
       case n:PrintIf => n.msg.inferVec
       case n:AssertIf => n.cond.inferVec
       case n:ExitIf => n.cond.inferVec
-      case n:AccumAck => Some(1)
       case n@OpDef(_:FixOp | _:FltOp | _:BitOp | _:TextOp | Mux | BitsAsData) => flatReduce(n.inputs.map{ _.inferVec}) { case (a,b) => Math.max(a,b) }
       case n:Shuffle => n.to.T.inferVec
       case n:GlobalOutput => n.in.T.inferVec
       // During staging time GlobalInput might temporarily not connect to GlobalOutput
       case n:GlobalInput => n.in.inferVec
       case InputField(n:Shuffle, "from" | "base") => zipMap(n.base.singleConnected.get.inferVec, n.from.singleConnected.get.inferVec) { case (a,b) => Math.max(a,b) }
-      case InputField(_:Access | _:LocalAccess, "done") => Some(1)
       case n@InputField(_:RegAccumOp | _:RegAccumFMA, "en") => n.as[Input[PIRNode]].connected.map { o => o.inferVec }.maxOption.getOrElse(Some(1))
       case InputField(n:TokenAccess, "en") => Some(1)
       case InputField(n:BufferWrite, "en") => n.inferVec
       case InputField(n:BufferRead, "en") => n.out.inferVec
       case InputField(n:FlatBankedAccess, field) => Some(n.mem.T.nBanks)
-      case InputField(n:Controller, "en" | "parentEn") => Some(1)
       case n:Input[_] if n.isConnected && n.connected.size==1 => n.singleConnected.get.inferVec
       case n:ControlTree => if (n.children.isEmpty) Some(n.par.get) else Some(1)
       case n => None
@@ -186,15 +175,7 @@ trait TypeUtil { self:PIRPass =>
 
   def compType(n:IR):Option[BitType] = /*dbgblk(s"compType(${dquote(n)})")*/ {
     n match {
-      case OutputField(n:Controller, "done") => Some(Bool)
-      case OutputField(n:LoopController, "firstIter") => Some(Bool)
-      case OutputField(n:LoopController, "laneValid") => Some(Bool)
-      case OutputField(n:Controller, "childDone") => Some(Bool)
       case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferTp
-      case n:CounterIter => Some(Fix(true, 32, 0))
-      case n:CounterValid => Some(Bool)
-      case n:PrintIf => Some(Bool)
-      case n:AccumAck => Some(Bool)
       case n:Shuffle => n.base.inferTp
       case n:TokenRead => Some(Bool)
       case n:TokenWrite => Some(Bool)
@@ -220,7 +201,6 @@ trait TypeUtil { self:PIRPass =>
       case Const((_:Int)::_) => Some(Fix(true, 32, 0))
       case Const((_:Float)::_) => Some(Flt(23, 8))
       case Const((_:Double)::_) => Some(Flt(23, 8))
-      case InputField(n, "en" | "parentEn" | "done") => Some(Bool)
       case n:Input[_] if n.isConnected && n.connected.size == 1 => n.singleConnected.get.inferTp
       case n:Any => None
     }
