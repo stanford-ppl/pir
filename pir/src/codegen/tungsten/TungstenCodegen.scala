@@ -8,13 +8,15 @@ import scala.collection.mutable
 
 class TungstenPIRGen(implicit design:PIR) extends TungstenCodegen 
   with TungstenTopGen 
-  with TungstenDRAMGen 
   with TungstenIOGen
   with TungstenCtxGen 
   with TungstenControllerGen
   with TungstenOpGen
   with TungstenMemGen
   with TungstenStreamGen
+  with TungstenBlackBoxGen 
+  with TungstenDRAMGen 
+  with TungstenLockGen 
 
 trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal with CppCodegen {
 

@@ -27,37 +27,33 @@ trait TungstenMemGen extends TungstenCtxGen {
     case n:LocalOutAccess =>
       val (tp, name) = varOf(n)
       genTopMember(n, Seq(n.qstr))
-      n.ctx.get match {
-        case DRAMContext(cmd) =>
-        case _ =>
-          addEscapeVar(n)
-          val ctrler = getCtrler(n)
-          genCtxInits {
-            if (n.initToken.get) {
-              val initVal = n.inits.get
-              val banks = n.banks.map { _.head }.getOrElse(n.getVec)
-              val init = if (banks > 1) {
-                emitln(s"${n.qtp} ${n}_init[${banks}] = {${List.fill(banks)(initVal).mkString(",")}};")
-              } else {
-                s"(${n.qtp}) $initVal"
-              }
-              emitln(s"$name->Init(make_token($init));")
-            }
-            emitln(s"${ctrler}->AddInput(${nameOf(n)});")
+      addEscapeVar(n)
+      val ctrler = getCtrler(n)
+      genCtxInits {
+        if (n.initToken.get) {
+          val initVal = n.inits.get
+          val banks = n.banks.map { _.head }.getOrElse(n.getVec)
+          val init = if (banks > 1) {
+            emitln(s"${n.qtp} ${n}_init[${banks}] = {${List.fill(banks)(initVal).mkString(",")}};")
+          } else {
+            s"(${n.qtp}) $initVal"
           }
-          emitEn(n.en)
-          emitln(s"$name->SetReadEn(${n.en.qref});")
-          emitIf(s"$name->Valid()") {
-            emitVec(n) { i =>
-              s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
-            }
-          }
-          genCtxComputeEnd {
-            val cond = if (n.isFIFO) List(n.done.qref, n.en.qany) else List(n.done.qref)
-            emitIf(cond.mkString(" & ")) {
-              emitln(s"$name->Pop();")
-            }
-          }
+          emitln(s"$name->Init(make_token($init));")
+        }
+        emitln(s"${ctrler}->AddInput(${nameOf(n)});")
+      }
+      emitEn(n.en)
+      emitln(s"$name->SetReadEn(${n.en.qref});")
+      emitIf(s"$name->Valid()") {
+        emitVec(n) { i =>
+          s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
+        }
+      }
+      genCtxComputeEnd {
+        val cond = if (n.isFIFO) List(n.done.qref, n.en.qany) else List(n.done.qref)
+        emitIf(cond.mkString(" & ")) {
+          emitln(s"$name->Pop();")
+        }
       }
 
     case WithData(n:BufferWrite, data:StreamCommand) =>
@@ -125,6 +121,9 @@ trait TungstenMemGen extends TungstenCtxGen {
 
     case n:FIFO =>
       genTopMember(n, Seq(n.qstr))
+
+    case n:LockSRAM =>
+      genTopMember(n, Seq(n.qstr, s"{}")) //TODO:
 
     case n:Memory =>
       val accesses = n.accesses.map { a => s"""make_tuple(${a.id}, ${a.isInAccess}, ${a.port.get.isEmpty})""" }.mkString(",")
@@ -293,6 +292,8 @@ trait TungstenMemGen extends TungstenCtxGen {
       (s"NBufferSRAM<${n.getDepth}, ${n.qtp}, ${n.bankSize}, ${n.nBanks}>", s"$n")
     case n:Reg =>
       (s"NBufferReg<${n.getDepth}, ${n.qtp}>", s"$n")
+    case n:LockSRAM =>
+      (s"SparsePMU", s"$n")
     case n => super.varOf(n)
   }
 

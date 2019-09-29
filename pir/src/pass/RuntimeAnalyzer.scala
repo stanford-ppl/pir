@@ -108,6 +108,10 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
     ctrlers.map { _.getIter }.reduceOption { _ * _ }
   }
 
+  val StreamWriteContext = MatchRule[Context, FringeStreamWrite] { case n if n.streaming.get =>
+    n.collectDown[FringeStreamWrite]().headOption
+  }
+
   def compCount(n:PIRNode):Option[Value[Long]] = {
     dbgblk(s"compCount($n)"){
       n match {

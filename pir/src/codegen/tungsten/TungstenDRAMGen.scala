@@ -5,7 +5,7 @@ import pir.node._
 import prism.graph._
 import scala.collection.mutable
 
-trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
+trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen with TungstenBlackBoxGen {
 
   override def initPass = {
     super.initPass
@@ -24,11 +24,10 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen {
   }
 
   override def emitNode(n:N) = n match {
-    case DRAMContext(cmd) => 
-      enterBuffer("dummy"){ 
-        super.visitNode(n)
+    case ctx:Context if ctx.streaming.get && ctx.collectDown[DRAMCommand]().nonEmpty =>
+      withinBB {
+        visitNode(n)
       }
-      getBuffer("dummy").foreach { _.reset }
 
     case n:DRAMAddr =>
       declare(n.qtp, n.qref, s"(${n.qtp}) ${n.dram.sname.get}")

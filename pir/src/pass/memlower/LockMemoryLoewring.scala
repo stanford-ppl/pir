@@ -58,9 +58,10 @@ trait LockMemoryLowering extends GenericMemoryLowering {
       val (splitAddr, splitKey, splitCtx) = allocateSplitter(ctrl, addr, key)
       bufferInput(splitCtx, fromCtx=Some(addrCtx))
       addr = splitAddr
-      bufferInput(lock.key)
-      lock.key(splitKey)
-      bufferInput(lock.key, fromCtx=Some(splitCtx))
+      if (!canReach(lock.key,splitKey)) {
+        lock.key(splitKey)
+        bufferInput(lock.key, fromCtx=Some(splitCtx))
+      }
       swapConnection(access.lock, lockOn.out, lock.out)
       val lockCtx = lock.ctx.get
       bufferInput(access.lock)

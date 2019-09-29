@@ -54,18 +54,6 @@ trait TypeUtil { self:PIRPass =>
     def setTp(v:Option[BitType]) = n.getMeta[BitType]("tp").update(v)
   }
 
-  val StreamWriteContext = MatchRule[Context, FringeStreamWrite] { case n =>
-    n.collectFirstChild[FringeStreamWrite]
-  }
-
-  val StreamReadContext = MatchRule[Context, FringeStreamRead] { case n =>
-    n.collectFirstChild[FringeStreamRead]
-  }
-
-  val DRAMContext = MatchRule[Context, DRAMCommand] { case n =>
-    n.collectDown[DRAMCommand]().headOption
-  }
-
   val UnderControlBlock = MatchRule[PIRNode, ControlBlock] { case n =>
     n.ancestors.collectFirst { case n:ControlBlock => n }
   }

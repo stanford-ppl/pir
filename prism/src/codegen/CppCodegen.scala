@@ -16,6 +16,10 @@ trait CppCodegen extends Codegen {
     }
   }
 
+  implicit class ListGenOp(x:Iterable[_]) {
+    def qlist = s"{${x.mkString(",")}}"
+  }
+
   def emitIfElse(cond:Any)(trueCase: => Unit)(falseCase: => Unit) = {
     if (cond.toString == "true") trueCase
     else if (cond.toString == "false") falseCase

@@ -49,7 +49,7 @@ case class LUT()(implicit env:Env) extends Memory
 case class LockSRAM()(implicit env:Env) extends Memory
 
 case class Lock()(implicit env:Env) extends BlackBox with DefNode[PIRNode] {
-  val key = new InputField[List[PIRNode]]("key")
+  val key = new InputField[PIRNode]("key")
   val out = new OutputField[List[PIRNode]]("out").tp(Bool).presetVec(1)
   override def asOutput = Some(out)
 }
