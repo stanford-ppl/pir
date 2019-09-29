@@ -13,6 +13,11 @@ trait LockMemoryLowering extends GenericMemoryLowering {
     case _ => super.visitNode(n)
   }
 
+  override def finPass = {
+    splitCtxs.clear
+    super.finPass
+  }
+
   private val splitCtxs = mutable.Map[ControlTree, Context]()
   private val addrCtxs = mutable.Map[ControlTree, Context]()
   private def lowerLockMem(n:Memory) = dbgblk(s"lowerLockMem($n)"){
@@ -20,6 +25,11 @@ trait LockMemoryLowering extends GenericMemoryLowering {
     swapParent(n, memCU)
     n.accesses.foreach { access =>
       lowerAccess(n, memCU, access.as[LockAccess])
+    }
+    sequencedScheduleBarrierInsertion(n)
+    n.accesses.foreach { access =>
+      val ctx = access.ctx.get
+      bufferInput(ctx, fromCtx=addrCtxs.get(access.getCtrl))
     }
     addrCtxs.clear
   }

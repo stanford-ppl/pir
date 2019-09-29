@@ -34,6 +34,37 @@ trait GenericMemoryLowering extends PIRTraversal with SiblingFirstTraversal with
     }
   }
 
+    // Insert token for sequencial control dependency
+  def sequencedScheduleBarrierInsertion(mem:Memory):Unit = {
+    if (mem.isFIFO) return
+    dbgblk(s"sequencedScheduleBarrierInsertion($mem)") {
+      val ctrls = mem.accesses.toStream.flatMap { a => a.getCtrl.ancestorTree }.distinct
+      ctrls.foreach { ctrl =>
+        if (ctrl.schedule == Sequenced) {
+          val accesses = ctrl.children.flatMap { childCtrl => 
+            val childAccesses = mem.accesses.filter { a => 
+              a.getCtrl.isDescendentOf(childCtrl) || a.getCtrl == childCtrl
+            }
+            if (childAccesses.nonEmpty) Some((childCtrl, childAccesses)) else None
+          }
+          if (accesses.nonEmpty) {
+            dbgblk(s"Insert token for sequenced schedule of $ctrl") {
+              accesses.sliding(2, 1).foreach{
+                case List((fromCtrl, from), (toCtrl, to)) =>
+                  from.foreach { fromAccess =>
+                    to.foreach { toAccess =>
+                      dbg(s"Insert token between $fromAccess ($fromCtrl) and $toAccess ($toCtrl)")
+                      insertToken(fromAccess.ctx.get, toAccess.ctx.get).depth(1)
+                    }
+                  }
+                case _ =>
+              }
+            }
+          }
+        }
+      }
+    }
+  }
 }
 
 class MemoryLowering(implicit compiler:PIR) 
