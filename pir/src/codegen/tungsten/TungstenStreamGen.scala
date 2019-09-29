@@ -5,7 +5,7 @@ import pir.node._
 import prism.graph._
 import scala.collection.mutable
 
-trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
+trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen with TungstenMemGen {
 
   override def emitNode(n:N) = n match {
     case n@FringeStreamRead(bus@FileBus(filePath)) =>
@@ -92,6 +92,8 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen {
           emitln(s"$file.close();")
         }
       }
+
+    case WithData(n:BufferWrite, data:StreamCommand) =>
 
     case n => super.emitNode(n)
   }

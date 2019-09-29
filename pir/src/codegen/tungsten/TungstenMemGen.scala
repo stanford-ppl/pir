@@ -56,13 +56,11 @@ trait TungstenMemGen extends TungstenCtxGen {
         }
       }
 
-    case WithData(n:BufferWrite, data:StreamCommand) =>
-
     case WithData(n:BufferWrite, data:FlatBankedRead) =>
+      val ctrler = getCtrler(n)
       n.out.T.foreach { send =>
         addEscapeVar(send)
         genCtxInits {
-          val ctrler = getCtrler(n)
           emitln(s"${ctrler}->AddOutput(${nameOf(send)});")
           emitln(s"""${data.mem.T}->SetSend(${data.id}, ${nameOf(send)});""")
         }
@@ -77,17 +75,13 @@ trait TungstenMemGen extends TungstenCtxGen {
           case n:BufferWrite => n.data.T
           case n:TokenWrite => n.done.T
         }
-        val pipeDepth = data match {
-          case _:FlatBankedRead | _:StreamCommand | _:DRAMCommand => 1
-          case _ => numStagesOf(n.ctx.get)
-        }
+        val pipeDepth = numStagesOf(n.ctx.get)
         emitNewMember(tp, name, pipeDepth)
       }
       val ctrler = getCtrler(n)
       n.out.T.foreach { send =>
         if (!send.isDescendentOf(ctx)) addEscapeVar(send)
         genCtxInits {
-          //TODO: add val ready pipeline
           if (withPipe) emitln(s"${ctrler}->AddOutput(${nameOf(send)}, $name);")
           else emitln(s"${ctrler}->AddOutput(${nameOf(send)});")
         }

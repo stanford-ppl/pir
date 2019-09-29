@@ -52,7 +52,7 @@ trait LockMemoryLowering extends GenericMemoryLowering {
       access.en.disconnect
     }
     // Setting up splitter and lock if it's sparse access
-    val (splitCtx) = access.lock.T.map { lockOn =>
+    val splitCtx = access.lock.T.map { lockOn =>
       val lock = lockOn.lock.T
       val key = lockOn.key.singleConnected.get
       val (splitAddr, splitKey, splitCtx) = allocateSplitter(ctrl, addr, key)
@@ -63,8 +63,6 @@ trait LockMemoryLowering extends GenericMemoryLowering {
         bufferInput(lock.key, fromCtx=Some(splitCtx))
       }
       swapConnection(access.lock, lockOn.out, lock.out)
-      val lockCtx = lock.ctx.get
-      bufferInput(access.lock)
       splitCtx
     }
     // Setting up access within PMU

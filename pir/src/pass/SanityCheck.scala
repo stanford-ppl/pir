@@ -78,6 +78,11 @@ class SanityCheck(implicit compiler:PIR) extends PIRTraversal with SiblingFirstT
         val externCtrlers = ctrlers.filter { ctrler => !ctrls.contains(ctrler.getCtrl) }
         if (externCtrlers.nonEmpty)
           bug(s"Unexpected ctrler $externCtrlers in ctx=${dquote(n)}")
+        if (!ctrlBlockInsertHashRun) {
+          val bbs = n.collectDown[BlackBox]() ++ n.collectDown[Access]()
+          if (bbs.nonEmpty && ctrlers.nonEmpty)
+            bug(s"Controllers in streaming context $n $ctrlers $bbs")
+        }
       case n:GlobalIO => 
         if (n.neighbors.isEmpty) err(s"$n is not connected")
       case n =>

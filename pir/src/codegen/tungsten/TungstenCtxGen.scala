@@ -128,11 +128,12 @@ using   namespace std;
   private val members = mutable.ListBuffer[Any]()
   def emitNewMember(tp:String, name:Any, args:Any*) = {
     genCtxFields {
-      val fullargs = name.qstr +: args
-      emitln(s"""$tp* $name = new $tp(${fullargs.mkString(",")});""")
+      emitln(s"$tp* $name;")
     }
     genCtxInits {
       members += name
+      val fullargs = name.qstr +: args
+      emitln(s"$name = new $tp(${fullargs.mkString(",")});")
       emitln(s"AddChild($name, false);");
     }
   }

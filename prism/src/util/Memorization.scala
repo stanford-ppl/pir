@@ -19,6 +19,12 @@ trait Memorization extends Logging {
     ).asInstanceOf[Cache[I,O]].apply(input)
   }
 
+  def memorize[O](key:String)(lambda: => O):O = {
+    caches.getOrElseUpdate(key, 
+      Cache[Unit,O](this, key, { x => lambda })
+    ).asInstanceOf[Cache[Unit,O]].apply(())
+  }
+
   def withMemory[T](block: => T):T = {
     val saved = memorizing
     memorizing = true
