@@ -47,6 +47,10 @@ trait LockMemoryLowering extends GenericMemoryLowering {
       lock.key(splitKey)
       bufferInput(lock.key, fromCtx=Some(addrCtx))
       swapConnection(access.lock, lockOn.out, lock.out)
+      val lockCtx = lock.ctx.get
+      // Hack: force lock to share the same PMU as the memory. Will get wierd if the lock is shared by different PMUs
+      swapParent(lockCtx, memCU)
+      bufferInput(access.lock)
     }
     // Setting up access within PMU
     val accessCtx = within(memCU, ctrl) { Context().streaming(true) }
