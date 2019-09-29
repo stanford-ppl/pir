@@ -11,7 +11,7 @@ trait Access extends PIRNode {
   val castgroup = Metadata[Seq[Int]]("castgroup")
 
   val en = new InputField[List[PIRNode]]("en").tp(Bool)
-  val done = new InputField[Option[PIRNode]]("done").tp(Bool).vec(1)
+  val done = new InputField[Option[PIRNode]]("done").tp(Bool).presetVec(1)
   def mem:FieldEdge[Memory,_,_]
   def isBroadcast = port.get.isEmpty
 
@@ -63,7 +63,7 @@ trait LocalAccess extends PIRNode {
   // Check valid when en is true
   // Pop when if done and all en are true
   val en = new InputField[Set[PIRNode]]("en").tp(Bool) // if not connected, default true
-  val done = new InputField[Option[PIRNode]]("done").tp(Bool).vec(1) // if not connected, default false
+  val done = new InputField[Option[PIRNode]]("done").tp(Bool).presetVec(1) // if not connected, default false
 }
 trait LocalInAccess extends LocalAccess with Def
 trait LocalOutAccess extends LocalAccess with Def with MemoryNode {

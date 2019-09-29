@@ -69,5 +69,5 @@ case class FringeStreamWrite(bus:Bus)(implicit env:Env) extends StreamCommand {
 case class FringeStreamRead(bus:Bus)(implicit env:Env) extends StreamCommand {
   def addStreams(xs:List[Any]) = DynamicInputFields[PIRNode]("stream", xs)
   override def streams = getDynamicInputFields[PIRNode]("stream")
-  val lastBit = new OutputField[Option[PIRNode]]("lastBit").tp(Bool).vec(1)
+  val lastBit = new OutputField[Option[PIRNode]]("lastBit").tp(Bool).presetVec(1)
 }

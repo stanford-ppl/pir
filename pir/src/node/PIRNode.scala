@@ -80,7 +80,7 @@ object PIRNode extends MemoryUtil with AccessUtil {
   }
 
   implicit class MetadataIRUtil[T<:MetadataIR](n:T) {
-    def vec(v:Int) = n.getMeta[Int]("vec")(v)
+    def presetVec(v:Int) = n.getMeta[Int]("presetVec")(v)
     def tp(v:BitType) = n.getMeta[BitType]("tp")(v)
   }
 }

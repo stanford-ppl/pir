@@ -62,7 +62,7 @@ case class Splitter()(implicit env:Env) extends BlackBox {
 case class LockOnKeys()(implicit env:Env) extends Def {
   val lock = new InputField[Lock]("lock")
   val key = new InputField[PIRNode]("key")
-  vec(1)
+  presetVec(1)
   tp(Bool)
 }
 
@@ -111,7 +111,7 @@ case class Const(value:Any)(implicit env:Env) extends Def
 case class AccumAck()(implicit env:Env) extends Def {
   val ack = new InputField[PIRNode]("ack")
   tp(Bool)
-  vec(1)
+  presetVec(1)
 }
 case class PrintIf()(implicit env:Env) extends Def {
   val en = new InputField[List[PIRNode]]("en").tp(Bool)
@@ -141,7 +141,7 @@ case class RegAccumFMA(identity:Any)(implicit env:Env) extends OpNode with Def {
   val en = new InputField[Set[PIRNode]]("en").tp(Bool)
   val first = new InputField[Option[PIRNode]]("first")
   val init = new InputField[Option[PIRNode]]("init")
-  vec(1)
+  presetVec(1)
 }
 // op can be eigher a string, if from spatial, or a list of reduction op if
 // transformed in graph initialization
@@ -150,7 +150,7 @@ case class RegAccumOp(op:Any, identity:Any)(implicit env:Env) extends OpNode wit
   val en = new InputField[Set[PIRNode]]("en").tp(Bool)
   val first = new InputField[Option[PIRNode]]("first")
   val init = new InputField[Option[PIRNode]]("init")
-  vec(1)
+  presetVec(1)
 }
 // Filled can be "0" or "-0". based on shuffling address or data
 case class Shuffle(filled:Any)(implicit env:Env) extends OpNode with Def {
@@ -160,13 +160,13 @@ case class Shuffle(filled:Any)(implicit env:Env) extends OpNode with Def {
 }
 case class HostRead()(implicit env:Env) extends Def {
   val input = new InputField[PIRNode]("input")
-  vec(1)
+  presetVec(1)
 }
 case class HostWrite()(implicit env:Env) extends Def {
-  vec(1)
+  presetVec(1)
 }
 case class DRAMAddr(dram:DRAM)(implicit env:Env) extends Def {
-  vec(1)
+  presetVec(1)
 }
 case class Counter(par:Int, isForever:Boolean=false)(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
@@ -196,11 +196,11 @@ case class CounterValid(is:List[Int])(implicit env:Env) extends Def {
 
 abstract class Controller(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
-  val en = new InputField[List[PIRNode]]("en").tp(Bool).vec(1)
-  val parentEn = new InputField[Option[PIRNode]]("parentEn").tp(Bool).vec(1)
+  val en = new InputField[List[PIRNode]]("en").tp(Bool).presetVec(1)
+  val parentEn = new InputField[Option[PIRNode]]("parentEn").tp(Bool).presetVec(1)
 
-  val done = new OutputField[List[PIRNode]]("done").tp(Bool).vec(1)
-  val childDone = new OutputField[List[PIRNode]]("childDone").tp(Bool).vec(1)
+  val done = new OutputField[List[PIRNode]]("done").tp(Bool).presetVec(1)
+  val childDone = new OutputField[List[PIRNode]]("childDone").tp(Bool).presetVec(1)
 
   def isForever = this.collectDown[Counter]().exists { _.isForever }
   def hasBranch = this.ctrl.v.get == Fork || this.to[LoopController].fold(false) { _.stopWhen.isConnected }
@@ -216,7 +216,7 @@ case class TopController()(implicit env:Env) extends Controller
 case class LoopController()(implicit env:Env) extends Controller {
   /*  ------- Fields -------- */
   val cchain = new ChildField[Counter, List[Counter]]("cchain")
-  val firstIter = new OutputField[List[PIRNode]]("firstIter").tp(Bool).vec(1)
+  val firstIter = new OutputField[List[PIRNode]]("firstIter").tp(Bool).presetVec(1)
   val stopWhen = new InputField[Option[PIRNode]]("stopWhen").tp(Bool)
   val laneValid = new OutputField[List[PIRNode]]("laneValid").tp(Bool)
 
