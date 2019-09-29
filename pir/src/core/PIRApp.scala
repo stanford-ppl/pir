@@ -17,6 +17,7 @@ trait PIRApp extends PIR with Logging {
   lazy val memLowering = new MemoryLowering()
   lazy val contextAnalyzer = new ContextAnalyzer()
   lazy val contextInsertion = new ContextInsertion()
+  lazy val blkboxLowering = new BlackBoxLowering()
   lazy val depDuplications = new DependencyDuplication()
   lazy val bufferInsertion = new BufferInsertion()
   lazy val globalInsertion = new GlobalInsertion()
@@ -70,6 +71,7 @@ trait PIRApp extends PIR with Logging {
     addPass(rewriter) ==>
     addPass(deadCodeEliminator) ==>
     addPass(contextInsertion) ==>
+    addPass(blkboxLowering) ==>
     addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx2.dot")) ==>
     addPass(enableVerboseDot, new PIRTopDotGen(s"top3.dot")) ==>
     addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx3.dot")) ==>

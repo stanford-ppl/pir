@@ -7,36 +7,13 @@ import prism.graph._
 import spade.param._
 import scala.collection.mutable
 
-class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with PIRTransformer with DependencyAnalyzer with CUCostUtil {
-
+trait GlobalMemoryLowering extends GenericMemoryLowering {
   override def visitNode(n:N) = n match {
-    case n:Memory => lowerMem(n)
+    case n:Memory if !n.isLockSRAM => createMemGlobal(n)
     case _ => super.visitNode(n)
   }
 
-  def lowerMem(mem:Memory):Unit = dbgblk(s"lowerMem(${dquote(mem)})"){
-    val accesses = mem.accesses
-    accesses.foreach { access =>
-      dbg(s"access=$access order=${access.order.v}")
-    }
-    val noBankedAccess = accesses.forall { !_.isInstanceOf[BankedAccess] }
-    val singleWriter = mem.inAccesses.size <= 1
-    val singleFIFOReader = !mem.isFIFO | mem.outAccesses.size <= 1
-    var toBuffer = true
-    toBuffer &= noBankedAccess
-    toBuffer &= singleWriter //&& singleFIFOReader
-    toBuffer &= !mem.nonBlocking.get
-    if (mem.isFIFO && !singleWriter) {
-      todo(s"Do not support multiple writers to FIFO on Plasticine yet ${quoteSrcCtx(mem)}")
-    }
-    if (toBuffer) {
-      bufferLowering(mem)
-    } else {
-      createMemGlobal(mem)
-    }
-  }
-
-  def lowerLUT(mem:Memory):Unit = {
+  private def lowerLUT(mem:Memory):Unit = {
     if (!mem.isInstanceOf[LUT]) return
     val lut = mem.as[LUT]
     dbgblk(s"lowerLUT($lut)") {
@@ -59,7 +36,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
     }
   }
 
-  def lowerLUTAccess(mem:Memory, access:Access):Unit = {
+  private def lowerLUTAccess(mem:Memory, access:Access):Unit = {
     if (!mem.isInstanceOf[LUT]) return
     val lut = mem.as[LUT]
     val read = access.as[BankedRead]
@@ -75,8 +52,8 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
   // Allocate one new Context per controller. This approach might not work if the address
   // calculation of different accesses in the same controller are data dependent on some other
   // memory access, which will create cycle on that context
-  val addrCtxs = mutable.Map[ControlTree, Context]()
-  def createMemGlobal(mem:Memory) = {
+  private val addrCtxs = mutable.Map[ControlTree, Context]()
+  private def createMemGlobal(mem:Memory) = dbgblk(s"createMemGlobal($mem)"){
     val memCU = within(pirTop) { MemoryContainer() }
     // Create Memory Context
     swapParent(mem, memCU)
@@ -107,7 +84,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
   }
 
   // Remove accesses that are been broadcasted
-  def resolveBroadcast(accesses:List[Access]):List[Access] = {
+  private def resolveBroadcast(accesses:List[Access]):List[Access] = {
     accesses.groupBy { _.castgroup.v }.flatMap { 
       case (None, accesses) => accesses
       case (Some(grp), accesses) =>
@@ -132,7 +109,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
     }.toList
   }
 
-  def groupAccess(mem:Memory, accesses:List[Access]):List[Set[Access]] = dbgblk(s"groupAccess($mem)") {
+  private def groupAccess(mem:Memory, accesses:List[Access]):List[Set[Access]] = dbgblk(s"groupAccess($mem)") {
     accesses.groupBy { _.port.v }.flatMap { case (group, accesses) =>
       accesses.groupBy { _.muxPort.v }.map { case (muxPort, accesses) =>
         resolveBroadcast(accesses).toSet
@@ -140,7 +117,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
     }.toList
   }
 
-  def lowerAccess(mem:Memory, memCU:MemoryContainer, access:Access) = dbgblk(s"lowerAccess($mem, $memCU, $access)") {
+  private def lowerAccess(mem:Memory, memCU:MemoryContainer, access:Access) = dbgblk(s"lowerAccess($mem, $memCU, $access)") {
     val ctx = within(memCU, access.ctx.get.getCtrl) { Context() }
     if (mem.isFIFO) {
       ctx.streaming(false)
@@ -172,7 +149,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
     }
   }
 
-  def lowerBankedAccesses(mem:Memory, memCU:MemoryContainer, accesses:Set[BankedAccess]) = dbgblk(s"lowerBankedAccesses($mem, $memCU, $accesses)") {
+  private def lowerBankedAccesses(mem:Memory, memCU:MemoryContainer, accesses:Set[BankedAccess]) = dbgblk(s"lowerBankedAccesses($mem, $memCU, $accesses)") {
     val headAccess = accesses.head
     val mergeCtrl = headAccess.getCtrl
     val mergeCtx = within(memCU, headAccess.ctx.get.getCtrl) { Context() }
@@ -199,6 +176,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
         swapParent(access, addrCtx)
         val (ofsOut,bank) = within(addrCtx, addrCtx.getCtrl) {
           flattenBankAddr(access)
+          flattenEnable(access)
           lowerLUTAccess(mem, access)
           val bank = access.bank.connected
           var ofsOut = access.offset.singleConnected.get
@@ -281,7 +259,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
     //breakPoint(s"lowerBankedAccesses $mem")
   }
 
-  def flattenBankAddr(access:BankedAccess):Unit = dbgblk(s"flattenBankAddr($access)"){
+  private def flattenBankAddr(access:BankedAccess):Unit = dbgblk(s"flattenBankAddr($access)"){
     val mem = access.mem.T
     val parent = access.parent.get
     within(parent, parent.getCtrl) {
@@ -303,22 +281,6 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
         dbg(s"flattenBankAddr ${access.bank.T} => $fbank in $parent")
         access.bank.disconnect
         access.bank(fbank)
-      }
-
-      // And enable signals
-      val ens = access.en.connected
-      if (ens.size > 1) {
-        var red:List[Output[PIRNode]] = ens.toList
-        while (red.size > 1) {
-          red = red.sliding(2,2).map{ 
-            case List(en1, en2) => stage(OpDef(And).addInput(en1,en2)).out
-            case List(en1) => en1
-          }.toList
-        }
-        val en = red.head
-        dbg(s"And enable signals $ens => $en")
-        access.en.disconnect
-        access.en(en)
       }
     }
   }
@@ -355,7 +317,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
     }
   }
 
-  def multiBufferBarrierInsertion(mem:Memory):Unit = {
+  private def multiBufferBarrierInsertion(mem:Memory):Unit = {
     if (mem.isFIFO) return
     // None multi buffer doesn't need to connect access.done
     if (mem.depth.get == 1) return
@@ -391,7 +353,7 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
    * */
   //TODO: consider dependency between any controllers. Insert token only if there is not already a
   //token between the writer and the reader
-  def enforceDataDependencyInSameController(mem:Memory):Unit = dbgblk(s"enforceDataDependencyInSameController($mem)"){
+  private def enforceDataDependencyInSameController(mem:Memory):Unit = dbgblk(s"enforceDataDependencyInSameController($mem)"){
     val accesses = mem.accesses.filter { _.port.nonEmpty }
     accesses.groupBy { _.port.get }.foreach { case (port, accesses) =>
       val (inAccesses, outAccesses) =  accesses.partition { _.isInAccess }
@@ -428,84 +390,5 @@ class MemoryLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFir
       //insertToken(w.ctx.get,r.ctx.get,isFIFO=true)
     //}
   //}
-
-  def bufferLowering(mem:Memory) = dbgblk(s"bufferLowering($mem)") {
-    mem.outAccesses.foreach { outAccess =>
-      within(outAccess.parent.get) {
-        val inAccess = mem.inAccesses.head.as[MemWrite]
-        val (enq, deq) = compEnqDeq(
-          mem.isFIFO, 
-          inAccess.ctx.get, 
-          outAccess.ctx.get, 
-          Some(inAccess.data.connected.head), 
-          outAccess.out.connected
-        )
-        val write = within(inAccess.parent.get, inAccess.ctrl.get) {
-          allocate[BufferWrite]{ write => 
-            write.isFIFO == mem.isFIFO &&
-            matchInput(write.data, inAccess.data) &&
-            matchInput(write.en,inAccess.en.connected) && 
-            matchInput(write.done,enq)
-          } {
-            stage(BufferWrite(mem.isFIFO)
-              .presetVec(inAccess.inferVec.get)
-              .data(inAccess.data.connected)
-              .mirrorMetas(inAccess)
-              .en(inAccess.en.connected)
-              .done(enq))
-          }
-        }
-        val readCtx = outAccess.parent.get.as[Context]
-        val readCtrl = outAccess.ctrl.get
-        val (remoteReadEns, localReadEns) = outAccess.en.connected.partition { !canDuplicate(_) }
-        dbg(s"remoteReadEns=${remoteReadEns.map(dquote)}")
-        val remoteReadEn = if (remoteReadEns.nonEmpty) {
-          val enCtx = within(pirTop, readCtrl) { 
-            allocate[Context]({ ctx => ctx.getCtrl == readCtrl && ctx != readCtx }, allowDuplicates=true) { Context() }
-          }
-          within(enCtx) {
-            val en = remoteReadEns.reduce[Output[PIRNode]]{ case (en1, en2) => 
-              stage(OpDef(And).addInput(en1,en2).out)
-            }
-            dbg(s"remoteReadEn = ${dquote(en)}")
-            Some((enCtx,en))
-          }
-        } else None
-        val read = within(readCtx, readCtrl) {
-          allocate[BufferRead]{ read => 
-            read.isFIFO == mem.isFIFO &&
-            matchInput(read.in, write.out) &&
-            matchInput(read.en,outAccess.en.connected) && 
-            matchInput(read.done,deq)
-          } {
-            stage(BufferRead(mem.isFIFO)
-              .in(write.out)
-              .mirrorMetas(mem)
-              .mirrorMetas(outAccess)
-              .en(localReadEns).en(remoteReadEn.map{_._2})
-              .done(deq)
-              .presetVec(outAccess.inferVec.get))
-          }
-        }
-        remoteReadEn.foreach { case (enCtx,en) =>
-          bufferInputFrom(en, read.en, enCtx)
-        }
-        if (inAccess.order.get > outAccess.order.get ) {
-          dbg(s"$read.initToken = true")
-          read.initToken := true
-        }
-        swapOutput(outAccess.out, read.out)
-      }
-    }
-    removeNodes(mem.accesses :+ mem)
-  }
-
-  def depCtx(streamCtx:Context) = {
-    streamCtx.collectDown[BufferRead]().headOption.map { _.inAccess.ctx.get }.getOrElse {
-      within(streamCtx.global.get, streamCtx.getCtrl) {
-        Context()
-      }
-    }
-  }
 
 }

@@ -48,6 +48,21 @@ case class RegFile()(implicit env:Env) extends Memory
 case class LUT()(implicit env:Env) extends Memory
 case class LockSRAM()(implicit env:Env) extends Memory
 
+case class Lock()(implicit env:Env) extends BlackBox with DefNode[PIRNode] {
+  val key = new InputField[List[PIRNode]]("key")
+  val out = new OutputField[List[PIRNode]]("out")
+}
+case class Splitter()(implicit env:Env) extends BlackBox {
+  def addrIn = getDynamicInputFields[PIRNode]("addrIn")
+  def addrOut = getDynamicOutputFields[PIRNode]("addrOut")
+  def addAddrIn(xs:Any*) = DynamicInputFields[PIRNode]("addrIn", xs)
+  def addAddrOut(xs:Any*) = DynamicOutputFields[PIRNode]("addrOut", xs)
+}
+case class LockOnKeys()(implicit env:Env) extends Def {
+  val lock = new InputField[Lock]("lock")
+  val key = new InputField[PIRNode]("key")
+}
+
 case class Top()(implicit env:Env) extends PIRNode {
   var topCtrl:ControlTree = _
   var hostInCtrl:ControlTree = _
@@ -206,6 +221,11 @@ trait MemoryUtil extends CollectorImplicit {
 
     def isFIFO = n match {
       case n:FIFO => true
+      case _ => false
+    }
+
+    def isLockSRAM = n match {
+      case n:LockSRAM => true
       case _ => false
     }
 

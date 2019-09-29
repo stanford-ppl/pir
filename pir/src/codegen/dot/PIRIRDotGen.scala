@@ -99,7 +99,6 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
     //case n:CUContainer => attr.fillcolor(deepskyblue).style(filled)
     case n:DRAMCommand => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
     case n:StreamCommand => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
-    //case n:StreamFringe => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
 
     case n:OpNode => attr.fillcolor("mediumorchid1").style(filled)
     case n => super.color(attr, n)
@@ -141,7 +140,7 @@ class PIRTopDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fil
 
 class PIRCtxDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fileName) {
   override def visitFunc(n:N) = n match {
-    case n:Context => n.descendents.collect { case n:LocalAccess => n; case n:Access => n; case c:FringeCommand => c }.toList
+    case n:Context => n.descendents.collect { case n:LocalAccess => n; case n:Access => n; case c:BlackBox => c }.toList
     case n => super.visitFunc(n)
   }
 }
@@ -194,10 +193,10 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
   override def setAttrs(n:N):DotAttr = n match {
     case n:GlobalContainer =>
       val mem = n.collectDown[Memory]().map { quote(_) }
-      val cmd = n.collectDown[FringeCommand]().map { quote(_) }
+      val bbs = n.collectDown[BlackBox]().map { quote(_) }
       var tooltip = s"$n"
       if (mem.nonEmpty) tooltip += s"\n${mem.mkString(",")}" 
-      if (cmd.nonEmpty) tooltip += s"\n${cmd.mkString(",")}"
+      if (bbs.nonEmpty) tooltip += s"\n${bbs.mkString(",")}"
       val ctxs = n.collectDown[Context]().map { ctx =>
         quote(ctx)
       }
@@ -219,11 +218,11 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
       mem.foreach { mem =>
         mem.name.v.foreach { name => l += s"\n$name" }
       }
-      val cmd = n.collectDown[DRAMCommand]()
-      cmd.foreach { cmd =>
-        cmd.name.v.foreach { name => l += s"\n$name" }
+      val bbs = n.collectDown[BlackBox]()
+      bbs.foreach { bbs =>
+        bbs.name.v.foreach { name => l += s"\n$name" }
       }
-      if (mem.isEmpty && cmd.isEmpty) {
+      if (mem.isEmpty && bbs.isEmpty) {
         n.collectDown[LocalOutAccess]().foreach { mem =>
           mem.name.v.foreach { name => l += s"\n$name" }
         }

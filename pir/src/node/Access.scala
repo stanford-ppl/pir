@@ -34,7 +34,7 @@ trait FlatBankedAccess extends Access { // lowered access
 }
 trait LockAccess extends Access {
   val addr = new InputField[PIRNode]("addr")
-  val lock = new InputField[Option[PIRNode]]("lock")
+  val lock = new InputField[Option[LockOnKeys]]("lock")
 }
 trait InAccess extends Access { // Memory as output
   val mem = new OutputField[Memory]("mem")

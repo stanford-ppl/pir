@@ -27,7 +27,6 @@ trait TypeUtil { self:PIRPass =>
         s"$ctx.ctrler with ($ctrl)"
       )
     }
-    def dramCommands:Option[DRAMCommand] = assertOneOrLess(ctx.children.collect{ case fringe:DRAMCommand => fringe }, s"fringe in $ctx")
     def activeRate(n:Float) = ctx.getMeta[Float]("activeRate").update(n)
     def activeRate = ctx.getMeta[Float]("activeRate").v
     def stallRate(n:Float) = ctx.getMeta[Float]("stallRate").update(n)
