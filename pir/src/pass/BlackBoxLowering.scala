@@ -28,6 +28,10 @@ class BlackBoxLowering(implicit compiler:PIR) extends PIRTraversal with SiblingF
       }
     }
     bufferInput(ctx)
+    n.to[Lock].foreach { n =>
+      val memCU = within(pirTop) { MemoryContainer() }
+      swapParent(ctx,memCU)
+    }
   }
 
 }

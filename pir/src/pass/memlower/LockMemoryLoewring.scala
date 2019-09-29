@@ -38,7 +38,9 @@ trait LockMemoryLowering extends GenericMemoryLowering {
     val ctrl = access.ctx.get.getCtrl
     // Setting up address calculation
     val addrCtx = addrCtxs.getOrElseUpdate(ctrl, {
-      within(memCU, ctrl) { Context() }
+      // Optimization. Put address calculation in PMU of doesn't have lock
+      val cu = if (access.lock.isConnected) pirTop else memCU
+      within(cu, ctrl) { Context() }
     })
     swapParent(access, addrCtx)
     var addr = access.addr.singleConnected.get
@@ -47,24 +49,29 @@ trait LockMemoryLowering extends GenericMemoryLowering {
       access.en.singleConnected.foreach { en =>
         addr = stage(OpDef(Mux).addInput(en, addr, allocConst(-1).out).out)
       }
+      access.en.disconnect
     }
     // Setting up splitter and lock if it's sparse access
-    access.lock.T.foreach { lockOn =>
+    val (splitCtx) = access.lock.T.map { lockOn =>
       val lock = lockOn.lock.T
       val key = lockOn.key.singleConnected.get
-      val (splitAddr, splitKey) = allocateSplitter(ctrl, addr, key)
+      val (splitAddr, splitKey, splitCtx) = allocateSplitter(ctrl, addr, key)
+      bufferInput(splitCtx, fromCtx=Some(addrCtx))
       addr = splitAddr
+      bufferInput(lock.key)
       lock.key(splitKey)
-      bufferInput(lock.key, fromCtx=Some(addrCtx))
+      bufferInput(lock.key, fromCtx=Some(splitCtx))
       swapConnection(access.lock, lockOn.out, lock.out)
       val lockCtx = lock.ctx.get
       bufferInput(access.lock)
+      splitCtx
     }
     // Setting up access within PMU
     val accessCtx = within(memCU, ctrl) { Context().streaming(true) }
     swapParent(access, accessCtx)
     swapConnection(access.addr, access.addr.singleConnected.get, addr)
-    bufferInput(accessCtx, fromCtx=Some(addrCtx))
+    bufferInput(access.addr, fromCtx=Some(splitCtx.getOrElse(addrCtx)))
+    bufferInput(accessCtx)
     access.to[LockRead].foreach { access =>
       access.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx,ins) =>
         val in::rest = ins
@@ -85,9 +92,17 @@ trait LockMemoryLowering extends GenericMemoryLowering {
       ctx
     })
     val splitter = ctx.collectFirstChild[Splitter].get
-    val splitAddr = splitter.addAddrIn(addr).addAddrOut().addrOut.last
-    val splitKey = if (addr == key) splitAddr else splitter.addAddrIn(addr).addAddrOut()
+    val splitAddr = allocAddr(splitter, addr)
+    val splitKey = allocAddr(splitter, key)
     stage(splitter)
-    (splitAddr, splitKey)
+    (splitAddr, splitKey, ctx)
+  }
+
+  def allocAddr(splitter:Splitter, addr:Output[PIRNode]) = {
+    splitter.addrIn.find { canReach(_,addr) }.fold {
+      splitter.addAddrIn(addr).addAddrOut(1).head
+    } { addrIn =>
+      splitter.addrOut(splitter.addrIn.indexOf(addrIn))
+    }
   }
 }

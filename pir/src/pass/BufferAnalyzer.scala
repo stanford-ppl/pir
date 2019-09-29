@@ -72,6 +72,10 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     case n => Nil
   }
 
+  def canReach(in:Input[PIRNode], out:Output[PIRNode]) = {
+    in.canReach(out, visitEdges=visitInEdges _)
+  }
+
   private def insertBuffer(depOut:Output[PIRNode], depedIn:Input[PIRNode], fromCtx:Option[Context]=None):Option[BufferRead] = {
     val dep = depOut.src
     val deped = depedIn.src
@@ -83,8 +87,8 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
         val write = within(depCtx, depCtx.getCtrl) {
           allocate[BufferWrite] { write => 
             write.isFIFO &&
-            write.data.canReach(depOut, visitEdges=visitInEdges _) &&
-            write.done.canReach(enq, visitEdges=visitInEdges _) &&
+            canReach(write.data,depOut) &&
+            canReach(write.done,enq) &&
             !write.en.isConnected //TODO: buffer function should also allow enable as input
           } {
             stage(BufferWrite(isFIFO=true).data(depOut).done(enq))
@@ -93,8 +97,8 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
         val read = within(depedCtx, depedCtx.getCtrl) {
           allocate[BufferRead] { read => 
             read.isFIFO &&
-            read.in.canReach(write.out, visitEdges=visitInEdges _) &&
-            read.done.canReach(deq, visitEdges=visitInEdges _) &&
+            canReach(read.in,write.out) &&
+            canReach(read.done,deq) &&
             !read.en.isConnected
           } {
             stage(BufferRead(isFIFO=true).in(write.out).done(deq))
