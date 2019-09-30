@@ -100,14 +100,16 @@ trait TypeUtil { self:PIRPass =>
   }
 
   import spade.param._
-  def compVec(n:IR):Option[Int] = /*dbgblk(s"compVec(${dquote(n)})")*/ {
+  def compVec(n:IR):Option[Int] = dbgblk(s"compVec(${dquote(n)})") {
     n match {
       case n:Output[_] if n.getMeta[Int]("presetVec").nonEmpty => n.getMeta[Int]("presetVec").v
       case OutputField(n:LoopController, "laneValid") => Some(n.par.get)
       case OutputField(n:FringeDenseStore, "ack") => Some(1)
+      case OutputField(n:LockAccess, _) => n.inferVec
       case ConnectedByDRAMCmd(vec) => Some(vec)
       case n@OutputField(s:Splitter, "addrOut") => s.addrIn(s.addrOut.indexOf(n)).inferVec
       case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferVec
+      case n:Forward => n.in.inferVec
       case n:Controller => None
       case n:Memory => None
       case n:PIRNode if n.presetVec.nonEmpty => n.presetVec.v
@@ -139,8 +141,7 @@ trait TypeUtil { self:PIRPass =>
       case WithMem(n:MemRead, mem:FIFO) => n.broadcast.v.map { _.size }.orElse(Some(n.mem.T.banks.get.head))
       case n:BankedWrite => zipMap(n.data.inferVec, n.offset.inferVec) { case (a,b) => Math.max(a,b) }
       case n:BankedRead => n.offset.inferVec // Before lowering
-      case n:LockWrite => Some(n.getCtrl.par.get)
-      case n:LockRead => Some(n.getCtrl.par.get)
+      case n:LockAccess => Some(n.getCtrl.par.get)
       case n:FlatBankedAccess => Some(n.mem.T.nBanks)
       case n:BufferWrite => n.data.inferVec
       case n:BufferRead => n.in.inferVec
@@ -168,6 +169,8 @@ trait TypeUtil { self:PIRPass =>
     n match {
       case n@OutputField(s:Splitter, "addrOut") => s.addrIn(s.addrOut.indexOf(n)).inferTp
       case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferTp
+      case OutputField(n:LockAccess, _) => n.inferTp
+      case n:Forward => n.in.inferTp
       case n:Splitter => None
       case n:Shuffle => n.base.inferTp
       case n:TokenRead => Some(Bool)

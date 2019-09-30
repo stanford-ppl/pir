@@ -23,8 +23,14 @@ trait LockMemoryLowering extends GenericMemoryLowering {
   private def lowerLockMem(n:Memory) = dbgblk(s"lowerLockMem($n)"){
     val memCU = within(pirTop) { MemoryContainer() }
     swapParent(n, memCU)
+    val lockMap = n.accesses.groupBy { access => access.as[LockAccess].lock.T }
+    val lastAccesses = lockMap.flatMap {
+      case (None, accesses) => None
+      case (Some(lock), accesses) => Some(accesses.maxBy { _.order.get })
+    }.toSet
+    dbg(s"lastAccesses=${lastAccesses.mkString(",")}")
     n.accesses.foreach { access =>
-      lowerAccess(n, memCU, access.as[LockAccess])
+      lowerAccess(n, memCU, access.as[LockAccess], lastAccesses.contains(access))
     }
     sequencedScheduleBarrierInsertion(n)
     n.accesses.foreach { access =>
@@ -34,7 +40,7 @@ trait LockMemoryLowering extends GenericMemoryLowering {
     addrCtxs.clear
   }
 
-  private def lowerAccess(mem:Memory, memCU:MemoryContainer, access:LockAccess) = {
+  private def lowerAccess(mem:Memory, memCU:MemoryContainer, access:LockAccess, isLast:Boolean) = {
     val ctrl = access.ctx.get.getCtrl
     // Setting up address calculation
     val addrCtx = addrCtxs.getOrElseUpdate(ctrl, {
@@ -52,25 +58,44 @@ trait LockMemoryLowering extends GenericMemoryLowering {
       access.en.disconnect
     }
     // Setting up splitter and lock if it's sparse access
-    val splitCtx = access.lock.T.map { lockOn =>
+    val pack = access.lock.T.map { lockOn =>
       val lock = lockOn.lock.T
       val key = lockOn.key.singleConnected.get
       val (splitAddr, splitKey, splitCtx) = allocateSplitter(ctrl, addr, key)
       bufferInput(splitCtx, fromCtx=Some(addrCtx))
       addr = splitAddr
-      if (!canReach(lock.key,splitKey)) {
-        lock.key(splitKey)
-        bufferInput(lock.key, fromCtx=Some(splitCtx))
+      if (!canReach(lock.lock,splitKey)) {
+        lock.lock(splitKey)
+        bufferInput(lock.lock, fromCtx=Some(splitCtx))
       }
       swapConnection(access.lock, lockOn.out, lock.out)
-      splitCtx
+      (splitCtx, lock, splitKey)
     }
+    val splitCtx = pack.map { _._1 }
+    val lock = pack.map { _._2 }
+    val splitKey = pack.map { _._3 }
     // Setting up access within PMU
     val accessCtx = within(memCU, ctrl) { Context().streaming(true) }
     swapParent(access, accessCtx)
     swapConnection(access.addr, access.addr.singleConnected.get, addr)
     bufferInput(access.addr, fromCtx=Some(splitCtx.getOrElse(addrCtx)))
     bufferInput(accessCtx)
+    if (isLast) {
+      val mergeCtx = within(memCU, ctrl) { Context().streaming(true) }
+      val dep = access match {
+        case access:LockRead => access.out
+        case access:LockWrite => access.ack
+      }
+      val unlock = within(mergeCtx, ctrl) {
+        stage(Forward().in(splitKey.get).dummy(dep)).out
+      }
+      bufferInput(mergeCtx)
+      lock.foreach { lock =>
+        lock.unlock(unlock)
+        bufferInput(lock.unlock)
+      }
+    }
+    // Setting up connection with PCU
     access.to[LockRead].foreach { access =>
       access.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx,ins) =>
         val in::rest = ins

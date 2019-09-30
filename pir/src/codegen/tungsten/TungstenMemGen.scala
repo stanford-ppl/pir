@@ -116,9 +116,6 @@ trait TungstenMemGen extends TungstenCtxGen {
     case n:FIFO =>
       genTopMember(n, Seq(n.qstr))
 
-    case n:LockSRAM =>
-      genTopMember(n, Seq(n.qstr, s"{}")) //TODO:
-
     case n:Memory =>
       val accesses = n.accesses.map { a => s"""make_tuple(${a.id}, ${a.isInAccess}, ${a.port.get.isEmpty})""" }.mkString(",")
       genTopMember(n, Seq(n.qstr, s"{$accesses}"))
@@ -286,8 +283,6 @@ trait TungstenMemGen extends TungstenCtxGen {
       (s"NBufferSRAM<${n.getDepth}, ${n.qtp}, ${n.bankSize}, ${n.nBanks}>", s"$n")
     case n:Reg =>
       (s"NBufferReg<${n.getDepth}, ${n.qtp}>", s"$n")
-    case n:LockSRAM =>
-      (s"SparsePMU", s"$n")
     case n => super.varOf(n)
   }
 

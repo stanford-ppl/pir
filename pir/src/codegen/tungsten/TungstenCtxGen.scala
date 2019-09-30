@@ -51,6 +51,7 @@ trait TungstenCtxGen extends TungstenTopGen {
             visitNode(n)
           }
 
+          val sortedMembers = members.toSeq.sortBy { _.toString } // Improve simulation speed
           emitln("""
 using   namespace std;
 """)    
@@ -70,7 +71,7 @@ using   namespace std;
               getBuffer("inits").foreach { _.flushTo(sw) }
             }
             emitBlock(s"void Clock()") {
-              members.foreach { m => 
+              sortedMembers.foreach { m => 
                 emitln(s"$m->Clock();")
               }
             }
@@ -82,7 +83,7 @@ using   namespace std;
               emitln(s"EvalControllers();")
               getBuffer("computes-end").foreach { _.flushTo(sw) }
               getBuffer("computes-end").foreach { _.flushTo(sw) }
-              members.foreach { 
+              sortedMembers.foreach { 
                 case _:Controller | _:Counter => 
                 case m => emitln(s"$m->Eval();")
               }

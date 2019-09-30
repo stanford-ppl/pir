@@ -51,7 +51,9 @@ trait ReadAccess extends OutAccess
 case class BankedRead()(implicit env:Env) extends ReadAccess with BankedAccess
 case class BankedWrite()(implicit env:Env) extends WriteAccess with BankedAccess
 case class LockRead()(implicit env:Env) extends ReadAccess with LockAccess 
-case class LockWrite()(implicit env:Env) extends WriteAccess with LockAccess
+case class LockWrite()(implicit env:Env) extends WriteAccess with LockAccess {
+  val ack = new OutputField[List[PIRNode]]("ack")
+}
 case class FlatBankedRead()(implicit env:Env) extends ReadAccess with FlatBankedAccess
 case class FlatBankedWrite()(implicit env:Env) extends WriteAccess with FlatBankedAccess
 case class MemRead()(implicit env:Env) extends ReadAccess

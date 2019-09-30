@@ -49,7 +49,8 @@ case class LUT()(implicit env:Env) extends Memory
 case class LockSRAM()(implicit env:Env) extends Memory
 
 case class Lock()(implicit env:Env) extends BlackBox with DefNode[PIRNode] {
-  val key = new InputField[PIRNode]("key")
+  val lock = new InputField[PIRNode]("lock")
+  val unlock = new InputField[PIRNode]("unlock")
   val out = new OutputField[List[PIRNode]]("out").tp(Bool).presetVec(1)
   override def asOutput = Some(out)
 }
@@ -58,6 +59,10 @@ case class Splitter()(implicit env:Env) extends BlackBox {
   def addrOut = getDynamicOutputFields[PIRNode]("addrOut")
   def addAddrIn(xs:Any*) = DynamicInputFields[PIRNode]("addrIn", xs)
   def addAddrOut(num:Int) = DynamicOutputFields[PIRNode]("addrOut", num)
+}
+case class Forward()(implicit env:Env) extends Def {
+  val in = new InputField[PIRNode]("in")
+  val dummy = new InputField[List[PIRNode]]("dummy")
 }
 case class LockOnKeys()(implicit env:Env) extends Def {
   val lock = new InputField[Lock]("lock")
