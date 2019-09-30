@@ -127,14 +127,27 @@ using   namespace std;
   }
 
   private val members = mutable.ListBuffer[Any]()
-  def emitNewMember(tp:String, name:Any, args:Any*) = {
+
+  def genCtxMember(n:PIRNode, args:Any*):Unit = {
+    val (tp,name) = varOf(n)
+    genCtxMember(tp, name, args, false)
+  }
+
+  def genCtxMember(tp:String, name:Any, args:Seq[Any], end:Boolean=false):Unit = {
     genCtxFields {
-      emitln(s"$tp* $name;")
+      if (end) {
+        emitln(s"$tp* $name;")
+      } else {
+        val fullargs = name.qstr +: args
+        emitln(s"""$tp* $name = new $tp(${fullargs.mkString(",")});""")
+      }
     }
     genCtxInits {
       members += name
-      val fullargs = name.qstr +: args
-      emitln(s"$name = new $tp(${fullargs.mkString(",")});")
+      if (end) {
+        val fullargs = name.qstr +: args
+        emitln(s"$name = new $tp(${fullargs.mkString(",")});")
+      }
       emitln(s"AddChild($name, false);");
     }
   }

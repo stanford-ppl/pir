@@ -34,12 +34,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       }
 
     case n:Controller =>
-      val tp = n match {
-        case n:TopController => "StepController"
-        case n:LoopController => "LoopController"
-        case n => "UnitController"
-      }
-      emitNewMember(tp, n)
+      genCtxMember(n)
       genCtxInits {
         emitln(s"AddCtrler($n);");
         n.to[LoopController].foreach { n =>
@@ -74,15 +69,14 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
         }
       }
 
-    case n:Counter if n.isForever =>
-      emitNewMember(s"ForeverCounter<${n.par}>", n)
-
-    case n:Counter if !n.isForever =>
-      emitNewMember(s"Counter<${n.par}>", n)
-      emitln(s"$n->setMin(${n.min.T.get});")
-      emitln(s"$n->setStep(${n.step.T.get});")
-      emitln(s"$n->setMax(${n.max.T.get});")
-      emitln(s"$n->Eval(); // ${n.getCtrl}")
+    case n:Counter =>
+      genCtxMember(n)
+      if (!n.isForever) {
+        emitln(s"$n->setMin(${n.min.T.get});")
+        emitln(s"$n->setStep(${n.step.T.get});")
+        emitln(s"$n->setMax(${n.max.T.get});")
+        emitln(s"$n->Eval(); // ${n.getCtrl}")
+      }
 
     case n@CounterIter(is) =>
       val ctr = n.counter.T
@@ -93,5 +87,14 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       emitVec(n, is.map { i => s"$ctr->Valids()[$i]" })
 
     case n => super.emitNode(n)
+  }
+
+  override def varOf(n:PIRNode):(String, String) = n match {
+    case n:LoopController => (s"LoopController",s"$n")
+    case n:TopController => (s"StepController",s"$n")
+    case n:Controller => (s"UnitController",s"$n")
+    case n:Counter if n.isForever => (s"ForeverCounter<${n.par}>",s"$n")
+    case n:Counter => (s"Counter<${n.par}>",s"$n")
+    case n => super.varOf(n)
   }
 }

@@ -76,7 +76,7 @@ trait TungstenMemGen extends TungstenCtxGen {
           case n:TokenWrite => n.done.T
         }
         val pipeDepth = numStagesOf(n.ctx.get)
-        emitNewMember(tp, name, pipeDepth)
+        genCtxMember(n, pipeDepth)
       }
       val ctrler = getCtrler(n)
       n.out.T.foreach { send =>

@@ -101,7 +101,7 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
         case OutputField(data:LockRead,"out") => nameOf(data)
         case OutputField(data:LockWrite,"ack") => s"${nameOf(data)}.first"
       }
-      emitNewMember("Broadcast<Token>", s"bc_$data", dataOut, n.out.T.map { nameOf(_) }.qlist)
+      genCtxMember("Broadcast<Token>", s"bc_$data", Seq(dataOut, n.out.T.map { nameOf(_) }.qlist), end=true)
       genCtxInits {
         n.out.T.foreach { send =>
           addEscapeVar(send)
