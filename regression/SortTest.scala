@@ -81,7 +81,7 @@ case class DRAMMergeSort_2() extends DRAMMergeSort(ip=16, op=2)
         val first = (i % 2 == 0)
         val second = !first
         Sequential.Foreach(N by bs par op) { t =>
-          mergeBuf.init(i < 0)
+          mergeBuf.init(i == 0)
           ways.foreach { w =>
             mergeBuf.bound(w, mergeSize)
           }
