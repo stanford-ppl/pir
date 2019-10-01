@@ -18,6 +18,9 @@ trait TungstenTopGen extends TungstenCodegen {
 #include "example.h"
 #include "module.h"
 #include "state.h"
+#include "SparsePMU.h"
+#include "Lock.h"
+#include "Split.h"
 #include "token.h"
 #include <cassert>
 #include <iomanip>
@@ -55,7 +58,7 @@ using namespace std;
   // (type, name, constructor args, extern, escape)
   // extern: if generated as module, these members are instantiated from outside of top module
   // escape: if generated as module, these members are passed in to the top module
-  case class TopMember(tp:String, name:String, args:Seq[String], extern:Boolean, escape:Boolean, alias:Option[String])
+  case class TopMember(tp:String, name:String, args:Seq[String], end:Boolean, extern:Boolean, escape:Boolean, alias:Option[String])
   val topMembers = mutable.Map[String, TopMember]()
 
   def genTopMember(n:PIRNode, args: => Seq[String], end:Boolean=false):Unit = {
@@ -91,7 +94,7 @@ using namespace std;
       }
       enterTop = saved
     }
-    topMembers += name -> TopMember(interfaceTp, name, args, ext, escape & ext, alias)
+    topMembers += name -> TopMember(interfaceTp, name, args, end, ext, escape & ext, alias)
   }
 
   private var enterTop = false
@@ -148,7 +151,7 @@ using namespace std;
         emitln("public:")
         getBuffer("top").foreach { _.flushTo(sw) }
         getBuffer("top-end").foreach { _.flushTo(sw) }
-        val memberInits = members.filter { _.args.nonEmpty }.map { mem =>
+        val memberInits = members.filter { _.args.nonEmpty }.sortBy { _.end }.map { mem =>
           s"${mem.name}(${mem.args.mkString(",")})"
         }
         val inits = (s"""Module("$topName")""" +: memberInits).mkString(",\n      ")

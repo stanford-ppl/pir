@@ -4,7 +4,7 @@ import pir.pass._
 import prism.graph._
 import prism.collection.immutable._
 
-trait CUPruner extends ConstrainPruner with CUCostUtil with PIRTransformer with BufferAnalyzer with DependencyAnalyzer {
+trait CUPruner extends ConstrainPruner with CUCostUtil with PIRTransformer with DependencyAnalyzer {
   def getCosts(x:Any):List[Cost[_]] = Nil
 
   override def prune[T](x:T):EOption[T] = super.prune[T](x).flatMap {

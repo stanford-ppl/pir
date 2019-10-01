@@ -8,21 +8,27 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
   /*
    * escaped node will be buffered between dep ctx and scope
    * */
-  def escape(dep:PIRNode, depedIn:Input[PIRNode], depedCtx:Context) = {
-    (dep, depedIn, depedCtx) match {
-      case (dep, _, _) if dep.isDescendentOf(depedCtx) => false
-      case (dep, _, _) if !dep.isUnder[Context] => false
-      case (_, InputField(deped:LocalOutAccess, "in"), _) => false
+  def escape(depOut:Output[PIRNode], depedIn:Input[PIRNode], depedCtx:Context):Boolean = {
+    val dep = depOut.src
+    if (dep.isDescendentOf(depedCtx)) return false
+    if (!dep.isUnder[Context]) return false
+    (dep, depedIn) match {
+      case (_,InputField(deped:LocalOutAccess, "in")) => false
+      case (dep:LocalOutAccess, _) => false
+      case (_,depedIn) if depedCtx.streaming.get => true
+      case (dep,_) => !canDuplicate(depOut)
+    }
+  }
 
-      case (_,_,ctx) if ctx.streaming.get => true
-
-      case (dep:Const, _, _) => false // duplicate later
-      case (dep:CounterIter, _, _) => false // duplicate later
-      case (dep:CounterValid, _, _) => false // duplicate later
-      case (dep:Controller, _, _) => false // duplicate later
-      case (dep:LocalOutAccess, _, _) => false // duplicate later
-
-      case (dep, _, _) => true
+  def canDuplicate(depOut:Output[PIRNode]) = {
+    val dep = depOut.src
+    dep match {
+      case dep:Const => true
+      case dep:LocalOutAccess => true
+      case dep:CounterIter => true
+      case dep:CounterValid => true
+      case dep:Controller => true
+      case dep => false
     }
   }
 
@@ -44,6 +50,14 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     }
   }
 
+  def bufferInputFrom(out:Output[PIRNode], in:Input[PIRNode], fromCtx:Context):Option[BufferRead] = {
+    val saved = out.src.parent.get
+    swapParent(out.src, fromCtx)
+    val read = insertBuffer(out,in)
+    swapParent(out.src, saved)
+    read
+  }
+
   def bufferOutput(out:Output[PIRNode]):Seq[BufferRead] = {
     out.connected.distinct.flatMap { in =>
       insertBuffer(out, in)
@@ -58,19 +72,23 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     case n => Nil
   }
 
+  def canReach(in:Input[PIRNode], out:Output[PIRNode]) = {
+    in.canReach(out, visitEdges=visitInEdges _)
+  }
+
   private def insertBuffer(depOut:Output[PIRNode], depedIn:Input[PIRNode], fromCtx:Option[Context]=None):Option[BufferRead] = {
     val dep = depOut.src
     val deped = depedIn.src
     val depedCtx = deped.ctx.get
-    if (escape(dep, depedIn, depedCtx)) {
+    if (escape(depOut, depedIn, depedCtx)) {
       val depCtx = fromCtx.getOrElse { dep.ctx.get }
-      val read = dbgblk(s"insertBuffer(depOut=$dep.$depOut, depedIn=$deped.$depedIn)") {
+      val read = dbgblk(s"insertBuffer(depOut=${dquote(depOut)}, depedIn=$deped.$depedIn)") {
         val (enq, deq) = compEnqDeq(isFIFO=true, depCtx, depedCtx, Some(depOut), List(depedIn))
         val write = within(depCtx, depCtx.getCtrl) {
           allocate[BufferWrite] { write => 
             write.isFIFO &&
-            write.data.canReach(depOut, visitEdges=visitInEdges _) &&
-            write.done.canReach(enq, visitEdges=visitInEdges _) &&
+            canReach(write.data,depOut) &&
+            canReach(write.done,enq) &&
             !write.en.isConnected //TODO: buffer function should also allow enable as input
           } {
             stage(BufferWrite(isFIFO=true).data(depOut).done(enq))
@@ -79,8 +97,8 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
         val read = within(depedCtx, depedCtx.getCtrl) {
           allocate[BufferRead] { read => 
             read.isFIFO &&
-            read.in.canReach(write.out, visitEdges=visitInEdges _) &&
-            read.done.canReach(deq, visitEdges=visitInEdges _) &&
+            canReach(read.in,write.out) &&
+            canReach(read.done,deq) &&
             !read.en.isConnected
           } {
             stage(BufferRead(isFIFO=true).in(write.out).done(deq))

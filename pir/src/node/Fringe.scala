@@ -18,7 +18,9 @@ object FileBus {
 case class FileEOFBus(override val fileName:String) extends FileBus(fileName)
 case class BlackBoxBus(name:String) extends Bus
 
-trait FringeCommand extends PIRNode
+trait BlackBox extends PIRNode
+
+trait FringeCommand extends BlackBox
 
 trait DRAMCommand extends FringeCommand {
   def dram:DRAM
@@ -37,7 +39,7 @@ trait DRAMLoadCommand extends DRAMCommand {
 }
 trait DRAMStoreCommand extends DRAMCommand {
   val data = new InputField[PIRNode]("data")
-  val ack = new OutputField[PIRNode]("ack")
+  val ack = new OutputField[PIRNode]("ack").tp(Bool)
 }
 
 case class FringeDenseLoad(dram:DRAM)(implicit env:Env) extends DRAMDenseCommand with DRAMLoadCommand
@@ -67,5 +69,5 @@ case class FringeStreamWrite(bus:Bus)(implicit env:Env) extends StreamCommand {
 case class FringeStreamRead(bus:Bus)(implicit env:Env) extends StreamCommand {
   def addStreams(xs:List[Any]) = DynamicInputFields[PIRNode]("stream", xs)
   override def streams = getDynamicInputFields[PIRNode]("stream")
-  val lastBit = new OutputField[Option[PIRNode]]("lastBit")
+  val lastBit = new OutputField[Option[PIRNode]]("lastBit").tp(Bool).presetVec(1)
 }

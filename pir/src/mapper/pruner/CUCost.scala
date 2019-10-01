@@ -77,9 +77,15 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
 
     } orElse switch[SRAMCost](x,ct) {
       case n:GlobalContainer =>
-        val srams = n.collectDown[SRAM]() ++ n.collectDown[LUT]() ++ n.collectDown[RegFile]()
-        val sramSize = srams.map { _.capacity }.maxOption.getOrElse(0)
-        val nBanks = srams.map { _.nBanks }.maxOption.getOrElse(0)
+        val srams = n.collectDown[SRAM]() ++ n.collectDown[LUT]() ++ n.collectDown[RegFile]() ++ n.collectDown[Lock]()
+        val sramSize = srams.map { 
+          case mem:Memory => mem.capacity
+          case lock:Lock => 1
+        }.maxOption.getOrElse(0)
+        val nBanks = srams.map { 
+          case mem:Memory => mem.nBanks
+          case lock:Lock => 1
+        }.maxOption.getOrElse(0)
         SRAMCost(srams.size, nBanks, sramSize)
       case n:CUParam => SRAMCost(n.sramParam.count, n.sramParam.bank, n.sramParam.sizeInWord)
       case n => SRAMCost(0,0,0)
@@ -145,7 +151,7 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
         val ctxs = n.collectDown[Context]()
         ctxs.map { _.getCost[LaneCost] }.fold(LaneCost()) { _ + _ }
       case n:Context =>
-        val lane = assertUnify(n.collectDown[Controller]().flatMap { _.leaves }.distinct, s"$n.lane") {
+        val lane = assertUnify(n.collectDown[Controller]().filter { _.getCtrl.isLeaf }.distinct, s"$n.lane") {
           _.getCtrl.getVec
         }.getOrElse(1)
         LaneCost(lane)

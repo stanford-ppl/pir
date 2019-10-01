@@ -33,8 +33,10 @@ class NaivePageRankCSR_4 extends NaivePageRankCSR(iters=2)(ipls=1, ip=1)
     val initRank = (1.0f.to[T] / N.to[T]).to[T]
     val argN = ArgIn[Int]
     val argIR = ArgIn[T]
+    val argIters = ArgIn[Int]
     setArg(argN, N)
     setArg(argIR, initRank)
+    setArg(argIters, iters)
 
     val pageranks = DRAM[T](N)
     val ofsts = DRAM[Int](N)
@@ -44,7 +46,7 @@ class NaivePageRankCSR_4 extends NaivePageRankCSR(iters=2)(ipls=1, ip=1)
 
     val rts = ts + 1
     Accel { 
-      Sequential.Foreach(iters by 1) { iter =>
+      Sequential.Foreach(argIters.value by 1) { iter =>
         Foreach(0 until argN.value by ts par opN) { i =>
           val prTile = SRAM[T](ts)
           val ofstTile = SRAM[Int](rts)
@@ -53,22 +55,22 @@ class NaivePageRankCSR_4 extends NaivePageRankCSR(iters=2)(ipls=1, ip=1)
             val start = ofstTile(j)
             val end = ofstTile(j+1)
             val len = end - start
-            val neighbors = SRAM[Int](maxEdge)
+            val neighbors = FIFO[Int](maxEdge)
             neighbors load edges(start::end)
-            val neighborRanks = SRAM[T](maxEdge)
-            neighborRanks gather pageranks(neighbors par ipls, len)
-            val neighborEndIdx = SRAM[Int](maxEdge)
+            val neighborRanks = FIFO[T](maxEdge)
+            neighborRanks gather pageranks(neighbors, len)
+            val neighborEndIdx = FIFO[Int](maxEdge)
             Foreach(0 until len par ip) { k =>
-              neighborEndIdx(k) = neighbors(k) + 1
+              neighborEndIdx.enq(neighbors.deq + 1)
             }
-            val neighborStart = SRAM[Int](maxEdge)
-            val neighborEnd = SRAM[Int](maxEdge)
-            neighborStart gather ofsts(neighbors par ipls, len)
-            neighborEnd gather ofsts(neighborEndIdx par ipls, len)
+            val neighborStart = FIFO[Int](maxEdge)
+            val neighborEnd = FIFO[Int](maxEdge)
+            neighborStart gather ofsts(neighbors, len)
+            neighborEnd gather ofsts(neighborEndIdx, len)
             val rankSum = Reg[T]
             Reduce(rankSum)(0 until len par ip) { k =>
-              val neighborLen = neighborEnd(k) - neighborStart(k)
-              val nrank = mux(iter===0, argIR.value, neighborRanks(k))
+              val neighborLen = neighborEnd.deq - neighborStart.deq
+              val nrank = mux(iter===0, argIR.value, neighborRanks.deq)
               nrank / neighborLen.to[T]
             } { _ + _ }
             prTile(j) = rankSum.value * damp + ((1-damp).to[T] / argN.value.to[T])

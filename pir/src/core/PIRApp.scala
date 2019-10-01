@@ -17,8 +17,8 @@ trait PIRApp extends PIR with Logging {
   lazy val memLowering = new MemoryLowering()
   lazy val contextAnalyzer = new ContextAnalyzer()
   lazy val contextInsertion = new ContextInsertion()
+  lazy val blkboxLowering = new BlackBoxLowering()
   lazy val depDuplications = new DependencyDuplication()
-  lazy val accessCtxCreation = new AccessContextCreation()
   lazy val bufferInsertion = new BufferInsertion()
   lazy val globalInsertion = new GlobalInsertion()
   lazy val graphInit = new GraphInitialization()
@@ -62,28 +62,29 @@ trait PIRApp extends PIR with Logging {
     addPass(pirgenStaging) ==>
     saveSession(buildPath(config.outDir,"pir0.ckpt"), force=true) ==>
     // ------- Analysis and Transformations --------
-    addPass(enableDot, new PIRTopDotGen(s"top1.dot")) ==>
+    addPass(enableVerboseDot, new PIRTopDotGen(s"top1.dot")) ==>
     addPass(enableTrace && genPsim, dramTraceGen) ==>
     addPass(graphInit) ==>
-    addPass(enableDot, new PIRTopDotGen(s"top2.dot")) ==>
+    addPass(enableVerboseDot, new PIRTopDotGen(s"top2.dot")) ==>
     addPass(enableDot, new ControlTreeDotGen(s"ctop.dot")) ==>
-    addPass(enableDot, new ControlTreeHtmlIRPrinter(s"ctrl.html")) ==>
+    addPass(enableVerboseDot, new ControlTreeHtmlIRPrinter(s"ctrl.html")) ==>
     addPass(rewriter) ==>
     addPass(deadCodeEliminator) ==>
     addPass(contextInsertion) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"ctx2.dot")) ==>
-    addPass(enableDot, new PIRTopDotGen(s"top3.dot")) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"ctx3.dot")) ==>
+    addPass(blkboxLowering) ==>
+    addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx2.dot")) ==>
+    addPass(enableVerboseDot, new PIRTopDotGen(s"top3.dot")) ==>
+    addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx3.dot")) ==>
     addPass(memLowering) ==>
-    addPass(enableDot, new PIRTopDotGen(s"top4.dot")) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"ctx4.dot")) ==>
+    addPass(enableVerboseDot, new PIRTopDotGen(s"top4.dot")) ==>
+    addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx4.dot")) ==>
     addPass(depDuplications).dependsOn(memLowering) ==>
-    addPass(enableDot, new PIRTopDotGen(s"top5.dot")) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"ctx5.dot")) ==>
+    addPass(enableVerboseDot, new PIRTopDotGen(s"top5.dot")) ==>
+    addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx5.dot")) ==>
     addPass(rewriter) ==>
     addPass(deadCodeEliminator) ==>
-    addPass(enableDot, new PIRTopDotGen(s"top6.dot")) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"ctx6.dot")) ==>
+    addPass(enableVerboseDot, new PIRTopDotGen(s"top6.dot")) ==>
+    addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx6.dot")) ==>
     addPass(globalInsertion) ==>
     saveSession(buildPath(config.outDir,"pir1.ckpt")) ==>
     // ------ Load hardware constrain ----- 
@@ -92,8 +93,9 @@ trait PIRApp extends PIR with Logging {
     addPass(new ParamHtmlIRPrinter(s"param.html", pirenv.spadeParam)) ==>
     addPass(enableDot, new PIRGlobalDotGen(s"global7.dot")) ==>
     addPass(enableDot, new PIRCtxDotGen(s"ctx7.dot")) ==>
-    addPass(enableDot, new PIRTopDotGen(s"top7.dot")) ==>
-    addPass(enableDot, new PIRIRPrinter(s"IR7.txt")) ==>
+    addPass(enableVerboseDot, new PIRTopDotGen(s"top7.dot")) ==>
+    addPass(enableVerboseDot, new PIRIRPrinter(s"IR7.txt")) ==>
+    addPass(sanityCheck) ==>
     // ------- Mapping  --------
     addPass(enableMapping, hardPruner) ==>
     addPass(enableMapping, memoryPruner) ==>
@@ -102,24 +104,24 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, hardPruner) ==> // prune on newly created CUs by memoryComputePruner
     addPass(enableMapping, computePruner) ==>
     addPass(enableMapping, dagPruner) ==>
+    addPass(enableMapping, matchPruner) ==>
     addPass(ctrlBlockInsert) ==>
     addPass(sanityCheck) ==>
     //addPass(debugTransformer) ==>
-    addPass(enableMapping, matchPruner) ==>
     addPass(modAnalyzer) ==>
     addPass(enableMapping, placerAndRouter) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"ctx8.dot")) ==>
-    addPass(enableDot, new PIRTopDotGen(s"top8.dot")) ==>
-    //addPass(enableDot, new PIRNetworkDotGen(s"net.dot"))
+    addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx8.dot")) ==>
+    addPass(enableVerboseDot, new PIRTopDotGen(s"top8.dot")) ==>
+    //addPass(enableVerboseDot, new PIRNetworkDotGen(s"net.dot"))
     saveSession(buildPath(config.outDir,"pir2.ckpt")) ==>
     // ------- Codegen  --------
     addPass(enableMapping,progReport) ==>
     addPass(enableMapping,resReport) ==>
     addPass(runtimeAnalyzer).dependsOn(placerAndRouter) ==>
     addPass(enableDot, new PIRGlobalDotGen(s"global.dot")) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"ctx.dot")) ==>
-    addPass(enableDot, new PIRTopDotGen(s"top.dot")) ==>
-    addPass(enableDot, new PIRIRPrinter(s"IR.txt")) ==>
+    addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx.dot")) ==>
+    addPass(enableVerboseDot, new PIRTopDotGen(s"top.dot")) ==>
+    addPass(config.debug, new PIRIRPrinter(s"IR.txt")) ==>
     // Igraph
     addPass(enableIgraph, igraphGen).dependsOn(runtimeAnalyzer)
     // Plastiroute

@@ -46,6 +46,30 @@ case class FIFO()(implicit env:Env) extends Memory
 case class SRAM()(implicit env:Env) extends Memory
 case class RegFile()(implicit env:Env) extends Memory
 case class LUT()(implicit env:Env) extends Memory
+case class LockSRAM()(implicit env:Env) extends Memory
+
+case class Lock()(implicit env:Env) extends BlackBox with DefNode[PIRNode] {
+  val lock = new InputField[PIRNode]("lock")
+  val unlock = new InputField[PIRNode]("unlock")
+  val out = new OutputField[List[PIRNode]]("out").tp(Bool).presetVec(1)
+  override def asOutput = Some(out)
+}
+case class Splitter()(implicit env:Env) extends BlackBox {
+  def addrIn = getDynamicInputFields[PIRNode]("addrIn")
+  def addrOut = getDynamicOutputFields[PIRNode]("addrOut")
+  def addAddrIn(xs:Any*) = DynamicInputFields[PIRNode]("addrIn", xs)
+  def addAddrOut(num:Int) = DynamicOutputFields[PIRNode]("addrOut", num)
+}
+case class Forward()(implicit env:Env) extends Def {
+  val in = new InputField[PIRNode]("in")
+  val dummy = new InputField[List[PIRNode]]("dummy")
+}
+case class LockOnKeys()(implicit env:Env) extends Def {
+  val lock = new InputField[Lock]("lock")
+  val key = new InputField[PIRNode]("key")
+  presetVec(1)
+  tp(Bool)
+}
 
 case class Top()(implicit env:Env) extends PIRNode {
   var topCtrl:ControlTree = _
@@ -91,19 +115,22 @@ trait Def extends PIRNode with DefNode[PIRNode] {
 case class Const(value:Any)(implicit env:Env) extends Def
 case class AccumAck()(implicit env:Env) extends Def {
   val ack = new InputField[PIRNode]("ack")
+  tp(Bool)
+  presetVec(1)
 }
 case class PrintIf()(implicit env:Env) extends Def {
-  val en = new InputField[List[PIRNode]]("en")
+  val en = new InputField[List[PIRNode]]("en").tp(Bool)
   val msg = new InputField[PIRNode]("mgs")
+  tp(Bool)
 }
 case class AssertIf()(implicit env:Env) extends Def {
-  val en = new InputField[List[PIRNode]]("en")
-  val cond = new InputField[List[PIRNode]]("cond")
-  val msg = new InputField[PIRNode]("mgs")
+  val en = new InputField[List[PIRNode]]("en").tp(Bool)
+  val cond = new InputField[List[PIRNode]]("cond").tp(Bool)
+  val msg = new InputField[Option[PIRNode]]("msg")
 }
 case class ExitIf()(implicit env:Env) extends Def {
-  val en = new InputField[List[PIRNode]]("en")
-  val cond = new InputField[List[PIRNode]]("cond")
+  val en = new InputField[List[PIRNode]]("en").tp(Bool)
+  val cond = new InputField[List[PIRNode]]("cond").tp(Bool)
   val msg = new InputField[PIRNode]("mgs")
 }
 trait OpNode extends PIRNode
@@ -113,20 +140,22 @@ case class OpDef(op:Opcode)(implicit env:Env) extends OpNode with Def {
 }
 // op can be eigher a string, if from spatial, or a list of reduction op if
 // transformed in graph initialization
-case class RegAccumFMA()(implicit env:Env) extends OpNode with Def {
+case class RegAccumFMA(identity:Any)(implicit env:Env) extends OpNode with Def {
   val in1 = new InputField[PIRNode]("in1")
   val in2 = new InputField[PIRNode]("in2")
-  val en = new InputField[Set[PIRNode]]("en")
+  val en = new InputField[Set[PIRNode]]("en").tp(Bool)
   val first = new InputField[Option[PIRNode]]("first")
   val init = new InputField[Option[PIRNode]]("init")
+  presetVec(1)
 }
 // op can be eigher a string, if from spatial, or a list of reduction op if
 // transformed in graph initialization
-case class RegAccumOp(op:Any)(implicit env:Env) extends OpNode with Def {
+case class RegAccumOp(op:Any, identity:Any)(implicit env:Env) extends OpNode with Def {
   val in = new InputField[PIRNode]("in")
-  val en = new InputField[Set[PIRNode]]("en")
+  val en = new InputField[Set[PIRNode]]("en").tp(Bool)
   val first = new InputField[Option[PIRNode]]("first")
   val init = new InputField[Option[PIRNode]]("init")
+  presetVec(1)
 }
 // Filled can be "0" or "-0". based on shuffling address or data
 case class Shuffle(filled:Any)(implicit env:Env) extends OpNode with Def {
@@ -136,9 +165,14 @@ case class Shuffle(filled:Any)(implicit env:Env) extends OpNode with Def {
 }
 case class HostRead()(implicit env:Env) extends Def {
   val input = new InputField[PIRNode]("input")
+  presetVec(1)
 }
-case class HostWrite()(implicit env:Env) extends Def
-case class DRAMAddr(dram:DRAM)(implicit env:Env) extends Def
+case class HostWrite()(implicit env:Env) extends Def {
+  presetVec(1)
+}
+case class DRAMAddr(dram:DRAM)(implicit env:Env) extends Def {
+  presetVec(1)
+}
 case class Counter(par:Int, isForever:Boolean=false)(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
   val min = new InputField[Option[PIRNode]]("min")
@@ -151,26 +185,32 @@ case class Counter(par:Int, isForever:Boolean=false)(implicit env:Env) extends P
   def iters = this.collectOut[CounterIter]()
   def valids = this.collectOut[CounterValid]()
   def ctrler = this.collectUp[Controller]().head
+
+  // Lane valids that can be statically derived
+  val constValids = new Metadata[List[Option[Boolean]]]("constValids")
 }
 
 case class CounterIter(is:List[Int])(implicit env:Env) extends Def {
   val counter = new InputField[Counter]("counter")
+  tp(Fix(true, 32, 0))
 }
 case class CounterValid(is:List[Int])(implicit env:Env) extends Def {
   val counter = new InputField[Counter]("counter")
+  tp(Bool)
 }
 
 abstract class Controller(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
-  val en = new InputField[List[PIRNode]]("en")
-  val parentEn = new InputField[Option[PIRNode]]("parentEn")
+  val en = new InputField[List[PIRNode]]("en").tp(Bool).presetVec(1)
+  val parentEn = new InputField[Option[PIRNode]]("parentEn").tp(Bool).presetVec(1)
 
-  val done = new OutputField[List[PIRNode]]("done")
-  val childDone = new OutputField[List[PIRNode]]("childDone")
+  val done = new OutputField[List[PIRNode]]("done").tp(Bool).presetVec(1)
+  val childDone = new OutputField[List[PIRNode]]("childDone").tp(Bool).presetVec(1)
 
   def isForever = this.collectDown[Counter]().exists { _.isForever }
   def hasBranch = this.ctrl.v.get == Fork || this.to[LoopController].fold(false) { _.stopWhen.isConnected }
 
+  // Parallelization of the controller. Set during staging.
   val par = new Metadata[Int]("par")
 }
 
@@ -181,8 +221,11 @@ case class TopController()(implicit env:Env) extends Controller
 case class LoopController()(implicit env:Env) extends Controller {
   /*  ------- Fields -------- */
   val cchain = new ChildField[Counter, List[Counter]]("cchain")
-  val firstIter = new OutputField[List[PIRNode]]("firstIter")
-  val stopWhen = new InputField[Option[PIRNode]]("stopWhen")
+  val firstIter = new OutputField[List[PIRNode]]("firstIter").tp(Bool).presetVec(1)
+  val stopWhen = new InputField[Option[PIRNode]]("stopWhen").tp(Bool)
+  val laneValid = new OutputField[List[PIRNode]]("laneValid").tp(Bool)
+
+  val constLaneValids = new Metadata[List[Option[Boolean]]]("constLaneValids")
 }
 
 case class ControlBlock()(implicit env:Env) extends PIRNode {
@@ -198,6 +241,11 @@ trait MemoryUtil extends CollectorImplicit {
 
     def isFIFO = n match {
       case n:FIFO => true
+      case _ => false
+    }
+
+    def isLockSRAM = n match {
+      case n:LockSRAM => true
       case _ => false
     }
 
@@ -218,11 +266,10 @@ trait MemoryUtil extends CollectorImplicit {
     def childCtrlers:Seq[Controller] = {
       n.childDone.T.collect { case ctrler:Controller => ctrler }
     }
-    def isLeaf = childCtrlers.isEmpty
-    def leaves:Seq[Controller] = {
+    def leafCtrlers:Seq[Controller] = {
       val childCtrlers = this.childCtrlers
       if (childCtrlers.isEmpty) List(n)
-      else childCtrlers.flatMap { c => c.leaves }
+      else childCtrlers.flatMap { c => c.leafCtrlers }
     }
   }
 

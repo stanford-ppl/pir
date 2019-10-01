@@ -10,12 +10,27 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
   val forward = true
 
   var passTwo = false
+  var maxCount:Long = 0
+  var maxCountCtx:String = ""
   val ctxs = mutable.ListBuffer[Context]()
+
+  override def initPass = {
+    super.initPass
+    maxCount = 0
+  }
 
   override def visitNode(n:N) = {
     n.to[Context].foreach { n =>
       ctxs += n
-      n.getCount
+      val count = n.getCount
+      count.foreach {
+        case Finite(count) =>
+          maxCount = math.max(maxCount, count)
+          n.getCtrl.srcCtx.v.foreach { ctx =>
+            maxCountCtx = ctx
+          }
+        case _ =>
+      }
     }
   }
 
@@ -42,6 +57,10 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
     ctxs.clear
     super.finPass
     passTwo = false
+    if (maxCount > 1000000) {
+      dbg(s"maxCount=$maxCount")
+      warn(f"maxCount=${maxCount}%.2e $maxCountCtx")
+    }
   }
 
   implicit class RuntimeOp2[N<:IR](n:N) extends RuntimeOp1[N](n) {
@@ -59,7 +78,10 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
     var reads = n.reads.filterNot { read =>
       if (read.nonBlocking) { read.getCount; true } else false
     }
-    if (!passTwo) reads = reads.filterNot { _.initToken.get }
+    if (!passTwo) reads = reads.filterNot { read => 
+      val connectToUnlock = read.out.connected.exists { case InputField(lock:Lock, "unlock") => true; case _ => false }
+      read.initToken.get || connectToUnlock 
+    }
     dbg(s"reads=$reads passTwo=$passTwo")
     val counts = reads.flatMap { read => 
       read.getCount.map { _ * read.getScale }
@@ -68,7 +90,7 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
     val (finite, infinite) = known.partition { _.isFinite }
     val c = if (unknown.nonEmpty) Some(Unknown)
     else if (finite.nonEmpty) assertIdentical(finite, 
-    s"$n.reads.count reads=${reads.map { r => (r, r.getCount) }} countByController=${countByController(n)}")
+    s"$n.reads.count reads=${reads.map { r => (r, r.getCount) }} countByController=${countByController(n)} \n${quoteSrcCtx(n)}")
     else if (infinite.nonEmpty) Some(Infinite)
     else if (n.collectFirstChild[FringeStreamWrite].nonEmpty) None
     else { // reads is empty
@@ -87,6 +109,10 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
     val ctrlers = n.ctrlers
     dbg(s"$n.ctrlers=$ctrlers")
     ctrlers.map { _.getIter }.reduceOption { _ * _ }
+  }
+
+  val StreamWriteContext = MatchRule[Context, FringeStreamWrite] { case n if n.streaming.get =>
+    n.collectDown[FringeStreamWrite]().headOption
   }
 
   def compCount(n:PIRNode):Option[Value[Long]] = {

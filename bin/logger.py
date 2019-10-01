@@ -18,8 +18,7 @@ parser.add_argument('-G', '--isGen', dest="path_type", action='store_const', con
         default='backend')
 parser.add_argument('-s', '--summarize', action='store_true', default=False, help='summarize log into csv')
 parser.add_argument('-d', '--diff', dest='show_diff', action='store_true', default=False, help='showing difference')
-parser.add_argument('-H', '--history', dest='show_history', action='store_true', default=False,
-        help='showing history')
+parser.add_argument('-H', '--history', dest='history_depth', type=int, default=0, help='showing history with depth')
 parser.add_argument('--logdir', default="{}/spatial/pir/logs/".format(os.environ['HOME']))
 parser.add_argument('--spatial_dir', default="{}/spatial/".format(os.environ['HOME']))
 parser.add_argument('--pir_dir', default="{}/spatial/pir".format(os.environ['HOME']))
@@ -69,6 +68,23 @@ def summarize(backend, opts, confs):
             summary.writerow(conf)
     print('Generate summary in {}'.format(summary_path))
 
+def query(conf, f):
+    if f == 'simfreq':
+        p2ptime = get(conf,'runp2p_time')
+        if p2ptime is None:
+            return None
+        p2ptime = p2ptime.split(":")
+        if len(p2ptime) == 2:
+            p2ptime.insert(0, 0)
+        hour,min,sec = [float(time) for time in p2ptime]
+        sec = hour * 60 * 60 + min * 60 + sec
+        ans = float(get(conf,'runp2p_cycle')) / sec / 1000
+        return '{}kHz'.format(round(ans,2))
+    elif f in conf:
+        return get(conf,f)
+    else:
+        return None
+
 def getMessage(conf, opts):
     msg = []
     msg.append(conf['backend'])
@@ -76,10 +92,9 @@ def getMessage(conf, opts):
     succeeded = False
 
     for f in opts.message.split(","):
-        if f in conf:
-            msg.append(cstr(CYAN, f + ':' + str(get(conf,f))))
-        # else:
-            # print("{} not in config. options: {}".format(f, ','.join([k for k in conf])))
+        ans = query(conf, f)
+        if ans is None: continue
+        msg.append(cstr(CYAN, f + ':' + str(ans)))
 
     if get(conf,'genpir'):
         msg.append(cstr(GREEN, 'genpir'))
@@ -565,13 +580,20 @@ def show_history(opts):
             mask.append(any([fnmatch.fnmatch(app, pat) for pat in opts.app]))
         history = history[mask]
 
-    history = history.sort_values(["project", "app", "backend", "time"])
+    history = history.groupby(["project", "app", "backend"]).apply(lambda x:
+            x.sort_values(["time"]).tail(opts.history_depth))
 
     if history.shape[0] > 0:
         for idx, row in history.iterrows():
             pconf = to_conf(row)
-            print('{} {} {} {}'.format(getMessage(pconf, opts), pconf['spatial_sha'], 
-                get(pconf,'pir_sha'), pconf['time']))
+            pir_sha = get(pconf,'pir_sha')
+            if pir_sha is not None:
+                pirmsg = subprocess.check_output("git log --format=%B -n 1 {}".format(pir_sha).split(" "),
+                cwd=opts.pir_dir).replace("'","").replace("\n","")
+            else:
+                pirmsg = ""
+            print('{} {} {} {} {}'.format(getMessage(pconf, opts), pconf['spatial_sha'], 
+                pir_sha, pconf['time'], pirmsg))
 
 def show_gen(opts):
     gitmsg = subprocess.check_output("git log --pretty=format:'%h' -n 1".split(" "),
@@ -662,6 +684,7 @@ def setFilterRules(opts):
 
 def main(args=None):
     (opts, args) = parser.parse_known_args(args=args)
+    opts.show_history = opts.history_depth > 0
 
     if opts.show_diff or opts.show_history:
         load_history(opts)

@@ -78,6 +78,11 @@ object PIRNode extends MemoryUtil with AccessUtil {
     def global = n.collectUp[GlobalContainer]().headOption
     def isUnder[T:ClassTag] = n.ancestors.exists { _.to[T].nonEmpty }
   }
+
+  implicit class MetadataIRUtil[T<:MetadataIR](n:T) {
+    def presetVec(v:Int) = n.getMeta[Int]("presetVec")(v)
+    def tp(v:BitType) = n.getMeta[BitType]("tp")(v)
+  }
 }
 
 sealed abstract class CtrlSchedule
@@ -101,8 +106,6 @@ case class ControlTree(schedule:CtrlSchedule)(implicit env:Env) extends EnvNode[
     else if (that.isAncestorOf(this)) -1
     else bug(s"Cannot compare $this with $that")
   }
-
-  def isLeaf = children.isEmpty
 
   env.initNode(this)
 }

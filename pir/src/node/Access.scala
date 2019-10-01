@@ -10,8 +10,8 @@ trait Access extends PIRNode {
   val broadcast = Metadata[Seq[Int]]("broadcast")
   val castgroup = Metadata[Seq[Int]]("castgroup")
 
-  val en = new InputField[List[PIRNode]]("en")
-  val done = new InputField[Option[PIRNode]]("done")
+  val en = new InputField[List[PIRNode]]("en").tp(Bool)
+  val done = new InputField[Option[PIRNode]]("done").tp(Bool).presetVec(1)
   def mem:FieldEdge[Memory,_,_]
   def isBroadcast = port.get.isEmpty
 
@@ -32,6 +32,10 @@ trait BankedAccess extends Access {
 trait FlatBankedAccess extends Access { // lowered access
   val offset = new InputField[PIRNode]("offset")
 }
+trait LockAccess extends Access {
+  val addr = new InputField[PIRNode]("addr")
+  val lock = new InputField[Option[LockOnKeys]]("lock")
+}
 trait InAccess extends Access { // Memory as output
   val mem = new OutputField[Memory]("mem")
 }
@@ -46,6 +50,10 @@ trait WriteAccess extends InAccess {
 trait ReadAccess extends OutAccess
 case class BankedRead()(implicit env:Env) extends ReadAccess with BankedAccess
 case class BankedWrite()(implicit env:Env) extends WriteAccess with BankedAccess
+case class LockRead()(implicit env:Env) extends ReadAccess with LockAccess 
+case class LockWrite()(implicit env:Env) extends WriteAccess with LockAccess {
+  val ack = new OutputField[List[PIRNode]]("ack")
+}
 case class FlatBankedRead()(implicit env:Env) extends ReadAccess with FlatBankedAccess
 case class FlatBankedWrite()(implicit env:Env) extends WriteAccess with FlatBankedAccess
 case class MemRead()(implicit env:Env) extends ReadAccess
@@ -56,8 +64,8 @@ trait LocalAccess extends PIRNode {
   // done is branch independent
   // Check valid when en is true
   // Pop when if done and all en are true
-  val en = new InputField[Set[PIRNode]]("en") // if not connected, default true
-  val done = new InputField[Option[PIRNode]]("done") // if not connected, default false
+  val en = new InputField[Set[PIRNode]]("en").tp(Bool) // if not connected, default true
+  val done = new InputField[Option[PIRNode]]("done").tp(Bool).presetVec(1) // if not connected, default false
 }
 trait LocalInAccess extends LocalAccess with Def
 trait LocalOutAccess extends LocalAccess with Def with MemoryNode {

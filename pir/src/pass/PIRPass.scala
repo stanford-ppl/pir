@@ -20,14 +20,6 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
   override def states = compiler.pirenv.states
   override def config:PIRConfig = compiler.config
 
-  override def handle(e:Throwable) = {
-    super.handle(e)
-    if (config.enableDot && config.debug) {
-      new PIRIRDotGen(s"top.dot").run
-      new PIRCtxDotGen(s"ctx.dot").run
-    }
-  }
-
   override def dquote(x:Any) = x match {
     case x:ControlTree if x.sname.nonEmpty => s"$x[${x.sname.get}]"
     case Const(v) => s"${super.dquote(x)}($v)"
@@ -119,7 +111,9 @@ with BufferAnalyzer
 
   def stage(out:Output[PIRNode]):Output[PIRNode] = {
     stage(out.src)
-    rewriteRules.foldLeft(out) { (out, rule) => rule.apply(out).as[Output[PIRNode]] }
+    withGC(false) {
+      rewriteRules.foldLeft(out) { (out, rule) => rule.apply(out).as[Output[PIRNode]] }
+    }
   }
 
 }

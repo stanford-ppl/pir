@@ -73,7 +73,7 @@ trait RewriteUtil { self: PIRTransformer =>
       dbgblk(s"EvalOp($n, $exp)") {
         exp match {
           case Literal(c) =>
-            val const = within(n.parent.get, n.ctrl.get) { allocConst(c) }
+            val const = within(n.parent.get, n.ctrl.get) { allocConst(c, tp=Some(n.getTp)) }
             (n.out, const.out)
           case List(out:Output[_]) =>
             (n.out, out)
@@ -83,11 +83,11 @@ trait RewriteUtil { self: PIRTransformer =>
   }
 
   RewriteRule[RegAccumOp](s"RegAccumFMA") { 
-    case n@RegAccumOp(List(OpDef(FixAdd | FltAdd))) =>
+    case n@RegAccumOp(List(OpDef(FixAdd | FltAdd)), identity) =>
       n.in.T match {
         case mul@OpDef(FixMul | FltMul) =>
           val accum = within(n.parent.get, n.ctrl.get) {
-            stage(RegAccumFMA()
+            stage(RegAccumFMA(identity)
               .in1(mul.inputs(0).connected)
               .in2(mul.inputs(1).connected)
               .en(n.en.connected)
@@ -242,6 +242,15 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
         case out@OutputField(Const(vs:List[_]), "out") if vs.forall { _ == true } => 
           en.disconnectFrom(out)
           dbg(s"${dquote(en)} disconnect ${dquote(out)}")
+        case out@OutputField(ctrler:LoopController, "laneValid") if ctrler.constLaneValids.get.forall { _.nonEmpty } =>
+          val const = within(ctrler.parent.get, ctrler.ctrl.get) { 
+            val laneValids = ctrler.constLaneValids.get.map { _.get }
+            if (laneValids.size == 1)
+              allocConst(laneValids.head)
+            else
+              allocConst(laneValids)
+          }
+          swapConnection(en, out, const.out)
         case _ => 
       }
     }
@@ -252,29 +261,15 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   TransferRule[Counter] { counter =>
     if (counter.valids.exists { _.out.isConnected }) {
       dbgblk(s"CounterConstValid($counter)") {
-        val min = counter.min.T
-        val step = counter.step.T
-        val max = counter.max.T
-        val par = counter.par
-        val maxValid = (min, step, max) match {
-          case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) =>
-            var bound = ((max - min) /! step) % par
-            if (bound == 0) {
-              bound = par
-            }
-            dbg(s"Constant loop bounds min=$min, step=$step, max=$max, par=$par (0 until $bound)")
-            bound
-          case _ =>
-            dbg(s"None constant loop bounds min=$min, step=$step, max=$max, par=$par (0 until 1)")
-            1
-        }
         val ctrler = counter.parent.get
         var const:Const = null
         counter.valids.foreach { case valid@CounterValid(is) =>
-          if (is.forall(_ < maxValid)) {
-            dbg(s"Set $valid with is=$is to true")
-            if (const == null)
-              const = within(ctrler.parent.get, counter.ctrl.get) { allocConst(true) }
+          if (is.forall { i => counter.constValids.get(i).nonEmpty }) {
+            val consts = is.map { i => counter.constValids.get(i).get }
+            dbg(s"Set $valid with is=$is to $consts")
+            const = within(ctrler.parent.get, counter.ctrl.get) { 
+              if (is.size == 1) allocConst(consts.head) else allocConst(consts)
+            }
             swapOutput(valid.out, const.out)
           }
         }
@@ -373,7 +368,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   TransferRule[BufferRead] { r2 =>
     val w2 = r2.inAccess.as[BufferWrite]
     w2.data.T match {
-      case r1:BufferRead if matchRate(w2, r1) & matchInput(r1.en, w2.en) & !r2.nonBlocking =>
+      case r1:BufferRead if r1.isFIFO == r2.isFIFO && matchRate(w2, r1) & matchInput(r1.en, w2.en) & !r2.nonBlocking =>
         val w1 = r1.inAccess.as[BufferWrite]
         dbgblk(s"Route through (3) $w1 -> $r1 -> $w2 -> $r2 detected => ") {
           dbg(s" => $w1 -> $r2")
@@ -469,6 +464,12 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   override def visitOut(n:N):List[N] = super.visitOut(n).filter {
     case x:LocalOutAccess => x.in.isConnectedTo(n)
     case x => true
+  }
+
+  override def runPass = {
+    withGC(true) {
+      super.runPass
+    }
   }
 
   override def removeNodes[N<:Node[N]](nodes:Iterable[Node[N]]):Unit = {

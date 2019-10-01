@@ -37,28 +37,5 @@ trait Debugger extends Logging {
     action((answer, state, callBack _))
   }
 
-  ///* Snapshot */
-  //import pir.codegen._
-
-  //override def initPass = {
-    //super.initPass
-    //snapshotCount = 0
-  //}
-
-  //var snapshotCount = 0
-  //lazy val snapshotInterval = PIRConfig.option[Int]("snapint")
-  //def snapshot[M](m:M):M = {
-    //if (PIRConfig.enableSnapshot) {
-      //if (snapshotCount % snapshotInterval == 0 && snapshotCount != 0) {
-        //val idx = snapshotCount / snapshotInterval
-        //new PIRNetworkDotCodegen[Bit](s"control$idx.dot", m, false).run
-        //new PIRNetworkDotCodegen[Word](s"scalar$idx.dot", m, false).run
-        //new PIRNetworkDotCodegen[Vector](s"vector$idx.dot", m, false).run
-      //}
-      //snapshotCount += 1
-    //}
-    //m
-  //}
-
 }
 

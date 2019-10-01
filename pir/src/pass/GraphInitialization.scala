@@ -9,6 +9,12 @@ import scala.collection.mutable
 
 class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with PIRTransformer {
 
+  override def runPass = {
+    withGC(false) {
+      super.runPass
+    }
+  }
+
   override def finPass = {
     super.finPass
     pirTop.topCtrl.descendentTree.foreach { setUID }
@@ -84,6 +90,9 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         //n.stopWhen(stop)
       //}
     //}
+    n.to[DRAMCommand].foreach { n =>
+      n.name(n.dram.sid)
+    }
     n.to[Def].foreach { _.getVec }
     n.to[Access].foreach { _.getVec }
     n.to[DRAMAddr].foreach { n =>
@@ -114,25 +123,23 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
     }
 
-    // TODO: add enable to cmd issuer and returned ack instead
-    n.to[FringeDenseStore].foreach { n =>
-      // Transfer write enable on store valid and store data to valid
-      val vwrite = n.valid.T.as[MemRead].mem.T.inAccesses.head.as[MemWrite]
-      val dwrite = n.data.T.as[MemRead].mem.T.inAccesses.head.as[MemWrite]
-      within(vwrite.parent.get, vwrite.getCtrl) {
-        val ctrl = vwrite.getCtrl
-        val ctrlEns = ctrl.ancestorTree.view.flatMap { c =>
-          c.ctrler.v.view.flatMap { ctrler =>
-            ctrler.en.T.collect { case v:CounterValid => v.out }
-          }
-        }.toSet[Output[PIRNode]]
-        val vdata = vwrite.data.singleConnected.get
-        val vs = ctrlEns + vdata
-        val v = vs.reduce[Output[PIRNode]]{ case (v1,v2) =>
-          stage(OpDef(And).addInput(v1,v2)).out
+    // Handle disabled load store from unaligned parallelization
+    n.to[FringeCommand].foreach { n =>
+      val reads = n.collectIn[MemRead]()
+      val writes = n.collectOut[MemWrite]()
+      (reads ++ writes).foreach { access =>
+        val setters = access match {
+          case read:MemRead => read.mem.T.inAccesses
+          case write:MemWrite => write.mem.T.outAccesses
         }
-        vwrite.data.disconnect
-        vwrite.data(v)
+        setters.foreach { setter => 
+          val ctrlEns = access.getCtrl.ancestorTree.view.flatMap { c =>
+            c.ctrler.v.view.flatMap { ctrler =>
+              ctrler.en.T.collect { case v:CounterValid => v.out }
+            }
+          }.toSet[Output[PIRNode]]
+          setter.en(ctrlEns)
+        }
       }
     }
 
@@ -158,18 +165,41 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
           stage(MemWrite().data(stage(AccumAck().ack(ack))))
         }
       }
-      argOut(write).name(s"${n}_ack")
+      argOut(write).name(s"${n.dram.sid}_ack")
     }
 
-    if (config.enableSimDebug) {
-      n.to[PrintIf].foreach { n =>
-        n.tp.reset
-        n.tp := Bool
-        val write = within(n.parent.get, n.getCtrl) { stage(MemWrite().data(n.out)) }
-        argOut(write)
+    def connectLaneValid(access:Access):Unit = {
+      val ctrl = access.getCtrl
+      if (ctrl.isLeaf) {
+        ctrl.ctrler.v.foreach { 
+          case ctrler:LoopController =>
+            access.mem.T match {
+              case mem:Reg if ctrler.par.get > 1 | access.isInnerReduceOp.get => return
+              case _ => 
+                dbg(s"Connect $access to laneValid")
+                access.en(ctrler.laneValid)
+            }
+          case _ =>
+        }
       }
     }
+
+    // Add laneValids to enable of memory access
+    n.to[Access].foreach { connectLaneValid }
+
+    n.to[LoopController].foreach {analyzeLoopRange}
     
+    n match {
+      case n@(_:PrintIf | _:AssertIf | _:ExitIf) =>
+        n.tp.reset
+        n.tp := Bool
+        if (config.enableSimDebug) {
+          val write = within(n.parent.get, n.getCtrl) { stage(MemWrite().data(n.as[Def].out)) }
+          argOut(write)
+        }
+      case _ =>
+    }
+
     // Convert reduction operation
     // Spaital IR:
     // accum.write (reduce(mux(dummy, input, initOrInput), accum.read))
@@ -195,27 +225,27 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
               reduceOps = reduceOps.tail
               val init = op.inputs(2).singleConnected.get
               val input = op.inputs(1).singleConnected.get
-              // init = reduce(input, init)
               val mapping = mirrorAll(reduceOps, mapping=mutable.Map[IR,IR](init->reader.out, op.out->input))
               (Some(mapping(reduceOps.last)), input)
             case op@OpDef(_) =>
               (None, op.inputs(0).singleConnected.get)
           }
+          val identity = writer.mem.T.inits.v.getOrElse(bug(s"No identity value for reduction ${quoteSrcCtx(writer)}"))
           dbg(s"init=${dquote(init)}")
           dbg(s"input=${dquote(input)}")
           val accumOp = within(readerParent, readerCtrl) {
             val firstIter = writer.getCtrl.ctrler.get.to[LoopController].map { _ .firstIter }
-            stage(RegAccumOp(reduceOps).in(input).en(writer.en.connected).first(firstIter).init(init))
+            stage(RegAccumOp(reduceOps, identity).in(input).en(writer.en.connected).first(firstIter).init(init))
           }
           val redOp = reduceOps.last.as[DefNode[PIRNode]]
-          if (redOp.output.get.neighbors.collect { case w:MemWrite => true }.size == 2) {
+          if (redOp.output.get.neighbors.collect { case w:MemWrite => true }.size > 1) {
             // 1. 
             // val acc1 = redOp(input, acc1) // isInnerAccum
             // val acc2 = redOp(input, acc1)
             disconnect(writer, redOp)
             swapOutput(reduceOps.last.as[DefNode[PIRNode]].output.get, accumOp.out)
           } else {
-            // 1. 
+            // 2. 
             // val acc1 = redOp(input, acc1) // isInnerAccum
             // val ... = acc1.read
             swapConnection(writer.data, redOp.output.get, accumOp.out)
@@ -223,8 +253,58 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         }
       }
     }
+
     super.visitNode(n)
   } 
+
+  def analyzeCounterRange(n:Counter) = dbgblk(s"analyzeCounterRange($n)") {
+    val min = n.min.T
+    val step = n.step.T
+    val max = n.max.T
+    val par = n.par
+    val constValids = (min, step, max) match {
+      case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) if (max <= min && step > 0) | (max >= min && step < 0) =>
+        dbg(s"Loop will not run.")
+        List.fill(par)(Some(false))
+      case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) =>
+        var bound = ((max - min) /! step) % par
+        if (bound == 0) {
+          bound = par
+        }
+        dbg(s"Constant loop bounds min=$min, step=$step, max=$max, par=$par bound=$bound")
+        List.tabulate(par) { i => 
+          if (i < bound) Some(true) 
+          else if (i >= max) Some(false)
+          else None
+        }
+      case (Some(Const(min:Int)), _, Some(Const(max:Int))) if max > min =>
+        dbg(s"None constant loop bounds min=$min, step=$step, max=$max, par=$par")
+        List.tabulate(par) { i => 
+          if (i == 0) Some(true) 
+          else if (i >= max) Some(false)
+          else None
+        }
+      case _ =>
+        List.tabulate(par) { i => None }
+    }
+    dbg(s"$n.constValids=[${constValids.map { _.getOrElse("unknown") }.mkString(",")}]")
+    n.constValids := constValids
+  }
+
+  def analyzeLoopRange(n:LoopController) = dbgblk(s"analyzeLoopRange($n)"){
+    n.cchain.T.foreach(analyzeCounterRange)
+    val laneValids = n.cchain.T.foldLeft[List[Option[Boolean]]](Nil) { 
+      case (Nil, ctr) => List.tabulate(ctr.par) { i => ctr.constValids.get(i) }
+      case (prev, ctr) => 
+        prev.flatMap { valid => 
+          (0 until ctr.par).map { i => 
+            zipMap(valid, ctr.constValids.get(i)) { _ && _ }
+          }
+        }
+    }
+    dbg(s"$n.laneValids=[${laneValids.map { _.getOrElse("unknown") }.mkString(",")}]")
+    n.constLaneValids := laneValids
+  }
 
   def argOut(write:MemWrite) = {
     val reg = within(pirTop.argFringe, pirTop.topCtrl) { 

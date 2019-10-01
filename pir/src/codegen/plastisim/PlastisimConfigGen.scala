@@ -159,7 +159,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
     n match {
       case n if n.collectDown[HostOutController]().nonEmpty =>
         emitln(s"stop_after_tokens = 1")
-      case StreamReadContext(sw) =>
+      case n if n.collectDown[FringeStreamRead]().nonEmpty =>
         emitln(s"stop_after_tokens = ${n.constCount}")
       case n =>
     }

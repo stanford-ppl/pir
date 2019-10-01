@@ -68,6 +68,7 @@ trait Node[N<:Node[N]] extends IR { self:N =>
     c.unsetParent
   }
   def isChildOf(p:Node[N]) = p.children.contains(this)
+  def isLeaf = children.isEmpty
 
   def siblings:List[N] = parent.map { _.children.filterNot { _ == this} }.getOrElse(Nil)
   def ancestors:Stream[N] = {
@@ -84,6 +85,7 @@ trait Node[N<:Node[N]] extends IR { self:N =>
   }
   def descendents:Stream[N] = children.toStream.flatMap { child => child +: child.descendents }
   def descendentTree:Stream[N] = this.as[N] +: descendents
+  def leaves:Stream[N] = if (isLeaf) Stream(this) else children.toStream.flatMap { _.leaves }
   def isDescendentOf(n:Node[N]):Boolean = parent.fold(false) { p => p == n || p.isDescendentOf(n) }
 
   def addEdge(io:EN[N]) = {
@@ -138,7 +140,7 @@ trait Node[N<:Node[N]] extends IR { self:N =>
   def depedsTo:Map[Output[N], Vector[Input[N]]] = {
     val descendents = this.descendents
     val descendentSet = descendents.toSet
-    val outs = localOuts.toIterator ++ descendents.toIterator.flatMap { _.localOuts }
+    val outs = descendentTree.toIterator.flatMap { _.localOuts }
     outs.flatMap { out =>
       out.connected.filterNot { in => descendentSet.contains(in.src) } 
       .map { in => (in, out) } 

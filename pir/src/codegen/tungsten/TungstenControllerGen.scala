@@ -12,6 +12,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case OutputField(ctrler:Controller, "done") => s"$ctrler->Done()"
     case OutputField(ctrler:Controller, "childDone") => s"$ctrler->ChildDone()"
     case OutputField(ctrler:LoopController, "firstIter") => s"$ctrler->FirstIter()"
+    case OutputField(ctrler:LoopController, "laneValid") => s"laneValid"
     case n => super.quoteRef(n)
   }
 
@@ -21,17 +22,6 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       emitIf(s"${ctrler}->Enabled()") {
         if (n.getCtrl.isLeaf) {
           emitln("Active();")
-          // If last level controller is loop controller, generate lane valids
-          ctrler.to[LoopController].foreach { ctrler =>
-            val laneValids = ctrler.cchain.T.foldLeft(List[String]()) { 
-              case (Nil, ctr) => List.tabulate(ctr.par) { i => s"$ctr->Valids()[$i]" }
-              case (prev, ctr) => 
-                prev.flatMap { valid => 
-                  List.tabulate(ctr.par) { i => s"$valid & $ctr->Valids()[$i]" }
-                }
-            }
-            emitln(s"bool laneValids[] = {${laneValids.mkString(",")}};")
-          }
         }
         super.visitNode(n)
 
@@ -44,12 +34,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       }
 
     case n:Controller =>
-      val tp = n match {
-        case n:TopController => "StepController"
-        case n:LoopController => "LoopController"
-        case n => "UnitController"
-      }
-      emitNewMember(tp, n)
+      genCtxMember(n)
       genCtxInits {
         emitln(s"AddCtrler($n);");
         n.to[LoopController].foreach { n =>
@@ -72,15 +57,26 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
 
       super.visitNode(n)
 
-    case n:Counter if n.isForever =>
-      emitNewMember(s"ForeverCounter<${n.par}>", n)
+      n.to[LoopController].foreach { n =>
+        if (n.getCtrl.isLeaf) {
+          // If last level controller is loop controller, generate lane valids
+          val laneValids = n.cchain.T.foldLeft(List[String]()) { 
+            case (Nil, ctr) => List.tabulate(ctr.par) { i => s"$ctr->Valids()[$i]" }
+            case (prev, ctr) => 
+              prev.flatMap { valid => (0 until ctr.par).map { i => s"$valid & $ctr->Valids()[$i]" } }
+          }
+          emitVec(n.laneValid, laneValids)
+        }
+      }
 
-    case n:Counter if !n.isForever =>
-      emitNewMember(s"Counter<${n.par}>", n)
-      emitln(s"$n->setMin(${n.min.T.get});")
-      emitln(s"$n->setStep(${n.step.T.get});")
-      emitln(s"$n->setMax(${n.max.T.get});")
-      emitln(s"$n->Eval(); // ${n.getCtrl}")
+    case n:Counter =>
+      genCtxMember(n)
+      if (!n.isForever) {
+        emitln(s"$n->setMin(${n.min.T.get});")
+        emitln(s"$n->setStep(${n.step.T.get});")
+        emitln(s"$n->setMax(${n.max.T.get});")
+        emitln(s"$n->Eval(); // ${n.getCtrl}")
+      }
 
     case n@CounterIter(is) =>
       val ctr = n.counter.T
@@ -91,5 +87,14 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       emitVec(n, is.map { i => s"$ctr->Valids()[$i]" })
 
     case n => super.emitNode(n)
+  }
+
+  override def varOf(n:PIRNode):(String, String) = n match {
+    case n:LoopController => (s"LoopController",s"$n")
+    case n:TopController => (s"StepController",s"$n")
+    case n:Controller => (s"UnitController",s"$n")
+    case n:Counter if n.isForever => (s"ForeverCounter<${n.par}>",s"$n")
+    case n:Counter => (s"Counter<${n.par}>",s"$n")
+    case n => super.varOf(n)
   }
 }

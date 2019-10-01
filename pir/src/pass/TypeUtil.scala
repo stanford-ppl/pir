@@ -27,7 +27,6 @@ trait TypeUtil { self:PIRPass =>
         s"$ctx.ctrler with ($ctrl)"
       )
     }
-    def dramCommands:Option[DRAMCommand] = assertOneOrLess(ctx.children.collect{ case fringe:DRAMCommand => fringe }, s"fringe in $ctx")
     def activeRate(n:Float) = ctx.getMeta[Float]("activeRate").update(n)
     def activeRate = ctx.getMeta[Float]("activeRate").v
     def stallRate(n:Float) = ctx.getMeta[Float]("stallRate").update(n)
@@ -53,18 +52,6 @@ trait TypeUtil { self:PIRPass =>
     def getTp:BitType = n.inferTp.getOrElse(bug(s"Don't know how to infer type of ${dquote(n)}"))
     def setTp(v:BitType) = n.getMeta[BitType]("tp").apply(v)
     def setTp(v:Option[BitType]) = n.getMeta[BitType]("tp").update(v)
-  }
-
-  val StreamWriteContext = MatchRule[Context, FringeStreamWrite] { case n =>
-    n.collectFirstChild[FringeStreamWrite]
-  }
-
-  val StreamReadContext = MatchRule[Context, FringeStreamRead] { case n =>
-    n.collectFirstChild[FringeStreamRead]
-  }
-
-  val DRAMContext = MatchRule[Context, DRAMCommand] { case n =>
-    n.collectDown[DRAMCommand]().headOption
   }
 
   val UnderControlBlock = MatchRule[PIRNode, ControlBlock] { case n =>
@@ -115,21 +102,19 @@ trait TypeUtil { self:PIRPass =>
   import spade.param._
   def compVec(n:IR):Option[Int] = dbgblk(s"compVec(${dquote(n)})") {
     n match {
-      case OutputField(n:Controller, "done") => Some(1)
-      case OutputField(n:Controller, "childDone") => Some(1)
-      case OutputField(n:LoopController, "firstIter") => Some(1)
+      case n:Output[_] if n.getMeta[Int]("presetVec").nonEmpty => n.getMeta[Int]("presetVec").v
+      case OutputField(n:LoopController, "laneValid") => Some(n.par.get)
       case OutputField(n:FringeDenseStore, "ack") => Some(1)
-      case OutputField(n:FringeStreamRead, "done") => Some(1)
+      case OutputField(n:LockAccess, _) => n.inferVec
       case ConnectedByDRAMCmd(vec) => Some(vec)
+      case n@OutputField(s:Splitter, "addrOut") => s.addrIn(s.addrOut.indexOf(n)).inferVec
       case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferVec
+      case n:Forward => n.in.inferVec
       case n:Controller => None
       case n:Memory => None
       case n:PIRNode if n.presetVec.nonEmpty => n.presetVec.v
       case n:CounterIter => Some(n.is.size)
       case n:CounterValid => Some(n.is.size)
-      case n:DRAMAddr => Some(1)
-      case n:HostWrite => Some(1)
-      case n:HostRead => Some(1)
       case Const(v:List[_]) => Some(v.size)
       case Const(v) => Some(1)
       case n:TokenWrite => Some(1)
@@ -156,44 +141,37 @@ trait TypeUtil { self:PIRPass =>
       case WithMem(n:MemRead, mem:FIFO) => n.broadcast.v.map { _.size }.orElse(Some(n.mem.T.banks.get.head))
       case n:BankedWrite => zipMap(n.data.inferVec, n.offset.inferVec) { case (a,b) => Math.max(a,b) }
       case n:BankedRead => n.offset.inferVec // Before lowering
+      case n:LockAccess => Some(n.getCtrl.par.get)
       case n:FlatBankedAccess => Some(n.mem.T.nBanks)
       case n:BufferWrite => n.data.inferVec
       case n:BufferRead => n.in.inferVec
-      case n:RegAccumOp => Some(1)
-      case n:RegAccumFMA => Some(1)
       case n:PrintIf => n.msg.inferVec
-      case n:AssertIf => n.msg.inferVec
-      case n:ExitIf => n.msg.inferVec
-      case n:AccumAck => Some(1)
+      case n:AssertIf => n.cond.inferVec
+      case n:ExitIf => n.cond.inferVec
       case n@OpDef(_:FixOp | _:FltOp | _:BitOp | _:TextOp | Mux | BitsAsData) => flatReduce(n.inputs.map{ _.inferVec}) { case (a,b) => Math.max(a,b) }
       case n:Shuffle => n.to.T.inferVec
       case n:GlobalOutput => n.in.T.inferVec
       // During staging time GlobalInput might temporarily not connect to GlobalOutput
       case n:GlobalInput => n.in.inferVec
       case InputField(n:Shuffle, "from" | "base") => zipMap(n.base.singleConnected.get.inferVec, n.from.singleConnected.get.inferVec) { case (a,b) => Math.max(a,b) }
-      case InputField(_:Access | _:LocalAccess, "done") => Some(1)
       case n@InputField(_:RegAccumOp | _:RegAccumFMA, "en") => n.as[Input[PIRNode]].connected.map { o => o.inferVec }.maxOption.getOrElse(Some(1))
       case InputField(n:TokenAccess, "en") => Some(1)
       case InputField(n:BufferWrite, "en") => n.inferVec
       case InputField(n:BufferRead, "en") => n.out.inferVec
       case InputField(n:FlatBankedAccess, field) => Some(n.mem.T.nBanks)
-      case InputField(n:Controller, "en" | "parentEn") => Some(1)
       case n:Input[_] if n.isConnected && n.connected.size==1 => n.singleConnected.get.inferVec
       case n:ControlTree => if (n.children.isEmpty) Some(n.par.get) else Some(1)
       case n => None
     }
   }
 
-  def compType(n:IR):Option[BitType] = /*dbgblk(s"compType(${dquote(n)})") */{
+  def compType(n:IR):Option[BitType] = /*dbgblk(s"compType(${dquote(n)})")*/ {
     n match {
-      case OutputField(n:Controller, "done") => Some(Bool)
-      case OutputField(n:LoopController, "firstIter") => Some(Bool)
-      case OutputField(n:Controller, "childDone") => Some(Bool)
+      case n@OutputField(s:Splitter, "addrOut") => s.addrIn(s.addrOut.indexOf(n)).inferTp
       case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferTp
-      case n:CounterIter => Some(Fix(true, 32, 0))
-      case n:CounterValid => Some(Bool)
-      case n:PrintIf => Some(Bool)
-      case n:AccumAck => Some(Bool)
+      case OutputField(n:LockAccess, _) => n.inferTp
+      case n:Forward => n.in.inferTp
+      case n:Splitter => None
       case n:Shuffle => n.base.inferTp
       case n:TokenRead => Some(Bool)
       case n:TokenWrite => Some(Bool)
@@ -203,8 +181,8 @@ trait TypeUtil { self:PIRPass =>
       case n:GlobalOutput => n.in.inferTp
       case n:RegAccumOp => n.in.inferTp
       case n:RegAccumFMA => n.in1.inferTp
-      case n:MemRead => n.mem.inferTp
-      case n:MemWrite => n.data.inferTp
+      case n:ReadAccess => n.mem.inferTp
+      case n:WriteAccess => n.data.inferTp
       case n:Memory => assertOptionUnify(n.inAccesses, s"$n.type") { w => w.inferTp }
       case n@OpDef(_:BitOp) => Some(Bool)
       case n@OpDef(_:TextOp) => Some(Text)
@@ -219,7 +197,6 @@ trait TypeUtil { self:PIRPass =>
       case Const((_:Int)::_) => Some(Fix(true, 32, 0))
       case Const((_:Float)::_) => Some(Flt(23, 8))
       case Const((_:Double)::_) => Some(Flt(23, 8))
-      case InputField(n, "en" | "parentEn" | "done") => Some(Bool)
       case n:Input[_] if n.isConnected && n.connected.size == 1 => n.singleConnected.get.inferTp
       case n:Any => None
     }
@@ -227,9 +204,9 @@ trait TypeUtil { self:PIRPass =>
 
   def quoteSrcCtx(n:PIRNode) = {
     var msg = dquote(n)
-    n.ctx.map { ctx => msg += s" ($ctx)"}
-    msg += " " + n.srcCtx.v.getOrElse("No spatial source context")
     n.name.v.foreach { n => msg += s": $n" }
+    msg += " " + n.srcCtx.v.getOrElse("No source context")
+    n.ctx.map { ctx => msg += s" ($ctx)"}
     msg
   }
 

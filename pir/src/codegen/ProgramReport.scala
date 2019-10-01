@@ -55,13 +55,13 @@ class ProgramReport(implicit design:PIR) extends Report with PIRTraversal with J
           ctxs.foreach { ctx =>
             val ops = ctx.collectDown[OpNode]().view.map { 
               case n@OpDef(op) => (n,op)
-              case n@RegAccumOp(List(op)) => (n,s"RegAccum-${op.as[OpDef].op}")
-              case n@RegAccumFMA() => (n,s"RegAccumFMA")
+              case n@RegAccumOp(List(op),_) => (n,s"RegAccum-${op.as[OpDef].op}")
+              case n@RegAccumFMA(_) => (n,s"RegAccumFMA")
               case n => (n,n)
             }.map { case (n,op) => 
               val vec = n match {
-                case n@RegAccumOp(_) => n.in.T.getVec
-                case n@RegAccumFMA() => math.max(n.in1.T.getVec, n.in2.T.getVec)
+                case n@RegAccumOp(_,_) => n.in.T.getVec
+                case n@RegAccumFMA(_) => math.max(n.in1.T.getVec, n.in2.T.getVec)
                 case _ => n.getVec
               }
               s"${vec}|$op|${n.srcCtx.v.getOrElse("")}"

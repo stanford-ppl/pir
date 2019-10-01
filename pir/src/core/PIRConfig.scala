@@ -5,7 +5,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   /* ------------------- Compiler --------------------  */
   register("ctrl", default=true, info="Enable control logic generation")
   register("splitting", default=true, info="Enable splitting")
-  register("split-algo", default="DFS", info="splitting algorithm. [DFS, BFS]") 
+  register("split-algo", default="BFS", info="splitting algorithm. [DFS, BFS]") 
   register("mapping", default=true, info="Enable mapping")
   register("arch", default="MyDesign", info="Default architecture for mapping")
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
@@ -117,6 +117,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("bp-split", default=false, info="Enable break point for splitting")
   register("bp-pr", default=false, info="Enable break point for place and route")
   register("dot", default=false, info="Enable dot codegen")
+  register("vdot", default=false, info="Enable verbose dot codegen")
   register("snapshot", default=false, info="Enable placement snapshot")
   register("snapint", default=10, info="Placement snapshot interval")
 
@@ -124,4 +125,5 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def enablePlaceAndRouteBreakPoint = debug && option[Boolean]("bp-pr")
   def enableSnapshot = debug && option[Boolean]("snapshot")
   def enableDot:Boolean = enableCodegen && option[Boolean]("dot")
+  def enableVerboseDot:Boolean = enableDot && option[Boolean]("vdot")
 }

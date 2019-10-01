@@ -64,7 +64,8 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
       .append("state", n.psimState)
       .append("activeRate", n.activeRate) +
       n.getCtrl.uid.v.fold("") { uid => s"\nuid=[${uid.mkString(",")}], par=${n.getCtrl.par.get}"} +
-      n.ctrl.get.srcCtx.v.fold("") { sc => s"\n$sc" }
+      n.ctrl.get.srcCtx.v.fold("") { sc => s"\n$sc" } + 
+      s"\nop=${n.collectDown[OpNode]().size}"
     }
   }
 
@@ -75,6 +76,8 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
     case n:Memory => attr.fillcolor(chartreuse).style(filled)
     case n:GlobalInput if n.psimState == Some(".") && n.out.T.map { _.ctx.get}.exists { _.psimState != Some("DONE") } => attr.setNode.fillcolor("firebrick1").style(filled)
     case n:GlobalOutput if n.psimState == Some(".") => attr.setNode.fillcolor("goldenrod1").style(filled)
+    case n:Lock => attr.fillcolor("crimson").style(filled)
+    case n:Splitter => attr.fillcolor("crimson").style(filled)
     case n:Context => 
       val color = zipOption(n.active.v, n.psimState).fold {
         if (n.streaming.get) "deepskyblue1" else "palevioletred1"
@@ -98,7 +101,6 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
     //case n:CUContainer => attr.fillcolor(deepskyblue).style(filled)
     case n:DRAMCommand => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
     case n:StreamCommand => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
-    //case n:StreamFringe => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
 
     case n:OpNode => attr.fillcolor("mediumorchid1").style(filled)
     case n => super.color(attr, n)
@@ -107,7 +109,7 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
   override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
     val newAttr = from.src match {
       case from:GlobalOutput if from.vec.v.nonEmpty & isVecLink(from) => attr.setEdge.style(bold)
-      case from:GlobalOutput if from.vec.v.nonEmpty & isCtrlLink(from) => attr.setEdge.color(red).style(dashed)
+      case from:GlobalOutput if from.vec.v.nonEmpty & isCtrlLink(from) => attr.setEdge.style(dashed)
       case _ =>  attr.setEdge
     }
     super.emitEdge(from, to, newAttr)
@@ -140,7 +142,7 @@ class PIRTopDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fil
 
 class PIRCtxDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fileName) {
   override def visitFunc(n:N) = n match {
-    case n:Context => n.descendents.collect { case n:LocalAccess => n; case n:Access => n; case c:FringeCommand => c }.toList
+    case n:Context => n.descendents.collect { case n:LocalAccess => n; case n:Access => n; case c:BlackBox => c }.toList
     case n => super.visitFunc(n)
   }
 }
@@ -171,25 +173,64 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
   //}
   
   override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
-    from match {
-      case from@OutputField(fromsrc:GlobalOutput, _) if fromsrc.isUnder[ArgFringe] && from.connected.size > 5 => 
-      case from@OutputField(fromsrc:GlobalOutput, _) => super.emitEdge(from,to,attr.setEdge.attr("id",fromsrc.id).attr("label",fromsrc.id))
+    (from, to) match {
+      case (from@OutputField(fromsrc:GlobalOutput, _), to) if fromsrc.isUnder[ArgFringe] && from.connected.size > 5 => 
+      case (from@OutputField(fromsrc:GlobalOutput, _), to@InputField(tosrc:GlobalInput, _)) => 
+        var tooltip = s"${fromsrc.in.neighbors.map(quoteSrcCtx).mkString(",")}"
+        tooltip += s"\n${tosrc.out.neighbors.map(quoteSrcCtx).mkString(",")}"
+        fromsrc.count.v.foreach { c => 
+          c match {
+            case Finite(c) => tooltip += s"\ncount=$c"
+            case Infinite => tooltip += s"\ncount=$c"
+            case Unknown =>
+          }
+        }
+        tooltip += s"\ntp=${fromsrc.getTp}\n".append("vec", fromsrc.vec.v)
+        val dst = tosrc + "," + tosrc.out.neighbors.mkString(",")
+        super.emitEdge(from,to,attr.setEdge.attr("id",dst).attr("label",fromsrc.id).attr("labeltooltip", tooltip))
       case _ => super.emitEdge(from,to,attr)
     }
   }
+
+  override def setAttrs(n:N):DotAttr = n match {
+    case n:GlobalContainer =>
+      val mem = n.collectDown[Memory]().map { quote(_) }
+      val bbs = n.collectDown[BlackBox]().map { quote(_) }
+      var tooltip = s"$n"
+      if (mem.nonEmpty) tooltip += s"\n${mem.mkString(",")}" 
+      if (bbs.nonEmpty) tooltip += s"\n${bbs.mkString(",")}"
+      val ctxs = n.collectDown[Context]().map { ctx =>
+        quote(ctx)
+      }
+      tooltip += s"\n${ctxs.mkString("\n")}"
+      super.setAttrs(n).attr("tooltip", tooltip)
+    case n => super.setAttrs(n)
+  }
   
   override def quote(n:Any) = {
-    super.quote(n).foldAt(n.to[GlobalContainer]) { (q, n) =>
-      val mem = n.collectDown[Memory]().map { quote(_) }
-      val cmd = n.collectDown[FringeCommand]().map { quote(_) }
-      if (mem.nonEmpty) s"${q}\n${mem.mkString(",")}" 
-      else if (cmd.nonEmpty) s"${q}\n${cmd.mkString(",")}"
-      else {
-        val ctxs = n.collectDown[Context]().map { ctx =>
-          ctx.getCtrl.srcCtx.v.map { sc => s"c${ctx.id}|${sc}" }.getOrElse(s"c${ctx.id}")
-        }
-        s"${q}\n${ctxs.mkString("\n")}"
+    super.quote(n).foldAt(n.to[GlobalContainer]) { (q, n) => 
+      val tp = n match {
+        case n:ArgFringe => "A"
+        case n:ComputeContainer => "C"
+        case n:MemoryContainer => "M"
+        case n:DRAMFringe => "D"
       }
+      var l = s"${tp}${n.id}"
+      val mem = n.collectDown[Memory]()
+      mem.foreach { mem =>
+        mem.name.v.foreach { name => l += s"\n$name" }
+      }
+      val bbs = n.collectDown[BlackBox]()
+      bbs.foreach { bbs =>
+        bbs.name.v.foreach { name => l += s"\n$name" }
+        bbs.to[Splitter].foreach{ s => l += s"\n$s" }
+      }
+      if (mem.isEmpty && bbs.isEmpty) {
+        n.collectDown[LocalOutAccess]().foreach { mem =>
+          mem.name.v.foreach { name => l += s"\n$name" }
+        }
+      }
+      l
     }
   }
 

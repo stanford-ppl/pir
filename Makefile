@@ -7,7 +7,7 @@ env:
 clean:
 	#rm -rf out
 	#rm -f docs/api
-	sbt clean
+	sbt "; project pir; clean; project spade; clean ; project prism; clean"
 	make -C tungsten/ clean
 	make -C plastiroute/ clean
 	make -C plastisim/ clean
@@ -19,9 +19,9 @@ tag:
 	ctags -R src/ apps/
 	#sbt gen-ctags
 
-install: pir psim proute tungsten env
+install: pir proute tungsten env
 
-update: pir psim-update proute-update tungsten-update
+update: pir proute-update tungsten-update
 
 spatial:
 	cd ../ && sbt "; project pirTest; compile"

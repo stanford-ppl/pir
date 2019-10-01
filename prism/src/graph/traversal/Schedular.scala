@@ -44,3 +44,30 @@ trait Schedular extends Traversal {
     }
   }
 }
+
+trait TreeSchedular extends Traversal {
+  type N
+  type T = List[List[N]]
+
+  def zero = Nil
+
+  def visitFunc(n:N):List[N]
+
+  override def visitNode(n:N, prev:T):T = super.visitNode(n, prev :+ visitFunc(n).distinct)
+
+  def scheduleNode(n:N) = {
+    resetTraversal
+    traverseNode(n, zero)
+  }
+
+  def scheduleNodes(ns: Iterable[N]) = {
+    resetTraversal
+    traverseNodes(ns.toList, zero)
+  }
+
+  def scheduleNodesInScope(scope:List[N], ns: Iterable[N]) = {
+    resetTraversal
+    traverseNodesInScope(scope, ns.toList, zero)
+  }
+
+}

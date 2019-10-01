@@ -43,6 +43,7 @@ trait TungstenCtxGen extends TungstenTopGen {
         getBuffer("fields").foreach { _.reset }
         getBuffer("inits").foreach { _.reset }
         getBuffer("computes").foreach { _.reset }
+        getBuffer("computes-begin").foreach { _.reset }
         getBuffer("computes-mid").foreach { _.reset }
         getBuffer("computes-end").foreach { _.reset }
         enterFile(dirName, s"${quote(n)}.h", false) {
@@ -50,6 +51,7 @@ trait TungstenCtxGen extends TungstenTopGen {
             visitNode(n)
           }
 
+          val sortedMembers = members.toSeq.sortBy { _.toString } // Improve simulation speed
           emitln("""
 using   namespace std;
 """)    
@@ -69,7 +71,7 @@ using   namespace std;
               getBuffer("inits").foreach { _.flushTo(sw) }
             }
             emitBlock(s"void Clock()") {
-              members.foreach { m => 
+              sortedMembers.foreach { m => 
                 emitln(s"$m->Clock();")
               }
             }
@@ -81,7 +83,7 @@ using   namespace std;
               emitln(s"EvalControllers();")
               getBuffer("computes-end").foreach { _.flushTo(sw) }
               getBuffer("computes-end").foreach { _.flushTo(sw) }
-              members.foreach { 
+              sortedMembers.foreach { 
                 case _:Controller | _:Counter => 
                 case m => emitln(s"$m->Eval();")
               }
@@ -125,12 +127,27 @@ using   namespace std;
   }
 
   private val members = mutable.ListBuffer[Any]()
-  def emitNewMember(tp:String, name:Any) = {
+
+  def genCtxMember(n:PIRNode, args:Any*):Unit = {
+    val (tp,name) = varOf(n)
+    genCtxMember(tp, name, args, false)
+  }
+
+  def genCtxMember(tp:String, name:Any, args:Seq[Any], end:Boolean=false):Unit = {
     genCtxFields {
-      emitln(s"""$tp* $name = new $tp("$name");""")
+      if (end) {
+        emitln(s"$tp* $name;")
+      } else {
+        val fullargs = name.qstr +: args
+        emitln(s"""$tp* $name = new $tp(${fullargs.mkString(",")});""")
+      }
     }
     genCtxInits {
       members += name
+      if (end) {
+        val fullargs = name.qstr +: args
+        emitln(s"$name = new $tp(${fullargs.mkString(",")});")
+      }
       emitln(s"AddChild($name, false);");
     }
   }

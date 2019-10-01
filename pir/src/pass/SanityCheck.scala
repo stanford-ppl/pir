@@ -7,6 +7,12 @@ import scala.collection.mutable
 
 class SanityCheck(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal {
 
+  var ctrlBlockInsertHashRun = false 
+  override def initPass = {
+    ctrlBlockInsertHashRun = compiler.hasRun[ControlBlockInsertion]
+    super.initPass
+  }
+
   override def visitNode(n:N) = {
     n match {
       case n:Top => 
@@ -21,15 +27,17 @@ class SanityCheck(implicit compiler:PIR) extends PIRTraversal with SiblingFirstT
           case c:GlobalIO =>
           case c => err(s"child of $n is $c")
         }
-        n.depsFrom.foreach { case (depOut, depsFrom) =>
-          depOut.src match {
-            case d:GlobalOutput =>
-            case d => err(s"$n input from ${d}.$depOut")
-          }
-          depsFrom.foreach { in =>
-            in.src match {
-              case f:GlobalInput =>
-              case f => err(s"$n input at ${f}.$in")
+        if (ctrlBlockInsertHashRun) {
+          n.depsFrom.foreach { case (depOut, depsFrom) =>
+            depOut.src match {
+              case d:GlobalOutput =>
+              case d => err(s"$n input from ${d}.$depOut")
+            }
+            depsFrom.foreach { in =>
+              in.src match {
+                case f:GlobalInput =>
+                case f => err(s"$n input at ${f}.$in")
+              }
             }
           }
         }
@@ -65,9 +73,15 @@ class SanityCheck(implicit compiler:PIR) extends PIRTraversal with SiblingFirstT
           }
         }
         val ctrlers = n.ctrlers
-        if (ctrlers.nonEmpty) {
-          val cs = ctrlers.filter { _.getCtrl == n.getCtrl }
-          assert(cs.nonEmpty, s"$n doesn't have matched controller for ${n.getCtrl}")
+        val ctrl = n.getCtrl
+        val ctrls = ctrl.ancestorTree
+        val externCtrlers = ctrlers.filter { ctrler => !ctrls.contains(ctrler.getCtrl) }
+        if (externCtrlers.nonEmpty)
+          bug(s"Unexpected ctrler $externCtrlers in ctx=${dquote(n)}")
+        if (!ctrlBlockInsertHashRun) {
+          val bbs = n.collectDown[BlackBox]() ++ n.collectDown[Access]()
+          if (bbs.nonEmpty && ctrlers.nonEmpty)
+            bug(s"Controllers in streaming context $n $ctrlers $bbs")
         }
       case n:GlobalIO => 
         if (n.neighbors.isEmpty) err(s"$n is not connected")
