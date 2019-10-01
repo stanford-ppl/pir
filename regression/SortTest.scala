@@ -75,7 +75,7 @@ case class DRAMMergeSort_2() extends DRAMMergeSort(ip=16, op=2)
 
     Accel {
       val mergeBuf = MergeBuffer[T](nway, ip)
-      Sequential.Foreach(-1 until iters by 1) { i =>
+      Sequential.Foreach(0 until iters by 1) { i =>
         val bs = if (i <= 1) initbs else initbs.to[Int] << (i - 1).to[I16]
         val mergeSize = bs / nway
         val first = (i % 2 == 0)
