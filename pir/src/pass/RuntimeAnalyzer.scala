@@ -110,7 +110,7 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
     if (ctrlers.exists { case top:TopController => true; case _ => false}) {
       dbg(s"$n.ctrlers=$ctrlers")
       ctrlers.map { _.getIter }.reduceOption { _ * _ }
-    } else None
+    } else Some(Unknown)
   }
 
   val StreamWriteContext = MatchRule[Context, FringeStreamWrite] { case n if n.streaming.get =>
