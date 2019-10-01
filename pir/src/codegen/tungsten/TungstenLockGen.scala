@@ -110,18 +110,6 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
 
     case n:LockSRAM => genTopMember(n, Seq(n.qstr))
 
-    case WithData(n:BufferWrite, data:Forward) =>
-      val ctrler = getCtrler(n)
-      n.out.T.foreach { send =>
-        addEscapeVar(send)
-        genCtxInits {
-          emitln(s"${ctrler}->AddOutput(${nameOf(send)});")
-        }
-        emitln(s"${nameOf(send)}->Push(${nameOf(data.in.T)}->Read());")
-      }
-
-    case n:Forward =>
-
     case n => super.emitNode(n)
   }
 

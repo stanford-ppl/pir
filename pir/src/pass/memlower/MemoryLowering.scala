@@ -65,6 +65,14 @@ trait GenericMemoryLowering extends PIRTraversal with SiblingFirstTraversal with
       }
     }
   }
+
+  //def accessBarrierInsertion(mem:Memory):Unit = dbgblk(s"accessBarrierInsertion($mem)"){
+    //val accesses = mem.accesses.sortBy { _.order.get } // Access sorted by program order
+    //accesses.sliding(2,1).foreach { case (from, to) =>
+      //val fromCtrl = from.getCtrl
+      //val toCtrl = to.getCtrl
+    //}
+  //}
 }
 
 class MemoryLowering(implicit compiler:PIR) 

@@ -81,7 +81,9 @@ case class BufferRegRead()(implicit env:Env) extends LocalOutAccess {
   val writeDone = new InputField[Option[PIRNode]]("writeDone")
 }
 trait TokenAccess extends LocalAccess
-case class TokenWrite()(implicit env:Env) extends TokenAccess with LocalInAccess
+case class TokenWrite()(implicit env:Env) extends TokenAccess with LocalInAccess {
+  val dummy = new InputField[PIRNode]("dummy")
+}
 case class TokenRead()(implicit env:Env) extends TokenAccess with LocalOutAccess
 
 trait AccessUtil {

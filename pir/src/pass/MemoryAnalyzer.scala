@@ -7,7 +7,7 @@ import prism.graph._
 
 trait MemoryAnalyzer { self:PIRTransformer =>
 
-  def insertToken(fctx:Context, tctx:Context):TokenRead = {
+  def insertToken(fctx:Context, tctx:Context, dep:Option[Output[PIRNode]]=None):TokenRead = {
     val isFIFO = false
     val fctrl = fctx.ctrl.get
     val tctrl = tctx.ctrl.get
@@ -15,7 +15,7 @@ trait MemoryAnalyzer { self:PIRTransformer =>
       val (enq, deq) = compEnqDeq(isFIFO=isFIFO, fctx, tctx, None, Nil)
       val write = within(fctx, fctrl) {
         allocate[TokenWrite](_.done.isConnectedTo(enq)) {
-          stage(TokenWrite().done(enq))
+          stage(TokenWrite().done(enq).dummy(dep))
         }
       }
       within(tctx, tctrl) {

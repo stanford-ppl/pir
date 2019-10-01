@@ -23,6 +23,9 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
     case n@Const(v:String) => emitVec(n, List.fill(n.getVec)(s""""${v.replace("\n", "\\n")}""""))
     case n@Const(v) => emitVec(n, List.fill(n.getVec)(v))
 
+    case n:Forward =>
+      emitVec(n) { i => n.in.qidx(i) }
+
     case n:AccumAck =>
       emitVec(n) { i => "true" };
 

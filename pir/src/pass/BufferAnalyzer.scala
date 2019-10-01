@@ -44,9 +44,9 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     deped.localIns.flatMap { in => bufferInput(in, fromCtx) }
   }
 
-  def bufferInput(in:Input[PIRNode], fromCtx:Option[Context]=None):Seq[BufferRead] = {
+  def bufferInput(in:Input[PIRNode], fromCtx:Option[Context]=None, isFIFO:Boolean=true):Seq[BufferRead] = {
     in.connected.distinct.flatMap { out =>
-      insertBuffer(out, in, fromCtx)
+      insertBuffer(out, in, fromCtx, isFIFO)
     }
   }
 
@@ -76,32 +76,32 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     in.canReach(out, visitEdges=visitInEdges _)
   }
 
-  private def insertBuffer(depOut:Output[PIRNode], depedIn:Input[PIRNode], fromCtx:Option[Context]=None):Option[BufferRead] = {
+  private def insertBuffer(depOut:Output[PIRNode], depedIn:Input[PIRNode], fromCtx:Option[Context]=None, isFIFO:Boolean=true):Option[BufferRead] = {
     val dep = depOut.src
     val deped = depedIn.src
     val depedCtx = deped.ctx.get
     if (escape(depOut, depedIn, depedCtx)) {
       val depCtx = fromCtx.getOrElse { dep.ctx.get }
       val read = dbgblk(s"insertBuffer(depOut=${dquote(depOut)}, depedIn=$deped.$depedIn)") {
-        val (enq, deq) = compEnqDeq(isFIFO=true, depCtx, depedCtx, Some(depOut), List(depedIn))
+        val (enq, deq) = compEnqDeq(isFIFO=isFIFO, depCtx, depedCtx, Some(depOut), List(depedIn))
         val write = within(depCtx, depCtx.getCtrl) {
           allocate[BufferWrite] { write => 
-            write.isFIFO &&
+            write.isFIFO==isFIFO &&
             canReach(write.data,depOut) &&
             canReach(write.done,enq) &&
             !write.en.isConnected //TODO: buffer function should also allow enable as input
           } {
-            stage(BufferWrite(isFIFO=true).data(depOut).done(enq))
+            stage(BufferWrite(isFIFO=isFIFO).data(depOut).done(enq))
           }
         }
         val read = within(depedCtx, depedCtx.getCtrl) {
           allocate[BufferRead] { read => 
-            read.isFIFO &&
+            read.isFIFO==isFIFO &&
             canReach(read.in,write.out) &&
             canReach(read.done,deq) &&
             !read.en.isConnected
           } {
-            stage(BufferRead(isFIFO=true).in(write.out).done(deq))
+            stage(BufferRead(isFIFO=isFIFO).in(write.out).done(deq))
           }
         }
         swapConnection(depedIn, depOut, read.out)
