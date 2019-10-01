@@ -112,6 +112,7 @@ trait TypeUtil { self:PIRPass =>
       case n:Forward => n.in.inferVec
       case n:Controller => None
       case n:Memory => None
+      case n:MergeBuffer => flatReduce(n.inputs.map { _.inferVec }) { Math.max(_,_) }
       case n:PIRNode if n.presetVec.nonEmpty => n.presetVec.v
       case n:CounterIter => Some(n.is.size)
       case n:CounterValid => Some(n.is.size)
@@ -119,6 +120,7 @@ trait TypeUtil { self:PIRPass =>
       case Const(v) => Some(1)
       case n:TokenWrite => Some(1)
       case n:TokenRead => Some(1)
+      case WithData(n:MemWrite, data:MergeBuffer) => Some(data.par)
       case n:MemWrite => n.broadcast.v.map { _.size }.orElse { 
         if (n.mem.isConnected) {
           n.mem.T match {
@@ -148,7 +150,8 @@ trait TypeUtil { self:PIRPass =>
       case n:PrintIf => n.msg.inferVec
       case n:AssertIf => n.cond.inferVec
       case n:ExitIf => n.cond.inferVec
-      case n@OpDef(_:FixOp | _:FltOp | _:BitOp | _:TextOp | Mux | BitsAsData) => flatReduce(n.inputs.map{ _.inferVec}) { case (a,b) => Math.max(a,b) }
+      case n@OpDef(_:FixOp | _:FltOp | _:BitOp | _:TextOp | Mux | BitsAsData) => 
+        flatReduce(n.inputs.map{ _.inferVec}) { Math.max(_,_) }
       case n:Shuffle => n.to.T.inferVec
       case n:GlobalOutput => n.in.T.inferVec
       // During staging time GlobalInput might temporarily not connect to GlobalOutput

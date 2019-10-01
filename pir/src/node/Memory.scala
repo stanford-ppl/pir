@@ -60,6 +60,11 @@ case class Splitter()(implicit env:Env) extends BlackBox {
   def addAddrIn(xs:Any*) = DynamicInputFields[PIRNode]("addrIn", xs)
   def addAddrOut(num:Int) = DynamicOutputFields[PIRNode]("addrOut", num)
 }
+case class MergeBuffer(ways:Int, par:Int)(implicit env:Env) extends BlackBox with Def {
+  val inputs = List.tabulate(ways) { i => new InputField[PIRNode](s"in$i") }
+  val bounds = List.tabulate(ways) { i => new InputField[PIRNode](s"bound$i") }
+  val init = new InputField[PIRNode](s"init").tp(Bool)
+}
 case class Forward()(implicit env:Env) extends Def {
   val in = new InputField[PIRNode]("in")
   val dummy = new InputField[List[PIRNode]]("dummy")

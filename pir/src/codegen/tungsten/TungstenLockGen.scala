@@ -10,7 +10,7 @@ import scala.collection.mutable
 trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenMemGen with TungstenBlackBoxGen with Memorization {
 
   override def emitNode(n:N) = n match {
-    case ctx:Context if ctx.streaming.get && (ctx.descendents.collect { case lock:Lock => true; case splitter:Splitter => true }.nonEmpty) => 
+    case ctx:Context if ctx.streaming.get && (ctx.descendents.exists { case lock:Lock => true; case splitter:Splitter => true; case _ => false }) => 
       withinBB {
         visitNode(n)
       }

@@ -76,8 +76,6 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
     case n:Memory => attr.fillcolor(chartreuse).style(filled)
     case n:GlobalInput if n.psimState == Some(".") && n.out.T.map { _.ctx.get}.exists { _.psimState != Some("DONE") } => attr.setNode.fillcolor("firebrick1").style(filled)
     case n:GlobalOutput if n.psimState == Some(".") => attr.setNode.fillcolor("goldenrod1").style(filled)
-    case n:Lock => attr.fillcolor("crimson").style(filled)
-    case n:Splitter => attr.fillcolor("crimson").style(filled)
     case n:Context => 
       val color = zipOption(n.active.v, n.psimState).fold {
         if (n.streaming.get) "deepskyblue1" else "palevioletred1"
@@ -101,6 +99,7 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
     //case n:CUContainer => attr.fillcolor(deepskyblue).style(filled)
     case n:DRAMCommand => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
     case n:StreamCommand => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
+    case n:BlackBox => attr.fillcolor("crimson").style(filled)
 
     case n:OpNode => attr.fillcolor("mediumorchid1").style(filled)
     case n => super.color(attr, n)

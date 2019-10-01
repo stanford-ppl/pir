@@ -74,6 +74,7 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
    * Compute count of the context using reads. Return None if reads is empty
    * and ctrlers nonEmpty
    * */
+  private val input = raw"in.*".r
   def countByReads(n:Context):Option[Value[Long]] = dbgblk(s"countByReads($n)") {
     var reads = n.reads.filterNot { read =>
       if (read.nonBlocking) { read.getCount; true } else false
@@ -82,7 +83,11 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
       val connectToUnlock = read.out.connected.exists { case InputField(lock:Lock, "unlock") => true; case _ => false }
       read.initToken.get || connectToUnlock 
     }
+    reads.foreach { _.getCount }
     dbg(s"reads=$reads passTwo=$passTwo")
+    reads = reads.filterNot { 
+      _.out.connected.exists { case InputField(m:MergeBuffer, input) => true; case _ => false }
+    }
     val counts = reads.flatMap { read => 
       read.getCount.map { _ * read.getScale }
     }
@@ -187,10 +192,15 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
         size /! (n.data.getTp.bytePerWord.get * dataPar)
       case n:FringeSparseLoad => Finite(1l)
       case n:FringeSparseStore => Finite(1l)
+      case n:MergeBuffer => 
+        import Value._
+        n.bounds.map { _.T.getBound.toValue }.reduce { _ + _ }
       case n => Unknown
     }
   }
 
+  private val bound = raw"bound.*".r
+  private val input = raw"in.*".r
   def compScale(n:Any):Value[Long] = dbgblk(s"compScale($n)"){
     n match {
       case OutputField(ctrler:Controller, "done") => ctrler.getIter *  compScale(ctrler.childDone)
@@ -212,6 +222,9 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
           case (n:BufferRead, done) if n.ctx.get.streaming.get =>
             n.out.connected.head match {
               case InputField(n:DRAMDenseCommand, "size" | "offset") => n.getIter * n.ctx.get.getScheduleFactor
+              case InputField(n:MergeBuffer, "init") => n.getIter * n.ctx.get.getScheduleFactor
+              case InputField(n:MergeBuffer, bound) => n.getIter * n.ctx.get.getScheduleFactor
+              case InputField(n:MergeBuffer, input) => Unknown
               case in => Finite(n.ctx.get.getScheduleFactor)
             }
           case (n, done) => compScale(done) 

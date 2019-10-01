@@ -168,6 +168,7 @@ trait Node[N<:Node[N]] extends IR { self:N =>
   ):Vector[N] = depeds(filter).flatMap(matchLevel)
   def globalDepeds:Vector[N] = depeds().filter { d => matchLevel(d).isEmpty }
   def neighbors:Vector[N] = deps() ++ depeds()
+  def localNeighbors:Vector[N] = localDeps ++ localDepeds
   def siblingNeighbors:Vector[N] = siblingDeps() ++ siblingDepeds()
 
 }
