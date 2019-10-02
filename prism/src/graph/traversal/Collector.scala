@@ -110,7 +110,8 @@ trait CollectorImplicit {
 
     def collectChildren[M<:N:ClassTag]:List[M] = node.children.collect { case m:M => m }
     def collectFirstChild[M<:N:ClassTag]:Option[M] = node.children.collectFirst { case m:M => m }
-    def hasChild[M<:N:ClassTag]:Boolean = node.children.collectFirst { case m:M => m }.nonEmpty
+    def hasChild[M<:N:ClassTag]:Boolean = node.children.exists { case m:M => true; case _ => false }
+    def hasDescendent[M<:N:ClassTag]:Boolean = node.descendents.exists { case m:M => true; case _ => false }
 
     def accum(prefix:N => Boolean={n:N => false } , visitFunc:N => List[N], depth:Int= -1, logger:Option[Logging]=None):List[N] = 
       dbgblk(logger, s"accum(depth=$depth)"){
