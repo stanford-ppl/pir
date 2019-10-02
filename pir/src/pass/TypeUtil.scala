@@ -106,6 +106,8 @@ trait TypeUtil { self:PIRPass =>
       case OutputField(n:LoopController, "laneValid") => Some(n.par.get)
       case OutputField(n:FringeDenseStore, "ack") => Some(1)
       case OutputField(n:LockAccess, _) => n.inferVec
+      case OutputField(n:MergeBuffer, "out") => n.inferVec
+      case OutputField(n:MergeBuffer, "outBound") => flatReduce(n.bounds.map { _.inferVec }) { Math.max(_,_) }
       case ConnectedByDRAMCmd(vec) => Some(vec)
       case n@OutputField(s:Splitter, "addrOut") => s.addrIn(s.addrOut.indexOf(n)).inferVec
       case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferVec
@@ -171,6 +173,8 @@ trait TypeUtil { self:PIRPass =>
   def compType(n:IR):Option[BitType] = /*dbgblk(s"compType(${dquote(n)})")*/ {
     n match {
       case n@OutputField(s:Splitter, "addrOut") => s.addrIn(s.addrOut.indexOf(n)).inferTp
+      case OutputField(n:MergeBuffer, "out") => n.inferTp
+      case OutputField(n:MergeBuffer, "outBound") => n.bounds.head.inferTp
       case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferTp
       case OutputField(n:LockAccess, _) => n.inferTp
       case n:Forward => n.in.inferTp

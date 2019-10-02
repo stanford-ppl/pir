@@ -133,7 +133,7 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
           val ctrlers = n.ctrlers
           var inferByInput = false
           inferByInput ||= n.streaming.get
-          inferByInput ||= ctrlers.exists { ctrler => ctrler.isForever && !ctrler.hasBranch }
+          inferByInput ||= ctrlers.exists { ctrler => ctrler.isForever || ctrler.hasBranch }
           inferByInput ||= ctrlers.isEmpty
           if (inferByInput) countByReads(n)
           else countByController(n)
@@ -217,6 +217,7 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
             n.data.singleConnected.get match {
               case OutputField(n:FringeDenseStore, "ack") => n.getIter * n.ctx.get.getScheduleFactor
               case OutputField(n:FringeStreamRead, "lastBit") => Unknown
+              case OutputField(n:MergeBuffer, "outBound") => n.getIter * n.ctx.get.getScheduleFactor
               case out => Finite(n.ctx.get.getScheduleFactor)
             }
           case (n:BufferRead, done) if n.ctx.get.streaming.get =>
