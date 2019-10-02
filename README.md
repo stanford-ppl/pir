@@ -2,13 +2,12 @@
 
 # Get Started
 ## Compile app from spatial
-Clone spatial repo and checkout pir branch
+Clone spatial repo and checkout pir branch or pir-dev branch for latest development
 For place and route and simulation, you need to get access to these repos
-https://github.com/acrucker/plastisim.git
+https://github.com/acrucker/tungsen.git
 
 https://github.com/acrucker/plastiroute.git
 
-https://github.com/stanford-ppl/pir.git
 ```
 git clone https://github.com/stanford-ppl/spatial.git
 cd spatial
