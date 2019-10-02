@@ -64,13 +64,13 @@ def shuffle(x):
 def compute_neighbors(location, min_loc, max_loc):
     adjusted = np.clip(location, min_loc, max_loc)
     if adjusted == min_loc:
-        return [(min_loc, 1)]
+        return [(int(min_loc), 1)]
     if adjusted == max_loc:
-        return [(max_loc, 1)]
+        return [(int(max_loc), 1)]
 
     lower = np.floor(adjusted)
     if adjusted == lower:
-        return [(lower, 1)]
+        return [(int(lower), 1)]
 
     upper = np.ceil(adjusted)
     return [(int(lower), adjusted - lower), (int(upper), upper - adjusted)]
