@@ -10,7 +10,7 @@ import scipy.optimize
 import scipy.stats
 from collections import namedtuple, defaultdict
 import functools
-import queue
+import itertools
 
 Constraint = namedtuple("Constraint", ["ops", "vin", "sin", "vout", "sout"])
 Node = namedtuple("Node", ["node", "op", "comment"])
@@ -60,6 +60,7 @@ def shuffle(x):
         new_x[i] = shuffles[int(bucket)] + diff
     return new_x
 
+
 def compute_neighbors(location, min_loc, max_loc):
     adjusted = np.clip(location, min_loc, max_loc)
     if adjusted == min_loc:
@@ -72,39 +73,55 @@ def compute_neighbors(location, min_loc, max_loc):
         return [(lower, 1)]
 
     upper = np.ceil(adjusted)
-    return [(lower, adjusted - lower), (upper, upper - adjusted)]
+    return [(int(lower), adjusted - lower), (int(upper), upper - adjusted)]
 
-def compute_output_bandwidth(x, partitions, nodes, inverse_map, outgoing_edges):
+
+def cleaned_name(node_id):
+    if node_id[0] == "e":
+        return node_id[1:]
+    return node_id
+
+
+def compute_bandwidth(x, partitions, inverse_map, edges):
+    print("computing bandwidth")
     # calculates the vector and scalar output counts of each partition
-    v_out = np.zeros(partitions)
-    s_out = np.zeros(partitions)
-    partition_contributions = defaultdict(lambda: defaultdict(int))
-    for node in nodes:
-        entry = inverse_map[node.node]
-        src_loc = x[entry]
-        # likely actual partitions
-        for candidate_src, src_probability in compute_neighbors(src_loc, 0, partitions - 1):
-            # P[edge | src = candidate_src]
-            out_contrib = {
-                "v": 0,
-                "s": 0
-            }
-            src_as_int = int(candidate_src)
-            for edge in outgoing_edges[node.node]:
-                dest = edge.dst
-                if dest[0] == "e":
-                    out_contrib[edge.tp] = 1
-                    continue
-                dest_loc = x[inverse_map[dest]]
-                for candidate_dst, dst_probability in compute_neighbors(dest_loc, 0, partitions - 1):
-                    if int(candidate_dst) == src_as_int:
-                        continue
-                    out_contrib[edge.tp] += dst_probability
-            v_out[src_as_int] += min(out_contrib["v"], 1) * src_probability
-            s_out[src_as_int] += min(out_contrib["s"], 1) * src_probability
-    return np.concatenate((v_out, s_out))
+    num_real_nodes = len(x)
+    # node -> src_partition -> dst_partition
+    # extra item for external nodes.
+    communication_map = {etype: np.zeros((len(inverse_map), partitions + 1, partitions + 1), dtype=np.float) for etype
+                         in "vs"}
+    print("Populating Map")
+    for src, dst, tp, _ in edges:
+        src_loc = inverse_map[src]
+        src_partition_candidates = compute_neighbors(x[src_loc], 0, partitions - 1) if src_loc < num_real_nodes else (
+            partitions, 1)
+        dst_loc = inverse_map[dst]
+        dst_partition_candidates = compute_neighbors(x[dst_loc], 0, partitions - 1) if dst_loc < num_real_nodes else (
+            partitions, 1)
+        for (src_partition, src_probability), (dst_partition, dst_probability) in itertools.product(
+                src_partition_candidates, dst_partition_candidates):
+            if src_partition == dst_partition:
+                continue
+            communication_map[tp][src_loc, src_partition, dst_partition] += src_probability * dst_probability
 
-def partition(nodes, edges, constraints: Constraint, partitions: int, max_iters:int = 10, sharps_per_iter:int = 10):
+    # in-place clip each element to [0, 1]
+    for comm in communication_map.values():
+        np.clip(comm, 0, 1, out=comm)
+
+    outputs = {
+        "v": {},
+        "s": {}
+    }
+    print("Done populating map")
+
+    for edge_tp, comm_map in communication_map.items():
+        outputs[edge_tp]["out"] = np.sum(comm_map, axis=(0, 2))[:-1]
+        outputs[edge_tp]["in"] = np.sum(comm_map, axis=(0, 1))[:-1]
+
+    return np.concatenate((outputs["v"]["out"], outputs["v"]["in"], outputs["s"]["out"], outputs["s"]["in"]))
+
+
+def partition(nodes, edges, constraints: Constraint, partitions: int, max_iters: int = 10, sharps_per_iter: int = 10):
     """
     :param nodes: List of Node objects
     :param edges: List of Edge objects
@@ -115,14 +132,22 @@ def partition(nodes, edges, constraints: Constraint, partitions: int, max_iters:
 
     remap = {i: s for i, s in enumerate(nodes)}
     inverse_map = {s.node: i for i, s in enumerate(nodes)}
-    print(inverse_map)
     num_nodes = len(nodes)
+    # some edges might also have external nodes.
+    for src, dst, _, _ in edges:
+        if src not in inverse_map:
+            inverse_map[src] = num_nodes
+            remap[num_nodes] = src
+            num_nodes += 1
+        if dst not in inverse_map:
+            inverse_map[dst] = num_nodes
+            remap[num_nodes] = dst
+            num_nodes += 1
 
     partitioning = np.random.uniform(0, partitions, num_nodes)
-
     bounds = scipy.optimize.Bounds(0, partitions - 1)
 
-    weight_mask = np.empty(num_nodes)
+    weight_mask = np.zeros((num_nodes,))
     for i, node in enumerate(nodes):
         weight_mask[i] = node.op
 
@@ -134,24 +159,30 @@ def partition(nodes, edges, constraints: Constraint, partitions: int, max_iters:
         ub=constraints.ops,
     )
 
-    outgoing_edges = defaultdict(list)
-    incoming_edges = defaultdict(list)
-    for edge in edges:
-        outgoing_edges[edge.src].append(edge)
-        incoming_edges[edge.dst].append(edge)
+    bandwidth_constraint_func = functools.partial(compute_bandwidth, partitions=partitions, edges=edges,
+                                                  inverse_map=inverse_map)
 
-    output_bandwidth_constraint_func = functools.partial(compute_output_bandwidth, partitions=partitions,
-                                                  outgoing_edges=outgoing_edges, nodes=nodes, inverse_map=inverse_map)
-
-    output_bandwidth_constraint = scipy.optimize.NonlinearConstraint(
-        fun = output_bandwidth_constraint_func,
+    bandwidth_constraint = scipy.optimize.NonlinearConstraint(
+        fun=bandwidth_constraint_func,
         lb=-np.inf,
-        ub=[constraints.vout] * partitions + [constraints.sout] * partitions,
+        ub=[constraints.vout] * partitions + [constraints.vin] * partitions + [
+            constraints.sout] * partitions + [
+               constraints.sin] * partitions,
     )
+
+    directionality_constraint_matrix = np.zeros((len(edges), num_nodes))
+    # enforce that if edge a -> b then partition(a) <= partition(b)
+
+    for i, (src, dst, _, _) in enumerate(edges):
+        directionality_constraint_matrix[i, inverse_map[dst]] = 1
+        directionality_constraint_matrix[i, inverse_map[src]] = -1
+
+    directionality_constraint = scipy.optimize.LinearConstraint(A=directionality_constraint_matrix, lb=0, ub=np.inf)
 
     for iterations in range(max_iters):
         for it, sharpness in enumerate(np.geomspace(0.0625, (iterations + 1.0) / max_iters, sharps_per_iter)):
             enforce_integer = it > sharps_per_iter * 3 / 4
+
             def target(x):
                 # minimize the largest used partition id
                 # plus a non-integer penalty.
@@ -162,7 +193,8 @@ def partition(nodes, edges, constraints: Constraint, partitions: int, max_iters:
 
             result = scipy.optimize.minimize(fun=target, x0=partitioning, method="COBYLA", constraints=[
                 num_nodes_constraint,
-                output_bandwidth_constraint
+                directionality_constraint,
+                bandwidth_constraint
             ], bounds=bounds, options={"disp": True})
             print("Sharpness:", sharpness, "Enforce Integer", enforce_integer, "Assignment:", result)
             print("Max Nodes:", num_nodes_constraint_func(np.round(result.x, 2)))
@@ -184,6 +216,10 @@ def main():
     nodes = [element._replace(op=int(element.op)) for element in nodes]
 
     edges = load_csv(opts.edge, Edge)
+    edges = [element._replace(
+        src=cleaned_name(element.src),
+        dst=cleaned_name(element.dst)
+    ) for element in edges]
     constraint = load_csv(opts.spec, Constraint)[0]
     constraint = Constraint(*list(map(int, constraint)))
 
