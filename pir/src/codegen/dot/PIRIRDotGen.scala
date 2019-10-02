@@ -175,7 +175,8 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
     (from, to) match {
       case (from@OutputField(fromsrc:GlobalOutput, _), to) if fromsrc.isUnder[ArgFringe] && from.connected.size > 5 => 
       case (from@OutputField(fromsrc:GlobalOutput, _), to@InputField(tosrc:GlobalInput, _)) => 
-        var tooltip = s"${fromsrc.in.neighbors.map(quoteSrcCtx).mkString(",")}"
+        var tooltip = s"$fromsrc"
+        tooltip += s"\n${fromsrc.in.neighbors.map(quoteSrcCtx).mkString(",")}"
         tooltip += s"\n${tosrc.out.neighbors.map(quoteSrcCtx).mkString(",")}"
         fromsrc.count.v.foreach { c => 
           c match {
@@ -184,7 +185,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
             case Unknown =>
           }
         }
-        tooltip += s"\ntp=${fromsrc.getTp}\n".append("vec", fromsrc.vec.v)
+        tooltip += s"\ntp=${fromsrc.getTp}".append("vec", fromsrc.vec.v)
         val dst = tosrc + "," + tosrc.out.neighbors.mkString(",")
         super.emitEdge(from,to,attr.setEdge.attr("id",dst).attr("label",fromsrc.id).attr("labeltooltip", tooltip))
       case _ => super.emitEdge(from,to,attr)
@@ -198,10 +199,11 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
       var tooltip = s"$n"
       if (mem.nonEmpty) tooltip += s"\n${mem.mkString(",")}" 
       if (bbs.nonEmpty) tooltip += s"\n${bbs.mkString(",")}"
-      val ctxs = n.collectDown[Context]().map { ctx =>
+      val ctxs = n.collectDown[Context]()
+      val ctxStr = ctxs.slice(0,3).map { ctx =>
         quote(ctx)
       }
-      tooltip += s"\n${ctxs.mkString("\n")}"
+      tooltip += s"\n${ctxStr.mkString("\n")}${if(ctxs.size>3) "\n..." else ""}"
       super.setAttrs(n).attr("tooltip", tooltip)
     case n => super.setAttrs(n)
   }
