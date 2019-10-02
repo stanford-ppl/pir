@@ -22,6 +22,7 @@ trait TungstenTopGen extends TungstenCodegen {
 #include "Lock.h"
 #include "Split.h"
 #include "token.h"
+#include "merge.h"
 #include <cassert>
 #include <iomanip>
 #include <fstream>

@@ -144,6 +144,9 @@ sealed trait CUParam extends Parameter {
   val numVout:Int
   val numSin:Int
   val numSout:Int
+  val numSplitter:Int
+  val numLock:Int
+  val numMergeBuffer:Int
   lazy val numLane:Int = traceOut[TopParam].vecWidth
   def fifoParamOf(granularity:String):Option[FIFOParam] = 
     assertOneOrLess(fifoParams.filter { _.granularity == granularity }, 
@@ -165,6 +168,9 @@ case class DramAGParam(
   numSout:Int=5,
   numVin:Int=4,
   numVout:Int=4,
+  numSplitter:Int=0,
+  numLock:Int=0,
+  numMergeBuffer:Int=0,
 ) extends CUParam {
   override lazy val numLane:Int = 1
   val sramParam = connectField(SRAMParam(count=0))
@@ -183,6 +189,9 @@ case class PCUParam(
   numSout:Int=4,
   numVin:Int=8,
   numVout:Int=4,
+  numSplitter:Int=1,
+  numLock:Int=0,
+  numMergeBuffer:Int=1,
 ) extends CUParam {
   val sramParam = connectField(SRAMParam(count=0))
 }
@@ -201,5 +210,8 @@ case class PMUParam(
   numSout:Int=8,
   numVin:Int=8,
   numVout:Int=8,
+  numSplitter:Int=0,
+  numLock:Int=1,
+  numMergeBuffer:Int=0,
 ) extends CUParam
 

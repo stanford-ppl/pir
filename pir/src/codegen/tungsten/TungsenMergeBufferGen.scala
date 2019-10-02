@@ -26,7 +26,7 @@ trait TungstenMergeBufferGen extends TungstenCodegen with TungstenCtxGen with Tu
   }
 
   override def varOf(n:PIRNode):(String,String) = n match {
-    case n:MergeBuffer => (s"MergeBuffer<${n.qtp},${n.par}>", s"${n}")
+    case n:MergeBuffer => (s"MergePCU<${n.qtp},${n.par}>", s"${n}")
     case n => super.varOf(n)
   }
 

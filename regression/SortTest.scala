@@ -55,7 +55,6 @@ case class DRAMMergeSort_2() extends DRAMMergeSort(ip=16, op=2)
 
 @spatial abstract class DRAMMergeSort(
   N:scala.Int = 1024,
-  initbs:scala.Int = 32, // initial block size. Must be larger than nways * ip
   op:scala.Int = 1, // Outer loop par
   ip:scala.Int = 1 // inner loop vectorization
 ) extends SpatialTest {
@@ -71,6 +70,7 @@ case class DRAMMergeSort_2() extends DRAMMergeSort(ip=16, op=2)
     val dram2 = DRAM[T](N)
     setMem(dram1, Array.fromSeq(in.map { _.to[T] }))
     
+    val initbs = ip * nway
     val iters = (math.log(N / initbs) / math.log(nway)).toInt + 1
 
     Accel {
