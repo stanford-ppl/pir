@@ -11,6 +11,9 @@ import prism.mapper._
 
 case class AFGCost(prefix:Boolean=false) extends PrefixCost[AFGCost]
 case class MCCost(prefix:Boolean=false) extends PrefixCost[MCCost]
+case class MergeBufferCost(prefix:Boolean=false) extends PrefixCost[MergeBufferCost]
+case class SplitterCost(prefix:Boolean=false) extends PrefixCost[SplitterCost]
+case class LockCost(prefix:Boolean=false) extends PrefixCost[LockCost]
 case class SRAMCost(count:Int=0, bank:Int=0, size:Int=0) extends QuantityCost[SRAMCost]
 case class FIFOCost(sfifo:Int=0, vfifo:Int=0) extends QuantityCost[FIFOCost]
 case class InputCost(sin:Int=0, vin:Int=0) extends QuantityCost[InputCost]
@@ -74,6 +77,18 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
     } orElse switch[MCCost](x,ct) {
       case n:GlobalContainer => MCCost(n.isInstanceOf[DRAMFringe])
       case n:Parameter => MCCost(n.isInstanceOf[MCParam])
+
+    } orElse switch[MergeBufferCost](x,ct) {
+      case n:GlobalContainer => MergeBufferCost(n.hasDescendent[MergeBuffer])
+      case n:Parameter => MergeBufferCost(n.isInstanceOf[PCUParam])
+
+    } orElse switch[SplitterCost](x,ct) {
+      case n:GlobalContainer => SplitterCost(n.hasDescendent[Splitter])
+      case n:Parameter => SplitterCost(n.isInstanceOf[PCUParam])
+
+    } orElse switch[LockCost](x,ct) {
+      case n:GlobalContainer => LockCost(n.hasDescendent[Lock])
+      case n:Parameter => LockCost(n.isInstanceOf[PMUParam])
 
     } orElse switch[SRAMCost](x,ct) {
       case n:GlobalContainer =>

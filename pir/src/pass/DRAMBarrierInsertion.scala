@@ -32,7 +32,7 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
       val fromCtrl = fromCtx.getCtrl
       val toCtrl = toCtx.getCtrl
       val lca = leastCommonAncesstor(fromCtrl, toCtrl).get
-      if (lca.schedule == Sequenced && lca.isLoop.get) {
+      if (lca.isLoop.get) {
         val read = insertToken(fromCtx, fromCmd, toCtx, toCmd)
         read.initToken := true
         read.inits(true)
