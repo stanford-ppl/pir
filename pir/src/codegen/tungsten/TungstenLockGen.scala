@@ -41,21 +41,30 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
 
     case n:Lock =>
       val (tp, name) = varOf(n)
-      val lock = n.lock.T
-      val en = assertOne(n.out.T, s"$n.out").as[BufferWrite].gout.get
       genTopMember(n, Seq(name.qstr))
+      val lock = n.lock.T
       genTopMember(
         tp="Broadcast<Token>", 
         name=s"bc_${n}_lock",
-        args=Seq(s"bc_${n}_lock".qstr, nameOf(lock).&, Seq(s"$name.GetLockPort()").qlist), 
+        args=Seq(s"bc_${n}_lock".qstr, nameOf(lock).&, Seq(s"$name.GetLockPort(${lock.id})").qlist), 
         end=true,
         extern=false,
         escape=false
       )
+      val en = assertOne(n.out.T, s"$n.out").as[BufferWrite].gout.get
       genTopMember(
         tp="Broadcast<Token>",
         name=s"bc_${n}_en",
-        args=Seq(s"bc_${n}_en".qstr, s"$name.GetLockPort()", Seq(nameOf(en).&).qlist), 
+        args=Seq(s"bc_${n}_en".qstr, s"$name.GetLockPort(${lock.id})", Seq(nameOf(en).&).qlist), 
+        end=true,
+        extern=false,
+        escape=false
+      )
+      val unlock = n.unlock.T
+      genTopMember(
+        tp="Broadcast<Token>", 
+        name=s"bc_${n}_unlock",
+        args=Seq(s"bc_${n}_unlock".qstr, nameOf(n.unlock.T).&, Seq(s"$name.GetUnlockPort(${unlock.id})").qlist), 
         end=true,
         extern=false,
         escape=false
