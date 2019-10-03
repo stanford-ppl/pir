@@ -42,16 +42,18 @@ proute-update:
 	git submodule update plastiroute
 	cd plastiroute && make CC=gcc Cpp=g++ CXX=g++ 
 
-proute: proute-update
+proute:
 	git submodule update --init plastiroute
+	cd plastiroute && make CC=gcc Cpp=g++ CXX=g++ 
 	bin/pconf --proute-home=$(shell pwd)/plastiroute
 
 tungsten-update:
 	git submodule update tungsten
 	cd tungsten && make Cpp=g++ CXX=g++ 
 
-tungsten: tungsten-update
+tungsten:
 	git submodule update --init tungsten
+	cd tungsten && make Cpp=g++ CXX=g++ 
 	bin/pconf --tungsten-home=$(shell pwd)/tungsten
 
 pull:
