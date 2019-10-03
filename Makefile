@@ -20,6 +20,7 @@ tag:
 	#sbt gen-ctags
 
 install: pir proute tungsten env
+	bin/pconf --pir-home=$(shell pwd)
 
 update: pir proute-update tungsten-update
 

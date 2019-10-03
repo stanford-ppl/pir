@@ -6,11 +6,12 @@ import pir.pass._
 import prism.graph._
 import prism.collection.immutable._
 
-trait ComputePartitioner extends CUPruner {
+trait ComputePartitioner extends CUPruner with ExternComputePartitioner { self =>
 
   lazy val schedular = config.splitAlgo match {
-    case "BFS" => new PIRTraversal with BFSTopologicalTraversal with Schedular { val forward = false }
-    case "DFS" => new PIRTraversal with DFSTopologicalTraversal with Schedular { val forward = false }
+    case "bfs" => new PIRTraversal with BFSTopologicalTraversal with Schedular { val forward = false }
+    case "dfs" => new PIRTraversal with DFSTopologicalTraversal with Schedular { val forward = false }
+    case _ => new PIRTraversal with DFSTopologicalTraversal with Schedular { val forward = false }
   }
 
   def split[T](k:T, vcost:List[Cost[_]]):List[T] = dbgblk(s"split($k)") {
@@ -29,35 +30,42 @@ trait ComputePartitioner extends CUPruner {
         removeNodes(k.descendentTree)
         globals
       case k:Context =>
-        val scope = k.children.filter { include }
-        val part = new Partition(scope)
-        val parts = split(part, vcost)
-        dbg(s"partitions=${parts.size}")
-        val ctxs = within(k.global.get, k.ctrl.get) {
-          parts.map { case part@Partition(scope) =>
-            val ctx = Context()
-            dbg(s"Create $ctx for $part")
-            scope.foreach { n => swapParent(n, ctx) }
-            ctx
+        if (fit(kcost, vcost)) List(k)
+        else {
+          val scope = k.children.filter { include }
+          val part = new Partition(scope)
+          val parts = split(part, vcost)
+          dbg(s"partitions=${parts.size}")
+          val ctxs = within(k.global.get, k.ctrl.get) {
+            parts.map { case part@Partition(scope) =>
+              val ctx = Context()
+              dbg(s"Create $ctx for $part")
+              scope.foreach { n => swapParent(n, ctx) }
+              ctx
+            }
           }
+           // need to run in two pass to avoid duplicated allocation
+          alias ++= ctxs.map { ctx => (ctx, k) }
+          ctxs.foreach { ctx => bufferInput(ctx) }
+          alias.clear
+          dupDeps(ctxs, from=Some(k))
+          (part::parts).foreach { removeCache }
+          removeNodes(k.descendentTree)
+          ctxs.foreach { ctx => if (ctx.ctrlers.isEmpty) ctx.streaming := true }
+          ctxs
         }
-         // need to run in two pass to avoid duplicated allocation
-        alias ++= ctxs.map { ctx => (ctx, k) }
-        ctxs.foreach { ctx => bufferInput(ctx) }
-        alias.clear
-        dupDeps(ctxs, from=Some(k))
-        (part::parts).foreach { removeCache }
-        removeNodes(k.descendentTree)
-        ctxs.foreach { ctx => if (ctx.ctrlers.isEmpty) ctx.streaming := true }
-        ctxs
       case k:Partition =>
         if (fit(kcost, vcost)) List(k)
         else {
           val nodes = schedular.scheduleScope(k.scope)
           //dbg(s"schedule:")
           //nodes.foreach { n => dbg(s"$n") }
-          val (head, tail) = nodes.splitAt(nodes.size/2)
-          split(new Partition(head), vcost) ++ split(new Partition(tail),vcost)
+          config.splitAlgo match {
+            case "solver" => externSplit(nodes, vcost)
+            case _ =>
+              val (head, tail) = nodes.splitAt(nodes.size/2)
+              split(new Partition(head), vcost) ++ split(new Partition(tail),vcost)
+          }
         }
     }).as[List[T]]
   }

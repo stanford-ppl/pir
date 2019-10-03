@@ -122,14 +122,13 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
 
     } orElse switch[InputCost](x,ct) {
       case x: GlobalContainer =>
-        //val ins = x.collectDown[GlobalInput]()
         val ins = x.depsFrom.keys
         val (vins, sins) = ins.partition { isVec(_) }
         InputCost(sins.size, vins.size)
           .scheduledBy(x.collectDown[Context]().map { _.collectDown[OpNode]().size }.min)
       case x: Context => 
-        val ins = x.collectDown[LocalOutAccess]().filter { _.gin.nonEmpty }
-        val (vins, sins) = ins.partition { isVec(_) }
+        val ins = x.collectDown[LocalOutAccess]().filter { _.in.neighbors.exists { _.parent != Some(x) } }
+        val (vins, sins) = ins.partition { in => isVec(in) }
         InputCost(sins.size, vins.size)
           .scheduledBy(x.collectDown[OpNode]().size)
       case n:CUParam => InputCost(n.numSin, n.numVin)
@@ -137,14 +136,13 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
 
     } orElse switch[OutputCost](x,ct) {
       case x: GlobalContainer => 
-        //val outs = x.collectDown[GlobalOutput]()
         val outs = x.depedsTo.keys
         val (vouts, souts) = outs.partition { isVec(_) }
         OutputCost(souts.size, vouts.size)
           .scheduledBy(x.collectDown[Context]().map { _.collectDown[OpNode]().size }.min)
       case x: Context => 
-        val outs = x.collectDown[LocalInAccess]().filter { _.gout.nonEmpty }
-        val (vouts, souts) = outs.partition { isVec(_) }
+        val outs = x.collectDown[LocalInAccess]().filter { _.out.neighbors.exists { _.parent != Some(x) } }
+        val (vouts, souts) = outs.partition { out => isVec(out) }
         OutputCost(souts.size, vouts.size)
           .scheduledBy(x.collectDown[OpNode]().size)
       case n:CUParam => OutputCost(n.numSout, n.numVout)
