@@ -18,11 +18,12 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
   override def finPass = {
     super.finPass
     pirTop.topCtrl.descendentTree.foreach { setUID }
-    pirTop.collectChildren[Controller].foreach { ctrler =>
-      ctrler.en.neighbors.collect { case v:CounterValid => v }.foreach { v =>
-        disconnect(ctrler.en, v)
-      }
-    }
+    // These enable signals are used layer to set token enables. Removed at ctrlBlkInsertion
+    //pirTop.collectChildren[Controller].foreach { ctrler =>
+      //ctrler.en.neighbors.collect { case v:CounterValid => v }.foreach { v =>
+        //disconnect(ctrler.en, v)
+      //}
+    //}
   }
 
   override def visitNode(n:N) = {
@@ -159,13 +160,10 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     }
 
     n.to[DRAMStoreCommand].foreach { n =>
-      val write = within(pirTop, n.getCtrl) {
-        val ack = n.ack.T.as[MemWrite].mem.T.outAccesses.head
-        within(ack.getCtrl) {
-          stage(MemWrite().data(stage(AccumAck().ack(ack))))
-        }
+      val ack = n.ack.T.as[MemWrite].mem.T.outAccesses.head
+      within(pirTop,ack.getCtrl) {
+        stage(AccumAck().ack(ack))
       }
-      argOut(write).name(s"${n.dram.sid}_ack")
     }
 
     def connectLaneValid(access:Access):Unit = {
@@ -319,32 +317,30 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     reg
   }
 
-  def createSeqCtrler = {
-    val tree = ControlTree(Sequenced)
-    val ctrler = within(tree) { UnitController().srcCtx("GraphInitialization") }
-    tree.par := 1
-    tree.ctrler(ctrler)
-    tree.parent.foreach { parent =>
-      parent.ctrler.v.foreach { pctrler =>
-        ctrler.parentEn(pctrler.childDone)
-      }
-    }
-    ctrler
-  }
+  // Setting uid based on controller enable doesn't work for controllers that are fully unrolled
+  //def setUID(ctrl:ControlTree) = {
+    //val cuid = ctrl.ctrler.v.fold[List[Int]](Nil) { _.en.neighbors.collect { case v:CounterValid => v }
+      //.groupBy { _.getCtrl }.toList.sortBy { _._1.ancestors.size } // Outer most to inner most
+      //.flatMap { case (pctrl, vs) => 
+        //val ps = vs.sortBy { _.counter.T.idx.get }.map { case CounterValid(List(i)) => i }
+        //dbg(s"$ctrl: $pctrl[${ps.mkString(",")}]")
+        //ps
+      //}
+    //}
+    //val puid = ctrl.parent.map { _.uid.get }.getOrElse(Nil)
+    //val uid = puid ++ cuid
+    //dbg(s"$ctrl.uid=[${uid.mkString(",")}]")
+    //ctrl.uid := uid
+  //}
 
   // UID is the unrolled ids of outer loop controllers
   def setUID(ctrl:ControlTree) = {
-    val cuid = ctrl.ctrler.v.fold[List[Int]](Nil) { _.en.neighbors.collect { case v:CounterValid => v }
-      .groupBy { _.getCtrl }.toList.sortBy { _._1.ancestors.size } // Outer most to inner most
-      .flatMap { case (pctrl, vs) => 
-        val ps = vs.sortBy { _.counter.T.idx.get }.map { case CounterValid(List(i)) => i }
-        dbg(s"$ctrl: $pctrl[${ps.mkString(",")}]")
-        ps
+    val parallels = ctrl.ancestors.filter { _.schedule == ForkJoin }
+    val uid = parallels.toList.map { parallel =>
+      parallel.children.indexWhere { child =>
+        ctrl.isDescendentOf(child) || child == ctrl
       }
     }
-    val puid = ctrl.parent.map { _.uid.get }.getOrElse(Nil)
-    val uid = puid ++ cuid
-    dbg(s"$ctrl.uid=[${uid.mkString(",")}]")
     ctrl.uid := uid
   }
 

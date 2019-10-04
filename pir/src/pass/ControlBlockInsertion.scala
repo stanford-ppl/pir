@@ -30,6 +30,14 @@ class ControlBlockInsertion(implicit compiler:PIR) extends PIRTransformer with B
     val map = nodes.groupBy { _.getCtrl }
     val ctrls = map.keys.toSeq.sortBy { _.ancestors.size }
 
+    nodes.foreach {
+      case ctrler:Controller =>
+        ctrler.en.neighbors.collect { case v:CounterValid => v }.foreach { v =>
+          disconnect(ctrler.en, v)
+        }
+      case _ =>
+    }
+
     ctrls.foldLeft[PIRNode](ctx) { case (prev, ctrl) =>
       val (extern, intern) = map(ctrl).partition { 
         case ctrler:Controller => true

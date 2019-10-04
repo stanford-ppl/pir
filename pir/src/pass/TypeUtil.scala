@@ -217,6 +217,10 @@ trait TypeUtil { self:PIRPass =>
     msg
   }
 
+  def quoteSrcCtx(n:ControlTree) = {
+    s"$n[${n.uid.get.mkString(",")}] ${n.srcCtx.v.getOrElse("No source context")}"
+  }
+
   implicit class EdgeOp(x:IR) {
     def matchWith(y:IR):Boolean = {
       (x,y) match {
