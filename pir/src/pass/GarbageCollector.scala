@@ -50,11 +50,13 @@ trait GarbageCollector { self:PIRTransformer =>
   private lazy val collector = PrefixTraversal.get[PIRNode,Set[PIRNode]](prefix _, visitFunc _, accumulate _, Set.empty[PIRNode], None)
 
   var depDupHasRun = false
+  var dramBarrierInsertionHasRun = false
 
   def free(nodes:PIRNode):Unit = free(List(nodes))
 
   def free(nodes:Iterable[PIRNode]):Unit = dbgblk(s"free(${nodes.map{dquote(_)}})"){
     depDupHasRun = self.as[PIRPass].compiler.hasRunAll[DependencyDuplication]
+    dramBarrierInsertionHasRun = self.as[PIRPass].compiler.hasRunAll[DRAMBarrierInsertion]
     val ns = nodes.flatMap { n => 
       if (mustDead(n)) Some((n, -1))
       else None
@@ -110,6 +112,7 @@ trait GarbageCollector { self:PIRTransformer =>
     case n:HostInController => Some(true)
     case n:HostOutController => Some(true)
     case n:Controller if !depDupHasRun => Some(true)
+    case n:AccumAck if !dramBarrierInsertionHasRun => Some(true)
     case n if n.isUnder[Controller] && !depDupHasRun => Some(true)
     case n => None
   }
