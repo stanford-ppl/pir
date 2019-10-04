@@ -4,13 +4,13 @@ env:
 	virtualenv -p python2 env
 	env/bin/pip install -r requirements.txt
 
-clean:
-	#rm -rf out
-	#rm -f docs/api
-	sbt "; project pir; clean; project spade; clean ; project prism; clean"
+clean: clean-local
 	make -C tungsten/ clean
 	make -C plastiroute/ clean
 	make -C plastisim/ clean
+
+clean-local:
+	sbt "; project pir; clean; project spade; clean ; project prism; clean"
 
 distclean: clean
 	make -C docs/manual clean
@@ -60,5 +60,5 @@ pull:
 	cd plastisim && git pull && git submodule update --init
 	cd plastiroute && git pull
 
-.PHONY: all spatial pir psim proute init pull install env tungsten update
+.PHONY: all spatial pir psim proute init pull install env tungsten update clean clean-local
 
