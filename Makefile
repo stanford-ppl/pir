@@ -34,8 +34,10 @@ psim-update:
 	mkdir -p plastisim/build
 	cd plastisim && make CC=gcc Cpp=g++ CXX=g++
 
-psim: psim-update
+psim: 
 	git submodule update --init plastisim
+	mkdir -p plastisim/build
+	cd plastisim && make CC=gcc Cpp=g++ CXX=g++
 	bin/pconf --psim-home=$(shell pwd)/plastisim
 
 proute-update:
