@@ -263,8 +263,9 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
       dbgblk(s"CounterConstValid($counter)") {
         val ctrler = counter.parent.get
         var const:Const = null
-        counter.valids.foreach { case valid@CounterValid(is) =>
-          if (is.forall { i => counter.constValids.get(i).nonEmpty }) {
+        val constValids = counter.constValids.v
+        counter.valids.filter { _.out.isConnected }.foreach { case valid@CounterValid(is) =>
+          if (is.forall { i => constValids.get(i).nonEmpty }) {
             val consts = is.map { i => counter.constValids.get(i).get }
             dbg(s"Set $valid with is=$is to $consts")
             const = within(ctrler.parent.get, counter.ctrl.get) { 
@@ -437,7 +438,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     }
   }
 
-  override def visitNode(n:N):T = /*dbgblk(s"visitNode:${quote(n)}") */{
+  override def visitNode(n:N):T = /*dbgblk(s"visitNode:${n}") */{
     super.visitNode(n)
     val res = rewriteRules.foldLeft[Option[_]](None) {
       case (None, rule) => rule(n).map { case (o1, o2) =>
