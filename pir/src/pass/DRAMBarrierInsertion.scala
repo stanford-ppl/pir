@@ -12,7 +12,7 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
       ctx.collectFirstChild[DRAMCommand].map { cmd => (ctx,cmd) }
     }
     val dramMap = dramCtxs.groupBy { case (ctx, cmd) => cmd.dram }
-    dramMap.foreach { case (dram, ctxs) => if (ctxs.size > 1) process(dram, ctxs) }
+    dramMap.foreach { case (dram, ctxs) => process(dram, ctxs) }
     inserted.clear
   }
 
