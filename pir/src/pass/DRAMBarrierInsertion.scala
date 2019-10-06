@@ -90,13 +90,16 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
     }
   }
 
-  def canConflict(from:ControlTree, to:ControlTree) = {
-    from.uid.get == to.uid.get
+  def canConflict(from:ControlTree, fromCmd:DRAMCommand, to:ControlTree, toCmd:DRAMCommand) = {
+    (fromCmd, toCmd) match {
+      case (fromCmd:DRAMLoadCommand, toCmd:DRAMLoadCommand) => false
+      case (fromCmd, toCmd) => from.uid.get == to.uid.get
+    }
   }
 
   val inserted = mutable.HashSet[(DRAMCommand,DRAMCommand)]()
   def insertToken(fromCtx:Context, fromCmd:DRAMCommand, toCtx:Context, toCmd:DRAMCommand):Option[TokenRead] = {
-    if (!canConflict(fromCtx.getCtrl, toCtx.getCtrl)) return None
+    if (!canConflict(fromCtx.getCtrl, fromCmd, toCtx.getCtrl, toCmd)) return None
     if (fromCtx == toCtx) return None
     if (inserted.contains((fromCmd,toCmd))) return None
     inserted += ((fromCmd, toCmd))
