@@ -34,7 +34,7 @@ trait GarbageCollector { self:PIRTransformer =>
 
   private def visitFunc(n:PIRNode):List[PIRNode] = {
     val deps = visitIn(n).toStream.filter { x => mustDead(x) }
-    val parents = if (aggressiveGC) Stream() else visitUp(n).toStream.flatMap {
+    val parents = if (!aggressiveGC) Stream() else visitUp(n).toStream.flatMap {
       case x:Top => x.children.filter { mustDead }
       case x => (x.ancestorTree++x.leaves).filter { mustDead }
     }
