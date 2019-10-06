@@ -62,6 +62,7 @@ case class DRAMDoubleBuffer2_0() extends DRAMDoubleBuffer2
 case class DRAMDoubleBuffer2_1() extends DRAMDoubleBuffer2(ip=1)
 case class DRAMDoubleBuffer2_2() extends DRAMDoubleBuffer2(ip=1,op=2)
 case class DRAMDoubleBuffer2_3() extends DRAMDoubleBuffer2(ip=1,op=3)
+case class DRAMDoubleBuffer2_4() extends DRAMDoubleBuffer2(ip=16,op=3)
 @spatial abstract class DRAMDoubleBuffer2(
   N:scala.Int = 64,
   ts:scala.Int = 16,

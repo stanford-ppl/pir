@@ -240,7 +240,7 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
     }
   }
 
-  def outputMatch(out1:Output[PIRNode], out2:Output[PIRNode]) = (out1, out2) match {
+  def matchOutput(out1:Output[PIRNode], out2:Output[PIRNode]) = (out1, out2) match {
     case (out1, out2) if out1 == out2 => true
     case (OutputField(Const(out1), "out"), OutputField(Const(out2), "out")) if out1 == out2 => true
     case (OutputField(Const(List(out1)), "out"), OutputField(Const(out2), "out")) if out1 == out2 => true
@@ -252,18 +252,18 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
   def matchInput(in1:Input[PIRNode], in2:Input[PIRNode]) = (in1, in2) match {
     case (in1, in2) if in1.connected.size != in2.connected.size => false
     case (InputField(_,"en" | "done"), InputField(_,"en" | "done")) => //TODO: order doesn't matter
-      (in1.connected, in2.connected).zipped.forall { outputMatch _ }
-    case (in1, in2) => (in1.connected, in2.connected).zipped.forall { outputMatch _ }
+      (in1.connected, in2.connected).zipped.forall { matchOutput _ }
+    case (in1, in2) => (in1.connected, in2.connected).zipped.forall { matchOutput _ }
   }
 
   def matchInput(in1:Input[PIRNode], connected:List[Output[PIRNode]]) = {
     (in1.connected, connected).zipped.forall { case (o1, o2) =>
-      (in1.connected, connected).zipped.forall { outputMatch _ }
+      (in1.connected, connected).zipped.forall { matchOutput _ }
     }
   }
 
   def matchInput(in1:Input[PIRNode], out:Output[PIRNode]) = {
-    in1.connected.forall { outputMatch(_,out) }
+    in1.connected.forall { matchOutput(_,out) }
   }
 
   def matchRate(a1:LocalAccess, a2:LocalAccess) = {

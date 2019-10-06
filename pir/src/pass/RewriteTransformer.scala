@@ -33,7 +33,7 @@ trait RewriteUtil { self: PIRTransformer =>
       }.getOrElse(o)
     }
   }
-  case class TransferRule[A:ClassTag](lambda:A => Option[Any]) {
+  case class TransferRule[A:ClassTag](lambda:A => Option[PIRNode]) {
     transferRules += this
     def apply(x:PIRNode):Option[Any] = {
       x.to[A].flatMap { x => lambda(x) }
@@ -307,22 +307,23 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
             stage(Const(inits))
           }
           swapOutput(read.out, const.out)
+          Some(read)
         }
       }
-      Some(read)
     } else {
-      // Use pipeline register to carry intermediate result if read and write are on the same
-      // controller
-      testOne(mem.inAccesses).map{ write =>
+      testOne(mem.inAccesses).flatMap{ write =>
         if (write.getCtrl == read.getCtrl) {
+          // Use pipeline register to carry intermediate result if read and write are on the same
+          // controller
           if (write.order.get < read.order.get) {
             dbgblk(s"Remove $write -> $mem -> $read") {
               swapOutput(read.out, write.as[MemWrite].data.singleConnected.get)
             }
+            Some(write)
           } else {
             //TODO: Pipe reg accum
+            None
           }
-          Some(write)
         } else None
       }
     }
@@ -410,7 +411,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
 
   TransferRule[BankedRead] { read =>
     val mem = read.mem.T
-    testOne(mem.inAccesses).map { w =>
+    testOne(mem.inAccesses).flatMap { w =>
       val write = w.as[BankedWrite]
       if (write.order.get < read.order.get) {
         val matchBank = matchInput(read.bank, write.bank)
@@ -434,7 +435,8 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
           dbg(s"$write -> $mem -> $read => $fifoWrite -> $fifo -> $fifoRead")
           swapOutput(read.out, fifoRead.out)
         }
-      }
+        Some(read)
+      } else None
     }
   }
 
@@ -453,7 +455,10 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
       case (None, rule) => rule(n)
       case (Some(n), rule) => Some(n)
     }
+  }
 
+  override def finPass = {
+    super.finPass
   }
 
   // Breaking loop in traversal

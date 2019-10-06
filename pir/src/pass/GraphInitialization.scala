@@ -125,34 +125,40 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     }
 
     // Handle disabled load store from unaligned parallelization
-    n.to[FringeCommand].foreach { n =>
-      val reads = n.collectIn[MemRead]()
-      val writes = n.collectOut[MemWrite]()
-      (reads ++ writes).foreach { access =>
-        val setters = access match {
-          case read:MemRead => read.mem.T.inAccesses
-          case write:MemWrite => write.mem.T.outAccesses
-        }
-        setters.foreach { setter => 
-          val ctrlEns = access.getCtrl.ancestorTree.view.flatMap { c =>
-            c.ctrler.v.view.flatMap { ctrler =>
-              ctrler.en.T.collect { case v:CounterValid => v.out }
-            }
-          }.toSet[Output[PIRNode]]
-          setter.en(ctrlEns)
-        }
-      }
-    }
+    //n.to[FringeCommand].foreach { n =>
+      //val reads = n.collectIn[MemRead]()
+      //val writes = n.collectOut[MemWrite]()
+      //(reads ++ writes).foreach { access =>
+        //val setters = access match {
+          //case read:MemRead => read.mem.T.inAccesses
+          //case write:MemWrite => write.mem.T.outAccesses
+        //}
+        //setters.foreach { setter => 
+          //val ctrlEns = access.getCtrl.ancestorTree.view.flatMap { c =>
+            //c.ctrler.v.view.flatMap { ctrler =>
+              //ctrler.en.T.collect { case v:CounterValid => v.out }
+            //}
+          //}.toSet[Output[PIRNode]]
+          //setter.en(ctrlEns)
+        //}
+      //}
+    //}
 
-    // Add loop valid related enables. Should add to all accesses but might be a bit expensive
-    n.to[BankedAccess].foreach { access =>
-      val ctrl = access.getCtrl
-      ctrl.ancestorTree.foreach { c =>
-        c.ctrler.v.foreach { ctrler =>
-          val ens = ctrler.en.T.collect { case v:CounterValid => v }
-          ens.foreach { en =>
-            if (!access.en.isConnectedTo(en.out)) {
-              access.en(en.out)
+    // Add loop valid related enables. 
+    n.to[Access].foreach { access =>
+      val connectToBB = access match {
+        case access:WriteAccess => access.data.T.isInstanceOf[BlackBox]
+        case access:ReadAccess => access.out.T.exists{ _.isInstanceOf[BlackBox] }
+      }
+      if (!connectToBB) {
+        val ctrl = access.getCtrl
+        ctrl.ancestorTree.foreach { c =>
+          c.ctrler.v.foreach { ctrler =>
+            val ens = ctrler.en.T.collect { case v:CounterValid => v }
+            ens.foreach { en =>
+              if (!access.en.isConnectedTo(en.out)) {
+                access.en(en.out)
+              }
             }
           }
         }

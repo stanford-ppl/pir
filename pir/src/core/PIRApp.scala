@@ -73,7 +73,6 @@ trait PIRApp extends PIR with Logging {
     addPass(deadCodeEliminator) ==>
     addPass(contextInsertion) ==>
     addPass(blkboxLowering) ==>
-    addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx2.dot")) ==>
     addPass(enableVerboseDot, new PIRTopDotGen(s"top3.dot")) ==>
     addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx3.dot")) ==>
     addPass(memLowering) ==>

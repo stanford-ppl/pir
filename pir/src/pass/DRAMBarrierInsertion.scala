@@ -118,14 +118,14 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
         }
       }
       val issueIn = toCmd match {
-        case toCmd:DRAMDenseCommand => toCmd.offset
-        case toCmd:DRAMSparseCommand => toCmd.addr
+        case toCmd:DRAMDenseCommand => toCmd.offset.T.as[BufferRead].in
+        case toCmd:DRAMSparseCommand => toCmd.addr.T.as[BufferRead].in
       }
       val write = issueIn.collectFirst[BufferWrite]()
       val tokenRead = insertToken(read.ctx.get, write.ctx.get, dep=Some(accum.out))
       val tokenWrite = tokenRead.inAccess.as[TokenWrite]
-      //connectLaneEnable(tokenRead)
-      //connectLaneEnable(tokenWrite)
+      connectLaneEnable(tokenRead)
+      connectLaneEnable(tokenWrite)
       val forward = within(write.getCtrl, write.ctx.get) {
         val original = write.data.singleConnected.get
         val forward = stage(Forward().in(original).dummy(tokenRead.out))
