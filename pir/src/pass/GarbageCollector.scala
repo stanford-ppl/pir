@@ -28,20 +28,17 @@ trait GarbageCollector { self:PIRTransformer =>
   }
 
   private def visitOut(n:PIRNode):List[PIRNode] = n match {
-    case n@UnderControlBlock(cb) if depDupHasRun => visitGlobalOut(cb)
+    case n@UnderControlBlock(cb) if depDupHasRun => visitGlobalOut(cb) ++ visitGlobalOut(n)
     case n => visitGlobalOut(n)
   }
 
   private def visitFunc(n:PIRNode):List[PIRNode] = {
     val deps = visitIn(n).toStream.filter { x => mustDead(x) }
-    val parents = visitUp(n).toStream.flatMap { x => 
-      if (aggressiveGC) {
-        (x.ancestorTree++x.leaves).filter { x => mustDead(x) }
-      } else {
-        Stream()
-      }
+    val parents = if (aggressiveGC) Stream() else visitUp(n).toStream.flatMap {
+      case x:Top => x.children.filter { mustDead }
+      case x => (x.ancestorTree++x.leaves).filter { mustDead }
     }
-    dbg(s"$n deps=${deps} parent=${parents}")
+    //dbg(s"$n deps=${deps.toList} parent=${parents.toList}")
     (deps ++ parents).distinct.toList
   }
 
@@ -65,8 +62,8 @@ trait GarbageCollector { self:PIRTransformer =>
     collector.prefix = prefix
     collector.vf = visitFunc
     collector.accumulate = accumulate
-    //collector.logging = Some(this)
     collector.logging = None
+    //collector.logging = Some(this)
     collector.resetTraversal
     dead ++= collector.traverseNodes(ns)
     removeNodes(dead)
