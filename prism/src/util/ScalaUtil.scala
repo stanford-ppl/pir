@@ -111,7 +111,7 @@ trait ScalaUtilFunc {
   /*
    * If a and b can be reduced, reduce return Some(c) else None
    * */
-  def partialReduce[A](list:List[A])(reduce:(A,A) => Option[A]):List[A] = {
+  def partialReduce[A](list:Set[A])(reduce:(A,A) => Option[A]):Set[A] = {
     val queue = scala.collection.mutable.ListBuffer[A]()
     val reduced = scala.collection.mutable.Queue[A]()
     queue ++= list
@@ -126,7 +126,23 @@ trait ScalaUtilFunc {
         }
       }
     }
-    reduced.toList
+    reduced.toSet
+  }
+
+  /*
+   * If a and b can be reduced, reduce return Some(c) else None
+   * */
+  def partialOrderedReduce[A](list:List[A])(reduce:(A,A) => Option[A]):List[A] = {
+    list.foldLeft[List[A]](Nil) { 
+      case (Nil, a) => List(a)
+      case (prev, a) => 
+      val (heads, last) = prev.splitAt(prev.size-1)
+      reduce(last.head, a).fold{
+        prev ++ List(a)
+      } { reduced =>
+        heads :+ reduced
+      }
+    }
   }
 
   def unpack(x:Any)(base:PartialFunction[Any,Any]):Any = {

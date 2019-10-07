@@ -17,31 +17,23 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
   }
 
   // LCA ctrl of the accesses and the group of accesses
-  type AccessGroup = (ControlTree, List[(Context,DRAMCommand)])
+  type AccessGroup = List[(Context,DRAMCommand)]
 
   def process(dram:DRAM, ctxs:List[(Context, DRAMCommand)]) = dbgblk(s"process(${dram} (${dram.sid})"){
     // Sorted by program order
     val sorted = ctxs.sortBy { _._2.id }
     val grouped:List[AccessGroup] = groupAccesses(sorted, forward=true)
-    dbgblk(s"grouped") {
-      grouped.foreach { case (lca,group) =>
-        dbg(s"lca:${quoteSrcCtx(lca)}")
-        group.foreach { case (ctx,cmd) =>
-          dbg(s"$ctx ${quoteSrcCtx(cmd)}")
-        }
-      }
-    }
     // Handle forward dependency
     grouped.sliding(2,1).foreach { 
-      case List((fromCtrl, from),(toCtrl,to)) =>
+      case List(from,to) =>
         from.foreach { case (fromCtx, fromCmd) =>
           to.foreach { case (toCtx, toCmd) =>
-            insertToken(fromCtx, fromCmd, toCtx, toCmd)
+            insertToken(fromCtx, fromCmd, toCtx, toCmd, forward=true)
           }
         }
-      case List((fromCtrl, from)) =>
+      case List(from) =>
     }
-    grouped.last._2.foreach { 
+    grouped.last.foreach { 
       case (ctx,cmd:DRAMStoreCommand) => insertTokenToHost(ctx,cmd)
       case (ctx,cmd) =>
     }
@@ -57,16 +49,13 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
       // A list of list of Access Groups that belong to each child of this ctrl. The accessGroups
       // should already be ordered by forward token. Only need to take the last access group and
       // order with the first of the access group that are under this loop
-      val groupUnderLoop = grouped.filter { _._1.isDescendentOf(ctrl) }
+      val groupUnderLoop = grouped.map { _.filter { _._2.getCtrl.isDescendentOf(ctrl) } }.filter { _.nonEmpty }
       if (groupUnderLoop.size > 1) dbgblk(s"enforceCarriedDependency(${quoteSrcCtx(ctrl)})") {
         val fromGroup:AccessGroup = groupUnderLoop.last
         val toGroup:AccessGroup = groupUnderLoop.head
-        fromGroup._2.foreach { case (fromCtx, fromCmd) =>
-          toGroup._2.foreach { case (toCtx, toCmd) =>
-            insertToken(fromCtx, fromCmd, toCtx, toCmd).foreach { read =>
-              read.initToken := true
-              read.inits(true)
-            }
+        fromGroup.foreach { case (fromCtx, fromCmd) =>
+          toGroup.foreach { case (toCtx, toCmd) =>
+            insertToken(fromCtx, fromCmd, toCtx, toCmd, forward=false)
           }
         }
       }
@@ -75,33 +64,52 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
 
   // Give a list of accesses sorted by program order, grouping accesses based on whether they can
   // concurrently active. Return a list of group of accesses, with their 
-  def groupAccesses(accesses:List[(Context,DRAMCommand)], forward:Boolean) = {
-    partialReduce[AccessGroup](accesses.map { a => (a._1.getCtrl,List(a)) }) { case (a,b) =>
-      val ctrlA = a._1
-      val ctrlB = b._1
-      val lca = leastCommonAncesstor(ctrlA, ctrlB).get
-      val canGroup = lca.schedule match {
-        case Sequenced => false
-        case Pipelined if !forward => false
-        case Streaming if !forward => false // this shouldn't happen if streaming is from spatial
-        case _ => true
+  def groupAccesses(accesses:AccessGroup, forward:Boolean) = {
+    val grouped = partialOrderedReduce[AccessGroup](accesses.map { a => List(a) }) { case (a,b) => 
+      val conflict = a.exists { case (ctxa, cmda) =>
+        b.exists { case (ctxb, cmdb) =>
+          canConflict(cmda,cmdb,forward)
+        }
       }
-      if (canGroup) Some((lca, a._2 ++ b._2)) else None
+      if (conflict) None else Some(a ++ b)
     }
+    dbgblk(s"grouped(forward=$forward)") {
+      grouped.foreach { group =>
+        dbg(s"----")
+        group.foreach { case (ctx,cmd) =>
+          dbg(s"$ctx ${quoteSrcCtx(cmd)}")
+        }
+      }
+    }
+    grouped
   }
 
-  def canConflict(from:ControlTree, fromCmd:DRAMCommand, to:ControlTree, toCmd:DRAMCommand) = {
-    (fromCmd, toCmd) match {
-      case (fromCmd:DRAMLoadCommand, toCmd:DRAMLoadCommand) => false
-      case (fromCmd, toCmd) => from.uid.get == to.uid.get
+  def canConflict(fromCmd:DRAMCommand, toCmd:DRAMCommand, forward:Boolean):Boolean = {
+    // Both are read
+    if (fromCmd.isInstanceOf[DRAMLoadCommand] && toCmd.isInstanceOf[DRAMLoadCommand]) return false
+    val from = fromCmd.getCtrl
+    val to = toCmd.getCtrl
+    // Not in the same parallelized outer loop
+    if (from.uid.get != to.uid.get) return false
+    val lca = leastCommonAncesstor(from, to).get
+    lca.schedule match {
+      case Sequenced => return true
+      case Pipelined | Streaming if !forward => return true
+      case _ => return false
     }
   }
 
   val inserted = mutable.HashSet[(DRAMCommand,DRAMCommand)]()
-  def insertToken(fromCtx:Context, fromCmd:DRAMCommand, toCtx:Context, toCmd:DRAMCommand):Option[TokenRead] = {
-    if (!canConflict(fromCtx.getCtrl, fromCmd, toCtx.getCtrl, toCmd)) return None
-    if (fromCtx == toCtx) return None
-    if (inserted.contains((fromCmd,toCmd))) return None
+  def insertToken(
+    fromCtx:Context, 
+    fromCmd:DRAMCommand, 
+    toCtx:Context, 
+    toCmd:DRAMCommand,
+    forward:Boolean
+  ):Unit = {
+    if (!canConflict(fromCmd, toCmd, forward)) return
+    if (fromCtx == toCtx) return
+    if (inserted.contains((fromCmd,toCmd))) return
     inserted += ((fromCmd, toCmd))
     dbgblk(s"insertToken($fromCmd, $toCmd)"){
       dbg(s"from=${quoteSrcCtx(fromCtx.getCtrl)} to=${quoteSrcCtx(toCtx.getCtrl)}")
@@ -126,14 +134,16 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
       val tokenWrite = tokenRead.inAccess.as[TokenWrite]
       connectLaneEnable(tokenRead)
       connectLaneEnable(tokenWrite)
-      val forward = within(write.getCtrl, write.ctx.get) {
+      within(write.getCtrl, write.ctx.get) {
         val original = write.data.singleConnected.get
         val forward = stage(Forward().in(original).dummy(tokenRead.out))
         swapConnection(write.data, original, forward.out)
-        forward
       }
       //breakPoint(s"insertToken($fromCmd, $toCmd, $fromCtx, $toCtx)")
-      Some(tokenRead)
+      if (!forward) {
+        tokenRead.initToken := true
+        tokenRead.inits(true)
+      }
     }
   }
 

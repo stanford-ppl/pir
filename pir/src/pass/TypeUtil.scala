@@ -100,7 +100,7 @@ trait TypeUtil { self:PIRPass =>
   }
 
   import spade.param._
-  def compVec(n:IR):Option[Int] = dbgblk(s"compVec(${dquote(n)})") {
+  def compVec(n:IR):Option[Int] = /*dbgblk(s"compVec(${dquote(n)})")*/ {
     n match {
       case n:Output[_] if n.getMeta[Int]("presetVec").nonEmpty => n.getMeta[Int]("presetVec").v
       case OutputField(n:LoopController, "laneValid") => Some(n.par.get)
