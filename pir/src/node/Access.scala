@@ -66,6 +66,8 @@ trait LocalAccess extends PIRNode {
   // Pop when if done and all en are true
   val en = new InputField[Set[PIRNode]]("en").tp(Bool) // if not connected, default true
   val done = new InputField[Option[PIRNode]]("done").tp(Bool).presetVec(1) // if not connected, default false
+
+  val isSplit = Metadata[Boolean]("isSplit", default=false)
 }
 trait LocalInAccess extends LocalAccess with Def
 trait LocalOutAccess extends LocalAccess with Def with MemoryNode {

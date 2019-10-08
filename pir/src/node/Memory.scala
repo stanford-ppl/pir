@@ -213,6 +213,7 @@ abstract class Controller(implicit env:Env) extends PIRNode {
 
   val done = new OutputField[List[PIRNode]]("done").tp(Bool).presetVec(1)
   val childDone = new OutputField[List[PIRNode]]("childDone").tp(Bool).presetVec(1)
+  val stepped = new OutputField[List[PIRNode]]("stepped").tp(Bool).presetVec(1)
 
   def isForever = this.collectDown[Counter]().exists { _.isForever }
   def hasBranch = this.ctrl.v.get == Fork || this.to[LoopController].fold(false) { _.stopWhen.isConnected }

@@ -11,6 +11,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
   override def quoteRef(n:Any):String = n match {
     case OutputField(ctrler:Controller, "done") => s"$ctrler->Done()"
     case OutputField(ctrler:Controller, "childDone") => s"$ctrler->ChildDone()"
+    case OutputField(ctrler:Controller, "stepped") => s"$ctrler->Stepped()"
     case OutputField(ctrler:LoopController, "firstIter") => s"$ctrler->FirstIter()"
     case OutputField(ctrler:LoopController, "laneValid") => s"laneValid"
     case n => super.quoteRef(n)

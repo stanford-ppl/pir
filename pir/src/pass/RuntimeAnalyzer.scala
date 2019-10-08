@@ -202,7 +202,7 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
   def compScale(n:Any):Value[Long] = dbgblk(s"compScale($n)"){
     n match {
       case OutputField(ctrler:Controller, "done") => ctrler.getIter *  compScale(ctrler.childDone)
-      case OutputField(ctrler:Controller, "childDone" | "childDone") => 
+      case OutputField(ctrler:Controller, "childDone" | "stepped") => 
         val children = ctrler.childDone.connected.filter { _.asInstanceOf[Field[_]].name == "parentEn" }.map { _.src.as[Controller] }
         assertUnify(children, s"$ctrler.childDone.scale") { child => compScale(child.done) }.getOrElse(Finite(ctrler.ctx.get.getScheduleFactor))
       case OutputField(n:Const, _) => Finite(n.ctx.get.getScheduleFactor)
@@ -245,7 +245,7 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
     case (OutputField(Const(out1), "out"), OutputField(Const(out2), "out")) if out1 == out2 => true
     case (OutputField(Const(List(out1)), "out"), OutputField(Const(out2), "out")) if out1 == out2 => true
     case (OutputField(Const(out1), "out"), OutputField(Const(List(out2)), "out")) if out1 == out2 => true
-    case (OutputField(c1:UnitController, "childDone" | "done"), OutputField(c2:UnitController, "childDone" | "done")) => c1 == c2
+    case (OutputField(c1:UnitController, "stepped" | "childDone" | "done"), OutputField(c2:UnitController, "stepped" | "childDone" | "done")) => c1 == c2
     case (out1, out2) => false
   }
 

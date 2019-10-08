@@ -50,7 +50,10 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
     }.foldAt(n.to[Access]) { (q,n) =>
       q.append("port", n.port.v)
     }.foldAt(n.to[LocalOutAccess]) { (q,n) =>
-      if (n.initToken.get) { s"$q\ninitToken" } else q
+      var l = q
+      if (n.initToken.get) { l += s"\ninitToken" }
+      if (n.isSplit.get) { l += s"\n split" }
+      l
     }.foldAt(n.to[MemoryNode]) { (q,n) =>
       q.append("banks", n.banks.get)
       .append("depth", n.depth.get)
@@ -187,7 +190,11 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
         }
         tooltip += s"\ntp=${fromsrc.getTp}".append("vec", fromsrc.vec.v)
         val dst = tosrc + "," + tosrc.out.neighbors.mkString(",")
-        super.emitEdge(from,to,attr.setEdge.attr("id",dst).attr("label",fromsrc.id).attr("labeltooltip", tooltip))
+        var edgeAttr = attr.setEdge.attr("id",dst).attr("label",fromsrc.id).attr("labeltooltip", tooltip)
+        if (fromsrc.in.T.isSplit.get) {
+          edgeAttr.color("orangered1")
+        }
+        super.emitEdge(from,to,edgeAttr)
       case _ => super.emitEdge(from,to,attr)
     }
   }
@@ -240,4 +247,5 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
     case n:GlobalContainer => emitSingleNode(n)
     case n => super.emitNode(n)
   }
+
 }

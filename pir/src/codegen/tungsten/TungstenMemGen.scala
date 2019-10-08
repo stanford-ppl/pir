@@ -119,6 +119,9 @@ trait TungstenMemGen extends TungstenCtxGen {
           } else {
             emitln(s"set_token_en(data, ${n.en.qref});")
           }
+          if (n.isSplit.get) {
+            emitln(s"data.done_vec = ${n.done.T.get.as[Controller].childDone.qref};")
+          }
           if (withPipe) emitln(s"$name->Push(data);")
           else n.out.T.foreach { send =>
             emitln(s"${nameOf(send)}->Push(data);")

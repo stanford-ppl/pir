@@ -46,18 +46,18 @@ class ControlBlockInsertion(implicit compiler:PIR) extends PIRTransformer with B
         case _ => false
       }
       extern.foreach { n => swapParent(n, prev) }
-      val ctrlers = extern.collect { case ctrler:Controller => true }
-      if (ctrlers.isEmpty) {
-        // Make it easier for codegen. One to one correspondance between ctrl and controller
-        val ctrler = within(prev, ctrl) { stage(UnitController()) }
-        ctrler.collectPeer[LocalAccess]().foreach { la =>
-          la.done.singleConnected match {
-            case Some(OutputField(c@Const(true), _)) if c.getCtrl == ctrl =>
-              swapConnection(la.done, c.out, ctrler.childDone)
-            case _ =>
-          }
-        }
-      }
+      //val ctrlers = extern.collect { case ctrler:Controller => true }
+      //if (ctrlers.isEmpty) {
+        //// Make it easier for codegen. One to one correspondance between ctrl and controller
+        //val ctrler = within(prev, ctrl) { stage(UnitController()) }
+        //ctrler.collectPeer[LocalAccess]().foreach { la =>
+          //la.done.singleConnected match {
+            //case Some(OutputField(c@Const(true), _)) if c.getCtrl == ctrl =>
+              //swapConnection(la.done, c.out, ctrler.childDone)
+            //case _ =>
+          //}
+        //}
+      //}
       val cb = within(prev, ctrl) { stage(ControlBlock()) }
       intern.foreach { n => swapParent(n, cb) }
       cb

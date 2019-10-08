@@ -32,16 +32,16 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     }
   }
 
-  def bufferInput(ctx:Context):Unit = {
+  def bufferInput(ctx:Context):Seq[BufferRead] = {
     bufferInput(ctx, None)
   }
 
-  def bufferInput(ctx:Context, fromCtx:Option[Context]):Unit = dbgblk(s"bufferInput($ctx)"){
-    ctx.depsFrom.foreach { case (out, ins) =>
-      ins.foreach { in =>
+  def bufferInput(ctx:Context, fromCtx:Option[Context]):Seq[BufferRead] = dbgblk(s"bufferInput($ctx)"){
+    ctx.depsFrom.flatMap { case (out, ins) =>
+      ins.flatMap { in =>
         insertBuffer(out, in, fromCtx)
       }
-    }
+    }.toSeq
   }
 
   def bufferInput(in:Input[PIRNode], fromCtx:Option[Context]=None, isFIFO:Boolean=true):Seq[BufferRead] = {
@@ -76,7 +76,7 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     in.canReach(out, visitEdges=visitInEdges _)
   }
 
-  private def insertBuffer(depOut:Output[PIRNode], depedIn:Input[PIRNode], fromCtx:Option[Context]=None, isFIFO:Boolean=true):Option[BufferRead] = {
+  protected def insertBuffer(depOut:Output[PIRNode], depedIn:Input[PIRNode], fromCtx:Option[Context]=None, isFIFO:Boolean=true):Option[BufferRead] = {
     val dep = depOut.src
     val deped = depedIn.src
     val depedCtx = deped.ctx.get

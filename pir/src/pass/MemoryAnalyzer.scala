@@ -56,15 +56,18 @@ trait MemoryAnalyzer { self:PIRTransformer =>
   }
 
   def childDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
-    if (ctx.streaming.get) {
-      within(ctx, ctrl) { allocConst(true).out }
+    val ctrler = if (ctx.streaming.get) {
+      within(ctx, ctrl) { 
+        allocate[UnitController]()(stage(UnitController()))
+      }
     } else if (!compiler.hasRun[DependencyDuplication]) {
       // Centralized controller
-      ctrl.ctrler.get.childDone
+      ctrl.ctrler.get
     } else {
        //Distributed controller
-      ctx.getCtrler(ctrl).childDone
+      ctx.getCtrler(ctrl)
     }
+    ctrler.childDone
   }
 
   def done(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
