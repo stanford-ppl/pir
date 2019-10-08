@@ -42,7 +42,7 @@ trait DependencyAnalyzer extends PIRTransformer {
   ):List[PIRNode] = dbgblk(s"getDeps($x, from=$from, to=$to)"){
     val toCtx = to.getOrElse(x.ancestorTree.collectFirst { case ctx:Context => ctx }.get)
     dbg(s"toCtx=$toCtx")
-    def accumDeps(x:PIRNode) = x.accum(visitFunc=bound(from,toCtx,visitGlobalIn))
+    def accumDeps(x:PIRNode) = x.accum(visitFunc=bound(from,toCtx,visitGlobalIn), logger=Some(this))
     var deps = accumDeps(x)
     deps = deps.filterNot(_ == x)
     dbg(s"rawDeps=$deps")

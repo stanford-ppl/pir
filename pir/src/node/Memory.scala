@@ -63,8 +63,9 @@ case class Splitter()(implicit env:Env) extends BlackBox {
 case class MergeBuffer(ways:Int, par:Int)(implicit env:Env) extends BlackBox with Def {
   val inputs = List.tabulate(ways) { i => new InputField[PIRNode](s"in$i") }
   val bounds = List.tabulate(ways) { i => new InputField[PIRNode](s"bound$i") }
-  val init = new InputField[PIRNode](s"init").tp(Bool)
+  val init = new InputField[PIRNode](s"init").tp(Bool).presetVec(1)
   val outBound = new OutputField[List[PIRNode]]("outBound")
+  val outInit = new OutputField[List[PIRNode]]("outInit").tp(Bool).presetVec(1)
 }
 case class Forward()(implicit env:Env) extends Def {
   val in = new InputField[PIRNode]("in")

@@ -36,6 +36,7 @@ trait PIRApp extends PIR with Logging {
   lazy val hardPruner = new HardConstrainPruner()
   lazy val computePruner = new ComputePruner()
   lazy val dagPruner = new DAGPruner()
+  lazy val mergeBufferPruner = new MergeBufferPruner()
   lazy val memoryPruner = new MemoryPruner()
   lazy val memoryComputePruner = new MemoryComputePruner()
   lazy val matchPruner = new MatchPruner()
@@ -102,6 +103,7 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, memoryPruner) ==>
     addPass(rewriter) ==> // Remove unused shuffle
     addPass(enableMapping, memoryComputePruner) ==>
+    addPass(enableMapping, mergeBufferPruner) ==>
     addPass(enableMapping, hardPruner) ==> // prune on newly created CUs by memoryComputePruner
     addPass(enableMapping, computePruner) ==>
     addPass(enableMapping, dagPruner) ==>

@@ -1,21 +1,23 @@
 import spatial.dsl._
+import utils.math.{log2}
 
 case class InitSort_0() extends InitSort
 case class InitSort_1() extends InitSort(ip=16)
 case class InitSort_2() extends InitSort(ip=16, N=128, op=2)
 case class InitSort_3() extends InitSort(ip=16, N=128, op=3)
+case class InitSort_4() extends InitSort(ip=16, nway=4, N=128)
 
 @spatial abstract class InitSort(
   N:scala.Int = 64,
   op:scala.Int = 1,
-  ip:scala.Int = 1
+  ip:scala.Int = 1,
+  nway:scala.Int = 2
 ) extends SpatialTest {
   type T = Int
 
   def main(args: Array[String]): Unit = {
     val dram = DRAM[T](N)
 
-    val nway = 2
     val ways = scala.List.tabulate(nway) { i => i }
 
     val bs = nway * ip
@@ -71,16 +73,19 @@ case class DRAMMergeSort_0() extends DRAMMergeSort
 case class DRAMMergeSort_1() extends DRAMMergeSort(ip=16)
 case class DRAMMergeSort_2() extends DRAMMergeSort(ip=16, op=2)
 case class DRAMMergeSort_3() extends DRAMMergeSort(ip=16, op=3)
+case class DRAMMergeSort_4() extends DRAMMergeSort(ip=16, op=1, nway=4, N=256)
+case class DRAMMergeSort_5() extends DRAMMergeSort(ip=16, op=2, nway=4, N=256)
+case class DRAMMergeSort_6() extends DRAMMergeSort(ip=16, op=3, nway=4, N=256)
 
 @spatial abstract class DRAMMergeSort(
   N:scala.Int = 64,
   op:scala.Int = 1, // Outer loop par
-  ip:scala.Int = 16 // inner loop vectorization
+  ip:scala.Int = 16, // inner loop vectorization
+  nway:scala.Int = 2,
 ) extends SpatialTest {
   type T = Int
 
   def main(args: Array[String]): Unit = {
-    val nway = 2
     val ways = scala.List.tabulate(nway) { i => i }
 
     val in = Seq.tabulate(2*N) { i => IfElse(i < N) { N-1-i } { 0 } }
@@ -88,24 +93,32 @@ case class DRAMMergeSort_3() extends DRAMMergeSort(ip=16, op=3)
     val dram = DRAM[T](2*N)
     setMem(dram, Array.fromSeq(in.map { _.to[T] }))
     
-    val initbs = ip * nway
-    val iters = (math.log(N / ip) / math.log(nway)).toInt + 1 // Fix this for nway > 2
+    val iters = math.ceil(math.log(N / ip) / math.log(nway)).toInt + 1
+
+    // j = i - 1 // iteration without init
+    //
+    // ms[1] = ip
+    // ms[2] = ip * ways
+    // ms[j] = ms[j-1] * ways
+    // ms[j] = ms[j-2] * (ways ^ 2)
+    // ms[j] = ms[1] * (ways ^ (j-1)) = ip * (ways ^ (i-2))
+    // ms[j] = ip * 2 ^ (log2(ways) + (i-2))
+    //
 
     Accel {
       Sequential.Foreach(iters by 1) { i =>
-        //TODO: the left shift amount should be a function of ways as well to build the tree
-        val bs = if (i <= 1) initbs else initbs.to[Int] << (i - 1).to[I16]
-        val mergeSize = bs / nway
-        Sequential.Foreach(N by bs par op) { t => // TODO: this should not be sequential after spatial allow banking on mergebuf
+        val ms = if (i <= 1) ip else ip.to[Int] << (i + (-2 + log2(nway))).to[I16] //  ip * 2^(i-2) * ways
+        val bs = ms * nway
+        Sequential.Foreach(N by bs par op) { t => // TODO: Remove Sequential after spatial allow banking on mergebuf
           val mergeBuf = MergeBuffer[T](nway, ip)
           mergeBuf.init(i == 0)
           val blockStart = (i%2 * N) + t
           ways.foreach { w =>
-            mergeBuf.bound(w, mergeSize)
+            mergeBuf.bound(w, ms)
             val fifo = FIFO[T](16)
-            val start = blockStart + (mergeSize * w)
-            fifo alignload dram(start::start+mergeSize par ip)
-            Foreach(0 until mergeSize par ip) { j =>
+            val start = blockStart + (ms * w)
+            fifo alignload dram(start::start+ms par ip)
+            Foreach(0 until ms par ip) { j =>
               mergeBuf.enq(w, fifo.deq)
             }
           }
@@ -122,6 +135,7 @@ case class DRAMMergeSort_3() extends DRAMMergeSort(ip=16, op=3)
 
     val gold = Array.tabulate(N) { i => i.to[T] }
     val result = getMem(dram)
+    println("iters :" + iters)
     printArray(result)
     val start = if (iters % 2 == 0) 0 else N
     val cksum = (0 until N) { i => result(start+i) === gold(i) }.reduce { _ && _ }

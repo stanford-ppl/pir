@@ -14,8 +14,8 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     if (!dep.isUnder[Context]) return false
     (dep, depedIn) match {
       case (_,InputField(deped:LocalOutAccess, "in")) => false
-      case (dep:LocalOutAccess, _) => false
       case (_,depedIn) if depedCtx.streaming.get => true
+      case (dep:LocalOutAccess, _) => false
       case (dep,_) => !canDuplicate(depOut)
     }
   }
@@ -37,11 +37,11 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
   }
 
   def bufferInput(ctx:Context, fromCtx:Option[Context]):Unit = dbgblk(s"bufferInput($ctx)"){
-    ctx.descendents.foreach { deped => bufferInput(deped, fromCtx) }
-  }
-
-  def bufferInput(deped:PIRNode, fromCtx:Option[Context]):Seq[BufferRead] = {
-    deped.localIns.flatMap { in => bufferInput(in, fromCtx) }
+    ctx.depsFrom.foreach { case (out, ins) =>
+      ins.foreach { in =>
+        insertBuffer(out, in, fromCtx)
+      }
+    }
   }
 
   def bufferInput(in:Input[PIRNode], fromCtx:Option[Context]=None, isFIFO:Boolean=true):Seq[BufferRead] = {

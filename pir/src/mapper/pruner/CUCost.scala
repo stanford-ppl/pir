@@ -11,7 +11,7 @@ import prism.mapper._
 
 case class AFGCost(prefix:Boolean=false) extends PrefixCost[AFGCost]
 case class MCCost(prefix:Boolean=false) extends PrefixCost[MCCost]
-case class MergeBufferCost(quantity:Int=0) extends QuantityCost[MergeBufferCost]
+case class MergeBufferCost(quantity:Int=0, ways:Int=0) extends QuantityCost[MergeBufferCost]
 case class SplitterCost(quantity:Int=0) extends QuantityCost[SplitterCost]
 case class LockCost(quantity:Int=0) extends QuantityCost[LockCost]
 case class SRAMCost(count:Int=0, bank:Int=0, size:Int=0) extends QuantityCost[SRAMCost]
@@ -79,8 +79,12 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
       case n:Parameter => MCCost(n.isInstanceOf[MCParam])
 
     } orElse switch[MergeBufferCost](x,ct) {
-      case n:GlobalContainer => MergeBufferCost(n.collectDown[MergeBuffer]().size)
-      case n:Parameter => MergeBufferCost(n.to[CUParam].fold(0){_.numMergeBuffer})
+      case n:GlobalContainer => 
+        val mbs = n.collectDown[MergeBuffer]()
+        MergeBufferCost(mbs.size, mbs.map { _.inputs.size }.sum)
+      case n:Parameter => 
+        val cuParam= n.to[CUParam]
+        MergeBufferCost(cuParam.fold(0){_.numMergeBuffer}, cuParam.fold(0) {_.mergeBufferWays})
 
     } orElse switch[SplitterCost](x,ct) {
       case n:GlobalContainer => SplitterCost(n.collectDown[Splitter]().size)
