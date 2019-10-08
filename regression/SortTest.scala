@@ -103,12 +103,15 @@ case class DRAMMergeSort_7() extends DRAMMergeSort(ip=16, op=4, nway=4, N=1024)
     // ms[j] = ms[j-1] * ways
     // ms[j] = ms[j-2] * (ways ^ 2)
     // ms[j] = ms[1] * (ways ^ (j-1)) = ip * (ways ^ (i-2))
-    // ms[j] = ip * 2 ^ (log2(ways) + (i-2))
-    //
+    // ms[i-1] = ip * 2 ^ (log2(ways) * (i-2))
+    // ms[i] = ip * 2 ^ (log2(ways) * (i-1))
+    
+    //val iterArg = ArgIn[Int]
+    //setArg(iterArg, args(0).to[Int])
 
     Accel {
       Sequential.Foreach(iters by 1) { i =>
-        val ms = if (i <= 1) ip else ip.to[Int] << (i + (-2 + log2(nway))).to[I16] //  ip * 2^(i-2) * ways
+        val ms = if (i <= 1) ip else ip.to[Int] << (log2(nway) * (i-1)).to[I16]
         val bs = ms * nway
         Foreach(N by bs par op) { t =>
           val mergeBuf = MergeBuffer[T](nway, ip)
@@ -143,3 +146,22 @@ case class DRAMMergeSort_7() extends DRAMMergeSort(ip=16, op=4, nway=4, N=1024)
 
   }
 }
+
+//def log2(i:Int) = (math.log(i) / math.log(2)).toInt
+//val ip = 16
+//val iters = 4
+
+//def calcIter(N:Int, ip:Int, nway:Int) = {
+    //val iters = math.ceil(math.log(N / ip) / math.log(nway)).toInt + 1
+      //println("iters:" + iters)
+        //(0 until iters).foreach { i =>
+            //val ms = if (i <= 1) ip else ip << (i-1) * log2(nway)
+            //println(ms)
+          //}
+          
+//}
+
+//calcIter(N=256, ip=16, nway=2)
+//calcIter(N=256, ip=16, nway=4)
+//calcIter(N=1024, ip=16, nway=2)
+//calcIter(N=1024, ip=16, nway=4)
