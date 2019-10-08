@@ -109,7 +109,7 @@ case class DRAMMergeSort_6() extends DRAMMergeSort(ip=16, op=3, nway=4, N=256)
       Sequential.Foreach(iters by 1) { i =>
         val ms = if (i <= 1) ip else ip.to[Int] << (i + (-2 + log2(nway))).to[I16] //  ip * 2^(i-2) * ways
         val bs = ms * nway
-        Sequential.Foreach(N by bs par op) { t => // TODO: Remove Sequential after spatial allow banking on mergebuf
+        Foreach(N by bs par op) { t =>
           val mergeBuf = MergeBuffer[T](nway, ip)
           mergeBuf.init(i == 0)
           val blockStart = (i%2 * N) + t
