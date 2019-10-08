@@ -76,6 +76,7 @@ case class DRAMMergeSort_3() extends DRAMMergeSort(ip=16, op=3)
 case class DRAMMergeSort_4() extends DRAMMergeSort(ip=16, op=1, nway=4, N=256)
 case class DRAMMergeSort_5() extends DRAMMergeSort(ip=16, op=2, nway=4, N=256)
 case class DRAMMergeSort_6() extends DRAMMergeSort(ip=16, op=3, nway=4, N=256)
+case class DRAMMergeSort_7() extends DRAMMergeSort(ip=16, op=4, nway=4, N=1024)
 
 @spatial abstract class DRAMMergeSort(
   N:scala.Int = 64,
@@ -88,10 +89,10 @@ case class DRAMMergeSort_6() extends DRAMMergeSort(ip=16, op=3, nway=4, N=256)
   def main(args: Array[String]): Unit = {
     val ways = scala.List.tabulate(nway) { i => i }
 
-    val in = Seq.tabulate(2*N) { i => IfElse(i < N) { N-1-i } { 0 } }
+    val in = Array.tabulate(2*N) { i => if(i < N) N-1-i else 0  }
 
     val dram = DRAM[T](2*N)
-    setMem(dram, Array.fromSeq(in.map { _.to[T] }))
+    setMem(dram, in)
     
     val iters = math.ceil(math.log(N / ip) / math.log(nway)).toInt + 1
 
@@ -133,55 +134,12 @@ case class DRAMMergeSort_6() extends DRAMMergeSort(ip=16, op=3, nway=4, N=256)
       }
     }
 
-    val gold = Array.tabulate(N) { i => i.to[T] }
     val result = getMem(dram)
     println("iters :" + iters)
     printArray(result)
     val start = if (iters % 2 == 0) 0 else N
-    val cksum = (0 until N) { i => result(start+i) === gold(i) }.reduce { _ && _ }
+    val cksum = (0 until N) { i => result(start+i) === i }.reduce { _ && _ }
     assert(cksum)
 
-  }
-}
-
-@spatial class MergeBufferTest extends SpatialTest {
-  type T = Int
-
-  val N = 64
-  val ip = 16
-  val op = 1
-
-  def main(args: Array[String]): Unit = {
-    val dram = DRAM[T](N)
-
-    val nway = 2
-    val ways = scala.List.tabulate(nway) { i => i }
-
-    val bs = nway * ip
-
-    Accel {
-      val mergeSize = ip
-      Foreach(N by bs par op) { i =>
-        val mergeBuf = MergeBuffer[T](nway, ip)
-        val insram = SRAM[T](bs) // Initially in reverse order
-        Foreach(0 until bs) { j =>
-          insram(j) = bs - 1 - j
-        }
-        mergeBuf.init(true)
-        ways.foreach { w =>
-          mergeBuf.bound(w, mergeSize)
-          Foreach(0 until mergeSize par ip) { j =>
-            mergeBuf.enq(w, insram(mergeSize*w + j))
-          }
-        }
-        val fifo = FIFO[T](bs)
-        Foreach(0 until bs par ip) { j =>
-          fifo.enq(mergeBuf.deq())
-        }
-        dram(i::i+bs par ip) store fifo
-      }
-    }
-
-    assert(true)
   }
 }
