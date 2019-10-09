@@ -94,7 +94,7 @@ trait PIRApp extends PIR with Logging {
     addPass(initializer) ==>
     addPass(new ParamHtmlIRPrinter(s"param.html", pirenv.spadeParam)) ==>
     addPass(enableDot, new PIRGlobalDotGen(s"global7.dot")) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"ctx7.dot")) ==>
+    addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx7.dot")) ==>
     addPass(enableVerboseDot, new PIRTopDotGen(s"top7.dot")) ==>
     addPass(enableVerboseDot, new PIRIRPrinter(s"IR7.txt")) ==>
     addPass(sanityCheck) ==>
