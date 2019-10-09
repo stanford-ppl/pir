@@ -10,7 +10,7 @@ import scipy.optimize
 import scipy.stats
 import scipy.sparse
 import scipy.special
-from collections import namedtuple
+from collections import namedtuple, defaultdict
 import random
 import time
 
@@ -37,16 +37,15 @@ def partition(nodes, edges, constraints: Constraint, partitions: int):
     :return: Mapping[int, List[Nodes]] a mapping from partition ID to nodes in partition
     """
     node_ids = {node.node for node in nodes}
-    new_nodes = ({edge.src for edge in edges} | {edge.dst for edge in edges}) - node_ids
 
-    node_to_loc_map = {node_id : i for i, node_id in enumerate(node_ids)}
+    node_to_loc_map = {node.node : i for i, node in enumerate(nodes)}
 
     num_nodes = len(node_ids)
 
     valid_bounds = scipy.optimize.Bounds(lb=0, ub=1)
 
     node_to_partition_map = np.zeros((num_nodes, partitions), dtype=np.float)
-    np.fill_diagonal(node_to_partition_map, 1)
+    np.fill_diagonal(np.fliplr(node_to_partition_map), 1)
     print(node_to_partition_map)
 
     # really want to handle this as a 1-D vector.
@@ -109,6 +108,40 @@ def partition(nodes, edges, constraints: Constraint, partitions: int):
         print("Done Evaluating Cost Function:", time.time() - t)
         return function_value, grad.ravel()
 
+    # construct a mapping to aid in computing the IO of a given partitioning
+    index_to_deps_map = {k : defaultdict(list) for k in "sv"}
+    for src, dst, tp, _ in edges:
+        src_partition_index = node_to_loc_map.get(src, partitions)
+        dst_partition_index = node_to_loc_map.get(dst, partitions)
+        index_to_deps_map[tp][(src, src_partition_index)].append(dst_partition_index)
+
+    def compute_io(partitioning):
+        reshaped = partitioning.reshape(num_nodes, partitions)
+        # the amount of transfer from partition i to partition j.
+        transfer_matrices = {k : np.zeros((partitions+1, partitions+1), dtype=np.float) for k in "sv"}
+        for tp, matrix in transfer_matrices.items():
+            for (src, src_partition_index), dst_partition_indices in index_to_deps_map[tp].items():
+                output_probabilities = np.zeros(partitions+1, dtype=np.float)
+                for dst_partition_index in dst_partition_indices:
+                    if dst_partition_index == partitions:
+                        output_probabilities[partitions] += 1
+                    else:
+                        output_probabilities[:partitions] += reshaped[dst_partition_index, :]
+                src_probabilities = np.zeros(partitions+1, dtype=np.float)
+                if src_partition_index == partitions:
+                    src_probabilities[partitions] = 1
+                else:
+                    src_probabilities[:partitions] = partitioning[src_partition_index, :]
+                update = np.outer(src_probabilities, output_probabilities)
+                np.clip(update, 0, 1, out=update)
+                matrix += update
+        return transfer_matrices
+
+    def io_constraint_func(partitioning):
+        transfer_matrices = compute_io(partitioning)
+
+
+
     print("Beginning Partitioning")
     for i in range(1, len(ordering_constraints)+1):
         print("Running with", i, "random ordering constraints")
@@ -127,7 +160,7 @@ def partition(nodes, edges, constraints: Constraint, partitions: int):
                 ] + random.sample(ordering_constraints, i)
             )
             print(update)
-            np.savetxt("tmp.csv", update.x)
+            np.savetxt("tmp.csv", update.x.reshape(num_nodes, partitions))
             node_to_partition_map = update.x
 
 
