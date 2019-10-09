@@ -19,7 +19,7 @@ class TungstenPIRGen(implicit design:PIR) extends TungstenCodegen
   with TungstenLockGen 
   with TungstenMergeBufferGen 
 
-trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal with CppCodegen {
+trait TungstenCodegen extends PIRTraversal with StaticTopDownTopologicalTraversal with CppCodegen {
 
   override def dirName = buildPath(config.tstOut, s"src")
   val forward = true

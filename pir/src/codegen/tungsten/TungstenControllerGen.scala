@@ -24,7 +24,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
         if (n.getCtrl.isLeaf) {
           emitln("Active();")
         }
-        super.visitNode(n)
+        visitNode(n)
 
         ctrler.to[HostOutController].foreach { ctrler =>
           emitln(s"Complete(1);")
@@ -56,12 +56,13 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
         }
       }
 
-      super.visitNode(n)
+      visitNode(n)
 
       if (n.getCtrl.isLeaf) {
         var laneValids = List.tabulate(n.getCtrl.par.get) { i =>
-          val uens = n.ancestorTreeCtrlers.flatMap { _.uen.connected }.distinct
-          uens.map { _.qref }
+          //val uens = n.ancestorTreeCtrlers.flatMap { _.uen.connected }.distinct
+          //uens.map { _.qref }
+          List[String]()
         }
         n.to[LoopController].foreach { n =>
           val innerLaneValid = n.cchain.T.foldLeft(List[String]()) { 

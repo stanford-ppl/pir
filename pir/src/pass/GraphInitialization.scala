@@ -144,6 +144,23 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       }
     }
 
+    // Add laneValids to enable of memory access
+    def connectLaneValid(access:Access):Unit = {
+      val ctrl = access.getCtrl
+      if (ctrl.isLeaf) {
+        ctrl.ctrler.v.foreach { 
+          case ctrler:LoopController =>
+            access.mem.T match {
+              case mem:Reg if ctrler.par.get > 1 | access.isInnerReduceOp.get => return
+              case _ => 
+                dbg(s"Connect $access to laneValid")
+                access.en(ctrler.laneValid)
+            }
+          case _ =>
+        }
+      }
+    }
+
     // Add loop valid related enables. 
     n.to[Access].foreach { access =>
       val connectToBB = access match {
@@ -163,6 +180,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
           }
         }
       }
+      connectLaneValid(access)
     }
 
     n.to[DRAMStoreCommand].foreach { n =>
@@ -171,25 +189,6 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         stage(AccumAck().ack(ack))
       }
     }
-
-    def connectLaneValid(access:Access):Unit = {
-      val ctrl = access.getCtrl
-      if (ctrl.isLeaf) {
-        ctrl.ctrler.v.foreach { 
-          case ctrler:LoopController =>
-            access.mem.T match {
-              case mem:Reg if ctrler.par.get > 1 | access.isInnerReduceOp.get => return
-              case _ => 
-                dbg(s"Connect $access to laneValid")
-                access.en(ctrler.laneValid)
-            }
-          case _ =>
-        }
-      }
-    }
-
-    // Add laneValids to enable of memory access
-    n.to[Access].foreach { connectLaneValid }
 
     n.to[LoopController].foreach {analyzeLoopRange}
     

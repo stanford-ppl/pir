@@ -238,6 +238,7 @@ case class LoopController()(implicit env:Env) extends Controller {
 }
 
 case class ControlBlock()(implicit env:Env) extends PIRNode {
+  val dummy = new InputField[Option[PIRNode]]("dummy").tp(Bool).presetVec(1)
   val ctrlers = new ChildField[Controller, List[Controller]]("ctrlers")
 }
 
