@@ -129,17 +129,13 @@ class UnalignLoad_1 extends UnalignLoad(ip=5, op=3)
     setMem(a, aIn)
 
     Accel {
-      val sram = SRAM[T](ts)
-      Foreach(N by ts par op){i =>
+      val accO = Reg[T](0.to[T])
+      out := Reduce(accO)(N by ts par op){i =>
         val aBlk = SRAM[T](ts)
         aBlk load a(i::i+ts par ip)
         val sum = Reg[T]
         Reduce(sum)(ts par ip) { i => aBlk(i) } { _ + _ }
-        sram(i) = sum.value
-      }
-      val accO = Reg[T](0.to[T])
-      out := Reduce(accO)(N by ts par op){i =>
-        sram(i)
+        sum.value
       }{_+_}
     }
     
