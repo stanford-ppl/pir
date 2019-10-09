@@ -18,7 +18,7 @@ class ControlBlockInsertion(implicit compiler:PIR) extends PIRTransformer with B
     }
   }
 
-  def insertControBlock(ctx:Context):Unit = {
+  def insertControBlock(ctx:Context):Unit = dbgblk(s"insertControlBlock($ctx)"){
     // Remove existing control block
     ctx.collectChildren[ControlBlock].foreach { cb =>
       cb.children.foreach { c => swapParent(c, ctx) }
@@ -31,10 +31,7 @@ class ControlBlockInsertion(implicit compiler:PIR) extends PIRTransformer with B
     val ctrls = map.keys.toSeq.sortBy { _.ancestors.size }
 
     nodes.foreach {
-      case ctrler:Controller =>
-        ctrler.en.neighbors.collect { case v:CounterValid => v }.foreach { v =>
-          disconnect(ctrler.en, v)
-        }
+      case ctrler:Controller => setLaneValid(ctrler)
       case _ =>
     }
 
@@ -57,4 +54,12 @@ class ControlBlockInsertion(implicit compiler:PIR) extends PIRTransformer with B
     }
   }
 
+  def setLaneValid(ctrler:Controller) = {
+    ctrler.en.neighbors.collect { case v:CounterValid => v }.foreach { v =>
+      disconnect(ctrler.en, v)
+      ctrler.uen(v.out)
+    }
+  }
+
 }
+

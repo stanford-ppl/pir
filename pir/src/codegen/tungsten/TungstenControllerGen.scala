@@ -13,7 +13,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case OutputField(ctrler:Controller, "childDone") => s"$ctrler->ChildDone()"
     case OutputField(ctrler:Controller, "stepped") => s"$ctrler->Stepped()"
     case OutputField(ctrler:LoopController, "firstIter") => s"$ctrler->FirstIter()"
-    case OutputField(ctrler:LoopController, "laneValid") => s"laneValid"
+    case OutputField(ctrler:Controller, "laneValid") => s"laneValid"
     case n => super.quoteRef(n)
   }
 
@@ -58,16 +58,20 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
 
       super.visitNode(n)
 
-      n.to[LoopController].foreach { n =>
-        if (n.getCtrl.isLeaf) {
-          // If last level controller is loop controller, generate lane valids
-          val laneValids = n.cchain.T.foldLeft(List[String]()) { 
+      if (n.getCtrl.isLeaf) {
+        var laneValids = List.tabulate(n.getCtrl.par.get) { i =>
+          val uens = n.ancestorTreeCtrlers.flatMap { _.uen.connected }.distinct
+          uens.map { _.qref }
+        }
+        n.to[LoopController].foreach { n =>
+          val innerLaneValid = n.cchain.T.foldLeft(List[String]()) { 
             case (Nil, ctr) => List.tabulate(ctr.par) { i => s"$ctr->Valids()[$i]" }
             case (prev, ctr) => 
               prev.flatMap { valid => (0 until ctr.par).map { i => s"$valid & $ctr->Valids()[$i]" } }
           }
-          emitVec(n.laneValid, laneValids)
+          laneValids = (laneValids, innerLaneValid).zipped.map { case (lv, iv) => lv :+ iv }
         }
+        emitVec(n.laneValid, laneValids.map { vs => if (vs.isEmpty) "true" else vs.mkString(" & ") })
       }
 
     case n:Counter =>

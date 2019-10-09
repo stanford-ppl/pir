@@ -209,7 +209,7 @@ case class CounterValid(is:List[Int])(implicit env:Env) extends Def {
 abstract class Controller(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
   val en = new InputField[List[PIRNode]]("en").tp(Bool).presetVec(1)
-  val parentEn = new InputField[Option[PIRNode]]("parentEn").tp(Bool).presetVec(1)
+  val parentEn = new InputField[Option[Controller]]("parentEn").tp(Bool).presetVec(1)
 
   val done = new OutputField[List[PIRNode]]("done").tp(Bool).presetVec(1)
   val childDone = new OutputField[List[PIRNode]]("childDone").tp(Bool).presetVec(1)
@@ -217,6 +217,8 @@ abstract class Controller(implicit env:Env) extends PIRNode {
 
   def isForever = this.collectDown[Counter]().exists { _.isForever }
   def hasBranch = this.ctrl.v.get == Fork || this.to[LoopController].fold(false) { _.stopWhen.isConnected }
+  val uen = new InputField[List[PIRNode]]("uen").tp(Bool).presetVec(1)
+  val laneValid = new OutputField[List[PIRNode]]("laneValid").tp(Bool)
 
   // Parallelization of the controller. Set during staging.
   val par = new Metadata[Int]("par")
@@ -231,7 +233,6 @@ case class LoopController()(implicit env:Env) extends Controller {
   val cchain = new ChildField[Counter, List[Counter]]("cchain")
   val firstIter = new OutputField[List[PIRNode]]("firstIter").tp(Bool).presetVec(1)
   val stopWhen = new InputField[Option[PIRNode]]("stopWhen").tp(Bool)
-  val laneValid = new OutputField[List[PIRNode]]("laneValid").tp(Bool)
 
   val constLaneValids = new Metadata[List[Option[Boolean]]]("constLaneValids")
 }
@@ -278,6 +279,9 @@ trait MemoryUtil extends CollectorImplicit {
       val childCtrlers = this.childCtrlers
       if (childCtrlers.isEmpty) List(n)
       else childCtrlers.flatMap { c => c.leafCtrlers }
+    }
+    def ancestorTreeCtrlers:Seq[Controller] = {
+      n.parentEn.T.map { _.ancestorTreeCtrlers }.getOrElse(Nil) :+ n
     }
   }
 
