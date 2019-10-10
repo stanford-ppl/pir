@@ -1,4 +1,4 @@
-#!usr/bin/env python
+#!/usr/bin/env python
 
 import sys
 import os
@@ -39,10 +39,12 @@ class CVXPartitioner:
         self.edges = edges[:]
         self.constraints = constraints
         self.cvx_constraints = []
+        self.to_print = {}
 
         self.num_nodes = len(nodes)
         self.partitions = self.num_nodes
         self.node_to_loc_map = {node_id.node: i for i, node_id in enumerate(nodes)}
+        print(self.node_to_loc_map)
         self.node_to_partition_matrix = cvxpy.Variable(name="Matrix", shape=(self.num_nodes, self.partitions),
                                                        boolean=True,
                                                        value=np.fliplr(np.identity(self.num_nodes)))
@@ -60,11 +62,11 @@ class CVXPartitioner:
         self.cvx_constraints.append(total_ops <= self.constraints.ops)
         self._init_dep_constraints()
         self._init_input_constraints()
+        self._init_output_constraints()
 
     def _init_dep_constraints(self):
         filtered_edges = [edge for edge in self.edges if
                           edge.src in self.node_to_loc_map and edge.dst in self.node_to_loc_map]
-        dep_constraint_matrix = scipy.sparse.lil_matrix((len(filtered_edges), self.num_nodes))
         for src, dst, _, _ in filtered_edges:
             self.cvx_constraints.append(
                 self.node_partitions[self.node_to_loc_map[src]] <= self.node_partitions[self.node_to_loc_map[dst]])
@@ -97,6 +99,8 @@ class CVXPartitioner:
                 contributions = functools.reduce(operator.add, [
                     self.node_to_partition_matrix[self.node_to_loc_map[dst]] for dst in destinations])
                 movement.append(cvxpy.maximum(self._project_to_bool(contributions) - base_filter, 0))
+
+                self.to_print["output - " + tp] = movement
 
             self.cvx_constraints.append(
                 functools.reduce(operator.add, movement) <= input_constraints[tp])
@@ -132,17 +136,29 @@ class CVXPartitioner:
 
             node_push_map[tp][self.node_to_loc_map[src]].add(self.node_to_loc_map[dst])
 
+        print(node_push_map)
+
         for tp, push_map in node_push_map.items():
             exports = []
             for src, destinations in push_map.items():
                 local_exports = functools.reduce(operator.add, [
                     self.node_to_partition_matrix[dst, :] for dst in destinations
                 ])
-                exports.append(cvxpy.maximum(self._project_to_bool(local_exports) - self.node_to_partition_matrix[src, :], 0))
+
+                src_partition_data = self.node_to_partition_matrix[src, :]
+                # removes the src partition from the exports
+                exports_without_src = cvxpy.maximum(self._project_to_bool(local_exports) - src_partition_data, 0)
+
+                # check if any export is made, 0/1 value
+                has_exports = self._project_to_bool(cvxpy.sum(exports_without_src))
+
+                update = cvxpy.maximum(has_exports + src_partition_data - 1, 0)
+                exports.append(update)
 
             total_movement = functools.reduce(operator.add, exports)
+            for src in nodes_with_external_outputs[tp]:
+                total_movement += self.node_to_partition_matrix[self.node_to_loc_map[src], :]
             self.cvx_constraints.append(total_movement <= output_constraints[tp])
-
 
     def _objective(self):
         return cvxpy.Minimize(cvxpy.max(self.node_partitions))
@@ -188,12 +204,15 @@ def main():
 
     # partition(nodes, edges, constraint)
     solver = CVXPartitioner(nodes, edges, constraint)
-    solver.solve(solver="GUROBI", verbose=True, warm_start=True, Threads=64, MIPGap=0.1)
+    solver.solve(solver="GUROBI", verbose=True, warm_start=True, Threads=64)
+    for key, value in solver.to_print:
+        print(key, value.value)
 
     with open(opts.partition, "w") as pf:
         writer = csv.writer(pf, delimiter=",")
         for node, partition in solver.get_assignment():
             writer.writerow([node, partition])
+
 
 if __name__ == "__main__":
     main()
