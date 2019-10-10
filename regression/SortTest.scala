@@ -73,6 +73,7 @@ case class DRAMMergeSort_0() extends DRAMMergeSort
 case class DRAMMergeSort_1() extends DRAMMergeSort(ip=16)
 case class DRAMMergeSort_2() extends DRAMMergeSort(ip=16, op=2)
 case class DRAMMergeSort_3() extends DRAMMergeSort(ip=16, op=3)
+case class DRAMMergeSort_4() extends DRAMMergeSort(ip=16, op=4)
 //case class DRAMMergeSort_4() extends DRAMMergeSort(ip=16, op=1, nway=4, N=256)
 //case class DRAMMergeSort_5() extends DRAMMergeSort(ip=16, op=2, nway=4, N=256)
 //case class DRAMMergeSort_6() extends DRAMMergeSort(ip=16, op=3, nway=4, N=256)
@@ -85,24 +86,28 @@ case class DRAMMergeSort_3() extends DRAMMergeSort(ip=16, op=3)
 ) extends SpatialTest {
   type T = Int
 
+  override def runtimeArgs = s"10"
+
   def main(args: Array[String]): Unit = {
     val N = 1.to[Int] << args(0).to[I16]
-    val iters = args(1).to[Int]
+    //val iters = args(1).to[Int]
+    val itersGold = (ln((N / ip).to[Float]) / math.log(nway)).to[Int] + 1
+    println("iters:" + itersGold)
 
     val nArg = ArgIn[Int]
     val iterArg = ArgIn[Int]
     setArg(nArg, N)
-    setArg(iterArg, iters)
+    //setArg(iterArg, iters)
+    setArg(iterArg,itersGold)
 
     val ways = scala.List.tabulate(nway) { i => i }
+    val ops = scala.List.tabulate(op) { i => i }
 
     val in = Array.tabulate(2*N) { i => if(i < N) N-1-i else 0  }
 
     val dram = DRAM[T](2*N)
     setMem(dram, in)
     
-    //val itersGold = (N / ip) >> (log2(nway)) + 1
-    val itersGold = (ln((N / ip).to[Float]) / math.log(nway)).to[Int] + 1
     // 2^16: 7 iter
 
     // j = i - 1 // iteration without init
@@ -119,36 +124,57 @@ case class DRAMMergeSort_3() extends DRAMMergeSort(ip=16, op=3)
     //setArg(iterArg, args(0).to[Int])
 
     Accel {
-      Sequential.Foreach(iterArg.value by 1) { i =>
-        val ms = if (i <= 1) ip else ip.to[Int] << (log2(nway) * (i-1)).to[I16]
-        val bs = ms * nway
-        Foreach(nArg.value by bs par op) { t =>
-          val mergeBuf = MergeBuffer[T](nway, ip)
-          mergeBuf.init(i == 0)
-          val blockStart = (i%2 * nArg.value) + t
-          ways.foreach { w =>
-            mergeBuf.bound(w, ms)
-            val fifo = FIFO[T](16)
-            val start = blockStart + (ms * w)
-            fifo alignload dram(start::start+ms par ip)
-            Foreach(0 until ms par ip) { j =>
-              mergeBuf.enq(w, fifo.deq)
+      Foreach(iterArg.value by 1) { i =>
+        val fifos = ops.map { op => ways.map { w => FIFO[T](16) } }
+        val msArg = Reg[Int]
+        val bsArg = Reg[Int]
+        val obs = Reg[Int]
+        val ofst = ops.map { op => Reg[Int] }
+        Pipe {
+          val ms =  if (i <= 1) ip else ip.to[Int] << (log2(nway) * (i-1)).to[I16]
+          val bs = ms * nway
+          msArg := ms
+          bsArg := bs
+          obs := bs * op
+          ops.foreach { o => ofst(o) := o * bs }
+        }
+        Parallel {
+          ops.foreach { o =>
+            Foreach(ofst(o).value until nArg.value by obs.value) { t =>
+              val blockStart = (i%2 * nArg.value) + t
+              ways.foreach { w =>
+                val start = blockStart + (msArg.value * w)
+                fifos(o)(w) alignload dram(start::start+msArg.value par ip)
+              }
             }
           }
-          val storeFIFO = FIFO[T](16)
-          Foreach(0 until bs par ip) { j =>
-            val sorted = mergeBuf.deq()
-            storeFIFO.enq(sorted)
+        }
+        Parallel {
+          ops.foreach { o =>
+            Foreach(ofst(o).value until nArg.value by obs.value) { t =>
+              val mergeBuf = MergeBuffer[T](nway, ip)
+              mergeBuf.init(i == 0)
+              ways.foreach { w =>
+                mergeBuf.bound(w, msArg.value)
+                Foreach(0 until msArg.value par ip) { j =>
+                  mergeBuf.enq(w, fifos(o)(w).deq)
+                }
+              }
+              val storeFIFO = FIFO[T](16)
+              Foreach(0 until bsArg.value par ip) { j =>
+                val sorted = mergeBuf.deq()
+                storeFIFO.enq(sorted)
+              }
+              val start2 = ((i+1)%2 * nArg.value) + t
+              dram(start2::start2+bsArg.value par ip) alignstore storeFIFO
+            }
           }
-          val start2 = ((i+1)%2 * nArg.value) + t
-          dram(start2::start2+bs par ip) alignstore storeFIFO
         }
       }
     }
 
     val result = getMem(dram)
     writeCSV1D(result, "out.csv")
-    println("iters:" + itersGold)
     //printArray(result)
 
     val itersEven = (itersGold % 2 == 0)
@@ -187,3 +213,37 @@ case class DRAMMergeSort_3() extends DRAMMergeSort(ip=16, op=3)
 //calcIter(N=256, ip=16, nway=4)
 //calcIter(N=1024, ip=16, nway=2)
 //calcIter(N=1024, ip=16, nway=4)
+//
+//@spatial class FIFOTest extends SpatialTest { self =>
+
+  //type X = Float
+
+  //val N:scala.Int = 32
+  //val op:scala.Int = 2
+  //val ip:scala.Int = 8
+
+  //val margin = 1
+
+  //def main(args: Array[String]): Unit = {
+    //val dram = DRAM[Int](N)
+    //Accel {
+      //val sram = SRAM[Int](N)
+      //val fifo = FIFO[Int](16)
+      //Foreach(N by 1 par op) { ii =>
+        //Foreach(N par ip) { jj =>
+          //fifo.enq(jj)
+        //}
+      //}
+      //Foreach(N by 1 par op) { ii =>
+        //Foreach(N par ip) { jj =>
+          //sram(ii + jj) = fifo.deq
+        //}
+      //}
+      //dram(0::N) store sram
+    //}
+
+    //assert(true)
+  //}
+
+//}
+
