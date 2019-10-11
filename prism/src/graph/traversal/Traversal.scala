@@ -240,7 +240,7 @@ trait StaticTopDownTopologicalTraversal extends ChildFirstTraversal { self =>
 
   def selectFrontier(unvisited:List[N]) = Nil
 
-  lazy val schedular = new Traversal with BFSTopologicalTraversal with Schedular { 
+  lazy val schedular = new Traversal with BFSTopologicalTraversal with Scheduler { 
     type N = self.N
     override lazy val logger = self.logger
     val forward = self.forward

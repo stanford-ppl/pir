@@ -86,10 +86,28 @@ trait ExternComputePartitioner { self:ComputePartitioner =>
     }
   } 
 
+  lazy val initGen = new PIRTraversal with prism.codegen.Codegen with ChildFirstTraversal {
+    override def dirName = self.config.graphDir
+    override lazy val logger = self.logger
+    val fileName = "init.csv"
+    override def runPass = {}
+    def genInit(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
+      super.initPass
+      val parts = withAlgo("bfs") { binarySplit(nodes,vcost) }
+      parts.zipWithIndex.foreach { case (p,i) =>
+        p.scope.foreach { node =>
+          emitln(s"${node.id}, $i")
+        }
+      }
+      super.finPass
+    }
+  }
+
   def externSplit(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
     nodeGen.genNodes(nodes)
     edgeGen.genEdges(nodes)
     specGen.genSpec(vcost)
+    initGen.genInit(nodes,vcost)
     val script = buildPath(config.pirHome, "bin", "partition.py")
     shell("partition", s"$script ${config.graphDir}", buildPath(config.graphDir, "partition.log"))
     val idmap = nodes.map { node => (node.id, node) }.toMap
@@ -103,12 +121,7 @@ trait ExternComputePartitioner { self:ComputePartitioner =>
       }
     }
     pidmap.groupBy { case (node, pid) => pid }.map { case (pid,nodes) =>
-      val p = new Partition(nodes.map { _._1 }.toList)
-      val pcost = getCosts(p)
-      if (!fit(pcost,vcost)) {
-        err(s"Partition $pid with ${nodes.size} nodes doesn't meet spec! ${vcost}. cost=$pcost")
-      }
-      p
+      new Partition(nodes.map { _._1 }.toList)
     }
   }
 

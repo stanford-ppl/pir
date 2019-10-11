@@ -1,7 +1,7 @@
 package prism
 package graph
 
-trait Schedular extends Traversal {
+trait Scheduler extends Traversal {
   type N
   type T = List[N]
 
@@ -45,7 +45,7 @@ trait Schedular extends Traversal {
   }
 }
 
-trait TreeSchedular extends Traversal {
+trait TreeScheduler extends Traversal {
   type N
   type T = List[List[N]]
 

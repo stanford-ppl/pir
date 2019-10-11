@@ -53,7 +53,7 @@ trait MemoryComputePartitioner extends PIRTransformer with CUCostUtil {
     }
   }
 
-  lazy val schedular = new PIRTraversal with BFSTopologicalTraversal with TreeSchedular { 
+  lazy val schedular = new PIRTraversal with BFSTopologicalTraversal with TreeScheduler { 
     val forward = false
     override def visitIn(n:N) = visitLocalIn(n).collect { case ctx:Context if !ctx.hasChild[Access] => ctx }
     override def visitOut(n:N) = visitLocalOut(n).collect { case ctx:Context if !ctx.hasChild[Access] => ctx }
