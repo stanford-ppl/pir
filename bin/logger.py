@@ -61,29 +61,21 @@ def summarize(backend, opts, confs):
             spatial_sha)
     # create new csv
     conf = confs[0]
+    removePaths(conf)
     with open(summary_path, "w") as f:
         summary = csv.DictWriter(f, delimiter=',', fieldnames=conf.keys())
         summary.writeheader()
         for conf in confs:
+            removePaths(conf)
             summary.writerow(conf)
     print('Generate summary in {}'.format(summary_path))
 
-def query(conf, f):
-    if f == 'simfreq':
-        p2ptime = get(conf,'runp2p_time')
-        if p2ptime is None:
-            return None
-        p2ptime = p2ptime.split(":")
-        if len(p2ptime) == 2:
-            p2ptime.insert(0, 0)
-        hour,min,sec = [float(time) for time in p2ptime]
-        sec = hour * 60 * 60 + min * 60 + sec
-        ans = float(get(conf,'runp2p_cycle')) / sec / 1000
-        return '{}kHz'.format(round(ans,2))
-    elif f in conf:
-        return get(conf,f)
-    else:
-        return None
+def removePaths(conf):
+    for key in conf:
+        if type(conf[key]) == str:
+            storepath = any(pat in conf[key] for pat in [".log", ".scala", ".csv", "log/"])
+            if storepath:
+                del conf[key]
 
 def getMessage(conf, opts):
     msg = []
@@ -92,7 +84,7 @@ def getMessage(conf, opts):
     succeeded = False
 
     for f in opts.message.split(","):
-        ans = query(conf, f)
+        ans = get(conf,f)
         if ans is None: continue
         msg.append(cstr(CYAN, f + ':' + str(ans)))
 
@@ -241,6 +233,19 @@ def print_message(conf, opts):
         if conf[diffkey] and prevsucc.shape[0] == 0:
             print('{} {}'.format(msg, cstr(GREEN,'(New)')))
 
+def derive_simfreq(conf, opts):
+    p2ptime = get(conf,'runp2p_time')
+    p2pcycle = get(conf,'runp2p_cycle')
+    if p2ptime is None or p2pcycle is None:
+        return None
+    p2ptime = p2ptime.split(":")
+    if len(p2ptime) == 2:
+        p2ptime.insert(0, 0)
+    hour,min,sec = [float(time) for time in p2ptime]
+    sec = hour * 60 * 60 + min * 60 + sec
+    ans = float(p2pcycle) / sec / 1000
+    conf['simfreq'] = '{}kHz'.format(round(ans,2))
+
 def logApp(conf, opts):
     print_message(conf, opts)
     reruns = removeRules(conf, opts)
@@ -259,6 +264,7 @@ def logApp(conf, opts):
 rules = []
 def addRule(func):
     rules.append(func) 
+addRule(derive_simfreq)
 
 def parse(conf, opts):
     app = conf['app']
@@ -451,6 +457,12 @@ Parser(
     'col', 
     '--col=',
     lambda lines,conf: int(lines[-1].split("--col=")[-1].split(",")[0].split("]")[0]),
+    logs=['gentst'],
+)
+Parser(
+    'pirArgs', 
+    'args=[',
+    lambda lines,conf: lines[-1].split("args=[")[-1].split("]")[0],
     logs=['gentst'],
 )
 

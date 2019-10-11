@@ -205,8 +205,6 @@ def main():
     # partition(nodes, edges, constraint)
     solver = CVXPartitioner(nodes, edges, constraint)
     solver.solve(solver="GUROBI", verbose=True, warm_start=True, Threads=64)
-    # for key, value in solver.to_print:
-        # print(key, value.value)
 
     with open(opts.partition, "w") as pf:
         writer = csv.writer(pf, delimiter=",")
