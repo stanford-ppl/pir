@@ -5,14 +5,14 @@ import pir.node._
 import pir.pass._
 import prism.graph._
 import prism.collection.immutable._
+import prism.codegen.CSVPrinter
 
 trait ExternComputePartitioner { self:ComputePartitioner =>
 
-  lazy val nodeGen = new PIRTraversal with prism.codegen.CSVCodegen with ChildFirstTraversal {
-    override def dirName = self.config.graphDir
-    override lazy val logger = self.logger
+  lazy val nodeGen = new CSVPrinter {
+    val dirName = self.config.graphDir
     val fileName = "node.csv"
-    override def runPass = {}
+    val append = false
     def genNodes(nodes:List[PIRNode]) = {
       val ctx = nodes.head.ctx.get
       nodes.foreach { n =>
@@ -21,15 +21,14 @@ trait ExternComputePartitioner { self:ComputePartitioner =>
         row("op") = n.to[OpNode].fold(0){ n => 1 }
         row("comment") = s"$n"
       }
-      super.run
+      gencsv
     }
   } 
 
-  lazy val edgeGen = new PIRTraversal with prism.codegen.CSVCodegen with ChildFirstTraversal {
-    override def dirName = self.config.graphDir
-    override lazy val logger = self.logger
+  lazy val edgeGen = new CSVPrinter {
+    val dirName = self.config.graphDir
     val fileName = "edge.csv"
-    override def runPass = {}
+    val append = false
     def genEdges(nodes:List[PIRNode]) = {
       val ctx = nodes.head.ctx.get
       val nodeSet = nodes.toSet
@@ -65,15 +64,14 @@ trait ExternComputePartitioner { self:ComputePartitioner =>
           }
         }
       }
-      super.run
+      gencsv
     }
   } 
 
-  lazy val specGen = new PIRTraversal with prism.codegen.CSVCodegen with ChildFirstTraversal {
-    override def dirName = self.config.graphDir
-    override lazy val logger = self.logger
+  lazy val specGen = new CSVPrinter {
+    val dirName = self.config.graphDir
     val fileName = "spec.csv"
-    override def runPass = {}
+    val append = false
     def genSpec(vcost:List[Cost[_]]) = {
       val (stageCost:StageCost)::(inCost:InputCost)::(outCost:OutputCost)::_ = vcost
       val row = newRow
@@ -82,24 +80,25 @@ trait ExternComputePartitioner { self:ComputePartitioner =>
       row("sin") = inCost.sin
       row("vout") = outCost.vout
       row("sout") = outCost.sout
-      super.run
+      gencsv
     }
   } 
 
-  lazy val initGen = new PIRTraversal with prism.codegen.Codegen with ChildFirstTraversal {
-    override def dirName = self.config.graphDir
-    override lazy val logger = self.logger
+  lazy val initGen = new CSVPrinter {
+    val dirName = self.config.graphDir
     val fileName = "init.csv"
-    override def runPass = {}
+    val append = false
+    override val printHeader = false
     def genInit(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
-      super.initPass
       val parts = withAlgo("bfs") { binarySplit(nodes,vcost) }
       parts.zipWithIndex.foreach { case (p,i) =>
         p.scope.foreach { node =>
-          emitln(s"${node.id}, $i")
+          val row = newRow
+          row("node") = node.id
+          row("part") = i
         }
       }
-      super.finPass
+      gencsv
     }
   }
 
@@ -109,7 +108,7 @@ trait ExternComputePartitioner { self:ComputePartitioner =>
     specGen.genSpec(vcost)
     initGen.genInit(nodes,vcost)
     val script = buildPath(config.pirHome, "bin", "partition.py")
-    shell("partition", s"$script ${config.graphDir}", buildPath(config.graphDir, "partition.log"))
+    shell("partition", s"$script ${config.graphDir} -t ${config.splitThread}", buildPath(config.graphDir, "partition.log"))
     val idmap = nodes.map { node => (node.id, node) }.toMap
     val pidmap = getLines(buildPath(config.graphDir, "part.csv")).map { line =>
       val node::part::_ = line.split(",").map { _.toInt }.toList

@@ -6,7 +6,18 @@ import prism.graph._
 import spade.param._
 import prism.collection.immutable._
 
-class ComputePruner(implicit compiler:PIR) extends CUPruner with ComputePartitioner {
+class ComputePruner(implicit compiler:PIR) extends CUPruner with ComputePartitioner { self =>
+
+  lazy val splitTimeGen = new prism.codegen.CSVPrinter {
+    val dirName = self.config.graphDir
+    val fileName = "splitTime.csv"
+    val append = false
+  }
+
+  override def finPass = {
+    super.finPass
+    splitTimeGen.gencsv
+  }
 
   override def getCosts(x:Any):List[Cost[_]] = {
     x match {
@@ -34,8 +45,13 @@ class ComputePruner(implicit compiler:PIR) extends CUPruner with ComputePartitio
         dbg(s"kcost=$kcost")
         dbg(s"vcost=$vcost")
         val ctx = k.collectDown[Context]().flatMap { ctx => ctx.getCtrl.srcCtx.v }.mkString(",")
+        tic
         val ks = withAlgo(config.splitAlgo) { split(k, vcost).toSet }
-        info(s"Split $k ${ctx} into ${ks.size} CUs $kcost")
+        val splitTime = toc("ms")
+        val row = splitTimeGen.newRow
+        row("global") = k.id
+        row("time_ms") = splitTime
+        info(s"Split $k ${ctx} into ${ks.size} CUs $kcost in ${splitTime}ms")
         //breakPoint(s"$k")
         newFG(fg, k, ks, vs)
       case x => super.recover(x)

@@ -9,9 +9,14 @@ trait CSVRow {
   def update(pair:(String, Any)):Unit
 }
 
-trait CSVCodegen extends Codegen {
+trait CSVPrinter extends Printer {
 
   type Row = CSVRow
+
+  def dirName:String
+  def fileName:String
+  def append:Boolean
+  def printHeader:Boolean = true
 
   val headers = ListBuffer[String]()
   val rows = ListBuffer[Row]()
@@ -30,15 +35,27 @@ trait CSVCodegen extends Codegen {
     row
   }
 
-  def emit(row:Row) = {
-    emitln(s"${headers.map( h => row.cell.getOrElse(h, "") ).mkString(",")}")
-  }
-
   def setHeaders(header:String*) = { headers ++= header }
 
+  def emitCSV = {
+    if (printHeader) emitln(headers.mkString(","))
+    rows.foreach { row =>
+      emitln(s"${headers.map( h => row.cell.getOrElse(h, "") ).mkString(",")}")
+    }
+  }
+
+  def gencsv = {
+    withOpen(dirName, fileName, append) {
+      emitCSV
+    }
+  }
+}
+
+trait CSVCodegen extends Codegen with CSVPrinter {
+
   override def finPass = {
-    emitln(headers.mkString(","))
-    rows.foreach(emit)
+    emitCSV
     super.finPass
   }
 }
+

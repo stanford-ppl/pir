@@ -193,6 +193,7 @@ class CVXPartitioner:
 def main():
     parser = argparse.ArgumentParser(description='Graph Partition')
     parser.add_argument('path', help='Path to node.csv graph.csv spec.csv')
+    parser.add_argument('-t','--thread', type=int, default=1, help='Number of threads for solver')
     (opts, args) = parser.parse_known_args()
 
     opts.node = os.path.join(opts.path, "node.csv")
@@ -216,13 +217,12 @@ def main():
 
     # partition(nodes, edges, constraint)
     solver = CVXPartitioner(nodes, edges, constraint, pre_partitioning)
-    solver.solve(solver="GUROBI", verbose=True, warm_start=True, Threads=64)
+    solver.solve(solver="GUROBI", verbose=True, warm_start=True, Threads=opts.thread)
 
     with open(opts.partition, "w") as pf:
         writer = csv.writer(pf, delimiter=",")
         for node, partition in solver.get_assignment():
             writer.writerow([node, partition])
-
 
 if __name__ == "__main__":
     main()
