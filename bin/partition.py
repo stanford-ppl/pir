@@ -15,11 +15,12 @@ import typing
 Constraint = namedtuple("Constraint", ["ops", "vin", "sin", "vout", "sout"])
 Node = namedtuple("Node", ["node", "op", "comment"])
 Edge = namedtuple("Edge", ["src", "dst", "tp", "comment"])
+NodePartition = namedtuple("NodePartition", ["node", "partition"])
 
 
-def load_csv(fname, tp):
+def load_csv(fname, tp, use_fieldnames = False):
     with open(fname, "r") as f:
-        return [tp(**row) for row in csv.DictReader(f, delimiter=",")]
+        return [tp(**row) for row in csv.DictReader(f, delimiter=",", fieldnames=tp._fields if use_fieldnames else None)]
 
 
 def cleaned_name(node_id):
@@ -34,23 +35,31 @@ class CVXPartitioner:
     constraints: Constraint
     cvx_constraints: typing.List
 
-    def __init__(self, nodes, edges, constraints):
+    def __init__(self, nodes, edges, constraints, pre_partitioning):
         self.nodes = nodes[:]
         self.edges = edges[:]
         self.constraints = constraints
         self.cvx_constraints = []
         self.to_print = {}
 
+        # gurobi can't currently handle a warm start, so instead we just initialize with the number of partitions
+        self.partitions = max(partition.partition for partition in pre_partitioning)
         self.num_nodes = len(nodes)
-        self.partitions = self.num_nodes
+
+        print("Initializing problem with", self.num_nodes, "nodes and", self.partitions, "partitions.")
+
         self.node_to_loc_map = {node_id.node: i for i, node_id in enumerate(nodes)}
         print(self.node_to_loc_map)
+
+        initial_value = np.zeros(self.num_nodes)
+        for node, partition in pre_partitioning:
+            initial_value[self.node_to_loc_map[str(node)]] = partition
+
         self.node_to_partition_matrix = cvxpy.Variable(name="Matrix", shape=(self.num_nodes, self.partitions),
-                                                       boolean=True,
-                                                       value=np.fliplr(np.identity(self.num_nodes)))
+                                                       boolean=True)
 
         # constructs an array of just the partition numbers. Useful for dep constraints.
-        self.node_partitions = cvxpy.Variable(name="Partitions", shape=(self.num_nodes,), nonneg=True)
+        self.node_partitions = cvxpy.Variable(name="Partitions", shape=(self.num_nodes,), nonneg=True, value=initial_value)
         self.cvx_constraints.append(self.node_partitions == self.node_to_partition_matrix @ np.arange(self.partitions))
 
         # stochasticity constraint: each node only maps to 1 partition.
@@ -136,8 +145,6 @@ class CVXPartitioner:
 
             node_push_map[tp][self.node_to_loc_map[src]].add(self.node_to_loc_map[dst])
 
-        print(node_push_map)
-
         for tp, push_map in node_push_map.items():
             exports = []
             for src, destinations in push_map.items():
@@ -172,6 +179,8 @@ class CVXPartitioner:
 
     def solve(self, **kwargs):
         problem = cvxpy.Problem(self._objective(), self.cvx_constraints)
+        # for i, v in enumerate(problem.variables()):
+        #     print(i, v)
         problem.solve(**kwargs)
 
     def get_assignment(self):
@@ -202,11 +211,12 @@ def main():
     constraint = load_csv(opts.spec, Constraint)[0]
     constraint = Constraint(*list(map(int, constraint)))
 
+    pre_partitioning = load_csv(os.path.join(opts.path, "init.csv"), NodePartition, use_fieldnames=True)
+    pre_partitioning = [NodePartition(*list(map(int, partition))) for partition in pre_partitioning]
+
     # partition(nodes, edges, constraint)
-    solver = CVXPartitioner(nodes, edges, constraint)
+    solver = CVXPartitioner(nodes, edges, constraint, pre_partitioning)
     solver.solve(solver="GUROBI", verbose=True, warm_start=True, Threads=64)
-    # for key, value in solver.to_print:
-        # print(key, value.value)
 
     with open(opts.partition, "w") as pf:
         writer = csv.writer(pf, delimiter=",")
