@@ -98,7 +98,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       var intps = n.inputs.map { _.getTp}
       n.op match {
         case FixDiv | FltDiv =>
-          ins = ins :+ "uen"
+          ins = ins.slice(0,2) :+ s"(${ins(2)} & uen)"
           intps = intps :+ Bool
         case _ =>
       }

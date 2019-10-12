@@ -178,7 +178,10 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     }
 
     n.to[OpDef].foreach { 
-      case n@OpDef(FixDiv | FltDiv) => n.addInput(n.getCtrl.ctrler.get.laneValid)
+      case n@OpDef(FixDiv | FltDiv) => 
+        n.out.vecMeta.reset
+        n.vec.reset
+        stage(n.addInput(n.getCtrl.ctrler.get.laneValid))
       case _ =>
     }
 
