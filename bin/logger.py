@@ -609,10 +609,10 @@ def show_history(opts):
 
 def show_gen(opts):
     gitmsg = subprocess.check_output("git log --pretty=format:'%h' -n 1".split(" "),
-            cwd=opts.spatial_dir).replace("'","")
+            cwd=opts.spatial_dir).decode().replace("'","")
     spatial_sha = gitmsg.split(",")[0]
     gitmsg = subprocess.check_output("git log --pretty=format:'%h,%ad' -n 1 --date=iso".split(" "),
-            cwd=opts.pir_dir).replace("'","")
+            cwd=opts.pir_dir).decode().replace("'","")
     pir_sha = gitmsg.split(",")[0]
     time = gitmsg.split(",")[1].split(" -")[0].strip()
     for backend in opts.backend:

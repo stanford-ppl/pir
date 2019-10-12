@@ -18,12 +18,6 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
   override def finPass = {
     super.finPass
     pirTop.topCtrl.descendentTree.foreach { setUID }
-    // These enable signals are used layer to set token enables. Removed at ctrlBlkInsertion
-    //pirTop.collectChildren[Controller].foreach { ctrler =>
-      //ctrler.en.neighbors.collect { case v:CounterValid => v }.foreach { v =>
-        //disconnect(ctrler.en, v)
-      //}
-    //}
   }
 
   override def visitNode(n:N) = {
@@ -125,24 +119,24 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     }
 
     // Handle disabled load store from unaligned parallelization
-    n.to[FringeCommand].foreach { n =>
-      val reads = n.collectIn[MemRead]()
-      val writes = n.collectOut[MemWrite]()
-      (reads ++ writes).foreach { access =>
-        val setters = access match {
-          case read:MemRead => read.mem.T.inAccesses
-          case write:MemWrite => write.mem.T.outAccesses
-        }
-        setters.foreach { setter => 
-          val ctrlEns = access.getCtrl.ancestorTree.view.flatMap { c =>
-            c.ctrler.v.view.flatMap { ctrler =>
-              ctrler.en.T.collect { case v:CounterValid => v.out }
-            }
-          }.toSet[Output[PIRNode]]
-          setter.en(ctrlEns)
-        }
-      }
-    }
+    //n.to[FringeCommand].foreach { n =>
+      //val reads = n.collectIn[MemRead]()
+      //val writes = n.collectOut[MemWrite]()
+      //(reads ++ writes).foreach { access =>
+        //val setters = access match {
+          //case read:MemRead => read.mem.T.inAccesses
+          //case write:MemWrite => write.mem.T.outAccesses
+        //}
+        //setters.foreach { setter => 
+          //val ctrlEns = access.getCtrl.ancestorTree.view.flatMap { c =>
+            //c.ctrler.v.view.flatMap { ctrler =>
+              //ctrler.en.T.collect { case v:CounterValid => v.out }
+            //}
+          //}.toSet[Output[PIRNode]]
+          //setter.en(ctrlEns)
+        //}
+      //}
+    //}
 
     // Add laneValids to enable of memory access
     def connectLaneValid(access:Access):Unit = {
