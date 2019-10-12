@@ -42,6 +42,8 @@ trait CSVPrinter extends Printer {
     rows.foreach { row =>
       emitln(s"${headers.map( h => row.cell.getOrElse(h, "") ).mkString(",")}")
     }
+    rows.clear
+    headers.clear
   }
 
   def gencsv = {

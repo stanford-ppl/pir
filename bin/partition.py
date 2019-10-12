@@ -189,6 +189,22 @@ class CVXPartitioner:
             for node in self.nodes
         ]
 
+def partition_solver(nodes, edges, constraint, pre_partitioning, opts):
+    solver = CVXPartitioner(nodes, edges, constraint, pre_partitioning)
+    solver.solve(solver="GUROBI", verbose=True, warm_start=True, Threads=opts.thread)
+
+    with open(opts.partition, "w") as pf:
+        writer = csv.writer(pf, delimiter=",")
+        for node, partition in solver.get_assignment():
+            writer.writerow([node, partition])
+    print("Generate {}".format(opts.partition))
+
+def partition_dummy(nodes, edges, constraint, pre_partitioning, opts):
+    with open(opts.partition, "w") as pf:
+        writer = csv.writer(pf, delimiter=",")
+        for node in nodes:
+            writer.writerow([node.node, node.node])
+    print("Generate {}".format(opts.partition))
 
 def main():
     parser = argparse.ArgumentParser(description='Graph Partition')
@@ -215,14 +231,8 @@ def main():
     pre_partitioning = load_csv(os.path.join(opts.path, "init.csv"), NodePartition, use_fieldnames=True)
     pre_partitioning = [NodePartition(*list(map(int, partition))) for partition in pre_partitioning]
 
-    # partition(nodes, edges, constraint)
-    solver = CVXPartitioner(nodes, edges, constraint, pre_partitioning)
-    solver.solve(solver="GUROBI", verbose=True, warm_start=True, Threads=opts.thread)
-
-    with open(opts.partition, "w") as pf:
-        writer = csv.writer(pf, delimiter=",")
-        for node, partition in solver.get_assignment():
-            writer.writerow([node, partition])
+    partition_solver(nodes,edges,constraint,pre_partitioning, opts)
+    # partition_dummy(nodes,edges,constraint,pre_partitioning, opts)
 
 if __name__ == "__main__":
     main()
