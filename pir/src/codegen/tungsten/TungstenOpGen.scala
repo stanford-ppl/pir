@@ -96,10 +96,9 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
     case n:OpDef => emitVec(n) { i => 
       var ins = n.inputs.map { _.qidx(i) }
       var intps = n.inputs.map { _.getTp}
-      val laneValid = s"uen & " + getCtrler(n).laneValid.qidx(i)
       n.op match {
         case FixDiv | FltDiv =>
-          ins = ins :+ laneValid
+          ins = ins :+ "uen"
           intps = intps :+ Bool
         case _ =>
       }
@@ -211,7 +210,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       case FltAdd                   => s"$a + $b"
       case FltSub                   => s"$a - $b"
       case FltMul                   => s"$a * $b"
-      case FltDiv                   => s"""SafeDiv($a, $b, "$ctx")"""
+      case FltDiv                   => s"""$c ? SafeDiv($a, $b, "$ctx") : $a"""
       //case FltMod                 =>
       case FltRecip                 => s"1/$a"
       case FltLst                   => s"$a < $b"

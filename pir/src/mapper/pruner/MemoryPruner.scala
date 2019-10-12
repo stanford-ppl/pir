@@ -131,7 +131,8 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
         val bs = allocConst(sizePerBank, tp=Some(Fix(true,32,0)))
         val newOfst = stage(OpDef(FixMod).addInput(offset, bs).out)
         swapConnection(ofstShuffle.base, offset, newOfst)
-        val newBank = stage(OpDef(FixDiv).addInput(offset, bs).out)
+        val ctrler = assertOne(ofstShuffle.collectPeer[Controller]().filter { _.getCtrl == ctrl }, s"$ctrl ctrler")
+        val newBank = stage(OpDef(FixDiv).addInput(offset, bs, ctrler.laneValid).out)
         val newFlatBank = stage(OpDef(FixFMA).addInput(bank, bm, newBank).out)
         swapConnection(ofstShuffle.from, bank, newFlatBank)
         dataShuffles.foreach { dataShuffles =>

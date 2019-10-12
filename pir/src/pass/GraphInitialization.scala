@@ -177,6 +177,11 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       connectLaneValid(access)
     }
 
+    n.to[OpDef].foreach { 
+      case n@OpDef(FixDiv | FltDiv) => n.addInput(n.getCtrl.ctrler.get.laneValid)
+      case _ =>
+    }
+
     n.to[DRAMStoreCommand].foreach { n =>
       val ack = n.ack.T.as[MemWrite].mem.T.outAccesses.head
       within(pirTop,ack.getCtrl) {
