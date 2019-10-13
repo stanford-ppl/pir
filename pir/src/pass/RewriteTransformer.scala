@@ -281,6 +281,22 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     } else None
   }
 
+  TransferRule[Access] { access =>
+    val invalidAccess = access.en.connected.exists { 
+      case OutputField(Const(false), _) => true
+      case OutputField(Const(vs:List[_]), _) if vs.forall { _ == false } => true
+      case _ => false
+    }
+    if (invalidAccess) {
+      access match {
+        case access:InAccess => access.mem.disconnect
+        case access:OutAccess => access.out.disconnect
+      }
+      free(access)
+      Some(access)
+    } else None
+  }
+
   TransferRule[BufferRead] { n =>
     if (n.ctx.get.streaming.get) None else {
       val writer = n.inAccess.as[BufferWrite]

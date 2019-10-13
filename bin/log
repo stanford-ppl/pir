@@ -1,14 +1,14 @@
 #!env/bin/python3
 
 import sys
-import logger
+from logger import Logger
 
 def main():
     cmd = "--logdir=logs/"
     cmd += " --spatial_dir=../"
     cmd += " --pir_dir=./"
     args = sys.argv[1:] + (cmd.split(" "))
-    logger.main(args)
+    Logger(args)
 
 if __name__ == "__main__":
     main()

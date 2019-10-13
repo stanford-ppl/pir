@@ -147,3 +147,49 @@ class UnalignLoad_1 extends UnalignLoad(ip=5, op=3)
 
   }
 }
+
+@spatial class FIFOTest extends SpatialTest { self =>
+
+  type X = Float
+
+  val N:scala.Int = 32
+  val ts = 16
+  val op:scala.Int = 2
+  val ip:scala.Int = 8
+
+  val margin = 1
+
+  def main(args: Array[String]): Unit = {
+    val dram = DRAM[Int](N)
+    Accel {
+      val sram = SRAM[Int](N)
+      val fifos = Seq.tabulate(op) { o => FIFO[Int](16) }
+      Foreach(N by ts*op) { ii =>
+        Foreach(ts*op by ts par op) { kk =>
+          Foreach(ts par ip) { jj =>
+            fifos.zipWithIndex.foreach { case (fifo, o) =>
+              fifo.enq(ii+kk+jj, kk/ts==o)
+            }
+          }
+        }
+      }
+      Foreach(N by ts*op) { ii =>
+        Foreach(ts*op by ts par op) { kk =>
+          Foreach(ts par ip) { jj =>
+            val v = fifos.zipWithIndex.map { case (fifo, o) =>
+              val valid = kk/ts == o
+              mux(valid,fifo.deq(valid),0)
+            }.reduce { _ + _ }
+            sram(ii+kk+jj) = v
+          }
+        }
+      }
+      dram(0::N) store sram
+    }
+
+    val cksum = checkGold(dram, (0::N) { i => i })
+    assert(cksum)
+  }
+
+}
+

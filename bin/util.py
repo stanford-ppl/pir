@@ -37,44 +37,6 @@ NC        = '\033[0m'
 def cstr(color, msg):
     return "{}{}{}".format(color, msg, NC)
 
-parsers = []
-class Parser:
-    def __init__(self, key, pattern, parseLambda, 
-            default=None, logs=[], prefix=False):
-        self.key = key
-        if type(pattern) == list:
-            patterns = pattern
-        else:
-            patterns = [pattern]
-        self.patterns = patterns
-        self.parseLambda = parseLambda
-        self.default = default
-        parsers.append(self)
-        self.logs = logs
-        self.prefix = prefix or len(self.logs) > 1
-
-    def getKey(self,log):
-        if not self.prefix: return self.key
-        else: return log + "_" + self.key
-
-    def setDefault(self, conf, log):
-        conf[self.getKey(log)] = self.default
-
-    def parse(self, found, conf, log):
-        lines = [line for pat in self.patterns for line in found[pat]]
-        if len(lines) != 0:
-            conf[self.getKey(log)] = self.parseLambda(lines, conf)
-
-def parseLog(log, conf):
-    ps = [p for p in parsers if log in p.logs]
-    for parser in ps:
-        parser.setDefault(conf, log)
-    if not os.path.exists(conf[log]): return
-    patterns = [pat for parser in ps for pat in parser.patterns] 
-    found = grep(conf[log], patterns)
-    for parser in ps:
-        parser.parse(found, conf, log)
-
 def getApps(backend, opts):
     apps = []
     gendir = "{}/{}".format(opts.gendir, backend)

@@ -1,4 +1,5 @@
 import pandas as pd
+from functools import reduce
 
 # get a new table matching these rules
 def csvToDataFrame(path, index):
