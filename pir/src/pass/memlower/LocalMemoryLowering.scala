@@ -21,6 +21,13 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
     }
     toBuffer
   }
+  private val enCtxs = mutable.Map[ControlTree, Context]()
+
+  override def finPass = {
+    super.finPass
+    enCtxs.clear
+  }
+
   override def visitNode(n:N) = n match {
     case n:Memory if canLocalize(n) => bufferLowering(n)
     case _ => super.visitNode(n)
@@ -57,9 +64,7 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
         val (remoteReadEns, localReadEns) = outAccess.en.connected.partition { !canDuplicate(_) }
         dbg(s"remoteReadEns=${remoteReadEns.map(dquote)}")
         val remoteReadEn = if (remoteReadEns.nonEmpty) {
-          val enCtx = within(pirTop, readCtrl) { 
-            allocate[Context]({ ctx => ctx.getCtrl == readCtrl && ctx != readCtx }, allowDuplicates=true) { Context() }
-          }
+          val enCtx = enCtxs.getOrElseUpdate(readCtrl, within(pirTop, readCtrl) { stage(Context()) } )
           within(enCtx) {
             val en = remoteReadEns.reduce[Output[PIRNode]]{ case (en1, en2) => 
               stage(OpDef(And).addInput(en1,en2).out)

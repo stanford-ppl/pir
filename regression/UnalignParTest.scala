@@ -148,14 +148,18 @@ class UnalignLoad_1 extends UnalignLoad(ip=5, op=3)
   }
 }
 
-@spatial class FIFOTest extends SpatialTest { self =>
+import spatial.lib.metaprogramming._
 
-  type X = Float
+class FIFOTest_0 extends FIFOTest
+class FIFOTest_1 extends FIFOTest(op=3)
+class FIFOTest_2 extends FIFOTest(op=3,ip=5)
 
-  val N:scala.Int = 32
-  val ts = 16
-  val op:scala.Int = 2
-  val ip:scala.Int = 8
+@spatial abstract class FIFOTest(
+  val N:scala.Int = 32,
+  val ts:scala.Int = 16,
+  val op:scala.Int = 2,
+  val ip:scala.Int = 8,
+) extends SpatialTest with MetaProgramming { self =>
 
   val margin = 1
 
@@ -163,25 +167,16 @@ class UnalignLoad_1 extends UnalignLoad(ip=5, op=3)
     val dram = DRAM[Int](N)
     Accel {
       val sram = SRAM[Int](N)
-      val fifos = Seq.tabulate(op) { o => FIFO[Int](16) }
-      Foreach(N by ts*op) { ii =>
-        Foreach(ts*op by ts par op) { kk =>
-          Foreach(ts par ip) { jj =>
-            fifos.zipWithIndex.foreach { case (fifo, o) =>
-              fifo.enq(ii+kk+jj, kk/ts==o)
-            }
-          }
+      val fifos = FIFOs[Int](op, 16)
+      MForeach(N by ts par op) { (i,io,ii,v) =>
+        Foreach(ts par ip) { jj =>
+          fifos.enq(ii, i+jj)
         }
       }
-      Foreach(N by ts*op) { ii =>
-        Foreach(ts*op by ts par op) { kk =>
-          Foreach(ts par ip) { jj =>
-            val v = fifos.zipWithIndex.map { case (fifo, o) =>
-              val valid = kk/ts == o
-              mux(valid,fifo.deq(valid),0)
-            }.reduce { _ + _ }
-            sram(ii+kk+jj) = v
-          }
+      MForeach(N by ts par op) { (i,io,ii,v) =>
+        Foreach(ts par ip) { jj =>
+          val value = fifos.deq(ii)
+          sram(i+jj) = value
         }
       }
       dram(0::N) store sram

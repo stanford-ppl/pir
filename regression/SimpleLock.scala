@@ -16,19 +16,19 @@ class SimpleLock_1 extends SimpleLock(P=16)
 
       Sequential.Foreach(4 by 1 par 1) { i =>
 
-        Foreach(d by 1) { j => lockSRAM(j) = 0 }
+        Foreach(d by 1) { j => lockSRAM(j) = 0 } // W1
         Foreach(N by 1 par P) { j =>
           val addr = j % d
           val id = addr // % 5
 
-          val lock = lockSRAMUnit.lock(id)
-          val old: I32 = lockSRAM(addr, lock)
+          val lock = lockSRAMUnit.lock(id) 
+          val old: I32 = lockSRAM(addr, lock) // R1
           val next: I32 = old + j
-          lockSRAM(addr, lock) = next // What if you have the lock on only one or the other here?
+          lockSRAM(addr, lock) = next // W2
         }
 
       }
-      result(0::d) store lockSRAM
+      result(0::d) store lockSRAM // R2
 
     }
 
