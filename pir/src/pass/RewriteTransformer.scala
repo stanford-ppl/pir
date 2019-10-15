@@ -11,6 +11,7 @@ import prism.util._
 import scala.collection.mutable
 
 trait RewriteUtil { self: PIRTransformer =>
+  //TODO: make this a map of classTag => rule to speedup
   // run when the node is created
   val rewriteRules = mutable.ListBuffer[RewriteRule[_]]()
   // run during RewriteTransformer
@@ -60,6 +61,35 @@ trait RewriteUtil { self: PIRTransformer =>
       case _ => None
     }
   }
+
+  //RewriteRule[CounterValid](s"ConnstValid") { valid =>
+    //val counter = valid.counter.T
+    //val consts = valid.is.map { i => counter.constValids.get(i) }
+    //if (consts.forall { _.nonEmpty }) {
+      //dbg(s"Constant valid $valid")
+      //val ctrler = valid.collectUp[Controller]().head
+      //val cs = consts.map { _.get }
+      //val const = within(ctrler.parent.get, valid.getCtrl) { 
+        //if (valid.is.size == 1) allocConst(cs.head) else allocConst(cs)
+      //}
+      //Some((valid.out, const.out))
+    //} else None
+  //}
+
+  //RewriteRule[CounterIter](s"ConnstIter") { iter =>
+    //val counter = iter.counter.T
+    //val consts = iter.is.map { i => counter.constIters.get(i) }
+    //dbg(s"consts=$consts")
+    //if (consts.forall { _.nonEmpty }) {
+      //dbg(s"Constant iter $iter")
+      //val ctrler = iter.collectUp[Controller]().head
+      //val cs = consts.map { _.get }
+      //val const = within(ctrler.parent.get, iter.getCtrl) { 
+        //if (iter.is.size == 1) allocConst(cs.head) else allocConst(cs)
+      //}
+      //Some((iter.out, const.out))
+    //} else None
+  //}
 
   RewriteRule[OpDef](s"ConstProp") { case n@OpDef(op) =>
     val ins = n.inputs.map { 
@@ -260,22 +290,36 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   // Counter valids with par < maxValid should be always true
   TransferRule[Counter] { counter =>
     if (counter.valids.exists { _.out.isConnected }) {
-      dbgblk(s"CounterConstValid($counter)") {
+      dbgblk(s"CounterConstValidIter($counter)") {
         val ctrler = counter.parent.get
-        var const:Const = null
-        val constValids = counter.constValids.v
+        var vconst:Const = null
+        var iconst:Const = null
+        val constValids = counter.constValids.get
+        val constIters = counter.constIters.get
         counter.valids.filter { _.out.isConnected }.foreach { case valid@CounterValid(is) =>
-          if (is.forall { i => constValids.get(i).nonEmpty }) {
-            val consts = is.map { i => counter.constValids.get(i).get }
+          if (is.forall { i => constValids(i).nonEmpty }) {
+            val consts = is.map { i => constValids(i).get }
             dbg(s"Set $valid with is=$is to $consts")
-            const = within(ctrler.parent.get, counter.ctrl.get) { 
+            vconst = within(ctrler.parent.get, counter.ctrl.get) { 
               if (is.size == 1) allocConst(consts.head) else allocConst(consts)
             }
-            swapOutput(valid.out, const.out)
+            swapOutput(valid.out, vconst.out)
           }
         }
-        if (const != null)
-          addAndVisitNode(const, ())
+        counter.iters.filter { _.out.isConnected }.foreach { case iter@CounterIter(is) =>
+          if (is.forall { i => constIters(i).nonEmpty }) {
+            val consts = is.map { i => constIters(i).get }
+            dbg(s"Set $iter with is=$is to $consts")
+            iconst = within(ctrler.parent.get, counter.ctrl.get) { 
+              if (is.size == 1) allocConst(consts.head) else allocConst(consts)
+            }
+            swapOutput(iter.out, iconst.out)
+          }
+        }
+        if (iconst != null)
+          addAndVisitNode(iconst, ())
+        if (vconst != null)
+          addAndVisitNode(vconst, ())
       }
       Some(counter)
     } else None

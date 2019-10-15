@@ -195,6 +195,8 @@ case class Counter(par:Int, isForever:Boolean=false)(implicit env:Env) extends P
 
   // Lane valids that can be statically derived
   val constValids = new Metadata[List[Option[Boolean]]]("constValids")
+  // Lane iters that can be statically derived
+  val constIters = new Metadata[List[Option[Int]]]("constIters")
 }
 
 case class CounterIter(is:List[Int])(implicit env:Env) extends Def {

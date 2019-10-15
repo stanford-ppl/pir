@@ -65,7 +65,7 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
         dbg(s"remoteReadEns=${remoteReadEns.map(dquote)}")
         val remoteReadEn = if (remoteReadEns.nonEmpty) {
           val enCtx = enCtxs.getOrElseUpdate(readCtrl, within(pirTop, readCtrl) { stage(Context()) } )
-          within(enCtx) {
+          within(enCtx, readCtrl) {
             val en = remoteReadEns.reduce[Output[PIRNode]]{ case (en1, en2) => 
               stage(OpDef(And).addInput(en1,en2).out)
             }

@@ -78,10 +78,13 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
   def lookup[T](name:String) = nameSpace(name).asInstanceOf[T]
   def save[T](name:String, x:T) = { 
     nameSpace(name) = x; 
-    x.to[PIRNode].foreach { x =>
-      if (x.sname.isEmpty) x.sname(name)
+    x.to[PIRNode].foreach { x => if (x.sname.isEmpty) x.sname(name) }
+    x match {
+      case n:DRAM => n.sname(name)
+      case n:Counter => analyzeCounterRange(n)
+      case n:LoopController => analyzeLoopRange(n)
+      case _ =>
     }
-    x.to[DRAM].foreach { x => x.sname(name) }
     x.to[PIRNode].foreach { x => stage(x) }
     x
   }
@@ -192,6 +195,59 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
           }
         }
     }
+  }
+
+  def analyzeCounterRange(n:Counter) = dbgblk(s"analyzeCounterRange($n)") {
+    val min = n.min.T
+    val step = n.step.T
+    val max = n.max.T
+    val par = n.par
+    val (constValids, constIters) = (min, step, max) match {
+      case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) if (max <= min && step > 0) | (max >= min && step < 0) =>
+        dbg(s"Loop will not run.")
+        (List.fill(par)(Some(false)), List.fill(par)(Some(min)))
+      case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) =>
+        var bound = ((max - min) /! step) % par
+        if (bound == 0) {
+          bound = par
+        }
+        val fullyUnrolled = ((max - min) /! step) <= par
+        dbg(s"Constant loop bounds min=$min, step=$step, max=$max, par=$par bound=$bound. fullyUnrolled=$fullyUnrolled")
+        (List.tabulate(par) { i => 
+          if (i < bound) Some(true) 
+          else if (i >= max) Some(false)
+          else None
+        },
+        List.tabulate(par) { i => if (fullyUnrolled) Some(min + step*i) else None })
+      case (Some(Const(min:Int)), _, Some(Const(max:Int))) if max > min =>
+        dbg(s"None constant loop bounds min=$min, step=$step, max=$max, par=$par")
+        (List.tabulate(par) { i => 
+          if (i == 0) Some(true) 
+          else if (i >= max) Some(false)
+          else None
+        }, 
+        List.tabulate(par) { i => None })
+      case _ =>
+        (List.fill(par) { None }, List.fill(par) { None })
+    }
+    dbg(s"$n.constValids=[${constValids.map { _.getOrElse("unknown") }.mkString(",")}]")
+    dbg(s"$n.constIters=[${constIters.map { _.getOrElse("unknown") }.mkString(",")}]")
+    n.constValids := constValids
+    n.constIters := constIters
+  }
+
+  def analyzeLoopRange(n:LoopController) = dbgblk(s"analyzeLoopRange($n)"){
+    val laneValids = n.cchain.T.foldLeft[List[Option[Boolean]]](Nil) { 
+      case (Nil, ctr) => List.tabulate(ctr.par) { i => ctr.constValids.get(i) }
+      case (prev, ctr) => 
+        prev.flatMap { valid => 
+          (0 until ctr.par).map { i => 
+            zipMap(valid, ctr.constValids.get(i)) { _ && _ }
+          }
+        }
+    }
+    dbg(s"$n.laneValids=[${laneValids.map { _.getOrElse("unknown") }.mkString(",")}]")
+    n.constLaneValids := laneValids
   }
 
 }

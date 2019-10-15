@@ -153,6 +153,7 @@ import spatial.lib.metaprogramming._
 class FIFOTest_0 extends FIFOTest
 class FIFOTest_1 extends FIFOTest(op=3)
 class FIFOTest_2 extends FIFOTest(op=3,ip=5)
+class FIFOTest_3 extends FIFOTest(op=3,N=100)
 
 @spatial abstract class FIFOTest(
   val N:scala.Int = 32,
