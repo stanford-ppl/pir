@@ -72,6 +72,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
   implicit class NodeHelper[T](x:T) {
     def sctx(c:String):T = x.to[PIRNode].fold(x) { xx => xx.srcCtx(c); x }
     def name(c:String):T = x.to[PIRNode].fold(x) { xx => xx.name(c); x }
+    def progorder(c:Int):T = x.to[PIRNode].fold(x) { xx => xx.progorder(c); x }
   }
 
   val nameSpace = scala.collection.mutable.Map[String,Any]()

@@ -37,6 +37,14 @@ abstract class PIRNode(implicit env:BuildEnvironment)
       super.reset
     }
   }
+  val progorder = new Metadata[Int]("progorder") {
+    override def mirror(frommeta:MetadataLike[_]):self.type = { 
+      if (value.isEmpty) {
+        frommeta.value.foreach { v => update(v) }
+      }
+      self
+    }
+  }
   val tp = new Metadata[BitType]("tp")
 
   // Scale is relative rate of a node active to ctx enable

@@ -33,7 +33,11 @@ trait MetadataIR extends Serializable { self =>
   }
 
   def getMeta[T](name:String, default:Option[T]=None):Metadata[T] = {
-    metadata.getOrElseUpdate(name, Metadata[T](name, default)).asInstanceOf[Metadata[T]]
+    metadata.getOrElse(name, {
+      val m = Metadata[T](name, default)
+      metadata += name -> m 
+      m
+    }).asInstanceOf[Metadata[T]]
   }
   
   def resetMeta(name:String) = {

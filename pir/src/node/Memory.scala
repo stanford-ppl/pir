@@ -78,6 +78,29 @@ case class LockOnKeys()(implicit env:Env) extends Def {
   tp(Bool)
 }
 
+case class LockBlock()(implicit env:Env) extends BlackBox {
+  def initAddr = getDynamicInputFields[PIRNode]("initAddr")
+  def addInitAddr(xs:Any*) = DynamicInputFields[PIRNode]("initAddr", xs)
+  def initDataIn = getDynamicInputFields[PIRNode]("initDataIn")
+  def addInitDataIn(xs:Any*) = DynamicInputFields[PIRNode]("initDataIn", xs)
+  def initAck = getDynamicOutputFields[PIRNode]("initAck")
+  def addInitAck(num:Int) = DynamicOutputFields[PIRNode]("initAck", num)
+
+  def lockedAddr = getDynamicInputFields[PIRNode]("lockedAddr")
+  def addLockedAddr(xs:Any*) = DynamicInputFields[PIRNode]("lockedAddr", xs)
+  def lockedDataIn = getDynamicOutputFields[PIRNode]("lockedDataIn")
+  def addLockedDataIn(xs:Any*) = DynamicInputFields[PIRNode]("lockedDataIn", xs)
+  def lockedDataOut = getDynamicOutputFields[PIRNode]("lockedDataOut")
+  def addLockedDataOut(num:Int) = DynamicOutputFields[PIRNode]("lockedDataOut", num)
+  def lockedAck = getDynamicOutputFields[PIRNode]("lockedAck")
+  def addLockedAck(num:Int) = DynamicOutputFields[PIRNode]("lockedAck", num)
+
+  def flushAddr = getDynamicInputFields[PIRNode]("flushAddr")
+  def addFlushAddr(xs:Any*) = DynamicInputFields[PIRNode]("flushAddr", xs)
+  def flushDataOut = getDynamicOutputFields[PIRNode]("flushDataOut")
+  def addFlushDataOut(num:Int) = DynamicOutputFields[PIRNode]("flushDataOut", num)
+}
+
 case class Top()(implicit env:Env) extends PIRNode {
   var topCtrl:ControlTree = _
   var hostInCtrl:ControlTree = _

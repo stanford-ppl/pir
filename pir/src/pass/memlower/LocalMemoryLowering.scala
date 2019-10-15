@@ -82,8 +82,8 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
           } {
             stage(BufferRead(mem.isFIFO)
               .in(write.out)
-              .mirrorMetas(mem)
               .mirrorMetas(outAccess)
+              .mirrorMetas(mem)
               .en(localReadEns).en(remoteReadEn.map{_._2})
               .done(deq)
               .presetVec(outAccess.inferVec.get))

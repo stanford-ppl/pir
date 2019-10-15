@@ -1,5 +1,5 @@
 val paradise_version  = "2.1.0"
-val scala_version = "2.12.7"
+val scala_version = "2.12.10"
 
 lazy val Slow = config("slow").extend(Test)
 
