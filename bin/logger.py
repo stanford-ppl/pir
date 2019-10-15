@@ -102,17 +102,17 @@ def parse_success(conf):
             conf[p+'_err'] is None
     return conf['runp2p_success']
 
-def parse_genpir(pirsrc, conf, opts):
+def parse_genpir(pirsrc, logpath, conf, opts):
     if os.path.exists(pirsrc):
         conf['genpir'] = True
         conf['genpir_err'] = None
     else:
         conf['genpir'] = False
-        match = grep("{}/00*".format(conf['logpath']),
+        match = grep("{}/00*".format(logpath),
                 ["error", "exception", "Exception"])
         lines = [line for pat in match for line in match[pat]]
 
-        match = grep("{}/*_exception.log".format(conf['logpath']),
+        match = grep("{}/*_exception.log".format(logpath),
                 ["error", "exception", "Exception"])
         lines = lines + [line for pat in match for line in match[pat]]
         if len(lines) != 0:
@@ -531,7 +531,7 @@ class Logger():
         self.runp2p = os.path.join(opts.gendir,backend,app,"log/runp2p.log")
         self.runhybrid = os.path.join(opts.gendir,backend,app,"log/runhybrid.log")
         self.p2pstat = os.path.join(opts.gendir,backend,app,"log/p2pstat.log")
-        parse_genpir(self.AccelMain, conf, opts)
+        parse_genpir(self.AccelMain, self.logpath, conf, opts)
         parse_proutesummary(self.prouteSummary, conf, opts)
 
         parseLog(
