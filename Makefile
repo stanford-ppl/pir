@@ -1,7 +1,7 @@
 all: pir
 
 env:
-	virtualenv -p python3 env
+	virtualenv -p python3.6 env
 	env/bin/pip install -r requirements.txt
 
 clean: clean-local
