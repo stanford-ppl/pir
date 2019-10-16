@@ -25,7 +25,7 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen with TungstenB
 
   override def emitNode(n:N) = n match {
     case ctx:Context if ctx.streaming.get && ctx.collectDown[DRAMCommand]().nonEmpty =>
-      withinBB {
+      withinBB(global=false) {
         visitNode(n)
       }
 

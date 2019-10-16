@@ -72,6 +72,11 @@ trait ScalaUtilFunc {
     if (list.size == 1) Some(list.head) else None
   }
 
+  def testUnique[A](list:Iterable[A]):Option[A] = {
+    val set = list.toSet
+    if (set.size == 1) Some(set.head) else None
+  }
+
   def zipOption[A,B,T](a:Option[A], b:Option[B]):Option[(A,B)] = {
     (a,b).zipped.headOption
   }

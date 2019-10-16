@@ -174,17 +174,11 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
         }
         dbg(s"addrCtx for $access = $addrCtx")
         swapParent(access, addrCtx)
-        val (ofsOut,bank) = within(addrCtx, addrCtx.getCtrl) {
-          flattenBankAddr(access)
-          flattenEnable(access)
-          lowerLUTAccess(mem, access)
-          val bank = access.bank.connected
-          var ofsOut = access.offset.singleConnected.get
-          access.en.singleConnected.foreach { en =>
-            ofsOut = stage(OpDef(Mux).addInput(en, ofsOut, allocConst(-1).out).out)
-          }
-          (ofsOut,bank)
-        }
+        flattenBankAddr(access)
+        flattenEnable(access)
+        lowerLUTAccess(mem, access)
+        val bank = access.bank.connected
+        val ofsOut = access.offset.singleConnected.get
         val ofs = stage(Shuffle(-1).from(bank).to(allocConst(mem.bankids.get)).base(ofsOut))
         bufferInput(ofs.base, fromCtx=Some(addrCtx))
         bufferInput(ofs.from, fromCtx=Some(addrCtx))

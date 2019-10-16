@@ -108,6 +108,9 @@ trait FieldNode[N<:Node[N]] extends Node[N] { self:N =>
     xs.foreach { x => new InputField[T](name).dynamic(true).apply(x) }
     this
   }
+  def DynamicInputFields[T:TypeTag:ClassTag](name:String, num:Int) = {
+    List.fill(num) { new InputField[T](name).dynamic(true) }
+  }
   def getDynamicInputFields[T](name:String):List[InputField[T]] = localIns.filter { _.as[InputField[_]].name == name }.toList.as
   def DynamicOutputFields[T:TypeTag:ClassTag](name:String, xs:Seq[Any]):self.type = {
     xs.foreach { x => new OutputField[T](name).dynamic(true).apply(x) }

@@ -11,7 +11,7 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
 
   override def emitNode(n:N) = n match {
     case ctx:Context if ctx.streaming.get && (ctx.descendents.exists { case lock:Lock => true; case splitter:Splitter => true; case _ => false }) => 
-      withinBB {
+      withinBB(global=false) {
         visitNode(n)
       }
 

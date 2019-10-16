@@ -78,27 +78,30 @@ case class LockOnKeys()(implicit env:Env) extends Def {
   tp(Bool)
 }
 
-case class LockBlock()(implicit env:Env) extends BlackBox {
-  def initAddr = getDynamicInputFields[PIRNode]("initAddr")
-  def addInitAddr(xs:Any*) = DynamicInputFields[PIRNode]("initAddr", xs)
-  def initDataIn = getDynamicInputFields[PIRNode]("initDataIn")
-  def addInitDataIn(xs:Any*) = DynamicInputFields[PIRNode]("initDataIn", xs)
-  def initAck = getDynamicOutputFields[PIRNode]("initAck")
-  def addInitAck(num:Int) = DynamicOutputFields[PIRNode]("initAck", num)
+case class LockRMABlock(
+  accums:List[LockSRAM],
+)(implicit env:Env) extends BlackBox {
+  def unlockReadAddrs(accum:LockSRAM) = getDynamicInputFields[PIRNode](s"unlockReadAddr_${accum}")
+  def unlockReadDatas(accum:LockSRAM) = getDynamicOutputFields[PIRNode](s"unlockReadData_${accum}")
+  def addUnlockReadAddrs(accum:LockSRAM) = DynamicInputFields[PIRNode](s"unlockReadAddr_${accum}",1).head
+  def addUnlockReadDatas(accum:LockSRAM) = DynamicOutputFields[PIRNode](s"unlockReadData_${accum}",1).head
 
-  def lockedAddr = getDynamicInputFields[PIRNode]("lockedAddr")
-  def addLockedAddr(xs:Any*) = DynamicInputFields[PIRNode]("lockedAddr", xs)
-  def lockedDataIn = getDynamicOutputFields[PIRNode]("lockedDataIn")
-  def addLockedDataIn(xs:Any*) = DynamicInputFields[PIRNode]("lockedDataIn", xs)
-  def lockedDataOut = getDynamicOutputFields[PIRNode]("lockedDataOut")
-  def addLockedDataOut(num:Int) = DynamicOutputFields[PIRNode]("lockedDataOut", num)
-  def lockedAck = getDynamicOutputFields[PIRNode]("lockedAck")
-  def addLockedAck(num:Int) = DynamicOutputFields[PIRNode]("lockedAck", num)
+  def unlockWriteAddrs(accum:LockSRAM) = getDynamicInputFields[PIRNode](s"unlockWriteAddr_${accum}")
+  def unlockWriteDatas(accum:LockSRAM) = getDynamicInputFields[PIRNode](s"unlockWriteData_${accum}")
+  def unlockWriteAcks(accum:LockSRAM) = getDynamicOutputFields[PIRNode](s"unlockWriteAck_${accum}")
+  def addUnlockWriteAddrs(accum:LockSRAM) = DynamicInputFields[PIRNode](s"unlockWriteAddr_${accum}",1).head
+  def addUnlockWriteDatas(accum:LockSRAM) = DynamicInputFields[PIRNode](s"unlockWriteData_${accum}",1).head
+  def addUnlockWriteAcks(accum:LockSRAM) = DynamicOutputFields[PIRNode](s"unlockWriteAck_${accum}",1).head
 
-  def flushAddr = getDynamicInputFields[PIRNode]("flushAddr")
-  def addFlushAddr(xs:Any*) = DynamicInputFields[PIRNode]("flushAddr", xs)
-  def flushDataOut = getDynamicOutputFields[PIRNode]("flushDataOut")
-  def addFlushDataOut(num:Int) = DynamicOutputFields[PIRNode]("flushDataOut", num)
+  def lockAddrs = getDynamicInputFields[PIRNode](s"lockAddr")
+  def addLockAddr = DynamicInputFields[PIRNode](s"lockAddr",1).head
+  def lockAcks = getDynamicOutputFields[PIRNode](s"lockAck")
+  def addLockAck = DynamicOutputFields[PIRNode](s"lockAck",1).head
+
+  def lockDataIns(accum:LockSRAM) = getDynamicInputFields[PIRNode](s"lockDataIn_${accum}")
+  def addLockDataIns(accum:LockSRAM) = DynamicInputFields[PIRNode](s"lockDataIn_${accum}",1).head
+  def lockDataOuts(accum:LockSRAM) = getDynamicInputFields[PIRNode](s"lockDataOut_${accum}")
+  def addLockDataOuts(accum:LockSRAM) = DynamicOutputFields[PIRNode](s"lockDataOut_${accum}", 1).head
 }
 
 case class Top()(implicit env:Env) extends PIRNode {

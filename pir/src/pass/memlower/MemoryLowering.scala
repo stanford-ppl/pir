@@ -13,11 +13,12 @@ trait GenericMemoryLowering extends PIRTraversal with SiblingFirstTraversal with
     case _ => super.visitNode(n)
   }
 
-  // And enable signals
+  // Combine enable signal if more than one exists. Change offset tp -1 if not enabled.
   def flattenEnable(access:Access) = dbgblk(s"flattenEnable($access)"){
     val parent = access.parent.get
     within(parent, parent.getCtrl) {
       val ens = access.en.connected
+      var en:Option[Output[PIRNode]] = None
       if (ens.size > 1) {
         var red:List[Output[PIRNode]] = ens.toList
         while (red.size > 1) {
@@ -26,10 +27,20 @@ trait GenericMemoryLowering extends PIRTraversal with SiblingFirstTraversal with
             case List(en1) => en1
           }.toList
         }
-        val en = red.head
-        dbg(s"And enable signals $ens => $en")
+        dbg(s"Combine enable signals $ens => $en")
         access.en.disconnect
-        access.en(en)
+        en = Some(red.head)
+      } else {
+        en = ens.headOption
+      }
+      val addr = access match {
+        case access:LockAccess => access.addr
+        case access:BankedAccess => access.offset
+      }
+      en.foreach { en =>
+        val newAddr = stage(OpDef(Mux).addInput(en, addr.singleConnected.get, allocConst(-1).out).out)
+        addr.disconnect
+        addr(newAddr)
       }
     }
   }

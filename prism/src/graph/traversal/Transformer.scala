@@ -12,6 +12,7 @@ trait Transformer extends Logging {
   def removeNodes[N<:Node[N]](nodes:Iterable[Node[N]]):Unit = {
     if (nodes.isEmpty) return
     dbg(s"Remove ${nodes.mkString(",")}")
+    this.to[Traversal].foreach { self => nodes.foreach { self.markVisited(_) } }
     nodes.foreach { node =>
       node.metadata.values.foreach{_.reset}
       node.localEdges.foreach { io => 

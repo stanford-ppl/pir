@@ -14,20 +14,16 @@ abstract class Pass(implicit val compiler:Compiler) extends Logging {
   override def debug = config.debug
 
   def initPass:Unit = {
-    this match {
-      case self:Traversal => self.resetTraversal
-      case _ =>
-    }
+    this.to[Traversal].foreach { _.resetTraversal }
   }
 
   def runPass:Unit = {
-    this match {
-      case self:HierarchicalTraversal => self.traverseTop
-      case _ =>
-    }
+    this.to[HierarchicalTraversal].foreach { _.traverseTop }
   }
 
-  def finPass:Unit = {}
+  def finPass:Unit = {
+    this.to[Traversal].foreach { _.resetTraversal }
+  }
 
   def run:this.type = {
     initPass

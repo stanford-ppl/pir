@@ -21,7 +21,7 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
 
   def process(dram:DRAM, ctxs:List[(Context, DRAMCommand)]) = dbgblk(s"process(${dram} (${dram.sid})"){
     // Sorted by program order
-    val sorted = ctxs.sortBy { _._2.id }
+    val sorted = ctxs.sortBy { _._2.progorder.get }
     val grouped:List[AccessGroup] = groupAccesses(sorted, forward=true)
     // Handle forward dependency
     grouped.sliding(2,1).foreach { 
@@ -85,6 +85,8 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
   }
 
   def canConflict(fromCmd:DRAMCommand, toCmd:DRAMCommand, forward:Boolean):Boolean = {
+    // From unrolled dram accesses
+    if (fromCmd.progorder.get == toCmd.progorder.get) return false
     // Both are read
     if (fromCmd.isInstanceOf[DRAMLoadCommand] && toCmd.isInstanceOf[DRAMLoadCommand]) return false
     val from = fromCmd.getCtrl

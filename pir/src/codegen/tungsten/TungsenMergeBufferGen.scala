@@ -11,7 +11,7 @@ trait TungstenMergeBufferGen extends TungstenCodegen with TungstenCtxGen with Tu
 
   override def emitNode(n:N) = n match {
     case ctx:Context if ctx.streaming.get && (ctx.descendents.exists { case lock:MergeBuffer => true; case _ => false}) => 
-      withinBB {
+      withinBB(global=false) {
         visitNode(n)
       }
 

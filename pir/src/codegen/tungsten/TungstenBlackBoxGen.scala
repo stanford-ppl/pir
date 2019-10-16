@@ -8,17 +8,21 @@ import scala.collection.mutable
 trait TungstenBlackBoxGen extends TungstenCodegen with TungstenCtxGen {
 
   private var enterBB = false
+  private var globalBB = false
 
-  def withinBB(block: => Unit) = {
+  def withinBB(global:Boolean)(block: => Unit) = {
     val saved = enterBB
+    val savedGlobal = global
     enterBB = true
+    globalBB = global
     block
     enterBB = saved
+    globalBB = savedGlobal
   }
 
   override def emitNode(n:N) = n match {
     case n:LocalOutAccess if enterBB =>
-      genTopMember(n, Seq(n.qstr))
+      if (!globalBB) genTopMember(n, Seq(n.qstr))
 
     case n if enterBB => visitNode(n)
 
@@ -26,4 +30,3 @@ trait TungstenBlackBoxGen extends TungstenCodegen with TungstenCtxGen {
   }
 
 }
-

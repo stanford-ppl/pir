@@ -82,6 +82,7 @@ abstract class PIRNode(implicit env:BuildEnvironment)
 }
 object PIRNode extends MemoryUtil with AccessUtil {
   implicit class PIRNodeOp(n:PIRNode) {
+    def getCtrl:ControlTree = n.ctrl.get
     def ctx = n.collectUp[Context]().headOption
     def global = n.collectUp[GlobalContainer]().headOption
     def isUnder[T:ClassTag] = n.ancestors.exists { _.to[T].nonEmpty }
@@ -108,6 +109,7 @@ case class ControlTree(schedule:CtrlSchedule)(implicit env:Env) extends EnvNode[
   val isLoop = new Metadata[Boolean]("isLoop", default=Some(false))
   val srcCtx = new Metadata[String]("srcCtx")
   val uid = new Metadata[List[Int]]("uid")
+  val progorder = new Metadata[Int]("progorder")
 
   def compare(that:ControlTree) = {
     if (this == that) 0

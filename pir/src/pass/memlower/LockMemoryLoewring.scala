@@ -8,11 +8,6 @@ import spade.param._
 import scala.collection.mutable
 
 trait LockMemoryLowering extends GenericMemoryLowering {
-  override def visitNode(n:N) = n match {
-    case n:Memory if n.isLockSRAM => lowerLockMem(n)
-    case _ => super.visitNode(n)
-  }
-
   override def finPass = {
     splitCtxs.clear
     super.finPass
@@ -20,7 +15,7 @@ trait LockMemoryLowering extends GenericMemoryLowering {
 
   private val splitCtxs = mutable.Map[ControlTree, Context]()
   private val addrCtxs = mutable.Map[ControlTree, Context]()
-  private def lowerLockMem(n:Memory) = dbgblk(s"lowerLockMem($n)"){
+  protected def lowerUnparLockMem(n:Memory) = dbgblk(s"lowerUnparLockMem($n)"){
     val memCU = within(pirTop) { MemoryContainer() }
     swapParent(n, memCU)
     val lockMap = n.accesses.groupBy { access => access.as[LockAccess].lock.T }
@@ -50,14 +45,8 @@ trait LockMemoryLowering extends GenericMemoryLowering {
       within(cu, ctrl) { Context() }
     })
     swapParent(access, addrCtx)
+    flattenEnable(access)
     var addr = access.addr.singleConnected.get
-    within(addrCtx, ctrl) {
-      flattenEnable(access)
-      access.en.singleConnected.foreach { en =>
-        addr = stage(OpDef(Mux).addInput(en, addr, allocConst(-1).out).out)
-      }
-      access.en.disconnect
-    }
     // Setting up splitter and lock if it's sparse access
     val pack = access.lock.T.map { lockOn =>
       val lock = lockOn.lock.T

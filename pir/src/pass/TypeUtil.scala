@@ -36,7 +36,6 @@ trait TypeUtil { self:PIRPass =>
   }
 
   implicit class IRRuntimeOp(n:PIRNode) {
-    def getCtrl:ControlTree = n.ctrl.get
     def getBound:Option[Int] = n.getMeta[Option[Int]]("bound").getOrElseUpdate(boundProp(n).as[Option[Int]])
 
     def psimState(s:String) = n.getMeta[Float]("psimState").update(s)
@@ -209,16 +208,16 @@ trait TypeUtil { self:PIRPass =>
     }
   }
 
-  def quoteSrcCtx(n:PIRNode) = {
-    var msg = dquote(n)
-    n.name.v.foreach { n => msg += s": $n" }
-    msg += " " + n.srcCtx.v.getOrElse("No source context")
-    n.ctx.map { ctx => msg += s" ($ctx)"}
-    msg
-  }
-
-  def quoteSrcCtx(n:ControlTree) = {
-    s"$n[${n.uid.get.mkString(",")}] ${n.srcCtx.v.getOrElse("No source context")}"
+  def quoteSrcCtx(n:Any) = n match {
+    case n:PIRNode =>
+      var msg = dquote(n)
+      n.name.v.foreach { n => msg += s": $n" }
+      msg += " " + n.srcCtx.v.getOrElse("No source context")
+      n.ctx.map { ctx => msg += s" ($ctx)"}
+      msg
+    case n:ControlTree =>
+      s"$n[${n.uid.get.mkString(",")}] ${n.srcCtx.v.getOrElse("No source context")}"
+    case n => s"$n"
   }
 
   implicit class EdgeOp(x:IR) {
