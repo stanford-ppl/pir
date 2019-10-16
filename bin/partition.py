@@ -18,9 +18,10 @@ Edge = namedtuple("Edge", ["src", "dst", "tp", "comment"])
 NodePartition = namedtuple("NodePartition", ["node", "partition"])
 
 
-def load_csv(fname, tp, use_fieldnames = False):
+def load_csv(fname, tp, use_fieldnames=False):
     with open(fname, "r") as f:
-        return [tp(**row) for row in csv.DictReader(f, delimiter=",", fieldnames=tp._fields if use_fieldnames else None)]
+        return [tp(**row) for row in
+                csv.DictReader(f, delimiter=",", fieldnames=tp._fields if use_fieldnames else None)]
 
 
 def cleaned_name(node_id):
@@ -59,25 +60,37 @@ class CVXPartitioner:
                                                        boolean=True)
 
         # constructs an array of just the partition numbers. Useful for dep constraints.
-        self.node_partitions = cvxpy.Variable(name="Partitions", shape=(self.num_nodes,), nonneg=True, value=initial_value)
-        self.cvx_constraints.append(self.node_partitions == self.node_to_partition_matrix @ np.arange(self.partitions))
+        self.node_partitions = cvxpy.Variable(name="Partitions", shape=(self.num_nodes,), nonneg=True,
+                                              value=initial_value)
+        self._add_constraint(self.node_partitions == self.node_to_partition_matrix @ np.arange(self.partitions))
 
         # stochasticity constraint: each node only maps to 1 partition.
-        self.cvx_constraints.append(cvxpy.sum(self.node_to_partition_matrix, axis=1) == 1)
+        self._add_constraint(cvxpy.sum(self.node_to_partition_matrix, axis=1) == 1)
 
         # constraint on number of ops
         total_ops = functools.reduce(operator.add, [
             self.node_to_partition_matrix[self.node_to_loc_map[node.node], :] * node.op for node in self.nodes])
-        self.cvx_constraints.append(total_ops <= self.constraints.ops)
+        self._add_constraint(total_ops <= self.constraints.ops)
         self._init_dep_constraints()
         self._init_input_constraints()
         self._init_output_constraints()
+        self._init_offsets()
+        self.objective = cvxpy.Minimize(self.delay_gap())
 
+
+    def _add_constraint(self, constraint):
+        assert constraint.is_dcp()
+        self.cvx_constraints.append(constraint)
+
+    def _is_internal_node(self, node):
+        return node in self.node_to_loc_map
+
+    @functools.lru_cache(None)
     def _init_dep_constraints(self):
         filtered_edges = [edge for edge in self.edges if
-                          edge.src in self.node_to_loc_map and edge.dst in self.node_to_loc_map]
+                          self._is_internal_node(edge.src) and self._is_internal_node(edge.dst)]
         for src, dst, _, _ in filtered_edges:
-            self.cvx_constraints.append(
+            self._add_constraint(
                 self.node_partitions[self.node_to_loc_map[src]] <= self.node_partitions[self.node_to_loc_map[dst]])
 
     def _init_input_constraints(self):
@@ -98,7 +111,7 @@ class CVXPartitioner:
         for tp, push_map in node_push_map.items():
             movement = []
             for src, destinations in push_map.items():
-                if src not in self.node_to_loc_map:
+                if not self._is_internal_node(src):
                     # we use this to filter out all of the contributions within a partition.
                     # since external nodes aren't in any relevant partition, they always contribute.
                     base_filter = np.zeros(self.partitions)
@@ -111,9 +124,10 @@ class CVXPartitioner:
 
                 self.to_print["output - " + tp] = movement
 
-            self.cvx_constraints.append(
+            self._add_constraint(
                 functools.reduce(operator.add, movement) <= input_constraints[tp])
 
+    @functools.lru_cache(None)
     def _init_output_constraints(self):
         output_constraints = {
             "s": self.constraints.sout,
@@ -127,7 +141,7 @@ class CVXPartitioner:
             "v": set()
         }
         for src, dst, tp, _ in self.edges:
-            if src in self.node_to_loc_map and dst not in self.node_to_loc_map:
+            if self._is_internal_node(src) and not self._is_internal_node(dst):
                 nodes_with_external_outputs[tp].add(src)
 
         node_push_map = {
@@ -137,7 +151,7 @@ class CVXPartitioner:
 
         for src, dst, tp, _ in self.edges:
             # don't count external nodes
-            if src not in self.node_to_loc_map:
+            if not self._is_internal_node(src):
                 continue
             # if a node already pushes out to an external node, we know it's guaranteed to have an output.
             if src in nodes_with_external_outputs[tp]:
@@ -165,20 +179,50 @@ class CVXPartitioner:
             total_movement = functools.reduce(operator.add, exports)
             for src in nodes_with_external_outputs[tp]:
                 total_movement += self.node_to_partition_matrix[self.node_to_loc_map[src], :]
-            self.cvx_constraints.append(total_movement <= output_constraints[tp])
+            self._add_constraint(total_movement <= output_constraints[tp])
 
-    def _objective(self):
-        return cvxpy.Minimize(cvxpy.max(self.node_partitions))
+    @functools.lru_cache(None)
+    def _init_offsets(self):
+        self.offsets = cvxpy.Variable(shape=self.num_nodes, name="Delay", integer=True)
+        for src, dst, _, _ in self.edges:
+            if not (self._is_internal_node(src) and self._is_internal_node(dst)):
+                continue
+            src_id = self.node_to_loc_map[src]
+            dst_id = self.node_to_loc_map[dst]
+            # if src, dst in the same partition, then their delay is 1 (lb) since we don't track relative positions
+            # within a partition.
+            # otherwise, their delay is constraints.ops + 1
+            is_in_same_partition = self._project_to_bool(
+                self.node_partitions[dst_id] - self.node_partitions[src_id])
+
+            self._add_constraint(
+                self.offsets[dst_id] >= self.offsets[src_id] + 1 + self.constraints.ops * is_in_same_partition)
+
+    @functools.lru_cache(None)
+    def num_partitions(self):
+        return cvxpy.max(self.node_partitions)
+
+    @functools.lru_cache(None)
+    def delay_gap(self):
+        # minimize the maximum delay gap for any particular node.
+        delays = []
+        for src, dst, _, _ in self.edges:
+            if not (self._is_internal_node(src) and self._is_internal_node(dst)):
+                continue
+            src_id = self.node_to_loc_map[src]
+            dst_id = self.node_to_loc_map[dst]
+            delays.append(self.offsets[dst_id] - self.offsets[src_id])
+        return cvxpy.maximum(*delays)
 
     def _project_to_bool(self, var):
         projected = cvxpy.Variable(boolean=True, shape=var.shape)
         slack = cvxpy.Variable(shape=var.shape, nonneg=True)
-        self.cvx_constraints.append(projected + slack >= var)
-        self.cvx_constraints.append(slack <= projected * self.partitions * self.num_nodes)
+        self._add_constraint(projected + slack >= var)
+        self._add_constraint(slack <= projected * self.partitions * self.num_nodes)
         return projected
 
     def solve(self, **kwargs):
-        problem = cvxpy.Problem(self._objective(), self.cvx_constraints)
+        problem = cvxpy.Problem(self.objective, self.cvx_constraints)
         # for i, v in enumerate(problem.variables()):
         #     print(i, v)
         problem.solve(**kwargs)
@@ -188,6 +232,7 @@ class CVXPartitioner:
             (node.node, int(self.node_partitions.value[self.node_to_loc_map[node.node]]))
             for node in self.nodes
         ]
+
 
 def partition_solver(nodes, edges, constraint, pre_partitioning, opts):
     solver = CVXPartitioner(nodes, edges, constraint, pre_partitioning)
@@ -199,6 +244,7 @@ def partition_solver(nodes, edges, constraint, pre_partitioning, opts):
             writer.writerow([node, partition])
     print("Generate {}".format(opts.partition))
 
+
 def partition_dummy(nodes, edges, constraint, pre_partitioning, opts):
     with open(opts.partition, "w") as pf:
         writer = csv.writer(pf, delimiter=",")
@@ -206,10 +252,11 @@ def partition_dummy(nodes, edges, constraint, pre_partitioning, opts):
             writer.writerow([node.node, node.node])
     print("Generate {}".format(opts.partition))
 
+
 def main():
     parser = argparse.ArgumentParser(description='Graph Partition')
     parser.add_argument('path', help='Path to node.csv graph.csv spec.csv')
-    parser.add_argument('-t','--thread', type=int, default=1, help='Number of threads for solver')
+    parser.add_argument('-t', '--thread', type=int, default=1, help='Number of threads for solver')
     (opts, args) = parser.parse_known_args()
 
     opts.node = os.path.join(opts.path, "node.csv")
@@ -231,8 +278,9 @@ def main():
     pre_partitioning = load_csv(os.path.join(opts.path, "init.csv"), NodePartition, use_fieldnames=True)
     pre_partitioning = [NodePartition(*list(map(int, partition))) for partition in pre_partitioning]
 
-    partition_solver(nodes,edges,constraint,pre_partitioning, opts)
+    partition_solver(nodes, edges, constraint, pre_partitioning, opts)
     # partition_dummy(nodes,edges,constraint,pre_partitioning, opts)
+
 
 if __name__ == "__main__":
     main()
