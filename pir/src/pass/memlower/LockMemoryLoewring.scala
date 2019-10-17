@@ -121,7 +121,7 @@ trait LockMemoryLowering extends GenericMemoryLowering {
   override def childDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
     val ctrler = if (ctx.streaming.get) {
       within(ctx, ctrl) { 
-        allocate[UnitController]()(stage(UnitController()))
+        allocate[UnitController]()(stage(UnitController().par(1)))
       }
     } else {
       assert(!compiler.hasRun[DependencyDuplication])

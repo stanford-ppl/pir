@@ -34,8 +34,8 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
       .append("name", n.name.v)
       .append("externAlias", n.externAlias.v)
       .append("ctrl", n.ctrl.v.map { c => c.sname.v.fold(s"$c") { n => s"$c[$n]"} })
-      .append("tp", n.tp.v)
-      .append("vec", n.vec.v)
+      .append("tp", n.tp.v.orElse(if (n.localOuts.size==1) n.localOuts.head.tpMeta.v else None))
+      .append("vec", n.vec.v.orElse(if (n.localOuts.size==1) n.localOuts.head.vecMeta.v else None))
       .append("count", n.count.v)
       .append("scale", n.scale.v)
       .append("iter", n.iter.v) +

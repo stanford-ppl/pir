@@ -42,13 +42,14 @@ trait RewriteUtil { self: PIRTransformer =>
   }
 
   RewriteRule[MemRead](s"WrittenByConstData") { reader =>
-    val ConstData = MatchRule[MemWrite, Const] { write =>
+    val ConstData = MatchRule[MemWrite, Const] { case write =>
+      val readVec = reader.out.getVec
       write.data.T match {
-        case cn@Const(c) if !write.en.isConnected && write.waitFors.isEmpty && cn.getVec == reader.getVec => 
+        case cn@Const(c) if !write.en.isConnected && write.waitFors.isEmpty && cn.out.getVec == readVec => 
           val const = c match {
-            case c:List[_] => assert(c.size == reader.getVec, s"$c.vec=${c.size} $reader.vec=${reader.getVec}"); cn
-            case c if reader.getVec > 1 => 
-              within(cn.getCtrl, cn.parent.get) { allocConst(List.fill(reader.getVec) { c }).tp(cn.inferTp.get) }
+            case c:List[_] => assert(c.size == readVec, s"$c.vec=${c.size} $reader.vec=${readVec}"); cn
+            case c if readVec > 1 => 
+              within(cn.getCtrl, cn.parent.get) { allocConst(List.fill(readVec) { c }).tp(cn.inferTp.get) }
             case c => cn
           }
           Some(const)
@@ -199,7 +200,7 @@ trait RewriteUtil { self: PIRTransformer =>
       case (SC(OutputField(Const(from:List[_]),"out")), SC(OutputField(Const(to:List[_]),"out")), base) if from.intersect(to).isEmpty => 
         dbgblk(s"ShuffleUnmatch($n, from=${dquote(n.from.T)}, to=${dquote(n.to.T)})") {
           val c = within(n.ctx.get, n.getCtrl) {
-            allocConst(List.fill(n.inferVec.get)(n.filled))
+            allocConst(List.fill(n.getVec)(n.filled))
           }
           Some((n.out, c.out))
         }

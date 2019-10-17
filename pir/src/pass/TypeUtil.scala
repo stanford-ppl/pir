@@ -44,13 +44,19 @@ trait TypeUtil { self:PIRPass =>
 
   implicit class NodeRuntimeOp[N<:IR](n:N) {
     def vecMeta:MetadataLike[Int] = n.getMeta[Int]("vec")
-    def inferVec:Option[Int] = n.getMeta[Int]("vec").orElseUpdate { compVec(n) }
-    def getVec:Int = n.inferVec.getOrElse(bug(s"Don't know how to infer vec of ${dquote(n)}"))
+    def tpMeta:MetadataLike[BitType] = n.getMeta[BitType]("tp")
     def setVec(v:Int) = n.getMeta[Int]("vec").apply(v)
-    def inferTp:Option[BitType] = n.getMeta[BitType]("tp").orElseUpdate { compType(n) }
-    def getTp:BitType = n.inferTp.getOrElse(bug(s"Don't know how to infer type of ${dquote(n)}"))
     def setTp(v:BitType) = n.getMeta[BitType]("tp").apply(v)
     def setTp(v:Option[BitType]) = n.getMeta[BitType]("tp").update(v)
+    def getVec:Int = withLogger(self) { n.inferVec.orElse(n.singleOutput.flatMap { _.inferVec }) }
+      .getOrElse(bug(s"Don't know how to infer vec of ${dquote(n)}"))
+    def getTp:BitType = n.inferTp.orElse(n.singleOutput.flatMap { _.inferTp })
+      .getOrElse(bug(s"Don't know how to infer type of ${dquote(n)}"))
+    def singleOutput = n match {
+      case n:Node[_] =>
+        if (n.localOuts.size == 1) Some(n.localOuts.head) else None
+      case _ => None
+    }
   }
 
   val UnderControlBlock = MatchRule[PIRNode, ControlBlock] { case n =>
@@ -68,143 +74,6 @@ trait TypeUtil { self:PIRPass =>
       case n:GlobalInput => n.in.T.getBound
       case n:GlobalOutput => n.in.T.getBound
       case n => None
-    }
-  }
-
-  val ConnectedByDRAMCmd = MatchRule[IR, Int] { case n =>
-    val burstSize = 512 // TODO: get from spadeparam
-    n match {
-      case n@InputField(cmd:FringeDenseStore, "data" | "valid") => Some(burstSize /! cmd.data.getTp.nbits.get)
-      case n@InputField(cmd:FringeSparseLoad, "addr") => Some(1)
-      case n@InputField(cmd:FringeSparseStore, "addr" | "data") => Some(1)
-      case OutputField(read:BufferRead, _) =>
-        read.out.connected match {
-          case List(i@InputField(cmd:FringeDenseStore, "data" | "valid")) => i.inferVec
-          case List(i@InputField(cmd:FringeSparseLoad, "addr")) => i.inferVec
-          case List(i@InputField(cmd:FringeSparseStore, "addr" | "data")) => i.inferVec
-          case _ => None
-        }
-      case n:MemWrite =>
-        n.data.singleConnected match {
-          case Some(OutputField(cmd:FringeDenseLoad, "data")) => cmd.data.inferVec
-          case Some(OutputField(cmd:FringeSparseLoad, "data")) => cmd.data.inferVec
-          case Some(OutputField(cmd:FringeSparseStore, "ack")) => cmd.ack.inferVec
-          case _ => None
-        }
-      case OutputField(cmd:FringeDenseLoad, "data") => Some(burstSize /! cmd.data.getTp.nbits.get)
-      case OutputField(cmd:FringeSparseLoad, "data") => Some(1)
-      case OutputField(cmd:FringeSparseStore, "ack") => Some(1)
-      case _ => None
-    }
-  }
-
-  import spade.param._
-  def compVec(n:IR):Option[Int] = /*dbgblk(s"compVec(${dquote(n)})")*/ {
-    n match {
-      case n:Output[_] if n.getMeta[Int]("presetVec").nonEmpty => n.getMeta[Int]("presetVec").v
-      case OutputField(n:Controller, "laneValid") => Some(n.getCtrl.par.get)
-      case OutputField(n:FringeDenseStore, "ack") => Some(1)
-      case OutputField(n:LockAccess, _) => n.inferVec
-      case OutputField(n:MergeBuffer, "out") => n.inferVec
-      case OutputField(n:MergeBuffer, "outBound") => flatReduce(n.bounds.map { _.inferVec }) { Math.max(_,_) }
-      case ConnectedByDRAMCmd(vec) => Some(vec)
-      case n@OutputField(s:Splitter, "addrOut") => s.addrIn(s.addrOut.indexOf(n)).inferVec
-      case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferVec
-      case n:Forward => n.in.inferVec
-      case n:Controller => None
-      case n:Memory => None
-      case n:MergeBuffer => flatReduce(n.inputs.map { _.inferVec }) { Math.max(_,_) }
-      case n:PIRNode if n.presetVec.nonEmpty => n.presetVec.v
-      case n:CounterIter => Some(n.is.size)
-      case n:CounterValid => Some(n.is.size)
-      case Const(v:List[_]) => Some(v.size)
-      case Const(v) => Some(1)
-      case n:TokenWrite => Some(1)
-      case n:TokenRead => Some(1)
-      case WithData(n:MemWrite, data:MergeBuffer) => Some(data.par)
-      case n:MemWrite => n.broadcast.v.map { _.size }.orElse { 
-        if (n.mem.isConnected) {
-          n.mem.T match {
-            case mem:FIFO =>
-              n.getCtrl.schedule match {
-                case Streaming => Some(n.mem.T.banks.get.head)
-                case _ => Some(n.getCtrl.par.get)
-              }
-            case mem:Reg => n.data.inferVec
-          }
-        } else {
-          n.data.inferVec
-        }
-      }
-      case WithMem(n:MemRead, mem:Reg) => 
-        val b = n.mem.T.banks.get.head
-        Some(b)
-      //case WithMem(n:MemRead, mem:FIFO) => Some(n.getCtrl.par.get) // doesn't work for stream in
-      //out under stream controller
-      case WithMem(n:MemRead, mem:FIFO) => n.broadcast.v.map { _.size }.orElse(Some(n.mem.T.banks.get.head))
-      case n:BankedWrite => zipMap(n.data.inferVec, n.offset.inferVec) { case (a,b) => Math.max(a,b) }
-      case n:BankedRead => n.offset.inferVec // Before lowering
-      case n:LockAccess => Some(n.getCtrl.par.get)
-      case n:FlatBankedAccess => Some(n.mem.T.nBanks)
-      case n:BufferWrite => n.data.inferVec
-      case n:BufferRead => n.in.inferVec
-      case n:PrintIf => n.msg.inferVec
-      case n:AssertIf => n.cond.inferVec
-      case n:ExitIf => n.cond.inferVec
-      case n@OpDef(_:FixOp | _:FltOp | _:BitOp | _:TextOp | Mux | BitsAsData) => 
-        flatReduce(n.inputs.map{ _.inferVec}) { Math.max(_,_) }
-      case n:Shuffle => n.to.T.inferVec
-      case n:GlobalOutput => n.in.T.inferVec
-      // During staging time GlobalInput might temporarily not connect to GlobalOutput
-      case n:GlobalInput => n.in.inferVec
-      case InputField(n:Shuffle, "from" | "base") => zipMap(n.base.singleConnected.get.inferVec, n.from.singleConnected.get.inferVec) { case (a,b) => Math.max(a,b) }
-      case n@InputField(_:RegAccumOp | _:RegAccumFMA, "en") => n.as[Input[PIRNode]].connected.map { o => o.inferVec }.maxOption.getOrElse(Some(1))
-      case InputField(n:TokenAccess, "en") => Some(1)
-      case InputField(n:BufferWrite, "en") => n.inferVec
-      case InputField(n:BufferRead, "en") => n.out.inferVec
-      case InputField(n:FlatBankedAccess, field) => Some(n.mem.T.nBanks)
-      case n:Input[_] if n.isConnected && n.connected.size==1 => n.singleConnected.get.inferVec
-      case n:ControlTree => if (n.children.isEmpty) Some(n.par.get) else Some(1)
-      case n => None
-    }
-  }
-
-  def compType(n:IR):Option[BitType] = /*dbgblk(s"compType(${dquote(n)})")*/ {
-    n match {
-      case n@OutputField(s:Splitter, "addrOut") => s.addrIn(s.addrOut.indexOf(n)).inferTp
-      case OutputField(n:MergeBuffer, "out") => n.inferTp
-      case OutputField(n:MergeBuffer, "outBound") => n.bounds.head.inferTp
-      case OutputField(n:PIRNode, _) if n.localOuts.size==1 => n.inferTp
-      case OutputField(n:LockAccess, _) => n.inferTp
-      case n:Forward => n.in.inferTp
-      case n:Splitter => None
-      case n:Shuffle => n.base.inferTp
-      case n:TokenRead => Some(Bool)
-      case n:TokenWrite => Some(Bool)
-      case n:BufferWrite => n.data.inferTp
-      case n:BufferRead => n.in.inferTp
-      case n:GlobalInput => n.in.inferTp
-      case n:GlobalOutput => n.in.inferTp
-      case n:RegAccumOp => n.in.inferTp
-      case n:RegAccumFMA => n.in1.inferTp
-      case n:ReadAccess => n.mem.inferTp
-      case n:WriteAccess => n.data.inferTp
-      case n:Memory => assertOptionUnify(n.inAccesses, s"$n.type") { w => w.inferTp }
-      case n@OpDef(_:BitOp) => Some(Bool)
-      case n@OpDef(_:TextOp) => Some(Text)
-      case n@OpDef(_:FixOp | _:FltOp) => assertUnify(n.inputs, s"$n.tp") { _.inferTp }.get
-      case n@OpDef(Mux) => assertUnify(n.inputs.slice(1,3), s"$n.tp") { _.inferTp }.get
-      case Const(_:Boolean) => Some(Bool)
-      case Const(_:Int) => Some(Fix(true, 32, 0))
-      case Const(_:Float) => Some(Flt(23, 8))
-      case Const(_:Double) => Some(Flt(23, 8))
-      case Const(_:String) => Some(Text)
-      case Const((_:Boolean)::_) => Some(Bool)
-      case Const((_:Int)::_) => Some(Fix(true, 32, 0))
-      case Const((_:Float)::_) => Some(Flt(23, 8))
-      case Const((_:Double)::_) => Some(Flt(23, 8))
-      case n:Input[_] if n.isConnected && n.connected.size == 1 => n.singleConnected.get.inferTp
-      case n:Any => None
     }
   }
 

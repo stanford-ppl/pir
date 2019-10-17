@@ -236,7 +236,7 @@ using   namespace std;
   }
 
   def emitVec(n:IR, rhs:List[Any]) = {
-    assert(n.getVec == rhs.size)
+    assert(n.getVec == rhs.size, s"${dquote(n)}.vec ${n.getVec} != ${rhs.size}")
     n match {
       case n:Const if n.getVec == 1 =>
         declareInit(n.qtp, n.qref, Some(rhs.head))

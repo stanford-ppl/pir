@@ -51,12 +51,13 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
             matchInput(write.en,inAccess.en.connected) && 
             matchInput(write.done,enq)
           } {
-            stage(BufferWrite(mem.isFIFO)
-              .presetVec(inAccess.inferVec.get)
+            val write = BufferWrite(mem.isFIFO)
               .data(inAccess.data.connected)
               .mirrorMetas(inAccess)
               .en(inAccess.en.connected)
-              .done(enq))
+              .done(enq)
+            write.out.presetVec(inAccess.inferVec.get)
+            stage(write)
           }
         }
         val readCtx = outAccess.parent.get.as[Context]
@@ -80,13 +81,14 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
             matchInput(read.en,outAccess.en.connected) && 
             matchInput(read.done,deq)
           } {
-            stage(BufferRead(mem.isFIFO)
+            val read = BufferRead(mem.isFIFO)
               .in(write.out)
               .mirrorMetas(outAccess)
               .mirrorMetas(mem)
               .en(localReadEns).en(remoteReadEn.map{_._2})
               .done(deq)
-              .presetVec(outAccess.inferVec.get))
+            read.out.presetVec(outAccess.out.inferVec.get)
+            stage(read)
           }
         }
         remoteReadEn.foreach { case (enCtx,en) =>

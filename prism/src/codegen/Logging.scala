@@ -81,7 +81,7 @@ trait Logging extends Serializable {
       dbg(s"depeds=${n.depeds().toList.map(dquote)}")
       n.metadata.foreach { case (key,metadata) =>
         metadata.v.foreach { v =>
-          dbg(s"${metadata.name}($key) = $v")
+          dbg(s"${metadata.name} = $v")
         }
       }
     }

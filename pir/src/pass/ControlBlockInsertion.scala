@@ -46,7 +46,7 @@ class ControlBlockInsertion(implicit compiler:PIR) extends PIRTransformer with B
       val ctrlers = assertOneOrLess(extern.collect { case ctrler:Controller => ctrler }, s"ctrler for $ctrl in $ctx")
       val ctrler = ctrlers.getOrElse {
         // Make it easier for codegen. One to one correspondance between ctrl and controller
-        within(prev, ctrl) { stage(UnitController()) }
+        within(prev, ctrl) { stage(UnitController().par(1)) }
       }
       // Create dummy dependency to make sure ctrler is generated before ControlBlock
       val cb = within(prev, ctrl) { stage(ControlBlock().dummy(ctrler.laneValid)) }

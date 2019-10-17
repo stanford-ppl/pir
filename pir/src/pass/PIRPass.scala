@@ -99,12 +99,18 @@ with BufferAnalyzer
   }
 
   def stage[T<:PIRNode](n:T):T = dbgblk(s"stage($n)"){
-    val tp = n.inferTp
     n.localIns.foreach { in => 
-      in.inferVec
-      in.inferTp
+      withLogger(this) {
+        in.inferVec
+        in.inferTp
+      }
     }
-    val vec = n.inferVec
+    n.localOuts.foreach { out => 
+      withLogger(this) {
+        out.inferTp
+        out.inferVec
+      }
+    }
     dbgn(n)
     n
   }

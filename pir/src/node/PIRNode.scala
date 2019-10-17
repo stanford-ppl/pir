@@ -78,6 +78,17 @@ abstract class PIRNode(implicit env:BuildEnvironment)
   val waitFors = new Metadata[List[Int]]("waitFors")
   val barrier = new Metadata[Int]("barrier")
 
+  def compType(n:IR):Option[BitType] = n match {
+    case n:Input[_] if n.isConnected && n.connected.size == 1 =>
+      n.singleConnected.get.inferTp
+    case n => None
+  }
+  def compVec(n:IR):Option[Int] = n match {
+    case n:Input[_] if n.isConnected && n.connected.size == 1 =>
+      n.singleConnected.get.inferVec
+    case n => None
+  }
+
   env.initNode(this)
 }
 object PIRNode extends MemoryUtil with AccessUtil {
@@ -88,10 +99,6 @@ object PIRNode extends MemoryUtil with AccessUtil {
     def isUnder[T:ClassTag] = n.ancestors.exists { _.to[T].nonEmpty }
   }
 
-  implicit class MetadataIRUtil[T<:MetadataIR](n:T) {
-    def presetVec(v:Int) = n.getMeta[Int]("presetVec")(v)
-    def tp(v:BitType) = n.getMeta[BitType]("tp")(v)
-  }
 }
 
 sealed abstract class CtrlSchedule
