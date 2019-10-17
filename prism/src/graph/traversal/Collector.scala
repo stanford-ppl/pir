@@ -204,7 +204,11 @@ trait CollectorImplicit {
         PrefixTraversal.get[N,List[N]](prefix, visitFunc, accumulate _, Nil, logger).traverseNodes(nodes)
       }
 
-    def accumTill[M<:N:ClassTag](visitFunc:N => List[N]=visitLocalIn _, depth:Int= -1, logger:Option[Logging]=None):List[N] = {
+    def accumTill[M<:N:ClassTag](
+      visitFunc:N => List[N]=if (isInput) visitGlobalIn _ else visitGlobalOut _, 
+      depth:Int= -1, 
+      logger:Option[Logging]=None
+    ):List[N] = {
       def prefix(n:N) = n match { case n:M => true; case _ => false }
       dbgblk(logger, s"accumTill[${classTag[M]}](depth=$depth)"){
         accum(prefix _, visitFunc, depth, logger)

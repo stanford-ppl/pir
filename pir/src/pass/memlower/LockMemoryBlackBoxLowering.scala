@@ -17,6 +17,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
           dbg(msg)
           err(msg) 
       }
+    case n:LockSRAM =>
     case _ => super.visitNode(n)
   }
 
@@ -45,7 +46,6 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
     breakPoint(s"")
   }
 
-  //TODO:
   private def insertBarrier(mem:LockSRAM, reqs:List[(ControlTree, List[(Input[PIRNode], Output[PIRNode])])]) = {
     reqs.groupBy { _._1 }.foreach { case (mem, accesses) =>
       // Forward dependencies
@@ -62,7 +62,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
 
       val reads = accesses.collect { case access:LockRead => access }
       val writes = accesses.collect { case access:LockWrite => access }
-      val exps = reads.flatMap { read =>  //TODO: this should probabily use a single scheduler to get all exps
+      val exps = reads.flatMap { read => 
         read.out.accumTill[LockWrite]().filterNot { case access:Access => true; case _ => false }
       }.distinct
       dbg(s"accum exps: ${exps}")
@@ -72,7 +72,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
       // Wire up address port
       val addrCtx = within(pirTop, ig.ctrl) { Context() }
       val addr = assertUnify(accesses, s"addr") { _.addr.singleConnected.get }
-      val en = assertUnify(accesses, s"en") { _.en.connected.toSet }
+      accesses.reduce { (a1,a2) => if (matchInput(a1.en, a2.en)) a1 else err(s"$a1 and $a2 doesn't match in enable") }
       accesses.foreach { access => swapParent(access, addrCtx) }
       flattenEnable(accesses.head)
       val addrPort = block.addLockAddr
@@ -97,7 +97,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
         bufferInput(writeDataPort, fromCtx=Some(accumCtx))
       }
 
-      val reqPort = addrPort.singleConnected.get.as[BufferRead].inAccess.as[BufferWrite].data
+      val reqPort = addrPort.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
       val ackPort = block.addLockAck
 
       (reqPort, ackPort)
@@ -130,14 +130,14 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
         dataPort(access.data.singleConnected.get)
         bufferInput(addrPort)
         bufferInput(dataPort)
-        val reqPort = addrPort.singleConnected.get.as[BufferRead].inAccess.as[BufferWrite].data
+        val reqPort = addrPort.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
         val ackPort = block.addUnlockWriteAcks(mem)
         (reqPort, ackPort)
       case access:LockRead =>
         val addrPort = block.addUnlockReadAddrs(mem)
         addrPort(access.addr.singleConnected.get)
         bufferInput(addrPort, fromCtx=Some(addrCtx))
-        val reqPort = addrPort.singleConnected.get.as[BufferRead].inAccess.as[BufferWrite].data
+        val reqPort = addrPort.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
         val dataPort = block.addUnlockReadDatas(mem)
         access.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx, ins) =>
           ins.foreach { in =>

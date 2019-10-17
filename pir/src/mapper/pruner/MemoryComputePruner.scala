@@ -53,7 +53,7 @@ trait MemoryComputePartitioner extends PIRTransformer with CUCostUtil {
     }
   }
 
-  lazy val schedular = new PIRTraversal with BFSTopologicalTraversal with TreeScheduler { 
+  lazy val scheduler = new PIRTraversal with BFSTopologicalTraversal with TreeScheduler { 
     val forward = false
     override def visitIn(n:N) = visitLocalIn(n).collect { case ctx:Context if !ctx.hasChild[Access] => ctx }
     override def visitOut(n:N) = visitLocalOut(n).collect { case ctx:Context if !ctx.hasChild[Access] => ctx }
@@ -68,7 +68,7 @@ trait MemoryComputePartitioner extends PIRTransformer with CUCostUtil {
     val mem = k.collectDown[Memory]().head
     val addrCtxs = mem.accesses.map { access =>
       val actx = access.ctx.get
-      schedular.scheduleNode(actx).map { _.filterNot { 
+      scheduler.scheduleNode(actx).map { _.filterNot { 
           case ctx:Context =>
             var cond = ctx.hasChild[Access]
             if (!memPrunerHasRun) {

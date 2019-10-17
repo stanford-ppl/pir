@@ -538,7 +538,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     }
   }
 
-  override def removeNodes[N<:Node[N]](nodes:Iterable[Node[N]]):Unit = {
+  override def removeNodes[N<:Node[N]](nodes:Iterable[Node[N]], resetMeta:Boolean=true):Unit = {
     super.removeNodes(nodes)
     nodes.foreach { markVisited }
   }

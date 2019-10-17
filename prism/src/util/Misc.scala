@@ -71,7 +71,7 @@ trait Misc {
     else s.toInt
   }
 
-  def dbgblk[T](logger:Option[Logging], msg:Any)(f: => T):T = {
+  def dbgblk[T](logger:Option[Logging], msg: => Any)(f: => T):T = {
     logger.fold(f) { _.dbgblk(s"$msg") { f } }
   }
   
