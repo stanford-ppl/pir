@@ -103,9 +103,6 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
     tree.par := par
     tree.ctrler(ctrler)
     tree.isLoop := ctrler.isInstanceOf[LoopController]
-    ctrler.progorder.v.foreach { v =>
-      tree.progorder := v
-    }
     tree.parent.foreach { parent =>
       parent.ctrler.v.foreach { pctrler =>
         ctrler.parentEn(pctrler.childDone)

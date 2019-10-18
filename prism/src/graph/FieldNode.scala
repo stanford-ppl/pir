@@ -104,20 +104,26 @@ trait FieldNode[N<:Node[N]] extends Node[N] { self:N =>
     override def toString = s"${super.toString}_$name"
   }
 
+  private def getDynamicInputIndex(name:String) = {
+    localIns.filter { _.as[InputField[_]].name == name }.size - 1
+  }
+  private def getDynamicOutputIndex(name:String) = {
+    localOuts.filter { _.as[OutputField[_]].name == name }.size - 1
+  }
   def DynamicInputFields[T:TypeTag:ClassTag](name:String, xs:Seq[Any]):self.type = {
-    xs.foreach { x => new InputField[T](name).dynamic(true).apply(x) }
+    xs.foreach { x => new InputField[T](name).dynamicIdx(getDynamicInputIndex(name)).apply(x) }
     this
   }
   def DynamicInputFields[T:TypeTag:ClassTag](name:String, num:Int) = {
-    List.fill(num) { new InputField[T](name).dynamic(true) }
+    List.fill(num) { new InputField[T](name).dynamicIdx(getDynamicInputIndex(name)) }
   }
   def getDynamicInputFields[T](name:String):List[InputField[T]] = localIns.filter { _.as[InputField[_]].name == name }.toList.as
   def DynamicOutputFields[T:TypeTag:ClassTag](name:String, xs:Seq[Any]):self.type = {
-    xs.foreach { x => new OutputField[T](name).dynamic(true).apply(x) }
+    xs.foreach { x => new OutputField[T](name).dynamicIdx(getDynamicOutputIndex(name)).apply(x) }
     this
   }
   def DynamicOutputFields[T:TypeTag:ClassTag](name:String, num:Int) = {
-    List.fill(num){ new OutputField[T](name).dynamic(true) }
+    List.fill(num){ new OutputField[T](name).dynamicIdx(getDynamicOutputIndex(name)) }
   }
   def getDynamicOutputFields[T](name:String):List[OutputField[T]] = localOuts.filter { _.as[OutputField[_]].name == name }.toList.as
 

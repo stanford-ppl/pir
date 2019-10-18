@@ -23,6 +23,9 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
   override def visitNode(n:N) = {
     n.to[Controller].foreach { n =>
       n.srcCtx.v.foreach { v => n.ctrl.get.srcCtx := v }
+      n.progorder.v.foreach { v =>
+        n.getCtrl.progorder := v
+      }
       n.sname.v.foreach { v => n.ctrl.get.sname := v }
       n.descendents.foreach { d =>
         val ctrl = n.ctrl.get

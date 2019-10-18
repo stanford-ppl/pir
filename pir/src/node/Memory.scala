@@ -70,11 +70,11 @@ case class Splitter()(implicit env:Env) extends BlackBox {
   def addAddrIn(xs:Any*) = DynamicInputFields[PIRNode]("addrIn", xs)
   def addAddrOut(num:Int) = DynamicOutputFields[PIRNode]("addrOut", num)
   override def compType(n:IR) = n match {
-    case n@OutputField(_,"addrOut") => addrIn(addrOut.indexOf(n)).inferTp
+    case n@OutputField(_,"addrOut") => addrIn(n.dynamicIdx.get).inferTp
     case _ => super.compType(n)
   }
   override def compVec(n:IR) = n match {
-    case OutputField(_,"addrOut") => addrIn(addrOut.indexOf(n)).inferVec
+    case n@OutputField(_,"addrOut") => addrIn(n.dynamicIdx.get).inferVec
     case _ => super.compVec(n)
   }
 }
@@ -119,15 +119,20 @@ case class LockRMABlock(
 )(implicit env:Env) extends BlackBox {
   def unlockReadAddrs(accum:LockSRAM) = getDynamicInputFields[PIRNode](s"unlockReadAddr_${accum}")
   def unlockReadDatas(accum:LockSRAM) = getDynamicOutputFields[PIRNode](s"unlockReadData_${accum}")
-  def addUnlockReadAddrs(accum:LockSRAM) = DynamicInputFields[PIRNode](s"unlockReadAddr_${accum}",1).head
-  def addUnlockReadDatas(accum:LockSRAM) = DynamicOutputFields[PIRNode](s"unlockReadData_${accum}",1).head
+  def addUnlockReadAddr(accum:LockSRAM) = DynamicInputFields[PIRNode](s"unlockReadAddr_${accum}",1).head
+  def addUnlockReadData(accum:LockSRAM) = DynamicOutputFields[PIRNode](s"unlockReadData_${accum}",1).head.tp(accum.tp.get)
+  def allUnlockReadAddrs = accums.flatMap { unlockReadAddrs }
+  def allUnlockReadDatas = accums.flatMap { unlockReadDatas }
 
   def unlockWriteAddrs(accum:LockSRAM) = getDynamicInputFields[PIRNode](s"unlockWriteAddr_${accum}")
   def unlockWriteDatas(accum:LockSRAM) = getDynamicInputFields[PIRNode](s"unlockWriteData_${accum}")
   def unlockWriteAcks(accum:LockSRAM) = getDynamicOutputFields[PIRNode](s"unlockWriteAck_${accum}")
-  def addUnlockWriteAddrs(accum:LockSRAM) = DynamicInputFields[PIRNode](s"unlockWriteAddr_${accum}",1).head.tp(Fix(true,32,0))
-  def addUnlockWriteDatas(accum:LockSRAM) = DynamicInputFields[PIRNode](s"unlockWriteData_${accum}",1).head
+  def addUnlockWriteAddr(accum:LockSRAM) = DynamicInputFields[PIRNode](s"unlockWriteAddr_${accum}",1).head.tp(Fix(true,32,0))
+  def addUnlockWriteData(accum:LockSRAM) = DynamicInputFields[PIRNode](s"unlockWriteData_${accum}",1).head
   def addUnlockWriteAcks(accum:LockSRAM) = DynamicOutputFields[PIRNode](s"unlockWriteAck_${accum}",1).head.tp(Bool).presetVec(1)
+  def allUnlockWriteAddrs = accums.flatMap { unlockWriteAddrs }
+  def allUnlockWriteDatas = accums.flatMap { unlockWriteDatas }
+  def allUnlockWriteAcks = accums.flatMap { unlockWriteAcks }
 
   def lockAddrs = getDynamicInputFields[PIRNode](s"lockAddr")
   def addLockAddr = DynamicInputFields[PIRNode](s"lockAddr",1).head.tp(Fix(true,32,0))
@@ -135,10 +140,27 @@ case class LockRMABlock(
   def addLockAck = DynamicOutputFields[PIRNode](s"lockAck",1).head.tp(Bool).presetVec(1)
 
   def lockDataIns(accum:LockSRAM) = getDynamicInputFields[PIRNode](s"lockDataIn_${accum}")
-  def addLockDataIns(accum:LockSRAM) = DynamicInputFields[PIRNode](s"lockDataIn_${accum}",1).head
+  def addLockDataIn(accum:LockSRAM) = DynamicInputFields[PIRNode](s"lockDataIn_${accum}",1).head.tp(accum.tp.get)
   def lockDataOuts(accum:LockSRAM) = getDynamicInputFields[PIRNode](s"lockDataOut_${accum}")
-  def addLockDataOuts(accum:LockSRAM) = DynamicOutputFields[PIRNode](s"lockDataOut_${accum}", 1).head
+  def addLockDataOut(accum:LockSRAM) = DynamicOutputFields[PIRNode](s"lockDataOut_${accum}",1).head.tp(accum.tp.get)
+  def allLockDataIns = accums.flatMap { lockDataIns }
+  def allLockDataOuts = accums.flatMap { lockDataOuts }
 
+  override def compVec(n:IR) = n match {
+    case n@OutputField(_,LockRMABlock.lockDataOutAccum(accum)) => 
+      val in = getDynamicInputFields[PIRNode](s"lockAddr")
+      get(in,n.dynamicIdx.get).flatMap { _.inferVec }
+    case n@OutputField(_,LockRMABlock.unlockReadDataAccum(accum)) => 
+      val in = getDynamicInputFields[PIRNode](s"unlockReadAddr_${accum}")
+      get(in,n.dynamicIdx.get).flatMap { _.inferVec }
+    case _ => super.compVec(n)
+  }
+}
+object LockRMABlock {
+  val lockDataOutAccum = s"lockDataOut_(.*)".r
+  val unlockReadDataAccum = s"unlockReadData_(.*)".r
+  val unlockWriteDataAccum = s"unlockWriteData_(.*)".r
+  val unlockWriteAckAccum = s"unlockWriteAck_(.*)".r
 }
 
 case class Top()(implicit env:Env) extends PIRNode {

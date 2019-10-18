@@ -433,7 +433,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     w2.data.T match {
       case r1:BufferRead if r1.isFIFO == r2.isFIFO && matchRate(w2, r1) & matchInput(r1.en, w2.en) & !r2.nonBlocking =>
         val w1 = r1.inAccess.as[BufferWrite]
-        dbgblk(s"Route through (3) $w1 -> $r1 -> $w2 -> $r2 detected => ") {
+        dbgblk(s"Route through (2) $w1 -> $r1 -> $w2 -> $r2 detected => ") {
           dbg(s" => $w1 -> $r2")
           r1.presetVec.v.foreach { v => r2.presetVec(v) } // Most before swapConncetion
           mirrorSyncMeta(w2, w1)
@@ -441,6 +441,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
             r2.name.reset
             r2.name.update(name)
           }
+          r1.initToken.v.foreach { v => r2.initToken(v) }
           val go1 = w1.gout
           val gi2 = r2.gin
           (go1, gi2) match {

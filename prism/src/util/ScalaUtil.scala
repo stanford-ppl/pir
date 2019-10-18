@@ -150,6 +150,8 @@ trait ScalaUtilFunc {
     }
   }
 
+  def get[T](x:List[T],i:Int):Option[T] = if (x.size > i) Some(x(i)) else None
+
   def unpack(x:Any)(base:PartialFunction[Any,Any]):Any = {
     def recurse(x:Any):Any = x match {
       case x:Iterable[_] => x.map { recurse }

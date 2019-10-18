@@ -83,12 +83,21 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
     }
     reads.foreach { _.getCount }
     dbg(s"reads=$reads passTwo=$passTwo")
-    reads = reads.filterNot { 
-      _.out.connected.exists { case InputField(m:MergeBuffer, input) => true; case _ => false }
+    val bbs = n.collectDown[BlackBox]()
+    val counts = bbs.headOption match {
+      case Some(bb:MergeBuffer) => List(Unknown)
+      case Some(bb:LockRMABlock) => 
+        (bb.lockAddrs.map { _.T.as[BufferRead] }, 
+          bb.unlockReadAddrs(bb.accums.head).map { _.T.as[BufferRead] }, 
+          bb.unlockWriteAddrs(bb.accums.head).map { _.T.as[BufferRead] }
+        ).zipped.map { case (la, ura, uwa) =>
+          import Value._
+          zipMap(la.getCount,ura.getCount,uwa.getCount) { case (la,ura,uwa) => la + ura + uwa }.getOrElse(Unknown)
+        }
+      case Some(_) => List(Unknown)
+      case None => reads.flatMap { read => read.getCount.map { _ * read.getScale } } 
     }
-    val counts = reads.flatMap { read => 
-      read.getCount.map { _ * read.getScale }
-    }
+
     val (unknown, known) = counts.partition { _.unknown }
     val (finite, infinite) = known.partition { _.isFinite }
     val c = if (unknown.nonEmpty) Some(Unknown)
@@ -144,6 +153,14 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
           n.in.T.getCount.map { _ /! n.writeDone.collectFirst[BufferWrite]().data.singleConnected.get.getScale }
         case WrittenBy(OutputField(_:FringeStreamRead, "lastBit")) => 
           Some(Finite(1))
+        case WrittenBy(o@OutputField(l:LockRMABlock, LockRMABlock.unlockReadDataAccum(accum))) => 
+          l.getDynamicInputFields[PIRNode](s"unlockReadAddr_${accum}")(o.dynamicIdx.get).T.getCount
+        case WrittenBy(o@OutputField(l:LockRMABlock, LockRMABlock.unlockWriteAckAccum(accum))) => 
+          l.getDynamicInputFields[PIRNode](s"unlockWriteAddr_${accum}")(o.dynamicIdx.get).T.getCount
+        case WrittenBy(o@OutputField(l:LockRMABlock, LockRMABlock.lockDataOutAccum(accum))) => 
+          l.getDynamicInputFields[PIRNode](s"lockAddr")(o.dynamicIdx.get).T.getCount
+        case WrittenBy(o@OutputField(l:LockRMABlock, "lockAck")) => 
+          l.getDynamicInputFields[PIRNode](s"lockAddr")(o.dynamicIdx.get).T.getCount
         case n:LocalOutAccess =>
           n.in.T.getCount.map { _ * n.in.getVec /! n.out.getVec }
         case n:LocalInAccess =>
@@ -216,6 +233,7 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
               case OutputField(n:FringeDenseStore, "ack") => n.getIter * n.ctx.get.getScheduleFactor
               case OutputField(n:FringeStreamRead, "lastBit") => Unknown
               case OutputField(n:MergeBuffer, "outBound") => n.getIter * n.ctx.get.getScheduleFactor
+              case OutputField(n:LockRMABlock, output) => Unknown
               case out => Finite(n.ctx.get.getScheduleFactor)
             }
           case (n:BufferRead, done) if n.ctx.get.streaming.get =>
@@ -224,6 +242,7 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
               case InputField(n:MergeBuffer, "init") => n.getIter * n.ctx.get.getScheduleFactor
               case InputField(n:MergeBuffer, bound) => n.getIter * n.ctx.get.getScheduleFactor
               case InputField(n:MergeBuffer, input) => Unknown
+              case InputField(n:LockRMABlock, input) => Unknown
               case in => Finite(n.ctx.get.getScheduleFactor)
             }
           case (n, done) => compScale(done) 

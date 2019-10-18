@@ -232,6 +232,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
       bbs.foreach { bbs =>
         bbs.name.v.foreach { name => l += s"\n$name" }
         bbs.to[Splitter].foreach{ s => l += s"\n$s" }
+        bbs.to[LockRMABlock].foreach{ s => l += s"\n$s" }
       }
       if (mem.isEmpty && bbs.isEmpty) {
         n.collectDown[LocalOutAccess]().foreach { mem =>
