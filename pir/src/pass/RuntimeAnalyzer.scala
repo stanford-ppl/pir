@@ -153,14 +153,14 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
           n.in.T.getCount.map { _ /! n.writeDone.collectFirst[BufferWrite]().data.singleConnected.get.getScale }
         case WrittenBy(OutputField(_:FringeStreamRead, "lastBit")) => 
           Some(Finite(1))
-        case WrittenBy(o@OutputField(l:LockRMABlock, LockRMABlock.unlockReadDataAccum(accum))) => 
-          l.getDynamicInputFields[PIRNode](s"unlockReadAddr_${accum}")(o.dynamicIdx.get).T.getCount
-        case WrittenBy(o@OutputField(l:LockRMABlock, LockRMABlock.unlockWriteAckAccum(accum))) => 
-          l.getDynamicInputFields[PIRNode](s"unlockWriteAddr_${accum}")(o.dynamicIdx.get).T.getCount
-        case WrittenBy(o@OutputField(l:LockRMABlock, LockRMABlock.lockDataOutAccum(accum))) => 
-          l.getDynamicInputFields[PIRNode](s"lockAddr")(o.dynamicIdx.get).T.getCount
+        case WrittenBy(o@OutputField(l:LockRMABlock, "unlockReadData")) => 
+          l.unlockReadAddrs(l.accumMap(o))(l.laneMap(o)).T.getCount
+        case WrittenBy(o@OutputField(l:LockRMABlock, "unlockWriteAck")) => 
+          l.unlockWriteAddrs(l.accumMap(o))(l.laneMap(o)).T.getCount
+        case WrittenBy(o@OutputField(l:LockRMABlock, "lockDataOut")) => 
+          l.lockAddrs(l.laneMap(o)).T.getCount
         case WrittenBy(o@OutputField(l:LockRMABlock, "lockAck")) => 
-          l.getDynamicInputFields[PIRNode](s"lockAddr")(o.dynamicIdx.get).T.getCount
+          l.lockAddrs(l.laneMap(o)).T.getCount
         case n:LocalOutAccess =>
           n.in.T.getCount.map { _ * n.in.getVec /! n.out.getVec }
         case n:LocalInAccess =>

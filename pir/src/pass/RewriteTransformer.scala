@@ -442,6 +442,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
             r2.name.update(name)
           }
           r1.initToken.v.foreach { v => r2.initToken(v) }
+          r1.inits.v.foreach { v => r2.inits(v) }
           val go1 = w1.gout
           val gi2 = r2.gin
           (go1, gi2) match {
@@ -540,7 +541,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     }
   }
 
-  override def removeNodes[N<:Node[N]](nodes:Iterable[Node[N]], resetMeta:Boolean=true):Unit = {
+  override def removeNodes[N<:Node[N]](nodes:Iterable[Node[N]]):Unit = {
     super.removeNodes(nodes)
     nodes.foreach { markVisited }
   }

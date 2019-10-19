@@ -64,8 +64,10 @@ trait ScalaUtilFunc {
     list.head
   }
 
-  def assertUnique[A](list:Iterable[A],info: => String):Unit = {
-    assert(list.toSet.size == list.size, s"$info is not unique=$list")
+  def assertUnique[A](list:Iterable[A],info: => String):A = {
+    val distinct = list.toSeq.distinct
+    assert(distinct.size == 1, s"$info is not unique=$list")
+    distinct.head
   }
 
   def testOne[A](list:Iterable[A]):Option[A] = {

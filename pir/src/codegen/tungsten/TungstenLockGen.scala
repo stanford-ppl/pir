@@ -11,7 +11,7 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
 
   override def emitNode(n:N) = n match {
     case ctx:Context if ctx.streaming.get && (ctx.descendents.exists { case lock:Lock => true; case splitter:Splitter => true; case _ => false }) => 
-      withinBB(global=false) {
+      withinBB {
         visitNode(n)
       }
 
@@ -119,6 +119,8 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
 
     case n:LockSRAM => genTopMember(n, Seq(n.qstr))
 
+    case n:LockRMABlock => genTopMember(n, Seq(n.qstr, "net".&, "statnet".&, "idealnet".&, "DRAM".&))
+
     case n => super.emitNode(n)
   }
 
@@ -136,6 +138,7 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
     case n:LockRead => (s"${tpOf(n.mem.T)}::SparsePMUPort*", s"${n}_port")
     case n:LockWrite => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
     case n:LockSRAM => (s"SparsePMU<${n.qtp},$wordPerBank,${spadeParam.vecWidth}>", s"$n")
+    case n:LockRMABlock => (s"SparseRMWBlock<${n.accums.head.tp.qtp},${n.accums.head.dims.head},${n.accums.size},${n.par},${spadeParam.vecWidth}>",s"$n")
     case n => super.varOf(n)
   }
 

@@ -18,6 +18,7 @@ object FileBus {
 case class FileEOFBus(override val fileName:String) extends FileBus(fileName)
 
 trait BlackBox extends PIRNode
+trait GlobalBlackBox extends BlackBox
 
 trait FringeCommand extends BlackBox
 

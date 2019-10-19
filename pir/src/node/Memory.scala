@@ -114,55 +114,51 @@ case class LockOnKeys()(implicit env:Env) extends Def {
   tp(Bool)
 }
 
+case class LockAccum(tp:BitType, dims:List[Int], srcCtx:Option[String], name:Option[String])
 case class LockRMABlock(
-  accums:List[LockSRAM],
-)(implicit env:Env) extends BlackBox {
-  def unlockReadAddrs(accum:LockSRAM) = getDynamicInputFields[PIRNode](s"unlockReadAddr_${accum}")
-  def unlockReadDatas(accum:LockSRAM) = getDynamicOutputFields[PIRNode](s"unlockReadData_${accum}")
-  def addUnlockReadAddr(accum:LockSRAM) = DynamicInputFields[PIRNode](s"unlockReadAddr_${accum}",1).head
-  def addUnlockReadData(accum:LockSRAM) = DynamicOutputFields[PIRNode](s"unlockReadData_${accum}",1).head.tp(accum.tp.get)
-  def allUnlockReadAddrs = accums.flatMap { unlockReadAddrs }
-  def allUnlockReadDatas = accums.flatMap { unlockReadDatas }
+  par:Int,
+  accums:List[LockAccum],
+)(implicit env:Env) extends GlobalBlackBox {
+  val unlockReadAddrs = accums.map { a => a -> List.fill(par) { new InputField[PIRNode](s"unlockReadAddr").tp(Fix(true, 32, 0)) } }.toMap
+  val unlockReadDatas = accums.map { a => a -> List.fill(par) { new OutputField[PIRNode](s"unlockReadData").tp(a.tp) } }.toMap
 
-  def unlockWriteAddrs(accum:LockSRAM) = getDynamicInputFields[PIRNode](s"unlockWriteAddr_${accum}")
-  def unlockWriteDatas(accum:LockSRAM) = getDynamicInputFields[PIRNode](s"unlockWriteData_${accum}")
-  def unlockWriteAcks(accum:LockSRAM) = getDynamicOutputFields[PIRNode](s"unlockWriteAck_${accum}")
-  def addUnlockWriteAddr(accum:LockSRAM) = DynamicInputFields[PIRNode](s"unlockWriteAddr_${accum}",1).head.tp(Fix(true,32,0))
-  def addUnlockWriteData(accum:LockSRAM) = DynamicInputFields[PIRNode](s"unlockWriteData_${accum}",1).head
-  def addUnlockWriteAcks(accum:LockSRAM) = DynamicOutputFields[PIRNode](s"unlockWriteAck_${accum}",1).head.tp(Bool).presetVec(1)
-  def allUnlockWriteAddrs = accums.flatMap { unlockWriteAddrs }
-  def allUnlockWriteDatas = accums.flatMap { unlockWriteDatas }
-  def allUnlockWriteAcks = accums.flatMap { unlockWriteAcks }
+  val unlockWriteAddrs = accums.map { a => a -> List.fill(par) { new InputField[PIRNode](s"unlockWriteAddr").tp(Fix(true, 32, 0)) } }.toMap
+  val unlockWriteDatas = accums.map { a => a -> List.fill(par) { new InputField[PIRNode](s"unlockWriteData").tp(a.tp) } }.toMap
+  val unlockWriteAcks = accums.map { a => a -> List.fill(par) { new OutputField[PIRNode](s"unlockWriteAck").tp(Bool).presetVec(1) } }.toMap
 
-  def lockAddrs = getDynamicInputFields[PIRNode](s"lockAddr")
-  def addLockAddr = DynamicInputFields[PIRNode](s"lockAddr",1).head.tp(Fix(true,32,0))
-  def lockAcks = getDynamicOutputFields[PIRNode](s"lockAck")
-  def addLockAck = DynamicOutputFields[PIRNode](s"lockAck",1).head.tp(Bool).presetVec(1)
+  val lockAddrs = List.fill(par) { new InputField[PIRNode](s"lockAddr").tp(Fix(true,32,0)) }
+  val lockDataIns = accums.map { a => a -> List.fill(par) { new InputField[PIRNode](s"lockDataIn").tp(a.tp) } }.toMap
+  val lockDataOuts = accums.map { a => a -> List.fill(par) { new OutputField[PIRNode](s"lockDataOut").tp(a.tp) } }.toMap
+  val lockAcks = List.fill(par) { new OutputField[PIRNode](s"lockAck").tp(Bool).presetVec(1) }
 
-  def lockDataIns(accum:LockSRAM) = getDynamicInputFields[PIRNode](s"lockDataIn_${accum}")
-  def addLockDataIn(accum:LockSRAM) = DynamicInputFields[PIRNode](s"lockDataIn_${accum}",1).head.tp(accum.tp.get)
-  def lockDataOuts(accum:LockSRAM) = getDynamicInputFields[PIRNode](s"lockDataOut_${accum}")
-  def addLockDataOut(accum:LockSRAM) = DynamicOutputFields[PIRNode](s"lockDataOut_${accum}",1).head.tp(accum.tp.get)
-  def allLockDataIns = accums.flatMap { lockDataIns }
-  def allLockDataOuts = accums.flatMap { lockDataOuts }
+  val accumMap:Map[Edge[_,_,_],LockAccum] = 
+    unlockReadAddrs.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
+    unlockReadDatas.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
+    unlockWriteAddrs.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
+    unlockWriteDatas.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
+    unlockWriteAcks.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
+    lockDataIns.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
+    lockDataOuts.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ }
+
+  val laneMap:Map[Edge[_,_,_],Int] = 
+    unlockReadAddrs.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    unlockReadDatas.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    unlockWriteAddrs.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++ 
+    unlockWriteDatas.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    unlockWriteAcks.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    lockAddrs.zipWithIndex.toMap ++
+    lockDataIns.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    lockDataOuts.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    lockAcks.zipWithIndex.toMap
 
   override def compVec(n:IR) = n match {
-    case n@OutputField(_,LockRMABlock.lockDataOutAccum(accum)) => 
-      val in = getDynamicInputFields[PIRNode](s"lockAddr")
-      get(in,n.dynamicIdx.get).flatMap { _.inferVec }
-    case n@OutputField(_,LockRMABlock.unlockReadDataAccum(accum)) => 
-      val in = getDynamicInputFields[PIRNode](s"unlockReadAddr_${accum}")
-      get(in,n.dynamicIdx.get).flatMap { _.inferVec }
+    case n@OutputField(_,"lockDataOut") => 
+      lockAddrs(laneMap(n)).inferVec
+    case n@OutputField(_,"unlockReadData") => 
+      unlockReadAddrs(accumMap(n))(laneMap(n)).inferVec
     case _ => super.compVec(n)
   }
 }
-object LockRMABlock {
-  val lockDataOutAccum = s"lockDataOut_(.*)".r
-  val unlockReadDataAccum = s"unlockReadData_(.*)".r
-  val unlockWriteDataAccum = s"unlockWriteData_(.*)".r
-  val unlockWriteAckAccum = s"unlockWriteAck_(.*)".r
-}
-
 case class Top()(implicit env:Env) extends PIRNode {
   var topCtrl:ControlTree = _
   var hostInCtrl:ControlTree = _
@@ -179,6 +175,7 @@ case class ArgFringe()(implicit env:Env) extends GlobalContainer {
 }
 case class MemoryContainer()(implicit env:Env) extends GlobalContainer
 case class ComputeContainer()(implicit env:Env) extends GlobalContainer
+case class BlackBoxContainer()(implicit env:Env) extends GlobalContainer
 case class DRAMFringe()(implicit env:Env) extends GlobalContainer
 
 trait GlobalIO extends PIRNode

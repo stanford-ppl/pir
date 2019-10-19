@@ -38,6 +38,9 @@ class ProgramReport(implicit design:PIR) extends Report with PIRTraversal with J
       case (cl, globals) if cl == classOf[DRAMFringe] =>
         sinfo(s"MCs: ${globals.size}")
         emitkv(s"MC:", globals.size)
+      case (cl, globals) if cl == classOf[BlackBoxContainer] =>
+        sinfo(s"BBs: ${globals.size}")
+        emitkv(s"BB:", globals.size)
     }
   }
 

@@ -161,6 +161,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
 
     case n:ComputeContainer => attr.setNode.fillcolor("dodgerblue").style(filled)
     case n:DRAMFringe => attr.setNode.fillcolor("lightseagreen").style(filled)
+    case n:BlackBoxContainer => attr.setNode.fillcolor("crimson").style(filled)
     case n:Top => super.color(attr,n)
   }
 
@@ -171,6 +172,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
 
     //case n:ComputeContainer => attr.setNode.label("PCU")
     //case n:DRAMFringe => attr.setNode.label("MC")
+    //case n:BlackBoxContainer => attr.setNode.label("BB")
     //case n:Top => super.color(attr,n)
   //}
   
@@ -222,6 +224,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
         case n:ComputeContainer => "C"
         case n:MemoryContainer => "M"
         case n:DRAMFringe => "D"
+        case n:BlackBoxContainer => "B"
       }
       var l = s"${tp}${n.id}"
       val mem = n.collectDown[Memory]()

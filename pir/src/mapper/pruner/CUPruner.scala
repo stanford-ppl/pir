@@ -30,7 +30,7 @@ trait CUPruner extends ConstrainPruner with CUCostUtil with PIRTransformer with 
     Right(fg.mapFreeMap { _ - k ++ (ks, vs) })
   }
 
-  override def removeNodes[N<:Node[N]](nodes:Iterable[Node[N]], resetMeta:Boolean=true) = {
+  override def removeNodes[N<:Node[N]](nodes:Iterable[Node[N]]) = {
     super.removeNodes(nodes)
     nodes.foreach { removeCache }
   }

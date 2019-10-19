@@ -9,12 +9,12 @@ trait Transformer extends Logging {
     node.localEdges.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
   }
 
-  def removeNodes[N<:Node[N]](nodes:Iterable[Node[N]], resetMeta:Boolean=true):Unit = {
+  def removeNodes[N<:Node[N]](nodes:Iterable[Node[N]]):Unit = {
     if (nodes.isEmpty) return
     dbg(s"Remove ${nodes.mkString(",")}")
     this.to[Traversal].foreach { self => nodes.foreach { self.markVisited(_) } }
     nodes.foreach { node =>
-      if (resetMeta) node.metadata.values.foreach{_.reset}
+      node.metadata.values.foreach{_.reset}
       node.localEdges.foreach { io => 
         val connected = io.connected.map(_.src)
         io.disconnect

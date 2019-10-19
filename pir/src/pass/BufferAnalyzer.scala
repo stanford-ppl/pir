@@ -94,12 +94,14 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
             stage(BufferWrite(isFIFO=isFIFO).data(depOut).done(enq))
           }
         }
+        val globalbb = depedIn.src.isInstanceOf[GlobalBlackBox]
         val read = within(depedCtx, depedCtx.getCtrl) {
           allocate[BufferRead] { read => 
+            !globalbb && 
             read.isFIFO==isFIFO &&
             canReach(read.in,write.out) &&
             canReach(read.done,deq) &&
-            !read.en.isConnected
+            !read.en.isConnected 
           } {
             stage(BufferRead(isFIFO=isFIFO).in(write.out).done(deq))
           }

@@ -27,17 +27,19 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
 
   private def lowerRMW(
     lock:Lock, 
+    rmwpar:Int,
     lockMems:List[LockSRAM], // Lock address, one per outer loop lane
-    rmwig:InnerAccessGroup, // Inner Ctrl with Read Modify Write
     igs:List[InnerAccessGroup] // A list of sparse accum group
   ) = dbgblk(s"lowerRMW($lock)"){
     within(pirTop, lock.getCtrl) {
       val blockCtx = within(pirTop, lock.getCtrl) { stage(Context().streaming(true)) }
-      val block = within(blockCtx, lock.getCtrl) { LockRMABlock(lockMems) }
+      val lockAccums = lockMems.map { mem => LockAccum(mem.tp.get, mem.dims.get, mem.srcCtx.v, mem.name.v) }
+      val accumMap = (lockMems,lockAccums).zipped.toMap
+      val block = within(blockCtx, lock.getCtrl) { LockRMABlock(rmwpar,lockAccums) }
       block.mirrorMetas(lock)
       val reqs = igs.flatMap { ig =>
-        if (ig.isLockedAccess) lowerLockedRMW(ig, block, blockCtx)
-        else lowerUnlockAccessGroup(ig, block, blockCtx)
+        if (ig.isLockedAccess) lowerLockedRMW(ig, block, blockCtx, accumMap)
+        else lowerUnlockAccessGroup(ig, block, blockCtx, accumMap)
       }
       reqs.groupBy { case (mem, ctrl, reqs) => mem }.foreach { case (mem, reqs) =>
         val sorted = reqs.map { case (mem,ctrl,reqs) => (ctrl, reqs) }.sortBy { _._1.progorder.get }
@@ -48,19 +50,26 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
   }
 
   private def insertBarrier(mem:LockSRAM, reqs:List[(ControlTree, List[(Input[PIRNode], Output[PIRNode])])]) = {
-    reqs.groupBy { _._1 }.foreach { case (mem, accesses) =>
-      // Forward dependencies
-      accesses.sliding(2,1).foreach {
-        case List(a,b) =>
-        case List(a) =>
-      }
+    // Forward dependencies
+    reqs.sliding(2,1).foreach {
+      case List((actrl, as),(bctrl,bs)) =>
+        as.foreach { case (areqst, aresp) =>
+          val actx = aresp.src.ctx.get
+          bs.foreach { case (breqst, bresp) =>
+            val bctx = breqst.src.ctx.get
+            val read = insertToken(actx, bctx, dep=Some(aresp))
+            val original = breqst.singleConnected.get
+            val forward = within(bctx, bctx.getCtrl) { stage(Forward().in(original).dummy(read.out)) }
+            swapConnection(breqst, original, forward.out)
+          }
+        }
+      case List(a) =>
     }
   }
 
-  private def lowerLockedRMW(ig:InnerAccessGroup, block:LockRMABlock, blockCtx:Context) = dbgblk(s"lowerLockedRMW($ig)"){
+  private def lowerLockedRMW(ig:InnerAccessGroup, block:LockRMABlock, blockCtx:Context, accumMap:Map[LockSRAM,LockAccum]) = dbgblk(s"lowerLockedRMW($ig)"){
     val lanes = ig.group.flatMap { _.accesses.map { case UnrolledAccess(mem, lanes) => lanes }}.transpose
-    val req = lanes.map { accesses =>
-      dbg(s"accesses=${accesses}")
+    val req = lanes.zipWithIndex.map { case (accesses,lane) =>
 
       val reads = accesses.collect { case access:LockRead => access }
       val writes = accesses.collect { case access:LockWrite => access }
@@ -68,28 +77,30 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
         read.out.accumTill[LockWrite]().filterNot { case access:Access => true; case _ => false }
       }.distinct
       dbg(s"accum exps: ${exps}")
-      val accumCtx = within(pirTop, reads.head.getCtrl) { stage(Context().streaming(true)) }
+      val accumCtrl = reads.head.getCtrl
+      val accumCtx = within(pirTop, accumCtrl) { stage(Context().streaming(true)) }
       exps.foreach { exp => swapParent(exp, accumCtx) }
       bufferInput(accumCtx, fromCtx=Some(reads.head.ctx.get))
 
       // Wire up address port
-      val addrCtx = within(pirTop, reads.head.getCtrl) { stage(Context()) }
+      val addrCtx = within(pirTop, accumCtrl) { stage(Context()) }
       val addr = assertUnify(accesses, s"addr") { _.addr.singleConnected.get }
       accesses.reduce { (a1,a2) => if (matchInput(a1.en, a2.en)) a1 else err(s"$a1 and $a2 doesn't match in enable") }
       accesses.foreach { access => swapParent(access, addrCtx) }
       flattenEnable(accesses.head)
-      val addrPort = block.addLockAddr
+      val addrPort = block.lockAddrs(lane)
       addrPort(addr)
       bufferInput(addrPort, fromCtx=Some(addrCtx))
 
       // Wire up read data
       reads.foreach { read =>
-        val readDataPort = block.addLockDataOut(read.mem.T.as[LockSRAM])
+        val readDataPort = block.lockDataOuts(accumMap(read.mem.T.as[LockSRAM]))(lane)
         read.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx, ins) =>
           ins.foreach { in =>
             swapConnection(in, read.out, readDataPort)
             bufferInput(in).foreach { read =>
               read.initToken := true
+              read.inits := true
             }
           }
         }
@@ -97,30 +108,45 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
 
       // Wire up write data
       writes.foreach { write =>
-        val writeDataPort = block.addLockDataIn(write.mem.T.as[LockSRAM])
+        val writeDataPort = block.lockDataIns(accumMap(write.mem.T.as[LockSRAM]))(lane)
         writeDataPort(write.data.singleConnected.get)
         bufferInput(writeDataPort, fromCtx=Some(accumCtx))
       }
 
       val reqPort = addrPort.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
-      val ackPort = block.addLockAck
+      val ackCtx = within(pirTop, accumCtrl) { stage(Context()) }
+      dbg(s"ackCtx=$ackCtx")
+      val accumAck = within(ackCtx, accumCtrl) {
+        stage(AccumAck().ack(block.lockAcks(lane)))
+      }
+      bufferInput(accumAck.ack)
 
-      (reqPort, ackPort)
+      (reqPort, accumAck.out)
     }
     val mems = ig.group.map { _.mem }.distinct
     mems.map { mem => (mem, ig.ctrl, req) }
   }
 
-  private def lowerUnlockAccessGroup(ig:InnerAccessGroup, block:LockRMABlock, blockCtx:Context) = dbgblk(s"lowerUnlockAccessGroup(${ig})"){
+  private def lowerUnlockAccessGroup(ig:InnerAccessGroup, block:LockRMABlock, blockCtx:Context, accumMap:Map[LockSRAM,LockAccum]) = dbgblk(s"lowerUnlockAccessGroup(${ig})"){
     ig.group.map { case MemGroup(mem, accesses) =>
       assert(accesses.size == 1)
       val UnrolledAccess(mem, lanes) = accesses.head
-      (mem, ig.ctrl, lanes.map { lane => lowerUnlockAccess(lane, block, blockCtx) })
+      val accum = accumMap(mem)
+      val reqs = if (lanes.size != block.par) {
+        if (lanes.size != 1)
+          err(s"Unlocked access must be either not outer loop parallelized or parallelized by the same amount as locked access ${quoteSrcCtx(accesses)}")
+        val access = lanes.head
+        List(lowerUnlockAccess(access, accum, (0 until block.par).toList, block, blockCtx))
+      } else {
+        lanes.zipWithIndex.map { case (access,lane) => 
+          lowerUnlockAccess(access, accum, List(lane), block, blockCtx)
+        }
+      }
+      (mem, ig.ctrl, reqs)
     }
   }
 
-  private def lowerUnlockAccess(access:LockAccess, block:LockRMABlock, blockCtx:Context) = {
-    val mem = access.mem.T.as[LockSRAM]
+  private def lowerUnlockAccess(access:LockAccess, accum:LockAccum, lanes:List[Int], block:LockRMABlock, blockCtx:Context) = {
     val addrCtx = access match {
       case access:LockWrite => access.ctx.get
       case access:LockRead => within(pirTop, access.getCtrl) { Context() }
@@ -129,21 +155,51 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
     flattenEnable(access)
     access match {
       case access:LockWrite =>
-        val addrPort = block.addUnlockWriteAddr(mem)
-        addrPort(access.addr.singleConnected.get)
-        val dataPort = block.addUnlockWriteData(mem)
-        dataPort(access.data.singleConnected.get)
-        bufferInput(addrPort)
-        bufferInput(dataPort)
-        val reqPort = addrPort.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
-        val ackPort = block.addUnlockWriteAcks(mem)
+        val (reqPorts, ackPorts) = lanes.map { lane =>
+          val addrPort = block.unlockWriteAddrs(accum)(lane)
+          addrPort(access.addr.singleConnected.get)
+          bufferInput(addrPort)
+          val dataPort = block.unlockWriteDatas(accum)(lane)
+          dataPort(access.data.singleConnected.get)
+          bufferInput(dataPort)
+          val reqPort = addrPort.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
+          val ackPort = block.unlockWriteAcks(accum)(lane)
+          (reqPort, ackPort)
+        }.unzip
+        val reqPort = assertUnique(reqPorts, s"Broadcast lanes have different request ports")
+        val ackCtx = within(pirTop, access.getCtrl) { stage(Context()) }
+        dbg(s"ackCtx = $ackCtx")
+        val ackPort = within(ackCtx, access.getCtrl) {
+          val ack = ackPorts.reduce[Output[PIRNode]] { case (r1,r2) =>
+            stage(OpDef(And).addInput(r1,r2).out)
+          }
+          stage(AccumAck().ack(ack).out)
+        }
+        bufferInput(ackCtx)
         (reqPort, ackPort)
       case access:LockRead =>
-        val addrPort = block.addUnlockReadAddr(mem)
-        addrPort(access.addr.singleConnected.get)
-        bufferInput(addrPort, fromCtx=Some(addrCtx))
-        val reqPort = addrPort.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
-        val dataPort = block.addUnlockReadData(mem)
+        val (reqPorts, dataPorts) = lanes.map { lane =>
+          val addrPort = block.unlockReadAddrs(accum)(lane)
+          addrPort(access.addr.singleConnected.get)
+          bufferInput(addrPort, fromCtx=Some(addrCtx))
+          val reqPort = addrPort.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
+          val dataPort = block.unlockReadDatas(accum)(lane)
+          (reqPort, dataPort)
+        }.unzip
+        val reqPort = assertUnique(reqPorts, s"Broadcast lanes have different request ports")
+        val dataPort = if (dataPorts.size == 1) {
+          dataPorts.head
+        } else {
+          val readCtxs = access.out.connected.map { in => in.src.ctx.get }
+          val respCtx = testOne(readCtxs).getOrElse { within(pirTop, access.getCtrl) { stage(Context()) } }
+          val dataPort = within(respCtx, access.getCtrl) {
+            dataPorts.reduce[Output[PIRNode]] { case (d1,d2) =>
+              stage(OpDef(And).addInput(d1,d2).out)
+            }
+          }
+          bufferInput(respCtx)
+          dataPort
+        }
         access.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx, ins) =>
           ins.foreach { in =>
             swapConnection(in, access.out, dataPort)
@@ -189,11 +245,22 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
     if (impure.nonEmpty) 
       return Left(s"Cannot have unlocked and locked statement in the same basic block: ${quoteSrcCtx(impure)}}")
 
-    val rmwAddrs = pure.map { ig => (ig.getRMWAddr,ig) }.filter { _._1.nonEmpty }
-    if (rmwAddrs.size > 1) return Left(s"Cannot have more than 1 read modify write block ${quoteSrcCtx(rmwAddrs.map { _._2 })}")
-    if (rmwAddrs.size == 1) {
-      val (Some(addrs), ig) = rmwAddrs.head
-      return Right(lowerRMW(n, lockMems.as[List[LockSRAM]], ig, pure))
+    val (rmws, unlocked) = pure.partition { ig => ig.getRMWAddr.nonEmpty }
+    if (rmws.size > 1) return Left(s"Cannot have more than 1 read modify write block ${quoteSrcCtx(rmws)}")
+    if (rmws.size == 1) {
+      val rmwpar = rmws.head.group.head.accesses.head.lanes.size
+      unlocked.foreach { case InnerAccessGroup(ctrl,group) =>
+        group.foreach { case MemGroup(mem, accesses) =>
+          accesses.foreach { case UnrolledAccess(mem, lanes) =>
+            val par = lanes.size
+            if (par > 1 && par != rmwpar)
+              return Left(s"Cannot parallelize the unlocked accesses ${quoteSrcCtx(lanes.head)} with different par with locked access for ${quoteSrcCtx(n)} ")
+          }
+        }
+      }
+      assertUnify(lockMems, s"${quoteSrcCtx(n)} have different types for read modify accumulators") { mem => mem.tp.get }
+      assertUnify(lockMems, s"${quoteSrcCtx(n)} have different dimensions for read modify accumulators") { mem => mem.dims.get }
+      return Right(lowerRMW(n, rmwpar, lockMems.as[List[LockSRAM]], pure))
     } else {
       return Left(s"Unsupported access pattern ${quoteSrcCtx(n)}")
     }
