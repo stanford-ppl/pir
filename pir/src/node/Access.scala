@@ -80,7 +80,7 @@ case class FlatBankedWrite()(implicit env:Env) extends WriteAccess with FlatBank
 
 case class LockRead()(implicit env:Env) extends ReadAccess with LockAccess 
 case class LockWrite()(implicit env:Env) extends WriteAccess with LockAccess {
-  val ack = new OutputField[List[PIRNode]]("ack")
+  val ack = new OutputField[List[PIRNode]]("ack").presetVec(1).tp(Bool)
 }
 case class MemRead()(implicit env:Env) extends ReadAccess {
   override def compVec(n:IR) = (n, mem.T) match {

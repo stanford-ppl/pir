@@ -28,7 +28,6 @@ trait GenericMemoryLowering extends PIRTraversal with SiblingFirstTraversal with
           }.toList
         }
         dbg(s"Combine enable signals $ens => $en")
-        access.en.disconnect
         en = Some(red.head)
       } else {
         en = ens.headOption
@@ -42,6 +41,7 @@ trait GenericMemoryLowering extends PIRTraversal with SiblingFirstTraversal with
         addr.disconnect
         addr(newAddr)
       }
+      access.en.disconnect
     }
   }
 
