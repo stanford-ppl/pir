@@ -1,9 +1,10 @@
 import spatial.dsl._
 
-class BlackScholes_0 extends BlackScholes(op=1)
+class BlackScholes_0 extends BlackScholes(op=1){ override def pirArgs = super.pirArgs + " --split-algo=bfs --retime=false";  }
+class BlackScholes_1 extends BlackScholes(op=1){ override def pirArgs = super.pirArgs + " --split-algo=bfs --retime";  }
 
 @spatial abstract class BlackScholes(
-  N:scala.Int = 1024,
+  N:scala.Int = 8192,
   ts:scala.Int = 64,
   op:scala.Int = 1,
   ip:scala.Int = 16
