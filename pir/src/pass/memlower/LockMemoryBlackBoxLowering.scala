@@ -65,6 +65,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
         }
       case List(a) =>
     }
+    //TODO: Carried dependency
   }
 
   private def lowerLockedRMW(ig:InnerAccessGroup, block:LockRMABlock, blockCtx:Context, accumMap:Map[LockSRAM,LockAccum]) = dbgblk(s"lowerLockedRMW($ig)"){

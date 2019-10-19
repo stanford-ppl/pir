@@ -19,6 +19,7 @@ trait ExternComputePartitioner { self:ComputePartitioner =>
         val row = newRow
         row("node") = n.id
         row("op") = n.to[OpNode].fold(0){ n => 1 }
+        row("retime") = n.isInstanceOf[Delay]
         row("comment") = s"$n"
       }
       gencsv
@@ -107,8 +108,16 @@ trait ExternComputePartitioner { self:ComputePartitioner =>
     edgeGen.genEdges(nodes)
     specGen.genSpec(vcost)
     initGen.genInit(nodes,vcost)
-    val script = buildPath(config.pirHome, "bin", "partition.py")
-    shell("partition", s"$script ${config.graphDir} -t ${config.splitThread}", buildPath(config.graphDir, "partition.log"))
+    val python = buildPath(config.pirHome, "env", "bin", "python")
+    if (!exists(python)) {
+      err(s"$python doesn't exists. Please do make install in ${config.pirHome}")
+    }
+    shell(
+      header="partition", 
+      command=s"${buildPath("env","bin","python")} ${buildPath("bin","partition.py")} ${config.graphDir} -t ${config.splitThread}", 
+      cwd=config.pirHome,
+      logPath=buildPath(config.graphDir, "partition.log")
+    )
     val idmap = nodes.map { node => (node.id, node) }.toMap
     val pidmap = getLines(buildPath(config.graphDir, "part.csv")).map { line =>
       val node::part::_ = line.split(",").map { _.toInt }.toList

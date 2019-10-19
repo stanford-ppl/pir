@@ -239,6 +239,17 @@ case class AccumAck()(implicit env:Env) extends Def {
   out.presetVec(1)
   out.tp(Bool)
 }
+case class Delay(cycle:Int)(implicit env:Env) extends Def {
+  val in = new InputField[PIRNode]("in")
+  override def compVec(n:IR) = n match {
+    case `out` => in.inferVec
+    case _ => super.compVec(n)
+  }
+  override def compType(n:IR) = n match {
+    case `out` => in.inferTp
+    case _ => super.compType(n)
+  }
+}
 case class PrintIf()(implicit env:Env) extends Def {
   val en = new InputField[List[PIRNode]]("en").tp(Bool)
   val msg = new InputField[PIRNode]("mgs")

@@ -3,6 +3,7 @@ all: pir
 env:
 	virtualenv -p python3.6 env
 	env/bin/pip install -r requirements.txt
+	# source env/bin/activate && cd /opt/gurobi752/linux64/ && python setup.py install && deactivate
 
 clean: clean-local
 	make -C tungsten/ clean

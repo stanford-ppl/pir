@@ -17,12 +17,27 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
       case Some(x) => label + s"\n$field=$x"
       case x => label + s"\n$field=$value"
     }
+    def append(value:Any):String = value match {
+      case Some(v) => s"$label\n$v"
+      case None => label
+      case v => s"$label\n$v"
+    } 
+      
+  }
+
+  def quoteTp(n:PIRNode) = {
+    val tp = n.tp.v.orElse(if (n.localOuts.size==1) n.localOuts.head.tpMeta.v else None)
+    val vec = n.vec.v.orElse(if (n.localOuts.size==1) n.localOuts.head.vecMeta.v else None)
+    if (tp.isEmpty && vec.isEmpty) None else 
+    Some(tp.map { tp => tp.toString }.getOrElse("") + vec.map { vec => s"<${vec}>" }.getOrElse(""))
   }
 
   override def quote(n:Any) = {
     super.quote(n).foldAt(n.to[PIRNode]) { (q, n) =>
       q
-    .foldAt(n.to[Const]) { (q,n) =>
+    .foldAt(n.to[Delay]) { (q,n) =>
+      s"$q(${n.cycle})"
+    }.foldAt(n.to[Const]) { (q,n) =>
       n.value match {
         case v@((e:Int)::rest) => 
           val l = v.as[List[Int]]
@@ -33,9 +48,9 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
     }.foldAt(n.sname.v) { (q, v) => s"$q[$v]" }
       .append("name", n.name.v)
       .append("externAlias", n.externAlias.v)
-      .append("ctrl", n.ctrl.v.map { c => c.sname.v.fold(s"$c") { n => s"$c[$n]"} })
-      .append("tp", n.tp.v.orElse(if (n.localOuts.size==1) n.localOuts.head.tpMeta.v else None))
-      .append("vec", n.vec.v.orElse(if (n.localOuts.size==1) n.localOuts.head.vecMeta.v else None))
+      .append(n.ctrl.v.map { c => c.sname.v.fold(s"$c") { n => s"$c[$n]"} })
+      .append(quoteTp(n))
+      .append("delay", n.delay.v)
       .append("count", n.count.v)
       .append("scale", n.scale.v)
       .append("iter", n.iter.v) +

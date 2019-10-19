@@ -1,6 +1,6 @@
 import spatial.dsl._
 
-class BlackScholes_0 extends BlackScholes(op=3)
+class BlackScholes_0 extends BlackScholes(op=1)
 
 @spatial abstract class BlackScholes(
   N:scala.Int = 1024,

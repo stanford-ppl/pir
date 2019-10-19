@@ -13,7 +13,7 @@ import functools
 import typing
 
 Constraint = namedtuple("Constraint", ["ops", "vin", "sin", "vout", "sout"])
-Node = namedtuple("Node", ["node", "op", "comment"])
+Node = namedtuple("Node", ["node", "op", "retime", "comment"])
 Edge = namedtuple("Edge", ["src", "dst", "tp", "comment"])
 NodePartition = namedtuple("NodePartition", ["node", "partition"])
 

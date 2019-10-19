@@ -6,10 +6,10 @@ import pir.pass._
 import prism.graph._
 import prism.collection.immutable._
 
-trait ComputePartitioner extends CUPruner with ExternComputePartitioner { self =>
+trait ComputePartitioner extends CUPruner with ExternComputePartitioner with LocalRetimer { self =>
 
   var splitAlgo:String = "bfs"
-  def scheduler = splitAlgo match {
+  private def scheduler = splitAlgo match {
     case "bfs" => new PIRTraversal with BFSTopologicalTraversal with Scheduler { val forward = false }
     case "dfs" => new PIRTraversal with DFSTopologicalTraversal with Scheduler { val forward = false }
     case _ => new PIRTraversal with DFSTopologicalTraversal with Scheduler { val forward = false }
@@ -34,7 +34,8 @@ trait ComputePartitioner extends CUPruner with ExternComputePartitioner { self =
         if (fit(kcost, vcost)) List(k)
         else {
           val scope = k.children.filter { include }
-          val part = new Partition(scope)
+          val delays = retime(k,scope)
+          val part = new Partition(scope ++ delays)
           val parts = split(part, vcost)
           dbg(s"partitions=${parts.size}")
           val ctxs = within(k.global.get, k.ctrl.get) {

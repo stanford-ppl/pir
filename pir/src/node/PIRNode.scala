@@ -89,6 +89,8 @@ abstract class PIRNode(implicit env:BuildEnvironment)
     case n => None
   }
 
+  val delay = new Metadata[Int]("delay")
+
   env.initNode(this)
 }
 object PIRNode extends MemoryUtil with AccessUtil {
