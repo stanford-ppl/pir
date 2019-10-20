@@ -154,6 +154,16 @@ trait ScalaUtilFunc {
 
   def get[T](x:List[T],i:Int):Option[T] = if (x.size > i) Some(x(i)) else None
 
+  /*
+   * Take two map and a reduce function that defines how to combine values for the same key and
+   * produce an aggregated map
+   * */
+  def sumMap[K,V](m1:Map[K,V], m2:Map[K,V])(reduce: (V,V) => V):Map[K,V] = {
+    m1.foldLeft[Map[K,V]](m2) { case (m2, (k1,v1)) => 
+      m2 + (k1 -> m2.get(k1).fold(v1) { v2 => reduce(v1,v2) })
+    }
+  }
+
   def unpack(x:Any)(base:PartialFunction[Any,Any]):Any = {
     def recurse(x:Any):Any = x match {
       case x:Iterable[_] => x.map { recurse }

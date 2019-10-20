@@ -173,7 +173,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
     case n:ArgFringe => attr.setNode.fillcolor("beige").style(filled)
     case n:MemoryContainer => attr.setNode.fillcolor("limegreen").style(filled)
     case n:ComputeContainer if n.isDAG.get => attr.setNode.fillcolor("orange").style(filled)
-
+    case n:ComputeContainer if n.collectDown[OpNode]().size==0 => attr.setNode.fillcolor("gold").style(filled)
     case n:ComputeContainer => attr.setNode.fillcolor("dodgerblue").style(filled)
     case n:DRAMFringe => attr.setNode.fillcolor("lightseagreen").style(filled)
     case n:BlackBoxContainer => attr.setNode.fillcolor("crimson").style(filled)

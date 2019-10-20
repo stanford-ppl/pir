@@ -41,7 +41,7 @@ class DAGTraversalTest extends UnitTest with Logging {
   }
 
   "DAGTestBFS" should "success" in {
-    val traversal = new BFSTraversal with Schedular {
+    val traversal = new BFSTraversal with Scheduler {
       type N = TestPNode
       def visitFunc(n:N):List[N] = visitLocalIn(n)
     }
@@ -52,7 +52,7 @@ class DAGTraversalTest extends UnitTest with Logging {
   }
 
   "DAGTestDFS" should "success" in {
-    val traversal = new DFSTraversal with Schedular {
+    val traversal = new DFSTraversal with Scheduler {
       type N = TestPNode
       def visitFunc(n:N):List[N] = visitLocalIn(n)
     }
@@ -63,7 +63,7 @@ class DAGTraversalTest extends UnitTest with Logging {
   }
 
   "DAGTestChildFirst" should "success" in {
-    val traversal = new ChildFirstTraversal with Schedular {
+    val traversal = new ChildFirstTraversal with Scheduler {
       type N = TestPNode
       val top = DAG1.top
       override def visitNode(n:N, prev:T):T = {
@@ -78,7 +78,7 @@ class DAGTraversalTest extends UnitTest with Logging {
   }
 
   "DAGTestSiblingFirst" should "success" in {
-    val traversal = new SiblingFirstTraversal with Schedular {
+    val traversal = new SiblingFirstTraversal with Scheduler {
       type N = TestPNode
       val top = DAG1.top
       override def visitNode(n:N, prev:T):T = {
@@ -96,7 +96,7 @@ class DAGTraversalTest extends UnitTest with Logging {
   }
 
   "DAGTestDFSTDTopo" should "success" in {
-    val traversal = new DFSTopDownTopologicalTraversal with Schedular {
+    val traversal = new DFSTopDownTopologicalTraversal with Scheduler {
       type N = TestPNode
       val top = DAG1.top
       implicit val nct:ClassTag[N] = classTag[N]
@@ -114,7 +114,7 @@ class DAGTraversalTest extends UnitTest with Logging {
   }
 
   "DAGTestBUTopo" should "success" in {
-    val traversal = new BottomUpTopologicalTraversal with Schedular with DFSTraversal {
+    val traversal = new BottomUpTopologicalTraversal with Scheduler with DFSTraversal {
       type N = TestPNode
       val top = DAG1.top
       implicit val nct:ClassTag[N] = classTag[N]
