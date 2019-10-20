@@ -49,9 +49,9 @@ trait ScalaUtilFunc {
   }
 
   def assertIdentical[A](list:Iterable[A],info: => String):Option[A] = {
-    val res = list
-    assert(res.toSet.size<=1, s"$list doesn't have the same $info = $res")
-    res.headOption
+    val distinct = list.toSeq.distinct
+    assert(distinct.size<=1, s"$list doesn't have the same $info = $distinct")
+    distinct.headOption
   }
 
   def assertOneOrLess[A](list:Iterable[A], info: => String):Option[A] = {
@@ -64,19 +64,13 @@ trait ScalaUtilFunc {
     list.head
   }
 
-  def assertUnique[A](list:Iterable[A],info: => String):A = {
-    val distinct = list.toSeq.distinct
-    assert(distinct.size == 1, s"$info is not unique=$list")
-    distinct.head
-  }
-
   def testOne[A](list:Iterable[A]):Option[A] = {
     if (list.size == 1) Some(list.head) else None
   }
 
-  def testUnique[A](list:Iterable[A]):Option[A] = {
-    val set = list.toSet
-    if (set.size == 1) Some(set.head) else None
+  def testIdentical[A](list:Iterable[A]):Option[A] = {
+    val distinct = list.toSeq.distinct
+    if (distinct.size == 1) Some(distinct.head) else None
   }
 
   def zipOption[A,B,T](a:Option[A], b:Option[B]):Option[(A,B)] = {

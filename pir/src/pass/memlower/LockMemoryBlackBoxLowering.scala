@@ -167,7 +167,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
           val ackPort = block.unlockWriteAcks(accum)(lane)
           (reqPort, ackPort)
         }.unzip
-        val reqPort = assertUnique(reqPorts, s"Broadcast lanes have different request ports")
+        val reqPort = assertIdentical(reqPorts, s"Broadcast lanes have different request ports").get
         val ackCtx = within(pirTop, access.getCtrl) { stage(Context()) }
         dbg(s"ackCtx = $ackCtx")
         val ackPort = within(ackCtx, access.getCtrl) {
@@ -187,7 +187,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
           val dataPort = block.unlockReadDatas(accum)(lane)
           (reqPort, dataPort)
         }.unzip
-        val reqPort = assertUnique(reqPorts, s"Broadcast lanes have different request ports")
+        val reqPort = assertIdentical(reqPorts, s"Broadcast lanes have different request ports").get
         val dataPort = if (dataPorts.size == 1) {
           dataPorts.head
         } else {
@@ -325,7 +325,7 @@ case class InnerAccessGroup(ctrl:ControlTree, group:List[MemGroup]) {
   def getRMWAddr = {
     val addrs = group.map { _.getRMWAddr }
     if (addrs.exists{_.isEmpty}) None
-    else testUnique(addrs.map { _.get })
+    else testIdentical(addrs.map { _.get })
   }
 }
 
