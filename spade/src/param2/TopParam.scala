@@ -117,12 +117,11 @@ case class BundleParam() extends Parameter {
 }
 
 case class SRAMParam (
-  count:Int=1,
-  size:Int= 256 * 1024 // in Byte
+  bank:Int = 16,
+  capacity:Int= 256 * 1024 // in Byte
 ) extends Parameter {
   lazy val topParam = traceOut[TopParam]
-  lazy val bank:Int = topParam.vecWidth
-  lazy val sizeInWord = size / topParam.bytePerWord
+  lazy val sizeInWord = capacity / topParam.bytePerWord
 }
 
 case class FIFOParam( 
@@ -175,7 +174,7 @@ case class DramAGParam(
   mergeBufferWays:Int=0,
 ) extends CUParam {
   override lazy val numLane:Int = 1
-  val sramParam = connectField(SRAMParam(count=0))
+  val sramParam = connectField(SRAMParam(bank=0))
 }
 case class PCUParam(
   fifoParams:List[FIFOParam]=List(
@@ -196,7 +195,7 @@ case class PCUParam(
   numMergeBuffer:Int=1,
   mergeBufferWays:Int=2,
 ) extends CUParam {
-  val sramParam = connectField(SRAMParam(count=0))
+  val sramParam = connectField(SRAMParam(bank=0))
 }
 case class PMUParam(
   fifoParams:List[FIFOParam]=List(
@@ -208,7 +207,7 @@ case class PMUParam(
   numStage:Int=6,
   ops:Set[Opcode]=noFltOps,
   numReg:Int=16,
-  sramParam:SRAMParam=SRAMParam(count=1),
+  sramParam:SRAMParam=SRAMParam(bank=16),
   numSin:Int=16,
   numSout:Int=8,
   numVin:Int=8,

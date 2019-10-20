@@ -27,7 +27,6 @@ class IgraphCodegen(implicit compiler:PIR) extends PIRTraversal with PythonCodeg
       val attr = scala.collection.mutable.Map[String, Any]()
       attr += "stage" -> n.getCost[StageCost].quantity
       attr += "lane" -> n.getCost[LaneCost].quantity
-      attr += "sramCount" -> n.getCost[SRAMCost].count
       attr += "sramBank" -> n.getCost[SRAMCost].bank
       attr += "sramSize" -> n.getCost[SRAMCost].size
       val attrs = attr.map { case (k,v) => s"""$k=$v""" }.mkString(",")
