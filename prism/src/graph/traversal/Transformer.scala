@@ -3,7 +3,7 @@ package graph
 
 import scala.collection.mutable
 
-trait Transformer extends Logging {
+trait Transformer extends Logging { self =>
 
   def removeUnusedIOs[N<:Node[N]](node:Node[N]) = {
     node.localEdges.foreach { io => if (!io.isConnected) io.src.removeEdge(io) }
@@ -195,13 +195,26 @@ trait Transformer extends Logging {
         }
       }
     }
+    // Final pass mirror metadata. Some metadata are inferred and can only be set after graph is
+    // fully connected
+    mapping.foreach { case (n,m) => 
+      n.to[ND].foreach { n =>
+        mirrorMetas(n,m.as[ND])
+        m.as[ND].localEdges.zip(n.localEdges).foreach { case (medge, nedge) => 
+          if (nedge.isStatic) mirrorMetas(nedge,medge)
+        }
+      }
+    }
   }
 
   def mirrorProduct(
     nodes:Iterable[IR], 
     mapping:mutable.Map[IR,IR]
   ) = {
-    nodes.foreach { n => mirror(n, mapping) }
+    nodes.foreach { n => 
+      val m = mirror(n, mapping)
+      mirrorMetas(n,m)
+    }
   }
 
   final def mirror[T](
@@ -212,25 +225,47 @@ trait Transformer extends Logging {
       case n:IR => 
         if (!mapping.contains(n)) {
           val margs = newInstanceArgs(n, mapping)
-          mapping.getOrElseUpdate(n, mirrorN(n, margs)).as[T]
+          mapping.get(n).getOrElse {
+            val m = n.newInstance[IR](margs)
+            dbg(s"mirror $n -> $m")
+            mapping += n -> m
+            m
+          }.as[T]
         } else mapping(n)
       case n => n
     }).asInstanceOf[T]
   }
 
-  def mirrorN(
-    n:IR, 
-    margs:Seq[Any]
-  ):IR = {
-    val m = n.newInstance[IR](margs)
-    m.mirrorMetas(n)
-    dbg(s"mirror $n -> $m")
-    n.to[ND].foreach{ n =>
-      m.as[ND].localEdges.zip(n.localEdges).foreach { case (medge, nedge) => 
-        if (nedge.isStatic) medge.mirrorMetas(nedge)
+  private var mirrorRule:Option[PartialFunction[(MetadataIR,MetadataIR,String,Option[Any],Option[Any]),Option[Any]]] = None
+
+  def withMirrorRule[T](rule:PartialFunction[(MetadataIR,MetadataIR,String,Option[Any],Option[Any]),Option[Any]])(block: => T) = {
+    val saved = mirrorRule
+    mirrorRule = Some(rule)
+    val res = block
+    mirrorRule = saved
+    res
+  }
+
+  def mirrorMetas(from:MetadataIR, to:MetadataIR) = {
+    from.metadata.foreach { case (name, frommeta) =>
+      val tometa = to.getMeta(name, frommeta.default)
+      val newValue = mirrorRule.flatMap { rule => 
+        val input = (from,to,name,frommeta.value,tometa.value)
+        if (rule.isDefinedAt(input)) Some(rule(input)) else None
+      }
+      newValue.fold[Unit]{
+        tometa.mirror(frommeta)
+      } { newValue =>
+        newValue.foreach { newValue => tometa.apply(newValue.as,reset=true) }
       }
     }
-    m
+  }
+
+  implicit class MirrorUtil[T<:MetadataIR](n:T) {
+    def mirrorMetas(from:MetadataIR):T = {
+      self.mirrorMetas(from,n)
+      n
+    }
   }
 
   def newInstanceArgs(n:IR, mapping:mutable.Map[IR,IR]):Seq[Any] = n match {

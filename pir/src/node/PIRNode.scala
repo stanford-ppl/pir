@@ -66,6 +66,7 @@ abstract class PIRNode(implicit env:BuildEnvironment)
   val vec = new Metadata[Int]("vec") {
     override def mirror(frommeta:MetadataLike[_]) = self
   }
+  // TODO: this should be removed after adding mirrorRule
   val presetVec = new Metadata[Int]("presetVec")
 
   // Marker for whether the operation is reduction operation across lane

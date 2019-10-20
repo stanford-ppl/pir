@@ -88,6 +88,8 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
               .en(localReadEns).en(remoteReadEn.map{_._2})
               .done(deq)
             read.out.presetVec(outAccess.out.inferVec.get)
+            read.banks.reset
+            read.banks(List(outAccess.out.inferVec.get))
             stage(read)
           }
         }

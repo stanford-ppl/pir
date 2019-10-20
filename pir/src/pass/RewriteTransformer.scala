@@ -407,7 +407,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
               dbgblk(s"Route through (1) $w1 -> $m1 -> $r1 -> $w2 -> $m2 detected") {
                 disconnect(w2.mem, m2)
                 val mw1 = within(w1.parent.get) { mirrorAll(List(w1))(w1).as[MemWrite] }
-                mw1.mirrorMetas(w1)
+                mirrorMetas(mw1,w1)
                 mirrorSyncMeta(w2, mw1)
                 dbg(s" => $mw1 -> $m2")
                 mw1.mem(m2)

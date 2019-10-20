@@ -53,20 +53,6 @@ with BufferAnalyzer
     }
   }
 
-  override def mirrorN(
-    n:IR, 
-    margs:Seq[Any]
-  ):IR = {
-    val m = super.mirrorN(n, margs)
-    m.vecMeta.reset
-    m.to[ND].foreach { m =>
-      m.localEdges.foreach { e =>
-        if (e.isStatic) e.vecMeta.reset
-      }
-    }
-    m
-  }
-
   def stage[T<:PIRNode](n:T):T = dbgblk(s"stage($n)"){
     n.localIns.foreach { in => 
       withLogger(this) {
@@ -92,18 +78,18 @@ with BufferAnalyzer
   }
 
   def transferLocalAccess(from:LocalAccess, to:LocalAccess) = {
-    from.mirrorMergeMetas(to) {
-      case ("name", v1, v2) => s"$v1/$v2"
-      case ("sname",v1,v2) => s"$v1/$v2"
-      case ("srcCtx", v1, v2) => s"$v1,$v2"
-      case ("order", v1, v2) => v2
-      case ("progorder",v1,v2) => v2
-      case ("ctrl",v1,v2) => v2
-      case ("dims",v1,v2) => v2
-      case ("depth",v1,v2) => v2
-      case ("castgroup",v1,v2) => v2
-      case ("muxport",v1,v2) => v2
-    }
+    withMirrorRule {
+      case (from,to,"name",Some(fvalue),Some(tvalue)) => Some(s"$fvalue/$tvalue")
+      case (from,to,"sname",Some(fvalue),Some(tvalue)) => Some(s"$fvalue/$tvalue")
+      case (from,to,"srcCtx",Some(fvalue),Some(tvalue)) => Some(s"$fvalue,$tvalue")
+      case (from,to,"order",Some(fvalue),Some(tvalue)) => Some(tvalue)
+      case (from,to,"progorder",Some(fvalue),Some(tvalue)) => Some(tvalue)
+      case (from,to,"ctrl",Some(fvalue),Some(tvalue)) => Some(tvalue)
+      case (from,to,"dims",Some(fvalue),Some(tvalue)) => Some(tvalue)
+      case (from,to,"depth",Some(fvalue),Some(tvalue)) => Some(tvalue)
+      case (from,to,"castgroup",Some(fvalue),Some(tvalue)) => Some(tvalue)
+      case (from,to,"muxport",Some(fvalue),Some(tvalue)) => Some(tvalue)
+    } { mirrorMetas(from,to) }
     from.presetVec.v.foreach { v => to.presetVec(v) } // Most before swapConncetion
     to.en(from.en.connected)
   }

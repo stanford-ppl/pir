@@ -24,28 +24,6 @@ trait MetadataIR extends Serializable { self =>
     def apply[T](name:String, default:T):Metadata[T] = Metadata[T](name, Some(default))
   }
 
-  def mirrorMetas(from:MetadataIR):self.type = {
-    from.metadata.foreach { case (name, frommeta) =>
-      val tometa = getMeta(name, frommeta.default)
-      tometa.mirror(frommeta)
-    }
-    self
-  }
-
-  def mirrorMergeMetas(from:MetadataIR)(merge:PartialFunction[(String,Any,Any),Any]):self.type = {
-    from.metadata.foreach { case (name, frommeta) =>
-      val tometa = getMeta(name, frommeta.default)
-      tometa.mirrorMerge(frommeta) { (v1,v2) =>
-        if (merge.isDefinedAt((name,v1,v2))) {
-          merge(name, v1, v2).as
-        } else {
-          bug(s"Don't know how to merge metadata $name for from=$from ($v1) and to=$self ($v2)")
-        }
-      }
-    }
-    self
-  }
-
   def getMeta[T](name:String, default:Option[T]=None):Metadata[T] = {
     metadata.getOrElse(name, {
       val m = Metadata[T](name, default)
@@ -85,18 +63,5 @@ abstract class MetadataLike[T] extends Serializable {
   }
   def reset = value = default
   def mirror(frommeta:MetadataLike[_]):Any = { frommeta.value.foreach { v => update(v) } }
-  def mirrorMerge(frommeta:MetadataLike[_])(merge: (T,T) => T):Any = {
-    frommeta.value.foreach { v => 
-      value.fold {
-        this.value = Some(v.as[T])
-      } { value =>
-        if (value != v && default.fold(true) { default => value != default }) {
-          this.value = Some(merge(v.as[T], value))
-        } else {
-          this.value = Some(v.as[T])
-        }
-      }
-    }
-  }
 }
 

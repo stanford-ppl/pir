@@ -84,6 +84,7 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
       val depCtx = fromCtx.getOrElse { dep.ctx.get }
       val read = dbgblk(s"insertBuffer(depOut=${dquote(depOut)}, depedIn=$deped.$depedIn)") {
         val (enq, deq) = compEnqDeq(isFIFO=isFIFO, depCtx, depedCtx, Some(depOut), List(depedIn))
+        val bank = depOut.inferVec
         val write = within(depCtx, depCtx.getCtrl) {
           allocate[BufferWrite] { write => 
             write.isFIFO==isFIFO &&
@@ -106,6 +107,7 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
             stage(BufferRead(isFIFO=isFIFO).in(write.out).done(deq))
           }
         }
+        bank.foreach { bank => read.banks(List(bank)) }
         swapConnection(depedIn, depOut, read.out)
         read
       }

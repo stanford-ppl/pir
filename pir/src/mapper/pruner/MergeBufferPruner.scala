@@ -52,10 +52,10 @@ class MergeBufferPruner(implicit compiler:PIR) extends CUPruner {
           globals += global
           within(global, ctx.getCtrl) {
             val mctx = stage(Context().streaming(true))
-            mctx.mirrorMetas(ctx)
+            mirrorMetas(mctx,ctx)
             within(mctx) {
               val mmb = MergeBuffer(vways, par)
-              mmb.mirrorMetas(mb)
+              mirrorMetas(mmb,mb)
               (0 until vways).foreach { i =>
                 mmb.inputs(i)(inputs(i))
                 mmb.bounds(i)(bounds(i))
