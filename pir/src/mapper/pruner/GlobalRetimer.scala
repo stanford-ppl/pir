@@ -6,7 +6,7 @@ import pir.pass._
 import prism.graph._
 import spade.param._
 
-trait PartitionRetimer extends PIRTransformer {
+trait GlobalRetimer extends PIRTransformer {
   private val traversal = new PIRTraversal with BFSTopologicalTraversal with UnitTraversal { 
     val forward = false // Reverse to schedule nodes as late as possible. Assume small fanins from external
     override def visitIn(n:N) = visitLocalIn(n)
@@ -20,29 +20,29 @@ trait PartitionRetimer extends PIRTransformer {
     var numStage:Int = 0
   }
 
-  def retimePartition(scope:List[Context], numStage:Int):List[Context] = 
-    if (!config.enablePartitionRetiming) Nil else dbgblk(s"retimePartition(${scope.head.global.get})"){
+  def retimeGlobal (scope:List[GlobalContainer], numStage:Int):List[GlobalContainer] = 
+    if (!config.enableGlobalRetiming) Nil else dbgblk(s"retimeGlobal") {
       traversal.resetTraversal
       traversal.numStage = numStage
       traversal.traverseScope(scope, ())
       //breakPoint(s"Finish analysis")
       val externDelay = scope.toStream.map { _.delay.get }.min - numStage
-      val global = scope.head.global.get
       val fifoDepth = assertUnify(spadeParam.traceIn[FIFOParam], "fifoParam") { _.depth }.get
-      within(global) {
+      within(pirTop) {
         // A map between outputs (internal and external) to internal inputs
         val outIns = scope.map { n => n.depsFrom }.reduce { _ ++ _ }
         // Inserting retiming ops for each output
         val delayOps = outIns.map { case (out, ins) =>
           out -> retimeOutput(out, ins, externDelay, fifoDepth, numStage)
         }.toMap
-        // Put retiming ops into retiming contexts. Share context for outputs from the same context
-        delayOps.groupBy { case (out, delayOps) => out.src.ctx.get
+        // Put retiming ops into retiming containers. Share container for outputs from the same context
+        delayOps.groupBy { case (out, delayOps) => out.src.global.get
         }.flatMap { case (dep, group) =>
           val delayOps = group.flatMap { case (out, delayOps) => delayOps }
           val layers = delayOps.groupBy { _.delay.get }.toSeq.sortBy { _._1 }
-          val retimeCtxs = layers.map { case (delay, ops) =>
-            val retimeCtx = within(dep.getCtrl) { stage(Context().streaming(true)) }
+          val retimeGlobs = layers.map { case (delay, ops) =>
+            val retimeGlob = stage(ComputeContainer())
+            val retimeCtx = within(retimeGlob,dep.collectFirstChild[Context].get.getCtrl) { stage(Context().streaming(true)) }
             ops.foreach { op =>
               swapParent(op, retimeCtx)
               op.in.singleConnected.get.src match {
@@ -51,11 +51,11 @@ trait PartitionRetimer extends PIRTransformer {
                   bufferInput(op.in).foreach { buffer =>
                     transferLocalAccess(write, buffer.inAccess)
                   }
-                case delay:Delay => bufferInput(op.in)
+                case delay:DelayOp => bufferInput(op.in)
               }
             }
-            //breakPoint(s"add $retimeCtx")
-            retimeCtx
+            //breakPoint(s"add $retimeGlob")
+            retimeGlob
           }.toList
           delayOps.foreach { op =>
             op.out.connected.foreach {
@@ -69,33 +69,35 @@ trait PartitionRetimer extends PIRTransformer {
                 }
               case _ =>
             }
+            op.delay.reset
           }
-          retimeCtxs
+          retimeGlobs
         }.toList
       }
     }
 
-  def retimeOutput(out:Output[PIRNode], ins:Vector[Input[PIRNode]], externDelay:Int, fifoDepth:Int, numStage:Int):List[Delay] = {
+  def retimeOutput(out:Output[PIRNode], ins:Vector[Input[PIRNode]], externDelay:Int, fifoDepth:Int, numStage:Int):List[DelayOp] = {
     out.src match {
       case write:BufferWrite if !write.isFIFO => return Nil
       case write:TokenWrite => return Nil
       case _ =>
     }
     val depDelay = out.src match {
-      case src:Delay => src.delay.get
-      case src => src.ctx.get.delay.v.getOrElse(externDelay)
+      case src:DelayOp => src.delay.get
+      case src => src.global.get.delay.v.getOrElse(externDelay)
     }
     val toretime = ins.filter { in => 
-      val deped = in.src.ctx.get
+      val deped = in.src.global.get
       val diff = deped.delay.get - depDelay + numStage
       diff > fifoDepth
     }
     if (toretime.isEmpty) return Nil
-    val depedDelay = toretime.toStream.map { _.src.ctx.get.delay.get }.min
+    val depedDelay = toretime.toStream.map { _.src.global.get.delay.get }.min
     // The earliest time to schedule this retime node is after its previous node and before any used
     // node
     val opdelay = math.min(depDelay + fifoDepth, depedDelay - 1)
     val d = within(out.src.getCtrl) { 
+      //stage(ScratchpadDelay(fifoDepth).in(out).delay(opdelay))
       stage(Delay(fifoDepth).in(out).delay(opdelay))
     }
     toretime.foreach { in =>

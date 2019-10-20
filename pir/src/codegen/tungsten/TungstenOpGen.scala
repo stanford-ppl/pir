@@ -26,9 +26,6 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
     case n:Forward =>
       emitVec(n) { i => n.in.qidx(i) }
 
-    case n:Delay =>
-      emitVec(n) { i => n.in.qidx(i) }
-
     case n:AccumAck =>
       emitVec(n) { i => "true" };
 

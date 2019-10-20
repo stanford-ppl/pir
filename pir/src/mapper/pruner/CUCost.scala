@@ -14,6 +14,7 @@ case class MCCost(prefix:Boolean=false) extends PrefixCost[MCCost]
 case class MergeBufferCost(quantity:Int=0, ways:Int=0) extends QuantityCost[MergeBufferCost]
 case class SplitterCost(quantity:Int=0) extends QuantityCost[SplitterCost]
 case class LockCost(quantity:Int=0) extends QuantityCost[LockCost]
+//TODO: SRAMCost should be in terms of banks and size per bank
 case class SRAMCost(count:Int=0, bank:Int=0, size:Int=0) extends QuantityCost[SRAMCost]
 case class FIFOCost(sfifo:Int=0, vfifo:Int=0) extends QuantityCost[FIFOCost]
 case class InputCost(sin:Int=0, vin:Int=0) extends QuantityCost[InputCost]
@@ -96,14 +97,22 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
 
     } orElse switch[SRAMCost](x,ct) {
       case n:GlobalContainer =>
-        val srams = n.collectDown[SRAM]() ++ n.collectDown[LUT]() ++ n.collectDown[RegFile]() ++ n.collectDown[Lock]()
+        val srams = n.descendents.collect {
+          case mem:SRAM => mem
+          case mem:LUT => mem
+          case mem:RegFile => mem
+          case mem:Lock => mem
+          case mem:ScratchpadDelay => mem
+        }
         val sramSize = srams.map { 
           case mem:Memory => mem.capacity
           case lock:Lock => 1
+          case delay:ScratchpadDelay => delay.cycle * delay.in.getVec
         }.maxOption.getOrElse(0)
         val nBanks = srams.map { 
           case mem:Memory => mem.nBanks
           case lock:Lock => 1
+          case delay:ScratchpadDelay => delay.in.getVec
         }.maxOption.getOrElse(0)
         SRAMCost(srams.size, nBanks, sramSize)
       case n:CUParam => SRAMCost(n.sramParam.count, n.sramParam.bank, n.sramParam.sizeInWord)

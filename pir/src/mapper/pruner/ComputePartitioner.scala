@@ -6,7 +6,7 @@ import pir.pass._
 import prism.graph._
 import prism.collection.immutable._
 
-trait ComputePartitioner extends CUPruner with ExternComputePartitioner with LocalRetimer with PartitionRetimer { self =>
+trait ComputePartitioner extends CUPruner with ExternComputePartitioner with LocalRetimer with GlobalRetimer { self =>
 
   var splitAlgo:String = "bfs"
   private def scheduler = splitAlgo match {
@@ -28,8 +28,9 @@ trait ComputePartitioner extends CUPruner with ExternComputePartitioner with Loc
             global
           }
         }
+        val retimes = retimeGlobal(globals, vcost.collectFirst{ case cost:StageCost => cost.quantity }.get)
         removeNodes(k.descendentTree)
-        globals
+        globals ++ retimes
       case k:Context =>
         if (fit(kcost, vcost)) List(k)
         else {
@@ -54,7 +55,7 @@ trait ComputePartitioner extends CUPruner with ExternComputePartitioner with Loc
           (part::parts).foreach { removeCache }
           removeNodes(k.descendentTree)
           ctxs.foreach { ctx => if (ctx.ctrlers.isEmpty) ctx.streaming := true }
-          ctxs ++ retimePartition(ctxs, vcost.collectFirst{ case cost:StageCost => cost.quantity }.get)
+          ctxs
         }
       case k:Partition =>
         if (fit(kcost, vcost)) List(k)

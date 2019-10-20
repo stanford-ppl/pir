@@ -239,7 +239,8 @@ case class AccumAck()(implicit env:Env) extends Def {
   out.presetVec(1)
   out.tp(Bool)
 }
-case class Delay(cycle:Int)(implicit env:Env) extends Def {
+trait DelayOp extends Def {
+  val cycle:Int
   val in = new InputField[PIRNode]("in")
   override def compVec(n:IR) = n match {
     case `out` => in.inferVec
@@ -250,6 +251,10 @@ case class Delay(cycle:Int)(implicit env:Env) extends Def {
     case _ => super.compType(n)
   }
 }
+// Mapped to CU retiming buffer
+case class Delay(cycle:Int)(implicit env:Env) extends DelayOp
+// Mapped to PMU 
+case class ScratchpadDelay(cycle:Int)(implicit env:Env) extends DelayOp with BlackBox
 case class PrintIf()(implicit env:Env) extends Def {
   val en = new InputField[List[PIRNode]]("en").tp(Bool)
   val msg = new InputField[PIRNode]("mgs")
