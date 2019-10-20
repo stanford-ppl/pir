@@ -168,7 +168,8 @@ trait Transformer extends Logging { self =>
       mirror[N](n, mapping) 
       n.localEdges.foreach { e =>
         if (e.isDynamic) {
-          mirror[Any](e, mapping)
+          val me = mirror[Edge[_,_,_]](e, mapping)
+          me.dynamicIdx := e.dynamicIdx.get
         }
       }
     }
@@ -253,7 +254,7 @@ trait Transformer extends Logging { self =>
         val input = (from,to,name,frommeta.value,tometa.value)
         if (rule.isDefinedAt(input)) Some(rule(input)) else None
       }
-      newValue.fold[Unit]{
+      newValue.fold[Unit] {
         tometa.mirror(frommeta)
       } { newValue =>
         newValue.foreach { newValue => tometa.apply(newValue.as,reset=true) }

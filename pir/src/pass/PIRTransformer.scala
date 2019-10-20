@@ -89,6 +89,7 @@ with BufferAnalyzer
       case (from,to,"depth",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to,"castgroup",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to,"muxport",Some(fvalue),Some(tvalue)) => Some(tvalue)
+      case (from,to:BufferRead,"banks",Some(fvalue),Some(tvalue)) => Some(List(to.in.getVec))
     } { mirrorMetas(from,to) }
     from.presetVec.v.foreach { v => to.presetVec(v) } // Most before swapConncetion
     to.en(from.en.connected)
