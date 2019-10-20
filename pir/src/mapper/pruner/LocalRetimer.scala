@@ -96,10 +96,7 @@ trait PartitionRetimer extends PIRTransformer {
                 case write:BufferWrite =>
                   swapConnection(op.in, write.out, write.data.singleConnected.get)
                   bufferInput(op.in).foreach { buffer =>
-                    val bufferWrite = buffer.inAccess
-                    bufferWrite.name.mirror(write.name)
-                    bufferWrite.srcCtx.mirror(write.srcCtx)
-                    bufferWrite.en(write.en.connected)
+                    transferLocalAccess(write, buffer.inAccess)
                   }
                 case delay:Delay => bufferInput(op.in)
               }
@@ -114,11 +111,7 @@ trait PartitionRetimer extends PIRTransformer {
                 swapOutput(read.out, op.out)
                 ins.foreach { in =>
                   bufferInput(in).foreach { bufferRead =>
-                    bufferRead.name.mirror(read.name)
-                    bufferRead.srcCtx.mirror(read.srcCtx)
-                    bufferRead.initToken.mirror(read.initToken)
-                    bufferRead.inits.mirror(read.inits)
-                    bufferRead.en(read.en.connected)
+                    transferLocalAccess(read, bufferRead)
                   }
                 }
               case _ =>

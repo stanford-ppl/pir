@@ -113,10 +113,5 @@ trait TypeUtil { self:PIRPass =>
     n.getVec == 1 && n.getTp == Bool
   }
 
-  def mirrorSyncMeta(from:PIRNode, to:PIRNode) = {
-    to.waitFors.mirror(from.waitFors)
-    to.barrier.mirror(from.barrier)
-  }
-
 }
 

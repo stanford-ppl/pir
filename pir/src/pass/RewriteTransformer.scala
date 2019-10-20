@@ -435,14 +435,8 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
         val w1 = r1.inAccess.as[BufferWrite]
         dbgblk(s"Route through (2) $w1 -> $r1 -> $w2 -> $r2 detected => ") {
           dbg(s" => $w1 -> $r2")
-          r1.presetVec.v.foreach { v => r2.presetVec(v) } // Most before swapConncetion
-          mirrorSyncMeta(w2, w1)
-          zipReduce(r1.name.v, r2.name.v) { _ + "/" + _ }.foreach { name =>
-            r2.name.reset
-            r2.name.update(name)
-          }
-          r1.initToken.v.foreach { v => r2.initToken(v) }
-          r1.inits.v.foreach { v => r2.inits(v) }
+          transferLocalAccess(w2,w1)
+          transferLocalAccess(r1,r2)
           val go1 = w1.gout
           val gi2 = r2.gin
           (go1, gi2) match {
