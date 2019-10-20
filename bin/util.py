@@ -85,6 +85,7 @@ def grep(path, patterns):
         with open(p, 'r') as f:
             for line in f:
                 ncline = line.replace(RED,'').replace(NC,'')
+                ncline = ncline.replace('\x1b[31m','').replace('\x1b[31m','')
                 for pattern in patterns:
                     if pattern in ncline:
                         found[pattern].append(line)
