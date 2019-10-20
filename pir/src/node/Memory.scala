@@ -78,7 +78,7 @@ case class Splitter()(implicit env:Env) extends BlackBox {
     case _ => super.compVec(n)
   }
 }
-case class MergeBuffer(ways:Int, par:Int)(implicit env:Env) extends BlackBox with Def {
+case class MergeBuffer(ways:Int, par:Int)(implicit env:Env) extends BlackBox with Def { self =>
   val inputs = List.tabulate(ways) { i => new InputField[PIRNode](s"in$i") }
   val bounds = List.tabulate(ways) { i => new InputField[PIRNode](s"bound$i") }
   val init = new InputField[PIRNode](s"init").tp(Bool).presetVec(1)
@@ -86,7 +86,8 @@ case class MergeBuffer(ways:Int, par:Int)(implicit env:Env) extends BlackBox wit
   val outInit = new OutputField[List[PIRNode]]("outInit").tp(Bool).presetVec(1)
   override def compType(n:IR) = n match {
     case `outBound` => assertUnify(bounds, s"$n.outBound.tp") { _.inferTp }.get
-    case `out` => assertUnify(inputs, s"$n.out.tp") { _.inferTp }.get
+    case `out` => self.inferTp
+    case `self` => assertUnify(inputs, s"$n.out.tp") { _.inferTp }.get
     case _ => super.compType(n)
   }
   override def compVec(n:IR) = n match {
