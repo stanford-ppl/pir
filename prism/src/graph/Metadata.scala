@@ -39,7 +39,7 @@ trait MetadataIR extends Serializable { self =>
         if (merge.isDefinedAt((name,v1,v2))) {
           merge(name, v1, v2).as
         } else {
-          bug(s"Don't know how to merge metadata $name")
+          bug(s"Don't know how to merge metadata $name for from=$from ($v1) and to=$self ($v2)")
         }
       }
     }
@@ -87,10 +87,14 @@ abstract class MetadataLike[T] extends Serializable {
   def mirror(frommeta:MetadataLike[_]):Any = { frommeta.value.foreach { v => update(v) } }
   def mirrorMerge(frommeta:MetadataLike[_])(merge: (T,T) => T):Any = {
     frommeta.value.foreach { v => 
-      if (value.nonEmpty && Some(v) != value) {
-        value = Some(merge(value.get,v.as[T]))
-      } else {
-        value = Some(v.as[T])
+      value.fold {
+        this.value = Some(v.as[T])
+      } { value =>
+        if (value != v && default.fold(true) { default => value != default }) {
+          this.value = Some(merge(v.as[T], value))
+        } else {
+          this.value = Some(v.as[T])
+        }
       }
     }
   }
