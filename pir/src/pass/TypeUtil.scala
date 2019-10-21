@@ -44,6 +44,7 @@ trait TypeUtil { self:PIRPass =>
 
   implicit class NodeRuntimeOp[N<:IR](n:N) {
     def vecMeta:MetadataLike[Int] = n.getMeta[Int]("vec")
+    def presetVecMeta:MetadataLike[Int] = n.getMeta[Int]("presetVec")
     def tpMeta:MetadataLike[BitType] = n.getMeta[BitType]("tp")
     def setVec(v:Int) = n.getMeta[Int]("vec").apply(v)
     def setTp(v:BitType) = n.getMeta[BitType]("tp").apply(v)

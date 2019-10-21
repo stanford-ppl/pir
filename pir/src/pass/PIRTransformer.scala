@@ -78,6 +78,13 @@ with BufferAnalyzer
   }
 
   def transferLocalAccess(from:LocalAccess, to:LocalAccess) = {
+    dbg(s"TransferLocalAccess($from, $to)")
+    (from,to) match {
+      case (from:BufferWrite,to:BufferWrite) => mirrorMetas(from.data, to.data)
+      case (from:LocalOutAccess,to:LocalOutAccess) => mirrorMetas(from.in, to.in)
+      case (from,to) =>
+    }
+    to.en(from.en.connected)
     withMirrorRule {
       case (from,to,"name",Some(fvalue),Some(tvalue)) => Some(s"$fvalue/$tvalue")
       case (from,to,"sname",Some(fvalue),Some(tvalue)) => Some(s"$fvalue/$tvalue")
@@ -92,12 +99,6 @@ with BufferAnalyzer
       case (from,to:BufferRead,"banks",Some(fvalue),Some(tvalue)) => Some(List(to.in.getVec))
     } { mirrorMetas(from,to) }
     mirrorMetas(from.out, to.out)
-    (from,to) match {
-      case (from:BufferWrite,to:BufferWrite) => mirrorMetas(from.data, to.data)
-      case (from:LocalOutAccess,to:LocalOutAccess) => mirrorMetas(from.in, to.in)
-      case (from,to) =>
-    }
-    to.en(from.en.connected)
   }
 
   def mirrorSyncMeta(from:PIRNode, to:PIRNode) = {
