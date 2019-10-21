@@ -109,11 +109,15 @@ trait MemoryAnalyzer { self:PIRTransformer =>
   }
 
   def allocConst(value:Any, tp:Option[BitType]=None) = allocate[Const] { c => 
-    tp.fold(true) { _ == c.getTp } &&
+    tp.fold(true) { _ == c.out.getTp } &&
     equalValue(c.value,value) &&
     stackTop[Ctrl].fold(true) { ctrl => c.getCtrl == ctrl }
   } { 
-    stage(Const(value).tp.update(tp))
+    val c = Const(value)
+    tp.foreach { tp =>
+      c.out.tpMeta.update(tp)
+    }
+    stage(c)
   }
 
 }

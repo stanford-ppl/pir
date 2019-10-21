@@ -219,17 +219,22 @@ trait Def extends PIRNode with DefNode[PIRNode] {
 }
 
 case class Const(value:Any)(implicit env:Env) extends Def {
-  out.tp(value match {
-    case _:Boolean => Bool
-    case _:Int => Fix(true, 32, 0)
-    case _:Float => Flt(23, 8)
-    case _:Double => Flt(23, 8)
-    case _:String => Text
-    case (_:Boolean)::_ => Bool
-    case (_:Int)::_ => Fix(true, 32, 0)
-    case (_:Float)::_ => Flt(23, 8)
-    case (_:Double)::_ => Flt(23, 8)
-  })
+  override def compType(n:IR) = n match { // Value int can have long type
+    case `out` => 
+      val tp = value match {
+        case _:Boolean => Bool
+        case _:Int => Fix(true, 32, 0)
+        case _:Float => Flt(23, 8)
+        case _:Double => Flt(23, 8)
+        case _:String => Text
+        case (_:Boolean)::_ => Bool
+        case (_:Int)::_ => Fix(true, 32, 0)
+        case (_:Float)::_ => Flt(23, 8)
+        case (_:Double)::_ => Flt(23, 8)
+      }
+      Some(tp)
+    case _ => super.compType(n)
+  }
   out.presetVec(value match {
     case (l:List[_]) => l.size
     case _ => 1

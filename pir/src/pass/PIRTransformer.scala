@@ -91,7 +91,12 @@ with BufferAnalyzer
       case (from,to,"muxport",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to:BufferRead,"banks",Some(fvalue),Some(tvalue)) => Some(List(to.in.getVec))
     } { mirrorMetas(from,to) }
-    from.presetVec.v.foreach { v => to.presetVec(v) } // Most before swapConncetion
+    mirrorMetas(from.out, to.out)
+    (from,to) match {
+      case (from:BufferWrite,to:BufferWrite) => mirrorMetas(from.data, to.data)
+      case (from:LocalOutAccess,to:LocalOutAccess) => mirrorMetas(from.in, to.in)
+      case (from,to) =>
+    }
     to.en(from.en.connected)
   }
 

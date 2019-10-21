@@ -180,11 +180,12 @@ trait RewriteUtil { self: PIRTransformer =>
       def FMA(mulIn:Output[_], c:Any, addIn:Output[_]) = {
         val fma = within(n.parent.get, n.getCtrl) {
           val tp = addIn.src.as[PIRNode].getTp
-          val const = allocConst(c,tp=Some(tp)).tp(tp)
+          val const = allocConst(c,tp=Some(tp))
           stage(OpDef(FixFMA).addInput(mulIn, const.out, addIn).out)
         }
         Some(n.out, fma)
       }
+      dbg(s"ConstShift $n")
       (n.inputs(0), n.inputs(1)) match {
         case (SC(OutputField(ConstShift(mulIn, value), _)), SC(addIn)) => FMA(mulIn,value,addIn.as[Output[_]])
         case (SC(addIn), SC(OutputField(ConstShift(mulIn, value), _))) => FMA(mulIn,value,addIn.as[Output[_]])
@@ -431,11 +432,18 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   TransferRule[BufferRead] { r2 =>
     val w2 = r2.inAccess.as[BufferWrite]
     w2.data.T match {
-      case r1:BufferRead if r1.isFIFO == r2.isFIFO && matchRate(w2, r1) & matchInput(r1.en, w2.en) & !r2.nonBlocking =>
+      case r1:BufferRead if r1.isFIFO == r2.isFIFO && 
+                            matchRate(w2, r1) & 
+                            matchInput(r1.en, w2.en) & 
+                            !r2.nonBlocking &&
+                            r1.out.getVec == r2.out.getVec =>
         val w1 = r1.inAccess.as[BufferWrite]
         dbgblk(s"Route through (2) $w1 -> $r1 -> $w2 -> $r2 detected => ") {
           dbg(s" => $w1 -> $r2")
-          transferLocalAccess(w2,w1)
+          if (r2.in.getVec != r1.in.getVec) {
+            r2.in.vecMeta.reset
+            r2.in.setVec(r1.in.getVec)
+          }
           transferLocalAccess(r1,r2)
           val go1 = w1.gout
           val gi2 = r2.gin
