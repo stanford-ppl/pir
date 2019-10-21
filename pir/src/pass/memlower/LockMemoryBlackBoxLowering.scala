@@ -172,7 +172,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
         dbg(s"ackCtx = $ackCtx")
         val ackPort = within(ackCtx, access.getCtrl) {
           val ack = ackPorts.reduce[Output[PIRNode]] { case (r1,r2) =>
-            stage(OpDef(And).addInput(r1,r2).out)
+            stage(OpDef(FixAnd).addInput(r1,r2).out)
           }
           stage(AccumAck().ack(ack).out)
         }
@@ -195,7 +195,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
           val respCtx = testOne(readCtxs).getOrElse { within(pirTop, access.getCtrl) { stage(Context()) } }
           val dataPort = within(respCtx, access.getCtrl) {
             dataPorts.reduce[Output[PIRNode]] { case (d1,d2) =>
-              stage(OpDef(And).addInput(d1,d2).out)
+              stage(OpDef(FixAnd).addInput(d1,d2).out)
             }
           }
           bufferInput(respCtx)
