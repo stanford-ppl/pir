@@ -177,19 +177,9 @@ case class DRAMMergeSort_4() extends DRAMMergeSort(ip=16, op=4)
     writeCSV1D(result, "out.csv")
     //printArray(result)
 
-    val itersEven = (itersGold % 2 == 0)
-    val sortedStart = if (itersEven) 0 else N
-    val doubleStart = if (itersEven) N else 0
+    val sortedStart = if (itersGold % 2 == 0) 0 else N
 
-    val sortedBuffer = Array.tabulate(N) { i => result(sortedStart + i) }
-    val doubleBuffer = Array.tabulate(N) { i => result(doubleStart + i) }
-
-    println("sorted:")
-    printArray(sortedBuffer)
-    println("double:")
-    printArray(doubleBuffer)
-
-    val cksum = (0 until N) { i => sortedBuffer(i) === i }.reduce { _ && _ }
+    val cksum = (0 until N) { i => result(sortedStart + i) === i }.reduce { _ && _ }
     assert(cksum)
 
   }

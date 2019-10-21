@@ -94,7 +94,7 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
     val from = fromCmd.getCtrl
     val to = toCmd.getCtrl
     // Not in the same parallelized outer loop
-    if (from.uid.get != to.uid.get) return false
+    //if (from.uid.get != to.uid.get) return false
     val lca = leastCommonAncesstor(from, to).get
     lca.schedule match {
       case Sequenced => return true
