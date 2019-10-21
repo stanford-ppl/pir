@@ -6,7 +6,7 @@ import pir.pass._
 import prism.graph._
 import spade.param._
 
-trait GlobalRetimer extends PIRTransformer {
+trait GlobalRetimer extends PIRTransformer with CUCostUtil {
   private val traversal = new PIRTraversal with BFSTopologicalTraversal with UnitTraversal { 
     val forward = false // Reverse to schedule nodes as late as possible. Assume small fanins from external
     override def visitIn(n:N) = visitLocalIn(n)
@@ -44,14 +44,10 @@ trait GlobalRetimer extends PIRTransformer {
         }.flatMap { case (dep, group) =>
           val delayOps = group.flatMap { case (out, delayOps) => delayOps }
           val layers = delayOps.groupBy { _.delay.get }.toSeq.sortBy { _._1 }
-          val retimeGlobs = layers.map { case (delay, ops) =>
-            assertUnify(ops, s"DelayOp type") { op => op.getClass }
-            val retimeGlob = ops.head match {
-              case op:Delay => stage(ComputeContainer())
-              case op:ScratchpadDelay => stage(MemoryContainer())
-            }
-            val retimeCtx = within(retimeGlob,dep.collectFirstChild[Context].get.getCtrl) { stage(Context().streaming(true)) }
+          val retimeGlobs = layers.flatMap { case (delay, ops) =>
+            val retimeCtxs = ListBuffer[Context]()
             ops.foreach { op =>
+              val retimeCtx = allocateCtx(retimeCtxs, op, sramParam)
               swapParent(op, retimeCtx)
               op.in.singleConnected.get.src match {
                 case write:BufferWrite =>
@@ -63,7 +59,7 @@ trait GlobalRetimer extends PIRTransformer {
               }
             }
             //breakPoint(s"add $retimeGlob")
-            retimeGlob
+            retimeCtxs.map { _.global.get }
           }.toList
           delayOps.foreach { op =>
             op.out.connected.foreach {
@@ -84,8 +80,22 @@ trait GlobalRetimer extends PIRTransformer {
       }
     }
 
+  private def allocateCtx(pool:ListBuffer[Context], op:DelayOp, sramParam:SRAMParam):Context = {
+    pool.find { ctx => 
+      fit(op.getCost[SRAMCost] + ctx.getCost[SRAMCost], sramParam.getCost[SRAMCost])
+    }.getOrElse {
+      val retimeGlob = op match {
+        case op:Delay => stage(ComputeContainer())
+        case op:ScratchpadDelay => stage(MemoryContainer())
+      }
+      val ctx = within(retimeGlob,op.getCtrl) { stage(Context().streaming(true)) }
+      pool += ctx
+      ctx
+    }
+  }
+
   // Do a filter on ins to filter out inputs that requires retiming
-  def needRetime(out:Output[PIRNode], deped:GlobalContainer, externDelay:Int, fifoDepth:Int, numStage:Int):Boolean = {
+  private def needRetime(out:Output[PIRNode], deped:GlobalContainer, externDelay:Int, fifoDepth:Int, numStage:Int):Boolean = {
     out.src match {
       case write:BufferWrite if !write.isFIFO => return false
       case write:TokenWrite => return false
@@ -99,7 +109,7 @@ trait GlobalRetimer extends PIRTransformer {
     diff > fifoDepth
   }
 
-  def retimeOutput(out:Output[PIRNode], ins:Vector[Input[PIRNode]], externDelay:Int, fifoDepth:Int, numStage:Int, sramParam:SRAMParam):List[DelayOp] = {
+  private def retimeOutput(out:Output[PIRNode], ins:Vector[Input[PIRNode]], externDelay:Int, fifoDepth:Int, numStage:Int, sramParam:SRAMParam):List[DelayOp] = {
     val depDelay = out.src match {
       case src:DelayOp => src.delay.get
       case src => src.global.get.delay.v.getOrElse(externDelay)

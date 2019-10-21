@@ -97,12 +97,22 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
     } orElse switch[SRAMCost](x,ct) {
       case n:GlobalContainer =>
         n.descendents.collect {
-          case mem:SRAM => SRAMCost(mem.nBanks, mem.capacity)
-          case mem:LUT => SRAMCost(mem.nBanks, mem.capacity)
-          case mem:RegFile => SRAMCost(mem.nBanks, mem.capacity)
-          case mem:Lock => SRAMCost(spadeParam.vecWidth, 100)
-          case mem:ScratchpadDelay => SRAMCost(mem.in.getVec, mem.cycle * mem.in.getVec) 
+          case mem:SRAM => mem.getCost[SRAMCost]
+          case mem:LUT => mem.getCost[SRAMCost]
+          case mem:RegFile => mem.getCost[SRAMCost]
+          case mem:Lock => mem.getCost[SRAMCost]
+          case mem:ScratchpadDelay => mem.getCost[SRAMCost]
         }.reduceOption { _ + _ }.getOrElse(SRAMCost(0,0))
+      case n:Context => 
+        n.descendents.collect {
+          case mem:Lock => mem.getCost[SRAMCost]
+          case mem:ScratchpadDelay => mem.getCost[SRAMCost]
+        }.reduceOption { _ + _ }.getOrElse(SRAMCost(0,0))
+      case n:SRAM => SRAMCost(n.nBanks, n.capacity)
+      case n:LUT => SRAMCost(n.nBanks, n.capacity)
+      case n:RegFile => SRAMCost(n.nBanks, n.capacity)
+      case n:Lock => SRAMCost(spadeParam.vecWidth, 100)
+      case n:ScratchpadDelay => SRAMCost(n.in.getVec, n.cycle * n.in.getVec)
       case n:CUParam => SRAMCost(n.sramParam.bank, n.sramParam.sizeInWord)
       case n => SRAMCost(0,0)
 
