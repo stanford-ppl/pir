@@ -4,8 +4,8 @@ class BlackScholes_0 extends BlackScholes(op=1){ override def pirArgs = super.pi
 class BlackScholes_1 extends BlackScholes(op=1){ override def pirArgs = super.pirArgs + " --split-algo=bfs --retime-local=true";  }
 
 @spatial abstract class BlackScholes(
-  N:scala.Int = 8192,
-  ts:scala.Int = 64,
+  N:scala.Int = 1024 * 128,
+  ts:scala.Int = 256,
   op:scala.Int = 1,
   ip:scala.Int = 16
 ) extends SpatialTest {
@@ -128,7 +128,7 @@ class BlackScholes_1 extends BlackScholes(op=1){ override def pirArgs = super.pi
 
     val out = blackscholes(types, prices, strike, rate, vol, time)
 
-    printArray(out, "result: ")
+    //printArray(out, "result: ")
 
     //val cksum = out.zip(gold){ case (o, g) => (g < (o + margin)) && g > (o - margin)}.reduce{_&&_}
     val cksum = true

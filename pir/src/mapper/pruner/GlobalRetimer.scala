@@ -25,15 +25,19 @@ trait GlobalRetimer extends PIRTransformer {
       traversal.resetTraversal
       traversal.numStage = numStage
       traversal.traverseScope(scope, ())
-      //breakPoint(s"Finish analysis")
       val externDelay = scope.toStream.map { _.delay.get }.min - numStage
       val fifoDepth = assertUnify(spadeParam.traceIn[FIFOParam], "fifoParam") { _.depth }.get
+      val sramParam = assertIdentical(spadeParam.traceIn[PMUParam], "PMUParam").get.sramParam
       within(pirTop) {
         // A map between outputs (internal and external) to internal inputs
-        val outIns = scope.map { n => n.depsFrom }.reduce { _ ++ _ }
+        val outIns = scope.map { n => 
+          n.depsFrom.filter { case (out, ins) => 
+            needRetime(out, n, externDelay, fifoDepth, numStage)
+          }
+        }.reduce { sumMap(_,_) { _ ++ _ } }
         // Inserting retiming ops for each output
         val delayOps = outIns.map { case (out, ins) =>
-          out -> retimeOutput(out, ins, externDelay, fifoDepth, numStage)
+          out -> retimeOutput(out, ins, externDelay, fifoDepth, numStage, sramParam)
         }.toMap
         // Put retiming ops into retiming containers. Share container for outputs from the same context
         delayOps.groupBy { case (out, delayOps) => out.src.global.get
@@ -41,7 +45,11 @@ trait GlobalRetimer extends PIRTransformer {
           val delayOps = group.flatMap { case (out, delayOps) => delayOps }
           val layers = delayOps.groupBy { _.delay.get }.toSeq.sortBy { _._1 }
           val retimeGlobs = layers.map { case (delay, ops) =>
-            val retimeGlob = stage(ComputeContainer())
+            assertUnify(ops, s"DelayOp type") { op => op.getClass }
+            val retimeGlob = ops.head match {
+              case op:Delay => stage(ComputeContainer())
+              case op:ScratchpadDelay => stage(MemoryContainer())
+            }
             val retimeCtx = within(retimeGlob,dep.collectFirstChild[Context].get.getCtrl) { stage(Context().streaming(true)) }
             ops.foreach { op =>
               swapParent(op, retimeCtx)
@@ -76,35 +84,50 @@ trait GlobalRetimer extends PIRTransformer {
       }
     }
 
-  def retimeOutput(out:Output[PIRNode], ins:Vector[Input[PIRNode]], externDelay:Int, fifoDepth:Int, numStage:Int):List[DelayOp] = {
+  // Do a filter on ins to filter out inputs that requires retiming
+  def needRetime(out:Output[PIRNode], deped:GlobalContainer, externDelay:Int, fifoDepth:Int, numStage:Int):Boolean = {
     out.src match {
-      case write:BufferWrite if !write.isFIFO => return Nil
-      case write:TokenWrite => return Nil
+      case write:BufferWrite if !write.isFIFO => return false
+      case write:TokenWrite => return false
       case _ =>
     }
     val depDelay = out.src match {
       case src:DelayOp => src.delay.get
       case src => src.global.get.delay.v.getOrElse(externDelay)
     }
+    val diff = deped.delay.get - depDelay + numStage
+    diff > fifoDepth
+  }
+
+  def retimeOutput(out:Output[PIRNode], ins:Vector[Input[PIRNode]], externDelay:Int, fifoDepth:Int, numStage:Int, sramParam:SRAMParam):List[DelayOp] = {
+    val depDelay = out.src match {
+      case src:DelayOp => src.delay.get
+      case src => src.global.get.delay.v.getOrElse(externDelay)
+    }
     val toretime = ins.filter { in => 
       val deped = in.src.global.get
-      val diff = deped.delay.get - depDelay + numStage
-      diff > fifoDepth
+      needRetime(out, deped, externDelay, fifoDepth, numStage)
     }
     if (toretime.isEmpty) return Nil
     val depedDelay = toretime.toStream.map { _.src.global.get.delay.get }.min
+    val delayDiff = depedDelay - depDelay
+    dbg(s"delayDiff=$delayDiff")
+    val sramDepth = sramParam.capacity / out.getVec
+    val retimeDepth = if (delayDiff > fifoDepth) sramDepth else fifoDepth
     // The earliest time to schedule this retime node is after its previous node and before any used
     // node
-    val opdelay = math.min(depDelay + fifoDepth, depedDelay - 1)
+    val opdelay = math.min(depDelay + retimeDepth, depedDelay - 1)
     val d = within(out.src.getCtrl) { 
-      //stage(ScratchpadDelay(fifoDepth).in(out).delay(opdelay))
-      stage(Delay(fifoDepth).in(out).delay(opdelay))
+      if (retimeDepth == fifoDepth) {
+        stage(Delay(retimeDepth).in(out).delay(opdelay))
+      } else {
+        stage(ScratchpadDelay(retimeDepth).in(out).delay(opdelay))
+      }
     }
     toretime.foreach { in =>
       swapConnection(in, out, d.out)
     }
-    //breakPoint(s"add $d")
-    d :: retimeOutput(d.out, toretime, externDelay, fifoDepth, numStage)
+    d :: retimeOutput(d.out, toretime, externDelay, fifoDepth, numStage, sramParam)
   }
 
 }

@@ -125,8 +125,8 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
 
   override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
     val newAttr = from.src match {
-      case from:GlobalOutput if from.vec.v.nonEmpty & isVecLink(from) => attr.setEdge.style(bold)
-      case from:GlobalOutput if from.vec.v.nonEmpty & isCtrlLink(from) => attr.setEdge.style(dashed)
+      case from:GlobalOutput if from.out.vecMeta.v.nonEmpty & isVecLink(from) => attr.setEdge.style(bold)
+      case from:GlobalOutput if from.out.vecMeta.v.nonEmpty & isCtrlLink(from) => attr.setEdge.style(dashed)
       case _ =>  attr.setEdge
     }
     super.emitEdge(from, to, newAttr)
@@ -177,7 +177,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
     case n:ComputeContainer => attr.setNode.fillcolor("dodgerblue").style(filled)
     case n:DRAMFringe => attr.setNode.fillcolor("lightseagreen").style(filled)
     case n:BlackBoxContainer => attr.setNode.fillcolor("crimson").style(filled)
-    case n:Top => super.color(attr,n)
+    case n => super.color(attr,n)
   }
 
   //override def label(attr:DotAttr, n:N) = n match {
@@ -240,6 +240,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
         case n:MemoryContainer => "M"
         case n:DRAMFringe => "D"
         case n:BlackBoxContainer => "B"
+        case n => n.getClass.getSimpleName
       }
       var l = s"${tp}${n.id}"
       val mem = n.collectDown[Memory]()
@@ -258,6 +259,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
         }
       }
       l
+      .append("delay", n.delay.v)
     }
   }
 

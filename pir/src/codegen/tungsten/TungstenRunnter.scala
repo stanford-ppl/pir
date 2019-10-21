@@ -24,6 +24,8 @@ class TungstenRunner(implicit compiler: PIR) extends PIRPass with Printer {
     deleteFile(tstLog)
     var failed = false
     val exitCode = shellProcess("tungsten", s"bash runtst.sh", config.appDir, tstLog) { line =>
+      if (line.contains("Average DRAM")) 
+        info(Console.GREEN, s"tungsten", line)
       if (line.contains("error") || line.contains("exception") || line.contains("failed")) {
         failed = true
         info(Console.RED, s"tungsten", line)
