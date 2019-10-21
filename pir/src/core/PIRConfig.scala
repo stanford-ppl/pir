@@ -18,6 +18,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("module", default=false, info="Generate the app as a module")
   register("retime-local", default=false, info="Enable local retiming")
   register("retime-glob", default=false, info="Enable global retiming")
+  register("retime-buffer-only", default=false, info="Only allow using input buffers of CUs for retiming")
   register[String]("pir-home", default=sys.env.get("PIR_HOME"), info="PIR Home")
 
   def arch = option[String]("arch")
@@ -26,6 +27,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def splitThread = option[Int]("split-thread")
   def enableLocalRetiming = option[Boolean]("retime-local")
   def enableGlobalRetiming = option[Boolean]("retime-glob")
+  def retimeBufferOnly = option[Boolean]("retime-buffer-only")
   def enableMapping = option[Boolean]("mapping")
   def deadicatedDAG = option[Boolean]("dedicated-dag")
   def enableRouteElim = option[Boolean]("rt-elm")

@@ -123,7 +123,7 @@ trait GlobalRetimer extends PIRTransformer with CUCostUtil {
     val delayDiff = depedDelay - depDelay
     dbg(s"delayDiff=$delayDiff")
     val sramDepth = sramParam.capacity / out.getVec
-    val retimeDepth = if (delayDiff > fifoDepth) sramDepth else fifoDepth
+    val retimeDepth = if (delayDiff > fifoDepth && !config.retimeBufferOnly) sramDepth else fifoDepth
     // The earliest time to schedule this retime node is after its previous node and before any used
     // node
     val opdelay = math.min(depDelay + retimeDepth, depedDelay - 1)
