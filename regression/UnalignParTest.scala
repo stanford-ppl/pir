@@ -169,12 +169,12 @@ class FIFOTest_3 extends FIFOTest(op=3,N=100)
     Accel {
       val sram = SRAM[Int](N)
       val fifos = FIFOs[Int](op, 16)
-      MForeach(N by ts par op) { (i,io,ii,v) =>
+      MForeach(N by ts par op) { (i,ii,v) =>
         Foreach(ts par ip) { jj =>
           fifos.enq(ii, i+jj)
         }
       }
-      MForeach(N by ts par op) { (i,io,ii,v) =>
+      MForeach(N by ts par op) { (i,ii,v) =>
         Foreach(ts par ip) { jj =>
           val value = fifos.deq(ii)
           sram(i+jj) = value
