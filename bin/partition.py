@@ -20,10 +20,12 @@ Node = namedtuple("Node", ["node", "op", "retime", "comment"])
 Edge = namedtuple("Edge", ["src", "dst", "tp", "comment"])
 NodePartition = namedtuple("NodePartition", ["node", "partition"])
 
+
 def load_csv(fname, tp, use_fieldnames=False):
     with open(fname, "r") as f:
         return [tp(**row) for row in
                 csv.DictReader(f, delimiter=",", fieldnames=tp._fields if use_fieldnames else None)]
+
 
 def cleaned_name(node_id):
     if node_id[0] == "e":
@@ -54,6 +56,7 @@ class TimeContext:
         self._initialized = False
         assert self.contexts.pop() is self
 
+
 class CVXPartitioner:
     nodes: typing.List[Node]
     edges: typing.List[Edge]
@@ -74,6 +77,7 @@ class CVXPartitioner:
         # gurobi can't currently handle a warm start, so instead we just initialize with the number of partitions
         self.partitions = len({partition.partition for partition in pre_partitioning})
         self.num_nodes = len(nodes)
+        self.retime_nodes = {node.node for node in nodes if node.retime}
 
         print("Initializing problem with", self.num_nodes, "nodes and", self.partitions, "partitions.")
 
@@ -114,7 +118,6 @@ class CVXPartitioner:
             # self.objective = cvxpy.Minimize(self.delay_gap())
             self.objective = cvxpy.Minimize(self.num_partitions())
 
-
     def _add_constraint(self, constraint):
         assert constraint.is_dcp()
         self.cvx_constraints.append(constraint)
@@ -127,8 +130,10 @@ class CVXPartitioner:
         filtered_edges = [edge for edge in self.edges if
                           self._is_internal_node(edge.src) and self._is_internal_node(edge.dst)]
         for src, dst, _, _ in filtered_edges:
+            # If either end is a retime node, then we make sure that it can't merge.
+            twiddle = src in self.retime_nodes or dst in self.retime_nodes
             self._add_constraint(
-                self.node_partitions[self.node_to_loc_map[src]] <= self.node_partitions[self.node_to_loc_map[dst]])
+                self.node_partitions[self.node_to_loc_map[src]] + twiddle <= self.node_partitions[self.node_to_loc_map[dst]])
 
     @functools.lru_cache(None)
     def _init_input_constraints(self):
@@ -204,7 +209,8 @@ class CVXPartitioner:
             exports = []
             for src, destinations in push_map.items():
                 src_partition = self.node_partitions[src]
-                has_exports = self._project_to_bool(sum(self.node_partitions[dst] - src_partition for dst in destinations))
+                has_exports = self._project_to_bool(
+                    sum(self.node_partitions[dst] - src_partition for dst in destinations))
                 update = cvxpy.maximum(has_exports + self.node_to_partition_matrix[src, :] - 1, 0)
                 exports.append(update)
 
@@ -236,22 +242,23 @@ class CVXPartitioner:
             dst_loc = self.node_to_loc_map[dst]
             src_partition_vec = self.node_to_partition_matrix[src_loc, :]
             dst_partition_vec = self.node_to_partition_matrix[dst_loc, :]
-            for (spart_index, spart_var), (dpart_index, dpart_var) in itertools.product(enumerate(src_partition_vec), enumerate(dst_partition_vec)):
+            for (spart_index, spart_var), (dpart_index, dpart_var) in itertools.product(enumerate(src_partition_vec),
+                                                                                        enumerate(dst_partition_vec)):
                 if spart_index <= dpart_index:
                     continue
                 # This constraint is only active if the partition assignments are actually correct.
                 is_in_partition = self._multiply_bool(spart_var, dpart_var)
                 delay_active = max_delay * is_in_partition - max_delay
-                self._add_constraint(delays[dpart_index] >= self.delay_per_partition + delays[spart_index] + delay_active)
+                self._add_constraint(
+                    delays[dpart_index] >= self.delay_per_partition + delays[spart_index] + delay_active)
                 delay_gaps.append(delays[dpart_index] - delays[spart_index] + delay_active)
         return cvxpy.maximum(*delay_gaps)
 
-
     def _project_to_bool(self, var):
         projected = cvxpy.Variable(boolean=True, shape=var.shape)
-        large_constant = (self.num_nodes * self.partitions) ** 2
+        large_constant = (self.num_nodes * self.partitions)
         self._add_constraint(var <= projected * large_constant)
-        self._add_constraint(var * (1/large_constant) <= projected)
+        self._add_constraint(var * (1 / large_constant) <= projected)
         return projected
 
     def _multiply_bool(self, a, b):
@@ -303,7 +310,7 @@ def main():
     opts.partition = os.path.join(opts.path, "part.csv")
 
     nodes = load_csv(opts.node, Node)
-    nodes = [element._replace(op=int(element.op)) for element in nodes]
+    nodes = [element._replace(op=int(element.op), retime=element.retime=="true") for element in nodes]
 
     edges = load_csv(opts.edge, Edge)
     edges = [element._replace(
