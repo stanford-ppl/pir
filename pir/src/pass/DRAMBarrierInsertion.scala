@@ -21,6 +21,8 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
 
   def process(dram:DRAM, ctxs:List[(Context, DRAMCommand)]) = dbgblk(s"process(${dram} (${dram.sid})"){
     // Sorted by program order
+    //TODO: this get wrong result for DRAMDoubleBuffer_0
+    //val sorted = ctxs.sortBy { _._2.progorder.get }
     val sorted = ctxs.sortBy { _._2.id }
     val grouped:List[AccessGroup] = groupAccesses(sorted, forward=true)
     // Handle forward dependency
@@ -85,12 +87,14 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
   }
 
   def canConflict(fromCmd:DRAMCommand, toCmd:DRAMCommand, forward:Boolean):Boolean = {
+    // From unrolled dram accesses
+    if (fromCmd.progorder.get == toCmd.progorder.get) return false
     // Both are read
     if (fromCmd.isInstanceOf[DRAMLoadCommand] && toCmd.isInstanceOf[DRAMLoadCommand]) return false
     val from = fromCmd.getCtrl
     val to = toCmd.getCtrl
     // Not in the same parallelized outer loop
-    if (from.uid.get != to.uid.get) return false
+    //if (from.uid.get != to.uid.get) return false
     val lca = leastCommonAncesstor(from, to).get
     lca.schedule match {
       case Sequenced => return true

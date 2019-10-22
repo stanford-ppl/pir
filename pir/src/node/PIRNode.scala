@@ -66,6 +66,7 @@ abstract class PIRNode(implicit env:BuildEnvironment)
   val vec = new Metadata[Int]("vec") {
     override def mirror(frommeta:MetadataLike[_]) = self
   }
+  // TODO: this should be removed after adding mirrorRule
   val presetVec = new Metadata[Int]("presetVec")
 
   // Marker for whether the operation is reduction operation across lane
@@ -78,19 +79,29 @@ abstract class PIRNode(implicit env:BuildEnvironment)
   val waitFors = new Metadata[List[Int]]("waitFors")
   val barrier = new Metadata[Int]("barrier")
 
+  def compType(n:IR):Option[BitType] = n match {
+    case n:Input[_] if n.isConnected && n.connected.size == 1 =>
+      n.singleConnected.get.inferTp
+    case n => None
+  }
+  def compVec(n:IR):Option[Int] = n match {
+    case n:Input[_] if n.isConnected && n.connected.size == 1 =>
+      n.singleConnected.get.inferVec
+    case n => None
+  }
+
+  val delay = new Metadata[Int]("delay")
+
   env.initNode(this)
 }
 object PIRNode extends MemoryUtil with AccessUtil {
   implicit class PIRNodeOp(n:PIRNode) {
+    def getCtrl:ControlTree = n.ctrl.get
     def ctx = n.collectUp[Context]().headOption
     def global = n.collectUp[GlobalContainer]().headOption
     def isUnder[T:ClassTag] = n.ancestors.exists { _.to[T].nonEmpty }
   }
 
-  implicit class MetadataIRUtil[T<:MetadataIR](n:T) {
-    def presetVec(v:Int) = n.getMeta[Int]("presetVec")(v)
-    def tp(v:BitType) = n.getMeta[BitType]("tp")(v)
-  }
 }
 
 sealed abstract class CtrlSchedule
@@ -108,6 +119,7 @@ case class ControlTree(schedule:CtrlSchedule)(implicit env:Env) extends EnvNode[
   val isLoop = new Metadata[Boolean]("isLoop", default=Some(false))
   val srcCtx = new Metadata[String]("srcCtx")
   val uid = new Metadata[List[Int]]("uid")
+  val progorder = new Metadata[Int]("progorder")
 
   def compare(that:ControlTree) = {
     if (this == that) 0

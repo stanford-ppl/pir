@@ -4,9 +4,7 @@ import prism.graph._
 import pir.node._
 import pir.util._
 import pir.pass._
-import pir.codegen._
 //import pir.mapper._
-import scala.collection.mutable
 
 abstract class PIRPass(implicit override val compiler:PIR) extends Pass 
   with PIREnv 
@@ -36,84 +34,4 @@ trait PIRTraversal extends PIRPass {
 trait ControlTreeTraversal extends PIRPass {
   type N = ControlTree
   def top = compiler.pirenv.pirTop.topCtrl
-}
-trait PIRTransformer extends PIRPass with Transformer 
-with GarbageCollector
-with RewriteUtil
-with BufferAnalyzer
-{
-  override def mirrorField[N<:Node[N]](
-    nodes:Iterable[FieldNode[N]], 
-    mapping:mutable.Map[IR,IR]
-  ) = {
-    val orig = mapping.values.toList
-    super.mirrorField(nodes, mapping)
-    val newnodes = mapping.values.toList diff orig
-    newnodes.foreach { case n:PIRNode => stage(n.as[PIRNode]); case _ => }
-  }
-
-  override def swapConnection[N<:Node[N]](input:Input[N], from:Output[N], to:Output[N]):Unit = {
-    input.vecMeta.reset
-    to.vecMeta.reset
-    super.swapConnection(input, from, to)
-    to.inferVec
-    input.inferVec
-    withLive(to.src) {
-      free(from.src.as[PIRNode])
-    }
-  }
-
-  override def swapOutput[N<:Node[N]](from:Output[N], to:Output[N]) = {
-    super.swapOutput(from, to)
-    withLive(to.src) {
-      free(from.src.as[PIRNode])
-    }
-  }
-
-  override def swapInput[N<:Node[N]](node:Node[N], from:Output[N], to:Output[N]):Unit = {
-    super.swapInput(node, from, to)
-    withLive(to.src) {
-      free(from.src.as[PIRNode])
-    }
-  }
-
-  override def swapInput[N<:Node[N]](node:Node[N], from:Node[N], to:Output[N]):Unit = {
-    super.swapInput(node, from, to)
-    withLive(to.src) {
-      free(from.as[PIRNode])
-    }
-  }
-
-  override def mirrorN(
-    n:IR, 
-    margs:Seq[Any]
-  ):IR = {
-    val m = super.mirrorN(n, margs)
-    m.vecMeta.reset
-    m.to[ND].foreach { m =>
-      m.localEdges.foreach { e =>
-        if (e.isStatic) e.vecMeta.reset
-      }
-    }
-    m
-  }
-
-  def stage[T<:PIRNode](n:T):T = dbgblk(s"stage($n)"){
-    val tp = n.inferTp
-    n.localIns.foreach { in => 
-      in.inferVec
-      in.inferTp
-    }
-    val vec = n.inferVec
-    dbgn(n)
-    n
-  }
-
-  def stage(out:Output[PIRNode]):Output[PIRNode] = {
-    stage(out.src)
-    withGC(false) {
-      rewriteRules.foldLeft(out) { (out, rule) => rule.apply(out).as[Output[PIRNode]] }
-    }
-  }
-
 }

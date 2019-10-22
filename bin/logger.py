@@ -120,18 +120,22 @@ def parse_genpir(pirsrc, logpath, conf, opts):
         else:
             conf['genpir_err'] = None
 
-def parseLog(conf, key, pattern, parseLambda, default=None, logs=[], prefix=False):
+def parseLog(conf, key, patterns, parseLambda, default=None, logs=[], prefix=False):
     prefix = prefix or len(logs) > 1
+    if type(patterns)!=list:
+        patterns = [patterns]
     for log in logs:
         logname = log.split("/")[-1].split(".log")[0]
         mykey = key if not prefix else logname + "_" + key
         conf[mykey] = default
         if not os.path.exists(log): continue
-        found = grep(log, pattern)
-        for pat in found:
+        found = grep(log, patterns)
+        alllines = []
+        for pat in patterns:
             lines = found[pat]
-            if len(lines) == 0: continue
-            conf[mykey] = parseLambda(lines)
+            alllines +=lines
+        if len(alllines) > 0:
+            conf[mykey] = parseLambda(alllines)
 
 def parse_proutesummary(log, conf, opts):
     conf["DynHopsVec"] = None

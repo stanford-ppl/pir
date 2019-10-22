@@ -89,11 +89,25 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     val nodes = k.descendentTree
     val toBanks = nodes.collect { case s:Shuffle => s.to.T }
     val mappings = parts.map { bankids =>
-      val mapping = mutable.Map[IR,IR]()
-      mapping ++= toBanks.map { to => to -> stage(Const(bankids.toList)).mirrorMetas(to) }
-      mapping += (mem -> mirror[Memory](mem).bankids(bankids.toList, reset=true).numPart(numCU)) 
-      val mm = mapping(mem).as[Memory]
-      within(pirTop) { mirrorAll(nodes, mapping=mapping) }
+      within(pirTop) { 
+        val mapping = mutable.Map[IR,IR]()
+        val mmem = mirror[Memory](mem)
+        mirrorMetas(mem, mmem)
+        mapping += (mem -> mmem) 
+        mmem.bankids(bankids.toList,reset=true) // Need to set to infer vec for other mirrored nodes
+        mmem.numPart(numCU,reset=true)
+        withMirrorRule { 
+          case (`mem`,to,name,fvalue,tovalue) => None // Already manually mirrored. Don't change
+          case (from:BufferRead,to:BufferRead,"banks",fvalue,tvalue) => Some(List(to.in.getVec))
+          case (from,to,"vec",fvalue,tvalue) => to.inferVec
+          case (from,to,"presetVec",fvalue,Some(tovalue)) => None
+        } {
+          mapping ++= toBanks.map { to => to -> 
+            within(to.parent.get, to.getCtrl) { stage(Const(bankids.toList)).mirrorMetas(to) }
+          }
+          mirrorAll(nodes, mapping=mapping)
+        }
+      }
     }
     val mks = mappings.map { _(k).as[GlobalContainer] }
    

@@ -16,15 +16,25 @@ object FileBus {
   def unapply(x:FileBus) = Some(x.fileName)
 }
 case class FileEOFBus(override val fileName:String) extends FileBus(fileName)
-case class BlackBoxBus(name:String) extends Bus
 
 trait BlackBox extends PIRNode
+trait GlobalBlackBox extends BlackBox
 
 trait FringeCommand extends BlackBox
 
 trait DRAMCommand extends FringeCommand {
   def dram:DRAM
   val data:NodeField[PIRNode]
+  override def compType(n:IR) = n match {
+    case `data` => 
+      dbg(_logger, s"$dram ${dram.tp.v}")
+      dram.tp.v
+    case _ => 
+      dbg(_logger, s"$dram ${dram.tp.v} ${n} == ${data}")
+      super.compType(n)
+  }
+
+  val burstSize = 512 // TODO: get from spadeparam
 }
 
 trait DRAMDenseCommand extends DRAMCommand {
@@ -32,25 +42,39 @@ trait DRAMDenseCommand extends DRAMCommand {
   val size = new InputField[PIRNode]("size")
 }
 trait DRAMSparseCommand extends DRAMCommand {
-  val addr = new InputField[PIRNode]("addr")
+  val addr = new InputField[PIRNode]("addr").presetVec(1)
 }
 trait DRAMLoadCommand extends DRAMCommand {
   val data = new OutputField[PIRNode]("data")
 }
 trait DRAMStoreCommand extends DRAMCommand {
   val data = new InputField[PIRNode]("data")
-  val ack = new OutputField[PIRNode]("ack").tp(Bool)
+  val ack = new OutputField[PIRNode]("ack").tp(Bool).presetVec(1)
 }
 
-case class FringeDenseLoad(dram:DRAM)(implicit env:Env) extends DRAMDenseCommand with DRAMLoadCommand
+case class FringeDenseLoad(dram:DRAM)(implicit env:Env) extends DRAMDenseCommand with DRAMLoadCommand {
+  override def compVec(n:IR) = n match {
+    case `data` => Some(burstSize /! data.inferTp.get.nbits.get)
+    case _ => super.compVec(n)
+  }
+}
 
-case class FringeSparseLoad(dram:DRAM)(implicit env:Env) extends DRAMSparseCommand with DRAMLoadCommand
+case class FringeSparseLoad(dram:DRAM)(implicit env:Env) extends DRAMSparseCommand with DRAMLoadCommand {
+  data.presetVec(1)
+}
 
 case class FringeDenseStore(dram:DRAM)(implicit env:Env) extends DRAMDenseCommand with DRAMStoreCommand {
   val valid = new InputField[PIRNode]("valid")
+  override def compVec(n:IR) = n match {
+    case `data` | `valid` => Some(burstSize /! data.inferTp.get.nbits.get)
+    case _ => super.compVec(n)
+  }
 }
 
-case class FringeSparseStore(dram:DRAM)(implicit env:Env) extends DRAMSparseCommand with DRAMStoreCommand
+case class FringeSparseStore(dram:DRAM)(implicit env:Env) extends DRAMSparseCommand with DRAMStoreCommand {
+  data.presetVec(1)
+  ack.presetVec(1)
+}
 
 case class DRAM(sid:String) extends prism.graph.IR {
   val dims = Metadata[List[Int]]("dims")

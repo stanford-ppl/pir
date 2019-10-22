@@ -42,13 +42,14 @@ trait RewriteUtil { self: PIRTransformer =>
   }
 
   RewriteRule[MemRead](s"WrittenByConstData") { reader =>
-    val ConstData = MatchRule[MemWrite, Const] { write =>
+    val ConstData = MatchRule[MemWrite, Const] { case write =>
+      val readVec = reader.out.getVec
       write.data.T match {
-        case cn@Const(c) if !write.en.isConnected && write.waitFors.isEmpty && cn.getVec == reader.getVec => 
+        case cn@Const(c) if !write.en.isConnected && write.waitFors.isEmpty && cn.out.getVec == readVec => 
           val const = c match {
-            case c:List[_] => assert(c.size == reader.getVec, s"$c.vec=${c.size} $reader.vec=${reader.getVec}"); cn
-            case c if reader.getVec > 1 => 
-              within(cn.getCtrl, cn.parent.get) { allocConst(List.fill(reader.getVec) { c }).tp(cn.inferTp.get) }
+            case c:List[_] => assert(c.size == readVec, s"$c.vec=${c.size} $reader.vec=${readVec}"); cn
+            case c if readVec > 1 => 
+              within(cn.getCtrl, cn.parent.get) { allocConst(List.fill(readVec) { c }).tp(cn.inferTp.get) }
             case c => cn
           }
           Some(const)
@@ -179,11 +180,12 @@ trait RewriteUtil { self: PIRTransformer =>
       def FMA(mulIn:Output[_], c:Any, addIn:Output[_]) = {
         val fma = within(n.parent.get, n.getCtrl) {
           val tp = addIn.src.as[PIRNode].getTp
-          val const = allocConst(c,tp=Some(tp)).tp(tp)
+          val const = allocConst(c,tp=Some(tp))
           stage(OpDef(FixFMA).addInput(mulIn, const.out, addIn).out)
         }
         Some(n.out, fma)
       }
+      dbg(s"ConstShift $n")
       (n.inputs(0), n.inputs(1)) match {
         case (SC(OutputField(ConstShift(mulIn, value), _)), SC(addIn)) => FMA(mulIn,value,addIn.as[Output[_]])
         case (SC(addIn), SC(OutputField(ConstShift(mulIn, value), _))) => FMA(mulIn,value,addIn.as[Output[_]])
@@ -199,7 +201,7 @@ trait RewriteUtil { self: PIRTransformer =>
       case (SC(OutputField(Const(from:List[_]),"out")), SC(OutputField(Const(to:List[_]),"out")), base) if from.intersect(to).isEmpty => 
         dbgblk(s"ShuffleUnmatch($n, from=${dquote(n.from.T)}, to=${dquote(n.to.T)})") {
           val c = within(n.ctx.get, n.getCtrl) {
-            allocConst(List.fill(n.inferVec.get)(n.filled))
+            allocConst(List.fill(n.getVec)(n.filled))
           }
           Some((n.out, c.out))
         }
@@ -406,7 +408,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
               dbgblk(s"Route through (1) $w1 -> $m1 -> $r1 -> $w2 -> $m2 detected") {
                 disconnect(w2.mem, m2)
                 val mw1 = within(w1.parent.get) { mirrorAll(List(w1))(w1).as[MemWrite] }
-                mw1.mirrorMetas(w1)
+                mirrorMetas(mw1,w1)
                 mirrorSyncMeta(w2, mw1)
                 dbg(s" => $mw1 -> $m2")
                 mw1.mem(m2)
@@ -430,16 +432,19 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   TransferRule[BufferRead] { r2 =>
     val w2 = r2.inAccess.as[BufferWrite]
     w2.data.T match {
-      case r1:BufferRead if r1.isFIFO == r2.isFIFO && matchRate(w2, r1) & matchInput(r1.en, w2.en) & !r2.nonBlocking =>
+      case r1:BufferRead if r1.isFIFO == r2.isFIFO && 
+                            matchRate(w2, r1) & 
+                            matchInput(r1.en, w2.en) & 
+                            !r2.nonBlocking &&
+                            r1.out.getVec == r2.out.getVec =>
         val w1 = r1.inAccess.as[BufferWrite]
-        dbgblk(s"Route through (3) $w1 -> $r1 -> $w2 -> $r2 detected => ") {
+        dbgblk(s"Route through (2) $w1 -> $r1 -> $w2 -> $r2 detected => ") {
           dbg(s" => $w1 -> $r2")
-          r1.presetVec.v.foreach { v => r2.presetVec(v) } // Most before swapConncetion
-          mirrorSyncMeta(w2, w1)
-          zipReduce(r1.name.v, r2.name.v) { _ + "/" + _ }.foreach { name =>
-            r2.name.reset
-            r2.name.update(name)
+          if (r2.in.getVec != r1.in.getVec) {
+            r2.in.vecMeta.reset
+            r2.in.setVec(r1.in.getVec)
           }
+          transferLocalAccess(r1,r2)
           val go1 = w1.gout
           val gi2 = r2.gin
           (go1, gi2) match {

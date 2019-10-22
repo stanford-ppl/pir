@@ -6,13 +6,13 @@ import pir.pass._
 import prism.graph._
 import prism.collection.immutable._
 
-trait ComputePartitioner extends CUPruner with ExternComputePartitioner { self =>
+trait ComputePartitioner extends CUPruner with ExternComputePartitioner with LocalRetimer with GlobalRetimer { self =>
 
   var splitAlgo:String = "bfs"
-  def scheduler = splitAlgo match {
-    case "bfs" => new PIRTraversal with BFSTopologicalTraversal with Scheduler { val forward = false }
-    case "dfs" => new PIRTraversal with DFSTopologicalTraversal with Scheduler { val forward = false }
-    case _ => new PIRTraversal with DFSTopologicalTraversal with Scheduler { val forward = false }
+  private def scheduler = splitAlgo match {
+    case "bfs" => new PIRTraversal with BFSTopologicalTraversal with Scheduler { val forward = true }
+    case "dfs" => new PIRTraversal with DFSTopologicalTraversal with Scheduler { val forward = true }
+    case _ => new PIRTraversal with DFSTopologicalTraversal with Scheduler { val forward = true }
   }
 
   def split[T](k:T, vcost:List[Cost[_]]):List[T] = dbgblk(s"split($k)") {
@@ -28,13 +28,15 @@ trait ComputePartitioner extends CUPruner with ExternComputePartitioner { self =
             global
           }
         }
+        val retimes = retimeGlobal(globals, vcost.collectFirst{ case cost:StageCost => cost.quantity }.get)
         removeNodes(k.descendentTree)
-        globals
+        globals ++ retimes
       case k:Context =>
         if (fit(kcost, vcost)) List(k)
         else {
           val scope = k.children.filter { include }
-          val part = new Partition(scope)
+          val delays = retimeLocal(k,scope)
+          val part = new Partition(scope ++ delays)
           val parts = split(part, vcost)
           dbg(s"partitions=${parts.size}")
           val ctxs = within(k.global.get, k.ctrl.get) {
@@ -61,7 +63,7 @@ trait ComputePartitioner extends CUPruner with ExternComputePartitioner { self =
           val nodes = scheduler.scheduleScope(k.scope)
           splitAlgo match {
             case "solver" => externSplit(nodes, vcost)
-            case _ => binarySplit(nodes, vcost)
+            case _ => heuristicSplit(nodes, vcost)
           }
         }
     }).as[List[T]]
@@ -75,9 +77,25 @@ trait ComputePartitioner extends CUPruner with ExternComputePartitioner { self =
     res
   }
 
-  def binarySplit(nodes:List[PIRNode],vcost:List[Cost[_]]) = {
-    val (head, tail) = nodes.splitAt(nodes.size/2)
-    split(new Partition(head), vcost) ++ split(new Partition(tail),vcost)
+  def heuristicSplit(nodes:List[PIRNode],vcost:List[Cost[_]]):List[Partition] = {
+    if (nodes.size==0) return Nil
+    var canFit = true
+    val N = nodes.size
+    var start = N - 1
+    while (canFit && start >= 0) {
+      start -= 1
+      val inpart = nodes.slice(start,N)
+      val part = new Partition(inpart)
+      val kcost = getCosts(part)
+      val isolateRetime = inpart.forall { 
+        case d:Delay => !inpart.contains(d.in.T) && !inpart.contains(d.out.T.head)
+        case _ => true
+      }
+      canFit = fit(kcost, vcost) && isolateRetime
+    }
+    val (rest, inpart) = nodes.splitAt(start+1)
+    dbg(s"Split ${inpart.size}/${nodes.size}")
+    heuristicSplit(rest,vcost) :+ new Partition(inpart)
   }
 
   val alias = scala.collection.mutable.Map[Context,Context]()

@@ -44,14 +44,14 @@ class ComputePruner(implicit compiler:PIR) extends CUPruner with ComputePartitio
         dbg(s"Recover $k")
         dbg(s"kcost=$kcost")
         dbg(s"vcost=$vcost")
-        val ctx = k.collectDown[Context]().flatMap { ctx => ctx.getCtrl.srcCtx.v }.mkString(",")
         tic
         val ks = withAlgo(config.splitAlgo) { split(k, vcost).toSet }
         val splitTime = toc("ms")
         val row = splitTimeGen.newRow
         row("global") = k.id
         row("time_ms") = splitTime
-        info(s"Split $k ${ctx} into ${ks.size} CUs $kcost in ${splitTime}ms")
+        val srcCtx = k.collectDown[Context]().flatMap { ctx => ctx.getCtrl.srcCtx.v }.mkString(",")
+        info(s"Split $k ${srcCtx} into ${ks.size} CUs $kcost in ${splitTime}ms")
         //breakPoint(s"$k")
         newFG(fg, k, ks, vs)
       case x => super.recover(x)

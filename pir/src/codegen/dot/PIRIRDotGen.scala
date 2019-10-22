@@ -17,12 +17,27 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
       case Some(x) => label + s"\n$field=$x"
       case x => label + s"\n$field=$value"
     }
+    def append(value:Any):String = value match {
+      case Some(v) => s"$label\n$v"
+      case None => label
+      case v => s"$label\n$v"
+    } 
+      
+  }
+
+  def quoteTp(n:PIRNode) = {
+    val tp = n.tp.v.orElse(if (n.localOuts.size==1) n.localOuts.head.tpMeta.v else None)
+    val vec = n.vec.v.orElse(if (n.localOuts.size==1) n.localOuts.head.vecMeta.v else None)
+    if (tp.isEmpty && vec.isEmpty) None else 
+    Some(tp.map { tp => tp.toString }.getOrElse("") + vec.map { vec => s"<${vec}>" }.getOrElse(""))
   }
 
   override def quote(n:Any) = {
     super.quote(n).foldAt(n.to[PIRNode]) { (q, n) =>
       q
-    .foldAt(n.to[Const]) { (q,n) =>
+    .foldAt(n.to[Delay]) { (q,n) =>
+      s"$q(${n.cycle})"
+    }.foldAt(n.to[Const]) { (q,n) =>
       n.value match {
         case v@((e:Int)::rest) => 
           val l = v.as[List[Int]]
@@ -33,9 +48,9 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
     }.foldAt(n.sname.v) { (q, v) => s"$q[$v]" }
       .append("name", n.name.v)
       .append("externAlias", n.externAlias.v)
-      .append("ctrl", n.ctrl.v.map { c => c.sname.v.fold(s"$c") { n => s"$c[$n]"} })
-      .append("tp", n.tp.v)
-      .append("vec", n.vec.v)
+      .append(n.ctrl.v.map { c => c.sname.v.fold(s"$c") { n => s"$c[$n]"} })
+      .append(quoteTp(n))
+      .append("delay", n.delay.v)
       .append("count", n.count.v)
       .append("scale", n.scale.v)
       .append("iter", n.iter.v) +
@@ -110,8 +125,8 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
 
   override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
     val newAttr = from.src match {
-      case from:GlobalOutput if from.vec.v.nonEmpty & isVecLink(from) => attr.setEdge.style(bold)
-      case from:GlobalOutput if from.vec.v.nonEmpty & isCtrlLink(from) => attr.setEdge.style(dashed)
+      case from:GlobalOutput if from.out.vecMeta.v.nonEmpty & isVecLink(from) => attr.setEdge.style(bold)
+      case from:GlobalOutput if from.out.vecMeta.v.nonEmpty & isCtrlLink(from) => attr.setEdge.style(dashed)
       case _ =>  attr.setEdge
     }
     super.emitEdge(from, to, newAttr)
@@ -158,10 +173,11 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
     case n:ArgFringe => attr.setNode.fillcolor("beige").style(filled)
     case n:MemoryContainer => attr.setNode.fillcolor("limegreen").style(filled)
     case n:ComputeContainer if n.isDAG.get => attr.setNode.fillcolor("orange").style(filled)
-
+    case n:ComputeContainer if n.collectDown[OpNode]().size==0 => attr.setNode.fillcolor("gold").style(filled)
     case n:ComputeContainer => attr.setNode.fillcolor("dodgerblue").style(filled)
     case n:DRAMFringe => attr.setNode.fillcolor("lightseagreen").style(filled)
-    case n:Top => super.color(attr,n)
+    case n:BlackBoxContainer => attr.setNode.fillcolor("crimson").style(filled)
+    case n => super.color(attr,n)
   }
 
   //override def label(attr:DotAttr, n:N) = n match {
@@ -171,6 +187,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
 
     //case n:ComputeContainer => attr.setNode.label("PCU")
     //case n:DRAMFringe => attr.setNode.label("MC")
+    //case n:BlackBoxContainer => attr.setNode.label("BB")
     //case n:Top => super.color(attr,n)
   //}
   
@@ -222,6 +239,8 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
         case n:ComputeContainer => "C"
         case n:MemoryContainer => "M"
         case n:DRAMFringe => "D"
+        case n:BlackBoxContainer => "B"
+        case n => n.getClass.getSimpleName
       }
       var l = s"${tp}${n.id}"
       val mem = n.collectDown[Memory]()
@@ -232,6 +251,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
       bbs.foreach { bbs =>
         bbs.name.v.foreach { name => l += s"\n$name" }
         bbs.to[Splitter].foreach{ s => l += s"\n$s" }
+        bbs.to[LockRMABlock].foreach{ s => l += s"\n$s" }
       }
       if (mem.isEmpty && bbs.isEmpty) {
         n.collectDown[LocalOutAccess]().foreach { mem =>
@@ -239,6 +259,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
         }
       }
       l
+      .append("delay", n.delay.v)
     }
   }
 

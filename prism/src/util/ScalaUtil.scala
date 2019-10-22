@@ -49,9 +49,9 @@ trait ScalaUtilFunc {
   }
 
   def assertIdentical[A](list:Iterable[A],info: => String):Option[A] = {
-    val res = list
-    assert(res.toSet.size<=1, s"$list doesn't have the same $info = $res")
-    res.headOption
+    val distinct = list.toSeq.distinct
+    assert(distinct.size<=1, s"$list doesn't have the same $info = $distinct")
+    distinct.headOption
   }
 
   def assertOneOrLess[A](list:Iterable[A], info: => String):Option[A] = {
@@ -64,12 +64,13 @@ trait ScalaUtilFunc {
     list.head
   }
 
-  def assertUnique[A](list:Iterable[A],info: => String):Unit = {
-    assert(list.toSet.size == list.size, s"$info is not unique=$list")
-  }
-
   def testOne[A](list:Iterable[A]):Option[A] = {
     if (list.size == 1) Some(list.head) else None
+  }
+
+  def testIdentical[A](list:Iterable[A]):Option[A] = {
+    val distinct = list.toSeq.distinct
+    if (distinct.size == 1) Some(distinct.head) else None
   }
 
   def zipOption[A,B,T](a:Option[A], b:Option[B]):Option[(A,B)] = {
@@ -142,6 +143,18 @@ trait ScalaUtilFunc {
       } { reduced =>
         heads :+ reduced
       }
+    }
+  }
+
+  def get[T](x:List[T],i:Int):Option[T] = if (x.size > i) Some(x(i)) else None
+
+  /*
+   * Take two map and a reduce function that defines how to combine values for the same key and
+   * produce an aggregated map
+   * */
+  def sumMap[K,V](m1:Map[K,V], m2:Map[K,V])(reduce: (V,V) => V):Map[K,V] = {
+    m1.foldLeft[Map[K,V]](m2) { case (m2, (k1,v1)) => 
+      m2 + (k1 -> m2.get(k1).fold(v1) { v2 => reduce(v1,v2) })
     }
   }
 

@@ -23,6 +23,9 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
   override def visitNode(n:N) = {
     n.to[Controller].foreach { n =>
       n.srcCtx.v.foreach { v => n.ctrl.get.srcCtx := v }
+      n.progorder.v.foreach { v =>
+        n.getCtrl.progorder := v
+      }
       n.sname.v.foreach { v => n.ctrl.get.sname := v }
       n.descendents.foreach { d =>
         val ctrl = n.ctrl.get
@@ -87,13 +90,6 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     //}
     n.to[DRAMCommand].foreach { n =>
       n.name(n.dram.sid)
-    }
-    n.to[Def].foreach { _.getVec }
-    n.to[Access].foreach { _.getVec }
-    n.to[DRAMAddr].foreach { n =>
-      val read = n.collect[MemRead](visitFunc=visitGlobalOut _).head
-      n.tp.mirror(read.tp)
-      read.mem.T.tp.mirror(read.tp)
     }
     n.to[HostWrite].foreach { n =>
       val mem = n.collectFirst[Memory](visitFunc=visitGlobalOut _)

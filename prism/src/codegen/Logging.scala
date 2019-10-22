@@ -60,8 +60,14 @@ trait Logging extends Serializable {
 
   def dbgn(n:ND, msg:Option[String]=None) = {
     dbgblk(msg.getOrElse(dquote(n))) {
+      n.metadata.foreach { case (key,metadata) =>
+        metadata.v.foreach { v =>
+          dbg(s"${metadata.name} = $v")
+        }
+      }
       dbg(s"parent=${n.parent.map(dquote)}")
-      //metadata.foreach { _.summary(n).foreach(dbg) }
+      dbg(s"deps=${n.deps().toList.map(dquote)}")
+      dbg(s"depeds=${n.depeds().toList.map(dquote)}")
       if (n.children.nonEmpty) {
         if (n.children.size > 10)
           dbg(s"children=${n.children.slice(0,10).map(dquote)} ...")
@@ -75,13 +81,6 @@ trait Logging extends Serializable {
               dbg(s"${metadata.name} = $v")
             }
           }
-        }
-      }
-      dbg(s"deps=${n.deps().toList.map(dquote)}")
-      dbg(s"depeds=${n.depeds().toList.map(dquote)}")
-      n.metadata.foreach { case (key,metadata) =>
-        metadata.v.foreach { v =>
-          dbg(s"${metadata.name}($key) = $v")
         }
       }
     }

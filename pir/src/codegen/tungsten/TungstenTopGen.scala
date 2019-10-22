@@ -135,7 +135,6 @@ using namespace std;
       emitTopHeader
       visitNode(n)
       enterTop = false
-    case n:GlobalContainer => visitNode(n)
     case n => super.emitNode(n)
   }
 

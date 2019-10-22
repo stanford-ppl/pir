@@ -58,7 +58,7 @@ trait MemoryAnalyzer { self:PIRTransformer =>
   def childDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
     val ctrler = if (ctx.streaming.get) {
       within(ctx, ctrl) { 
-        allocate[UnitController]()(stage(UnitController()))
+        allocate[UnitController]()(stage(UnitController().par(1)))
       }
     } else if (!compiler.hasRun[DependencyDuplication]) {
       // Centralized controller
@@ -109,11 +109,15 @@ trait MemoryAnalyzer { self:PIRTransformer =>
   }
 
   def allocConst(value:Any, tp:Option[BitType]=None) = allocate[Const] { c => 
-    tp.fold(true) { _ == c.getTp } &&
+    tp.fold(true) { _ == c.out.getTp } &&
     equalValue(c.value,value) &&
     stackTop[Ctrl].fold(true) { ctrl => c.getCtrl == ctrl }
   } { 
-    stage(Const(value).tp.update(tp))
+    val c = Const(value)
+    tp.foreach { tp =>
+      c.out.tpMeta.update(tp)
+    }
+    stage(c)
   }
 
 }
