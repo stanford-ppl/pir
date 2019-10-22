@@ -19,7 +19,7 @@ class PlastirouteNodeGen(implicit compiler: PIR) extends PlastisimCodegen with C
   }
 
   def emitCU(cuP:CUMap.K, cuS:CUMap.V):Unit = {
-    if (cuP.isExtern.get) return
+    assert(!cuP.isExtern.get)
     val row = newRow
     row("node") = quote(cuP)
     row("tp") = (cuS.params.get match {
@@ -33,7 +33,7 @@ class PlastirouteNodeGen(implicit compiler: PIR) extends PlastisimCodegen with C
 
   override def quote(n:Any) = n match {
     case n:GlobalContainer =>
-      s"${config.modulePreix.getOrElse("")}/$topName/$n"
+      s"${config.modulePrefix.getOrElse(s"/$topName")}/$n"
     case _ => super.quote(n)
   }
 

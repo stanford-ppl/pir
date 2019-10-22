@@ -6,75 +6,81 @@ import pir.pass._
 import prism.graph._
 import prism.codegen._
 
-class PlastirouteLinkGen(implicit compiler: PIR) extends PlastisimCodegen with CSVCodegen { self =>
-  override def fileName = config.prouteLinkName
-
-  lazy val externLink = new PlastisimCodegen with CSVCodegen{
-    override def dirName = self.dirName
-    override def fileName = "extlink.csv"
+class PlastirouteLinkGen(implicit compiler: PIR) extends PlastisimUtil with PIRTraversal with ChildFirstTraversal with UnitTraversal { self =>
+  lazy val outputFile = new CSVPrinter {
+    override def dirName = config.psimOut
+    override def fileName = config.prouteOutLinkName
+    val append = false
+    setHeaders("out","ctx","src","tp","count")
   }
-
-  override def runPass = {
-    setHeaders("link","ctx","src","tp","count","dst[0]","out[0]")
-    super.runPass
+  lazy val inputFile = new CSVPrinter {
+    override def dirName = config.psimOut
+    override def fileName = config.prouteInLinkName
+    val append = false
+    setHeaders("in","dst")
+  }
+  lazy val linkFile = new CSVPrinter {
+    override def dirName = config.psimOut
+    override def fileName = config.prouteLinkName
+    val append = false
+    setHeaders("out","in[0]","in[1]","in[2]")
   }
 
   override def finPass = {
-    if (externLink.rows.nonEmpty) {
-      externLink.initPass
-      externLink.finPass
-    }
+    outputFile.gencsv
+    inputFile.gencsv
+    linkFile.gencsv
     super.finPass
-    lnFile(buildPath(config.tstHome, "plasticine", "resources", "bin", "gen_link.py"), buildPath(config.psimOut, "gen_link.py"))
+    //lnFile(buildPath(config.tstHome, "plasticine", "resources", "bin", "gen_link.py"), buildPath(config.psimOut, "gen_link.py"))
   }
 
-  override def emitNode(n:N) = n match {
+  override def visitNode(n:N) = n match {
     case n:GlobalOutput => emitLink(n)
-    case n => visitNode(n)
+    case n => super.visitNode(n)
   }
 
-  override def quote(n:Any) = n match {
+  def quote(n:Any) = n match {
     case n:GlobalIO if n.isExtern.get => 
       val name = n.externAlias.v.getOrElse(s"$n")
-      s"/$name"
+      s"${config.externPrefix.getOrElse(s"/$topName")}/$name"
     case n:GlobalIO => 
       val name = n.externAlias.v.getOrElse(s"$n")
-      s"${config.modulePreix.getOrElse("")}/$topName/$name"
+      s"${config.modulePrefix.getOrElse(s"/$topName")}/$name"
     case n:GlobalContainer if n.isExtern.get =>
-      s"/$n"
+      s"${config.externPrefix.getOrElse(s"/$topName")}/$n"
     case n:GlobalContainer =>
-      s"${config.modulePreix.getOrElse("")}/$topName/$n"
-    case _ => super.quote(n)
+      s"${config.modulePrefix.getOrElse(s"/$topName")}/$n"
+    case n => n.toString
   }
 
   def emitLink(n:GlobalOutput) = {
-    // Emit link src
-    val row = if (n.isExtern.get) externLink.newRow else newRow
-    val ctx = n.in.T.ctx.get
-    row("link") = quote(n)
-    row("ctx") = ctx.id
-    row("src") = quote(n.global.get)
-    row("tp") = if (isVecLink(n)) 1 else 2 // 1 for scalar, 2 for vector
-    //row("count") = n.constCount
-    row("count") = n.count.get.getOrElse(1000000) //TODO: use more reasonable heuristic when count is not available
+    // Emit output
+    if (!n.isExtern.get) {
+      val row = outputFile.newRow
+      val ctx = n.in.T.ctx.get
+      row("out") = quote(n)
+      row("ctx") = ctx.id
+      row("src") = quote(n.global.get)
+      row("tp") = if (isVecLink(n)) 1 else 2 // 1 for scalar, 2 for vector
+      row("count") = n.count.get.getOrElse(1000000) //TODO: use more reasonable heuristic when count is not available
+    }
 
-    // Emit local dsts
-    val localIns = n.out.T.filter { _.isExtern.get == n.isExtern.get }
-    localIns.view.zipWithIndex.foreach { case (gin, idx) =>
+    n.out.T.view.foreach { case gin =>
+      // Emit inputs
       if (!gin.isExtern.get) {
-        row(s"dst[$idx]") = quote(gin.global.get)
-        row(s"out[$idx]") = quote(gin)
+        val row = inputFile.newRow
+        row(s"in") = quote(gin)
+        row(s"dst") = quote(gin.global.get)
       }
     }
 
-    // Emit bridging dsts
-    val bridgeIns = n.out.T.filter { _.isExtern.get != n.isExtern.get }
-    if (bridgeIns.nonEmpty) {
-      val row = if (!n.isExtern.get) externLink.newRow else newRow
-      row("link") = quote(n)
-      bridgeIns.view.zipWithIndex.foreach { case (gin, idx) =>
-        row(s"dst[$idx]") = quote(gin.global.get)
-        row(s"out[$idx]") = quote(gin)
+    // Emit connections
+    val ins = if (n.isExtern.get) n.out.T.filter { !_.isExtern.get } else n.out.T
+    if (ins.nonEmpty) {
+      val row = linkFile.newRow
+      row(s"out") = quote(n)
+      ins.zipWithIndex.foreach { case (in, i) =>
+        row(s"in[$i]") = quote(in)
       }
     }
 

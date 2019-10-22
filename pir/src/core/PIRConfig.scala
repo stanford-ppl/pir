@@ -95,13 +95,15 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("proute-seed", default=0, info="Plastiroute seed") 
   register("run-proute", default=false, info="Run Plastiroute") 
   register[String]("module-prefix", info="Prefix to top module path")
-  register[String]("module-name", info="Name for top-level module")
+  register[String]("extern-prefix", info="Prefix to external module path")
   def prouteHome = getOption[String]("proute-home").getOrElse(err(s"proute-home is not set"))
   def genProute = genPsim || genTungsten
   def runproute = option[Boolean]("run-proute") || runPsim || runTst 
   def proutePlaceName = "final.place"
   def proutePlacePath = buildPath(psimOut, proutePlaceName)
   def iroutePlacePath = buildPath(psimOut, "ideal.place")
+  def prouteOutLinkName = "outlink.csv"
+  def prouteInLinkName = "inlink.csv"
   def prouteLinkName = "link.csv"
   def prouteLinkPath = buildPath(psimOut, prouteLinkName)
   def prouteNodeName = "node.csv"
@@ -109,8 +111,9 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def prouteSummaryName = "summary.csv"
   def prouteSummaryPath = buildPath(psimOut, prouteSummaryName)
   def prouteLog = buildPath(appDir, "proute.log")
-  def modulePreix = getOption[String]("module-prefix")
-  def moduleName = getOption[String]("module-name")
+  def modulePrefix = getOption[String]("module-prefix")
+  def externPrefix = getOption[String]("extern-prefix")
+  def moduleName = modulePrefix.map { _.split("/").last }
 
   /* ------------------- Tungsten --------------------  */
   register[String]("tungsten-home", default=sys.env.get("TUNGSTEN_HOME"), info="Tungsten Home")

@@ -51,7 +51,7 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
       }
     }
     if (!config.asModule) {
-      val command = s"python ../tungsten/bin/idealroute.py -l link.csv -p ideal.place -i /Top/idealnet"
+      val command = s"python ../tungsten/bin/idealroute.py -l $prouteLinkName -p ideal.place -i /Top/idealnet"
       withOpen(config.appDir, s"iroute.sh", false) {
         emitln(s"cd ${getRelativePath(config.psimOut, config.appDir)}")
         emitln(command)

@@ -31,6 +31,7 @@ class ModularAnalysis(implicit compiler:PIR) extends PIRPass
       }
     }
     pirTop.collectChildren[BlackBoxContainer].foreach { global =>
+      global.isExtern := true
       global.collectChildren[GlobalIO].foreach { gio =>
         val bbport = getBBPort(gio)
         gio.externAlias := getAlias(bbport)
