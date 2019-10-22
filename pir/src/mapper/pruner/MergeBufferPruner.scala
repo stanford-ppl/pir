@@ -55,7 +55,7 @@ class MergeBufferPruner(implicit compiler:PIR) extends CUPruner {
             mirrorMetas(mctx,ctx)
             within(mctx) {
               val mmb = MergeBuffer(vways, par)
-              mirrorMetas(mmb,mb)
+              mirrorMetas(mb, mmb)
               (0 until vways).foreach { i =>
                 mmb.inputs(i)(inputs(i))
                 mmb.bounds(i)(bounds(i))
