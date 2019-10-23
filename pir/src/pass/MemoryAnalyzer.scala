@@ -177,29 +177,41 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
    * To handle this, we group nearest neighbor accesses if they do depend on others
    * So we get access groups where within group there's no dependency between any of the access.
    * When searching for dependency, we can stop at the first dependent group.
-   *
-   *
-   *
-   *
-   *
    * 
-   *
    * */
-
-  def consistencyBarrier[A<:PIRNode](accesses:List[A])(dependsOn:(A,A) => Boolean)(insertBarrier:(A,A,Boolean) => Unit) = {
-    val sorted = accesses.groupBy { _.progorder.get }.map { 
+  def consistencyBarrier[A<:PIRNode](accesses:List[A])(dependsOn:(A,A) => Boolean)(insertBarrier:(A,A,Boolean) => Unit):List[UnrolledAccess[A]] = {
+    val uas = accesses.groupBy { _.progorder.get }.map { 
       case (progorder, accesses) => 
         val lanes = accesses.head match {
           case access:Access => accesses.sortBy { _.as[Access].order.get }
           case access => accesses.sortBy { _.id }
         }
         UnrolledAccess(lanes)
-    }.toList.sortBy { _.progorder }
+    }.toList
+    def insertBarrierUnrolled(predua:UnrolledAccess[A], ua:UnrolledAccess[A], carried:Boolean) = {
+      if (dependsOn(ua.lanes.head, predua.lanes.head)) {
+        predua.lanes.zipWithIndex.foreach { case (pred, predLane) =>
+          ua.lanes.zipWithIndex.foreach { case (access, accessLane) =>
+            dbgblk(s"insertBarrier(${dquote(predua)}[$predLane], ${dquote(ua)}[$accessLane], carried=$carried)") {
+              insertBarrier(pred,access,carried)
+            }
+          }
+        }
+      }
+    }
+    def dependsOnUnrolled(a:UnrolledAccess[A],b:UnrolledAccess[A]) = {
+      dependsOn(a.lanes.head, b.lanes.head)
+    }
+    unrolledConsistencyBarrier(uas)(dependsOnUnrolled)(insertBarrierUnrolled)
+  }
+
+  def unrolledConsistencyBarrier[A<:PIRNode](uas:List[UnrolledAccess[A]])(dependsOn:(UnrolledAccess[A],UnrolledAccess[A]) => Boolean)(insertBarrier:(UnrolledAccess[A],UnrolledAccess[A],Boolean) => Unit):List[UnrolledAccess[A]] = {
+    val sorted = uas.sortBy { _.progorder }
 
     dbgblk(s"sorted") {
       sorted.foreach { ua =>
         dbg(s"UA[${ua.progorder}] ${ua.lanes.map{dquote}.mkString(",")}")
-        dbg(s"${ua.srcCtx}")
+        dbg(s"- ${ua.srcCtx}")
       }
     }
 
@@ -217,13 +229,13 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
       // Search backward from position of ua to find the first dependency in the same scope
       val (before, rest) = scope.span { _ != ua }
       val forward = before.reverseIterator.filter { before => 
-        dependsOn(ua.lanes.head, before.lanes.head)
+        dependsOn(ua, before)
       }.toList
       val (_,after) = rest.splitAt(1)
 
       val carried = if (ctrl.isLoop.get) {
         after.reverseIterator.filter { after => 
-          dependsOn(ua.lanes.head,after.lanes.head)
+          dependsOn(ua,after)
         }.toList
       } else Nil
 
@@ -232,18 +244,6 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
       } { parentCtrl =>
         val (outerForward, outerCarried) = findPredecessors(ua, parentCtrl)
         (forward ++ outerForward, carried ++ outerCarried)
-      }
-    }
-
-    def insertBarrierUnrolled(predua:UnrolledAccess[A], ua:UnrolledAccess[A], carried:Boolean) = {
-      if (dependsOn(ua.lanes.head, predua.lanes.head)) {
-        predua.lanes.zipWithIndex.foreach { case (pred, predLane) =>
-          ua.lanes.zipWithIndex.foreach { case (access, accessLane) =>
-            dbgblk(s"insertBuffer($predua[$predLane], $ua[$accessLane])") {
-              insertBarrier(pred,access,carried)
-            }
-          }
-        }
       }
     }
 
@@ -272,10 +272,10 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
 
     sorted.foreach { ua =>
       reducedForward(ua).foreach { prev =>
-        insertBarrierUnrolled(prev, ua, false)
+        insertBarrier(prev, ua, false)
       }
       reducedCarried(ua).foreach { prev =>
-        insertBarrierUnrolled(prev, ua, true)
+        insertBarrier(prev, ua, true)
       }
     }
     sorted

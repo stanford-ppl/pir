@@ -91,7 +91,7 @@ trait GarbageCollector { self:PIRTransformer =>
   private var liveNodes:Set[Any] = Set.empty
   def withLive[T](live:Any*)(block: => T):T = {
     val prev = liveNodes
-    liveNodes = live.toSet
+    liveNodes = prev ++ live.toSet
     val res = block
     liveNodes = prev
     res

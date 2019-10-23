@@ -181,14 +181,10 @@ case class TokenRead()(implicit env:Env) extends TokenAccess with LocalOutAccess
 
 trait AccessUtil {
   implicit class AccessOp[T<:PIRNode](x:T) {
-    def isInAccess:Boolean = x match {
-      case x:InAccess => true
-      case x => false
-    }
-    def isOutAccess:Boolean = x match {
-      case x:OutAccess => true
-      case x => false
-    }
+    def isInAccess:Boolean = x.isInstanceOf[InAccess]
+    def isOutAccess:Boolean = x.isInstanceOf[OutAccess]
+    def isWrite:Boolean = x.isInstanceOf[WriteAccess]
+    def isRead:Boolean = x.isInstanceOf[ReadAccess]
   } 
   implicit class LocalAccessOp(n:LocalAccess) {
     def isLocal = n match {
