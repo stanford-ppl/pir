@@ -4,8 +4,9 @@ package pass
 import pir.node._
 import pir.mapper._
 import prism.graph._
+import scala.collection.mutable
 
-trait MemoryAnalyzer { self:PIRTransformer =>
+trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
 
   def insertToken(fctx:Context, tctx:Context, dep:Option[Output[PIRNode]]=None):TokenRead = {
     val isFIFO = false
@@ -120,4 +121,178 @@ trait MemoryAnalyzer { self:PIRTransformer =>
     stage(c)
   }
 
+  /*
+   * W => W (fake dependency) partial updates
+   * W => R (true dependency)
+   * R => W (fake dependency)
+   * R => R (fake dependency for SRAM [time multiplex read port])/(no dependency for DRAM)
+   *
+   * Dependency checking: 
+   *  called on all access and their visible predecessors:
+   * For A1, A2
+   *  if sequential:
+   *    if R => R for DRAM:
+   *      no synchronization
+   *    else:
+   *      token(1)
+   *  if pipeline/multibuffer:
+   *    if buffer depth known(SRAM): 
+   *      token(depth)
+   *    if buffer depth unknown(DRAM)
+   *      token(1) for true dependency
+   *      no synchronization for fake dependency
+   * For A2, A1:
+   *  if sequential:
+   *    if R => R for DRAM:
+   *      no synchronization
+   *    else:
+   *      token(1).init(1)
+   *  if piplined/multibuffer:
+   *    if buffer depth known(SRAM):
+   *      if sram access latency = 1 and A2,A1 single cycle apart
+   *        no synchronization
+   *      else:
+   *        token(depth).init(depth)
+   *    if buffer depth unknown(SRAM):
+   *      token(1).init(1) for true dependency
+   *      no synchronization for fake dependency
+   *
+   *  For DRAM since we don't know number of buffer the user have, we don't synchronize on pipelined
+   *  fake dependency. 
+   *  It's user's responsibility to handle backpressure or fake dependency either 
+   *  with explicit token or
+   *  make sure there's no need of synchronization because:
+   *    1. "infinite" buffers, working on non-overlapping tiles. Most commonly used
+   *    2. There is true carried dependency 
+   *
+   * Monotonicity: if A1 => A2 and there's no entry point between A1 and A2, then no need to
+   * synchronize A2 with anyone else. This assume if exists A3 such that A3 => A2, then A3 => A1.
+   * This is trivially true for A2.tp == A1.tp. When they are not equal, 
+   * A3   A1   A2   Monotonicity
+   * W    W    R        V
+   * R    W    R        V
+   * R    R    W        (X for DRAM, V for SRAM)
+   * W    R    W        V
+   *
+   * To handle this, we group nearest neighbor accesses if they do depend on others
+   * So we get access groups where within group there's no dependency between any of the access.
+   * When searching for dependency, we can stop at the first dependent group.
+   *
+   *
+   *
+   *
+   *
+   * 
+   *
+   * */
+
+  def consistencyBarrier[A<:PIRNode](accesses:List[A])(dependsOn:(A,A) => Boolean)(insertBarrier:(A,A,Boolean) => Unit) = {
+    val sorted = accesses.groupBy { _.progorder.get }.map { 
+      case (progorder, accesses) => 
+        val lanes = accesses.head match {
+          case access:Access => accesses.sortBy { _.as[Access].order.get }
+          case access => accesses.sortBy { _.id }
+        }
+        UnrolledAccess(lanes)
+    }.toList.sortBy { _.progorder }
+
+    dbgblk(s"sorted") {
+      sorted.foreach { ua =>
+        dbg(s"UA[${ua.progorder}] ${ua.lanes.map{dquote}.mkString(",")}")
+        dbg(s"${ua.srcCtx}")
+      }
+    }
+
+    def findPredecessors(ua:UnrolledAccess[A], ctrl:ControlTree):(List[UnrolledAccess[A]],List[UnrolledAccess[A]]) = {
+      val ancestor = ua.ctrl.ancestorUnder(ctrl).get
+      val scope = sorted.filter { other => 
+        val otherAncestor = other.ctrl.ancestorUnder(ctrl)
+        otherAncestor.fold(false) { otherAncestor =>
+          other == ua || // Include ua in the scope
+          otherAncestor.isEmpty || // Include other if other is the immediate child of ctrl
+          otherAncestor != ancestor // Include other if other is descendent of ctrl but doesn't share immediate child of ctrl with ua
+        }
+      }
+
+      // Search backward from position of ua to find the first dependency in the same scope
+      val (before, rest) = scope.span { _ != ua }
+      val forward = before.reverseIterator.filter { before => 
+        dependsOn(ua.lanes.head, before.lanes.head)
+      }.toList
+      val (_,after) = rest.splitAt(1)
+
+      val carried = if (ctrl.isLoop.get) {
+        after.reverseIterator.filter { after => 
+          dependsOn(ua.lanes.head,after.lanes.head)
+        }.toList
+      } else Nil
+
+      ctrl.parent.fold {
+        (forward, carried)
+      } { parentCtrl =>
+        val (outerForward, outerCarried) = findPredecessors(ua, parentCtrl)
+        (forward ++ outerForward, carried ++ outerCarried)
+      }
+    }
+
+    def insertBarrierUnrolled(predua:UnrolledAccess[A], ua:UnrolledAccess[A], carried:Boolean) = {
+      if (dependsOn(ua.lanes.head, predua.lanes.head)) {
+        predua.lanes.zipWithIndex.foreach { case (pred, predLane) =>
+          ua.lanes.zipWithIndex.foreach { case (access, accessLane) =>
+            dbgblk(s"insertBuffer($predua[$predLane], $ua[$accessLane])") {
+              insertBarrier(pred,access,carried)
+            }
+          }
+        }
+      }
+    }
+
+    // Get an reachable sets for forward and carried dependency
+    val (forward, carried) = sorted.map { ua =>
+      val (forward,carried) = findPredecessors(ua, ua.ctrl)
+      dbg(s"${dquote(ua)} forward: ${forward.map{dquote(_)}.mkString(",")} carried: ${carried.map{dquote(_)}.mkString(",")}")
+      (ua -> forward,ua -> carried)
+    }.unzip.map1 { _.toMap }.map2 { _.toMap }
+
+    // Perform transitive reduction on the reachable set. Forward and carried separately to keep
+    // them DAG.  
+    val reducedForward = forward.map { case (ua, reachable) =>
+      val reachedByNeighbors = reachable.flatMap { rua => forward(rua).toSet }
+      ua -> reachable.filterNot { reachedByNeighbors.contains(_) }
+    }
+
+    val reducedCarried = carried.map { case (ua, reachable) =>
+      val reachedByNeighbors = reachable.flatMap { rua => carried(rua).toSet }
+      ua -> reachable.filterNot { reachedByNeighbors.contains(_) }
+    }
+
+    sorted.foreach { ua =>
+      dbg(s"${dquote(ua)} rforward:${reducedForward(ua).map{dquote(_)}.mkString(",")} rcarried: ${reducedCarried(ua).map{dquote(_)}.mkString(",")}")
+    }
+
+    sorted.foreach { ua =>
+      reducedForward(ua).foreach { prev =>
+        insertBarrierUnrolled(prev, ua, false)
+      }
+      reducedCarried(ua).foreach { prev =>
+        insertBarrierUnrolled(prev, ua, true)
+      }
+    }
+    sorted
+  }
+
+  override def dquote(n:Any) = n match {
+    case n:UnrolledAccess[_] => s"UA[${n.progorder}]"
+    case _ => super.dquote(n)
+  }
+
+}
+
+/*
+ * Group of accesses belong to the same pre unrolled access, sorted by unrolling order
+ * */
+case class UnrolledAccess[T<:PIRNode](lanes:List[T]) {
+  def progorder = lanes.head.progorder.get
+  def ctrl = lanes.head.getCtrl
+  def srcCtx = lanes.head.srcCtx.v.getOrElse(s"No source context")
 }

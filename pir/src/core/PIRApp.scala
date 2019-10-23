@@ -96,7 +96,6 @@ trait PIRApp extends PIR with Logging {
     addPass(enableDot, new PIRGlobalDotGen(s"global7.dot")) ==>
     addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx7.dot")) ==>
     addPass(enableVerboseDot, new PIRTopDotGen(s"top7.dot")) ==>
-    addPass(enableVerboseDot, new PIRIRPrinter(s"IR7.txt")) ==>
     addPass(sanityCheck) ==>
     // ------- Mapping  --------
     addPass(enableMapping, hardPruner) ==>
@@ -125,7 +124,6 @@ trait PIRApp extends PIR with Logging {
     addPass(enableDot, new PIRGlobalDotGen(s"global.dot")) ==>
     addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx.dot")) ==>
     addPass(enableVerboseDot, new PIRTopDotGen(s"top.dot")) ==>
-    addPass(config.debug, new PIRIRPrinter(s"IR.txt")) ==>
     // Igraph
     addPass(enableIgraph, igraphGen).dependsOn(runtimeAnalyzer)
     // Plastiroute

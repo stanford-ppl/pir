@@ -189,37 +189,3 @@ case class DRAMMergeSort_4() extends DRAMMergeSort(ip=16, op=4)
 //calcIter(N=256, ip=16, nway=4)
 //calcIter(N=1024, ip=16, nway=2)
 //calcIter(N=1024, ip=16, nway=4)
-//
-//@spatial class FIFOTest extends SpatialTest { self =>
-
-  //type X = Float
-
-  //val N:scala.Int = 32
-  //val op:scala.Int = 2
-  //val ip:scala.Int = 8
-
-  //val margin = 1
-
-  //def main(args: Array[String]): Unit = {
-    //val dram = DRAM[Int](N)
-    //Accel {
-      //val sram = SRAM[Int](N)
-      //val fifo = FIFO[Int](16)
-      //Foreach(N by 1 par op) { ii =>
-        //Foreach(N par ip) { jj =>
-          //fifo.enq(jj)
-        //}
-      //}
-      //Foreach(N by 1 par op) { ii =>
-        //Foreach(N par ip) { jj =>
-          //sram(ii + jj) = fifo.deq
-        //}
-      //}
-      //dram(0::N) store sram
-    //}
-
-    //assert(true)
-  //}
-
-//}
-

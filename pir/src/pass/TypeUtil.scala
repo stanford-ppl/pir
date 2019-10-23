@@ -49,7 +49,7 @@ trait TypeUtil { self:PIRPass =>
     def setVec(v:Int) = n.getMeta[Int]("vec").apply(v)
     def setTp(v:BitType) = n.getMeta[BitType]("tp").apply(v)
     def setTp(v:Option[BitType]) = n.getMeta[BitType]("tp").update(v)
-    def getVec:Int = withLogger(self) { n.inferVec.orElse(n.singleOutput.flatMap { _.inferVec }) }
+    def getVec:Int = /*withLogger(self) {*/ n.inferVec.orElse(n.singleOutput.flatMap { _.inferVec }) //}
       .getOrElse(bug(s"Don't know how to infer vec of ${dquote(n)}"))
     def getTp:BitType = n.inferTp.orElse(n.singleOutput.flatMap { _.inferTp })
       .getOrElse(bug(s"Don't know how to infer type of ${dquote(n)}"))

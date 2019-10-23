@@ -3,14 +3,24 @@ package pir
 import prism.graph._
 import pir.node._
 import pir.pass._
-//import pir.mapper._
+import pir.codegen._
 import scala.collection.mutable
 
 trait PIRTransformer extends PIRPass with Transformer 
 with GarbageCollector
 with RewriteUtil
 with BufferAnalyzer
-{
+{ self =>
+
+  override def finPass = {
+    super.finPass
+    val irprinter = new PIRIRPrinter(runner.logFile.replace(".log","-IR.log")) {
+      override def dirName = config.logDir
+      override lazy val logger = self.logger
+    }
+    irprinter.run
+  }
+
   override def mirrorField[N<:Node[N]](
     nodes:Iterable[FieldNode[N]], 
     mapping:mutable.Map[IR,IR]
@@ -53,20 +63,21 @@ with BufferAnalyzer
     }
   }
 
-  def stage[T<:PIRNode](n:T):T = dbgblk(s"stage($n)"){
+  def stage[T<:PIRNode](n:T):T = {
     n.localIns.foreach { in => 
-      withLogger(this) {
+      //withLogger(this) {
         in.inferVec
         in.inferTp
-      }
+      //}
     }
     n.localOuts.foreach { out => 
-      withLogger(this) {
+      //withLogger(this) {
         out.inferTp
         out.inferVec
-      }
+      //}
     }
-    dbgn(n)
+    //dbgn(n)
+    dbg(s"Stage ${dquote(n)}")
     n
   }
 

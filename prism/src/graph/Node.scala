@@ -83,6 +83,14 @@ trait Node[N<:Node[N]] extends IR { self:N =>
     assert(idx != -1, s"$top is not ancestor of the $this")
     chain.slice(0, idx+1)
   }
+  def ancestorUnder(ref:N):Option[Option[N]] = {
+    val tree = ancestorTree
+    val idx = tree.indexOf(ref)
+    if (idx == -1) None
+    else if (idx == 0) Some(None)
+    else Some(Some(tree(idx-1)))
+  }
+
   def descendents:Stream[N] = children.toStream.flatMap { child => child +: child.descendents }
   def descendentTree:Stream[N] = this.as[N] +: descendents
   def leaves:Stream[N] = if (isLeaf) Stream(this) else children.toStream.flatMap { _.leaves }
