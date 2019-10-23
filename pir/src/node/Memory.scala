@@ -127,6 +127,18 @@ case class LockRMABlock(
   val unlockWriteDatas = accums.map { a => a -> List.fill(par) { new InputField[PIRNode](s"unlockWriteData").tp(a.tp) } }.toMap
   val unlockWriteAcks = accums.map { a => a -> List.fill(par) { new OutputField[PIRNode](s"unlockWriteAck").tp(Bool).presetVec(1) } }.toMap
 
+  def addLockInputIn = DynamicInputFields[PIRNode](s"lockInputIn")
+  def addLockInputOut = DynamicOutputFields[PIRNode](s"lockInputOut")
+  def lockInputIns = {
+    val ins = getDynamicInputFields[PIRNode](s"lockInputIn")
+    if (ins.size < par) List(ins) else 
+    ins.grouped(ins.size / par).toList
+  }
+  def lockInputOuts = {
+    val outs = getDynamicOutputFields[PIRNode](s"lockInputOut")
+    if (outs.size < par) List(outs) else 
+    outs.grouped(outs.size / par).toList
+  }
   val lockAddrs = List.fill(par) { new InputField[PIRNode](s"lockAddr").tp(Fix(true,32,0)) }
   val lockDataIns = accums.map { a => a -> List.fill(par) { new InputField[PIRNode](s"lockDataIn").tp(a.tp) } }.toMap
   val lockDataOuts = accums.map { a => a -> List.fill(par) { new OutputField[PIRNode](s"lockDataOut").tp(a.tp) } }.toMap
@@ -141,7 +153,7 @@ case class LockRMABlock(
     lockDataIns.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
     lockDataOuts.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ }
 
-  val laneMap:Map[Edge[_,_,_],Int] = 
+  def laneMap:Map[Edge[_,_,_],Int] = //def because of dynamic edges
     unlockReadAddrs.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
     unlockReadDatas.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
     unlockWriteAddrs.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++ 
@@ -150,14 +162,27 @@ case class LockRMABlock(
     lockAddrs.zipWithIndex.toMap ++
     lockDataIns.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
     lockDataOuts.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    lockInputIns.zipWithIndex.map { case (ins,lane) => ins.map { _ -> lane }.toMap }.reduce { _ ++ _ } ++
+    lockInputOuts.zipWithIndex.map { case (outs,lane) => outs.map { _ -> lane }.toMap }.reduce { _ ++ _ } ++
     lockAcks.zipWithIndex.toMap
+
+  lazy val inputMap:Map[Edge[_,_,_],Int] = 
+    lockInputIns.map { _.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    lockInputOuts.map { _.zipWithIndex.toMap }.reduce { _ ++ _ }
 
   override def compVec(n:IR) = n match {
     case n@OutputField(_,"lockDataOut") => 
       lockAddrs(laneMap(n)).inferVec
     case n@OutputField(_,"unlockReadData") => 
       unlockReadAddrs(accumMap(n))(laneMap(n)).inferVec
+    case n@OutputField(_,"lockInputOut") => 
+      getDynamicInputFields[PIRNode](s"lockInputIn")(n.dynamicIdx.get).inferVec
     case _ => super.compVec(n)
+  }
+  override def compType(n:IR) = n match {
+    case n@OutputField(_,"lockInputOut") => 
+      getDynamicInputFields[PIRNode](s"lockInputIn")(n.dynamicIdx.get).inferTp
+    case _ => super.compType(n)
   }
 }
 case class Top()(implicit env:Env) extends PIRNode {

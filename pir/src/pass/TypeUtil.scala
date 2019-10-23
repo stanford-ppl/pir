@@ -104,7 +104,7 @@ trait TypeUtil { self:PIRPass =>
 
   def topName = if (config.asModule) config.moduleName.getOrElse(pirTop.name.get + "Top") else "Top"
 
-  def isVecLink(n:GlobalOutput) = {
+  def isVecLink(n:IR) = {
     if (n.getVec == 1) false
     else if (n.getTp == Bool && n.getVec < 32) false
     else true

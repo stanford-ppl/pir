@@ -81,7 +81,21 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
       val accumCtrl = reads.head.getCtrl
       val accumCtx = within(pirTop, accumCtrl) { stage(Context().streaming(true)) }
       exps.foreach { exp => swapParent(exp, accumCtx) }
-      bufferInput(accumCtx, fromCtx=Some(reads.head.ctx.get))
+      val unShuffledCtx = reads.head.ctx.get
+      accumCtx.depsFrom.foreach { 
+        case (OutputField(_:LockRead, _),ins) =>
+        case (out, ins) if !isVecLink(out) =>
+        case (out, ins) =>
+          val lockInputIn = block.addLockInputIn
+          val lockInputOut = block.addLockInputOut
+          lockInputIn(out)
+          bufferInput(lockInputIn, fromCtx=Some(unShuffledCtx))
+          ins.foreach { in =>
+            swapConnection(in, out, lockInputOut)
+            bufferInput(in)
+          }
+      }
+      bufferInput(accumCtx, fromCtx=Some(unShuffledCtx))
 
       // Wire up address port
       val addrCtx = within(pirTop, accumCtrl) { stage(Context()) }

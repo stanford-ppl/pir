@@ -120,6 +120,7 @@ trait PIRApp extends PIR with Logging {
     // ------- Codegen  --------
     addPass(enableMapping,progReport) ==>
     addPass(enableMapping,resReport) ==>
+    addPass(enableDot, new PIRGlobalDotGen(s"global.dot")) ==>
     addPass(runtimeAnalyzer).dependsOn(placerAndRouter) ==>
     addPass(enableDot, new PIRGlobalDotGen(s"global.dot")) ==>
     addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx.dot")) ==>

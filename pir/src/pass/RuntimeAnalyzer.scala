@@ -159,6 +159,8 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
           l.unlockWriteAddrs(l.accumMap(o))(l.laneMap(o)).T.getCount
         case WrittenBy(o@OutputField(l:LockRMABlock, "lockDataOut")) => 
           l.lockAddrs(l.laneMap(o)).T.getCount
+        case WrittenBy(o@OutputField(l:LockRMABlock, "lockInputOut")) => 
+          l.lockAddrs(l.laneMap(o)).T.getCount
         case WrittenBy(o@OutputField(l:LockRMABlock, "lockAck")) => 
           l.lockAddrs(l.laneMap(o)).T.getCount
         case n:LocalOutAccess =>

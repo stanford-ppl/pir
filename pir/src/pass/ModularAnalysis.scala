@@ -58,6 +58,8 @@ trait LockRMABlockAliaser extends ExternIOAliaser {
   override def getAlias(io:Edge[PIRNode,_,_]) = io match {
     case InputField(l:LockRMABlock, "lockAddr") => s"$l/${l.laneMap(io)}_lockAddr"
     case OutputField(l:LockRMABlock, "lockAck") => s"$l/${l.laneMap(io)}_lockAck"
+    case InputField(l:LockRMABlock, "lockInputIn") => s"$l/in${l.inputMap(io)}_${l.laneMap(io)}_lockInputIn"
+    case OutputField(l:LockRMABlock, "lockInputOut") => s"$l/in${l.inputMap(io)}_${l.laneMap(io)}_lockInputOut"
     case InputField(l:LockRMABlock, "lockDataIn") => s"$l/${accumName(l,io)}_${l.laneMap(io)}_lockDataIn"
     case OutputField(l:LockRMABlock, "lockDataOut") => s"$l/${accumName(l,io)}_${l.laneMap(io)}_lockDataOut"
     case InputField(l:LockRMABlock, "unlockReadAddr") => s"$l/${accumName(l,io)}_${l.laneMap(io)}_unlockReadAddr"

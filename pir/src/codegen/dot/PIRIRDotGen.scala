@@ -195,7 +195,8 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
     (from, to) match {
       case (from@OutputField(fromsrc:GlobalOutput, _), to) if fromsrc.isUnder[ArgFringe] && from.connected.size > 5 => 
       case (from@OutputField(fromsrc:GlobalOutput, _), to@InputField(tosrc:GlobalInput, _)) => 
-        var tooltip = s"$fromsrc"
+        var tooltip = s"${fromsrc}${fromsrc.externAlias.v.fold("") { a => s"($a)" }}"
+        tooltip += s"\n${tosrc}${tosrc.externAlias.v.fold("") { a => s"($a)" }}"
         tooltip += s"\n${fromsrc.in.neighbors.map(quoteSrcCtx).mkString(",")}"
         tooltip += s"\n${tosrc.out.neighbors.map(quoteSrcCtx).mkString(",")}"
         fromsrc.count.v.foreach { c => 
