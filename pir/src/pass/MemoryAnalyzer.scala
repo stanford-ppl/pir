@@ -174,9 +174,9 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
    * R    R    W        (X for DRAM, V for SRAM)
    * W    R    W        V
    *
-   * To handle this, we group nearest neighbor accesses if they do depend on others
-   * So we get access groups where within group there's no dependency between any of the access.
-   * When searching for dependency, we can stop at the first dependent group.
+   * To handle this, we first find all forward and carried accesses each access can depends on, then
+   * perform transitive reduction on the forward dependency DAG and backward dependency DAG, and
+   * finally insert tokens.
    * 
    * */
   def consistencyBarrier[A<:PIRNode](accesses:List[A])(dependsOn:(A,A) => Boolean)(insertBarrier:(A,A,Boolean) => Unit):List[UnrolledAccess[A]] = {
@@ -208,7 +208,11 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
   def unrolledConsistencyBarrier[A<:PIRNode](uas:List[UnrolledAccess[A]])(dependsOn:(UnrolledAccess[A],UnrolledAccess[A]) => Boolean)(insertBarrier:(UnrolledAccess[A],UnrolledAccess[A],Boolean) => Unit):List[UnrolledAccess[A]] = {
     val sorted = uas.sortBy { _.progorder }
 
-    dbgblk(s"sorted") {
+    val mem = uas.head.lanes.head match {
+      case access:Access => access.mem.T
+      case fringe:DRAMCommand => fringe.dram
+    }
+    dbgblk(s"sorted(${dquote(mem)})") {
       sorted.foreach { ua =>
         dbg(s"UA[${ua.progorder}] ${ua.lanes.map{dquote}.mkString(",")}")
         dbg(s"- ${ua.srcCtx}")

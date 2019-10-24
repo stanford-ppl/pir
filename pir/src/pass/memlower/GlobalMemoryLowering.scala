@@ -71,11 +71,9 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
         }
       }
     }
-    sequencedScheduleBarrierInsertion(mem)
-    //breakPoint(s"insert token for $mem")
-    multiBufferBarrierInsertion(mem)
-    enforceDataDependencyInSameController(mem)
-    //fifoBarrierInsertion(mem)
+    consistencyBarrier(mem.accesses)(dependsOn){ case (from,to,carried) =>
+      insertBarrier(from,to,carried)
+    }
     mem.accesses.foreach { access =>
       val ctx = access.ctx.get
       bufferInput(ctx, fromCtx=addrCtxs.get(access.getCtrl))
@@ -279,78 +277,36 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     }
   }
 
-  private def multiBufferBarrierInsertion(mem:Memory):Unit = {
-    if (mem.isFIFO) return
-    // None multi buffer doesn't need to connect access.done
-    if (mem.depth.get == 1) return
-    dbgblk(s"multiBufferBarrierInsertion($mem)") {
-      val accesses = mem.accesses.filter { _.port.nonEmpty }
-      val ctrlMap = leastMatchedPeers(accesses.map { _.getCtrl} ).get
-      val portMap = mem.accesses.filter { _.port.v.get.nonEmpty }.groupBy { access =>
-        access.port.v.get.get
-      }
-      val portIds = portMap.keys.toList.sorted
-      portIds.sliding(2,1).foreach {
-        case List(fromid, toid) =>
-          portMap(fromid).foreach { fromAccess =>
-            portMap(toid).foreach { toAccess =>
-              dbg(s"Insert token for multibuffer between $fromAccess and $toAccess")
-              val token = insertToken(
-                fromAccess.ctx.get, 
-                toAccess.ctx.get
-              )
-              val depth = toid - fromid + 1
-              dbg(s"$token.depth = $depth")
-              token.depth(depth)
-            }
-          }
-        case _ =>
-      }
-    }
+
+  private def dependsOn(deped:Access, dep:Access) = {
+    val carried = dep.progorder.get > deped.progorder.get
+    if (dep.getCtrl == deped.getCtrl) carried else !carried
   }
 
-  /*
-   * If write => read are not in the same loop, they should be handled in multibuffer or sequential
-   * controller. This is to handle the case where write and read are in the same controller
-   * */
-  //TODO: consider dependency between any controllers. Insert token only if there is not already a
-  //token between the writer and the reader
-  private def enforceDataDependencyInSameController(mem:Memory):Unit = dbgblk(s"enforceDataDependencyInSameController($mem)"){
-    val accesses = mem.accesses.filter { _.port.nonEmpty }
-    accesses.groupBy { _.port.get }.foreach { case (port, accesses) =>
-      val (inAccesses, outAccesses) =  accesses.partition { _.isInAccess }
-      inAccesses.foreach { inAccess =>
-        outAccesses.foreach { outAccess =>
-          if (inAccess.getCtrl == outAccess.getCtrl) {
-            dbg(s"Insert token for same loop data dependency between $inAccess and $outAccess")
-            val token = insertToken(
-              inAccess.ctx.get, 
-              outAccess.ctx.get
-            )
-            if (token.depth.isEmpty) {
-              token.depth(1)
-            }
-            if (inAccess.order.get > outAccess.order.get) {
-              dbg(s"$token.initToken = true")
-              token.initToken := true
-              token.inits := true
-              token.depth.reset // HACK to mem reduce. 
-                                // if token.depth = 1, write is blocked since ready is low. 
-              token.depth := 2
-            }
-          }
-        }
+  private def insertBarrier(from:Access, to:Access, carried:Boolean) = {
+    val token = insertToken(from.ctx.get, to.ctx.get)
+    if (from.port.get.isEmpty || to.port.get.isEmpty) {
+      token.depth(1)
+    } else {
+      val depth = to.port.get.get - from.port.get.get + 1
+      token.depth(depth)
+    }
+    if (carried) {
+      token.initToken := true
+      token.inits := true
+      // HACK to mem reduce. Allow writer and read to operate concurrently because we know they
+      // don't overlap in range
+      if (from.getCtrl == to.getCtrl) {
+        token.depth.reset
+        token.depth := 2
       }
     }
+    dbg(s"$token.depth = ${token.depth.get}")
   }
 
-  //def fifoBarrierInsertion(mem:Memory):Unit = {
-    //if (!mem.isFIFO) return
-    //dbgblk(s"fifoBarrierInsertion($mem)") {
-      //val w = assertOne(mem.inAccesses, s"$mem.inAccesses")
-      //val r = assertOne(mem.outAccesses, s"$mem.outAccesses")
-      //insertToken(w.ctx.get,r.ctx.get,isFIFO=true)
-    //}
-  //}
+  override def dquote(n:Any) = n match {
+    case n:Memory => n.name.v.fold { n.toString } { name => s"${n}[$name]" }
+    case n => super.dquote(n)
+  }
 
 }

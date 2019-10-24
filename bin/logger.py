@@ -486,7 +486,7 @@ class Logger():
             msg.append(pirmsg)
             msg.append(conf['time'])
 
-        return ' '.join(msg)
+        return ' '.join([str(m) for m in msg])
 
     def get_summary_path(self, conf):
         time = conf['time']

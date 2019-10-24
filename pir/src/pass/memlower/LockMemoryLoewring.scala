@@ -25,26 +25,23 @@ trait LockMemoryLowering extends GenericMemoryLowering {
       case (Some(lock), accesses) => Some(accesses.maxBy { _.order.get })
     }.toSet
     dbg(s"lastAccesses=${lastAccesses.mkString(",")}")
-    withLive(accesses:_*) {
-      accesses.foreach { access =>
-        lowerAccess(n, memCU, access, lastAccesses.contains(access))
-      }
-      val syncAccesses = accesses.groupBy { _.getCtrl }.flatMap { case (ctrl, accesses) =>
-        val (locked, unlocked) = accesses.partition { _.lock.isConnected }
-        unlocked ++ locked.headOption
-      }.toList
-      consistencyBarrier(syncAccesses) { case (deped, dep) =>
-        val carried = dep.progorder.get > deped.progorder.get
-        !carried
-      }{ case (from,to,carried) =>
-        insertToken(from.ctx.get, to.ctx.get).depth(1)
-      }
-      accesses.foreach { access =>
-        val ctx = access.ctx.get
-        bufferInput(ctx, fromCtx=addrCtxs.get(access.getCtrl))
-      }
+    accesses.foreach { access =>
+      lowerAccess(n, memCU, access, lastAccesses.contains(access))
     }
-    free(accesses)
+    val syncAccesses = accesses.groupBy { _.getCtrl }.flatMap { case (ctrl, accesses) =>
+      val (locked, unlocked) = accesses.partition { _.lock.isConnected }
+      unlocked ++ locked.headOption
+    }.toList
+    consistencyBarrier(syncAccesses) { case (deped, dep) =>
+      val carried = dep.progorder.get > deped.progorder.get
+      !carried
+    }{ case (from,to,carried) =>
+      insertToken(from.ctx.get, to.ctx.get).depth(1)
+    }
+    accesses.foreach { access =>
+      val ctx = access.ctx.get
+      bufferInput(ctx, fromCtx=addrCtxs.get(access.getCtrl))
+    }
     addrCtxs.clear
   }
 
