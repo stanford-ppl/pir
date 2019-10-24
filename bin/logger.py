@@ -274,7 +274,7 @@ class Logger():
     def load_history(self):
         opts = self.opts
         logs = os.listdir(opts.logdir)
-        logs = sorted(logs, reverse = True)[:20]
+        logs = sorted(logs, reverse = True)[:22]
         # print(logs)
 
         history = None
@@ -383,15 +383,32 @@ class Logger():
                 (history.backend==conf['backend'])]
         prevsucc =  history[history[diffkey]]
     
-        if opts.show_diff:
-            if not conf[diffkey] and prevsucc.shape[0] > 0:
-                times = get_col(prevsucc, 'time')
-                pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
-                print('{} {}'.format(msg, cstr(RED,'(Regression)')))
-                print('{} {} {} {}'.format(self.getMessage(pconf), pconf['spatial_sha'], 
-                    get(pconf,'pir_sha'), pconf['time']))
-            if conf[diffkey] and prevsucc.shape[0] == 0:
-                print('{} {}'.format(msg, cstr(GREEN,'(New)')))
+        if not conf[diffkey] and prevsucc.shape[0] > 0:
+            times = get_col(prevsucc, 'time')
+            pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
+            print('{} {}'.format(msg, cstr(RED,'(Regression)')))
+            print('{} {} {} {}'.format(self.getMessage(pconf), pconf['spatial_sha'], 
+                get(pconf,'pir_sha'), pconf['time']))
+        elif conf[diffkey] and prevsucc.shape[0] == 0:
+            print('{} {}'.format(msg, cstr(GREEN,'(New)')))
+        elif conf[diffkey] and prevsucc.shape[0] > 0:
+            times = get_col(prevsucc, 'time')
+            pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
+            prevcu = pconf['PCU'] + pconf['PMU'] + pconf['DAG']
+            cu = conf['PCU'] + conf['PMU'] + conf['DAG']
+            prevcycle = pconf['runp2p_cycle']
+            cycle = conf['runp2p_cycle']
+            if cycle is not None and prevcycle is not None:
+                worse = cu > prevcu or (cycle - prevcycle) > max(cycle * 0.05,200)
+                better = cu < prevcu or (prevcycle - cycle) > max(cycle * 0.05,200)
+                if worse:
+                    print('{} {}'.format(msg, cstr(RED,'(Worse)')))
+                    print('{} {} {} {}'.format(self.getMessage(pconf), pconf['spatial_sha'], 
+                        get(pconf,'pir_sha'), pconf['time']))
+                elif better:
+                    print('{} {}'.format(msg, cstr(GREEN,'(Better)')))
+                    print('{} {} {} {}'.format(self.getMessage(pconf), pconf['spatial_sha'], 
+                        get(pconf,'pir_sha'), pconf['time']))
 
     def getMessage(self, conf, isHistory=False):
         opts = self.opts

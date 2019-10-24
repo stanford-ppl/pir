@@ -455,6 +455,12 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
             r2.in.setVec(r1.in.getVec)
           }
           transferLocalAccess(r1,r2)
+          //TDOO: fix this
+          //val ens = r1.en.connected.filter { out =>
+            //val ctrl = out.src.getCtrl
+            //ctrl == r2.getCtrl || ctrl.isDescendentOf(r2.getCtrl)
+          //}
+          //r2.en(ens)
           val go1 = w1.gout
           val gi2 = r2.gin
           (go1, gi2) match {

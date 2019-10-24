@@ -70,12 +70,14 @@ case class InitSort_4() extends InitSort(ip=16, nway=4, N=128)
   }
 }
 
-case class DRAMMergeSort_0() extends DRAMMergeSort
-case class DRAMMergeSort_1() extends DRAMMergeSort(ip=16)
-case class DRAMMergeSort_2() extends DRAMMergeSort(ip=16, op=2)
-case class DRAMMergeSort_3() extends DRAMMergeSort(ip=16, op=3)
-case class DRAMMergeSort_4() extends DRAMMergeSort(ip=16, op=4)
-case class DRAMMergeSort_5() extends DRAMMergeSort(ip=16, op=2, nway=4)
+class DRAMMergeSort_0() extends DRAMMergeSort
+class DRAMMergeSort_1() extends DRAMMergeSort(ip=16)
+class DRAMMergeSort_2() extends DRAMMergeSort(ip=16, op=2)
+class DRAMMergeSort_3() extends DRAMMergeSort(ip=16, op=3)
+class DRAMMergeSort_4() extends DRAMMergeSort(ip=16, op=4)
+class DRAMMergeSort_5() extends DRAMMergeSort(ip=16, op=2, nway=4)
+class DRAMMergeSort_6() extends DRAMMergeSort(ip=16, op=3, nway=2)
+class DRAMMergeSort_7() extends DRAMMergeSort(ip=16,op=5,nway=4){ override def runtimeArgs = "16";  }
 
 @spatial abstract class DRAMMergeSort(
   op:scala.Int = 1, // Outer loop par

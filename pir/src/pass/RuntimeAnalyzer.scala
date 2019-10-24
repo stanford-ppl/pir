@@ -293,8 +293,10 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
       case (_, Unknown) => false
       case (s1, s2) => s1 == s2
     }
-    matchScale || (a1.done.connected.toSet == a2.done.connected.toSet)
+    //TODO: fix this
+    matchScale //|| (a1.done.connected.toSet == a2.done.connected.toSet)
   }
+
 
 
 }
