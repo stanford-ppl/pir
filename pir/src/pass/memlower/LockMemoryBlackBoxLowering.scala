@@ -45,8 +45,8 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
         }
         reqresp.groupBy { case (access,reqresp) => access.mem.T }.foreach { case (mem, accesses) =>
           val reqrespMap = accesses.toMap
-          consistencyBarrier(reqrespMap.keys.toList)(dependsOn){ case (from,to,carried) =>
-            insertBarrier(from, reqrespMap(from)._2, to, reqrespMap(to)._1, carried)
+          consistencyBarrier(reqrespMap.keys.toList)(dependsOn){ case (from,to,carried,depth) =>
+            insertBarrier(from, reqrespMap(from)._2, to, reqrespMap(to)._1, carried,depth)
           }
         }
       }
@@ -56,12 +56,12 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
   }
 
   // No multibuffer. Every one depends on everyone
-  private def dependsOn(deped:Access, dep:Access):Boolean = {
+  private def dependsOn(deped:Access, dep:Access):Option[Int] = {
     val lca = leastCommonAncesstor(deped.getCtrl, dep.getCtrl).get
     lca.schedule match {
-      case Fork => false
-      case ForkJoin => false
-      case _ => true
+      case Fork => None
+      case ForkJoin => None
+      case _ => Some(1)
     }
   }
 
@@ -71,10 +71,11 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
     to:LockAccess, 
     torqst:Input[PIRNode],
     carried:Boolean,
+    depth:Int,
   ) = {
     val fromctx = fromresp.src.ctx.get
     val toctx = torqst.src.ctx.get
-    val read = insertToken(fromctx, toctx, dep=Some(fromresp))
+    val read = insertToken(fromctx, toctx, dep=Some(fromresp)).depth(depth)
     if (carried) {
       read.initToken := true
       read.inits := true

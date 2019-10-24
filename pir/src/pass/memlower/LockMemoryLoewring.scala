@@ -32,8 +32,8 @@ trait LockMemoryLowering extends GenericMemoryLowering {
       val (locked, unlocked) = accesses.partition { _.lock.isConnected }
       unlocked ++ locked.headOption
     }.toList
-    consistencyBarrier(syncAccesses)(dependsOn){ case (from,to,carried) =>
-      insertToken(from.ctx.get, to.ctx.get).depth(1)
+    consistencyBarrier(syncAccesses)(dependsOn){ case (from,to,carried,depth) =>
+      insertToken(from.ctx.get, to.ctx.get).depth(depth)
     }
     accesses.foreach { access =>
       val ctx = access.ctx.get
@@ -42,15 +42,15 @@ trait LockMemoryLowering extends GenericMemoryLowering {
     addrCtxs.clear
   }
 
-  private def dependsOn(deped:Access, dep:Access):Boolean = {
+  private def dependsOn(deped:Access, dep:Access):Option[Int] = {
     val lca = leastCommonAncesstor(deped.getCtrl, dep.getCtrl).get
     lca.schedule match {
-      case Fork => return false
-      case ForkJoin => return false
+      case Fork => return None
+      case ForkJoin => return None
       case _ =>
     }
     val carried = dep.progorder.get > deped.progorder.get
-    !carried
+    if (!carried) Some(1) else None
   }
 
   private def lowerAccess(mem:Memory, memCU:MemoryContainer, access:LockAccess, isLast:Boolean) = {

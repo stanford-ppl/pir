@@ -59,6 +59,7 @@ trait GlobalRetimer extends PIRTransformer with CUCostUtil {
                     bufferWrite.out.presetVecMeta.mirror(write.out.presetVecMeta)
                     bufferWrite.out.vecMeta.reset
                     transferLocalAccess(write, bufferWrite)
+                    bufferWrite.en(write.en.connected)
                   }
                 case delay:DelayOp => bufferInput(op.in)
               }
@@ -76,6 +77,7 @@ trait GlobalRetimer extends PIRTransformer with CUCostUtil {
                     bufferRead.out.presetVecMeta.mirror(read.out.presetVecMeta)
                     bufferRead.out.vecMeta.reset
                     transferLocalAccess(read, bufferRead)
+                    bufferRead.en(read.en.connected)
                   }
                 }
               case _ =>

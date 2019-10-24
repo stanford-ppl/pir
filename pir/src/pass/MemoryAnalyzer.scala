@@ -179,7 +179,7 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
    * finally insert tokens.
    * 
    * */
-  def consistencyBarrier[A<:PIRNode](accesses:List[A])(dependsOn:(A,A) => Boolean)(insertBarrier:(A,A,Boolean) => Unit):List[UnrolledAccess[A]] = {
+  def consistencyBarrier[A<:PIRNode](accesses:List[A])(dependsOn:(A,A) => Option[Int])(insertBarrier:(A,A,Boolean,Int) => Unit):List[UnrolledAccess[A]] = {
     val uas = accesses.groupBy { _.progorder.get }.map { 
       case (progorder, accesses) => 
         val lanes = accesses.head match {
@@ -188,13 +188,11 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
         }
         UnrolledAccess(lanes)
     }.toList
-    def insertBarrierUnrolled(predua:UnrolledAccess[A], ua:UnrolledAccess[A], carried:Boolean) = {
-      if (dependsOn(ua.lanes.head, predua.lanes.head)) {
-        predua.lanes.zipWithIndex.foreach { case (pred, predLane) =>
-          ua.lanes.zipWithIndex.foreach { case (access, accessLane) =>
-            dbgblk(s"insertBarrier(${dquote(predua)}[$predLane], ${dquote(ua)}[$accessLane], carried=$carried)") {
-              insertBarrier(pred,access,carried)
-            }
+    def insertBarrierUnrolled(predua:UnrolledAccess[A], ua:UnrolledAccess[A], carried:Boolean, depth:Int) = {
+      predua.lanes.zipWithIndex.foreach { case (pred, predLane) =>
+        ua.lanes.zipWithIndex.foreach { case (access, accessLane) =>
+          dbgblk(s"insertBarrier(${dquote(predua)}[$predLane], ${dquote(ua)}[$accessLane], carried=$carried, depth=$depth)") {
+            insertBarrier(pred,access,carried,depth)
           }
         }
       }
@@ -205,7 +203,10 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
     unrolledConsistencyBarrier(uas)(dependsOnUnrolled)(insertBarrierUnrolled)
   }
 
-  def unrolledConsistencyBarrier[A<:PIRNode](uas:List[UnrolledAccess[A]])(dependsOn:(UnrolledAccess[A],UnrolledAccess[A]) => Boolean)(insertBarrier:(UnrolledAccess[A],UnrolledAccess[A],Boolean) => Unit):List[UnrolledAccess[A]] = {
+  def unrolledConsistencyBarrier[A<:PIRNode]
+    (uas:List[UnrolledAccess[A]])
+    (dependsOn:(UnrolledAccess[A],UnrolledAccess[A]) => Option[Int])
+    (insertBarrier:(UnrolledAccess[A],UnrolledAccess[A],Boolean,Int) => Unit):List[UnrolledAccess[A]] = {
     val sorted = uas.sortBy { _.progorder }
 
     val mem = uas.head.lanes.head match {
@@ -219,49 +220,16 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
       }
     }
 
-    //def findPredecessors(ua:UnrolledAccess[A], ctrl:ControlTree):(List[UnrolledAccess[A]],List[UnrolledAccess[A]]) = {
-      //val ancestor = ua.ctrl.ancestorUnder(ctrl).get
-      //val scope = sorted.filter { other => 
-        //val otherAncestor = other.ctrl.ancestorUnder(ctrl)
-        //otherAncestor.fold(false) { otherAncestor =>
-          //other == ua || // Include ua in the scope
-          //otherAncestor.isEmpty || // Include other if other is the immediate child of ctrl
-          //otherAncestor != ancestor // Include other if other is descendent of ctrl but doesn't share immediate child of ctrl with ua
-        //}
-      //}
-
-      //// Search backward from position of ua to find the first dependency in the same scope
-      //val (before, rest) = scope.span { _ != ua }
-      //val (_,after) = rest.splitAt(1)
-      //dbg(s"ua=${dquote(ua)} ctrl=$ctrl before=${before.map{dquote}} after=${after.map{dquote}}")
-
-      //val forward = before.reverseIterator.filter { before => 
-        //dependsOn(ua, before)
-      //}.toList
-      //val carried = if (ctrl.isLoop.get) {
-        //after.reverseIterator.filter { after => 
-          //dependsOn(ua,after)
-        //}.toList
-      //} else Nil
-
-      //ctrl.parent.fold {
-        //(forward, carried)
-      //} { parentCtrl =>
-        //val (outerForward, outerCarried) = findPredecessors(ua, parentCtrl)
-        //(forward ++ outerForward, carried ++ outerCarried)
-      //}
-    //}
-
-    def findPredecessors(ua:UnrolledAccess[A]):(List[UnrolledAccess[A]],List[UnrolledAccess[A]]) = {
+    def findPredecessors(ua:UnrolledAccess[A]):(List[(UnrolledAccess[A],Int)],List[(UnrolledAccess[A],Int)]) = {
       val (before, rest) = sorted.span { _ != ua }
       val (_,after) = rest.splitAt(1)
 
-      val forward = before.filter { before => dependsOn(ua, before) }
-      val carried = after.filter { after => 
+      val forward = before.flatMap { before => dependsOn(ua, before).map { depth => (before, depth) } }
+      val carried = after.flatMap { after => 
         val lca = leastCommonAncesstor(ua.ctrl, after.ctrl).get
         if (lca.ancestorTree.exists { _.isLoop.get }) {
-          dependsOn(ua, after)
-        } else false
+          dependsOn(ua, after).map { depth => (after, depth) }
+        } else Nil
       }
 
       (forward, carried)
@@ -272,36 +240,50 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
       val (forward,carried) = findPredecessors(ua)
       dbg(s"${dquote(ua)} forward: ${forward.map{dquote(_)}.mkString(",")} carried: ${carried.map{dquote(_)}.mkString(",")}")
       (ua -> forward,ua -> carried)
+
     }.unzip.map1 { _.toMap }.map2 { _.toMap }
 
     // Perform transitive reduction on the reachable set. Forward and carried separately to keep
     // them DAG.  
-    val reducedForward = forward.map { case (ua, reachable) =>
-      val reachedByNeighbors = reachable.flatMap { rua => forward(rua).toSet }
-      ua -> reachable.filterNot { reachedByNeighbors.contains(_) }
+    
+    type AdjList = Map[UnrolledAccess[A],List[(UnrolledAccess[A], Int)]]
+    // Use dfs to get all reachable access and the most relaxed buffer depth (largest) on that path
+    def getReachable(adjlist:AdjList, ua:UnrolledAccess[A]):List[(UnrolledAccess[A], Int)] = {
+      val reached = adjlist(ua)
+      reached ++ reached.flatMap { case (neighbor, depth) => 
+        getReachable(adjlist,neighbor).map { case (reached, depth2) => reached -> math.max(depth, depth2) }
+      }
     }
-
-    val reducedCarried = carried.map { case (ua, reachable) =>
-      val reachedByNeighbors = reachable.flatMap { rua => carried(rua).toSet }
-      ua -> reachable.filterNot { reachedByNeighbors.contains(_) }
+    def transitiveReduce(adjlist:AdjList):AdjList = {
+      adjlist.map { case (ua, reachable) =>
+        val reachedByNeighbors = reachable.flatMap { case (reached, depth) => 
+          getReachable(adjlist, reached).map { case (reached, depth2) => reached -> math.max(depth, depth2) }
+        }
+        ua -> reachable.filterNot { case (reached, depth) => 
+          reachedByNeighbors.exists { case (nreached, ndepth) => nreached == reached && (ndepth <= depth) }
+        }
+      }
     }
+    val reducedForward = transitiveReduce(forward)
+    val reducedCarried = transitiveReduce(carried)
 
     sorted.foreach { ua =>
       dbg(s"${dquote(ua)} rforward:${reducedForward(ua).map{dquote(_)}.mkString(",")} rcarried: ${reducedCarried(ua).map{dquote(_)}.mkString(",")}")
     }
 
     sorted.foreach { ua =>
-      reducedForward(ua).foreach { prev =>
-        insertBarrier(prev, ua, false)
+      reducedForward(ua).foreach { case (prev,depth) =>
+        insertBarrier(prev, ua, false,depth)
       }
-      reducedCarried(ua).foreach { prev =>
-        insertBarrier(prev, ua, true)
+      reducedCarried(ua).foreach { case (prev,depth) =>
+        insertBarrier(prev, ua, true, depth)
       }
     }
     sorted
   }
 
   override def dquote(n:Any) = n match {
+    case (a,b) => s"(${dquote(a)},${dquote(b)})"
     case n:UnrolledAccess[_] => s"UA[${n.progorder}]"
     case _ => super.dquote(n)
   }

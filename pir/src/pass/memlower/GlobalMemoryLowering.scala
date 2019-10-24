@@ -71,8 +71,8 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
         }
       }
     }
-    consistencyBarrier(mem.accesses)(dependsOn){ case (from,to,carried) =>
-      insertBarrier(from,to,carried)
+    consistencyBarrier(mem.accesses)(dependsOn){ case (from,to,carried,depth) =>
+      insertBarrier(from,to,carried,depth)
     }
     mem.accesses.foreach { access =>
       val ctx = access.ctx.get
@@ -278,34 +278,33 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
   }
 
 
-  private def dependsOn(deped:Access, dep:Access):Boolean = {
+  private def dependsOn(deped:Access, dep:Access):Option[Int] = {
     val lca = leastCommonAncesstor(deped.getCtrl, dep.getCtrl).get
     lca.schedule match {
-      case Fork => return false
-      case ForkJoin => return false
+      case Fork => return None
+      case ForkJoin => return None
       case _ =>
     }
     val carried = dep.progorder.get > deped.progorder.get
-    if (dep.getCtrl == deped.getCtrl) carried else !carried
+    if (dep.getCtrl == deped.getCtrl) {
+      // HACK to mem reduce. Allow writer and read to operate concurrently because we know they
+      // don't overlap in range
+      if (!carried) None else Some(2)
+    } else {
+      if (carried) None else {
+        val depth = zipMap(deped.port.get, dep.port.get) { case (depedport, depport) =>
+          depedport - depport + 1
+        }.getOrElse(1)
+        Some(depth)
+      }
+    }
   }
 
-  private def insertBarrier(from:Access, to:Access, carried:Boolean) = {
-    val token = insertToken(from.ctx.get, to.ctx.get)
-    if (from.port.get.isEmpty || to.port.get.isEmpty) {
-      token.depth(1)
-    } else {
-      val depth = to.port.get.get - from.port.get.get + 1
-      token.depth(depth)
-    }
+  private def insertBarrier(from:Access, to:Access, carried:Boolean,depth:Int) = {
+    val token = insertToken(from.ctx.get, to.ctx.get).depth(depth)
     if (carried) {
       token.initToken := true
       token.inits := true
-      // HACK to mem reduce. Allow writer and read to operate concurrently because we know they
-      // don't overlap in range
-      if (from.getCtrl == to.getCtrl) {
-        token.depth.reset
-        token.depth := 2
-      }
     }
     dbg(s"$token.depth = ${token.depth.get}")
   }

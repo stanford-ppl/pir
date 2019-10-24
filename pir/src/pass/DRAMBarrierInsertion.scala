@@ -15,22 +15,22 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
     dramMap.foreach { case (dram, ctxs) => process(dram, ctxs) }
   }
 
-  def dependsOn(deped:DRAMCommand, dep:DRAMCommand):Boolean = /*dbgblk(s"dependsOn(${dquote(deped)}, ${dquote(dep)})")*/{
-    if (deped.isInstanceOf[DRAMLoadCommand] && dep.isInstanceOf[DRAMLoadCommand]) return false
+  def dependsOn(deped:DRAMCommand, dep:DRAMCommand):Option[Int] = /*dbgblk(s"dependsOn(${dquote(deped)}, ${dquote(dep)})")*/{
+    if (deped.isInstanceOf[DRAMLoadCommand] && dep.isInstanceOf[DRAMLoadCommand]) return None
     val lca = leastCommonAncesstor(deped.getCtrl, dep.getCtrl).get
     lca.schedule match {
-      case Sequenced => true
-      case Fork => false
+      case Sequenced => Some(1)
+      case Fork => None
       case Pipelined | Streaming => 
-        (dep.isInstanceOf[DRAMStoreCommand] && deped.isInstanceOf[DRAMLoadCommand])
-      case ForkJoin => false
+        if (dep.isInstanceOf[DRAMStoreCommand] && deped.isInstanceOf[DRAMLoadCommand]) Some(1) else None
+      case ForkJoin => None
     }
   }
 
   def process(dram:DRAM, ctxs:List[(Context, DRAMCommand)]) = dbgblk(s"process(${dram} (${dram.sid})"){
     val accesses = ctxs.map { _._2 }
-    val sorted = consistencyBarrier(accesses)(dependsOn) { case (from,to,carried) =>
-      insertToken(from.ctx.get, from, to.ctx.get, to, !carried)
+    val sorted = consistencyBarrier(accesses)(dependsOn) { case (from,to,carried,depth) =>
+      insertToken(from.ctx.get, from, to.ctx.get, to, !carried, depth)
     }
     sorted.reverseIterator.find { ua =>
       ua.lanes.head.isInstanceOf[DRAMStoreCommand]
@@ -47,7 +47,8 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
     fromCmd:DRAMCommand, 
     toCtx:Context, 
     toCmd:DRAMCommand,
-    forward:Boolean
+    forward:Boolean,
+    depth:Int
   ):Unit = {
     dbgblk(s"insertToken($fromCmd, $toCmd)"){
       dbg(s"from=${quoteSrcCtx(fromCtx.getCtrl)} to=${quoteSrcCtx(toCtx.getCtrl)}")
@@ -68,7 +69,7 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
         case toCmd:DRAMSparseCommand => toCmd.addr.T.as[BufferRead].in
       }
       val write = issueIn.collectFirst[BufferWrite]()
-      val tokenRead = insertToken(read.ctx.get, write.ctx.get, dep=Some(accum.out))
+      val tokenRead = insertToken(read.ctx.get, write.ctx.get, dep=Some(accum.out)).depth(depth)
       val tokenWrite = tokenRead.inAccess.as[TokenWrite]
       connectLaneEnable(tokenRead)
       connectLaneEnable(tokenWrite)

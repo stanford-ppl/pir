@@ -95,7 +95,6 @@ with BufferAnalyzer
       case (from:LocalOutAccess,to:LocalOutAccess) => mirrorMetas(from.in, to.in)
       case (from,to) =>
     }
-    to.en(from.en.connected)
     withMirrorRule {
       case (from,to,"name",Some(fvalue),Some(tvalue)) => Some(s"$fvalue/$tvalue")
       case (from,to,"sname",Some(fvalue),Some(tvalue)) => Some(s"$fvalue/$tvalue")

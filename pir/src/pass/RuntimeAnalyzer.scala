@@ -288,11 +288,12 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
   }
 
   def matchRate(a1:LocalAccess, a2:LocalAccess) = {
-    (compScale(a1), compScale(a2)) match {
+    val matchScale = (compScale(a1), compScale(a2)) match {
       case (Unknown, _) => false
       case (_, Unknown) => false
       case (s1, s2) => s1 == s2
     }
+    matchScale || (a1.done.connected.toSet == a2.done.connected.toSet)
   }
 
 

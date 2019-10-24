@@ -24,6 +24,7 @@ abstract class PIRPass(implicit override val compiler:PIR) extends Pass
     case OpDef(op) => s"${super.dquote(x)}($op)"
     case x:PIRNode if x.sname.nonEmpty => s"$x[${x.sname.get}]"
     case x:Edge[n,_,_] => s"${dquote(x.src)}.$x"
+    case x:DRAM => s"$x[${x.sid}]"
     case x => super.dquote(x)
   }
 }

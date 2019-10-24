@@ -75,6 +75,7 @@ case class DRAMMergeSort_1() extends DRAMMergeSort(ip=16)
 case class DRAMMergeSort_2() extends DRAMMergeSort(ip=16, op=2)
 case class DRAMMergeSort_3() extends DRAMMergeSort(ip=16, op=3)
 case class DRAMMergeSort_4() extends DRAMMergeSort(ip=16, op=4)
+case class DRAMMergeSort_5() extends DRAMMergeSort(ip=16, op=2, nway=4)
 
 @spatial abstract class DRAMMergeSort(
   op:scala.Int = 1, // Outer loop par
@@ -83,7 +84,7 @@ case class DRAMMergeSort_4() extends DRAMMergeSort(ip=16, op=4)
 ) extends SpatialTest with MetaProgramming {
   type T = Int
 
-  override def runtimeArgs = s"10"
+  override def runtimeArgs = s"16"
 
   def main(args: Array[String]): Unit = {
     val N = 1.to[Int] << args(0).to[I16]
