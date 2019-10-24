@@ -85,6 +85,7 @@ def derive_simfreq(conf, opts):
     p2ptime = get(conf,'runp2p_time')
     p2pcycle = get(conf,'runp2p_cycle')
     if p2ptime is None or p2pcycle is None:
+        conf['simfreq'] = None
         return None
     p2ptime = p2ptime.split(":")
     if len(p2ptime) == 2:
