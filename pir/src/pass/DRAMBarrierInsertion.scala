@@ -20,7 +20,7 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
     val lca = leastCommonAncesstor(deped.getCtrl, dep.getCtrl).get
     lca.schedule match {
       case Sequenced => true
-      case Fork => true
+      case Fork => false
       case Pipelined | Streaming => 
         (dep.isInstanceOf[DRAMStoreCommand] && deped.isInstanceOf[DRAMLoadCommand])
       case ForkJoin => false

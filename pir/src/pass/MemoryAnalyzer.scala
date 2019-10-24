@@ -219,41 +219,57 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
       }
     }
 
-    def findPredecessors(ua:UnrolledAccess[A], ctrl:ControlTree):(List[UnrolledAccess[A]],List[UnrolledAccess[A]]) = {
-      val ancestor = ua.ctrl.ancestorUnder(ctrl).get
-      val scope = sorted.filter { other => 
-        val otherAncestor = other.ctrl.ancestorUnder(ctrl)
-        otherAncestor.fold(false) { otherAncestor =>
-          other == ua || // Include ua in the scope
-          otherAncestor.isEmpty || // Include other if other is the immediate child of ctrl
-          otherAncestor != ancestor // Include other if other is descendent of ctrl but doesn't share immediate child of ctrl with ua
-        }
-      }
+    //def findPredecessors(ua:UnrolledAccess[A], ctrl:ControlTree):(List[UnrolledAccess[A]],List[UnrolledAccess[A]]) = {
+      //val ancestor = ua.ctrl.ancestorUnder(ctrl).get
+      //val scope = sorted.filter { other => 
+        //val otherAncestor = other.ctrl.ancestorUnder(ctrl)
+        //otherAncestor.fold(false) { otherAncestor =>
+          //other == ua || // Include ua in the scope
+          //otherAncestor.isEmpty || // Include other if other is the immediate child of ctrl
+          //otherAncestor != ancestor // Include other if other is descendent of ctrl but doesn't share immediate child of ctrl with ua
+        //}
+      //}
 
-      // Search backward from position of ua to find the first dependency in the same scope
-      val (before, rest) = scope.span { _ != ua }
-      val forward = before.reverseIterator.filter { before => 
-        dependsOn(ua, before)
-      }.toList
+      //// Search backward from position of ua to find the first dependency in the same scope
+      //val (before, rest) = scope.span { _ != ua }
+      //val (_,after) = rest.splitAt(1)
+      //dbg(s"ua=${dquote(ua)} ctrl=$ctrl before=${before.map{dquote}} after=${after.map{dquote}}")
+
+      //val forward = before.reverseIterator.filter { before => 
+        //dependsOn(ua, before)
+      //}.toList
+      //val carried = if (ctrl.isLoop.get) {
+        //after.reverseIterator.filter { after => 
+          //dependsOn(ua,after)
+        //}.toList
+      //} else Nil
+
+      //ctrl.parent.fold {
+        //(forward, carried)
+      //} { parentCtrl =>
+        //val (outerForward, outerCarried) = findPredecessors(ua, parentCtrl)
+        //(forward ++ outerForward, carried ++ outerCarried)
+      //}
+    //}
+
+    def findPredecessors(ua:UnrolledAccess[A]):(List[UnrolledAccess[A]],List[UnrolledAccess[A]]) = {
+      val (before, rest) = sorted.span { _ != ua }
       val (_,after) = rest.splitAt(1)
 
-      val carried = if (ctrl.isLoop.get) {
-        after.reverseIterator.filter { after => 
-          dependsOn(ua,after)
-        }.toList
-      } else Nil
-
-      ctrl.parent.fold {
-        (forward, carried)
-      } { parentCtrl =>
-        val (outerForward, outerCarried) = findPredecessors(ua, parentCtrl)
-        (forward ++ outerForward, carried ++ outerCarried)
+      val forward = before.filter { before => dependsOn(ua, before) }
+      val carried = after.filter { after => 
+        val lca = leastCommonAncesstor(ua.ctrl, after.ctrl).get
+        if (lca.ancestorTree.exists { _.isLoop.get }) {
+          dependsOn(ua, after)
+        } else false
       }
+
+      (forward, carried)
     }
 
     // Get an reachable sets for forward and carried dependency
     val (forward, carried) = sorted.map { ua =>
-      val (forward,carried) = findPredecessors(ua, ua.ctrl)
+      val (forward,carried) = findPredecessors(ua)
       dbg(s"${dquote(ua)} forward: ${forward.map{dquote(_)}.mkString(",")} carried: ${carried.map{dquote(_)}.mkString(",")}")
       (ua -> forward,ua -> carried)
     }.unzip.map1 { _.toMap }.map2 { _.toMap }

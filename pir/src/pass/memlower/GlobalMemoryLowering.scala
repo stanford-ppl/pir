@@ -278,7 +278,13 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
   }
 
 
-  private def dependsOn(deped:Access, dep:Access) = {
+  private def dependsOn(deped:Access, dep:Access):Boolean = {
+    val lca = leastCommonAncesstor(deped.getCtrl, dep.getCtrl).get
+    lca.schedule match {
+      case Fork => return false
+      case ForkJoin => return false
+      case _ =>
+    }
     val carried = dep.progorder.get > deped.progorder.get
     if (dep.getCtrl == deped.getCtrl) carried else !carried
   }

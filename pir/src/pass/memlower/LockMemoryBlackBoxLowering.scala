@@ -56,7 +56,14 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
   }
 
   // No multibuffer. Every one depends on everyone
-  private def dependsOn(a:LockAccess,b:LockAccess) = true
+  private def dependsOn(deped:Access, dep:Access):Boolean = {
+    val lca = leastCommonAncesstor(deped.getCtrl, dep.getCtrl).get
+    lca.schedule match {
+      case Fork => false
+      case ForkJoin => false
+      case _ => true
+    }
+  }
 
   private def insertBarrier(
     from:LockAccess, 
