@@ -17,7 +17,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
           dbg(msg)
           err(msg) 
       }
-    case n:LockSRAM =>
+    case n:LockMem =>
     case _ => super.visitNode(n)
   }
 
@@ -28,12 +28,14 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
   private def lowerRMW(
     lock:Lock, 
     rmwpar:Int,
-    lockMems:List[LockSRAM], // Lock address, one per outer loop lane
+    lockMems:List[LockMem], // Lock address, one per outer loop lane
     igs:List[InnerAccessGroup] // A list of sparse accum group
   ) = dbgblk(s"lowerRMW($lock)"){
     within(pirTop, lock.getCtrl) {
       val blockCtx = within(pirTop, lock.getCtrl) { stage(Context().streaming(true)) }
-      val lockAccums = lockMems.map { mem => LockAccum(mem.tp.get, mem.dims.get, mem.srcCtx.v, mem.name.v) }
+      val lockAccums = lockMems.map { mem => 
+        LockAccum(mem.tp.get, mem.dims.get, mem.srcCtx.v, mem.name.v, if (mem.isDRAM) Some(mem.sname.get) else None)
+      }
       val accumMap = (lockMems,lockAccums).zipped.toMap
       val block = within(blockCtx, lock.getCtrl) { LockRMABlock(rmwpar,lockAccums) }
       val accesses = lockMems.flatMap { _.accesses }
@@ -45,11 +47,22 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
         }
         reqresp.groupBy { case (access,reqresp) => access.mem.T }.foreach { case (mem, accesses) =>
           val reqrespMap = accesses.toMap
-          consistencyBarrier(reqrespMap.keys.toList)(dependsOn){ case (from,to,carried,depth) =>
-            insertBarrier(from, reqrespMap(from)._2, to, reqrespMap(to)._1, carried,depth)
+          val sorted = consistencyBarrier(reqrespMap.keys.toList)(dependsOn){ case (from,to,carried,depth) =>
+            insertBarrier(from, reqrespMap(from)._2, to, reqrespMap(to)._1, carried, depth)
+          }
+          if (block.isDRAM) {
+            sorted.reverseIterator.find { ua =>
+              val access = ua.lanes.head
+              access.isWrite || access.isLockedAccess
+            }.foreach { ua =>
+              ua.lanes.foreach { access =>
+                insertTokenToHost(access, reqrespMap(access)._2)
+              }
+            }
           }
         }
       }
+      removeLive(lockMems:_*)
       free(accesses)
       stage(block)
     }
@@ -85,7 +98,19 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
     swapConnection(torqst, original, forward.out)
   }
 
-  private def lowerLockedRMW(ig:InnerAccessGroup, block:LockRMABlock, blockCtx:Context, accumMap:Map[LockSRAM,LockAccum]) = dbgblk(s"lowerLockedRMW($ig)"){
+  private def insertTokenToHost(
+    from:LockAccess, 
+    fromresp:Output[PIRNode],
+  ) = {
+    val fromctx = fromresp.src.ctx.get
+    val hostOutCtx = pirTop.argFringe.collectFirst[HostOutController](visitDown _).ctx.get
+    val read = insertToken(fromctx, hostOutCtx, dep=Some(fromresp))
+    within(hostOutCtx, hostOutCtx.getCtrl) {
+      stage(HostRead().input(read.out))
+    }
+  }
+
+  private def lowerLockedRMW(ig:InnerAccessGroup, block:LockRMABlock, blockCtx:Context, accumMap:Map[LockMem,LockAccum]) = dbgblk(s"lowerLockedRMW($ig)"){
     val lanes = ig.group.flatMap { _.accesses.map { case UnrolledAccess(lanes) => lanes }}.transpose
     lanes.zipWithIndex.map { case (accesses,lane) =>
 
@@ -126,7 +151,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
 
       // Wire up read data
       reads.foreach { read =>
-        val readDataPort = block.lockDataOuts(accumMap(read.mem.T.as[LockSRAM]))(lane)
+        val readDataPort = block.lockDataOuts(accumMap(read.mem.T.as[LockMem]))(lane)
         read.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx, ins) =>
           ins.foreach { in =>
             swapConnection(in, read.out, readDataPort)
@@ -140,7 +165,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
 
       // Wire up write data
       writes.foreach { write =>
-        val writeDataPort = block.lockDataIns(accumMap(write.mem.T.as[LockSRAM]))(lane)
+        val writeDataPort = block.lockDataIns(accumMap(write.mem.T.as[LockMem]))(lane)
         writeDataPort(write.data.singleConnected.get)
         bufferInput(writeDataPort, fromCtx=Some(accumCtx))
       }
@@ -158,7 +183,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
     }
   }
 
-  private def lowerUnlockAccessGroup(ig:InnerAccessGroup, block:LockRMABlock, blockCtx:Context, accumMap:Map[LockSRAM,LockAccum]) = dbgblk(s"lowerUnlockAccessGroup(${ig})"){
+  private def lowerUnlockAccessGroup(ig:InnerAccessGroup, block:LockRMABlock, blockCtx:Context, accumMap:Map[LockMem,LockAccum]) = dbgblk(s"lowerUnlockAccessGroup(${ig})"){
     ig.group.flatMap { case MemGroup(mem, accesses) =>
       assert(accesses.size == 1)
       val ua@UnrolledAccess(lanes) = accesses.head
@@ -243,7 +268,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
   def lowerPattern(n:Lock):Either[String,T] = dbgblk(s"lowerPattern($n)"){
     val lockOns = n.out.T.as[List[LockOnKeys]]
     val lockAccesses = lockOns.flatMap { _.out.T }.as[List[LockAccess]].toSet
-    val lockMems = lockAccesses.map { _.mem.T }.toList.sortBy { _.progorder.get }
+    val lockMems = lockAccesses.map { _.mem.T }.toList.sortBy { _.progorder.get }.as[List[LockMem]]
     val accesses = lockMems.flatMap { _.accesses.as[List[LockAccess]] }.distinct
     val lockKeys = lockOns.map { _.key.T }.distinct
     val preunrollKey = lockKeys.map { _.progorder.v }.distinct
@@ -258,7 +283,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
     // Accum[InnerCtrl[Urolled[Access]]]
     val sortedGroupedAccesses = sortedAccesses.groupBy { ua => ua.lanes.head.getCtrl }
       .toList.sortBy { _._1.progorder.get }.map { case (ctrl,group) => 
-        val mgroup = group.groupBy { _.lanes.head.mem.T.as[LockSRAM] }.map { case (mem, as) => MemGroup(mem, as) }
+        val mgroup = group.groupBy { _.lanes.head.mem.T.as[LockMem] }.map { case (mem, as) => MemGroup(mem, as) }
         InnerAccessGroup(ctrl,mgroup.toList)
       }
 
@@ -269,7 +294,8 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
     }
 
     val noOuterPar = sortedAccesses.forall { ig => ig.lanes.size == 1 }
-    if (noOuterPar & lockMems.size == 1) return Right(lowerUnparLockMem(lockMems.head))
+    val isDRAM = assertUnify(lockMems, s"Cannot have both DRAM and SRAM on the same lock ${quoteSrcCtx(n)}") { _.isDRAM }.get
+    if (noOuterPar && lockMems.size == 1 && !isDRAM) return Right(lowerUnparLockMem(lockMems.head))
 
     val (pure, impure) = sortedGroupedAccesses.partition { _.isPure }
     if (impure.nonEmpty) 
@@ -290,7 +316,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
       }
       assertUnify(lockMems, s"${quoteSrcCtx(n)} have different types for read modify accumulators") { mem => mem.tp.get }
       assertUnify(lockMems, s"${quoteSrcCtx(n)} have different dimensions for read modify accumulators") { mem => mem.dims.get }
-      return Right(lowerRMW(n, rmwpar, lockMems.as[List[LockSRAM]], pure))
+      return Right(lowerRMW(n, rmwpar, lockMems, pure))
     } else {
       return Left(s"Unsupported access pattern ${quoteSrcCtx(n)}")
     }
@@ -318,7 +344,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
   /*
    * A list of accesses belonging to the same basic block/inner loop and the same memory, sorted by program order
    * */
-  case class MemGroup(mem:LockSRAM,accesses:List[UnrolledAccess[LockAccess]]) {
+  case class MemGroup(mem:LockMem,accesses:List[UnrolledAccess[LockAccess]]) {
     def isUnlockedAccess = accesses.forall { _.isUnlockedAccess }
     def isLockedAccess = accesses.forall { _.isLockedAccess }
     def isPure = accesses.forall { a => a.isUnlockedAccess | a.isLockedAccess }

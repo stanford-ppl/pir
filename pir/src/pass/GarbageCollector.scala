@@ -66,11 +66,12 @@ trait GarbageCollector { self:PIRTransformer =>
     //collector.logging = Some(this)
     collector.resetTraversal
     dead ++= collector.traverseNodes(ns)
+    dbg(s"liveNodes:${states.liveNodes}")
     removeNodes(dead)
   }
 
   private def mustLive(n:PIRNode) = {
-    n.descendentTree.exists { n => isLive(n) == Some(true) || liveNodes.contains(n) }
+    n.descendentTree.exists { n => isLive(n) == Some(true) }
   }
 
   private def mustDead(n:PIRNode):Boolean = {
@@ -88,13 +89,19 @@ trait GarbageCollector { self:PIRTransformer =>
     free(ns)
   }
 
-  private var liveNodes:Set[Any] = Set.empty
-  def withLive[T](live:Any*)(block: => T):T = {
-    val prev = liveNodes
-    liveNodes = prev ++ live.toSet
+  def withLive[T](live:ND*)(block: => T):T = {
+    val prev = states.liveNodes
+    states.liveNodes = prev ++ live.toSet
     val res = block
-    liveNodes = prev
+    states.liveNodes = prev
     res
+  }
+
+  def addLive(live:ND*) = {
+    states.liveNodes ++= live
+  }
+  def removeLive(nodes:ND*) = {
+    states.liveNodes --= nodes
   }
 
   def isLive(n:PIRNode):Option[Boolean] = n match {
@@ -111,6 +118,7 @@ trait GarbageCollector { self:PIRTransformer =>
     case n:Controller if !depDupHasRun => Some(true)
     case n:AccumAck if !dramBarrierInsertionHasRun => Some(true)
     case n if n.isUnder[Controller] && !depDupHasRun => Some(true)
+    case n if states.liveNodes.contains(n) => Some(true)
     case n => None
   }
 

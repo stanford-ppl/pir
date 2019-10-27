@@ -56,7 +56,7 @@ case class FIFO()(implicit env:Env) extends Memory
 case class SRAM()(implicit env:Env) extends Memory
 case class RegFile()(implicit env:Env) extends Memory
 case class LUT()(implicit env:Env) extends Memory
-case class LockSRAM()(implicit env:Env) extends Memory
+case class LockMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory
 
 case class Lock()(implicit env:Env) extends BlackBox with DefNode[PIRNode] {
   val lock = new InputField[PIRNode]("lock")
@@ -115,27 +115,29 @@ case class LockOnKeys()(implicit env:Env) extends Def {
   tp(Bool)
 }
 
-case class LockAccum(tp:BitType, dims:List[Int], srcCtx:Option[String], name:Option[String])
+case class LockAccum(tp:BitType, dims:List[Int], srcCtx:Option[String], name:Option[String], dram:Option[String])
 case class LockRMABlock(
   par:Int,
   accums:List[LockAccum],
 )(implicit env:Env) extends GlobalBlackBox {
-  val unlockReadAddrs = accums.map { a => a -> List.fill(par) { new InputField[PIRNode](s"unlockReadAddr").tp(Fix(true, 32, 0)) } }.toMap
-  val unlockReadDatas = accums.map { a => a -> List.fill(par) { new OutputField[PIRNode](s"unlockReadData").tp(a.tp) } }.toMap
+  val unlockReadAddrs = accums.map { a => a -> List.fill(par) { new InputField[Option[PIRNode]](s"unlockReadAddr").tp(Fix(true, 32, 0)) } }.toMap
+  val unlockReadDatas = accums.map { a => a -> List.fill(par) { new OutputField[Option[PIRNode]](s"unlockReadData").tp(a.tp) } }.toMap
 
-  val unlockWriteAddrs = accums.map { a => a -> List.fill(par) { new InputField[PIRNode](s"unlockWriteAddr").tp(Fix(true, 32, 0)) } }.toMap
-  val unlockWriteDatas = accums.map { a => a -> List.fill(par) { new InputField[PIRNode](s"unlockWriteData").tp(a.tp) } }.toMap
-  val unlockWriteAcks = accums.map { a => a -> List.fill(par) { new OutputField[PIRNode](s"unlockWriteAck").tp(Bool).presetVec(1) } }.toMap
+  val unlockWriteAddrs = accums.map { a => a -> List.fill(par) { new InputField[Option[PIRNode]](s"unlockWriteAddr").tp(Fix(true, 32, 0)) } }.toMap
+  val unlockWriteDatas = accums.map { a => a -> List.fill(par) { new InputField[Option[PIRNode]](s"unlockWriteData").tp(a.tp) } }.toMap
+  val unlockWriteAcks = accums.map { a => a -> List.fill(par) { new OutputField[Option[PIRNode]](s"unlockWriteAck").tp(Bool).presetVec(1) } }.toMap
 
   def addLockInputIn = DynamicInputFields[PIRNode](s"lockInputIn")
   def addLockInputOut = DynamicOutputFields[PIRNode](s"lockInputOut")
   def lockInputIns = {
     val ins = getDynamicInputFields[PIRNode](s"lockInputIn")
+    if (ins.isEmpty) Nil else
     if (ins.size < par) List(ins) else 
     ins.grouped(ins.size / par).toList
   }
   def lockInputOuts = {
     val outs = getDynamicOutputFields[PIRNode](s"lockInputOut")
+    if (outs.isEmpty) Nil else
     if (outs.size < par) List(outs) else 
     outs.grouped(outs.size / par).toList
   }
@@ -162,8 +164,8 @@ case class LockRMABlock(
     lockAddrs.zipWithIndex.toMap ++
     lockDataIns.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
     lockDataOuts.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
-    lockInputIns.zipWithIndex.map { case (ins,lane) => ins.map { _ -> lane }.toMap }.reduce { _ ++ _ } ++
-    lockInputOuts.zipWithIndex.map { case (outs,lane) => outs.map { _ -> lane }.toMap }.reduce { _ ++ _ } ++
+    lockInputIns.zipWithIndex.map { case (ins,lane) => ins.map { _ -> lane }.toMap }.reduceOption { _ ++ _ }.getOrElse(Nil) ++
+    lockInputOuts.zipWithIndex.map { case (outs,lane) => outs.map { _ -> lane }.toMap }.reduceOption { _ ++ _ }.getOrElse(Nil) ++
     lockAcks.zipWithIndex.toMap
 
   lazy val inputMap:Map[Edge[_,_,_],Int] = 
@@ -184,6 +186,8 @@ case class LockRMABlock(
       getDynamicInputFields[PIRNode](s"lockInputIn")(n.dynamicIdx.get).inferTp
     case _ => super.compType(n)
   }
+
+  def isDRAM = assertUnify(accums, s"$this have both DRAM and SRAm in accums=${accums}") { _.dram.nonEmpty }.get
 }
 case class Top()(implicit env:Env) extends PIRNode {
   var topCtrl:ControlTree = _
@@ -478,8 +482,8 @@ trait MemoryUtil extends CollectorImplicit {
       case _ => false
     }
 
-    def isLockSRAM = n match {
-      case n:LockSRAM => true
+    def isLockMem = n match {
+      case n:LockMem => true
       case _ => false
     }
 

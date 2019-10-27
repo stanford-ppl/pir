@@ -9,7 +9,7 @@ import scala.collection.mutable
 
 trait GlobalMemoryLowering extends GenericMemoryLowering {
   override def visitNode(n:N) = n match {
-    case n:Memory if !n.isLockSRAM => createMemGlobal(n)
+    case n:Memory if !n.isLockMem => createMemGlobal(n)
     case _ => super.visitNode(n)
   }
 

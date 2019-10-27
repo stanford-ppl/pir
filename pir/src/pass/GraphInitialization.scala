@@ -114,26 +114,6 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
     }
 
-    // Handle disabled load store from unaligned parallelization
-    //n.to[FringeCommand].foreach { n =>
-      //val reads = n.collectIn[MemRead]()
-      //val writes = n.collectOut[MemWrite]()
-      //(reads ++ writes).foreach { access =>
-        //val setters = access match {
-          //case read:MemRead => read.mem.T.inAccesses
-          //case write:MemWrite => write.mem.T.outAccesses
-        //}
-        //setters.foreach { setter => 
-          //val ctrlEns = access.getCtrl.ancestorTree.view.flatMap { c =>
-            //c.ctrler.v.view.flatMap { ctrler =>
-              //ctrler.en.T.collect { case v:CounterValid => v.out }
-            //}
-          //}.toSet[Output[PIRNode]]
-          //setter.en(ctrlEns)
-        //}
-      //}
-    //}
-
     // Add laneValids to enable of memory access
     def connectLaneValid(access:Access):Unit = {
       val ctrl = access.getCtrl
@@ -251,6 +231,10 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
           }
         }
       }
+    }
+
+    n.to[LockMem].foreach { mem =>
+      if (mem.isDRAM) addLive(mem)
     }
 
     super.visitNode(n)
