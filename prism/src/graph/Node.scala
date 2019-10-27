@@ -103,9 +103,9 @@ trait Node[N<:Node[N]] extends IR { self:N =>
   def localIns:Vector[Input[N]] = localEdges.toVector.collect { case i:Input[N] => i }
   def localOuts:Vector[Output[N]] = localEdges.toVector.collect { case i:Output[N] => i }
 
-  def edges = localEdges ++ descendents.flatMap { _.localEdges }
-  def ins = edges.collect { case i:Input[N] => i }
-  def outs = edges.collect { case i:Output[N] => i }
+  def edges = ins ++ outs
+  def ins = depsFrom.values.flatten.toSeq.distinct
+  def outs = depedsTo.keys
   def localDeps:Vector[N] = { 
     localIns.flatMap { _.connected.map { _.src} }.distinct
   }

@@ -7,14 +7,10 @@ import prism.graph._
 import prism.collection.immutable._
 import prism.codegen.CSVPrinter
 
-trait ExternComputePartitioner { self:ComputePartitioner =>
+trait ExternComputePartitioner extends CSVPrinter { self:ComputePartitioner =>
 
-  lazy val nodeGen = new CSVPrinter {
-    val dirName = self.config.graphDir
-    val fileName = "node.csv"
-    val append = false
-    def genNodes(nodes:List[PIRNode]) = {
-      val ctx = nodes.head.ctx.get
+  def genNodes(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
+    withCSV(config.splitDir, "node.csv") {
       nodes.foreach { n =>
         val row = newRow
         row("node") = n.id
@@ -22,33 +18,25 @@ trait ExternComputePartitioner { self:ComputePartitioner =>
         row("retime") = n.isInstanceOf[Delay]
         row("comment") = s"$n"
       }
-      gencsv
     }
-  } 
+  }
 
-  lazy val edgeGen = new CSVPrinter {
-    val dirName = self.config.graphDir
-    val fileName = "edge.csv"
-    val append = false
-    def genEdges(nodes:List[PIRNode]) = {
+  def genEdges(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
+    withCSV(config.splitDir, "edge.csv") {
       val ctx = nodes.head.ctx.get
       val nodeSet = nodes.toSet
       nodes.foreach { n =>
         n.localOuts.foreach { out =>
           out.connected.foreach { in =>
+            val row = newRow
+            row("src") = n.id
             if (nodeSet.contains(in.src)) {
-              val row = newRow
-              row("src") = n.id
               row("dst") = in.src.id
-              row("tp") = if (isVec(in)) "v" else "s"
-              row("comment") = s"${n} -> ${in.src}"
             } else if (!in.src.isDescendentOf(ctx)) {
-              val row = newRow
-              row("src") = n.id
               row("dst") = s"e${in.src.id}"
-              row("tp") = if (isVec(in)) "v" else "s"
-              row("comment") = s"${n} -> ${in.src}"
             }
+            row("tp") = if (isVec(in)) "v" else "s"
+            row("comment") = s"${n} -> ${in.src}"
           }
         }
         n.localIns.foreach { in =>
@@ -65,15 +53,24 @@ trait ExternComputePartitioner { self:ComputePartitioner =>
           }
         }
       }
-      gencsv
     }
-  } 
+  }
 
-  lazy val specGen = new CSVPrinter {
-    val dirName = self.config.graphDir
-    val fileName = "spec.csv"
-    val append = false
-    def genSpec(vcost:List[Cost[_]]) = {
+  def genInit(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
+    withCSV(config.splitDir, "init.csv") {
+      val parts = withAlgo("bfs") { heuristicSplit(nodes,vcost) }
+      parts.zipWithIndex.foreach { case (p,i) =>
+        p.scope.foreach { node =>
+          val row = newRow
+          row("node") = node.id
+          row("partition") = i
+        }
+      }
+    }
+  }
+
+  def genSpec(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
+    withCSV(config.splitDir, "spec.csv") {
       val (stageCost:StageCost)::(inCost:InputCost)::(outCost:OutputCost)::_ = vcost
       val row = newRow
       row("ops") = stageCost.quantity
@@ -81,45 +78,26 @@ trait ExternComputePartitioner { self:ComputePartitioner =>
       row("sin") = inCost.sin
       row("vout") = outCost.vout
       row("sout") = outCost.sout
-      gencsv
-    }
-  } 
-
-  lazy val initGen = new CSVPrinter {
-    val dirName = self.config.graphDir
-    val fileName = "init.csv"
-    val append = false
-    override val printHeader = false
-    def genInit(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
-      val parts = withAlgo("bfs") { heuristicSplit(nodes,vcost) }
-      parts.zipWithIndex.foreach { case (p,i) =>
-        p.scope.foreach { node =>
-          val row = newRow
-          row("node") = node.id
-          row("part") = i
-        }
-      }
-      gencsv
     }
   }
 
   def externSplit(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
-    nodeGen.genNodes(nodes)
-    edgeGen.genEdges(nodes)
-    specGen.genSpec(vcost)
-    initGen.genInit(nodes,vcost)
+    genNodes(nodes,vcost)
+    genEdges(nodes,vcost)
+    genInit(nodes,vcost)
+    genSpec(nodes,vcost)
     val python = buildPath(config.pirHome, "env", "bin", "python")
     if (!exists(python)) {
       err(s"$python doesn't exists. Please do make install in ${config.pirHome}")
     }
     shell(
       header="partition", 
-      command=s"${buildPath("env","bin","python")} ${buildPath("bin","partition.py")} ${config.graphDir} -t ${config.splitThread}", 
+      command=s"${buildPath("env","bin","python")} ${buildPath("bin","partition.py")} ${config.splitDir} -t ${config.splitThread}", 
       cwd=config.pirHome,
-      logPath=buildPath(config.graphDir, "partition.log")
+      logPath=buildPath(config.splitDir, "partition.log")
     )
     val idmap = nodes.map { node => (node.id, node) }.toMap
-    val pidmap = getLines(buildPath(config.graphDir, "part.csv")).map { line =>
+    val pidmap = getLines(buildPath(config.splitDir, "part.csv")).map { line =>
       val node::part::_ = line.split(",").map { _.toInt }.toList
       idmap(node) -> part
     }.toMap

@@ -12,7 +12,7 @@ trait CUPruner extends ConstrainPruner with CUCostUtil with PIRTransformer with 
       flatFold(x.freeKeys, x) { case (x, k) =>
         val kc = getCosts(k)
         val pruned = x.filterNotAtKey(k) { v => notFit(kc, getCosts(v)) }
-        recover(pruned)
+        if (config.enableSplitting) recover(pruned) else pruned
       }.asInstanceOf[EOption[T]]
     case x => super.prune(x)
   }

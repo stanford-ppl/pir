@@ -3,10 +3,10 @@ package pir
 class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
 
   /* ------------------- Compiler --------------------  */
-  register("ctrl", default=true, info="Enable control logic generation")
-  register("splitting", default=true, info="Enable splitting")
+  register("split", default=true, info="Enable splitting")
   register("split-algo", default="dfs", info="Splitting algorithm. [dfs, bfs, solver]") 
   register("split-thread", default=1, info="Number of threads for external splitter") 
+  register("merge", default=false, info="Enable merging")
   register("mapping", default=true, info="Enable mapping")
   register("arch", default="MyDesign", info="Default architecture for mapping")
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
@@ -22,13 +22,14 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register[String]("pir-home", default=sys.env.get("PIR_HOME"), info="PIR Home")
 
   def arch = option[String]("arch")
-  def enableSplitting = option[Boolean]("splitting")
-  def splitAlgo = option[String]("split-algo")
-  def splitThread = option[Int]("split-thread")
   def enableLocalRetiming = option[Boolean]("retime-local")
   def enableGlobalRetiming = option[Boolean]("retime-glob")
   def retimeBufferOnly = option[Boolean]("retime-buffer-only")
   def enableMapping = option[Boolean]("mapping")
+  def enableSplitting = option[Boolean]("split") && enableMapping
+  def splitAlgo = option[String]("split-algo")
+  def splitThread = option[Int]("split-thread")
+  def enableMerging = option[Boolean]("merge") && enableMapping
   def deadicatedDAG = option[Boolean]("dedicated-dag")
   def enableRouteElim = option[Boolean]("rt-elm")
   def aggressive_dce = option[Boolean]("ag-dce")
@@ -36,6 +37,8 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def forceAlign = option[Boolean]("force-align")
   def enableIgraph = option[Boolean]("igraph")
   def graphDir = buildPath(appDir, "graph")
+  def mergeDir = buildPath(appDir, "merge")
+  def splitDir = buildPath(appDir, "split")
   def asModule = enableCodegen && option[Boolean]("module")
   def pirHome = getOption[String]("pir-home").getOrElse(err(s"pir-home is not set"))
 

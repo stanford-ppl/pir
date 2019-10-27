@@ -16,16 +16,22 @@ import time
 import contextlib
 
 Constraint = namedtuple("Constraint", ["ops", "vin", "sin", "vout", "sout"])
-Node = namedtuple("Node", ["node", "op", "retime", "comment"])
+Node = namedtuple("Node",
+        ["node","initTp","comment","AFGCost","MCCost","MergeBufferCost_quantity","MergeBufferCost_ways",
+        "SplitterCost_quantity","LockCost_quantity","SRAMCost_bank","SRAMCost_size","InputCost_sin",
+        "InputCost_vin","OutputCost_sout","OutputCost_vout","StageCost_quantity","LaneCost","OpCost"])
 Edge = namedtuple("Edge", ["src", "dst", "tp", "comment"])
 NodePartition = namedtuple("NodePartition", ["node", "partition"])
-
 
 def load_csv(fname, tp, use_fieldnames=False):
     with open(fname, "r") as f:
         return [tp(**row) for row in
                 csv.DictReader(f, delimiter=",", fieldnames=tp._fields if use_fieldnames else None)]
 
+def load_csvdict(fname, tp, use_fieldnames=False):
+    with open(fname, "r") as f:
+        for row in csv.DictReader(f, delimiter=","):
+            print(type(row))
 
 def cleaned_name(node_id):
     if node_id[0] == "e":
@@ -290,12 +296,12 @@ def partition_solver(nodes, edges, constraint, pre_partitioning, opts):
     print("Generate {}".format(opts.partition))
 
 
-def partition_dummy(nodes, edges, constraint, pre_partitioning, opts):
-    with open(opts.partition, "w") as pf:
+def merge_dummy(nodes, opts):
+    with open(opts.merge, "w") as pf:
         writer = csv.writer(pf, delimiter=",")
         for node in nodes:
-            writer.writerow([node.node, node.node])
-    print("Generate {}".format(opts.partition))
+            writer.writerow([node.node, node.node, node.initTp])
+    print("Generate {}".format(opts.merge))
 
 
 def main():
@@ -306,25 +312,25 @@ def main():
 
     opts.node = os.path.join(opts.path, "node.csv")
     opts.edge = os.path.join(opts.path, "edge.csv")
-    opts.spec = os.path.join(opts.path, "spec.csv")
-    opts.partition = os.path.join(opts.path, "part.csv")
+    opts.spec_count = os.path.join(opts.path, "spec_count.csv")
+    opts.spec_cost = os.path.join(opts.path, "spec_cost.csv")
+    opts.costtp = os.path.join(opts.path, "costtp.csv")
+    opts.merge = os.path.join(opts.path, "merge.csv")
 
     nodes = load_csv(opts.node, Node)
-    nodes = [element._replace(op=int(element.op), retime=element.retime=="true") for element in nodes]
 
-    edges = load_csv(opts.edge, Edge)
-    edges = [element._replace(
-        src=cleaned_name(element.src),
-        dst=cleaned_name(element.dst)
-    ) for element in edges]
-    constraint = load_csv(opts.spec, Constraint)[0]
-    constraint = Constraint(*list(map(int, constraint)))
+    # edges = load_csv(opts.edge, Edge)
+    # edges = [element._replace(
+        # src=cleaned_name(element.src),
+        # dst=cleaned_name(element.dst)
+    # ) for element in edges]
+    # constraint = load_csv(opts.spec, Constraint)[0]
+    # constraint = Constraint(*list(map(int, constraint)))
 
-    pre_partitioning = load_csv(os.path.join(opts.path, "init.csv"), NodePartition)
-    pre_partitioning = [NodePartition(*list(map(int, partition))) for partition in pre_partitioning]
+    # pre_partitioning = load_csv(os.path.join(opts.path, "init.csv"), NodePartition)
+    # pre_partitioning = [NodePartition(*list(map(int, partition))) for partition in pre_partitioning]
 
-    partition_solver(nodes, edges, constraint, pre_partitioning, opts)
-    # partition_dummy(nodes,edges,constraint,pre_partitioning, opts)
+    merge_dummy(nodes, opts)
 
 
 if __name__ == "__main__":

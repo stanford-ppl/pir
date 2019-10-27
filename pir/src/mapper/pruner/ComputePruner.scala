@@ -3,20 +3,16 @@ package mapper
 
 import pir.node._
 import prism.graph._
+import prism.codegen.CSVPrinter
 import spade.param._
 import prism.collection.immutable._
 
-class ComputePruner(implicit compiler:PIR) extends CUPruner with ComputePartitioner { self =>
+class ComputePruner(implicit compiler:PIR) extends CUPruner with ComputePartitioner with CSVPrinter { self =>
 
-  lazy val splitTimeGen = new prism.codegen.CSVPrinter {
-    val dirName = self.config.graphDir
-    val fileName = "splitTime.csv"
-    val append = false
-  }
-
-  override def finPass = {
-    super.finPass
-    splitTimeGen.gencsv
+  override def runPass = {
+    withCSV(config.splitDir, "splitTime.csv") {
+      super.runPass
+    }
   }
 
   override def getCosts(x:Any):List[Cost[_]] = {
@@ -47,7 +43,7 @@ class ComputePruner(implicit compiler:PIR) extends CUPruner with ComputePartitio
         tic
         val ks = withAlgo(config.splitAlgo) { split(k, vcost).toSet }
         val splitTime = toc("ms")
-        val row = splitTimeGen.newRow
+        val row = newRow
         row("global") = k.id
         row("time_ms") = splitTime
         val srcCtx = k.collectDown[Context]().flatMap { ctx => ctx.getCtrl.srcCtx.v }.mkString(",")

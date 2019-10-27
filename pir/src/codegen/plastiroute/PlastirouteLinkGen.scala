@@ -8,28 +8,19 @@ import prism.codegen._
 
 class PlastirouteLinkGen(implicit compiler: PIR) extends PlastisimUtil with PIRTraversal with ChildFirstTraversal with UnitTraversal { self =>
   lazy val outputFile = new CSVPrinter {
-    override def dirName = config.psimOut
-    override def fileName = config.prouteOutLinkName
-    val append = false
     setHeaders("out","ctx","src","tp","count")
   }
   lazy val inputFile = new CSVPrinter {
-    override def dirName = config.psimOut
-    override def fileName = config.prouteInLinkName
-    val append = false
     setHeaders("in","dst")
   }
   lazy val linkFile = new CSVPrinter {
-    override def dirName = config.psimOut
-    override def fileName = config.prouteLinkName
-    val append = false
     setHeaders("out","in[0]","in[1]","in[2]")
   }
 
   override def finPass = {
-    outputFile.gencsv
-    inputFile.gencsv
-    linkFile.gencsv
+    outputFile.writeToCSV(config.psimOut,config.prouteOutLinkName)
+    inputFile.writeToCSV(config.psimOut,config.prouteInLinkName)
+    linkFile.writeToCSV(config.psimOut,config.prouteLinkName)
     super.finPass
     //lnFile(buildPath(config.tstHome, "plasticine", "resources", "bin", "gen_link.py"), buildPath(config.psimOut, "gen_link.py"))
   }

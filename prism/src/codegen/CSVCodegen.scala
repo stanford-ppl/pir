@@ -13,11 +13,6 @@ trait CSVPrinter extends Printer {
 
   type Row = CSVRow
 
-  def dirName:String
-  def fileName:String
-  def append:Boolean
-  def printHeader:Boolean = true
-
   val headers = ListBuffer[String]()
   val rows = ListBuffer[Row]()
 
@@ -37,7 +32,7 @@ trait CSVPrinter extends Printer {
 
   def setHeaders(header:String*) = { headers ++= header }
 
-  def emitCSV = {
+  def emitCSV(printHeader:Boolean) = {
     if (printHeader) emitln(headers.mkString(","))
     rows.foreach { row =>
       emitln(s"${headers.map( h => row.cell.getOrElse(h, "") ).mkString(",")}")
@@ -46,17 +41,27 @@ trait CSVPrinter extends Printer {
     headers.clear
   }
 
-  def gencsv = {
+  def withCSV[T](dirName:String, fileName:String, append:Boolean=false, printHeader:Boolean=true)(block: => T) = {
     withOpen(dirName, fileName, append) {
-      emitCSV
+      block
+      emitCSV(printHeader)
     }
   }
+
+  def writeToCSV(dirName:String, fileName:String, append:Boolean=false, printHeader:Boolean=true) = {
+    withOpen(dirName, fileName, append) {
+      emitCSV(printHeader)
+    }
+  }
+
 }
 
 trait CSVCodegen extends Codegen with CSVPrinter {
 
+  def printHeader:Boolean = true
+
   override def finPass = {
-    emitCSV
+    emitCSV(printHeader)
     super.finPass
   }
 }

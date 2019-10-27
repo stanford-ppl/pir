@@ -26,7 +26,7 @@ trait Factory extends Env with DFSTopologicalTraversal with ParamTraversal {
     traverseNode(param, None).asInstanceOf[T]
   }
 
-  type CUArray = List[List[ListBuffer[SpadeNode]]]
+  type CUArray = List[List[ListBuffer[Terminal]]]
   type ConnectorArray = List[List[_]]
 
   def visitNodeAs[M](n:N, prev:T):M = visitNode(n,prev).asInstanceOf[M]
@@ -105,7 +105,7 @@ trait TopFactory extends Factory {
         }
         if (side == "left") fringe ++ array else array ++ fringe
       }
-      val argFringe = visitNodeAs[ArgFringe](param.argFringeParam, None).asInstanceOf[SpadeNode]
+      val argFringe = visitNodeAs[ArgFringe](param.argFringeParam, None)
       val array = createFringeColumn("right", createFringeColumn("left", center))
       array(array.size/2)(array.head.size-1) += argFringe
       array

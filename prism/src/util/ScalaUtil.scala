@@ -179,6 +179,7 @@ trait ScalaUtilFunc {
     }
     def as[T]:T = x.asInstanceOf[T]
     def newInstance[T](args:Seq[Any]):T = x.getClass.newInstanceAs[T](args)
+    def simpleName = x.getClass.getSimpleName
   }
 
   implicit class ClassHelper(cl:Class[_]) {

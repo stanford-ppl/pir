@@ -3,10 +3,12 @@ package mapper
 
 import pir.node._
 import pir.pass._
+import prism.graph._
 import prism.collection.immutable._
 
-abstract class Cost[C:ClassTag] extends Product { self:C =>
+abstract class Cost[C:ClassTag:TypeTag] extends Product { self:C =>
   val ct = classTag[C]
+  def fieldNames = caseFieldNames[C]
   def - (x:C):C
   def + (x:C):C
 }

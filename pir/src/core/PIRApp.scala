@@ -39,6 +39,7 @@ trait PIRApp extends PIR with Logging {
   lazy val mergeBufferPruner = new MergeBufferPruner()
   lazy val memoryPruner = new MemoryPruner()
   lazy val memoryComputePruner = new MemoryComputePruner()
+  lazy val globalMerger = new GlobalMerger()
   lazy val matchPruner = new MatchPruner()
   lazy val placerAndRouter = new PlaceAndRoute()
 
@@ -105,6 +106,7 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, mergeBufferPruner) ==>
     addPass(enableMapping, hardPruner) ==> // prune on newly created CUs by memoryComputePruner
     addPass(enableMapping, computePruner) ==>
+    addPass(enableMapping, globalMerger) ==>
     addPass(enableMapping, dagPruner) ==>
     addPass(enableMapping, matchPruner) ==>
     addPass(ctrlBlockInsert) ==>

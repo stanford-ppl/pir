@@ -31,6 +31,10 @@ trait CaseTuple[S<:CaseTuple[S]] { self:Product =>
     }
     this.newInstance(args)
   }
+  def mapAll(lambda: Any => Any):S = {
+    val args = fields.map { f => lambda(f) }
+    this.newInstance(args)
+  }
   def flatMap[F:ClassTag](lambda: F => EOption[F]):EOption[S] = {
     lambda(get[F]).map { set[F] }
   }
