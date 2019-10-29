@@ -164,6 +164,7 @@ class GlobalMerger(implicit compiler:PIR) extends PIRTransformer with CUCostUtil
           out.connected.foreach { in =>
             val row = newRow
             val dstGlob = in.src.global.get
+            row("outid") = in.src.id
             row("src") = glob.id
             row("dst") = dstGlob.id
             row("tp") = if (isVec(in)) "v" else "s"
