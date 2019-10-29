@@ -13,7 +13,7 @@ import functools
 import typing
 import itertools
 import time
-import contextlib
+import atexit
 
 Constraint = namedtuple("Constraint", ["ops", "vin", "sin", "vout", "sout"])
 Node = namedtuple("Node", ["node", "op", "retime", "comment"])
@@ -68,11 +68,11 @@ class CVXPartitioner:
     delay_per_partition = 6
     buffer_capacity = 16
     network_delay = 1
-    merge_probability = 0.5
+    merge_probability = 0
 
     OPTIONS = frozenset({
         ("partitions", True),
-        ("retiming_cus", False),
+        ("retiming_nodes", True),
         ("external_edges", False)
     })
 
@@ -131,9 +131,9 @@ class CVXPartitioner:
     @functools.lru_cache(None)
     def objective(self):
         total = {
-            "num_partitions": self.num_partitions,
-            "retiming_cus": lambda: self.delay_gap()[0],
-            "num_external_edges": self.num_edges
+            "partitions": self.num_partitions,
+            "retiming_nodes": lambda: self.delay_gap()[0],
+            "external_edges": self.num_edges
         }
         to_print = []
         with TimeContext("Objective"):
@@ -142,7 +142,9 @@ class CVXPartitioner:
                 if self.opts[option_name]:
                     additional = func()
                     objective += additional
-                    to_print.append(additional)
+                    to_print.append((option_name, additional))
+        for name, var in to_print:
+            atexit.register(lambda x, y: print(x, y.value), name, var)
         return cvxpy.Minimize(objective)
 
     def _add_constraint(self, constraint):
@@ -328,6 +330,9 @@ class CVXPartitioner:
             return False
         return True
 
+    def _is_different_value(self, a, b):
+        return self._project_to_bool(cvxpy.abs(a - b))
+
     @functools.lru_cache(None)
     def delay_gap(self):
         max_delay = self.partitions * self.delay_per_partition * 2
@@ -344,8 +349,7 @@ class CVXPartitioner:
                 activity_component = 0
             else:
                 # strongly negative if in same partition, otherwise is 0
-                not_same_partition = self._project_to_bool(
-                    self.node_partitions[dst_loc] - self.node_partitions[src_loc])
+                not_same_partition = self._is_different_value(self.node_partitions[dst_loc], self.node_partitions[src_loc])
                 activity_component = not_same_partition * max_delay - max_delay
             self._add_constraint(
                 delays[dst_loc] >= src_loc + activity_component + self.delay_per_partition + self.network_delay)
@@ -356,7 +360,7 @@ class CVXPartitioner:
             if not self._possible_in_same_partition(loc1, loc2):
                 continue
             # if the nodes are in the same partition, then impose an equality constraint on the delays
-            partition_diff = self._project_to_bool(cvxpy.abs(self.node_partitions[loc1] - self.node_partitions[loc2]))
+            partition_diff = self._is_different_value(self.node_partitions[loc1], self.node_partitions[loc2])
             self._add_constraint(delays[loc1] + partition_diff * max_delay >= delays[loc2])
             self._add_constraint(delays[loc2] + partition_diff * max_delay >= delays[loc1])
 
@@ -397,7 +401,10 @@ class CVXPartitioner:
             num_large_gaps = sum(
                 [self._project_to_bool(cvxpy.maximum(gap - self.buffer_capacity, 0)) for gap in gaps[tp]], 0)
             # if merge_probability is low, then there's a high chance of requiring separate compute anyways.
-            total_retime_cost += gap_costs[tp] * num_large_gaps / self.merge_probability
+            # if merge_probability is 1, then it requires gap_costs[tp]
+            # if merge_probability is 0, then it requires 1 full PCU.
+            retime_multi = gap_costs[tp] * self.merge_probability + (1 - gap_costs[tp]) * (1 - self.merge_probability)
+            total_retime_cost += gap_costs[tp] * num_large_gaps * retime_multi
 
         # want to minimize total_delay
 
@@ -421,7 +428,7 @@ class CVXPartitioner:
                 continue
             src_loc = self.node_to_loc_map[src]
             dst_loc = self.node_to_loc_map[dst]
-            not_in_same_partition = self._project_to_bool(self.node_partitions[src_loc] - self.node_partitions[dst_loc])
+            not_in_same_partition = self._project_to_bool(self.node_partitions[dst_loc] - self.node_partitions[src_loc])
             cross_edges[tp].append(not_in_same_partition)
 
         total = 0
@@ -456,8 +463,9 @@ class CVXPartitioner:
 def partition_solver(nodes, edges, constraint, pre_partitioning, opts):
     with TimeContext("Solver Initalization"):
         solver = CVXPartitioner(nodes, edges, constraint, pre_partitioning)
-        solver.set_opts(opts)
-    solver.solve(solver="GUROBI", verbose=True, warm_start=True, Threads=opts.thread)
+        print(vars(opts))
+        solver.set_opts(vars(opts))
+    solver.solve(solver="GUROBI", verbose=True, warm_start=True, Threads=opts.thread, MIPGap=0.05)
 
     with open(opts.partition, "w") as pf:
         writer = csv.writer(pf, delimiter=",")
