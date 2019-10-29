@@ -327,6 +327,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
     case MemGroup(mem, accesses) => quoteSrcCtx(accesses)
     case InnerAccessGroup(ctrl, group) => quoteSrcCtx(ctrl)
     case l:List[_] => l.map { quoteSrcCtx }.mkString("\n")
+    case x => super.quoteSrcCtx(x)
   }
 
   implicit class UnrolledAccessUtil(n:UnrolledAccess[LockAccess]) {

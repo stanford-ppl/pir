@@ -51,16 +51,19 @@ trait GlobalRetimer extends PIRTransformer with CUCostUtil {
               swapParent(op, retimeCtx)
               op.in.singleConnected.get.src match {
                 case write:BufferWrite =>
-                  swapConnection(op.in, write.out, write.data.singleConnected.get)
-                  bufferInput(op.in).foreach { buffer =>
-                    val bufferWrite = buffer.inAccess.as[BufferWrite]
-                    bufferWrite.data.presetVecMeta.mirror(write.data.presetVecMeta)
-                    bufferWrite.data.vecMeta.reset
-                    bufferWrite.out.presetVecMeta.mirror(write.out.presetVecMeta)
-                    bufferWrite.out.vecMeta.reset
-                    transferLocalAccess(write, bufferWrite)
-                    bufferWrite.en(write.en.connected)
+                  withLive(write) {
+                    swapConnection(op.in, write.out, write.data.singleConnected.get)
+                    bufferInput(op.in).foreach { buffer =>
+                      val bufferWrite = buffer.inAccess.as[BufferWrite]
+                      bufferWrite.data.presetVecMeta.mirror(write.data.presetVecMeta)
+                      bufferWrite.data.vecMeta.reset
+                      bufferWrite.out.presetVecMeta.mirror(write.out.presetVecMeta)
+                      bufferWrite.out.vecMeta.reset
+                      transferLocalAccess(write, bufferWrite)
+                      bufferWrite.en(write.en.connected)
+                    }
                   }
+                  free(write)
                 case delay:DelayOp => bufferInput(op.in)
               }
             }
@@ -71,15 +74,18 @@ trait GlobalRetimer extends PIRTransformer with CUCostUtil {
             op.out.connected.foreach {
               case in@InputField(read:BufferRead, _) =>
                 val ins = read.out.connected
-                swapOutput(read.out, op.out)
-                ins.foreach { in =>
-                  bufferInput(in).foreach { bufferRead =>
-                    bufferRead.out.presetVecMeta.mirror(read.out.presetVecMeta)
-                    bufferRead.out.vecMeta.reset
-                    transferLocalAccess(read, bufferRead)
-                    bufferRead.en(read.en.connected)
+                withLive(read) {
+                  swapOutput(read.out, op.out)
+                  ins.foreach { in =>
+                    bufferInput(in).foreach { bufferRead =>
+                      bufferRead.out.presetVecMeta.mirror(read.out.presetVecMeta)
+                      bufferRead.out.vecMeta.reset
+                      transferLocalAccess(read, bufferRead)
+                      bufferRead.en(read.en.connected)
+                    }
                   }
                 }
+                free(read)
               case _ =>
             }
             op.delay.reset

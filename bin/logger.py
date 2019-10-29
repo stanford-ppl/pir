@@ -49,38 +49,6 @@ def get_sha_msg(sha, path):
     cwd=path).decode().replace("'","").replace("\n","")
     return msg
 
-def removeRules(conf, opts):
-    reruns = [] + opts.rerun
-    # if conf['runpir_err'] is not None and 'not found: value x' in conf['runpir_err']:
-        # print(conf['runpir_err'].strip())
-        # reruns.append('genpir')
-    # if conf['runpir_err'] is not None and 'value depth is not a member of object pir.node.RegFile' in conf['runpir_err']:
-        # print(conf['runpir_err'].strip())
-        # reruns.append('genpir')
-    # if conf['runpir_err'] is not None and 'value addr is not a member of pir.node.FringeDenseStore' in conf['runpir_err']:
-        # print(conf['runpir_err'].strip())
-        # reruns.append('genpir')
-    # if conf['runtst_err'] is not None and 'Assertion fail' in conf['runtst_err']:
-        # reruns.append('gentst')
-        # reruns.append('maketst')
-        # reruns.append('runtst')
-    # if not conf['succeeded']:
-        # reruns.append('genpir')
-        # reruns.append('gentst')
-        # reruns.append('maketst')
-        # reruns.append('runtst')
-
-    for p in reruns:
-        if p == 'genpir':
-            remove(self.AccelMain, opts)
-        elif p == 'runpsim':
-            remove(self.gentrace, opts)
-            remove(self.genpsim, opts)
-            remove(self.runpsim, opts)
-        else:
-            remove(getattr(self, p), opts)
-    return reruns
-
 def derive_simfreq(conf, opts):
     p2ptime = get(conf,'runp2p_time')
     p2pcycle = get(conf,'runp2p_cycle')
@@ -109,17 +77,18 @@ def parse_genpir(pirsrc, logpath, conf, opts):
         conf['genpir_err'] = None
     else:
         conf['genpir'] = False
-        match = grep("{}/00*".format(logpath),
-                ["error", "exception", "Exception"])
-        lines = [line for pat in match for line in match[pat]]
+        conf['genpir_err'] = None
+        # match = grep("{}/00*".format(logpath),
+                # ["error", "exception", "Exception"])
+        # lines = [line for pat in match for line in match[pat]]
 
-        match = grep("{}/*_exception.log".format(logpath),
-                ["error", "exception", "Exception"])
-        lines = lines + [line for pat in match for line in match[pat]]
-        if len(lines) != 0:
-            conf['genpir_err'] = lines[0].replace("\n","")
-        else:
-            conf['genpir_err'] = None
+        # match = grep("{}/*_exception.log".format(logpath),
+                # ["error", "exception", "Exception"])
+        # lines = lines + [line for pat in match for line in match[pat]]
+        # if len(lines) != 0:
+            # conf['genpir_err'] = lines[0].replace("\n","")
+        # else:
+            # conf['genpir_err'] = None
 
 def parseLog(conf, key, patterns, parseLambda, default=None, logs=[], prefix=False):
     prefix = prefix or len(logs) > 1
@@ -348,7 +317,7 @@ class Logger():
                 matched = applyFilter(conf, opts)
                 if not matched: continue
                 self.print_message(conf)
-                reruns = removeRules(conf, opts)
+                reruns = self.removeRules(conf)
                 if opts.show_app:
                     tail(self.gentst)
                     tail(self.runproute)
@@ -361,6 +330,40 @@ class Logger():
             self.summarize(backend, confs)
             if numRun != 0:
                 print('Succeeded {} / {} ({:0.2f}) %'.format(numSucc, numRun, numSucc*100.0/numRun))
+
+
+    def removeRules(self,conf):
+        opts = self.opts
+        reruns = [] + opts.rerun
+        # if conf['runpir_err'] is not None and 'not found: value x' in conf['runpir_err']:
+            # print(conf['runpir_err'].strip())
+            # reruns.append('genpir')
+        # if conf['runpir_err'] is not None and 'value depth is not a member of object pir.node.RegFile' in conf['runpir_err']:
+            # print(conf['runpir_err'].strip())
+            # reruns.append('genpir')
+        # if conf['runpir_err'] is not None and 'value addr is not a member of pir.node.FringeDenseStore' in conf['runpir_err']:
+            # print(conf['runpir_err'].strip())
+            # reruns.append('genpir')
+        # if conf['runtst_err'] is not None and 'Assertion fail' in conf['runtst_err']:
+            # reruns.append('gentst')
+            # reruns.append('maketst')
+            # reruns.append('runtst')
+        # if not conf['succeeded']:
+            # reruns.append('genpir')
+            # reruns.append('gentst')
+            # reruns.append('maketst')
+            # reruns.append('runtst')
+    
+        for p in reruns:
+            if p == 'genpir':
+                remove(self.AccelMain, opts)
+            elif p == 'runpsim':
+                remove(self.gentrace, opts)
+                remove(self.genpsim, opts)
+                remove(self.runpsim, opts)
+            else:
+                remove(getattr(self, p), opts)
+        return reruns
 
     def print_message(self, conf):
         opts = self.opts

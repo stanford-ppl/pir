@@ -96,7 +96,7 @@ def remove(path, opts):
         if (opts.force):
             os.remove(path)
         else:
-            ans = raw_input('remove {}? y/n '.format(path))
+            ans = input('remove {}? y/n '.format(path))
             if ans == 'y':
                 os.remove(path)
             elif ans == 'q':

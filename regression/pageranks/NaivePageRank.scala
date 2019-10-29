@@ -2,17 +2,16 @@ import spatial.dsl._
 import spatial.dsl._
 import utils.io.files._
 
-class NaivePageRank_0 extends NaivePageRank()(ipls=1, ip=1)
-class NaivePageRank_1 extends NaivePageRank()(ipls=16, ip=16)
-class NaivePageRank_2 extends NaivePageRank()(opts=2,ipls=16, ip=16)
-class NaivePageRank_3 extends NaivePageRank()(opN=3,opts=3,ipls=16, ip=16)
-class NaivePageRank_4 extends NaivePageRank(iters=2)(ipls=1, ip=1)
+class NaivePageRank_0 extends NaivePageRank(ipls=1, ip=1)
+class NaivePageRank_1 extends NaivePageRank(ipls=16, ip=16)
+class NaivePageRank_2 extends NaivePageRank(opts=2,ipls=16, ip=16)
+class NaivePageRank_3 extends NaivePageRank(opN=3,opts=3,ipls=16, ip=16)
+class NaivePageRank_4 extends NaivePageRank(iters=2,ipls=1, ip=1)
 
 @spatial class NaivePageRank(
   val ts: scala.Int=32,
   val iters:scala.Int = 1, // number of iterations
   val damp:scala.Float = 0.125f,
-)(
   opN:scala.Int = 1, // N / ts
   opts:scala.Int = 1, // tile par
   ipls:scala.Int = 16, // load store par
