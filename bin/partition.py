@@ -465,7 +465,7 @@ def partition_solver(nodes, edges, constraint, pre_partitioning, opts):
         solver = CVXPartitioner(nodes, edges, constraint, pre_partitioning)
         print(vars(opts))
         solver.set_opts(vars(opts))
-    solver.solve(solver="GUROBI", verbose=True, warm_start=True, Threads=opts.thread, MIPGap=0.05)
+    solver.solve(solver="GUROBI", verbose=True, warm_start=True, Threads=opts.thread, MIPGap=0.15)
 
     with open(opts.partition, "w") as pf:
         writer = csv.writer(pf, delimiter=",")
