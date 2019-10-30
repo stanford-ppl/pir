@@ -6,6 +6,7 @@ import os, sys
 import csv
 import fnmatch
 import glob
+import shutil
 
 global parser
 parser = argparse.ArgumentParser(description='Run experiments')
@@ -98,7 +99,10 @@ def remove(path, opts):
         else:
             ans = input('remove {}? y/n '.format(path))
             if ans == 'y':
-                os.remove(path)
+                if os.path.isdir(path): 
+                    shutil.rmtree(path)
+                else:
+                    os.remove(path)
             elif ans == 'q':
                 exit(0)
 

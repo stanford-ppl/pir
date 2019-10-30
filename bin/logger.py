@@ -361,6 +361,8 @@ class Logger():
                 remove(self.gentrace, opts)
                 remove(self.genpsim, opts)
                 remove(self.runpsim, opts)
+            elif p == 'all':
+                remove(self.appdir, opts)
             else:
                 remove(getattr(self, p), opts)
         return reruns
@@ -545,17 +547,18 @@ class Logger():
         conf['spatial_sha'] = self.spatial_sha
         conf['pir_sha'] = self.pir_sha
         conf['time'] = self.pir_time
-        self.runproute = os.path.join(opts.gendir,backend,app,"log/runproute.log")
-        self.proutesh = os.path.join(opts.gendir,backend,app,"log/runproute.sh")
-        self.prouteSummary = os.path.join(opts.gendir,backend,app,"plastisim","summary.csv")
-        self.AccelMain = os.path.join(opts.gendir,backend,app,"pir","AccelMain.scala")
-        self.logpath = os.path.join(opts.gendir,backend,app,"log/")
-        self.gentst = os.path.join(opts.gendir,backend,app,"log/gentst.log")
-        self.resreport = os.path.join(opts.gendir,backend,app,"pir/out/resource.csv")
-        self.maketst = os.path.join(opts.gendir,backend,app,"log/maketst.log")
-        self.runp2p = os.path.join(opts.gendir,backend,app,"log/runp2p.log")
-        self.runhybrid = os.path.join(opts.gendir,backend,app,"log/runhybrid.log")
-        self.p2pstat = os.path.join(opts.gendir,backend,app,"log/p2pstat.log")
+        self.appdir = os.path.join(opts.gendir,backend,app)
+        self.runproute = os.path.join(self.appdir,"log/runproute.log")
+        self.proutesh = os.path.join(self.appdir,"log/runproute.sh")
+        self.prouteSummary = os.path.join(self.appdir,"plastisim","summary.csv")
+        self.AccelMain = os.path.join(self.appdir,"pir","AccelMain.scala")
+        self.logpath = os.path.join(self.appdir,"log/")
+        self.gentst = os.path.join(self.appdir,"log/gentst.log")
+        self.resreport = os.path.join(self.appdir,"pir/out/resource.csv")
+        self.maketst = os.path.join(self.appdir,"log/maketst.log")
+        self.runp2p = os.path.join(self.appdir,"log/runp2p.log")
+        self.runhybrid = os.path.join(self.appdir,"log/runhybrid.log")
+        self.p2pstat = os.path.join(self.appdir,"log/p2pstat.log")
         parse_genpir(self.AccelMain, self.logpath, conf, opts)
         parse_proutesummary(self.prouteSummary, conf, opts)
 
