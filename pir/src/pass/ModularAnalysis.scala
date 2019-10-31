@@ -53,7 +53,7 @@ trait ExternIOAliaser {
 trait LockRMABlockAliaser extends ExternIOAliaser {
   private def accumName(l:LockRMABlock,io:Edge[PIRNode,_,_]) = {
     val accumIdx = l.accums.indexOf(l.accumMap(io))
-    s"accum${accumIdx}"
+    s"${accumIdx}"
   }
   override def getAlias(io:Edge[PIRNode,_,_]) = io match {
     case InputField(l:LockRMABlock, "lockAddr") => s"$l/splitter_in_c${l.laneMap(io)}"

@@ -121,13 +121,12 @@ using namespace std;
       val row = pattern.row
       val col = pattern.col
       genTopMember("DynamicNetwork<4, 8, 1>", "net", Seq(s"{${col+2}, ${row}}", "net".qstr), end=false, extern=true, escape=true)
-      genTopMember("StaticNetwork<4, 1>", "statnet", Seq("statnet".qstr), end=false, extern=true, escape=true)
-      genTopMember("IdealNetwork<2>", "idealnet", Seq("idealnet".qstr), end=false, extern=true, escape=true)
     } else {
       genTopMember("DynamicNetwork<4, 8, 1>", "net", Seq(s"{4, 4}", "net".qstr), end=false, extern=true, escape=true)
-      genTopMember("StaticNetwork<4, 4>", "statnet", Seq("statnet".qstr), end=false, extern=true, escape=true)
-      genTopMember("IdealNetwork<2>", "idealnet", Seq("idealnet".qstr), end=false, extern=true, escape=true)
     }
+    genTopMember("StaticNetwork<4, 1>", "statnet", Seq("statnet".qstr), end=false, extern=true, escape=true)
+    genTopMember("IdealNetwork<2>", "idealnet", Seq("idealnet".qstr), end=false, extern=true, escape=true)
+    genTopMember("NetworkLinkManager<2>", "netman", Seq("netman".qstr), end=false, extern=true, escape=true)
   }
 
   override def emitNode(n:N) = n match {
