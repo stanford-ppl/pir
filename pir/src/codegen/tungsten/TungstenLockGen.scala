@@ -120,7 +120,7 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
     case n:LockMem if !n.isDRAM => genTopMember(n, Seq(n.qstr))
 
     case n:LockRMABlock if !n.isDRAM => 
-      genTopMember(n, Seq(n.qstr, "net".&, "statnet".&, "idealnet".&, "DRAM".&))
+      genTopMember(n, Seq(n.qstr, "net".&, "statnet".&, "idealnet".&))
 
     case n:LockRMABlock => 
       val drams = n.accums.map { _.dram.get }
@@ -149,8 +149,8 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
       val nlw = n.unlockWriteAddrs.values.head.head.connected.size
       val nin = n.lockInputIns.size
       val tp = if (n.isDRAM) "DRAM" else "SRAM"
-      //accum type, accum dimension, # accums, outerPar, # banks, # unlock read, # unlock write, #input
-      (s"Sparse${tp}RMWBlock<${n.accums.head.tp.qtp},${n.accums.head.dims.head},${n.accums.size},${n.par},${spadeParam.vecWidth},$nlr,$nlw,$nin>",s"$n")
+      //accum type, # accums, outerPar, # banks, # unlock read, # unlock write, #input
+      (s"Sparse${tp}RMWBlock<${n.accums.head.tp.qtp},${n.accums.size},${n.par},${spadeParam.vecWidth},$nlr,$nlw,$nin>",s"$n")
     case n => super.varOf(n)
   }
 

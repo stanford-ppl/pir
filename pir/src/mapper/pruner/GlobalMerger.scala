@@ -102,6 +102,7 @@ class GlobalMerger(implicit compiler:PIR) extends PIRTransformer with CUCostUtil
     x.getCost[StageCost] ::
     x.getCost[LaneCost] ::
     x.getCost[OpCost] ::
+    x.getCost[ActorCost] ::
     Nil
   }
 
@@ -128,6 +129,8 @@ class GlobalMerger(implicit compiler:PIR) extends PIRTransformer with CUCostUtil
       val row = newRow
       costs.foreach { c =>
         val tp = c match {
+          case c:InputCost => "CustomCost"
+          case c:OutputCost => "CustomCost"
           case c:PrefixCost[_] => "PrefixCost"
           case c:QuantityCost[_] => "QuantityCost"
           case c:MaxCost[_] => "MaxCost"

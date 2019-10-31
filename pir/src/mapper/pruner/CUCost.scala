@@ -21,6 +21,7 @@ case class OutputCost(sout:Int=0, vout:Int=0) extends QuantityCost[OutputCost]
 case class StageCost(quantity:Int=0) extends QuantityCost[StageCost]
 case class LaneCost(quantity:Int=1) extends MaxCost[LaneCost]
 case class OpCost(set:Set[Opcode]=Set.empty) extends SetCost[Opcode,OpCost]
+case class ActorCost(quantity:Int=0) extends QuantityCost[ActorCost]
 
 trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
   implicit class AnyCostOp(x:Any) {
@@ -85,6 +86,13 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
       case n:Parameter => 
         val cuParam= n.to[CUParam]
         MergeBufferCost(cuParam.fold(0){_.numMergeBuffer}, cuParam.fold(0) {_.mergeBufferWays})
+
+    } orElse switch[ActorCost](x,ct) {
+      case n:MemoryContainer => ActorCost(n.collectChildren[Context].filterNot { _.streaming.get }.size)
+      case n:GlobalContainer => ActorCost(n.collectChildren[Context].size)
+      case n:CUParam => ActorCost(n.numCtx)
+      case n:ArgFringeParam => ActorCost(2)
+      case n:Parameter => ActorCost(1)
 
     } orElse switch[SplitterCost](x,ct) {
       case n:GlobalContainer => SplitterCost(n.collectDown[Splitter]().size)

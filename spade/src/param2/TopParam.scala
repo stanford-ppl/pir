@@ -145,6 +145,7 @@ sealed trait CUParam extends Parameter {
   val numSout:Int
   val numSplitter:Int
   val numLock:Int
+  val numCtx:Int
   val numMergeBuffer:Int
   val mergeBufferWays:Int
   lazy val numLane:Int = traceOut[TopParam].vecWidth
@@ -170,6 +171,7 @@ case class DramAGParam(
   numVout:Int=4,
   numSplitter:Int=0,
   numLock:Int=0,
+  numCtx:Int = 4,
   numMergeBuffer:Int=0,
   mergeBufferWays:Int=0,
 ) extends CUParam {
@@ -192,6 +194,7 @@ case class PCUParam(
   numVout:Int=4,
   numSplitter:Int=1,
   numLock:Int=0,
+  numCtx:Int = 4,
   numMergeBuffer:Int=1,
   mergeBufferWays:Int=2,
 ) extends CUParam {
@@ -214,6 +217,7 @@ case class PMUParam(
   numVout:Int=8,
   numSplitter:Int=0,
   numLock:Int=1,
+  numCtx:Int = 4,
   numMergeBuffer:Int=0,
   mergeBufferWays:Int=0,
 ) extends CUParam
