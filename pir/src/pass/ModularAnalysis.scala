@@ -51,22 +51,22 @@ trait ExternIOAliaser {
 }
 
 trait LockRMABlockAliaser extends ExternIOAliaser {
-  private def accumName(l:LockRMABlock,io:Edge[PIRNode,_,_]) = {
+  private def accumName(l:LockRMWBlock,io:Edge[PIRNode,_,_]) = {
     val accumIdx = l.accums.indexOf(l.accumMap(io))
     s"${accumIdx}"
   }
   override def getAlias(io:Edge[PIRNode,_,_]) = io match {
-    case InputField(l:LockRMABlock, "lockAddr") => s"$l/splitter_in_c${l.laneMap(io)}"
-    case OutputField(l:LockRMABlock, "lockAck") => s"$l/rmw_acks_c${l.laneMap(io)}"
-    case InputField(l:LockRMABlock, "lockInputIn") => s"$l/f${l.inputMap(io)}_in_tree_p${l.laneMap(io)}/in${l.treeInMap(io)}"
-    case OutputField(l:LockRMABlock, "lockInputOut") => s"$l/f${l.inputMap(io)}_in_tree_p${l.laneMap(io)}/out"
-    case InputField(l:LockRMABlock, "lockDataIn") => s"$l/pmu_dat_in_a${accumName(l,io)}_p${l.laneMap(io)}"
-    case OutputField(l:LockRMABlock, "lockDataOut") => s"$l/pmu_dat_out_a${accumName(l,io)}_p${l.laneMap(io)}"
-    case InputField(l:LockRMABlock, "unlockReadAddr") => s"$l/pmu_addr_flush_a${accumName(l,io)}_p${l.laneMap(io)}"
-    case OutputField(l:LockRMABlock, "unlockReadData") => s"$l/pmu_data_flush_a${accumName(l,io)}_p${l.laneMap(io)}"
-    case InputField(l:LockRMABlock, "unlockWriteAddr") => s"$l/pmu_addr_init_a${accumName(l,io)}_p${l.laneMap(io)}"
-    case InputField(l:LockRMABlock, "unlockWriteData") => s"$l/pmu_data_init_a${accumName(l,io)}_p${l.laneMap(io)}"
-    case OutputField(l:LockRMABlock, "unlockWriteAck") => s"$l/pmu_ack_init_a${accumName(l,io)}_p${l.laneMap(io)}"
+    case InputField(l:LockRMWBlock, "lockAddr") => s"$l/splitter_in_c${l.laneMap(io)}"
+    case OutputField(l:LockRMWBlock, "lockAck") => s"$l/rmw_acks_c${l.laneMap(io)}"
+    case InputField(l:LockRMWBlock, "lockInputIn") => s"$l/f${l.inputMap(io)}_in_tree_p${l.laneMap(io)}/in${l.treeInMap(io)}"
+    case OutputField(l:LockRMWBlock, "lockInputOut") => s"$l/f${l.inputMap(io)}_in_tree_p${l.laneMap(io)}/out"
+    case InputField(l:LockRMWBlock, "lockDataIn") => s"$l/pmu_dat_in_a${accumName(l,io)}_p${l.laneMap(io)}"
+    case OutputField(l:LockRMWBlock, "lockDataOut") => s"$l/pmu_dat_out_a${accumName(l,io)}_p${l.laneMap(io)}"
+    case InputField(l:LockRMWBlock, "unlockReadAddr") => s"$l/pmu_addr_flush_a${accumName(l,io)}_p${l.laneMap(io)}"
+    case OutputField(l:LockRMWBlock, "unlockReadData") => s"$l/pmu_data_flush_a${accumName(l,io)}_p${l.laneMap(io)}"
+    case InputField(l:LockRMWBlock, "unlockWriteAddr") => s"$l/pmu_addr_init_a${accumName(l,io)}_p${l.laneMap(io)}"
+    case InputField(l:LockRMWBlock, "unlockWriteData") => s"$l/pmu_data_init_a${accumName(l,io)}_p${l.laneMap(io)}"
+    case OutputField(l:LockRMWBlock, "unlockWriteAck") => s"$l/pmu_ack_init_a${accumName(l,io)}_p${l.laneMap(io)}"
     case _ => super.getAlias(io)
   }
 }

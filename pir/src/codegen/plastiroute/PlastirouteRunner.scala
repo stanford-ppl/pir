@@ -11,7 +11,7 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
     val conf = config
     import conf._
     if (!noPlaceAndRoute) {
-      var command = s"${config.prouteHome}/plastiroute -n $prouteNodeName -l $prouteLinkName -y $prouteOutLinkName -z $prouteInLinkName"
+      var command = s"${config.prouteHome}/plastiroute -n node.csv -l link.csv -y outlink.csv -z inlink.csv"
       spadeParam.pattern match {
         case p:Checkerboard => 
           command += s" -r ${p.row} -c ${p.col}"
@@ -40,6 +40,7 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
       deleteFile(prouteSummaryPath)
       deleteFile(prouteLog)
       if (runproute) {
+        shell("mergelink", s"make mergelink DEBUG=1", config.tstOut, prouteLog)
         val exitCode = shellProcess("proute", s"bash proute.sh", config.appDir, prouteLog) { line =>
           if (line.contains("Used") && line.contains("VCs.")) {
             info(Console.GREEN, s"proute", line)

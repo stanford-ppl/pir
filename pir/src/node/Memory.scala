@@ -116,10 +116,12 @@ case class LockOnKeys()(implicit env:Env) extends Def {
 }
 
 case class LockAccum(tp:BitType, dims:List[Int], srcCtx:Option[String], name:Option[String], dram:Option[String])
-case class LockRMABlock(
+case class LockRMWBlock(
   par:Int,
   accums:List[LockAccum],
 )(implicit env:Env) extends GlobalBlackBox {
+  val numIns = Metadata[Int]("numIns") // This is not known before instantiate the template
+
   val unlockReadAddrs = accums.map { a => a -> List.fill(par) { new InputField[Option[PIRNode]](s"unlockReadAddr").tp(Fix(true, 32, 0)) } }.toMap
   val unlockReadDatas = accums.map { a => a -> List.fill(par) { new OutputField[Option[PIRNode]](s"unlockReadData").tp(a.tp) } }.toMap
 
@@ -132,12 +134,12 @@ case class LockRMABlock(
   // OuterPar[NumIn[TreeIns[]]]
   def lockInputIns = {
     val ins = getDynamicInputFields[PIRNode](s"lockInputIn")
-    ins.grouped(par).grouped(math.max(1,ins.size / par))
+    ins.grouped(par).toList.grouped(numIns.get).toList
   }
   // OuterPar[NumIn[]]
   def lockInputOuts = {
     val outs = getDynamicOutputFields[PIRNode](s"lockInputOut")
-    outs.grouped(math.max(1,outs.size / par)).toList
+    outs.grouped(numIns.get).toList
   }
   val lockAddrs = List.fill(par) { new InputField[PIRNode](s"lockAddr").tp(Fix(true,32,0)) }
   val lockDataIns = accums.map { a => a -> List.fill(par) { new InputField[PIRNode](s"lockDataIn").tp(a.tp) } }.toMap
@@ -169,7 +171,7 @@ case class LockRMABlock(
     lockInputOuts.zipWithIndex.flatMap { case (outs,lane) => outs.map { _ -> lane } }.toMap ++
     lockAcks.zipWithIndex.toMap
 
-  lazy val inputMap:Map[Edge[_,_,_],Int] = 
+  def inputMap:Map[Edge[_,_,_],Int] = 
     lockInputIns.flatMap { _.zipWithIndex.flatMap { case (ins, inId) => ins.map { _ -> inId } } }.toMap ++
     lockInputOuts.flatMap { _.zipWithIndex }.toMap
 

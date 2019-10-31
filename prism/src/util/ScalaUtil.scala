@@ -228,6 +228,10 @@ trait ScalaUtilFunc {
     def /! (d:Int) = (i + d - 1) / d
     def isPowOf2 = (i != 0) && ((i & (i - 1)) == 0)
     def log2 = (math.log(i)/math.log(2)).toInt
+    def fulldiv(d:Int) = {
+      assert(i % d == 0, s"$i is not divisable by $d")
+      i / d
+    }
   }
 
   implicit class NumOp[N:Numeric](i:N) {

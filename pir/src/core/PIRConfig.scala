@@ -105,11 +105,11 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def proutePlaceName = "final.place"
   def proutePlacePath = buildPath(psimOut, proutePlaceName)
   def iroutePlacePath = buildPath(psimOut, "ideal.place")
-  def prouteOutLinkName = "outlink.csv"
-  def prouteInLinkName = "inlink.csv"
-  def prouteLinkName = "link.csv"
+  def prouteOutLinkName = "outlink_pir.csv"
+  def prouteInLinkName = "inlink_pir.csv"
+  def prouteLinkName = "link_pir.csv"
   def prouteLinkPath = buildPath(psimOut, prouteLinkName)
-  def prouteNodeName = "node.csv"
+  def prouteNodeName = "node_pir.csv"
   def prouteNodePath = buildPath(psimOut, prouteNodeName)
   def prouteSummaryName = "summary.csv"
   def prouteSummaryPath = buildPath(psimOut, prouteSummaryName)

@@ -20,6 +20,7 @@ trait TungstenTopGen extends TungstenCodegen {
 #include "state.h"
 #include "SparsePMU.h"
 #include "SparseRMW.h"
+#include "VirtNet.h"
 #include "Lock.h"
 #include "Split.h"
 #include "token.h"
@@ -115,7 +116,7 @@ using namespace std;
     super.initPass
     emitln(s"""#include "$topFile"""")
     emitln(s"""using namespace std;""")
-    emitBSln("void RunAccel()")
+    emitBSln("REPL* GetREPL()")
     if (!noPlaceAndRoute) {
       val pattern = spadeParam.pattern.as[GridPattern]
       val row = pattern.row
@@ -126,7 +127,7 @@ using namespace std;
     }
     genTopMember("StaticNetwork<4, 1>", "statnet", Seq("statnet".qstr), end=false, extern=true, escape=true)
     genTopMember("IdealNetwork<2>", "idealnet", Seq("idealnet".qstr), end=false, extern=true, escape=true)
-    genTopMember("NetworkLinkManager<2>", "netman", Seq("netman".qstr), end=false, extern=true, escape=true)
+    genTopMember("NetworkLinkManager", "netman", Seq("netman".qstr), end=false, extern=true, escape=true)
   }
 
   override def emitNode(n:N) = n match {
@@ -169,10 +170,9 @@ using namespace std;
 
     emitln(s"$topName* top = new $topName$topArgs;")
     getBuffer("extern-end").foreach { _.flushTo(sw) }
-    emitln(s"""Module DUT({$dutArgs}, "DUT");""")
-    emitln(s"""REPL repl(&DUT, std::cout);""")
-    emitln(s"""repl.Command("source script");""")
-    emitln(s"""delete top;""")
+    emitln(s"""Module* DUT = new Module({$dutArgs}, "DUT");""")
+    emitln(s"""REPL* repl = new REPL(DUT, std::cout);""")
+    emitln(s"""return repl;""")
     emitBEln
     super.finPass
   }
