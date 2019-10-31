@@ -128,10 +128,12 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
         case (OutputField(_:LockRead, _),ins) =>
         case (out, ins) if !isVecLink(out) =>
         case (out, ins) =>
-          val lockInputIn = block.addLockInputIn
+          (0 until block.par).foreach { i => // Foreach tree in
+            val lockInputIn = block.addLockInputIn
+            lockInputIn(out)
+            bufferInput(lockInputIn, fromCtx=Some(unShuffledCtx))
+          }
           val lockInputOut = block.addLockInputOut
-          lockInputIn(out)
-          bufferInput(lockInputIn, fromCtx=Some(unShuffledCtx))
           ins.foreach { in =>
             swapConnection(in, out, lockInputOut)
             bufferInput(in)
