@@ -19,6 +19,7 @@ trait TungstenTopGen extends TungstenCodegen {
 #include "module.h"
 #include "state.h"
 #include "SparsePMU.h"
+#include "SparseRMW.h"
 #include "Lock.h"
 #include "Split.h"
 #include "token.h"

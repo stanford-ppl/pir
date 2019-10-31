@@ -157,10 +157,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
         read.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx, ins) =>
           ins.foreach { in =>
             swapConnection(in, read.out, readDataPort)
-            bufferInput(in).foreach { read =>
-              read.initToken := true
-              read.inits := true
-            }
+            bufferInput(in)
           }
         }
       }
