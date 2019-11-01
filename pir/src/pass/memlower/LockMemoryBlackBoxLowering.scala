@@ -133,7 +133,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
       info(s"$block.numIns = ${ins.size}")
       ins.foreach { 
         case (out, ins) =>
-          (0 until block.par).foreach { i => // Foreach tree in
+          (0 until block.outerPar).foreach { i => // Foreach tree in
             val lockInputIn = block.addLockInputIn
             lockInputIn(out)
             bufferInput(lockInputIn, fromCtx=Some(unShuffledCtx))
@@ -192,11 +192,11 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
       assert(accesses.size == 1)
       val ua@UnrolledAccess(lanes) = accesses.head
       val accum = accumMap(mem)
-      if (lanes.size != block.par) {
+      if (lanes.size != block.outerPar) {
         if (lanes.size != 1)
           err(s"Unlocked access must be either not outer loop parallelized or parallelized by the same amount as locked access ${quoteSrcCtx(accesses)}")
         val access = lanes.head
-        List(access -> lowerUnlockAccess(access, accum, (0 until block.par).toList, block, blockCtx))
+        List(access -> lowerUnlockAccess(access, accum, (0 until block.outerPar).toList, block, blockCtx))
       } else {
         lanes.zipWithIndex.map { case (access,lane) => 
           access -> lowerUnlockAccess(access, accum, List(lane), block, blockCtx)

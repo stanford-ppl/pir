@@ -149,7 +149,7 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
       val nin = n.numIns.get
       val tp = if (n.isDRAM) "DRAM" else ""
       //PMU par, RMW par, # accumTp, # accums, # banks, # unlock read, # unlock write, #input
-      (s"Sparse${tp}RMW<${n.par},${n.par},${n.accums.head.tp.qtp},${n.accums.size},${spadeParam.vecWidth},$nlr,$nlw,$nin>",s"$n")
+      (s"Sparse${tp}RMW<${n.memPar},${n.outerPar},${n.accums.head.tp.qtp},${n.accums.size},${spadeParam.vecWidth},$nlr,$nlw,$nin>",s"$n")
     case n => super.varOf(n)
   }
 

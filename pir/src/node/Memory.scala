@@ -117,34 +117,36 @@ case class LockOnKeys()(implicit env:Env) extends Def {
 
 case class LockAccum(tp:BitType, dims:List[Int], srcCtx:Option[String], name:Option[String], dram:Option[String])
 case class LockRMWBlock(
-  par:Int,
+  outerPar:Int,
+  //memPar:Int,
   accums:List[LockAccum],
 )(implicit env:Env) extends GlobalBlackBox {
+  val memPar = outerPar
   val numIns = Metadata[Int]("numIns") // This is not known before instantiate the template
 
-  val unlockReadAddrs = accums.map { a => a -> List.fill(par) { new InputField[Option[PIRNode]](s"unlockReadAddr").tp(Fix(true, 32, 0)) } }.toMap
-  val unlockReadDatas = accums.map { a => a -> List.fill(par) { new OutputField[Option[PIRNode]](s"unlockReadData").tp(a.tp) } }.toMap
+  val unlockReadAddrs = accums.map { a => a -> List.fill(outerPar) { new InputField[Option[PIRNode]](s"unlockReadAddr").tp(Fix(true, 32, 0)) } }.toMap
+  val unlockReadDatas = accums.map { a => a -> List.fill(outerPar) { new OutputField[Option[PIRNode]](s"unlockReadData").tp(a.tp) } }.toMap
 
-  val unlockWriteAddrs = accums.map { a => a -> List.fill(par) { new InputField[Option[PIRNode]](s"unlockWriteAddr").tp(Fix(true, 32, 0)) } }.toMap
-  val unlockWriteDatas = accums.map { a => a -> List.fill(par) { new InputField[Option[PIRNode]](s"unlockWriteData").tp(a.tp) } }.toMap
-  val unlockWriteAcks = accums.map { a => a -> List.fill(par) { new OutputField[Option[PIRNode]](s"unlockWriteAck").tp(Bool).presetVec(1) } }.toMap
+  val unlockWriteAddrs = accums.map { a => a -> List.fill(outerPar) { new InputField[Option[PIRNode]](s"unlockWriteAddr").tp(Fix(true, 32, 0)) } }.toMap
+  val unlockWriteDatas = accums.map { a => a -> List.fill(outerPar) { new InputField[Option[PIRNode]](s"unlockWriteData").tp(a.tp) } }.toMap
+  val unlockWriteAcks = accums.map { a => a -> List.fill(outerPar) { new OutputField[Option[PIRNode]](s"unlockWriteAck").tp(Bool).presetVec(1) } }.toMap
 
   def addLockInputIn = DynamicInputFields[PIRNode](s"lockInputIn")
   def addLockInputOut = DynamicOutputFields[PIRNode](s"lockInputOut")
-  // OuterPar[NumIn[TreeIns[]]]
+  // MemPar[NumIn[OuterPar[]]]
   def lockInputIns = {
     val ins = getDynamicInputFields[PIRNode](s"lockInputIn")
-    ins.grouped(par).toList.grouped(numIns.get).toList
+    ins.grouped(outerPar).toList.grouped(numIns.get).toList
   }
-  // OuterPar[NumIn[]]
+  // MemPar[NumIn[]]
   def lockInputOuts = {
     val outs = getDynamicOutputFields[PIRNode](s"lockInputOut")
     outs.grouped(numIns.get).toList
   }
-  val lockAddrs = List.fill(par) { new InputField[PIRNode](s"lockAddr").tp(Fix(true,32,0)) }
-  val lockDataIns = accums.map { a => a -> List.fill(par) { new InputField[PIRNode](s"lockDataIn").tp(a.tp) } }.toMap
-  val lockDataOuts = accums.map { a => a -> List.fill(par) { new OutputField[PIRNode](s"lockDataOut").tp(a.tp) } }.toMap
-  val lockAcks = List.fill(par) { new OutputField[PIRNode](s"lockAck").tp(Bool).presetVec(1) }
+  val lockAddrs = List.fill(outerPar) { new InputField[PIRNode](s"lockAddr").tp(Fix(true,32,0)) }
+  val lockDataIns = accums.map { a => a -> List.fill(memPar) { new InputField[PIRNode](s"lockDataIn").tp(a.tp) } }.toMap
+  val lockDataOuts = accums.map { a => a -> List.fill(memPar) { new OutputField[PIRNode](s"lockDataOut").tp(a.tp) } }.toMap
+  val lockAcks = List.fill(outerPar) { new OutputField[PIRNode](s"lockAck").tp(Bool).presetVec(1) }
 
   val accumMap:Map[Edge[_,_,_],LockAccum] = 
     unlockReadAddrs.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
