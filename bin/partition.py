@@ -13,7 +13,7 @@ import functools
 import typing
 import itertools
 import time
-import contextlib
+import atexit
 
 Constraint = namedtuple("Constraint", ["ops", "vin", "sin", "vout", "sout"])
 Node = namedtuple("Node", ["node", "op", "retime", "comment"])
@@ -32,8 +32,10 @@ def cleaned_name(node_id):
         return node_id[1:]
     return node_id
 
+
 class TimeContext:
     contexts = []
+
     def __init__(self, name):
         self.name = name
         self._initialized = False
@@ -66,6 +68,13 @@ class CVXPartitioner:
     delay_per_partition = 6
     buffer_capacity = 16
     network_delay = 1
+    merge_probability = 0
+
+    OPTIONS = frozenset({
+        ("partitions", True),
+        ("retiming_nodes", True),
+        ("external_edges", False)
+    })
 
     def __init__(self, nodes, edges, constraints, pre_partitioning):
         self.nodes = nodes[:]
@@ -73,6 +82,7 @@ class CVXPartitioner:
         self.constraints = constraints
         self.cvx_constraints = []
         self.to_print = {}
+        self.opts = {}
 
         # gurobi can't currently handle a warm start, so instead we just initialize with the number of partitions
         self.partitions = len({partition.partition for partition in pre_partitioning})
@@ -114,9 +124,28 @@ class CVXPartitioner:
         with TimeContext("Output Constraints"):
             self._init_output_constraints()
 
+    def set_opts(self, opts):
+        self.opts.update(opts)
+
+    @property
+    @functools.lru_cache(None)
+    def objective(self):
+        total = {
+            "partitions": self.num_partitions,
+            "retiming_nodes": lambda: self.delay_gap()[0],
+            "external_edges": self.num_edges
+        }
+        to_print = []
         with TimeContext("Objective"):
-            # self.objective = cvxpy.Minimize(self.delay_gap())
-            self.objective = cvxpy.Minimize(self.num_partitions())
+            objective = 0
+            for option_name, func in total.items():
+                if self.opts[option_name]:
+                    additional = func()
+                    objective += additional
+                    to_print.append((option_name, additional))
+        for name, var in to_print:
+            atexit.register(lambda x, y: print(x, y.value), name, var)
+        return cvxpy.Minimize(objective)
 
     def _add_constraint(self, constraint):
         assert constraint.is_dcp()
@@ -124,6 +153,13 @@ class CVXPartitioner:
 
     def _is_internal_node(self, node):
         return node in self.node_to_loc_map
+
+    def loc_to_node_id(self, loc):
+        # for debugging purposes
+        for node_id, nloc in self.node_to_loc_map.items():
+            if loc == nloc:
+                return node_id
+        return ""
 
     @functools.lru_cache(None)
     def _init_dep_constraints(self):
@@ -133,7 +169,8 @@ class CVXPartitioner:
             # If either end is a retime node, then we make sure that it can't merge.
             twiddle = src in self.retime_nodes or dst in self.retime_nodes
             self._add_constraint(
-                self.node_partitions[self.node_to_loc_map[src]] + twiddle <= self.node_partitions[self.node_to_loc_map[dst]])
+                self.node_partitions[self.node_to_loc_map[src]] + twiddle <= self.node_partitions[
+                    self.node_to_loc_map[dst]])
 
     @functools.lru_cache(None)
     def _init_input_constraints(self):
@@ -223,36 +260,181 @@ class CVXPartitioner:
     def num_partitions(self):
         return cvxpy.max(self.node_partitions)
 
+    @property
+    @functools.lru_cache(None)
+    def internal_edges(self):
+        return [edge for edge in self.edges if self._is_internal_node(edge.src) and self._is_internal_node(edge.dst)]
+
+    @property
+    @functools.lru_cache(None)
+    def external_input_edges(self):
+        return [edge for edge in self.edges if
+                not self._is_internal_node(edge.src) and self._is_internal_node(edge.dst)]
+
+    @property
+    @functools.lru_cache(None)
+    def external_output_edges(self):
+        return [edge for edge in self.edges if
+                self._is_internal_node(edge.src) and not self._is_internal_node(edge.dst)]
+
+    @property
+    @functools.lru_cache(None)
+    def adjacency_matrix(self):
+        adjacency_matrix = scipy.sparse.lil_matrix((self.num_nodes, self.num_nodes), dtype=bool)
+        for src, dst, _, _ in self.internal_edges:
+            adjacency_matrix[self.node_to_loc_map[src], self.node_to_loc_map[dst]] = True
+        return adjacency_matrix
+
+    @property
+    @functools.lru_cache(None)
+    def reachability_matrix(self):
+        reachability_matrix = self.adjacency_matrix.copy()
+        # add in diagonal so that matrix powers work.
+        for i in range(self.num_nodes):
+            reachability_matrix[i, i] = True
+        return reachability_matrix
+
+    @property
+    @functools.lru_cache(None)
+    def full_reachability_matrix(self):
+        return self.reachability_matrix ** self.num_nodes
+
+    @functools.lru_cache(None)
+    def _nodes_between(self, src_loc, dst_loc, depth):
+        if depth == 0:
+            return set()
+        if self.reachability_matrix[src_loc, dst_loc]:
+            return {src_loc, dst_loc}
+        results = set()
+        for _, middle in scipy.transpose(self.reachability_matrix[src_loc].nonzero()):
+            results |= self._nodes_between(middle, dst_loc, depth - 1)
+        if not results:
+            return results
+        results.add(src_loc)
+        return results
+
+    def _possible_in_same_partition(self, loc1, loc2):
+        # if all the all nodes between src and dst <= 6 (inclusive), then it can fit, or if src and dst are disconnected
+        # check if they are disconnected:
+
+        # no dependency
+        if not (self.full_reachability_matrix[loc1, loc2] or self.full_reachability_matrix[loc2, loc1]):
+            return True
+
+        # loc1 -> loc2 dependency
+        if len(self._nodes_between(loc1, loc2, self.constraints.ops)) > self.constraints.ops:
+            return False
+
+        # was backwards; loc2 -> loc1 dependency
+        if len(self._nodes_between(loc2, loc1, self.constraints.ops)) > self.constraints.ops:
+            return False
+        return True
+
+    def _is_different_value(self, a, b):
+        return self._project_to_bool(cvxpy.abs(a - b))
+
     @functools.lru_cache(None)
     def delay_gap(self):
-        # Let B be the boolean matrix, and A be our adjacency matrix.
-        # Then we have T = proj(B^TAB) is the partition-to-partition transfer matrix
-        # Then for i, j > i, we have delay(j) >= 1 + delay[i] - max_delay + max_delay * T[i, j]
-        # We then wish to minimize max(delay(j) - delay(i) - max_delay + max_delay * T[i, j])
+        max_delay = self.partitions * self.delay_per_partition * 2
 
-        delays = cvxpy.Variable(name="Partition Delays", shape=self.partitions, nonneg=True)
-        max_delay = self.partitions * (self.delay_per_partition + self.network_delay)
+        # When the outputs start receiving
+        self.external_destination_delay = external_destination_delay = cvxpy.Variable(name="External Delay",
+                                                                                      integer=True)
+        self.delays = delays = cvxpy.Variable(name="Delays", shape=self.num_nodes, integer=True)
+        for src, dst, _, _ in self.internal_edges:
+            src_loc = self.node_to_loc_map[src]
+            dst_loc = self.node_to_loc_map[dst]
+            if not self._possible_in_same_partition(src_loc, dst_loc):
+                # the constraint is always active if they can't be in the same partition
+                activity_component = 0
+            else:
+                # strongly negative if in same partition, otherwise is 0
+                not_same_partition = self._is_different_value(self.node_partitions[dst_loc], self.node_partitions[src_loc])
+                activity_component = not_same_partition * max_delay - max_delay
+            self._add_constraint(
+                delays[dst_loc] >= src_loc + activity_component + self.delay_per_partition + self.network_delay)
 
-        delay_gaps = []
-        # adj[i, j] = i -> j
-        for src, dst, _, _ in self.edges:
+        # constrain that the delay for nodes in the same partition are equal.
+        # We only care for nodes which might be in the same partition.
+        for loc1, loc2 in itertools.combinations(range(self.num_nodes), 2):
+            if not self._possible_in_same_partition(loc1, loc2):
+                continue
+            # if the nodes are in the same partition, then impose an equality constraint on the delays
+            partition_diff = self._is_different_value(self.node_partitions[loc1], self.node_partitions[loc2])
+            self._add_constraint(delays[loc1] + partition_diff * max_delay >= delays[loc2])
+            self._add_constraint(delays[loc2] + partition_diff * max_delay >= delays[loc1])
+
+        nodes_with_external_input = {edge.dst for edge in self.external_input_edges}
+        for dst in nodes_with_external_input:
+            # src is external, dst is internal. The destination must start at least
+            self._add_constraint(
+                self.delays[self.node_to_loc_map[dst]] >= self.network_delay + self.delay_per_partition)
+
+        for src, dst, _, _ in self.external_output_edges:
+            self._add_constraint(delays[self.node_to_loc_map[
+                src]] + self.network_delay + self.delay_per_partition <= external_destination_delay)
+
+        gaps = {
+            "s": [],
+            "v": []
+        }
+        for src, dst, tp, _ in self.edges:
+            if self._is_internal_node(src):
+                src_loc = self.node_to_loc_map[src]
+                src_delay = delays[src_loc]
+            else:
+                # external input
+                src_delay = 0
+            if self._is_internal_node(dst):
+                dst_loc = self.node_to_loc_map[dst]
+                dst_delay = delays[dst_loc]
+            else:
+                dst_delay = external_destination_delay
+            gaps[tp].append(dst_delay - src_delay)
+
+        gap_costs = {
+            "v": 1.0 / min(self.constraints.vin, self.constraints.vout),
+            "s": 1.0 / min(self.constraints.sin, self.constraints.sout)
+        }
+        total_retime_cost = 0
+        for tp in "sv":
+            num_large_gaps = sum(
+                [self._project_to_bool(cvxpy.maximum(gap - self.buffer_capacity, 0)) for gap in gaps[tp]], 0)
+            # if merge_probability is low, then there's a high chance of requiring separate compute anyways.
+            # if merge_probability is 1, then it requires gap_costs[tp]
+            # if merge_probability is 0, then it requires 1 full PCU.
+            retime_multi = gap_costs[tp] * self.merge_probability + (1 - gap_costs[tp]) * (1 - self.merge_probability)
+            total_retime_cost += gap_costs[tp] * num_large_gaps * retime_multi
+
+        # want to minimize total_delay
+
+        return total_retime_cost, external_destination_delay
+
+    @functools.lru_cache(None)
+    def num_edges(self):
+        # calculate the number of edges between partitions
+
+        # When retiming, we use additional fractional PCUs.
+        additional_edge_costs = {
+            "v": 1.0 / min(self.constraints.vin, self.constraints.vout),
+            "s": 1.0 / min(self.constraints.sin, self.constraints.sout)
+        }
+        cross_edges = {
+            "s": [],
+            "v": []
+        }
+        for src, dst, tp, _ in self.edges:
             if not (self._is_internal_node(src) and self._is_internal_node(dst)):
                 continue
             src_loc = self.node_to_loc_map[src]
             dst_loc = self.node_to_loc_map[dst]
-            src_partition_vec = self.node_to_partition_matrix[src_loc, :]
-            dst_partition_vec = self.node_to_partition_matrix[dst_loc, :]
-            for (spart_index, spart_var), (dpart_index, dpart_var) in itertools.product(enumerate(src_partition_vec),
-                                                                                        enumerate(dst_partition_vec)):
-                if spart_index <= dpart_index:
-                    continue
-                # This constraint is only active if the partition assignments are actually correct.
-                is_in_partition = self._multiply_bool(spart_var, dpart_var)
-                delay_active = max_delay * is_in_partition - max_delay
-                self._add_constraint(
-                    delays[dpart_index] >= self.delay_per_partition + delays[spart_index] + delay_active)
-                delay_gaps.append(delays[dpart_index] - delays[spart_index] + delay_active)
-        return cvxpy.maximum(*delay_gaps)
+            not_in_same_partition = self._project_to_bool(self.node_partitions[dst_loc] - self.node_partitions[src_loc])
+            cross_edges[tp].append(not_in_same_partition)
+
+        total = 0
+        for tp, cross_edge_list in cross_edges.items():
+            total += additional_edge_costs[tp] * sum(cross_edge_list, 0)
+        return total
 
     def _project_to_bool(self, var):
         projected = cvxpy.Variable(boolean=True, shape=var.shape)
@@ -281,14 +463,21 @@ class CVXPartitioner:
 def partition_solver(nodes, edges, constraint, pre_partitioning, opts):
     with TimeContext("Solver Initalization"):
         solver = CVXPartitioner(nodes, edges, constraint, pre_partitioning)
-    solver.solve(solver="GUROBI", verbose=True, warm_start=True, Threads=opts.thread)
+        print(vars(opts))
+        solver.set_opts(vars(opts))
+    solver.solve(solver="GUROBI", verbose=True, warm_start=True, Threads=opts.thread, MIPGap=0.15)
 
     with open(opts.partition, "w") as pf:
         writer = csv.writer(pf, delimiter=",")
         for node, partition in solver.get_assignment():
             writer.writerow([node, partition])
-    print("Generate {}".format(opts.partition))
 
+    if hasattr(solver, "delay"):
+        with open(opts.delay, "w") as df:
+            writer = csv.writer(df, delimiter=",")
+            for node in nodes:
+                writer.writerow([node.node, solver.delays.value[solver.node_to_loc_map[node.node]]])
+    print("Generate {}".format(opts.partition))
 
 def partition_dummy(nodes, edges, constraint, pre_partitioning, opts):
     with open(opts.partition, "w") as pf:
@@ -302,15 +491,21 @@ def main():
     parser = argparse.ArgumentParser(description='Graph Partition')
     parser.add_argument('path', help='Path to node.csv graph.csv spec.csv')
     parser.add_argument('-t', '--thread', type=int, default=1, help='Number of threads for solver')
-    (opts, args) = parser.parse_known_args()
+
+    for opt, default in CVXPartitioner.OPTIONS:
+        short_name = opt[0].lower()
+        parser.add_argument("-" + short_name, "--" + opt.lower(), type=bool, default=default, help="Solver opt: {}".format(opt))
+
+    opts, args = parser.parse_known_args()
 
     opts.node = os.path.join(opts.path, "node.csv")
     opts.edge = os.path.join(opts.path, "edge.csv")
     opts.spec = os.path.join(opts.path, "spec.csv")
     opts.partition = os.path.join(opts.path, "part.csv")
+    opts.delays = os.path.join(opts.path, "delay.csv")
 
     nodes = load_csv(opts.node, Node)
-    nodes = [element._replace(op=int(element.op), retime=element.retime=="true") for element in nodes]
+    nodes = [element._replace(op=int(element.op), retime=element.retime == "true") for element in nodes]
 
     edges = load_csv(opts.edge, Edge)
     edges = [element._replace(
