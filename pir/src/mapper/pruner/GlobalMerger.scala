@@ -174,6 +174,7 @@ class GlobalMerger(implicit compiler:PIR) extends PIRTransformer with CUCostUtil
             val backEdge = in.src match {
               case src:BufferRead if src.isUnder[ArgFringe] => true
               case src:BufferRead => src.initToken.get
+              case src:TokenRead => src.initToken.get
             }
             row("backEdge") = backEdge
             row("comment") = s"${glob} -> ${dstGlob}"

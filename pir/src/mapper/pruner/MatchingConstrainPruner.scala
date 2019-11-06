@@ -18,9 +18,9 @@ trait MatchingConstrainPruner extends ConstrainPruner {
 
   def prune[K,V,S<:FG[K,V,S]](x:S):EOption[S] = {
     val sets = x.freeKeys.groupBy { key => x.freeValuesOf(key) }.map { case (values, keys) =>
-      (keys.head, values)
+      values
     }
-    flatFold(sets, x) { case (x, (key, values)) =>
+    flatFold(sets, x) { case (x, values) =>
       val keys = values.flatMap { value => x.freeKeysOf(value) }.filter { key => 
         x.freeValuesOf(key).subsetOf(values)
       }

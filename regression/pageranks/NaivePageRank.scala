@@ -138,7 +138,7 @@ class NaivePageRank2_4 extends NaivePageRank2(iters=2)(ipls=1, ip=1)
           Foreach(ts by 1 par opts) { j =>
             val start = ofstTile(j)
             val len = lenTile(j)
-            val rank = Reg[T]
+            val rank = Reg[T](0.to[T])
             Reduce(rank)(len by ets par opE) { et =>
               val etsBound = min(ets, len - et)
               val neighbors = FIFO[Int](ets)
@@ -148,7 +148,7 @@ class NaivePageRank2_4 extends NaivePageRank2(iters=2)(ipls=1, ip=1)
               neighborRanks gather pageranks(neighbors, etsBound)
               val neighborLens = FIFO[Int](ets)
               neighborLens gather lens(neighbors, etsBound)
-              val rankSum = Reg[T]
+              val rankSum = Reg[T](0.to[T])
               Reduce(rankSum)(0 until etsBound par ip) { k =>
                 val nrank = mux(iter===0, argIR.value, neighborRanks.deq)
                 nrank / neighborLens.deq.to[T]
