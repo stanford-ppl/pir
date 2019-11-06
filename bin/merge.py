@@ -60,6 +60,7 @@ class TimeContext:
 def time_this(func):
     @functools.wraps(func)
     def wrapper(*args, **kwargs):
+        print("Starting:", func.__name__)
         with TimeContext(func.__name__):
             return func(*args, **kwargs)
 
