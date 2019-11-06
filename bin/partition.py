@@ -472,8 +472,8 @@ def partition_solver(nodes, edges, constraint, pre_partitioning, opts):
         for node, partition in solver.get_assignment():
             writer.writerow([node, partition])
 
-    if hasattr(solver, "delay"):
-        with open(opts.delay, "w") as df:
+    if hasattr(solver, "delays"):
+        with open(opts.delays, "w") as df:
             writer = csv.writer(df, delimiter=",")
             for node in nodes:
                 writer.writerow([node.node, solver.delays.value[solver.node_to_loc_map[node.node]]])
