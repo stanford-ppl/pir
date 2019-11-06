@@ -472,10 +472,11 @@ def partition_solver(nodes, edges, constraint, pre_partitioning, opts):
         for node, partition in solver.get_assignment():
             writer.writerow([node, partition])
 
-    with open(opts.delay, "w") as df:
-        writer = csv.writer(df, delimiter=",")
-        for node in nodes:
-            writer.writerow([node.node, solver.delays.value[solver.node_to_loc_map[node.node]]])
+    if hasattr(solver, "delay"):
+        with open(opts.delay, "w") as df:
+            writer = csv.writer(df, delimiter=",")
+            for node in nodes:
+                writer.writerow([node.node, solver.delays.value[solver.node_to_loc_map[node.node]]])
     print("Generate {}".format(opts.partition))
 
 def partition_dummy(nodes, edges, constraint, pre_partitioning, opts):
