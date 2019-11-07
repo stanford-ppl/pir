@@ -22,9 +22,11 @@ trait GlobalRetimer extends PIRTransformer with CUCostUtil {
 
   def retimeGlobal (scope:List[GlobalContainer], numStage:Int):List[GlobalContainer] = 
     if (!config.enableGlobalRetiming) Nil else dbgblk(s"retimeGlobal") {
-      traversal.resetTraversal
-      traversal.numStage = numStage
-      traversal.traverseScope(scope, ())
+      if (scope.exists { _.delay.v.isEmpty }) {
+        traversal.resetTraversal
+        traversal.numStage = numStage
+        traversal.traverseScope(scope, ())
+      }
       val externDelay = scope.toStream.map { _.delay.get }.min - numStage
       val fifoDepth = assertUnify(spadeParam.traceIn[FIFOParam], "fifoParam") { _.depth }.get
       val sramParam = assertIdentical(spadeParam.traceIn[PMUParam], "PMUParam").get.sramParam
@@ -120,7 +122,7 @@ trait GlobalRetimer extends PIRTransformer with CUCostUtil {
       case src:DelayOp => src.delay.get
       case src => src.global.get.delay.v.getOrElse(externDelay)
     }
-    val diff = deped.delay.get - depDelay + numStage
+    val diff = deped.delay.get - depDelay
     diff > fifoDepth
   }
 
