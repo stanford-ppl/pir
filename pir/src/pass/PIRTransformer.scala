@@ -14,11 +14,13 @@ with BufferAnalyzer
 
   override def finPass = {
     super.finPass
-    val irprinter = new PIRIRPrinter(runner.logFile.replace(".log","-IR.log")) {
-      override def dirName = config.logDir
-      override lazy val logger = self.logger
+    if (config.debug) {
+      val irprinter = new PIRIRPrinter(runner.logFile.replace(".log","-IR.log")) {
+        override def dirName = config.logDir
+        override lazy val logger = self.logger
+      }
+      irprinter.run
     }
-    irprinter.run
   }
 
   override def mirrorField[N<:Node[N]](
