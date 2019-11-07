@@ -254,6 +254,7 @@ class Logger():
         history = None
         for log in logs:
             tab = pd.read_csv(opts.logdir + log, header=0)
+            tab['time'] = os.path.getmtime(opts.logdir + log)
             if history is None:
                 history = tab
             else:
@@ -507,10 +508,10 @@ class Logger():
 
         if isHistory:
             pir_sha = get(conf,'pir_sha')
-            pirmsg = get_sha_msg(pir_sha, opts.pir_dir)
+            # pirmsg = get_sha_msg(pir_sha, opts.pir_dir)
             msg.append(conf['spatial_sha'])
             msg.append(pir_sha)
-            msg.append(pirmsg)
+            # msg.append(pirmsg)
             msg.append(conf['time'])
 
         return ' '.join([str(m) for m in msg])
