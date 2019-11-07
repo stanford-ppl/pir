@@ -69,7 +69,7 @@ def time_this(func):
 
 class Filterable:
     @classmethod
-    def get_from_iterable(cls, iterable):
+    def get_from_iterable(cls, iterable) -> typing.Iterable['Cost']:
         return (i for i in iterable if isinstance(i, cls))
 
 
@@ -110,12 +110,21 @@ class ReducibleCostMixin(Filterable):
     def reduce(cls, args: Cost):
         pass
 
+    @classmethod
+    @abc.abstractmethod
+    def numeric_reduce(cls, args):
+        pass
+
 
 class QuantityCost(Cost, ReducibleCostMixin):
     """Straightforward sum of components"""
 
     @classmethod
     def reduce(cls, args: typing.List):
+        return sum(args)
+
+    @classmethod
+    def numeric_reduce(cls, args):
         return sum(args)
 
     def accepts(self, value):
@@ -132,6 +141,10 @@ class MaxCost(Cost, ReducibleCostMixin):
     @classmethod
     def reduce(cls, args: typing.List):
         return cvxpy.maximum(*args)
+
+    @classmethod
+    def numeric_reduce(cls, args):
+        return max(args)
 
     def accepts(self, value: typing.Any):
         return value <= self.value
@@ -217,7 +230,7 @@ def load_csv(fname, tp, use_fieldnames=False):
         return [tp(**row) for row in
                 csv.DictReader(f, delimiter=",", fieldnames=tp._fields if use_fieldnames else None)]
 
-TMP = []
+
 class CVXMerger:
     def __init__(self, nodes: typing.List[Node], edges: typing.List[Edge],
                  partition_counts: typing.Dict[PartitionType, int]):
@@ -229,7 +242,6 @@ class CVXMerger:
         self._init_partitions()
         self._init_edge_deps()
         self._init_partition_constraints()
-        self._init_node_constraints()
 
     @property
     def num_nodes(self):
@@ -240,10 +252,15 @@ class CVXMerger:
         return len(self.partition_counts)
 
     def get_assignment(self):
+        next_partition = itertools.count()
+        partition_ids = defaultdict(lambda: next(next_partition))
         for i, (partition_type, matrix) in enumerate(self.partition_matrices.items()):
+            inverse_mapping = {
+                n: loc for loc, n in self.node_to_loc_map[partition_type].items()
+            }
             for loc, partition_num in np.transpose(matrix.value.nonzero()):
-                node = self.get_node(loc)
-                yield node, partition_num * self.num_partition_types + i, partition_type
+                node = inverse_mapping[loc]
+                yield node, partition_ids[(partition_num, partition_type)], partition_type
 
     @functools.lru_cache()
     def _init_node_lookup(self):
@@ -259,43 +276,155 @@ class CVXMerger:
     @time_this
     @functools.lru_cache()
     def _init_partitions(self):
-        # interleave all of these partitions, with all of them as the same size.
-        max_size = min(max(self.partition_counts.values()), self.num_nodes)
-        partition_count = self.num_partition_types * max_size
-        self.partition_matrices = {
-            partitiontype: cvxpy.Variable(name=partitiontype.typename, shape=(self.num_nodes, partition_count),
-                                          boolean=True)
-            for partitiontype in self.partition_counts
-        }
+        # for each node, for each partition, establish a map.
+        # this is so that some nodes have very few possible partitions to map to.
+        self.node_to_loc_map = {}
+        self.partition_matrices = {}
+        node_to_row_map = defaultdict(list)
+        for partition_type, count in self.partition_counts.items():
+            conforming_nodes = [
+                node for node in self.nodes if
+                all(partition_type.get_limit(cost).accepts(cost.value) for cost in
+                    HardCostAbstractMixin.get_from_iterable(node.costs))
+            ]
+            print(partition_type.typename, [node.node_id for node in conforming_nodes])
+            self.node_to_loc_map[partition_type] = loc_map = {node: i for i, node in enumerate(conforming_nodes)}
+            self.partition_matrices[partition_type] = matrix = cvxpy.Variable(
+                name=partition_type.typename, shape=(len(conforming_nodes), count), boolean=True)
 
-        self.active_partitions = {}
+            for node in conforming_nodes:
+                node_to_row_map[node].append(matrix[loc_map[node], :])
+        for vecs in node_to_row_map.values():
+            # assert that every node has an allocation
+            self._add_constraint(sum((cvxpy.sum(vec) for vec in vecs), 0) == 1)
 
-        for partitiontype, count in self.partition_counts.items():
-            # assert that the count for the type is indeed less than our constraint
-            partition_matrix = self.partition_matrices[partitiontype]
-            active_partitions = cvxpy.sum(self._project_to_bool(cvxpy.sum(partition_matrix, axis=0), max_value=count))
-            self._add_constraint(active_partitions <= count)
-            self.active_partitions[partitiontype] = active_partitions
+    @property
+    @functools.lru_cache(None)
+    def adjacency_matrix(self):
+        adjacency_matrix = scipy.sparse.lil_matrix((self.num_nodes, self.num_nodes), dtype=bool)
+        for edge in self.edges:
+            if edge.is_backedge:
+                continue
+            adjacency_matrix[self.get_loc(self.id_to_node_lookup[edge.src]), self.get_loc(self.id_to_node_lookup[edge.dst])] = True
+        return adjacency_matrix
 
-        stacked = cvxpy.hstack(self.partition_matrices.values())
-        self._add_constraint(cvxpy.sum(stacked, axis=1) == 1)
+    @property
+    @functools.lru_cache(None)
+    def reachability_matrix(self):
+        reachability_matrix = self.adjacency_matrix.copy()
+        # add in diagonal so that matrix powers work.
+        for i in range(self.num_nodes):
+            reachability_matrix[i, i] = True
+        return reachability_matrix
 
-        # linearize partition ids via interleaving.
-        base_vec = np.arange(partition_count)
-        slices = []
-        for i, partitiontype in enumerate(self.partition_counts):
-            slices.append(self.partition_matrices[partitiontype] @ (base_vec + i))
-        self.partition_ids = sum(slices)
+    @property
+    @functools.lru_cache(None)
+    def full_reachability_matrix(self):
+        return self.reachability_matrix ** self.num_nodes
+
+    @functools.lru_cache(None)
+    def _nodes_between(self, src_loc, dst_loc):
+        if src_loc == dst_loc:
+            return {src_loc}
+        results = set()
+        for _, middle in scipy.transpose(self.reachability_matrix[src_loc].nonzero()):
+            if middle == src_loc:
+                continue
+            results |= self._nodes_between(middle, dst_loc)
+        if not results:
+            return set()
+        results.add(src_loc)
+        return results
+
+    @functools.lru_cache(None)
+    def _candidate_partitions(self, node: Node):
+        constraints = list(HardCostAbstractMixin.get_from_iterable(node.costs))
+        return frozenset(partition for partition in self.partition_counts if
+                         all(partition.get_limit(constraint).accepts(constraint.value) for constraint in constraints))
+
+    @functools.lru_cache(None)
+    def _possible_in_same_partition(self, a, b):
+        # if all the all nodes between src and dst <= 6 (inclusive), then it can fit, or if src and dst are disconnected
+        # check if they are disconnected:
+        loc1 = self.get_loc(a)
+        loc2 = self.get_loc(b)
+
+        # check if they can be in the same partition type
+        common_partitions = self._candidate_partitions(a) & self._candidate_partitions(b)
+        if not common_partitions:
+            return False
+
+        # no dependency
+        if not (self.full_reachability_matrix[loc1, loc2] or self.full_reachability_matrix[loc2, loc1]):
+            return True
+
+        # max_depth is the max
+        for src, dst in ((loc1, loc2), (loc2, loc1)):
+            nodes_between = [self.nodes[index] for index in self._nodes_between(src, dst)]
+            candidate_partitions = functools.reduce(frozenset.union,
+                                                    [self._candidate_partitions(node) for node in nodes_between],
+                                                    frozenset())
+            if not candidate_partitions:
+                # there aren't any partitions that can take all of the intermediate nodes, or there isn't a path.
+                continue
+            for candidate_partition in candidate_partitions:
+                candidate_partition: PartitionType
+                # must fit all nodes in between.
+                for cost in ReducibleCostMixin.get_from_iterable(candidate_partition.limits):
+                    node_costs = [node.get_cost(cost).value for node in self.nodes]
+                    if cost.accepts(cost.numeric_reduce(node_costs)):
+                        return True
+        return False
+
+    @functools.lru_cache()
+    def _get_row(self, partition_type: PartitionType, node: Node):
+        matrix = self.partition_matrices[partition_type]
+        location = self.node_to_loc_map[partition_type][node]
+        return matrix[location, :]
+
+
+    @staticmethod
+    def _get_row_or_zeroes(matrix, loc_map, node):
+        if node in loc_map:
+            return matrix[loc_map[node], :]
+        return np.zeros(matrix.shape[1])
 
     @time_this
     @functools.lru_cache()
     def _init_edge_deps(self):
+        self.delays = defaultdict(lambda: cvxpy.Variable(integer=True))
         for edge in self.forward_edges:
             src_node = self.id_to_node_lookup[edge.src]
             dst_node = self.id_to_node_lookup[edge.dst]
-            src_loc = self.get_loc(src_node)
-            dst_loc = self.get_loc(dst_node)
-            self._add_constraint(self.partition_ids[src_loc] <= self.partition_ids[dst_loc])
+            # if they're not in the same partition, then guarantee inequality.
+            enforce_inequality: int
+            if not self._possible_in_same_partition(src_node, dst_node):
+                enforce_inequality = 1
+            else:
+                dst_candidates = self._candidate_partitions(dst_node)
+                enforce_inequality = 0
+                for partition_type in self._candidate_partitions(src_node):
+                    src_row = self._get_row(partition_type, src_node)
+                    if partition_type not in dst_candidates:
+                        enforce_inequality += cvxpy.sum(src_row)
+                        continue
+                    dst_row = self._get_row(partition_type, dst_node)
+                    enforce_inequality += cvxpy.sum(cvxpy.maximum(src_row - dst_row, 0))
+                enforce_inequality = self._project_to_bool(enforce_inequality, self.num_nodes)
+            self._add_constraint(self.delays[src_node] + enforce_inequality <= self.delays[dst_node])
+
+        # constrain that nodes within the same partition have the same delay.
+        # constrain that the delay for nodes in the same partition are equal.
+        # We only care for nodes which might be in the same partition.
+        for n1, n2 in itertools.combinations(self.nodes, 2):
+            if not self._possible_in_same_partition(n1, n2):
+                continue
+            # if the nodes are in the same partition, then impose an equality constraint on the delays
+            peq = 0
+            for partition_type in self._candidate_partitions(n1) & self._candidate_partitions(n2):
+                peq += cvxpy.sum(cvxpy.maximum(self._get_row(partition_type, n1) + self._get_row(partition_type, n2) - 1, 0))
+            dne = self._project_to_bool(cvxpy.abs(self.delays[n1] - self.delays[n2]), self.num_nodes)
+            self._add_constraint(peq + dne <= 1)
 
     @time_this
     @functools.lru_cache()
@@ -309,25 +438,23 @@ class CVXMerger:
                     continue
                 if isinstance(constraint, ReducibleCostMixin):
                     # for Quantity, MaxCost, we can handle these using boolean projections.
-                    cost_vector = np.zeros(self.num_nodes)
-                    for node in self.nodes:
+                    components = []
+                    for node, index in self.node_to_loc_map[partitiontype].items():
                         value = node.get_cost(constraint).value
-                        cost_vector[self.get_loc(node)] = value
-                    # for element of cost vector:
-                    #   take cv[i] * matrix[i, :]
-                    #   then reduce with constraint function
-                    components = [cost_vector[i] * matrix[i, :] for i in range(self.num_nodes)]
+                        if value <= 1e-5:
+                            continue
+                        components.append(node.get_cost(constraint).value * matrix[index, :])
                     resultant = constraint.reduce(components)
                     self._add_constraint(constraint.accepts(resultant))
                     continue
                 if isinstance(constraint, CustomCost):
                     method = getattr(self, "_init_custom_" + constraint.attribute_name)
-                    method(constraint, matrix)
+                    method(constraint, matrix, self.node_to_loc_map[pt])
                     continue
                 raise NotImplementedError("Not implemented yet for constraint:", constraint)
 
     @time_this
-    def _init_input_costs(self, cost: Cost, matrix: cvxpy.Variable, edge_type: EdgeType):
+    def _init_input_costs(self, cost: Cost, matrix: cvxpy.Variable, loc_map: typing.Dict[Node, int], edge_type: EdgeType):
         edge_map = defaultdict(list)
         edge_srcs = {}
         for edge in (edge for edge in self.edges if edge.tp == edge_type):
@@ -335,16 +462,19 @@ class CVXMerger:
             edge_srcs[edge.out_id] = edge.src
         movement = []
         for out_id in edge_srcs:
-            src = self.get_loc(self.id_to_node_lookup[edge_srcs[out_id]])
-            destinations = [self.get_loc(self.id_to_node_lookup[dst]) for dst in edge_map[out_id]]
-            push_set = self._project_to_bool(sum(matrix[dest, :] for dest in destinations), cost.value)
-            movement.append(cvxpy.maximum(push_set - matrix[src, :], 0))
+            src_node = self.id_to_node_lookup[edge_srcs[out_id]]
+            src_row = self._get_row_or_zeroes(matrix, loc_map, src_node)
+            dst_nodes = [self.id_to_node_lookup[dst] for dst in edge_map[out_id] if self.id_to_node_lookup[dst] in loc_map]
+            if not dst_nodes:
+                continue
+            push_set = self._project_to_bool(sum(self._get_row_or_zeroes(matrix, loc_map, dest) for dest in dst_nodes), cost.value)
+            movement.append(cvxpy.maximum(push_set - src_row, 0))
         self._add_constraint(sum(movement, 0) <= cost.value)
 
     _init_custom_InputCost_vin = functools.partialmethod(_init_input_costs, edge_type=EdgeType.VECTOR)
     _init_custom_InputCost_sin = functools.partialmethod(_init_input_costs, edge_type=EdgeType.SCALAR)
 
-    def _init_output_costs(self, cost: Cost, matrix: cvxpy.Variable, edge_type: EdgeType):
+    def _init_output_costs(self, cost: Cost, matrix: cvxpy.Variable, loc_map: typing.Dict[Node, int], edge_type: EdgeType):
         # for each node, for count number of distinct out_ids that aren't in the same partition.
         edge_map = defaultdict(list)
         edge_srcs = {}
@@ -353,38 +483,35 @@ class CVXMerger:
             edge_srcs[edge.out_id] = edge.src
         movement = []
         for out_id in edge_srcs:
-            src = self.get_loc(self.id_to_node_lookup[edge_srcs[out_id]])
-            destinations = [self.get_loc(self.id_to_node_lookup[dst]) for dst in edge_map[out_id]]
-            push_set = self._project_to_bool(sum(matrix[dest, :] for dest in destinations), cost.value)
-            outputs = cvxpy.sum(self._project_to_bool(cvxpy.maximum(push_set - matrix[src, :], 0), cost.value))
-            # these are the outputs allocated to src
-            movement.append(cvxpy.maximum(matrix[src, :] + outputs - 1, 0))
-        self._add_constraint(sum(movement, 0) <= cost.value)
+            src_node = self.id_to_node_lookup[edge_srcs[out_id]]
+            if src_node not in loc_map:
+                continue
+            src_row = self._get_row_or_zeroes(matrix, loc_map, src_node)
+            dst_nodes = [self.id_to_node_lookup[dst] for dst in edge_map[out_id]]
+            if any(node not in loc_map for node in dst_nodes):
+                # if a node can't be in this partition type, then we have to export.
+                movement.append(src_row)
+            else:
+                num_outputs = len(dst_nodes)
+                matrix_sum = sum(self._get_row_or_zeroes(matrix, loc_map, dst) for dst in dst_nodes)
+                num_out_of_partition_type_nodes = num_outputs - cvxpy.sum(matrix_sum)
+                out_of_partition_type_movement = self._project_to_bool(num_out_of_partition_type_nodes, num_outputs)
+                in_partition_type_movement = cvxpy.sum(cvxpy.maximum(self._project_to_bool(matrix_sum, self.num_nodes) - src_row, 0))
+                has_movement = self._project_to_bool(out_of_partition_type_movement + in_partition_type_movement, cost.value)
+                movement.append(cvxpy.maximum(has_movement + src_row - 1, 0))
+        if movement:
+            self._add_constraint(sum(movement) <= cost.value)
 
     _init_custom_OutputCost_vout = functools.partialmethod(_init_output_costs, edge_type=EdgeType.VECTOR)
     _init_custom_OutputCost_sout = functools.partialmethod(_init_output_costs, edge_type=EdgeType.SCALAR)
-
-    @time_this
-    @functools.lru_cache()
-    def _init_node_constraints(self):
-        for node in self.nodes:
-            # for each node:
-            # viable partitions are ones that satisfy the Hard Costs.
-            hard_costs = HardCostAbstractMixin.get_from_iterable(node.costs)
-            for hard_cost in hard_costs:
-                for partitiontype, matrix in self.partition_matrices.items():
-                    partition_constraint = partitiontype.get_limit(hard_cost)
-                    if partition_constraint.accepts(hard_cost.value):
-                        continue
-                    # constrain that node cannot be in partition
-                    self._add_constraint(matrix[self.get_loc(node)] == 0)
 
     @property
     @functools.lru_cache()
     def utilization(self):
         total = 0
-        for partition_type, currently_active in self.active_partitions.items():
+        for partition_type, matrix in self.partition_matrices.items():
             max_count = self.partition_counts[partition_type]
+            currently_active = cvxpy.sum(matrix)
             total += currently_active / max_count
         return total
 
@@ -414,6 +541,10 @@ class CVXMerger:
         return self.nodes[loc]
 
     def _add_constraint(self, constraint):
+        if isinstance(constraint, bool):
+            # already true constraints don't need enforcement
+            assert constraint
+            return
         assert constraint.is_dcp()
         self.cvx_constraints.append(constraint)
 
@@ -506,17 +637,10 @@ def main():
         for node, part_id, partition_type in solver.get_assignment():
             writer.writerow([node.node_id, part_id, partition_type.typename])
 
-    print(solver.utilization.value)
-    for tp, v in solver.active_partitions.items():
-        print(tp.typename, v.value)
-
     for tp, mat in solver.partition_matrices.items():
         print(tp.typename)
         print(np.transpose(mat.value.nonzero()))
         print()
-
-    for i in TMP:
-        print(i.value)
 
 
 if __name__ == "__main__":
