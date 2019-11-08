@@ -58,7 +58,7 @@ class TimeContext:
         self._initialized = False
         assert self.contexts.pop() is self
 
-
+TMP = []
 class CVXPartitioner:
     nodes: typing.List[Node]
     edges: typing.List[Edge]
@@ -83,6 +83,7 @@ class CVXPartitioner:
         self.cvx_constraints = []
         self.to_print = {}
         self.opts = {}
+        self.verifiers = []
 
         # gurobi can't currently handle a warm start, so instead we just initialize with the number of partitions
         self.partitions = len({partition.partition for partition in pre_partitioning})
@@ -258,7 +259,7 @@ class CVXPartitioner:
 
     @functools.lru_cache(None)
     def num_partitions(self):
-        return cvxpy.max(self.node_partitions)
+        return cvxpy.max(self.node_partitions) + 1
 
     @property
     @functools.lru_cache(None)
@@ -331,7 +332,9 @@ class CVXPartitioner:
         return True
 
     def _is_different_value(self, a, b):
-        return self._project_to_bool(cvxpy.abs(a - b))
+        v1 = self._project_to_bool(cvxpy.maximum(b - a, 0))
+        v2 = self._project_to_bool(cvxpy.maximum(a - b, 0))
+        return v1 + v2
 
     @functools.lru_cache(None)
     def delay_gap(self):
@@ -360,9 +363,9 @@ class CVXPartitioner:
             if not self._possible_in_same_partition(loc1, loc2):
                 continue
             # if the nodes are in the same partition, then impose an equality constraint on the delays
-            partition_diff = self._is_different_value(self.node_partitions[loc1], self.node_partitions[loc2])
-            self._add_constraint(delays[loc1] + partition_diff * max_delay >= delays[loc2])
-            self._add_constraint(delays[loc2] + partition_diff * max_delay >= delays[loc1])
+            peq = cvxpy.sum(cvxpy.maximum(self.node_to_partition_matrix[loc1, :] + self.node_to_partition_matrix[loc2, :] - 1, 0))
+            dne = self._project_to_bool(cvxpy.abs(delays[loc1] - delays[loc2]))
+            self._add_constraint(2 * peq + dne <= 2)
 
         nodes_with_external_input = {edge.dst for edge in self.external_input_edges}
         for dst in nodes_with_external_input:
@@ -408,6 +411,14 @@ class CVXPartitioner:
 
         # want to minimize total_delay
 
+        def verify():
+            for loc1, loc2 in itertools.combinations(range(self.num_nodes), 2):
+                if self.node_partitions.value[loc1] == self.node_partitions.value[loc2]:
+                    if delays[loc1].value != delays[loc2].value:
+                        return False
+            return True
+        self.verifiers.append(verify)
+
         return total_retime_cost, external_destination_delay
 
     @functools.lru_cache(None)
@@ -436,11 +447,14 @@ class CVXPartitioner:
             total += additional_edge_costs[tp] * sum(cross_edge_list, 0)
         return total
 
+    def verify(self):
+        return all(verifier() for verifier in self.verifiers)
+
     def _project_to_bool(self, var):
         projected = cvxpy.Variable(boolean=True, shape=var.shape)
         large_constant = (self.num_nodes * self.partitions)
         self._add_constraint(var <= projected * large_constant)
-        self._add_constraint(var * (1 / large_constant) <= projected)
+        # self._add_constraint(var >= projected)
         return projected
 
     def _multiply_bool(self, a, b):
@@ -466,6 +480,7 @@ def partition_solver(nodes, edges, constraint, pre_partitioning, opts):
         print(vars(opts))
         solver.set_opts(vars(opts))
     solver.solve(solver="GUROBI", verbose=True, warm_start=True, Threads=opts.thread, MIPGap=0.15)
+    assert solver.verify()
 
     with open(opts.partition, "w") as pf:
         writer = csv.writer(pf, delimiter=",")
