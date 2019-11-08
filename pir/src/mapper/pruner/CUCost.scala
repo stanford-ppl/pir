@@ -70,7 +70,7 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
 
   def stageCost(op:OpNode) = 1
 
-  protected def compCost(x:Any, ct:ClassTag[_]) = {
+  protected def compCost(x:Any, ct:ClassTag[_]) = dbgblk(s"getCost($x,${ct.getClass.getSimpleName})") {
     switch[AFGCost](x,ct) {
       case n:GlobalContainer => AFGCost(n.isInstanceOf[ArgFringe])
       case n:Parameter => AFGCost(n.isInstanceOf[ArgFringeParam])
@@ -121,7 +121,8 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
       case n:RegFile => SRAMCost(n.nBanks, n.capacity)
       case n:Lock => SRAMCost(spadeParam.vecWidth, 100)
       case n:ScratchpadDelay => SRAMCost(n.in.getVec, n.cycle * n.in.getVec)
-      case n:CUParam => SRAMCost(n.sramParam.bank, n.sramParam.sizeInWord)
+      case n:CUParam => n.sramParam.getCost[SRAMCost]
+      case n:SRAMParam => SRAMCost(n.bank, n.sizeInWord)
       case n => SRAMCost(0,0)
 
     } orElse switch[FIFOCost](x,ct) {
