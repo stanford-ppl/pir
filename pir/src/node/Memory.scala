@@ -492,6 +492,16 @@ trait MemoryUtil extends CollectorImplicit {
       a.setMem(n)
       n
     }
+
+    def isAccum:Boolean = {
+      if (n.accesses.exists { _.progorder.v.isEmpty }) return false
+      n.accesses.toList.sortBy { _.progorder.get }.sliding(2,1).exists {
+        case List(prev:ReadAccess, next:WriteAccess) =>
+          val lca = leastCommonAncesstor(prev.getCtrl, next.getCtrl).get
+          lca.ancestorTree.exists { _.isLoop.get }
+        case _ => false
+      }
+    }
   }
 
   implicit class GlobalOp(n:GlobalContainer) {

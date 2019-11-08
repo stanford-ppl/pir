@@ -7,6 +7,7 @@ from pandautil import *
 import numpy as np
 import math
 import fnmatch
+import json
 
 from util import *
 
@@ -132,6 +133,19 @@ def parse_proutesummary(log, conf, opts):
             for k in row:
                 if k in conf:
                     conf[k] = row[k]
+
+def parseSimState(log, conf, opts):
+    if not os.path.exists(log):
+        return
+    with open(log) as json_file:
+        data = json.load(json_file)
+        active = []
+        for m in data['modules']:
+            if "Context"  in m:
+                active.append(int(data['modules'][m]['active']))
+        cycle = data['cycle']
+        maxActive = max(active)
+        conf["maxActive"] = maxActive * 100.0 / cycle
 
 def applyHistFilter(history, fs, opts):
     for k in cond:
@@ -430,6 +444,8 @@ class Logger():
     
         for f in opts.message.split(","):
             ans = get(conf,f)
+            if (type(ans) == float):
+                ans = round(ans,1)
             if ans is None: continue
             msg.append(cstr(CYAN, f + ':' + str(ans)))
     
@@ -565,6 +581,7 @@ class Logger():
         self.runp2p = os.path.join(self.appdir,"log/runp2p.log")
         self.runhybrid = os.path.join(self.appdir,"log/runhybrid.log")
         self.p2pstat = os.path.join(self.appdir,"log/p2pstat.log")
+        self.simstat = os.path.join(self.appdir,"tungsten/logs/state.json")
         parse_genpir(self.AccelMain, self.logpath, conf, opts)
         parse_proutesummary(self.prouteSummary, conf, opts)
 
@@ -756,6 +773,8 @@ class Logger():
              lambda lines: int(lines[0].split("-q")[1].split("-")[0].strip()),
             logs=[self.proutesh],
         )
+
+        parseSimState(self.simstat, conf, opts)
         
         conf['succeeded'] = parse_success(conf)
         derive_simfreq(conf, opts)
