@@ -132,6 +132,33 @@ trait RewriteUtil { self: PIRTransformer =>
     case _ => None
   }
 
+  RewriteRule[OpDef](s"RegAccum") { 
+    case n@OpDef(Mux) =>
+      val accumWrites = n.out.neighbors.collect { case write:MemWrite if write.mem.T.isAccum => write }
+      testOne(accumWrites).flatMap { accumWrite =>
+        testOne(accumWrite.mem.T.outAccesses).flatMap { accumRead =>
+          val accumOps = accumRead.out.accum(
+            prefix = { case `n` => true; case _ => false },
+            depth = 5
+          )
+          if (accumOps.contains(n)) {
+            val redOps = accumOps.filterNot { _ == n }
+            within(n.parent.get, n.getCtrl) {
+              val first::init::_ = n.inputs.map { _.connected }
+              val ins = redOps.head.localIns.flatMap { _.connected }.filterNot { _.src == accumRead }
+              val in = assertOne(ins, s"accum $n.in")
+              val acc = stage(RegAccumOp(redOps, accumWrite.mem.T.inits.get)
+                .first(first).in(in).init(init).en(accumWrite.en.connected))
+              accumWrite.data.disconnect
+              dbgn(acc)
+              Some((n.out, acc.out))
+            }
+          } else None
+        }
+      }
+    case _ => None
+  }
+
   private def andMask(c:Int) = {
     val posMask = c.log2 - 1 
     posMask + Int.MinValue

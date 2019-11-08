@@ -179,6 +179,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       case _ =>
     }
 
+    //TODO: this should be moved to rewrite transformer
     // Convert reduction operation
     // Spaital IR:
     // accum.write (reduce(mux(dummy, input, initOrInput), accum.read))
