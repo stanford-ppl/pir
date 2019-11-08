@@ -81,6 +81,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     val mem = k.collectDown[Memory]().head
     val accessGrps = getAccessPattern(mem)
     val parts = partitionBanks(accessGrps, totalBanks, bankPerCU).toList
+    assert(parts.size == numCU, s"parts.size=${parts.size} numCU=$numCU")
     dbg(s"parts:")
     parts.foreach { part =>
       dbg(part.mkString(","))

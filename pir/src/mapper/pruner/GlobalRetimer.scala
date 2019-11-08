@@ -22,9 +22,11 @@ trait GlobalRetimer extends PIRTransformer with CUCostUtil {
 
   def retimeGlobal (scope:List[GlobalContainer], numStage:Int):List[GlobalContainer] = 
     if (!config.enableGlobalRetiming) Nil else dbgblk(s"retimeGlobal") {
-      traversal.resetTraversal
-      traversal.numStage = numStage
-      traversal.traverseScope(scope, ())
+      if (scope.exists { _.delay.v.isEmpty }) {
+        traversal.resetTraversal
+        traversal.numStage = numStage
+        traversal.traverseScope(scope, ())
+      }
       val externDelay = scope.toStream.map { _.delay.get }.min - numStage
       val fifoDepth = assertUnify(spadeParam.traceIn[FIFOParam], "fifoParam") { _.depth }.get
       val sramParam = assertIdentical(spadeParam.traceIn[PMUParam], "PMUParam").get.sramParam
@@ -90,7 +92,14 @@ trait GlobalRetimer extends PIRTransformer with CUCostUtil {
             }
             op.delay.reset
           }
-          retimeGlobs
+          retimeGlobs.map { glob =>
+            val kcost = glob.getCost[SRAMCost]
+            val vcost = sramParam.getCost[SRAMCost]
+            if (!fit(kcost,vcost)) {
+              bug(s"Retime cu $glob cost = $kcost vcost=$vcost")
+            }
+            glob
+          }
         }.toList
       }
     }
@@ -120,7 +129,7 @@ trait GlobalRetimer extends PIRTransformer with CUCostUtil {
       case src:DelayOp => src.delay.get
       case src => src.global.get.delay.v.getOrElse(externDelay)
     }
-    val diff = deped.delay.get - depDelay + numStage
+    val diff = deped.delay.get - depDelay
     diff > fifoDepth
   }
 
@@ -137,7 +146,7 @@ trait GlobalRetimer extends PIRTransformer with CUCostUtil {
     val depedDelay = toretime.toStream.map { _.src.global.get.delay.get }.min
     val delayDiff = depedDelay - depDelay
     dbg(s"delayDiff=$delayDiff")
-    val sramDepth = sramParam.capacity / out.getVec
+    val sramDepth = sramParam.sizeInWord / out.getVec
     val retimeDepth = if (delayDiff > fifoDepth && !config.retimeBufferOnly) sramDepth else fifoDepth
     // The earliest time to schedule this retime node is after its previous node and before any used
     // node

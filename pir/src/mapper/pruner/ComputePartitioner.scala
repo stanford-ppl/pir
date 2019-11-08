@@ -23,7 +23,8 @@ trait ComputePartitioner extends CUPruner with ExternComputePartitioner with Loc
         val ctxs:List[Context] = k.collectDown[Context]().flatMap { ctx => split(ctx, vcost) }
         val globals = ctxs.map { ctx =>
           within(pirTop) {
-            val global = ComputeContainer()
+            val global = stage(ComputeContainer().delay.update(ctx.delay.v))
+            ctx.delay.reset
             swapParent(ctx, global)
             global
           }
@@ -31,40 +32,38 @@ trait ComputePartitioner extends CUPruner with ExternComputePartitioner with Loc
         val retimes = retimeGlobal(globals, vcost.collectFirst{ case cost:StageCost => cost.quantity }.get)
         removeNodes(k.descendentTree)
         globals ++ retimes
+      case k:Context if fit(kcost, vcost) => List(k)
       case k:Context =>
-        if (fit(kcost, vcost)) List(k)
-        else {
-          val scope = k.children.filter { include }
-          val delays = retimeLocal(k,scope)
-          val part = new Partition(scope ++ delays)
-          val parts = split(part, vcost)
-          dbg(s"partitions=${parts.size}")
-          val ctxs = within(k.global.get, k.ctrl.get) {
-            parts.map { case part@Partition(scope) =>
-              val ctx = Context()
-              dbg(s"Create $ctx for $part")
-              scope.foreach { n => swapParent(n, ctx) }
-              ctx
-            }
+        //breakPoint(s"$k")
+        val scope = k.children.filter { include }
+        val delays = retimeLocal(k,scope)
+        val part = new Partition(scope ++ delays)
+        val parts = split(part, vcost)
+        dbg(s"partitions=${parts.size}")
+        val ctxs = within(k.global.get, k.ctrl.get) {
+          parts.map { case part@Partition(scope) =>
+            val ctx = stage(Context().delay.update(part.delay))
+            dbg(s"Create $ctx for $part")
+            scope.foreach { n => swapParent(n, ctx) }
+            ctx
           }
-           // need to run in two pass to avoid duplicated allocation
-          alias ++= ctxs.map { ctx => (ctx, k) }
-          ctxs.foreach { ctx => bufferInput(ctx) }
-          alias.clear
-          dupDeps(ctxs, from=Some(k))
-          (part::parts).foreach { removeCache }
-          removeNodes(k.descendentTree)
-          ctxs.foreach { ctx => if (ctx.ctrlers.isEmpty) ctx.streaming := true }
-          ctxs
         }
+         // need to run in two pass to avoid duplicated allocation
+        alias ++= ctxs.map { ctx => (ctx, k) }
+        ctxs.foreach { ctx => bufferInput(ctx) }
+        alias.clear
+        dupDeps(ctxs, from=Some(k))
+        (part::parts).foreach { removeCache }
+        removeNodes(k.descendentTree)
+        ctxs.foreach { ctx => if (ctx.ctrlers.isEmpty) ctx.streaming := true }
+        //breakPoint(s"$k ${ctxs}")
+        ctxs
+      case k:Partition if fit(kcost, vcost) => List(k)
       case k:Partition =>
-        if (fit(kcost, vcost)) List(k)
-        else {
-          val nodes = scheduler.scheduleScope(k.scope)
-          splitAlgo match {
-            case "solver" => externSplit(nodes, vcost)
-            case _ => heuristicSplit(nodes, vcost)
-          }
+        val nodes = scheduler.scheduleScope(k.scope)
+        splitAlgo match {
+          case "solver" => externSplit(nodes, vcost)
+          case _ => heuristicSplit(nodes, vcost)
         }
     }).as[List[T]]
   }
@@ -95,7 +94,8 @@ trait ComputePartitioner extends CUPruner with ExternComputePartitioner with Loc
     }
     val (rest, inpart) = nodes.splitAt(start+1)
     dbg(s"Split ${inpart.size}/${nodes.size}")
-    heuristicSplit(rest,vcost) :+ new Partition(inpart)
+    val restSorted = scheduler.scheduleScope(rest)
+    heuristicSplit(restSorted,vcost) :+ new Partition(inpart)
   }
 
   val alias = scala.collection.mutable.Map[Context,Context]()
@@ -140,7 +140,8 @@ trait ComputePartitioner extends CUPruner with ExternComputePartitioner with Loc
 }
 
 class Partition(val scope:List[PIRNode]) {
-  override def toString = s"${super.toString}(${scope.size})"
+  var delay:Option[Int] = None
+  override def toString = s"${super.toString}(${scope.size},delay=$delay)"
   def deps:Seq[PIRNode] = {
     val descendents = scope.flatMap { n => n.descendentTree }
     val edges = descendents.toIterator.flatMap { _.localEdges }

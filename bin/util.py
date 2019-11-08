@@ -95,7 +95,10 @@ def grep(path, patterns):
 def remove(path, opts):
     if os.path.exists(path):
         if (opts.force):
-            os.remove(path)
+            if os.path.isdir(path): 
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
         else:
             ans = input('remove {}? y/n '.format(path))
             if ans == 'y':

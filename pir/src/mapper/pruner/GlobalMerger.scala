@@ -12,7 +12,7 @@ import scala.collection.mutable
 class GlobalMerger(implicit compiler:PIR) extends PIRTransformer with CUCostUtil with CSVPrinter with MappingLogger { self =>
 
   def merge[T](x:T):T = (x match {
-    case x:TopMap if config.enableMerging => x.mapAll(field => merge[Any](field))
+    case x:TopMap => x.mapAll(field => merge[Any](field))
     case x:CUMap if !spadeParam.isAsic => mergeGlobals(x)
     case x => x
   }).asInstanceOf[T]

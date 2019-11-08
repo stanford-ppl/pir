@@ -105,7 +105,11 @@ def parseLog(conf, key, patterns, parseLambda, default=None, logs=[], prefix=Fal
             lines = found[pat]
             alllines +=lines
         if len(alllines) > 0:
-            conf[mykey] = parseLambda(alllines)
+            try:
+                conf[mykey] = parseLambda(alllines)
+            except Exception as e: 
+                print(alllines)
+                raise e
 
 def parse_proutesummary(log, conf, opts):
     conf["DynHopsVec"] = None
@@ -250,6 +254,7 @@ class Logger():
         history = None
         for log in logs:
             tab = pd.read_csv(opts.logdir + log, header=0)
+            tab['time'] = os.path.getmtime(opts.logdir + log)
             if history is None:
                 history = tab
             else:
@@ -503,10 +508,10 @@ class Logger():
 
         if isHistory:
             pir_sha = get(conf,'pir_sha')
-            pirmsg = get_sha_msg(pir_sha, opts.pir_dir)
+            # pirmsg = get_sha_msg(pir_sha, opts.pir_dir)
             msg.append(conf['spatial_sha'])
             msg.append(pir_sha)
-            msg.append(pirmsg)
+            # msg.append(pirmsg)
             msg.append(conf['time'])
 
         return ' '.join([str(m) for m in msg])
@@ -555,6 +560,7 @@ class Logger():
         self.logpath = os.path.join(self.appdir,"log/")
         self.gentst = os.path.join(self.appdir,"log/gentst.log")
         self.resreport = os.path.join(self.appdir,"pir/out/resource.csv")
+        self.progreport = os.path.join(self.appdir,"pir/out/program.json")
         self.maketst = os.path.join(self.appdir,"log/maketst.log")
         self.runp2p = os.path.join(self.appdir,"log/runp2p.log")
         self.runhybrid = os.path.join(self.appdir,"log/runhybrid.log")
@@ -654,6 +660,7 @@ class Logger():
             lambda lines: lines[0],
             logs=[self.gentst],
         )
+
         pattern = ["MC", "DAG", "PMU", "PCU"]
         for pat in pattern:
             parseLog(
@@ -663,6 +670,7 @@ class Logger():
                 lambda lines, pat=pat: int(lines[0].split(pat+",")[1].split(",")[0].strip()),
                 logs=[self.resreport],
             )
+
         pattern = ["MC", "DAG", "PMU", "PCU"]
         for pat in pattern:
             parseLog(
@@ -672,6 +680,17 @@ class Logger():
                 lambda lines, pat=pat: int(lines[0].split(",")[2].strip()),
                 logs=[self.resreport],
             )
+
+        pattern = ["MC", "DAG", "PMU", "PCU"]
+        for pat in pattern:
+            parseLog(
+                conf,
+                "V" + pat, 
+                pat,
+                lambda lines, pat=pat: int(lines[0].split(": ")[1].split(",")[0].strip()),
+                logs=[self.progreport],
+            )
+
         parseLog(
             conf,
             'row', 

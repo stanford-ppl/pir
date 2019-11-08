@@ -52,9 +52,10 @@ class NaivePageRank_4 extends NaivePageRank(iters=2,ipls=1, ip=1)
           val prTile = SRAM[T](ts)
           val lenTile = SRAM[Int](ts)
           val ofstTile = SRAM[Int](ts)
-          ofstTile load ofsts(i :: i + ts par ipls)
-          lenTile load lens(i :: i + ts)
-          Foreach(ts by 1 par opts) { j =>
+          val ets = min(ts, argN.value - i)
+          ofstTile load ofsts(i :: i + ets par ipls)
+          lenTile load lens(i :: i + ets)
+          Foreach(ets by 1 par opts) { j =>
             val start = ofstTile(j)
             val len = lenTile(j)
             val neighbors = FIFO[Int](maxEdge)
@@ -70,7 +71,7 @@ class NaivePageRank_4 extends NaivePageRank(iters=2,ipls=1, ip=1)
             } { _ + _ }
             prTile(j) = rankSum.value * damp + ((1-damp).to[T] / argN.value.to[T])
           }
-          pageranks(i::i+ts par ipls) store prTile
+          pageranks(i::i+ets par ipls) store prTile
         }
       }
     }
@@ -133,8 +134,9 @@ class NaivePageRank2_4 extends NaivePageRank2(iters=2)(ipls=1, ip=1)
           val prTile = SRAM[T](ts)
           val lenTile = SRAM[Int](ts)
           val ofstTile = SRAM[Int](ts)
-          ofstTile load ofsts(i :: i + ts par ipls)
-          lenTile load lens(i :: i + ts)
+          val end = min(i + ts, argN.value)
+          ofstTile load ofsts(i :: end par ipls)
+          lenTile load lens(i :: end)
           Foreach(ts by 1 par opts) { j =>
             val start = ofstTile(j)
             val len = lenTile(j)
@@ -157,7 +159,7 @@ class NaivePageRank2_4 extends NaivePageRank2(iters=2)(ipls=1, ip=1)
             } { _ + _ }
             prTile(j) = rank.value * damp + ((1-damp).to[T] / argN.value.to[T])
           }
-          pageranks(i::i+ts par ipls) store prTile
+          pageranks(i::end par ipls) store prTile
         }
       }
     }
