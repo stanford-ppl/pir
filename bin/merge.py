@@ -655,7 +655,7 @@ def main():
                 ))
 
     solver = CVXMerger(nodes=nodes, edges=edges, partition_counts=partition_counts)
-    solver.solve(solver="GUROBI", verbose=True, Threads=opts.thread, MIPGap=0.15)
+    solver.solve(solver="GUROBI", verbose=True, Threads=opts.thread)
 
     with open(opts.merge, "w") as merge_file:
         writer = csv.writer(merge_file, delimiter=",")
