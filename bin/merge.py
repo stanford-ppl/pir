@@ -294,7 +294,7 @@ class CVXMerger:
             self.node_to_loc_map[partition_type] = loc_map = {node: i for i, node in enumerate(conforming_nodes)}
             num_conforming_nodes = len(conforming_nodes)
             self.partition_matrices[partition_type] = matrix = cvxpy.Variable(
-                name=partition_type.typename, shape=(num_conforming_nodes, min(num_conforming_nodes, count)),
+                name=partition_type.typename, shape=(num_conforming_nodes, min(int(num_conforming_nodes * 1.5), count)),
                 boolean=True)
 
             for node in conforming_nodes:
@@ -397,7 +397,8 @@ class CVXMerger:
     @functools.lru_cache()
     def _init_edge_deps(self):
         self.delays = defaultdict(lambda: cvxpy.Variable(integer=True))
-        for edge in self.forward_edges:
+        self.delay_violations = []
+        for edge in self.edges:
             src_node = self.id_to_node_lookup[edge.src]
             dst_node = self.id_to_node_lookup[edge.dst]
             # if they're not in the same partition, then guarantee inequality.
@@ -415,11 +416,14 @@ class CVXMerger:
                     dst_row = self._get_row(partition_type, dst_node)
                     inequalities.append(cvxpy.sum(cvxpy.maximum(src_row - dst_row, 0)))
                 enforce_inequality = cvxpy.maximum(*inequalities, 0) if inequalities else 0
-            self._add_constraint(self.delays[src_node] + enforce_inequality <= self.delays[dst_node])
+            self.delay_violations.append(self._project_to_bool(
+                cvxpy.maximum(self.delays[src_node] + enforce_inequality - self.delays[dst_node], 0),
+                self.num_nodes * 2))
 
         # constrain that nodes within the same partition have the same delay.
         # constrain that the delay for nodes in the same partition are equal.
         # We only care for nodes which might be in the same partition.
+
         for n1, n2 in itertools.combinations(self.nodes, 2):
             if not self._possible_in_same_partition(n1, n2):
                 continue
@@ -533,9 +537,13 @@ class CVXMerger:
         return total
 
     @property
+    def total_delay_violations(self):
+        return cvxpy.sum(self.delay_violations)
+
+    @property
     @functools.lru_cache()
     def problem(self):
-        return cvxpy.Problem(cvxpy.Minimize(self.utilization), self.cvx_constraints)
+        return cvxpy.Problem(cvxpy.Minimize(self.utilization + self.total_delay_violations), self.cvx_constraints)
 
     def solve(self, *args, **kwargs):
         self.problem.solve(*args, **kwargs)
