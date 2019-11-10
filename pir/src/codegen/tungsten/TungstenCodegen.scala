@@ -35,6 +35,18 @@ trait TungstenCodegen extends PIRTraversal with StaticTopDownTopologicalTraversa
     withOpen(config.tstOut,"TUNGSTEN_HOME",false) {
       emitln(config.tstHome)
     }
+    withOpen(config.tstOut,"PSPEC",false) {
+      val tokenWidth = spadeParam match {
+        case param if param.isAsic =>
+          val tw = pirTop.children.map{ glob => 
+            glob.children.collect { case io:GlobalIO => io.getVec }.reduce { math.max(_,_) }
+          }.reduce{ math.max(_,_) }
+          info(s"TOKEN_WIDTH=${tw}")
+          tw
+        case param => param.vecWidth
+      }
+      emitln(s"-DTOKEN_WIDTH=$tokenWidth")
+    }
     super.initPass
   }
 

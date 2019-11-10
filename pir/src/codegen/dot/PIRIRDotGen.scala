@@ -207,7 +207,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
             case Unknown =>
           }
         }
-        tooltip += s"\ntp=${fromsrc.getTp}".append("vec", fromsrc.vec.v)
+        tooltip += s"\ntp=${fromsrc.getTp}".append("vec", fromsrc.in.singleConnected.flatMap{ _.vecMeta.v })
         val dst = tosrc + "," + tosrc.out.neighbors.mkString(",")
         var edgeAttr = attr.setEdge.attr("id",dst).attr("label",fromsrc.id).attr("labeltooltip", tooltip)
         if (fromsrc.in.T.isSplit.get) {
