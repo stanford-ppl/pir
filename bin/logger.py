@@ -145,7 +145,9 @@ def parseSimState(log, conf, opts):
                 active.append(int(data['modules'][m]['active']))
         cycle = data['cycle']
         maxActive = max(active)
+        avgActive = float(np.mean(active))
         conf["maxActive"] = maxActive * 100.0 / cycle
+        conf["avgActive"] = avgActive * 100.0 / cycle
 
 def applyHistFilter(history, fs, opts):
     for k in cond:
