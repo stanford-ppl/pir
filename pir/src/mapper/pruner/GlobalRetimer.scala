@@ -22,24 +22,36 @@ trait GlobalRetimer extends PIRTransformer with CUCostUtil {
 
   def retimeGlobal (scope:List[GlobalContainer], numStage:Int):List[GlobalContainer] = 
     if (!config.enableGlobalRetiming) Nil else dbgblk(s"retimeGlobal") {
-      if (scope.exists { _.delay.v.isEmpty }) {
+      val scopeSet = scope.toSet
+      if (scopeSet.exists { _.delay.v.isEmpty }) {
         traversal.resetTraversal
         traversal.numStage = numStage
         traversal.traverseScope(scope, ())
       }
-      val externDelay = scope.toStream.map { _.delay.get }.min - numStage
+      val externInDelay = scope.toStream.map { _.delay.get }.min - numStage
+      val externOutDelay = scope.toStream.map { _.delay.get }.max + numStage
+      val exDelays = (externInDelay, externOutDelay)
       val fifoDepth = assertUnify(spadeParam.traceIn[FIFOParam], "fifoParam") { _.depth }.get
       val sramParam = assertIdentical(spadeParam.traceIn[PMUParam], "PMUParam").get.sramParam
       within(pirTop) {
         // A map between outputs (internal and external) to internal inputs
         val outIns = scope.map { n => 
-          n.depsFrom.filter { case (out, ins) => 
-            needRetime(out, n, externDelay, fifoDepth, numStage)
+          val from = n.depsFrom.filter { case (out, ins) => 
+            needRetime(out, n, exDelays, fifoDepth, numStage)
           }
+          if (config.enableRetimeExout) {
+            val externTo = n.depedsTo.map { case (out, ins) =>
+              out -> ins.filter { in => 
+                !scopeSet.contains(in.src.global.get) && 
+                needRetime(out, in.src.global.get, exDelays, fifoDepth, numStage)
+              }
+            }
+            sumMap(from, externTo) { _ ++ _ }
+          } else from
         }.reduce { sumMap(_,_) { _ ++ _ } }
         // Inserting retiming ops for each output
         val delayOps = outIns.map { case (out, ins) =>
-          out -> retimeOutput(out, ins, externDelay, fifoDepth, numStage, sramParam)
+          out -> retimeOutput(out, ins, exDelays, fifoDepth, numStage, sramParam)
         }.toMap
         // Put retiming ops into retiming containers. Share container for outputs from the same context
         delayOps.groupBy { case (out, delayOps) => out.src.global.get
@@ -120,33 +132,41 @@ trait GlobalRetimer extends PIRTransformer with CUCostUtil {
     }
   }
 
+  private def getDepDelay(out:Output[PIRNode], exDelays:(Int,Int)) = {
+    val (externInDelay, externOutDelay) = exDelays
+    out.src match {
+      case src:DelayOp => src.delay.get
+      case src => src.global.get.delay.v.getOrElse(externInDelay)
+    }
+  }
+
+  private def getDepedDelay(deped:GlobalContainer, exDelays:(Int,Int)) = {
+    val (externInDelay, externOutDelay) = exDelays
+    deped.delay.v.getOrElse(externOutDelay)
+  }
+
   // Do a filter on ins to filter out inputs that requires retiming
-  private def needRetime(out:Output[PIRNode], deped:GlobalContainer, externDelay:Int, fifoDepth:Int, numStage:Int):Boolean = {
+  private def needRetime(out:Output[PIRNode], deped:GlobalContainer, exDelays:(Int,Int), fifoDepth:Int, numStage:Int):Boolean = {
     out.src match {
       case write:BufferWrite if !write.isFIFO => return false
       case write:TokenWrite => return false
       case _ =>
     }
-    val depDelay = out.src match {
-      case src:DelayOp => src.delay.get
-      case src => src.global.get.delay.v.getOrElse(externDelay)
-    }
-    val diff = deped.delay.get - depDelay
+    val depedDelay = getDepedDelay(deped,exDelays)
+    val depDelay = getDepDelay(out, exDelays)
+    val diff = depedDelay - depDelay - numStage
     diff > fifoDepth
   }
 
-  private def retimeOutput(out:Output[PIRNode], ins:Vector[Input[PIRNode]], externDelay:Int, fifoDepth:Int, numStage:Int, sramParam:SRAMParam):List[DelayOp] = {
-    val depDelay = out.src match {
-      case src:DelayOp => src.delay.get
-      case src => src.global.get.delay.v.getOrElse(externDelay)
-    }
+  private def retimeOutput(out:Output[PIRNode], ins:Vector[Input[PIRNode]], exDelays:(Int,Int), fifoDepth:Int, numStage:Int, sramParam:SRAMParam):List[DelayOp] = {
+    val depDelay = getDepDelay(out, exDelays)
     val toretime = ins.filter { in => 
       val deped = in.src.global.get
-      needRetime(out, deped, externDelay, fifoDepth, numStage)
+      needRetime(out, deped, exDelays, fifoDepth, numStage)
     }
     if (toretime.isEmpty) return Nil
-    val depedDelay = toretime.toStream.map { _.src.global.get.delay.get }.min
-    val delayDiff = depedDelay - depDelay
+    val depedDelay = toretime.toStream.map { in => getDepedDelay(in.src.global.get, exDelays) }.min
+    val delayDiff = depedDelay - depDelay - numStage
     dbg(s"delayDiff=$delayDiff")
     val sramDepth = sramParam.sizeInWord / out.getVec
     val retimeDepth = if (delayDiff > fifoDepth && !config.retimeBufferOnly) sramDepth else fifoDepth
@@ -163,7 +183,7 @@ trait GlobalRetimer extends PIRTransformer with CUCostUtil {
     toretime.foreach { in =>
       swapConnection(in, out, d.out)
     }
-    d :: retimeOutput(d.out, toretime, externDelay, fifoDepth, numStage, sramParam)
+    d :: retimeOutput(d.out, toretime, exDelays, fifoDepth, numStage, sramParam)
   }
 
 }

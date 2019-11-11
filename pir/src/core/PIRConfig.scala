@@ -19,6 +19,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("module", default=false, info="Generate the app as a module")
   register("retime-local", default=false, info="Enable local retiming")
   register("retime-glob", default=false, info="Enable global retiming")
+  register("retime-exout", default=false, info="Enable retiming of external output")
   register("retime-buffer-only", default=false, info="Only allow using input buffers of CUs for retiming")
   register[String]("pir-home", default=sys.env.get("PIR_HOME"), info="PIR Home")
 
@@ -27,6 +28,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def mergeDone = option[Boolean]("mdone")
   def enableLocalRetiming = option[Boolean]("retime-local")
   def enableGlobalRetiming = option[Boolean]("retime-glob")
+  def enableRetimeExout = option[Boolean]("retime-exout")
   def retimeBufferOnly = option[Boolean]("retime-buffer-only")
   def enableMapping = option[Boolean]("mapping")
   def enableSplitting = option[Boolean]("split") && enableMapping
