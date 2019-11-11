@@ -136,6 +136,8 @@ def parse_proutesummary(log, conf, opts):
 
 def parseSimState(log, conf, opts):
     if not os.path.exists(log):
+        conf["maxActive"] = None
+        conf["avgActive"] = None
         return
     with open(log) as json_file:
         data = json.load(json_file)
