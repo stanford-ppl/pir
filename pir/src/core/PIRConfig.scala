@@ -7,6 +7,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("split-algo", default="dfs", info="Splitting algorithm. [dfs, bfs, solver]") 
   register("split-thread", default=1, info="Number of threads for external splitter") 
   register("dupra", default=false, info="Duplicate read address calculation in receiver CU")
+  register("mdone", default=false, info="Generate done from merged access")
   register("merge", default=false, info="Enable merging")
   register("mapping", default=true, info="Enable mapping")
   register("arch", default="MyDesign", info="Default architecture for mapping")
@@ -23,6 +24,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
 
   def arch = option[String]("arch")
   def dupReadAddr = option[Boolean]("dupra")
+  def mergeDone = option[Boolean]("mdone")
   def enableLocalRetiming = option[Boolean]("retime-local")
   def enableGlobalRetiming = option[Boolean]("retime-glob")
   def retimeBufferOnly = option[Boolean]("retime-buffer-only")
