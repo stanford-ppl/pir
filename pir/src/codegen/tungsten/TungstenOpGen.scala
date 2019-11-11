@@ -94,7 +94,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       emitUnVec(n)(s"${n}_shuffled")
 
     case n:OpDef => emitVec(n) { i => 
-      var ins = n.inputs.map { _.qidx(i) }
+      var ins = n.inputs.map { _.singleConnected.get.qidx(i) }
       var intps = n.inputs.map { _.getTp}
       n.op match {
         case FixDiv | FltDiv =>

@@ -84,6 +84,8 @@ trait GlobalRetimer extends PIRTransformer with CUCostUtil {
                       bufferRead.out.vecMeta.reset
                       transferLocalAccess(read, bufferRead)
                       bufferRead.en(read.en.connected)
+                      in.vecMeta.reset
+                      in.inferVec
                     }
                   }
                 }
