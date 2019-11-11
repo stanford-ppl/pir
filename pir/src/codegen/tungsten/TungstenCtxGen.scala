@@ -56,7 +56,6 @@ trait TungstenCtxGen extends TungstenTopGen {
 using   namespace std;
 """)    
           emitBlock(s"""class ${quote(n)}: public Context""") {
-            emitln(s"""string global = "${n.global.get}"; """)
             emitln(s"public:")
             getBuffer("fields").foreach { _.flushTo(sw) }
             ctxExtVars.foreach { case (tp, field) => 
@@ -64,7 +63,7 @@ using   namespace std;
             }
             emitln(s"public:")
             val constructorArgs = ctxExtVars.map { case (tp, field) => s"$tp* _$field" }.mkString(",")
-            val constructor = s"""explicit ${quote(n)}($constructorArgs):Context("${quote(n)}")"""
+            val constructor = s"""explicit ${quote(n)}($constructorArgs):Context(${quote(n).qstr},${quote(n.global.get).qstr},${quoteSrcCtx(n).qstr})"""
             emitBlock(constructor) {
               ctxExtVars.foreach { case (tp, field) =>
                 emitln(s"$field = _$field;")
