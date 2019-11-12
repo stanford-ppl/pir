@@ -13,7 +13,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("mapping", default=true, info="Enable mapping")
   register("arch", default="MyDesign", info="Default architecture for mapping")
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
-  register("rt-elm", default=true, info="Enable route through elimination")
+  register("rtelm", default=true, info="Enable route through elimination")
   register("stat", default=false, info="Printing statistics")
   register("igraph", default=false, info="Enable igraph codegen")
   register("dedicated-dag", default=false, info="Force DRAM AG are only used to map DRAM Address Calculation")
@@ -38,7 +38,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def splitForward = option[Boolean]("split-forward")
   def enableMerging = option[Boolean]("merge") && enableMapping
   def deadicatedDAG = option[Boolean]("dedicated-dag")
-  def enableRouteElim = option[Boolean]("rt-elm")
+  def enableRouteElim = option[Boolean]("rtelm")
   def aggressive_dce = option[Boolean]("ag-dce")
   def printStat = option[Boolean]("stat")
   def enableIgraph = option[Boolean]("igraph")
