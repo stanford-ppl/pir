@@ -20,6 +20,7 @@ parser.add_argument('-G', '--isGen', dest="path_type", action='store_const', con
 parser.add_argument('-s', '--summarize', action='store_true', default=False, help='summarize log into csv')
 parser.add_argument('-d', '--diff', dest='show_diff', action='store_true', default=False, help='showing difference')
 parser.add_argument('-H', '--history', dest='history_depth', type=int, default=0, help='showing history with depth')
+parser.add_argument('-i', '--history_id', type=int, help='showing ith history in reverse order')
 parser.add_argument('--logdir', default="{}/spatial/pir/logs/".format(os.environ['HOME']))
 parser.add_argument('--spatial_dir', default="{}/spatial/".format(os.environ['HOME']))
 parser.add_argument('--pir_dir', default="{}/spatial/pir".format(os.environ['HOME']))
@@ -223,7 +224,7 @@ class Logger():
     def __init__(self, args=None):
         (opts, args) = parser.parse_known_args(args=args)
         self.opts = opts
-        opts.show_history = opts.history_depth > 0
+        opts.show_history = opts.history_depth > 0 or opts.history_id is not None
 
         if opts.show_diff or opts.show_history:
             self.load_history()
@@ -263,12 +264,17 @@ class Logger():
         opts = self.opts
         logs = os.listdir(opts.logdir)
         logs = sorted(logs, reverse = True)[:22]
+        if opts.history_id is not None:
+            logs = logs[opts.history_id]
+            opts.log = logs
+            logs = [logs]
         # print(logs)
 
         history = None
         for log in logs:
             tab = pd.read_csv(opts.logdir + log, header=0)
             tab['time'] = os.path.getmtime(opts.logdir + log)
+            tab['log'] = log
             if history is None:
                 history = tab
             else:
@@ -304,13 +310,19 @@ class Logger():
                 mask.append(any([fnmatch.fnmatch(app, pat) for pat in opts.app]))
             history = history[mask]
 
-        history = history.groupby(["project", "app", "backend"]).apply(lambda x:
-                x.sort_values(["time"]).tail(opts.history_depth))
+
+        if opts.history_depth>0:
+            history = history.groupby(["project", "app", "backend"]).apply(lambda x: x.sort_values(["time"]).tail(opts.history_depth))
+        else:
+            history = history.sort_values(["project", "app", "backend"])
 
         if history.shape[0] > 0:
             for idx, row in history.iterrows():
                 pconf = to_conf(row)
                 print(self.getMessage(pconf,isHistory=True))
+
+        if opts.history_id is not None:
+            print(opts.log)
 
     def show_gen(self):
         opts = self.opts
