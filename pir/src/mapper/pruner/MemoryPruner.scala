@@ -87,12 +87,12 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
       dbg(part.mkString(","))
     }
 
-    val nodes = k.descendentTree
+    val nodes = k.descendentTree.toList
     val toBanks = mem.accesses.flatMap { access =>
-      val shuffles = access.collectIn[Shuffle]()
+      val shuffles = access.collect[Shuffle](visitFunc=visitIn _)
       dbg(s"access=${access} shuffles=${shuffles}")
-      shuffles.map { _.to.T.as[Const] }
-    }
+      shuffles.map { s => s.to.T.to[Const].getOrElse(bug(s"$s.to is not constant ${s.to.T}")) }
+    }.distinct
     val mappings = parts.map { bankids =>
       within(pirTop) { 
         val mapping = mutable.Map[IR,IR]()
@@ -108,7 +108,10 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
           case (from,to,"presetVec",fvalue,Some(tovalue)) => None
         } {
           mapping ++= toBanks.map { to =>
-            to -> within(to.parent.get, to.getCtrl) { stage(Const(bankids.toList)).mirrorMetas(to) }
+            to -> within(to.getCtrl) { stage(Const(bankids.toList)).mirrorMetas(to) }
+          }
+          mapping.values.foreach { to =>
+            assert(!nodes.contains(to))
           }
           mirrorAll(nodes, mapping=mapping)
         }
@@ -135,15 +138,20 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
   }
 
   def updateAddrCalc(access:FlatBankedAccess, bankMult:Int, sizePerBank:Int) = {
-    val ofstShuffle = 
+    val ofstShuffles = 
       access.offset.collect[Shuffle](visitFunc=visitIn _).groupBy { _.base.collectFirst[BufferWrite](visitFunc=visitIn _).getCtrl }
     val dataShuffles = access.to[FlatBankedWrite].map { access =>
       access.data.collect[Shuffle](visitFunc=visitIn _).groupBy { _.base.collectFirst[BufferWrite](visitFunc=visitIn _).getCtrl }
     }
     val readShuffles = access.to[FlatBankedRead].map { access =>
-      access.out.collect[Shuffle](visitFunc=visitIn _).groupBy { _.base.collectFirst[BufferWrite](visitFunc=visitIn _).getCtrl }
+      access.out.collect[Shuffle]().groupBy { _.getCtrl }
     }
-    ofstShuffle.foreach { case (ctrl, List(ofstShuffle)) =>
+    dbgblk(s"$access") {
+      dbg(s"ofstShuffle=${ofstShuffles}")
+      dbg(s"dataShuffle=${dataShuffles}")
+      dbg(s"readShuffle=${readShuffles}")
+    }
+    ofstShuffles.foreach { case (ctrl, List(ofstShuffle)) =>
       val bank = ofstShuffle.from.singleConnected.get
       val offset = ofstShuffle.base.singleConnected.get
       within(ofstShuffle.parent.get, ofstShuffle.getCtrl) {

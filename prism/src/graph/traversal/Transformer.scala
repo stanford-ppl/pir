@@ -163,30 +163,32 @@ trait Transformer extends Logging { self =>
     nodes:Iterable[FieldNode[N]], 
     mapping:mutable.Map[IR,IR]
   ) = {
+    val mirrored = mapping.keys.toSet
     // First pass mirror all nodes and put in a map
     nodes.foreach { n => 
-      val m = mirror[N](n, mapping) 
-      assert(n.getClass == m.getClass)
-      n.localEdges.foreach { e =>
-        if (e.isDynamic) {
-          val me = mirror[Edge[_,_,_]](e, mapping)
-          me.dynamicIdx := e.dynamicIdx.get
+      if (!mirrored.contains(n)) {
+        mirror[N](n, mapping) 
+        n.localEdges.foreach { e =>
+          if (e.isDynamic) {
+            val me = mirror[Edge[_,_,_]](e, mapping)
+            me.dynamicIdx := e.dynamicIdx.get
+          }
         }
       }
     }
 
     // Second pass build hiearchy and connection
-    nodes.foreach { n =>
+    mapping.foreach { case (n,m) =>
       n.to[ND].foreach{ n =>
-        val m = mapping(n).as[ND]
+        val mm = m.as[ND]
         n.parent.foreach { p => 
           mapping.get(p).foreach { mp =>
-            m.unsetParent
-            m.setParent(mp.as)
+            mm.unsetParent
+            mm.setParent(mp.as)
           }
         }
         n.localIns.view.zipWithIndex.foreach { case (io, idx) =>
-          val mio = m.localIns(idx)
+          val mio = mm.localIns(idx)
           io.connected.foreach { c => 
             val cs = c.src
             val cidx = cs.localEdges.indexOf(c)
@@ -199,12 +201,13 @@ trait Transformer extends Logging { self =>
     }
     // Final pass mirror metadata. Some metadata are inferred and can only be set after graph is
     // fully connected
-    nodes.foreach { n =>
-      n.to[ND].foreach { n =>
-        val m = mapping(n).as[ND]
-        mirrorMetas(n,m)
-        m.localEdges.zip(n.localEdges).foreach { case (medge, nedge) => 
-          if (nedge.isStatic) mirrorMetas(nedge,medge)
+    mapping.foreach { case (n,m) => 
+      if (!mirrored.contains(n)) {
+        n.to[ND].foreach { n =>
+          mirrorMetas(n,m.as[ND])
+          m.as[ND].localEdges.zip(n.localEdges).foreach { case (medge, nedge) => 
+            if (nedge.isStatic) mirrorMetas(nedge,medge)
+          }
         }
       }
     }
