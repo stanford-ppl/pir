@@ -53,6 +53,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
   // calculation of different accesses in the same controller are data dependent on some other
   // memory access, which will create cycle on that context
   private val addrCtxs = mutable.Map[ControlTree, Context]()
+  private val mergeCtxs = mutable.Map[Access, Context]()
   private def createMemGlobal(mem:Memory) = dbgblk(s"createMemGlobal($mem)"){
     val memCU = within(pirTop) { MemoryContainer() }
     // Create Memory Context
@@ -76,36 +77,14 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     }
     mem.accesses.foreach { access =>
       val ctx = access.ctx.get
-      bufferInput(ctx, fromCtx=addrCtxs.get(access.getCtrl))
+      val fromCtx = if (config.mergeDone) {
+        mergeCtxs.get(access) orElse addrCtxs.get(access.getCtrl)
+      } else addrCtxs.get(access.getCtrl)
+      bufferInput(ctx, fromCtx=fromCtx)
     }
     addrCtxs.clear
+    mergeCtxs.clear
   }
-
-  // Remove accesses that are been broadcasted
-  //private def resolveBroadcast(accesses:List[Access]):List[Access] = {
-    //accesses.groupBy { _.castgroup.v }.flatMap { 
-      //case (None, accesses) => accesses
-      //case (Some(grp), accesses) =>
-        //val (heads, tail) = accesses.partition { a => 
-          //val broadcast = assertIdentical(a.broadcast.get, s"$a.broadcast").get
-          //broadcast == 0
-        //}
-        //val head = assertOne(heads, 
-          //s"broadcast in castgroup $grp for ${accesses.head.mem} ${accesses}")
-        //tail.foreach { tail =>
-          //(head, tail) match {
-            //case (head:BankedRead, tail:BankedRead) =>
-              //swapOutput(tail.out, head.out)
-              //tail.mem.disconnect
-            //case (head, tail) => err(s"Invalid broadcast from $head to $tail")
-          //}
-        //}
-        //if (tail.nonEmpty) 
-          //dbg(s"broadcast $head => $tail")
-        //removeNodes(tail)
-        //List(head)
-    //}.toList
-  //}
 
   private def resolveBroadcast(accesses:Set[BankedAccess]):Map[BankedAccess,BankedAccess] = {
     val map = accesses.groupBy { _.castgroup.v }.map { 
@@ -189,6 +168,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     dbg(s"mergeCtrl = $mergeCtrl")
     dbg(s"mergeCtx=$mergeCtx")
     dbg(s"constAddr=$constAddr")
+    val ctrlMap = leastMatchedPeers(mem.accesses.filterNot{_.port.get.isEmpty}.map { _.getCtrl} ).get
     val red = within(mergeCtx, mergeCtrl) {
       val requests = leadAccesses.map { access =>
         val addrCtx = access match {
@@ -257,8 +237,10 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
       val ctrlMap = leastMatchedPeers(mem.accesses.filterNot{_.port.get.isEmpty}.map { _.getCtrl} ).get
       val ctrl = ctrlMap(mergeCtrl)
       newAccess.done(done(ctrl, accessCtx))
-      bufferInput(newAccess.done, fromCtx=Some(addrCtx))
+      val fromCtx = if (config.mergeDone) mergeCtx else addrCtx
+      bufferInput(newAccess.done, fromCtx=Some(fromCtx))
     }
+    mergeCtxs += newAccess -> mergeCtx
 
     newAccess.to[FlatBankedRead].foreach { newAccess =>
       accesses.groupBy { a => broadcastMap(a) }.foreach { case (lead, accesses) =>

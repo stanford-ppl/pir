@@ -87,8 +87,12 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
       dbg(part.mkString(","))
     }
 
-    val nodes = k.descendentTree
-    val toBanks = nodes.collect { case s:Shuffle => s.to.T }
+    val nodes = k.descendentTree.toList
+    val toBanks = mem.accesses.flatMap { access =>
+      val shuffles = access.collect[Shuffle](visitFunc=visitIn _)
+      dbg(s"access=${access} shuffles=${shuffles}")
+      shuffles.map { s => s.to.T.to[Const].getOrElse(bug(s"$s.to is not constant ${s.to.T}")) }
+    }.distinct
     val mappings = parts.map { bankids =>
       within(pirTop) { 
         val mapping = mutable.Map[IR,IR]()
@@ -103,8 +107,11 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
           case (from,to,"vec",fvalue,tvalue) => to.inferVec
           case (from,to,"presetVec",fvalue,Some(tovalue)) => None
         } {
-          mapping ++= toBanks.map { to => to -> 
-            within(to.parent.get, to.getCtrl) { stage(Const(bankids.toList)).mirrorMetas(to) }
+          mapping ++= toBanks.map { to =>
+            to -> within(to.getCtrl) { stage(Const(bankids.toList)).mirrorMetas(to) }
+          }
+          mapping.values.foreach { to =>
+            assert(!nodes.contains(to))
           }
           mirrorAll(nodes, mapping=mapping)
         }
@@ -131,14 +138,20 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
   }
 
   def updateAddrCalc(access:FlatBankedAccess, bankMult:Int, sizePerBank:Int) = {
-    val ofstShuffle = access.offset.collect[Shuffle]().groupBy { _.getCtrl }
+    val ofstShuffles = 
+      access.offset.collect[Shuffle](visitFunc=visitIn _).groupBy { _.base.collectFirst[BufferWrite](visitFunc=visitIn _).getCtrl }
     val dataShuffles = access.to[FlatBankedWrite].map { access =>
-      access.data.collect[Shuffle]().groupBy { _.getCtrl }
+      access.data.collect[Shuffle](visitFunc=visitIn _).groupBy { _.base.collectFirst[BufferWrite](visitFunc=visitIn _).getCtrl }
     }
     val readShuffles = access.to[FlatBankedRead].map { access =>
       access.out.collect[Shuffle]().groupBy { _.getCtrl }
     }
-    ofstShuffle.foreach { case (ctrl, List(ofstShuffle)) =>
+    dbgblk(s"$access") {
+      dbg(s"ofstShuffle=${ofstShuffles}")
+      dbg(s"dataShuffle=${dataShuffles}")
+      dbg(s"readShuffle=${readShuffles}")
+    }
+    ofstShuffles.foreach { case (ctrl, List(ofstShuffle)) =>
       val bank = ofstShuffle.from.singleConnected.get
       val offset = ofstShuffle.base.singleConnected.get
       within(ofstShuffle.parent.get, ofstShuffle.getCtrl) {
@@ -156,7 +169,9 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
         readShuffles.foreach { readShuffles =>
           val readShuffle = assertOne(readShuffles(ctrl), s"shuffle for $ctrl")
           swapConnection(readShuffle.to, readShuffle.to.singleConnected.get, newFlatBank)
-          bufferInput(readShuffle.to)
+          if (!config.dupReadAddr) {
+            bufferInput(readShuffle.to)
+          }
           dupDeps(readShuffle.ctx.get, from=Some(ofstShuffle.ctx.get))
         }
       }

@@ -114,19 +114,6 @@ def parseLog(conf, key, patterns, parseLambda, default=None, logs=[], prefix=Fal
                 raise e
 
 def parse_proutesummary(log, conf, opts):
-    conf["DynHopsVec"] = None
-    conf["DynHopsScal"] = None
-    conf["StatHopsVec"] = None
-    conf["StatHopsScal"] = None
-    conf["Score"] = None
-    conf["NetVC"] = None
-    conf["TotPkts"] = None
-    conf["LinkLim"] = None
-    conf["InjectLim"] = None
-    conf["EjectLim"] = None
-    conf["LongRoute"] = None
-    conf["Q0Pct"] = None
-    conf["Q0Lim"] = None
     if not os.path.exists(log): return
     with open(log, "r") as f:
         reader = csv.DictReader(f)
@@ -146,7 +133,22 @@ def parseSimState(log, conf, opts):
                 active.append(int(data['modules'][m]['active']))
         cycle = data['cycle']
         maxActive = max(active)
+        avgActive = float(np.mean(active))
         conf["maxActive"] = maxActive * 100.0 / cycle
+        conf["avgActive"] = avgActive * 100.0 / cycle
+
+def parsePirConf(log, conf, opts):
+    if not os.path.exists(log):
+        return
+    with open(log, "r") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if row['default'] == 'None' and row['value'] == 'None':
+                continue
+            key = row['key']
+            if 'home' in key or key in ['ckpt','path']:
+                continue
+            conf[key] = row['default'] if row['value'] == 'None' else row['value']
 
 def applyHistFilter(history, fs, opts):
     for k in cond:
@@ -563,8 +565,11 @@ class Logger():
         summary_path = self.get_summary_path(confs[0])
         # create new csv
         conf = confs[0]
+        keys = set([])
+        for conf in confs:
+            keys.update(conf.keys())
         with open(summary_path, "w") as f:
-            summary = csv.DictWriter(f, delimiter=',', fieldnames=conf.keys())
+            summary = csv.DictWriter(f, delimiter=',', fieldnames=keys)
             summary.writeheader()
             for conf in confs:
                 summary.writerow(conf)
@@ -594,6 +599,7 @@ class Logger():
         self.runhybrid = os.path.join(self.appdir,"log/runhybrid.log")
         self.p2pstat = os.path.join(self.appdir,"log/p2pstat.log")
         self.simstat = os.path.join(self.appdir,"tungsten/logs/state.json")
+        self.pirconf = os.path.join(self.appdir,"pir/out/config.csv")
         parse_genpir(self.AccelMain, self.logpath, conf, opts)
         parse_proutesummary(self.prouteSummary, conf, opts)
 
@@ -785,6 +791,7 @@ class Logger():
              lambda lines: int(lines[0].split("-q")[1].split("-")[0].strip()),
             logs=[self.proutesh],
         )
+        parsePirConf(self.pirconf, conf, opts)
 
         parseSimState(self.simstat, conf, opts)
         

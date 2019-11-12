@@ -102,10 +102,13 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, hardPruner) ==>
     addPass(enableMapping, memoryPruner) ==>
     addPass(rewriter) ==> // Remove unused shuffle
+    addPass(enableDot, new PIRGlobalDotGen(s"global8.dot")) ==>
     addPass(enableMapping, memoryComputePruner) ==>
+    addPass(enableDot, new PIRGlobalDotGen(s"global9.dot")) ==>
     addPass(enableMapping, mergeBufferPruner) ==>
     addPass(enableMapping, hardPruner) ==> // prune on newly created CUs by memoryComputePruner
     addPass(enableMapping, computePruner) ==>
+    addPass(enableDot, new PIRGlobalDotGen(s"global10.dot")) ==>
     addPass(enableMapping, hardPruner) ==>
     addPass(enableMerging, globalMerger) ==>
     addPass(enableMapping, dagPruner) ==>

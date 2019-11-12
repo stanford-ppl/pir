@@ -27,7 +27,7 @@ trait Compiler extends FileIOUtil with ArgLoader with Session with Logging {
       config.printUsage
       System.exit(0)
     }
-    config.setOption(args.toList)
+    config.setOption(args.toList, config.outDir)
   }
 
   def main(args: Array[String]): Unit = {

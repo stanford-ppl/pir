@@ -15,7 +15,7 @@ with BufferAnalyzer
   override def finPass = {
     super.finPass
     if (config.debug) {
-      val irprinter = new PIRIRPrinter(runner.logFile.replace(".log","-IR.log")) {
+      val irprinter = new PIRIRPrinter(runner.logFile.replace(".log",".ir")) {
         override def dirName = config.logDir
         override lazy val logger = self.logger
       }
