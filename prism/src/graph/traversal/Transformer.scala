@@ -165,7 +165,8 @@ trait Transformer extends Logging { self =>
   ) = {
     // First pass mirror all nodes and put in a map
     nodes.foreach { n => 
-      mirror[N](n, mapping) 
+      val m = mirror[N](n, mapping) 
+      assert(n.getClass == m.getClass)
       n.localEdges.foreach { e =>
         if (e.isDynamic) {
           val me = mirror[Edge[_,_,_]](e, mapping)
@@ -175,17 +176,17 @@ trait Transformer extends Logging { self =>
     }
 
     // Second pass build hiearchy and connection
-    mapping.foreach { case (n,m) =>
+    nodes.foreach { n =>
       n.to[ND].foreach{ n =>
-        val mm = m.as[ND]
+        val m = mapping(n).as[ND]
         n.parent.foreach { p => 
           mapping.get(p).foreach { mp =>
-            mm.unsetParent
-            mm.setParent(mp.as)
+            m.unsetParent
+            m.setParent(mp.as)
           }
         }
         n.localIns.view.zipWithIndex.foreach { case (io, idx) =>
-          val mio = mm.localIns(idx)
+          val mio = m.localIns(idx)
           io.connected.foreach { c => 
             val cs = c.src
             val cidx = cs.localEdges.indexOf(c)
@@ -198,10 +199,11 @@ trait Transformer extends Logging { self =>
     }
     // Final pass mirror metadata. Some metadata are inferred and can only be set after graph is
     // fully connected
-    mapping.foreach { case (n,m) => 
+    nodes.foreach { n =>
       n.to[ND].foreach { n =>
-        mirrorMetas(n,m.as[ND])
-        m.as[ND].localEdges.zip(n.localEdges).foreach { case (medge, nedge) => 
+        val m = mapping(n).as[ND]
+        mirrorMetas(n,m)
+        m.localEdges.zip(n.localEdges).foreach { case (medge, nedge) => 
           if (nedge.isStatic) mirrorMetas(nedge,medge)
         }
       }
