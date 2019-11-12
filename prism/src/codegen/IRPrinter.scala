@@ -43,7 +43,7 @@ trait IRPrinter extends Pass with DFSTopDownTopologicalTraversal with Codegen {
           emitln(s"children=${n.children.map(quote)}")
       }
       n.localEdges.foreach { edge =>
-        emitBlock(s"$edge=[${quote(edge.connected)}]") {
+        emitBlock(s"$edge=[${dquote(edge.connected)}]") {
           edge.metadata.values.foreach { metadata =>
             metadata.v.foreach { v =>
               emitln(s"${metadata.name} = $v")
