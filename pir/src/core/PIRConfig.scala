@@ -5,6 +5,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   /* ------------------- Compiler --------------------  */
   register("split", default=true, info="Enable splitting")
   register("split-algo", default="dfs", info="Splitting algorithm. [dfs, bfs, solver]") 
+  register("split-forward", default=true, info="Forward splitting traversal direction") 
   register("split-thread", default=1, info="Number of threads for external splitter") 
   register("dupra", default=false, info="Duplicate read address calculation in receiver CU")
   register("mdone", default=false, info="Generate done from merged access")
@@ -34,6 +35,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def enableSplitting = option[Boolean]("split") && enableMapping
   def splitAlgo = option[String]("split-algo")
   def splitThread = option[Int]("split-thread")
+  def splitForward = option[Boolean]("split-forward")
   def enableMerging = option[Boolean]("merge") && enableMapping
   def deadicatedDAG = option[Boolean]("dedicated-dag")
   def enableRouteElim = option[Boolean]("rt-elm")

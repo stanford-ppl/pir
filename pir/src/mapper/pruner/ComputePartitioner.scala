@@ -10,9 +10,9 @@ trait ComputePartitioner extends CUPruner with ExternComputePartitioner with Loc
 
   var splitAlgo:String = "bfs"
   private def scheduler = splitAlgo match {
-    case "bfs" => new PIRTraversal with BFSTopologicalTraversal with Scheduler { val forward = true }
-    case "dfs" => new PIRTraversal with DFSTopologicalTraversal with Scheduler { val forward = true }
-    case _ => new PIRTraversal with DFSTopologicalTraversal with Scheduler { val forward = true }
+    case "bfs" => new PIRTraversal with BFSTopologicalTraversal with Scheduler { val forward = config.splitForward }
+    case "dfs" => new PIRTraversal with DFSTopologicalTraversal with Scheduler { val forward = config.splitForward }
+    case _ => new PIRTraversal with DFSTopologicalTraversal with Scheduler { val forward = config.splitForward }
   }
 
   def split[T](k:T, vcost:List[Cost[_]]):List[T] = dbgblk(s"split($k)") {
@@ -79,11 +79,10 @@ trait ComputePartitioner extends CUPruner with ExternComputePartitioner with Loc
   def heuristicSplit(nodes:List[PIRNode],vcost:List[Cost[_]]):List[Partition] = {
     if (nodes.size==0) return Nil
     var canFit = true
-    val N = nodes.size
-    var start = N - 1
-    while (canFit && start >= 0) {
-      start -= 1
-      val inpart = nodes.slice(start,N)
+    var (inpart, rest) = nodes.splitAt(1)
+    while (canFit && rest.nonEmpty) {
+      inpart = inpart :+ rest.head
+      rest = rest.tail
       val part = new Partition(inpart)
       val kcost = getCosts(part)
       val isolateRetime = inpart.forall { 
@@ -91,10 +90,13 @@ trait ComputePartitioner extends CUPruner with ExternComputePartitioner with Loc
         case _ => true
       }
       canFit = fit(kcost, vcost) && isolateRetime
+      if (!canFit) {
+        rest = inpart.last :: rest
+        inpart = inpart.slice(0,inpart.size-1)
+      }
     }
-    val (rest, inpart) = nodes.splitAt(start+1)
     dbg(s"Split ${inpart.size}/${nodes.size}")
-    val restSorted = scheduler.scheduleScope(rest)
+    val restSorted = scheduler.scheduleScope(rest.reverse)
     heuristicSplit(restSorted,vcost) :+ new Partition(inpart)
   }
 
@@ -120,14 +122,14 @@ trait ComputePartitioner extends CUPruner with ExternComputePartitioner with Loc
         val deps = x.deps.filter { d =>
           include(d) || d.isInstanceOf[LocalOutAccess]
         }.distinct.toList
-        dbg(s"deps=$deps")
+        //dbg(s"deps=$deps")
         val ins = deps
         val (vins, sins) = ins.partition { isVec(_) }
         InputCost(sins.size, vins.size).scheduledBy(x.scope.size)
     } orElse switch[OutputCost](x,ct) { 
       case x: Partition => 
         val depedFroms = x.depedsTo.keys.toSeq
-        dbg(s"depedFroms=${depedFroms.toList}")
+        //dbg(s"depedFroms=${depedFroms.toList}")
         val outs = depedFroms
         val (vouts, souts) = outs.partition { isVec(_) }
         OutputCost(souts.size, vouts.size).scheduledBy(x.scope.size)
