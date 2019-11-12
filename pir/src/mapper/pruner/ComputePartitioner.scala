@@ -96,8 +96,12 @@ trait ComputePartitioner extends CUPruner with ExternComputePartitioner with Loc
       }
     }
     dbg(s"Split ${inpart.size}/${nodes.size}")
-    val restSorted = scheduler.scheduleScope(rest.reverse)
-    heuristicSplit(restSorted,vcost) :+ new Partition(inpart)
+    if (splitAlgo=="dfs") {
+      val restSorted = scheduler.scheduleScope(rest.reverse)
+      heuristicSplit(restSorted,vcost) :+ new Partition(inpart)
+    } else {
+      heuristicSplit(rest,vcost) :+ new Partition(inpart)
+    }
   }
 
   val alias = scala.collection.mutable.Map[Context,Context]()
