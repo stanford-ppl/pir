@@ -113,19 +113,6 @@ def parseLog(conf, key, patterns, parseLambda, default=None, logs=[], prefix=Fal
                 raise e
 
 def parse_proutesummary(log, conf, opts):
-    conf["DynHopsVec"] = None
-    conf["DynHopsScal"] = None
-    conf["StatHopsVec"] = None
-    conf["StatHopsScal"] = None
-    conf["Score"] = None
-    conf["NetVC"] = None
-    conf["TotPkts"] = None
-    conf["LinkLim"] = None
-    conf["InjectLim"] = None
-    conf["EjectLim"] = None
-    conf["LongRoute"] = None
-    conf["Q0Pct"] = None
-    conf["Q0Lim"] = None
     if not os.path.exists(log): return
     with open(log, "r") as f:
         reader = csv.DictReader(f)
@@ -136,8 +123,6 @@ def parse_proutesummary(log, conf, opts):
 
 def parseSimState(log, conf, opts):
     if not os.path.exists(log):
-        conf["maxActive"] = None
-        conf["avgActive"] = None
         return
     with open(log) as json_file:
         data = json.load(json_file)
@@ -568,8 +553,11 @@ class Logger():
         summary_path = self.get_summary_path(confs[0])
         # create new csv
         conf = confs[0]
+        keys = set([])
+        for conf in confs:
+            keys.update(conf.keys())
         with open(summary_path, "w") as f:
-            summary = csv.DictWriter(f, delimiter=',', fieldnames=conf.keys())
+            summary = csv.DictWriter(f, delimiter=',', fieldnames=keys)
             summary.writeheader()
             for conf in confs:
                 summary.writerow(conf)
