@@ -137,20 +137,13 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def enableSimDebug = option[Boolean]("debug-tst")
 
   /* ------------------- Debugging --------------------  */
-  register("bp-split", default=false, info="Enable break point for splitting")
-  register("bp-pr", default=false, info="Enable break point for place and route")
   register("dot", default=false, info="Enable dot codegen")
   register("vdot", default=false, info="Enable verbose dot codegen")
   register("fast", default=false, info="Disable debugging to make running fast")
-  register("snapshot", default=false, info="Enable placement snapshot")
-  register("snapint", default=10, info="Placement snapshot interval")
 
   def fast:Boolean = option[Boolean]("fast")
   override def save = !fast & super.save
   override def debug = !fast & super.debug
-  def enableSplitBreakPoint = debug && option[Boolean]("bp-split")
-  def enablePlaceAndRouteBreakPoint = debug && option[Boolean]("bp-pr")
-  def enableSnapshot = debug && option[Boolean]("snapshot")
   def enableDot:Boolean = enableCodegen && option[Boolean]("dot")
   def enableVerboseDot:Boolean = enableDot && option[Boolean]("vdot") && !fast
 }
