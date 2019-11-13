@@ -88,7 +88,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
 
   private def resolveBroadcast(accesses:Set[BankedAccess]):Map[BankedAccess,BankedAccess] = {
     val map = accesses.groupBy { _.castgroup.v }.map { 
-      case (None, accesses) => accesses.map { a => a -> a }.toMap
+      case (None, accesses) if !config.enableBroadcastRead => accesses.map { a => a -> a }.toMap
       case (Some(grp), accesses) =>
         val (heads, tail) = accesses.partition { a => 
           val broadcast = assertIdentical(a.broadcast.get, s"$a.broadcast").get

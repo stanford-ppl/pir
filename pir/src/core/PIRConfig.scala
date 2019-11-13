@@ -8,6 +8,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("split-forward", default=true, info="Forward splitting traversal direction") 
   register("split-thread", default=1, info="Number of threads for external splitter") 
   register("dupra", default=false, info="Duplicate read address calculation in receiver CU")
+  register("bcread", default=false, info="Enable broadcast read")
   register("mdone", default=false, info="Generate done from merged access")
   register("merge", default=false, info="Enable merging")
   register("mapping", default=true, info="Enable mapping")
@@ -33,6 +34,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def retimeBufferOnly = option[Boolean]("retime-buffer-only")
   def enableMapping = option[Boolean]("mapping")
   def enableSplitting = option[Boolean]("split") && enableMapping
+  def enableBroadcastRead = option[Boolean]("bcread")
   def splitAlgo = option[String]("split-algo")
   def splitThread = option[Int]("split-thread")
   def splitForward = option[Boolean]("split-forward")

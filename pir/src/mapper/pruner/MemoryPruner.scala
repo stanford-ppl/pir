@@ -57,12 +57,12 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     }
 
     // Splitting address calculation
-    val compGlobals = if (compNotFit) { split(k, vCompCost) } else Set.empty[GlobalContainer]
+    val globs1 = if (compNotFit) { split(k, vCompCost) } else Set.empty[GlobalContainer]
 
     // Partition Memory
-    val memGlobals = if (memNotFit) splitMemoryContainer(k,totalBanks,bankPerCU,numCU) else Set(k)
+    val globs2 = if (memNotFit) splitMemoryContainer(k,totalBanks,bankPerCU,numCU) else Set(k)
 
-    (memGlobals, compGlobals)
+    (globs1.toSet ++ globs2).partition { _.isInstanceOf[MemoryContainer] }
   }
 
   def getAccessPattern(mem:Memory) = {
@@ -77,7 +77,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     }.flatten.distinct
   }
 
-  def splitMemoryContainer(k:CUMap.K, totalBanks:Int, bankPerCU:Int, numCU:Int) = {
+  def splitMemoryContainer(k:CUMap.K, totalBanks:Int, bankPerCU:Int, numCU:Int):Set[GlobalContainer] = {
     val mem = k.collectDown[Memory]().head
     val accessGrps = getAccessPattern(mem)
     val parts = partitionBanks(accessGrps, totalBanks, bankPerCU).toList
@@ -117,18 +117,18 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
         }
       }
     }
-    val mks = mappings.map { _(k).as[GlobalContainer] }
+    val mgs = mappings.map { _(k).as[GlobalContainer] }.toSet
    
     // Merge bankReads of multiple partitions
     val bankReads = k.collectDown[FlatBankedRead]()
-    bankReads.foreach { bankRead =>
+    val cgs = bankReads.flatMap { bankRead =>
       //breakPoint(s"$k, $bankRead")
       mergeReads(k, mem, bankRead, mappings)
     }
     removeNodes(k.collectDown[TokenRead]())
     free(k)
-    //breakPoint(s"$k, $mks")
-    mks.toSet
+    //breakPoint(s"$k, $mgs")
+    mgs ++ cgs.toSet
   }
 
   def visitIn(n:PIRNode) = n match {
@@ -179,64 +179,96 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     }
   }
 
-  def mergeReads(k:CUMap.K, mem:Memory, br:FlatBankedRead, mappings:List[mutable.Map[IR, IR]]) = dbgblk(s"mergeReads($k, $br)") {
-    val reads = br.collect[BufferRead](visitGlobalOut _)
-    reads.groupBy { _.global.get }.foreach { case (global, reads) =>
-      reads.groupBy { _.ctx.get }.foreach { case (ctx, reads) =>
-        val read = assertOne(reads, s"reads of $br in $ctx")
-        val rctrl = read.ctrl.get
-        within(ctx, rctrl) {
-          read.out.T.foreach { deped =>
-            dbgblk(s"Merge $read => $deped in $ctx") {
-              val (toSwap:Output[PIRNode], toMerge) = deped match {
-                case Unbox(shuffle:Shuffle, from, Const(toBanks), base) => 
-                  dbg(s"Read by $shuffle.to(Const($toBanks))")
-                  val toMerge = mappings.map { mapping => 
-                    val mmem = mapping(mem).as[Memory]
-                    val mbr = mapping(br).as[FlatBankedRead]
-                    val fromBanks = mmem.bankids.get
-                    if (fromBanks == toBanks) {
-                      mbr.out
-                    } else {
-                      stage(Shuffle(0,shuffle.aid).base(mbr.out).from(allocConst(fromBanks)).to(allocConst(toBanks))).out
-                    }
-                  }
-                  (shuffle.out, toMerge)
-                case Unbox(shuffle:Shuffle, from, to, base) => 
-                  dbg(s"Read by $shuffle with non-constant to=$to")
-                  val toMerge = mappings.map { mapping => 
-                    val mmem = mapping(mem).as[Memory]
-                    val mbr = mapping(br).as[FlatBankedRead]
-                    val fromBanks = mmem.bankids.get
-                    val mbankAddr = shuffle.to.collect[BufferWrite](visitIn _).headOption.map { bout =>
-                      val bankAddr = bout.data.T
-                      dbg(s"bout=$bout bankAddr=$bankAddr")
-                      mapping.get(bankAddr).getOrElse(bankAddr)
-                    }
-                    val mto = mbankAddr.getOrElse { to }
-                    dbg(s"mbankAddr=$mbankAddr, mto=$mto")
-                    val mshuffle = stage(Shuffle(0,shuffle.aid).base(mbr.out).from(allocConst(fromBanks)).to(mto))
-                    mshuffle.out
-                  }
-                  (shuffle.out, toMerge)
-              }
-
-              var red:List[Output[PIRNode]] = toMerge
-              while(red.size > 1) {
-                red = red.sliding(2,2).map{ 
-                  case List(o1, o2) => stage(OpDef(FixOr).addInput(o1, o2)).out
-                  case List(o1) => o1
-                }.toList
-              }
-              val List(out) = red.toList
-              swapOutput(toSwap, out)
+  def mergeShuffle(shuffle:Shuffle, mem:Memory, br:FlatBankedRead, mappings:List[mutable.Map[IR, IR]], ctx:Context) = dbgblk(s"Merge $shuffle in $ctx") {
+    val ctrl = shuffle.getCtrl
+    val out = within(ctx, ctrl) {
+      val toMerge = shuffle match {
+        case Unbox(shuffle:Shuffle, from, Const(toBanks), base) => 
+          dbg(s"Read by $shuffle.to(Const($toBanks))")
+          mappings.map { mapping => 
+            val mmem = mapping(mem).as[Memory]
+            val mbr = mapping(br).as[FlatBankedRead]
+            val fromBanks = mmem.bankids.get
+            if (fromBanks == toBanks) {
+              mbr.out
+            } else {
+              stage(Shuffle(0,shuffle.aid).base(mbr.out).from(allocConst(fromBanks)).to(allocConst(toBanks))).out
             }
           }
-          bufferInput(ctx)
-        }
-        dupDeps(ctx, from=None).values.foreach { _.as[PIRNode].ctrl(rctrl,reset=true) }
+        case Unbox(shuffle:Shuffle, from, to, base) => 
+          dbg(s"Read by $shuffle with non-constant to=$to")
+          mappings.map { mapping => 
+            val mmem = mapping(mem).as[Memory]
+            val mbr = mapping(br).as[FlatBankedRead]
+            val fromBanks = mmem.bankids.get
+            val mbankAddr = shuffle.to.collect[BufferWrite](visitIn _).headOption.map { bout =>
+              val bankAddr = bout.data.T
+              dbg(s"bout=$bout bankAddr=$bankAddr")
+              mapping.get(bankAddr).getOrElse(bankAddr)
+            }
+            val mto = mbankAddr.getOrElse { to }
+            dbg(s"mbankAddr=$mbankAddr, mto=$mto")
+            val mshuffle = stage(Shuffle(0,shuffle.aid).base(mbr.out).from(allocConst(fromBanks)).to(mto))
+            mshuffle.out
+          }
+      }
+
+      var red:List[Output[PIRNode]] = toMerge
+      while(red.size > 1) {
+        red = red.sliding(2,2).map{ 
+          case List(o1, o2) => stage(OpDef(FixOr).addInput(o1, o2)).out
+          case List(o1) => o1
+        }.toList
+      }
+      val List(out) = red.toList
+      out
+    }
+    if (!shuffle.isDescendentOf(ctx)) {
+      val orig = shuffle.ctx.get
+      val mshuffles = ctx.collectDown[Shuffle]()
+      val bases = mshuffles.map { s => 
+        val base = s.base.singleConnected.get
+        s.base.disconnect
+        base 
+      }
+      dupDeps(ctx, from=None)
+      mshuffles.zip(bases).foreach { case (s, base) =>
+        s.base(base)
       }
     }
+    bufferInput(ctx)
+    dupDeps(ctx, from=None).values.foreach { _.as[PIRNode].ctrl(ctrl,reset=true) }
+    out
+  }
+
+  def mergeReads(k:CUMap.K, mem:Memory, br:FlatBankedRead, mappings:List[mutable.Map[IR, IR]]):Set[GlobalContainer] = dbgblk(s"mergeReads($k, $br)") {
+    val cgs = mutable.ListBuffer[GlobalContainer]()
+    val shuffles = br.collect[Shuffle](visitGlobalOut _)
+    shuffles.groupBy { _.aid }.foreach { case (aid, shuffles) =>
+      if (shuffles.size > 1 && config.enableBroadcastRead) {
+        val mergeCtx = within(pirTop) {
+          val mergeGlob = stage(ComputeContainer())
+          cgs += mergeGlob
+          dbg(s"mergeGlob=$mergeGlob")
+          within(mergeGlob, shuffles.head.getCtrl) { 
+            stage(Context())
+          }
+        }
+        val merged = mergeShuffle(shuffles.head,mem,br,mappings,mergeCtx)
+        shuffles.foreach { shuffle =>
+          val ctx = shuffle.ctx.get
+          swapOutput(shuffle.out, merged)
+          bufferInput(ctx)
+        }
+      } else {
+        shuffles.foreach { shuffle =>
+          val ctx = shuffle.ctx.get
+          val merged = mergeShuffle(shuffle,mem,br,mappings,ctx)
+          swapOutput(shuffle.out, merged)
+        }
+      }
+    }
+    cgs.toSet
   }
 }
 
