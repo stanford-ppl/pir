@@ -21,6 +21,8 @@ parser.add_argument('-s', '--summarize', action='store_true', default=False, hel
 parser.add_argument('-d', '--diff', dest='show_diff', action='store_true', default=False, help='showing difference')
 parser.add_argument('-H', '--history', dest='history_depth', type=int, default=0, help='showing history with depth')
 parser.add_argument('-i', '--history_id', type=int, help='showing ith history in reverse order')
+parser.add_argument('-l', '--log', type=str, help='showing log by name')
+parser.add_argument('-wh', '--walk_history', default=False, action='store_true', help='Walk through history')
 parser.add_argument('--logdir', default="{}/spatial/pir/logs/".format(os.environ['HOME']))
 parser.add_argument('--spatial_dir', default="{}/spatial/".format(os.environ['HOME']))
 parser.add_argument('--pir_dir', default="{}/spatial/pir".format(os.environ['HOME']))
@@ -226,18 +228,20 @@ class Logger():
     def __init__(self, args=None):
         (opts, args) = parser.parse_known_args(args=args)
         self.opts = opts
-        opts.show_history = opts.history_depth > 0 or opts.history_id is not None
+        opts.show_history = opts.history_depth > 0 or \
+                            opts.history_id is not None or \
+                            opts.log is not None
 
-        if opts.show_diff or opts.show_history:
-            self.load_history()
         if opts.print_fields:
             fields = sorted(opts.Gistory.columns.values)
             for f in fields:
                 print(f)
             return
-        if opts.show_history:
-            self.show_history()
-            return
+
+        self.show_history()
+
+        if opts.show_diff:
+            self.load_history(logFilter = lambda logs: logs[:22])
 
         path = opts.path.rstrip('/')
         if opts.path_type == "app":
@@ -262,16 +266,12 @@ class Logger():
         setFilterRules(opts)
         self.show_gen()
 
-    def load_history(self):
+    def load_history(self, logFilter=lambda logs: logs):
         opts = self.opts
         logs = os.listdir(opts.logdir)
-        logs = sorted(logs, reverse = True)[:22]
-        if opts.history_id is not None:
-            logs = logs[opts.history_id]
-            opts.log = logs
-            logs = [logs]
-        # print(logs)
-
+        logs = sorted(logs, reverse = True)
+        logs = logFilter(logs)
+        opts.logs = logs
         history = None
         for log in logs:
             tab = pd.read_csv(opts.logdir + log, header=0)
@@ -287,10 +287,10 @@ class Logger():
         else:
             self.history = history
 
-    def show_history(self):
+    def print_history(self, logFilter):
         opts = self.opts
-        if not opts.show_history: return
 
+        self.load_history(logFilter)
         history = self.history
 
         # diffkey = 'succeeded'
@@ -322,9 +322,26 @@ class Logger():
             for idx, row in history.iterrows():
                 pconf = to_conf(row)
                 print(self.getMessage(pconf,isHistory=True))
+        
+        for log in opts.logs:
+            print(log)
 
+    def show_history(self):
+        opts = self.opts
         if opts.history_id is not None:
-            print(opts.log)
+            self.print_history(logFilter=lambda logs: [logs[opts.history_id]])
+            exit()
+        elif opts.log is not None:
+            self.print_history(logFilter=lambda logs: [opts.log])
+            exit()
+        elif opts.walk_history:
+            nlogs = len(os.listdir(opts.logdir))
+            for i in range(nlogs):
+                self.print_history(logFilter=lambda logs: [logs[i]])
+                ans = input('[{}] continue? '.format(i))
+                if ans != 'y' and ans !='n':
+                    exit()
+            exit()
 
     def show_gen(self):
         opts = self.opts
