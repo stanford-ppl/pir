@@ -179,7 +179,8 @@ trait CollectorImplicit {
           if (prev.isEmpty && prefix(n)) Some(n.as[M]) else prev
         }
         val nodes = edge.neighbors.map { n => (n, depth) }.toList
-        PrefixTraversal.get[N,Option[M]](prefix _, visitFunc, accumulate _, None, logger).traverseNodes(nodes).get
+        PrefixTraversal.get[N,Option[M]](prefix _, visitFunc, accumulate _, None, logger)
+          .traverseNodes(nodes).getOrElse(bug(s"${edge.src}.${edge}.collectFirst[${classTag[M]}] is empty"))
       }
     }
 

@@ -186,12 +186,12 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
         lowerLUTAccess(mem, access)
         val bank = access.bank.connected
         val ofsOut = access.offset.singleConnected.get
-        val ofs = stage(Shuffle(-1).from(bank).to(allocConst(mem.bankids.get)).base(ofsOut))
+        val ofs = stage(Shuffle(-1,access.id).from(bank).to(allocConst(mem.bankids.get)).base(ofsOut))
         bufferInput(ofs.base, fromCtx=Some(addrCtx))
         bufferInput(ofs.from, fromCtx=Some(addrCtx))
         val data = access match {
           case access:BankedWrite => 
-            val shuffle = stage(Shuffle(0).from(bank).to(allocConst(mem.bankids.get)).base(access.data.connected))
+            val shuffle = stage(Shuffle(0,access.id).from(bank).to(allocConst(mem.bankids.get)).base(access.data.connected))
             bufferInput(shuffle.base) // Prevent copying data producer into addrCtx
             bufferInput(shuffle.from, fromCtx=Some(addrCtx))
             Some(shuffle)
@@ -256,7 +256,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
               }
             }
             val shuffle = within(inCtx, inCtx.getCtrl)  {
-              stage(Shuffle(0).from(allocConst(mem.bankids.get)).to(bank).base(newAccess.out))
+              stage(Shuffle(0,lead.id).from(allocConst(mem.bankids.get)).to(bank).base(newAccess.out))
             }
             dbg(s"val $shuffle = Shuffle() // bankRead")
             bufferInput(shuffle.base)
