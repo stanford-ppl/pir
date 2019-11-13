@@ -88,7 +88,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
 
   private def resolveBroadcast(accesses:Set[BankedAccess]):Map[BankedAccess,BankedAccess] = {
     val map = accesses.groupBy { _.castgroup.v }.map { 
-      case (None, accesses) => accesses.map { a => a -> a }.toMap
+      case (None, accesses) if !config.enableBroadcastRead => accesses.map { a => a -> a }.toMap
       case (Some(grp), accesses) =>
         val (heads, tail) = accesses.partition { a => 
           val broadcast = assertIdentical(a.broadcast.get, s"$a.broadcast").get
@@ -186,12 +186,12 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
         lowerLUTAccess(mem, access)
         val bank = access.bank.connected
         val ofsOut = access.offset.singleConnected.get
-        val ofs = stage(Shuffle(-1).from(bank).to(allocConst(mem.bankids.get)).base(ofsOut))
+        val ofs = stage(Shuffle(-1,access.id).from(bank).to(allocConst(mem.bankids.get)).base(ofsOut))
         bufferInput(ofs.base, fromCtx=Some(addrCtx))
         bufferInput(ofs.from, fromCtx=Some(addrCtx))
         val data = access match {
           case access:BankedWrite => 
-            val shuffle = stage(Shuffle(0).from(bank).to(allocConst(mem.bankids.get)).base(access.data.connected))
+            val shuffle = stage(Shuffle(0,access.id).from(bank).to(allocConst(mem.bankids.get)).base(access.data.connected))
             bufferInput(shuffle.base) // Prevent copying data producer into addrCtx
             bufferInput(shuffle.from, fromCtx=Some(addrCtx))
             Some(shuffle)
@@ -245,18 +245,19 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     newAccess.to[FlatBankedRead].foreach { newAccess =>
       accesses.groupBy { a => broadcastMap(a) }.foreach { case (lead, accesses) =>
         val leadBank = lead.bank.connected
+        val leadOfst = lead.offset.connected
         val leadCtrl = lead.getCtrl
         accesses.as[Set[BankedRead]].foreach { access =>
           access.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx, ins) =>
-            val bank = if (!config.dupReadAddr) leadBank else {
+            val (bank,offset) = if (!config.dupReadAddr) (leadBank,leadOfst) else {
               within(inCtx, access.getCtrl) {
                 flattenBankAddr(access)
                 flattenEnable(access)
-                access.bank.singleConnected.get
+                (access.bank.connected,access.offset.connected)
               }
             }
             val shuffle = within(inCtx, inCtx.getCtrl)  {
-              stage(Shuffle(0).from(allocConst(mem.bankids.get)).to(bank).base(newAccess.out))
+              stage(Shuffle(0,lead.id).from(allocConst(mem.bankids.get)).to(bank).offset(offset).base(newAccess.out))
             }
             dbg(s"val $shuffle = Shuffle() // bankRead")
             bufferInput(shuffle.base)

@@ -374,10 +374,11 @@ case class RegAccumOp(op:Any, identity:Any)(implicit env:Env) extends OpNode wit
   out.presetVec(1)
 }
 // Filled can be "0" or "-0". based on shuffling address or data
-case class Shuffle(filled:Any)(implicit env:Env) extends OpNode with Def {
+case class Shuffle(filled:Any, aid:Int)(implicit env:Env) extends OpNode with Def {
   val from = new InputField[PIRNode]("from")
   val to = new InputField[PIRNode]("to")
   val base = new InputField[PIRNode]("base")
+  val offset = new InputField[Option[PIRNode]]("offset")
   override def compType(n:IR) = n match {
     case `out` => base.inferTp
     case _ => super.compType(n)

@@ -20,6 +20,9 @@ parser.add_argument('-G', '--isGen', dest="path_type", action='store_const', con
 parser.add_argument('-s', '--summarize', action='store_true', default=False, help='summarize log into csv')
 parser.add_argument('-d', '--diff', dest='show_diff', action='store_true', default=False, help='showing difference')
 parser.add_argument('-H', '--history', dest='history_depth', type=int, default=0, help='showing history with depth')
+parser.add_argument('-i', '--history_id', type=int, help='showing ith history in reverse order')
+parser.add_argument('-l', '--log', type=str, help='showing log by name')
+parser.add_argument('-wh', '--walk_history', default=False, action='store_true', help='Walk through history')
 parser.add_argument('--logdir', default="{}/spatial/pir/logs/".format(os.environ['HOME']))
 parser.add_argument('--spatial_dir', default="{}/spatial/".format(os.environ['HOME']))
 parser.add_argument('--pir_dir', default="{}/spatial/pir".format(os.environ['HOME']))
@@ -225,18 +228,20 @@ class Logger():
     def __init__(self, args=None):
         (opts, args) = parser.parse_known_args(args=args)
         self.opts = opts
-        opts.show_history = opts.history_depth > 0
+        opts.show_history = opts.history_depth > 0 or \
+                            opts.history_id is not None or \
+                            opts.log is not None
 
-        if opts.show_diff or opts.show_history:
-            self.load_history()
         if opts.print_fields:
             fields = sorted(opts.Gistory.columns.values)
             for f in fields:
                 print(f)
             return
-        if opts.show_history:
-            self.show_history()
-            return
+
+        self.show_history()
+
+        if opts.show_diff:
+            self.load_history(logFilter = lambda logs: logs[:22])
 
         path = opts.path.rstrip('/')
         if opts.path_type == "app":
@@ -261,16 +266,17 @@ class Logger():
         setFilterRules(opts)
         self.show_gen()
 
-    def load_history(self):
+    def load_history(self, logFilter=lambda logs: logs):
         opts = self.opts
         logs = os.listdir(opts.logdir)
-        logs = sorted(logs, reverse = True)[:22]
-        # print(logs)
-
+        logs = sorted(logs, reverse = True)
+        logs = logFilter(logs)
+        opts.logs = logs
         history = None
         for log in logs:
             tab = pd.read_csv(opts.logdir + log, header=0)
             tab['time'] = os.path.getmtime(opts.logdir + log)
+            tab['log'] = log
             if history is None:
                 history = tab
             else:
@@ -281,10 +287,10 @@ class Logger():
         else:
             self.history = history
 
-    def show_history(self):
+    def print_history(self, logFilter):
         opts = self.opts
-        if not opts.show_history: return
 
+        self.load_history(logFilter)
         history = self.history
 
         # diffkey = 'succeeded'
@@ -306,13 +312,36 @@ class Logger():
                 mask.append(any([fnmatch.fnmatch(app, pat) for pat in opts.app]))
             history = history[mask]
 
-        history = history.groupby(["project", "app", "backend"]).apply(lambda x:
-                x.sort_values(["time"]).tail(opts.history_depth))
+
+        if opts.history_depth>0:
+            history = history.groupby(["project", "app", "backend"]).apply(lambda x: x.sort_values(["time"]).tail(opts.history_depth))
+        else:
+            history = history.sort_values(["project", "app", "backend"])
 
         if history.shape[0] > 0:
             for idx, row in history.iterrows():
                 pconf = to_conf(row)
                 print(self.getMessage(pconf,isHistory=True))
+        
+        for log in opts.logs:
+            print(log)
+
+    def show_history(self):
+        opts = self.opts
+        if opts.history_id is not None:
+            self.print_history(logFilter=lambda logs: [logs[opts.history_id]])
+            exit()
+        elif opts.log is not None:
+            self.print_history(logFilter=lambda logs: [opts.log])
+            exit()
+        elif opts.walk_history:
+            nlogs = len(os.listdir(opts.logdir))
+            for i in range(nlogs):
+                self.print_history(logFilter=lambda logs: [logs[i]])
+                ans = input('[{}] continue? '.format(i))
+                if ans != 'y' and ans !='n':
+                    exit()
+            exit()
 
     def show_gen(self):
         opts = self.opts
@@ -524,13 +553,13 @@ class Logger():
     
         printtst('runhybrid')
 
-        if isHistory:
-            pir_sha = get(conf,'pir_sha')
+        # if isHistory:
+            # pir_sha = get(conf,'pir_sha')
             # pirmsg = get_sha_msg(pir_sha, opts.pir_dir)
-            msg.append(conf['spatial_sha'])
-            msg.append(pir_sha)
+            # msg.append(conf['spatial_sha'])
+            # msg.append(pir_sha)
             # msg.append(pirmsg)
-            msg.append(conf['time'])
+            # msg.append(conf['time'])
 
         return ' '.join([str(m) for m in msg])
 
