@@ -245,18 +245,19 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     newAccess.to[FlatBankedRead].foreach { newAccess =>
       accesses.groupBy { a => broadcastMap(a) }.foreach { case (lead, accesses) =>
         val leadBank = lead.bank.connected
+        val leadOfst = lead.offset.connected
         val leadCtrl = lead.getCtrl
         accesses.as[Set[BankedRead]].foreach { access =>
           access.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx, ins) =>
-            val bank = if (!config.dupReadAddr) leadBank else {
+            val (bank,offset) = if (!config.dupReadAddr) (leadBank,leadOfst) else {
               within(inCtx, access.getCtrl) {
                 flattenBankAddr(access)
                 flattenEnable(access)
-                access.bank.singleConnected.get
+                (access.bank.connected,access.offset.connected)
               }
             }
             val shuffle = within(inCtx, inCtx.getCtrl)  {
-              stage(Shuffle(0,lead.id).from(allocConst(mem.bankids.get)).to(bank).base(newAccess.out))
+              stage(Shuffle(0,lead.id).from(allocConst(mem.bankids.get)).to(bank).offset(offset).base(newAccess.out))
             }
             dbg(s"val $shuffle = Shuffle() // bankRead")
             bufferInput(shuffle.base)

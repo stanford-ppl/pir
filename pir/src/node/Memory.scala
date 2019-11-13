@@ -378,6 +378,7 @@ case class Shuffle(filled:Any, aid:Int)(implicit env:Env) extends OpNode with De
   val from = new InputField[PIRNode]("from")
   val to = new InputField[PIRNode]("to")
   val base = new InputField[PIRNode]("base")
+  val offset = new InputField[Option[PIRNode]]("offset")
   override def compType(n:IR) = n match {
     case `out` => base.inferTp
     case _ => super.compType(n)

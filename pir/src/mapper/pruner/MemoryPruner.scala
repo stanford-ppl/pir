@@ -168,11 +168,22 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
         readShuffles.foreach { readShuffleMap =>
           val readShuffles = readShuffleMap(aid)
           readShuffles.foreach { readShuffle =>
-            swapConnection(readShuffle.to, readShuffle.to.singleConnected.get, newFlatBank)
             if (!config.dupReadAddr) {
+              swapConnection(readShuffle.to, readShuffle.to.singleConnected.get, newFlatBank)
               bufferInput(readShuffle.to)
+              dupDeps(readShuffle.ctx.get, from=Some(ofstShuffle.ctx.get))
+            } else {
+              within(readShuffle.ctx.get, readShuffle.getCtrl) {
+                val bm = allocConst(bankMult, tp=Some(Fix(true,32,0)))
+                val bs = allocConst(sizePerBank, tp=Some(Fix(true,32,0)))
+                val offset = readShuffle.offset.singleConnected.get
+                val bank = readShuffle.to.singleConnected.get
+                val newBank = stage(OpDef(FixDiv).addInput(offset, bs).out)
+                val newFlatBank = stage(OpDef(FixFMA).addInput(bank, bm, newBank).out)
+                swapConnection(readShuffle.to, bank, newFlatBank)
+                free(readShuffle.offset)
+              }
             }
-            dupDeps(readShuffle.ctx.get, from=Some(ofstShuffle.ctx.get))
           }
         }
       }
@@ -182,8 +193,8 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
   def mergeShuffle(shuffle:Shuffle, mem:Memory, br:FlatBankedRead, mappings:List[mutable.Map[IR, IR]], ctx:Context) = dbgblk(s"Merge $shuffle in $ctx") {
     val ctrl = shuffle.getCtrl
     val out = within(ctx, ctrl) {
-      val toMerge = shuffle match {
-        case Unbox(shuffle:Shuffle, from, Const(toBanks), base) => 
+      val toMerge = shuffle.to.T match {
+        case Const(toBanks) => 
           dbg(s"Read by $shuffle.to(Const($toBanks))")
           mappings.map { mapping => 
             val mmem = mapping(mem).as[Memory]
@@ -195,7 +206,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
               stage(Shuffle(0,shuffle.aid).base(mbr.out).from(allocConst(fromBanks)).to(allocConst(toBanks))).out
             }
           }
-        case Unbox(shuffle:Shuffle, from, to, base) => 
+        case to => 
           dbg(s"Read by $shuffle with non-constant to=$to")
           mappings.map { mapping => 
             val mmem = mapping(mem).as[Memory]

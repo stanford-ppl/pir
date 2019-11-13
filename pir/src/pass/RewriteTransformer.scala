@@ -206,9 +206,7 @@ trait RewriteUtil extends PIRPass { self: PIRTransformer =>
     case n => None
   }
 
-  def memoryPrunerHashRun = compiler.hasRun[MemoryPruner]
-
-  RewriteRule[Shuffle](s"Shuffle",config.enableConstProp) { n =>
+  RewriteRule[Shuffle](s"Shuffle",config.enableConstProp && compiler.hasRun[MemoryPruner]) { n =>
     (n.from, n.to, n.base) match {
       case (SC(OutputField(Const(from:List[_]),"out")), SC(OutputField(Const(to:List[_]),"out")), base) if from.intersect(to).isEmpty => 
         dbgblk(s"ShuffleUnmatch($n, from=${dquote(n.from.T)}, to=${dquote(n.to.T)})") {
@@ -217,7 +215,6 @@ trait RewriteUtil extends PIRPass { self: PIRTransformer =>
           }
           Some((n.out, c.out))
         }
-      case (from, to, base) if (!memoryPrunerHashRun) => None
       case (from, to, base) if (matchInput(n.from, n.to) & n.base.T.getVec == n.from.T.getVec & n.getVec == n.to.T.getVec) => None
         dbgblk(s"ShuffleMatch($n, from=${dquote(n.from.T)}, to=${dquote(n.to.T)})") {
           val base = assertOne(n.base.connected, s"$n.base.connected")
@@ -261,21 +258,6 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   with BufferAnalyzer with RewriteUtil {
 
   val forward = true
-
-  var memLowerHasRun = false
-  var memPrunerHasRun = false
-  var globalInsertHasRun = false
-  var initializerHasRun = false
-  var _memoryPrunerHashRun = false
-  override def memoryPrunerHashRun = _memoryPrunerHashRun
-
-  override def initPass = {
-    super.initPass
-    memLowerHasRun = compiler.hasRun[MemoryLowering]
-    globalInsertHasRun = compiler.hasRun[GlobalInsertion]
-    initializerHasRun = compiler.hasRun[TargetInitializer]
-    _memoryPrunerHashRun = compiler.hasRun[MemoryPruner]
-  }
 
   TransferRule[PIRNode]() { n =>
     n.localIns.filter { _.as[Field[_]].name == "en" }.foreach { en =>
@@ -407,34 +389,37 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
    * w1 -> m1 -> r1 -> w2 -> m2
    * mw1 -> m2
    * */
-  TransferRule[MemWrite](config.enableRouteElim) { w2 =>
-    if (!initializerHasRun && !memLowerHasRun && !globalInsertHasRun) {
-      w2.data.T match {
-        case r1:MemRead if matchInput(w2.en, r1.en) =>
-          val m1 = r1.mem.T
-          val m2 = w2.mem.T
-          val w1s = m1.inAccesses
-          if (w1s.size == 1 && m1.isFIFO == m2.isFIFO && !m2.nonBlocking.get) {
-            val w1 = w1s.head.as[MemWrite]
-            if (matchInput(w1.en, w2.en) && matchInput(w1.en, r1.en)) {
-              dbgblk(s"Route through (1) $w1 -> $m1 -> $r1 -> $w2 -> $m2 detected") {
-                disconnect(w2.mem, m2)
-                val mw1 = within(w1.parent.get) { mirrorAll(List(w1))(w1).as[MemWrite] }
-                mirrorMetas(mw1,w1)
-                mirrorSyncMeta(w2, mw1)
-                dbg(s" => $mw1 -> $m2")
-                mw1.mem(m2)
-                val name = zipReduce(m1.name.v, m2.name.v) { _ + "/" + _ }
-                m2.name.reset
-                m2.name.update(name)
-              }
-              Some(w2)
+  TransferRule[MemWrite](
+    config.enableRouteElim && 
+    !compiler.hasRun[TargetInitializer] && 
+    !compiler.hasRun[MemoryLowering] && 
+    !compiler.hasRun[GlobalInsertion]
+  ) { w2 =>
+    w2.data.T match {
+      case r1:MemRead if matchInput(w2.en, r1.en) =>
+        val m1 = r1.mem.T
+        val m2 = w2.mem.T
+        val w1s = m1.inAccesses
+        if (w1s.size == 1 && m1.isFIFO == m2.isFIFO && !m2.nonBlocking.get) {
+          val w1 = w1s.head.as[MemWrite]
+          if (matchInput(w1.en, w2.en) && matchInput(w1.en, r1.en)) {
+            dbgblk(s"Route through (1) $w1 -> $m1 -> $r1 -> $w2 -> $m2 detected") {
+              disconnect(w2.mem, m2)
+              val mw1 = within(w1.parent.get) { mirrorAll(List(w1))(w1).as[MemWrite] }
+              mirrorMetas(mw1,w1)
+              mirrorSyncMeta(w2, mw1)
+              dbg(s" => $mw1 -> $m2")
+              mw1.mem(m2)
+              val name = zipReduce(m1.name.v, m2.name.v) { _ + "/" + _ }
+              m2.name.reset
+              m2.name.update(name)
             }
-            else None
-          } else None
-        case _ => None
-      }
-    } else None
+            Some(w2)
+          }
+          else None
+        } else None
+      case _ => None
+    }
   }
 
   override def compScheduleFactor(n:Context):Int = 1 
@@ -531,6 +516,11 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
         Some(read)
       } else None
     }
+  }
+
+  TransferRule[Shuffle](compiler.hasRun[MemoryPruner]) { n =>
+    free(n.offset)
+    None
   }
 
   override def visitNode(n:N):T = /*dbgblk(s"visitNode:${n}") */{
