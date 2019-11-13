@@ -30,12 +30,13 @@ def main():
                 gendir = backend + "_" + project
             if not opts.conti:
                 os.system('rm -r ../gen/{}'.format(gendir))
+            apps = ' '.join(['-a ' + a for a in apps])
             os.system('bin/test -t {} -p {} -b {} {} {} --save=false --dot=false --debug=false'.format(opts.thread, project,backend,
-                ' '.join(['-a ' + a for a in apps]), ' '.join(args)))
-            os.system('bin/log ../gen/{} -d -p {} -b {}'.format(gendir, project,
-                opts.backend))
-            os.system('bin/log ../gen/{} -s -p {} -b {}'.format(gendir, project,
-                opts.backend))
+                apps, ' '.join(args)))
+            os.system('bin/log ../gen/{} -d -p {} -b {} {} -m VPCU,VPMU,VDAG'.format(gendir, project,
+                opts.backend,apps))
+            os.system('bin/log ../gen/{} -s -p {} -b {} {}'.format(gendir, project,
+                opts.backend,apps))
 
 if __name__ == "__main__":
     main()
