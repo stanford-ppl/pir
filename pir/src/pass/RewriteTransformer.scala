@@ -175,13 +175,14 @@ trait RewriteUtil extends PIRPass { self: PIRTransformer =>
       //}
     case n@OpDef(FixAdd) => // ShiftAdd to FMA
       val ConstShift = MatchRule[OpDef, (Output[_],Any)] { case n@OpDef(FixSLA) =>
-        val (const, nonConst) = n.inputs.map { _.singleConnected.get }.partition {
+        val ins = n.inputs.map { _.singleConnected.get }
+        val (const, nonConst) = ins.partition {
           case OutputField(c:Const, _) => true
           case _ => false
         }
         const.headOption.flatMap { out =>
           val value = out.src.as[Const].value
-          val mulIn = nonConst.head
+          val mulIn = ins.filterNot { _ == const }.head // Possible both are consts if consprop is disabled
           value match {
             case v:List[_] => Some((mulIn, v.map { v => (0 until v.as[Int]).map { _ => 2}.product }))
             case v:Int => Some(mulIn,((0 until v).map { _ => 2}.product))

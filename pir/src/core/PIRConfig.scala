@@ -157,7 +157,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
 
   def fast:Boolean = option[Boolean]("fast")
   override def save = !fast & super.save
-  override def debug = !fast & super.debug
+  //override def debug = !fast & super.debug
   def enableDot:Boolean = enableCodegen && option[Boolean]("dot")
   def enableVerboseDot:Boolean = enableDot && option[Boolean]("vdot") && !fast
 }
