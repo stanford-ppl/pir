@@ -126,7 +126,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
       mergeReads(k, mem, bankRead, mappings)
     }
     removeNodes(k.collectDown[TokenRead]())
-    free(k)
+    free(List(k), List(k))
     //breakPoint(s"$k, $mgs")
     mgs ++ cgs.toSet
   }
@@ -239,10 +239,12 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
       val mshuffles = ctx.collectDown[Shuffle]()
       val bases = mshuffles.map { s => 
         val base = s.base.singleConnected.get
+        dbg(s"$s.base=${dquote(base)}")
         s.base.disconnect
         base 
       }
-      dupDeps(ctx, from=None)
+      val deps = getDeps(ctx, Some(shuffle.ctx.get), Some(ctx),logger=Some(this))
+      dupDeps(ctx, from=Some(shuffle.ctx.get))
       mshuffles.zip(bases).foreach { case (s, base) =>
         s.base(base)
       }
@@ -278,6 +280,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
           swapOutput(shuffle.out, merged)
         }
       }
+      free(shuffles,shuffles)
     }
     cgs.toSet
   }
