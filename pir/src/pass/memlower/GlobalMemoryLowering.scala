@@ -257,7 +257,10 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
               }
             }
             val shuffle = within(inCtx, inCtx.getCtrl)  {
-              stage(Shuffle(0,lead.id).from(allocConst(mem.bankids.get)).to(bank).offset(offset).base(newAccess.out))
+              stage(Shuffle(0,lead.id).from(allocConst(mem.bankids.get)).to(bank).base(newAccess.out))
+            }
+            if (config.dupReadAddr) { // Potentially used by memory pruner for capacity splitting
+              shuffle.offset(offset)
             }
             dbg(s"val $shuffle = Shuffle() // bankRead")
             bufferInput(shuffle.base)

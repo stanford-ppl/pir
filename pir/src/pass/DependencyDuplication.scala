@@ -80,7 +80,7 @@ trait DependencyAnalyzer extends PIRTransformer {
   }
 
   def mirrorDeps(to:Context, from:Option[Context]):Map[IR,IR] = dbgblk(s"mirrorDeps($to, $from)") {
-    val deps = getDeps(to, from, Some(to))
+    val deps = getDeps(to, from, Some(to),logger=Some(this))
     within(to) { mirrorAll(deps).toMap }
   }
 
