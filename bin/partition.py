@@ -360,9 +360,13 @@ class CVXPartitioner:
             if not self._possible_in_same_partition(loc1, loc2):
                 continue
             # if the nodes are in the same partition, then impose an equality constraint on the delays
-            partition_diff = self._is_different_value(self.node_partitions[loc1], self.node_partitions[loc2])
-            self._add_constraint(delays[loc1] + partition_diff * max_delay >= delays[loc2])
-            self._add_constraint(delays[loc2] + partition_diff * max_delay >= delays[loc1])
+            peq = cvxpy.sum(
+                cvxpy.maximum(self.node_to_partition_matrix[loc1, :] + self.node_to_partition_matrix[loc2, :] - 1, 0))
+            dne = self._project_to_bool(cvxpy.abs(delays[loc1] - delays[loc2]))
+            self._add_constraint(peq + dne <= 1.1)
+            # partition_diff = self._is_different_value(self.node_partitions[loc1], self.node_partitions[loc2])
+            # self._add_constraint(delays[loc1] + partition_diff * max_delay >= delays[loc2])
+            # self._add_constraint(delays[loc2] + partition_diff * max_delay >= delays[loc1])
 
         nodes_with_external_input = {edge.dst for edge in self.external_input_edges}
         for dst in nodes_with_external_input:
