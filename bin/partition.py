@@ -352,7 +352,7 @@ class CVXPartitioner:
                 not_same_partition = self._is_different_value(self.node_partitions[dst_loc], self.node_partitions[src_loc])
                 activity_component = not_same_partition * max_delay - max_delay
             self._add_constraint(
-                delays[dst_loc] >= src_loc + activity_component + self.delay_per_partition + self.network_delay)
+                delays[dst_loc] >= delays[src_loc] + activity_component + self.delay_per_partition + self.network_delay)
 
         # constrain that the delay for nodes in the same partition are equal.
         # We only care for nodes which might be in the same partition.
