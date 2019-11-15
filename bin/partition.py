@@ -87,7 +87,7 @@ class CVXPartitioner:
         self.to_print = {}
         self.opts = {}
         self.verifiers = []
-        self.pseudo_constraints = []
+        self._pseudo_constraints = []
 
         # gurobi can't currently handle a warm start, so instead we just initialize with the number of partitions
         self.partitions = len({partition.partition for partition in pre_partitioning})
@@ -152,12 +152,16 @@ class CVXPartitioner:
             atexit.register(lambda x, y: print(x, y.value), name, var)
 
         # large multiplier
-        pseudo_constraint_sum = sum(self.pseudo_constraints, 0) * 256
+        pseudo_constraint_sum = sum(self._pseudo_constraints, 0) * 256
         return cvxpy.Minimize(objective + pseudo_constraint_sum)
 
     def _add_constraint(self, constraint):
         assert constraint.is_dcp()
         self.cvx_constraints.append(constraint)
+
+    def _add_pseudo_constraint(self, constraint):
+        assert constraint.is_dcp()
+        self._pseudo_constraints.append(constraint)
 
     def _is_internal_node(self, node):
         return node in self.node_to_loc_map
@@ -179,7 +183,7 @@ class CVXPartitioner:
     #         # self._add_constraint(
     #         #     self.node_partitions[self.node_to_loc_map[src]] + twiddle <= self.node_partitions[
     #         #         self.node_to_loc_map[dst]])
-    #         self.pseudo_constraints.append(cvxpy.maximum(self.node_partitions[self.node_to_loc_map[src]] + twiddle - self.node_partitions[self.node_to_loc_map[dst]], 0))
+    #         self._add_pseudo_constraint(cvxpy.maximum(self.node_partitions[self.node_to_loc_map[src]] + twiddle - self.node_partitions[self.node_to_loc_map[dst]], 0))
 
     @functools.lru_cache(None)
     def _init_input_constraints(self):
@@ -340,9 +344,8 @@ class CVXPartitioner:
         return True
 
     def _is_different_value(self, a, b):
-        v1 = self._project_to_bool(cvxpy.maximum(b - a, 0))
-        v2 = self._project_to_bool(cvxpy.maximum(a - b, 0))
-        return v1 + v2
+        v1 = self._project_to_bool(cvxpy.abs(b - a))
+        return v1
 
     @functools.lru_cache(None)
     def delay_gap(self):
@@ -351,6 +354,7 @@ class CVXPartitioner:
         # When the outputs start receiving
         self.external_destination_delay = external_destination_delay = cvxpy.Variable(name="External Delay")
         self.delays = delays = cvxpy.Variable(name="Delays", shape=self.num_nodes)
+        partition_delays = cvxpy.Variable(name="Partition Delays", shape=self.partitions)
         for src, dst, _, _ in self.internal_edges:
             src_loc = self.node_to_loc_map[src]
             dst_loc = self.node_to_loc_map[dst]
@@ -365,23 +369,39 @@ class CVXPartitioner:
             min_start_delay = delays[src_loc] + activity_component + self.delay_per_partition + self.network_delay
             # self._add_constraint(
             #     delays[dst_loc] >= min_start_delay)
-            self.pseudo_constraints.append(
+            self._add_pseudo_constraint(
                 cvxpy.maximum(min_start_delay - delays[dst_loc], 0)
             )
 
             twiddle = src in self.retime_nodes or dst in self.retime_nodes
             self._add_constraint(delays[dst_loc] >= delays[src_loc] + twiddle)
+            # self._add_constraint(delays[dst_loc] >= delays[src_loc])
 
-        # constrain that the delay for nodes in the same partition are equal.
-        # We only care for nodes which might be in the same partition.
-        for loc1, loc2 in itertools.combinations(range(self.num_nodes), 2):
-            if not self._possible_in_same_partition(loc1, loc2):
-                continue
-            # if the nodes are in the same partition, then impose an equality constraint on the delays
-            peq = cvxpy.sum(
-                cvxpy.maximum(self.node_to_partition_matrix[loc1, :] + self.node_to_partition_matrix[loc2, :] - 1, 0))
-            dne = self._project_to_bool(cvxpy.abs(delays[loc1] - delays[loc2]))
-            self._add_constraint(peq + dne <= 1.3)
+        for i in range(self.num_nodes):
+            # 0 if node is in partition otherwise strongly positive
+            activation = self.node_to_partition_matrix[i, :] * -max_delay + max_delay
+            target_delay = cvxpy.min(partition_delays + activation)
+            # self._add_constraint(delays[i] <= target_delay)
+            self._add_pseudo_constraint(cvxpy.maximum(delays[i] - target_delay, 0))
+
+            # 0 if node is in partition otherwise strongly negative
+            activation = self.node_to_partition_matrix[i, :] * max_delay - max_delay
+            target_delay = cvxpy.max(partition_delays + activation)
+            # self._add_constraint(delays[i] >= target_delay)
+            self._add_pseudo_constraint(cvxpy.maximum(target_delay - delays[i], 0))
+
+        # # constrain that the delay for nodes in the same partition are equal.
+        # # We only care for nodes which might be in the same partition.
+        # for loc1, loc2 in itertools.combinations(range(self.num_nodes), 2):
+        #     if not self._possible_in_same_partition(loc1, loc2):
+        #         continue
+        #     # if the nodes are in the same partition, then impose an equality constraint on the delays
+        #     peq = cvxpy.sum(
+        #         cvxpy.maximum(self.node_to_partition_matrix[loc1, :] + self.node_to_partition_matrix[loc2, :] - 1, 0))
+        #     dne = self._project_to_bool(cvxpy.abs(delays[loc1] - delays[loc2]))
+        #     # dne = cvxpy.minimum(cvxpy.abs(delays[loc1] - delays[loc2]), 1)
+        #     self._add_pseudo_constraint(cvxpy.maximum(peq + dne - 1.5, 0))
+        #     # self._add_constraint(peq + dne <= 1.3)
 
         nodes_with_external_input = {edge.dst for edge in self.external_input_edges}
         for dst in nodes_with_external_input:
@@ -392,7 +412,7 @@ class CVXPartitioner:
         for src, dst, _, _ in self.external_output_edges:
             # self._add_constraint(delays[self.node_to_loc_map[
             #     src]] + self.network_delay + self.delay_per_partition <= external_destination_delay)
-            self.pseudo_constraints.append(
+            self._add_pseudo_constraint(
                 cvxpy.maximum(delays[self.node_to_loc_map[src]] + self.network_delay + self.delay_per_partition - external_destination_delay, 0)
             )
 
@@ -486,6 +506,7 @@ class CVXPartitioner:
     def solve(self, **kwargs):
         problem = cvxpy.Problem(self.objective, self.cvx_constraints)
         problem.solve(**kwargs)
+        print(problem.status)
 
     def get_assignment(self):
         return [
@@ -499,7 +520,7 @@ def partition_solver(nodes, edges, constraint, pre_partitioning, opts):
         solver = CVXPartitioner(nodes, edges, constraint, pre_partitioning)
         print(vars(opts))
         solver.set_opts(vars(opts))
-    solver.solve(solver="GUROBI", verbose=True, warm_start=True, Threads=opts.thread)
+    solver.solve(solver="GUROBI", verbose=True, warm_start=True, Threads=opts.thread, MIPGap=0.15)
     assert solver.verify()
 
     with open(opts.partition, "w") as pf:
