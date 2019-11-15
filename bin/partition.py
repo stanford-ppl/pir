@@ -136,18 +136,18 @@ class CVXPartitioner:
     @functools.lru_cache(None)
     def objective(self):
         total = {
-            "partitions": self.num_partitions,
-            "retiming_nodes": lambda: self.delay_gap()[0],
-            "external_edges": self.num_edges
+            "partitions": (self.num_partitions, lambda: 0),
+            "retiming_nodes": (lambda: self.delay_gap()[0], lambda: (self._init_edge_deps(), 0)[1]),
+            "external_edges": (self.num_edges, lambda: 0)
         }
         to_print = []
         with TimeContext("Objective"):
             objective = 0
             for option_name, func in total.items():
-                if self.opts[option_name]:
-                    additional = func()
-                    objective += additional
-                    to_print.append((option_name, additional))
+                print(option_name, self.opts[option_name])
+                additional = func[self.opts[option_name]]()
+                objective += additional
+                to_print.append((option_name, additional))
         for name, var in to_print:
             atexit.register(lambda x, y: print(x, y.value), name, var)
 
@@ -173,17 +173,17 @@ class CVXPartitioner:
                 return node_id
         return ""
 
-    # @functools.lru_cache(None)
-    # def _init_dep_constraints(self):
-    #     filtered_edges = [edge for edge in self.edges if
-    #                       self._is_internal_node(edge.src) and self._is_internal_node(edge.dst)]
-    #     for src, dst, _, _ in filtered_edges:
-    #         # If either end is a retime node, then we make sure that it can't merge.
-    #         twiddle = src in self.retime_nodes or dst in self.retime_nodes
-    #         # self._add_constraint(
-    #         #     self.node_partitions[self.node_to_loc_map[src]] + twiddle <= self.node_partitions[
-    #         #         self.node_to_loc_map[dst]])
-    #         self._add_pseudo_constraint(cvxpy.maximum(self.node_partitions[self.node_to_loc_map[src]] + twiddle - self.node_partitions[self.node_to_loc_map[dst]], 0))
+    @functools.lru_cache(None)
+    def _init_edge_deps(self):
+        filtered_edges = [edge for edge in self.edges if
+                          self._is_internal_node(edge.src) and self._is_internal_node(edge.dst)]
+        for src, dst, _, _ in filtered_edges:
+            # If either end is a retime node, then we make sure that it can't merge.
+            twiddle = src in self.retime_nodes or dst in self.retime_nodes
+            # self._add_constraint(
+            #     self.node_partitions[self.node_to_loc_map[src]] + twiddle <= self.node_partitions[
+            #         self.node_to_loc_map[dst]])
+            self._add_pseudo_constraint(cvxpy.maximum(self.node_partitions[self.node_to_loc_map[src]] + twiddle - self.node_partitions[self.node_to_loc_map[dst]], 0))
 
     @functools.lru_cache(None)
     def _init_input_constraints(self):
@@ -260,7 +260,8 @@ class CVXPartitioner:
             for src_loc, destination_locs in push_map.items():
                 src_partition = self.node_to_partition_matrix[src_loc, :]
                 destination_vec = sum(self.node_to_partition_matrix[dst] for dst in destination_locs)
-                has_exports = self._project_to_bool(cvxpy.sum(cvxpy.maximum(destination_vec - src_partition * self.num_nodes, 0)))
+                has_exports = self._project_to_bool(
+                    cvxpy.sum(cvxpy.maximum(destination_vec - src_partition * self.num_nodes, 0)))
                 # has_exports && src_partition
                 exports.append(cvxpy.maximum(has_exports + src_partition - 1, 0))
 
@@ -413,7 +414,8 @@ class CVXPartitioner:
             # self._add_constraint(delays[self.node_to_loc_map[
             #     src]] + self.network_delay + self.delay_per_partition <= external_destination_delay)
             self._add_pseudo_constraint(
-                cvxpy.maximum(delays[self.node_to_loc_map[src]] + self.network_delay + self.delay_per_partition - external_destination_delay, 0)
+                cvxpy.maximum(delays[self.node_to_loc_map[
+                    src]] + self.network_delay + self.delay_per_partition - external_destination_delay, 0)
             )
 
         gaps = {
@@ -543,6 +545,15 @@ def partition_dummy(nodes, edges, constraint, pre_partitioning, opts):
             writer.writerow([node.node, node.node])
     print("Generate {}".format(opts.partition))
 
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
 
 def main():
     parser = argparse.ArgumentParser(description='Graph Partition')
@@ -551,10 +562,11 @@ def main():
 
     for opt, default in CVXPartitioner.OPTIONS:
         short_name = opt[0].lower()
-        parser.add_argument("-" + short_name, "--" + opt.lower(), type=bool, default=default,
+        parser.add_argument("-" + short_name, "--" + opt.lower(), type=str2bool, default=default,
                             help="Solver opt: {}".format(opt))
 
     opts, args = parser.parse_known_args()
+    print(opts, args)
 
     opts.node = os.path.join(opts.path, "node.csv")
     opts.edge = os.path.join(opts.path, "edge.csv")
