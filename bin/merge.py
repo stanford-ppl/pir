@@ -441,7 +441,7 @@ class CVXMerger:
         for pt, matrix in self.partition_matrices.items():
             # Just for type hinting
 
-            ignore = set()
+            ignore = set([])
             partitiontype: PartitionType = pt
             for constraint in partitiontype.limits:
                 if constraint.attribute_name in ignore:
@@ -462,7 +462,6 @@ class CVXMerger:
                     self._add_constraint(constraint.accepts(resultant))
                     continue
                 if isinstance(constraint, CustomCost):
-                    continue
                     method = getattr(self, "_init_custom_" + constraint.attribute_name)
                     method(constraint, matrix, self.node_to_loc_map[pt])
                     continue
