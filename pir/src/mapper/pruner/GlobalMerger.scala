@@ -48,7 +48,7 @@ trait GlobalMerging extends PIRTransformer with CUCostUtil with  MappingLogger {
 
   def getNewGlobs(globs:Iterable[GlobalContainer]) = {
     val newGlob = within(pirTop) { 
-      val (other,comp) = globs.partition { _.isInstanceOf[ComputePartitioner] }
+      val (comp,other) = globs.partition { _.isInstanceOf[ComputeContainer] }
       val toMirror = other.headOption.getOrElse(comp.head)
       mirrorAll(List(toMirror))(toMirror).asInstanceOf[GlobalContainer]
     }

@@ -152,6 +152,16 @@ def parsePirConf(log, conf, opts):
                 continue
             conf[key] = row['default'] if row['value'] == 'None' else row['value']
 
+def parseProgReport(log, conf, postfix, otps):
+    if not os.path.exists(log):
+        return
+    with open(log) as json_file:
+        data = json.load(json_file)
+    for k in data:
+        if k == "IR":
+            continue
+        conf["V" + k+postfix] = data[k]
+
 def applyHistFilter(history, fs, opts):
     for k in cond:
         if k in fs:
@@ -611,6 +621,8 @@ class Logger():
         self.gentst = os.path.join(self.appdir,"log/gentst.log")
         self.resreport = os.path.join(self.appdir,"pir/out/resource.csv")
         self.progreport = os.path.join(self.appdir,"pir/out/program.json")
+        self.progreport_alloc = os.path.join(self.appdir,"pir/out/program_alloc.json")
+        self.progreport_split = os.path.join(self.appdir,"pir/out/program_split.json")
         self.maketst = os.path.join(self.appdir,"log/maketst.log")
         self.runp2p = os.path.join(self.appdir,"log/runp2p.log")
         self.runhybrid = os.path.join(self.appdir,"log/runhybrid.log")
@@ -733,15 +745,9 @@ class Logger():
                 logs=[self.resreport],
             )
 
-        pattern = ["MC", "DAG", "PMU", "PCU"]
-        for pat in pattern:
-            parseLog(
-                conf,
-                "V" + pat, 
-                pat,
-                lambda lines, pat=pat: int(lines[0].split(": ")[1].split(",")[0].strip()),
-                logs=[self.progreport],
-            )
+        parseProgReport(self.progreport, conf, "", opts)
+        parseProgReport(self.progreport_alloc, conf, "-alloc", opts)
+        parseProgReport(self.progreport_split, conf, "-split", opts)
 
         parseLog(
             conf,

@@ -50,7 +50,6 @@ trait PIRApp extends PIR with Logging {
   lazy val prouteNodeGen = new PlastirouteNodeGen()
   lazy val dramTraceGen = new DRAMTraceCodegen()
   lazy val resReport = new ResourceReport()
-  lazy val progReport = new ProgramReport()
   lazy val igraphGen = new IgraphCodegen()
   //lazy val areaPowerStat = new AreaPowerStat()
   
@@ -91,7 +90,7 @@ trait PIRApp extends PIR with Logging {
     addPass(globalInsertion) ==>
     saveSession(buildPath(config.outDir,"pir1.ckpt")) ==>
     // ------ Load hardware constrain ----- 
-    addPass(enableMapping,progReport) ==>
+    addPass(enableMapping,new ProgramReport("program_alloc.json")) ==>
     addPass(initializer) ==>
     addPass(new ParamHtmlIRPrinter(s"param.html", pirenv.spadeParam)) ==>
     addPass(enableDot, new PIRGlobalDotGen(s"global7.dot")) ==>
@@ -110,6 +109,7 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, computePruner) ==>
     addPass(enableDot, new PIRGlobalDotGen(s"global10.dot")) ==>
     addPass(enableMapping, hardPruner) ==>
+    addPass(enableMapping,new ProgramReport("program_split.json")) ==>
     addPass(enableMerging, globalMerger) ==>
     addPass(enableDot, new PIRGlobalDotGen(s"global11.dot")) ==>
     addPass(enableMapping, dagPruner) ==>
@@ -124,7 +124,7 @@ trait PIRApp extends PIR with Logging {
     //addPass(enableVerboseDot, new PIRNetworkDotGen(s"net.dot"))
     saveSession(buildPath(config.outDir,"pir2.ckpt")) ==>
     // ------- Codegen  --------
-    addPass(enableMapping,progReport) ==>
+    addPass(enableMapping,new ProgramReport("program.json")) ==>
     addPass(enableMapping,resReport) ==>
     addPass(enableDot, new PIRGlobalDotGen(s"global.dot")) ==>
     addPass(runtimeAnalyzer).dependsOn(placerAndRouter) ==>
