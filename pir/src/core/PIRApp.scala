@@ -111,6 +111,7 @@ trait PIRApp extends PIR with Logging {
     addPass(enableDot, new PIRGlobalDotGen(s"global10.dot")) ==>
     addPass(enableMapping, hardPruner) ==>
     addPass(enableMerging, globalMerger) ==>
+    addPass(enableDot, new PIRGlobalDotGen(s"global11.dot")) ==>
     addPass(enableMapping, dagPruner) ==>
     addPass(enableMapping, matchPruner) ==>
     addPass(ctrlBlockInsert) ==>

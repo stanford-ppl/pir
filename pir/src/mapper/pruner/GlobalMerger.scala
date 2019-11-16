@@ -58,13 +58,15 @@ trait GlobalMerging extends PIRTransformer with CUCostUtil with  MappingLogger {
       }
     }
     free(globs)
+    val kcost = getCosts(newGlob)
+    dbg(s"Merge ${globs} into $newGlob")
+    dbg(s"kcost=$kcost")
     newGlob
   }
 
-
 }
 
-class GlobalMerger(implicit compiler:PIR) extends GlobalMerging with ExternMerger { self =>
+class GlobalMerger(implicit compiler:PIR) extends GlobalMerging with ExternMerger with TraversalMerger { self =>
 
   def merge[T](x:T):T = (x match {
     case x:TopMap => x.mapAll(field => merge[Any](field))
