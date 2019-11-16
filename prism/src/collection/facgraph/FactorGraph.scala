@@ -42,6 +42,10 @@ trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] { self:S =>
   def ++ (pairs:(Any,Any)):S = newInstance(freeMap ++ pairs, weights, usedMap)
   def - (pair:(K,V)):EOption[S] = newInstanceWith(freeMap - pair, weights, usedMap, Set(pair._1))
   def - (x:Any):S = newInstance(freeMap - x, weights, usedMap)
+  def -- (ks:Iterable[K]) = {
+    val newFreeMap = ks.foldLeft(freeMap) { case (freeMap,k) => freeMap - k }
+    newInstance(newFreeMap, weights, usedMap)
+  }
 
   /* ---------- usedMap ---------- */
   def mappedKeys = usedMap.keys
@@ -81,6 +85,9 @@ trait FactorGraphLike[K,V,S<:FactorGraphLike[K,V,S]] { self:S =>
       case l if l == List(classOf[FM], classOf[W], usedMap.getClass) => constructor.newInstance(freeMap, weights, usedMap)
     }).asInstanceOf[S]
   }
+  /*
+   * Check kk can still fit in new instance
+   * */
   protected def newInstanceWith(fm:FM, w:W, um:M, kk:Set[K]):EOption[S] = {
     val nfg = newInstance(fm, w, um)
     flatFold(kk, nfg) { case (nfg, k) => 

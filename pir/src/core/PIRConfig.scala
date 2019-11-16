@@ -8,6 +8,8 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("split-forward", default=true, info="Forward splitting traversal direction") 
   register("split-thread", default=1, info="Number of threads for external splitter") 
   register("merge", default=false, info="Enable merging")
+  register("merge-algo", default="bfs", info="Merging algorithm")
+  register("merge-forward", default=false, info="Forward merging traversal direction") 
 
   // Optimizations
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
@@ -51,6 +53,8 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def splitThread = option[Int]("split-thread")
   def splitForward = option[Boolean]("split-forward")
   def enableMerging = option[Boolean]("merge") && enableMapping
+  def mergeAlgo = option[String]("merge-algo")
+  def mergeForward = option[Boolean]("merge-forward")
   def deadicatedDAG = option[Boolean]("dedicated-dag")
   def enableRouteElim = option[Boolean]("rtelm")
   def aggressive_dce = option[Boolean]("ag-dce")

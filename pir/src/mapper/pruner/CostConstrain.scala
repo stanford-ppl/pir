@@ -8,9 +8,13 @@ import prism.collection.immutable._
 
 abstract class Cost[C:ClassTag:TypeTag] extends Product { self:C =>
   val ct = classTag[C]
+  type CT = C
   def fieldNames = caseFieldNames[C]
   def - (x:C):C
   def + (x:C):C
+  def add(x:Any):Cost[_] = x match {
+    case x:C => (this.+(x)).as[Cost[_]]
+  }
 }
 trait PrefixCost[C<:PrefixCost[C]] extends Cost[C] { self:C =>
   val prefix:Boolean
