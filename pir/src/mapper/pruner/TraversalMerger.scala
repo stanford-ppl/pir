@@ -39,16 +39,17 @@ trait TraversalMerger extends GlobalMerging with CSVPrinter with PartitionCost {
         inpart = inpart.slice(0,inpart.size-1)
       }
     }
-    val newGlob = if (inpart.size==1) inpart.head else {
-      getNewGlobs(inpart)
-    }
-    val kcost = getCosts(newGlob)
-    val vcosts = inpart.flatMap { k => x.freeValuesOf(k).filter { v => 
-        fit(kcost, getCosts(v)) 
-      }
-    }.toSet
-    val newMap = x -- inpart ++ (newGlob -> vcosts)
-    dbg(s"Split ${inpart.size}/${nodes.size}")
+    val newMap = if (inpart.size==1) {
+      val newGlob = getNewGlobs(inpart)
+      val kcost = getCosts(newGlob)
+      val vcosts = inpart.flatMap { k => x.freeValuesOf(k).filter { v => 
+          fit(kcost, getCosts(v)) 
+        }
+      }.toSet
+      val newMap = x -- inpart ++ (newGlob -> vcosts)
+      dbg(s"Split ${inpart.size}/${nodes.size}")
+      newMap
+    } else x
     if (config.mergeAlgo=="dfs") {
       val restSorted = scheduler.scheduleScope(rest.reverse).as[List[GlobalContainer]]
       merge(restSorted,newMap,scheduler)
