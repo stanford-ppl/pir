@@ -294,7 +294,7 @@ class CVXMerger:
             self.node_to_loc_map[partition_type] = loc_map = {node: i for i, node in enumerate(conforming_nodes)}
             num_conforming_nodes = len(conforming_nodes)
             self.partition_matrices[partition_type] = matrix = cvxpy.Variable(
-                name=partition_type.typename, shape=(num_conforming_nodes, min(int(num_conforming_nodes * 1.5), count)),
+                name=partition_type.typename, shape=(num_conforming_nodes, count),
                 boolean=True)
 
             for node in conforming_nodes:
@@ -440,13 +440,8 @@ class CVXMerger:
     def _init_partition_constraints(self):
         for pt, matrix in self.partition_matrices.items():
             # Just for type hinting
-
-            ignore = set([])
             partitiontype: PartitionType = pt
             for constraint in partitiontype.limits:
-                if constraint.attribute_name in ignore:
-                    print("Ignoring:", constraint.attribute_name)
-                    continue
                 if isinstance(constraint, HardCostAbstractMixin):
                     # These are probably better handled from the node perspective
                     continue
@@ -462,6 +457,7 @@ class CVXMerger:
                     self._add_constraint(constraint.accepts(resultant))
                     continue
                 if isinstance(constraint, CustomCost):
+                    continue
                     method = getattr(self, "_init_custom_" + constraint.attribute_name)
                     method(constraint, matrix, self.node_to_loc_map[pt])
                     continue
@@ -624,6 +620,9 @@ def main():
             reader = csv.DictReader(spec_count_file, delimiter=",")
             for name, count_str in next(reader).items():
                 partition_counts[partition_types[name]] = int(count_str)
+
+    for partition_type, count in partition_counts.items():
+        print("Partition Type:", partition_type.typename, count)
 
     with TimeContext("Node parsing"):
         nodes: typing.List[Node] = []

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import sys
 import os
 import csv
@@ -136,9 +135,9 @@ class CVXPartitioner:
     @functools.lru_cache(None)
     def objective(self):
         total = {
-            "partitions": (self.num_partitions, lambda: 0),
-            "retiming_nodes": (lambda: self.delay_gap()[0], lambda: (self._init_edge_deps(), 0)[1]),
-            "external_edges": (self.num_edges, lambda: 0)
+            "partitions": (lambda: 0, self.num_partitions),
+            "retiming_nodes": ( lambda: (self._init_edge_deps(), 0)[1], lambda: self.delay_gap()[0]),
+            "external_edges": (lambda: 0, self.num_edges)
         }
         to_print = []
         with TimeContext("Objective"):
@@ -147,7 +146,8 @@ class CVXPartitioner:
                 print(option_name, self.opts[option_name])
                 additional = func[self.opts[option_name]]()
                 objective += additional
-                to_print.append((option_name, additional))
+                if hasattr(additional, "value"):
+                    to_print.append((option_name, additional))
         for name, var in to_print:
             atexit.register(lambda x, y: print(x, y.value), name, var)
 
