@@ -39,7 +39,7 @@ trait TraversalMerger extends GlobalMerging with CSVPrinter with PartitionCost {
         inpart = inpart.slice(0,inpart.size-1)
       }
     }
-    val newMap = if (inpart.size==1) {
+    val newMap = if (inpart.size!=1) {
       val newGlob = getNewGlobs(inpart)
       val kcost = getCosts(newGlob)
       val vcosts = inpart.flatMap { k => x.freeValuesOf(k).filter { v => 
