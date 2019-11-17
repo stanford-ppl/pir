@@ -29,6 +29,8 @@ parser.add_argument('--pir_dir', default="{}/spatial/pir".format(os.environ['HOM
 parser.add_argument('-f', '--filter', dest='filter_str', action='append', help='Filter apps')
 parser.add_argument('-m', '--message', default='', help='Additional fields to print in message')
 parser.add_argument('-pf', '--print_fields', default=False, action='store_true', help='Print fields')
+parser.add_argument('-cg', '--clean_gen', default=False, action='store_true', 
+    help='Clean generated directory')
 
 def to_conf(tab, **kws):
     tab = lookup(tab, drop=False, **kws)
@@ -258,6 +260,9 @@ class Logger():
             opts.gendir = path
             opts.backend = getBackends(opts)
 
+        if opts.clean_gen:
+            self.clean_gen()
+
         for i in range(len(opts.backend)):
             if 'Tst' in opts.backend[i]:
                 opts.project = backend.split("_")[1]
@@ -265,6 +270,42 @@ class Logger():
 
         setFilterRules(opts)
         self.show_gen()
+
+    def clean_gen(self):
+        toremove = []
+        def addremove(path,approved):
+            toremove.append(path)
+            if len(toremove) > 200 and not approved:
+                for path in toremove[0:200]:
+                    print(path)
+                ans = input('remove? y/n ')
+                if ans == 'y':
+                    return True
+                else:
+                    exit()
+            return approved
+        approved=False
+        for (dirpath, dirnames, filenames) in os.walk(self.opts.gendir):
+            for filename in filenames:
+                path = os.sep.join([dirpath, filename])
+                if (fnmatch.fnmatch(filename,"00*_*.log")):
+                    approved = addremove(path,approved)
+                # print(path)
+            for dir in dirnames:
+                path = os.sep.join([dirpath, dir])
+                if dir in ['target','info']:
+                    approved = addremove(path,approved)
+                if fnmatch.fnmatch(path, "*/pir/out/dot"):
+                    approved = addremove(path,approved)
+                if fnmatch.fnmatch(path, "*/pir/out/pir*.ckpt"):
+                    approved = addremove(path,approved)
+
+        self.opts.force = True
+        ans = input('remove {} files? y/n '.format(len(toremove)))
+        if ans == 'y':
+            for path in toremove:
+                remove(path,self.opts)
+        exit()
 
     def load_history(self, logFilter=lambda logs: logs):
         opts = self.opts
