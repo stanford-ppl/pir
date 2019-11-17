@@ -8,6 +8,7 @@ import numpy as np
 import math
 import fnmatch
 import json
+import traceback
 
 from util import *
 
@@ -115,7 +116,11 @@ def parseLog(conf, key, patterns, parseLambda, default=None, logs=[], prefix=Fal
                 conf[mykey] = parseLambda(alllines)
             except Exception as e: 
                 print(alllines)
-                raise e
+                traceback.print_exc()
+                print(log)
+                removed = remove(log, False)
+                if not removed:
+                    exit()
 
 def parse_proutesummary(log, conf, opts):
     if not os.path.exists(log): return
@@ -154,11 +159,20 @@ def parsePirConf(log, conf, opts):
                 continue
             conf[key] = row['default'] if row['value'] == 'None' else row['value']
 
-def parseProgReport(log, conf, postfix, otps):
+def parseProgReport(log, conf, postfix, opts):
     if not os.path.exists(log):
         return
-    with open(log) as json_file:
-        data = json.load(json_file)
+    try:
+        with open(log) as json_file:
+                data = json.load(json_file)
+    except Exception as e:
+        traceback.print_exc()
+        print(log)
+        removed = remove(log, opts.force)
+        if not removed:
+            exit()
+        else:
+            return
     for k in data:
         if k == "IR":
             continue
@@ -314,7 +328,7 @@ class Logger():
         ans = input('remove {} files? y/n '.format(len(toremove)))
         if ans == 'y':
             for path in toremove:
-                remove(path,self.opts)
+                remove(path,self.opts.force)
         exit()
 
     def load_history(self, logFilter=lambda logs: logs):
@@ -457,15 +471,15 @@ class Logger():
     
         for p in reruns:
             if p == 'genpir':
-                remove(self.AccelMain, opts)
+                remove(self.AccelMain, opts.force)
             elif p == 'runpsim':
-                remove(self.gentrace, opts)
-                remove(self.genpsim, opts)
-                remove(self.runpsim, opts)
+                remove(self.gentrace, opts.force)
+                remove(self.genpsim, opts.force)
+                remove(self.runpsim, opts.force)
             elif p == 'all':
-                remove(self.appdir, opts)
+                remove(self.appdir, opts.force)
             else:
-                remove(getattr(self, p), opts)
+                remove(getattr(self, p), opts.force)
         return reruns
 
     def print_message(self, conf):
