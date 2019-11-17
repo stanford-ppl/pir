@@ -429,7 +429,7 @@ class Logger():
                 numRun += 1
                 if conf['succeeded']: numSucc += 1
             self.summarize(backend, confs)
-            if numRun != 0:
+            if numRun != 0 and 'apponly' not in opts.message:
                 print('Succeeded {} / {} ({:0.2f}) %'.format(numSucc, numRun, numSucc*100.0/numRun))
 
 
@@ -446,7 +446,7 @@ class Logger():
             # print(conf['runpir_err'].strip())
             # reruns.append('genpir')
         # if conf['runtst_err'] is not None and 'Assertion fail' in conf['runtst_err']:
-            # reruns.append('gentst')
+            # rerunr.append('gentst')
             # reruns.append('maketst')
             # reruns.append('runtst')
         # if not conf['succeeded']:
@@ -519,6 +519,8 @@ class Logger():
 
     def getMessage(self, conf, isHistory=False):
         opts = self.opts
+        if opts.message=='apponly':
+            return conf['app']
         msg = []
         msg.append(conf['backend'])
         msg.append(conf['app'])
@@ -683,7 +685,8 @@ class Logger():
         parseLog(
             conf,
             'err', 
-            ["[bug]", "error", "Caught exception", "fail", "Exception", "fault", "terminated by signal"],
+            ["[bug]", "error", "Caught exception", "fail", "Exception", "fault", 
+                "terminated by signal", "Command exited with non-zero status"],
             lambda lines: lines[0],
             logs=[self.runp2p, self.runhybrid, self.maketst, self.runproute, self.gentst]
         )
