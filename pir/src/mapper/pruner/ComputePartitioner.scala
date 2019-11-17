@@ -6,7 +6,7 @@ import pir.pass._
 import prism.graph._
 import prism.collection.immutable._
 
-trait ComputePartitioner extends CUPruner with ExternComputePartitioner with LocalRetimer with GlobalRetimer { self =>
+trait ComputePartitioner extends CUPruner with ExternComputePartitioner with LocalRetimer with GlobalRetimer with PartitionCost { self =>
 
   var splitAlgo:String = "bfs"
   private def scheduler = splitAlgo match {
@@ -120,57 +120,10 @@ trait ComputePartitioner extends CUPruner with ExternComputePartitioner with Loc
     //case n => true
   }
 
-  override protected def compCost(x:Any, ct:ClassTag[_]) = {
-    switch[InputCost](x,ct) { 
-      case x: Partition => 
-        val deps = x.deps.filter { d =>
-          include(d) || d.isInstanceOf[LocalOutAccess]
-        }.distinct.toList
-        //dbg(s"deps=$deps")
-        val ins = deps
-        val (vins, sins) = ins.partition { isVec(_) }
-        InputCost(sins.size, vins.size).scheduledBy(x.scope.size)
-    } orElse switch[OutputCost](x,ct) { 
-      case x: Partition => 
-        val depedFroms = x.depedsTo.keys.toSeq
-        //dbg(s"depedFroms=${depedFroms.toList}")
-        val outs = depedFroms
-        val (vouts, souts) = outs.partition { isVec(_) }
-        OutputCost(souts.size, vouts.size).scheduledBy(x.scope.size)
-    } orElse switch[StageCost](x,ct) { 
-      case x: Partition => 
-        StageCost(x.scope.collect{ case op:OpNode => op }.size)
-    } getOrElse super.compCost(x, ct)
+  override def isPartitionDep(out:Output[PIRNode]) = {
+    val dep = out.src
+    include(dep) || dep.isInstanceOf[LocalOutAccess]
   }
 
-}
-
-class Partition(val scope:List[PIRNode]) {
-  var delay:Option[Int] = None
-  override def toString = s"${super.toString}(${scope.size},delay=$delay)"
-  def deps:Seq[PIRNode] = {
-    val descendents = scope.flatMap { n => n.descendentTree }
-    val edges = descendents.toIterator.flatMap { _.localEdges }
-    val ins = edges.collect { case i:Input[PIRNode] => i }
-    ins.flatMap { in =>
-      in.connected.map { _.src }
-      .filterNot { descendents.contains } 
-    }.toSeq.distinct
-  }
-
-  def depedsTo:Map[PIRNode, Seq[PIRNode]] = {
-    val descendents = scope.flatMap { n => n.descendentTree }
-    val edges = descendents.toIterator.flatMap { _.localEdges }
-    val outs = edges.collect { case i:Output[PIRNode] => i }
-    outs.flatMap { out =>
-      out.connected.map { _.src }
-      .filterNot { descendents.contains } 
-      .map { deped => (deped, out.src) } 
-    }.toSeq.groupBy { _._2 }.mapValues { _.map { _._1 } }
-  }
-
-}
-object Partition {
-  def unapply(x:Partition):Option[List[PIRNode]] = Some(x.scope)
 }
 

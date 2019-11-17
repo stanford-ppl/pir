@@ -7,10 +7,7 @@ import spade.param._
 import prism.codegen._
 import prism.graph._
 
-class ProgramReport(implicit design:PIR) extends Report with PIRTraversal with JsonCodegen with ChildFirstTraversal with UnitTraversal {
-
-  val fileName = "program.json"
-  override val denseFormat = false
+class ProgramReport(val fileName:String)(implicit design:PIR) extends Report with PIRTraversal with JsonCodegen with ChildFirstTraversal with UnitTraversal {
 
   override def runPass = {
     val globals = pirTop.collectChildren[GlobalContainer]

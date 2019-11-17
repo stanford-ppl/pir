@@ -81,7 +81,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
         }
       }
 
-    case n@Shuffle(filled) =>
+    case n@Shuffle(filled,aid) =>
       emitToVec(n.from) { i => n.from.singleConnected.get.qidx(i) }
       emitToVec(n.to) { i => n.to.singleConnected.get.qidx(i) }
       emitToVec(n.base) { i => n.base.singleConnected.get.qidx(i) }
