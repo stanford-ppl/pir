@@ -158,6 +158,12 @@ def parsePirConf(log, conf, opts):
             if 'home' in key or key in ['ckpt','path']:
                 continue
             conf[key] = row['default'] if row['value'] == 'None' else row['value']
+            if conf[key] == 'true':
+                conf[key] = True
+            elif conf[key] == 'false':
+                conf[key] = False
+            elif conf[key].isdigit():
+                conf[key] = int(conf[key])
 
 def parseProgReport(log, conf, postfix, opts):
     if not os.path.exists(log):
@@ -827,6 +833,13 @@ class Logger():
             'pirArgs', 
             'args=[',
             lambda lines: lines[-1].split("args=[")[-1].split("]")[0],
+            logs=[self.gentst],
+        )
+        parseLog(
+            conf,
+            'mergeTime_ms', 
+            'GlobalMerger in',
+             lambda lines: float(lines[0].split("in ")[1].split("ms")[0].strip()),
             logs=[self.gentst],
         )
         
