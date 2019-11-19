@@ -457,7 +457,6 @@ class CVXMerger:
                     self._add_constraint(constraint.accepts(resultant))
                     continue
                 if isinstance(constraint, CustomCost):
-                    continue
                     method = getattr(self, "_init_custom_" + constraint.attribute_name)
                     method(constraint, matrix, self.node_to_loc_map[pt])
                     continue
