@@ -525,9 +525,10 @@ class CVXMerger:
     def utilization(self):
         total = 0
         for partition_type, matrix in self.partition_matrices.items():
-            max_count = self.partition_counts[partition_type]
+            # max_count = self.partition_counts[partition_type]
             currently_active = cvxpy.sum(matrix)
-            total += currently_active / max_count
+            total += currently_active
+            # total += currently_active / max_count
         return total
 
     @property
