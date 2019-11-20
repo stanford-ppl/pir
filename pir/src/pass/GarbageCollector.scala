@@ -49,9 +49,9 @@ trait GarbageCollector { self:PIRTransformer =>
   var depDupHasRun = false
   var dramBarrierInsertionHasRun = false
 
-  def free(nodes:PIRNode):Unit = free(List(nodes))
+  def free(nodes:PIRNode):List[PIRNode] = free(List(nodes))
 
-  def free(nodes:Iterable[PIRNode]):Unit = dbgblk(s"free(${nodes.map{dquote(_)}})"){
+  def free(nodes:Iterable[PIRNode], assertDead:Iterable[PIRNode]=Nil):List[PIRNode] = dbgblk(s"free(${nodes.map{dquote(_)}})"){
     depDupHasRun = self.as[PIRPass].compiler.hasRunAll[DependencyDuplication]
     dramBarrierInsertionHasRun = self.as[PIRPass].compiler.hasRunAll[DRAMBarrierInsertion]
     val ns = nodes.flatMap { n => 
@@ -67,7 +67,15 @@ trait GarbageCollector { self:PIRTransformer =>
     collector.resetTraversal
     dead ++= collector.traverseNodes(ns)
     dbg(s"liveNodes:${states.liveNodes}")
+    assertDead.foreach { n => 
+      if (!dead.contains(n)) {
+        val liveOut = visitOut(n)
+        val mustLive = n.descendentTree.filter { isLive(_) == Some(true) }
+        bug(s"assert dead ${n} still alive! out=${liveOut} mustLive=${mustLive}")
+      }
+    }
     removeNodes(dead)
+    dead
   }
 
   private def mustLive(n:PIRNode) = {
@@ -83,7 +91,7 @@ trait GarbageCollector { self:PIRTransformer =>
     noLiveOut
   }
 
-  def free(input:Input[PIRNode]):Unit = dbgblk(s"free(${dquote(input)})") {
+  def free(input:Input[PIRNode]):List[PIRNode] = dbgblk(s"free(${dquote(input)})") {
     val ns = input.neighbors
     input.disconnect
     free(ns)

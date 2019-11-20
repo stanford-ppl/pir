@@ -4,11 +4,16 @@ import spatial.lib.ML._
 class SRAMSplit_0 extends SRAMSplit
 class SRAMSplit_1 extends SRAMSplit(ip=16, op=1, N=4*64*1024)
 class SRAMSplit_2 extends SRAMSplit(ip=16, op=3, N=4*64*1024)
+class SRAMSplit_3 extends SRAMSplit(ip=16, mp=2, op=3, N=8*64*1024)
+class SRAMSplit_4 extends SRAMSplit(ip=16, mp=2, op=3, N=8*64*1024) {
+  override def pirArgs = super.pirArgs + " --bcread"
+}
 
 @spatial abstract class SRAMSplit(
   N:scala.Int = 4*64*1024,
-  op:scala.Int = 1,
   ts:scala.Int = 64,
+  op:scala.Int = 1,
+  mp:scala.Int = 1,
   ip:scala.Int = 1
 ) extends SpatialTest {
   type T = Int
@@ -23,11 +28,14 @@ class SRAMSplit_2 extends SRAMSplit(ip=16, op=3, N=4*64*1024)
           sram(i+ii) = i + ii
         }
       }
-      Reduce(out)(N by ts par op){i =>
+      Reduce(out)(N by 1 par op){i =>
         val acc = Reg[T]
-        Reduce(acc)(ts by 1 par ip) { ii =>
-          sram(i+ii)
-        } { _ + _ }
+        Reduce(acc)(mp by 1 par mp) { j =>
+          val accI = Reg[T]
+          Reduce(accI)(ip by 1 par ip) { k =>
+            sram(i)
+          } { _ + _ }
+        } { max(_,_) }
         acc.value
       }{_+_}
     }

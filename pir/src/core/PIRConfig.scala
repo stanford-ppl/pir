@@ -5,34 +5,58 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   /* ------------------- Compiler --------------------  */
   register("split", default=true, info="Enable splitting")
   register("split-algo", default="dfs", info="Splitting algorithm. [dfs, bfs, solver]") 
+  register("split-forward", default=true, info="Forward splitting traversal direction") 
   register("split-thread", default=1, info="Number of threads for external splitter") 
-  register("dupra", default=false, info="Duplicate read address calculation in receiver CU")
   register("merge", default=false, info="Enable merging")
+  register("merge-algo", default="bfs", info="Merging algorithm")
+  register("merge-forward", default=false, info="Forward merging traversal direction") 
+
+  // Optimizations
+  register("ag-dce", default=true, info="Enable aggressive dead code elimination")
+  register("dupra", default=false, info="Duplicate read address calculation in receiver CU")
+  register("bcread", default=false, info="Enable broadcast read")
+  register("mdone", default=false, info="Generate done from merged access")
+  register("constprop", default=true, info="Enable constant propogation")
+  register("pracc", default=true, info="Enable pipeline register accumulation lowering")
+  register("sr", default=true, info="Enable strength reduction")
+  register("lrange", default=true, info="Enable loop range analysis")
+  register("rtelm", default=true, info="Enable route through elimination")
+
+  register("retime-local", default=false, info="Enable local retiming")
+  register("retime-glob", default=false, info="Enable global retiming")
+  register("retime-exout", default=false, info="Enable retiming of external output")
+  register("retime-buffer-only", default=false, info="Only allow using input buffers of CUs for retiming")
+
   register("mapping", default=true, info="Enable mapping")
   register("arch", default="MyDesign", info="Default architecture for mapping")
-  register("ag-dce", default=true, info="Enable aggressive dead code elimination")
-  register("rt-elm", default=true, info="Enable route through elimination")
   register("stat", default=false, info="Printing statistics")
   register("igraph", default=false, info="Enable igraph codegen")
   register("dedicated-dag", default=false, info="Force DRAM AG are only used to map DRAM Address Calculation")
   register("module", default=false, info="Generate the app as a module")
-  register("retime-local", default=false, info="Enable local retiming")
-  register("retime-glob", default=false, info="Enable global retiming")
-  register("retime-buffer-only", default=false, info="Only allow using input buffers of CUs for retiming")
   register[String]("pir-home", default=sys.env.get("PIR_HOME"), info="PIR Home")
 
   def arch = option[String]("arch")
   def dupReadAddr = option[Boolean]("dupra")
+  def mergeDone = option[Boolean]("mdone")
   def enableLocalRetiming = option[Boolean]("retime-local")
   def enableGlobalRetiming = option[Boolean]("retime-glob")
+  def enableRetimeExout = option[Boolean]("retime-exout")
+  def enableConstProp = option[Boolean]("constprop")
+  def enablePipeAccum = option[Boolean]("pracc")
+  def enableStrengthReduce = option[Boolean]("sr")
+  def enableRangeAnalysis = option[Boolean]("lrange")
   def retimeBufferOnly = option[Boolean]("retime-buffer-only")
   def enableMapping = option[Boolean]("mapping")
   def enableSplitting = option[Boolean]("split") && enableMapping
+  def enableBroadcastRead = option[Boolean]("bcread")
   def splitAlgo = option[String]("split-algo")
   def splitThread = option[Int]("split-thread")
+  def splitForward = option[Boolean]("split-forward")
   def enableMerging = option[Boolean]("merge") && enableMapping
+  def mergeAlgo = option[String]("merge-algo")
+  def mergeForward = option[Boolean]("merge-forward")
   def deadicatedDAG = option[Boolean]("dedicated-dag")
-  def enableRouteElim = option[Boolean]("rt-elm")
+  def enableRouteElim = option[Boolean]("rtelm")
   def aggressive_dce = option[Boolean]("ag-dce")
   def printStat = option[Boolean]("stat")
   def enableIgraph = option[Boolean]("igraph")
@@ -131,20 +155,13 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def enableSimDebug = option[Boolean]("debug-tst")
 
   /* ------------------- Debugging --------------------  */
-  register("bp-split", default=false, info="Enable break point for splitting")
-  register("bp-pr", default=false, info="Enable break point for place and route")
   register("dot", default=false, info="Enable dot codegen")
   register("vdot", default=false, info="Enable verbose dot codegen")
   register("fast", default=false, info="Disable debugging to make running fast")
-  register("snapshot", default=false, info="Enable placement snapshot")
-  register("snapint", default=10, info="Placement snapshot interval")
 
   def fast:Boolean = option[Boolean]("fast")
   override def save = !fast & super.save
-  override def debug = !fast & super.debug
-  def enableSplitBreakPoint = debug && option[Boolean]("bp-split")
-  def enablePlaceAndRouteBreakPoint = debug && option[Boolean]("bp-pr")
-  def enableSnapshot = debug && option[Boolean]("snapshot")
+  //override def debug = !fast & super.debug
   def enableDot:Boolean = enableCodegen && option[Boolean]("dot")
   def enableVerboseDot:Boolean = enableDot && option[Boolean]("vdot") && !fast
 }

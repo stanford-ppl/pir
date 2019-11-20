@@ -7,6 +7,8 @@ from pandautil import *
 import numpy as np
 import math
 import fnmatch
+import json
+import traceback
 
 from util import *
 
@@ -19,12 +21,17 @@ parser.add_argument('-G', '--isGen', dest="path_type", action='store_const', con
 parser.add_argument('-s', '--summarize', action='store_true', default=False, help='summarize log into csv')
 parser.add_argument('-d', '--diff', dest='show_diff', action='store_true', default=False, help='showing difference')
 parser.add_argument('-H', '--history', dest='history_depth', type=int, default=0, help='showing history with depth')
+parser.add_argument('-i', '--history_id', type=int, help='showing ith history in reverse order')
+parser.add_argument('-l', '--log', type=str, help='showing log by name')
+parser.add_argument('-wh', '--walk_history', default=False, action='store_true', help='Walk through history')
 parser.add_argument('--logdir', default="{}/spatial/pir/logs/".format(os.environ['HOME']))
 parser.add_argument('--spatial_dir', default="{}/spatial/".format(os.environ['HOME']))
 parser.add_argument('--pir_dir', default="{}/spatial/pir".format(os.environ['HOME']))
 parser.add_argument('-f', '--filter', dest='filter_str', action='append', help='Filter apps')
 parser.add_argument('-m', '--message', default='', help='Additional fields to print in message')
 parser.add_argument('-pf', '--print_fields', default=False, action='store_true', help='Print fields')
+parser.add_argument('-cg', '--clean_gen', default=False, action='store_true', 
+    help='Clean generated directory')
 
 def to_conf(tab, **kws):
     tab = lookup(tab, drop=False, **kws)
@@ -109,22 +116,13 @@ def parseLog(conf, key, patterns, parseLambda, default=None, logs=[], prefix=Fal
                 conf[mykey] = parseLambda(alllines)
             except Exception as e: 
                 print(alllines)
-                raise e
+                traceback.print_exc()
+                print(log)
+                removed = remove(log, False)
+                if not removed:
+                    exit()
 
 def parse_proutesummary(log, conf, opts):
-    conf["DynHopsVec"] = None
-    conf["DynHopsScal"] = None
-    conf["StatHopsVec"] = None
-    conf["StatHopsScal"] = None
-    conf["Score"] = None
-    conf["NetVC"] = None
-    conf["TotPkts"] = None
-    conf["LinkLim"] = None
-    conf["InjectLim"] = None
-    conf["EjectLim"] = None
-    conf["LongRoute"] = None
-    conf["Q0Pct"] = None
-    conf["Q0Lim"] = None
     if not os.path.exists(log): return
     with open(log, "r") as f:
         reader = csv.DictReader(f)
@@ -132,6 +130,59 @@ def parse_proutesummary(log, conf, opts):
             for k in row:
                 if k in conf:
                     conf[k] = row[k]
+
+def parseSimState(log, conf, opts):
+    if not os.path.exists(log):
+        return
+    with open(log) as json_file:
+        data = json.load(json_file)
+        active = []
+        for m in data['modules']:
+            if "Context"  in m:
+                active.append(int(data['modules'][m]['active']))
+        cycle = data['cycle']
+        maxActive = max(active)
+        avgActive = float(np.mean(active))
+        conf["maxActive"] = maxActive * 100.0 / cycle
+        conf["avgActive"] = avgActive * 100.0 / cycle
+
+def parsePirConf(log, conf, opts):
+    if not os.path.exists(log):
+        return
+    with open(log, "r") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            if row['default'] == 'None' and row['value'] == 'None':
+                continue
+            key = row['key']
+            if 'home' in key or key in ['ckpt','path']:
+                continue
+            conf[key] = row['default'] if row['value'] == 'None' else row['value']
+            if conf[key] == 'true':
+                conf[key] = True
+            elif conf[key] == 'false':
+                conf[key] = False
+            elif conf[key].isdigit():
+                conf[key] = int(conf[key])
+
+def parseProgReport(log, conf, postfix, opts):
+    if not os.path.exists(log):
+        return
+    try:
+        with open(log) as json_file:
+                data = json.load(json_file)
+    except Exception as e:
+        traceback.print_exc()
+        print(log)
+        removed = remove(log, opts.force)
+        if not removed:
+            exit()
+        else:
+            return
+    for k in data:
+        if k == "IR":
+            continue
+        conf["V" + k+postfix] = data[k]
 
 def applyHistFilter(history, fs, opts):
     for k in cond:
@@ -209,18 +260,20 @@ class Logger():
     def __init__(self, args=None):
         (opts, args) = parser.parse_known_args(args=args)
         self.opts = opts
-        opts.show_history = opts.history_depth > 0
+        opts.show_history = opts.history_depth > 0 or \
+                            opts.history_id is not None or \
+                            opts.log is not None
 
-        if opts.show_diff or opts.show_history:
-            self.load_history()
         if opts.print_fields:
             fields = sorted(opts.Gistory.columns.values)
             for f in fields:
                 print(f)
             return
-        if opts.show_history:
-            self.show_history()
-            return
+
+        self.show_history()
+
+        if opts.show_diff:
+            self.load_history(logFilter = lambda logs: logs[:22])
 
         path = opts.path.rstrip('/')
         if opts.path_type == "app":
@@ -237,6 +290,9 @@ class Logger():
             opts.gendir = path
             opts.backend = getBackends(opts)
 
+        if opts.clean_gen:
+            self.clean_gen()
+
         for i in range(len(opts.backend)):
             if 'Tst' in opts.backend[i]:
                 opts.project = backend.split("_")[1]
@@ -245,16 +301,53 @@ class Logger():
         setFilterRules(opts)
         self.show_gen()
 
-    def load_history(self):
+    def clean_gen(self):
+        toremove = []
+        def addremove(path,approved):
+            toremove.append(path)
+            if len(toremove) > 200 and not approved:
+                for path in toremove[0:200]:
+                    print(path)
+                ans = input('remove? y/n ')
+                if ans == 'y':
+                    return True
+                else:
+                    exit()
+            return approved
+        approved=False
+        for (dirpath, dirnames, filenames) in os.walk(self.opts.gendir):
+            for filename in filenames:
+                path = os.sep.join([dirpath, filename])
+                if (fnmatch.fnmatch(filename,"00*_*.log")):
+                    approved = addremove(path,approved)
+                # print(path)
+            for dir in dirnames:
+                path = os.sep.join([dirpath, dir])
+                if dir in ['target','info']:
+                    approved = addremove(path,approved)
+                if fnmatch.fnmatch(path, "*/pir/out/dot"):
+                    approved = addremove(path,approved)
+                if fnmatch.fnmatch(path, "*/pir/out/pir*.ckpt"):
+                    approved = addremove(path,approved)
+
+        self.opts.force = True
+        ans = input('remove {} files? y/n '.format(len(toremove)))
+        if ans == 'y':
+            for path in toremove:
+                remove(path,self.opts.force)
+        exit()
+
+    def load_history(self, logFilter=lambda logs: logs):
         opts = self.opts
         logs = os.listdir(opts.logdir)
-        logs = sorted(logs, reverse = True)[:22]
-        # print(logs)
-
+        logs = sorted(logs, reverse = True)
+        logs = logFilter(logs)
+        opts.logs = logs
         history = None
         for log in logs:
             tab = pd.read_csv(opts.logdir + log, header=0)
             tab['time'] = os.path.getmtime(opts.logdir + log)
+            tab['log'] = log
             if history is None:
                 history = tab
             else:
@@ -265,10 +358,10 @@ class Logger():
         else:
             self.history = history
 
-    def show_history(self):
+    def print_history(self, logFilter):
         opts = self.opts
-        if not opts.show_history: return
 
+        self.load_history(logFilter)
         history = self.history
 
         # diffkey = 'succeeded'
@@ -290,13 +383,36 @@ class Logger():
                 mask.append(any([fnmatch.fnmatch(app, pat) for pat in opts.app]))
             history = history[mask]
 
-        history = history.groupby(["project", "app", "backend"]).apply(lambda x:
-                x.sort_values(["time"]).tail(opts.history_depth))
+
+        if opts.history_depth>0:
+            history = history.groupby(["project", "app", "backend"]).apply(lambda x: x.sort_values(["time"]).tail(opts.history_depth))
+        else:
+            history = history.sort_values(["project", "app", "backend"])
 
         if history.shape[0] > 0:
             for idx, row in history.iterrows():
                 pconf = to_conf(row)
                 print(self.getMessage(pconf,isHistory=True))
+        
+        for log in opts.logs:
+            print(log)
+
+    def show_history(self):
+        opts = self.opts
+        if opts.history_id is not None:
+            self.print_history(logFilter=lambda logs: [logs[opts.history_id]])
+            exit()
+        elif opts.log is not None:
+            self.print_history(logFilter=lambda logs: [opts.log])
+            exit()
+        elif opts.walk_history:
+            nlogs = len(os.listdir(opts.logdir))
+            for i in range(nlogs):
+                self.print_history(logFilter=lambda logs: [logs[i]])
+                ans = input('[{}] continue? '.format(i))
+                if ans != 'y' and ans !='n':
+                    exit()
+            exit()
 
     def show_gen(self):
         opts = self.opts
@@ -333,7 +449,7 @@ class Logger():
                 numRun += 1
                 if conf['succeeded']: numSucc += 1
             self.summarize(backend, confs)
-            if numRun != 0:
+            if numRun != 0 and 'apponly' not in opts.message:
                 print('Succeeded {} / {} ({:0.2f}) %'.format(numSucc, numRun, numSucc*100.0/numRun))
 
 
@@ -350,7 +466,7 @@ class Logger():
             # print(conf['runpir_err'].strip())
             # reruns.append('genpir')
         # if conf['runtst_err'] is not None and 'Assertion fail' in conf['runtst_err']:
-            # reruns.append('gentst')
+            # rerunr.append('gentst')
             # reruns.append('maketst')
             # reruns.append('runtst')
         # if not conf['succeeded']:
@@ -361,15 +477,15 @@ class Logger():
     
         for p in reruns:
             if p == 'genpir':
-                remove(self.AccelMain, opts)
+                remove(self.AccelMain, opts.force)
             elif p == 'runpsim':
-                remove(self.gentrace, opts)
-                remove(self.genpsim, opts)
-                remove(self.runpsim, opts)
+                remove(self.gentrace, opts.force)
+                remove(self.genpsim, opts.force)
+                remove(self.runpsim, opts.force)
             elif p == 'all':
-                remove(self.appdir, opts)
+                remove(self.appdir, opts.force)
             else:
-                remove(getattr(self, p), opts)
+                remove(getattr(self, p), opts.force)
         return reruns
 
     def print_message(self, conf):
@@ -423,6 +539,8 @@ class Logger():
 
     def getMessage(self, conf, isHistory=False):
         opts = self.opts
+        if opts.message=='apponly':
+            return conf['app']
         msg = []
         msg.append(conf['backend'])
         msg.append(conf['app'])
@@ -430,6 +548,8 @@ class Logger():
     
         for f in opts.message.split(","):
             ans = get(conf,f)
+            if (type(ans) == float):
+                ans = round(ans,1)
             if ans is None: continue
             msg.append(cstr(CYAN, f + ':' + str(ans)))
     
@@ -506,13 +626,13 @@ class Logger():
     
         printtst('runhybrid')
 
-        if isHistory:
-            pir_sha = get(conf,'pir_sha')
+        # if isHistory:
+            # pir_sha = get(conf,'pir_sha')
             # pirmsg = get_sha_msg(pir_sha, opts.pir_dir)
-            msg.append(conf['spatial_sha'])
-            msg.append(pir_sha)
+            # msg.append(conf['spatial_sha'])
+            # msg.append(pir_sha)
             # msg.append(pirmsg)
-            msg.append(conf['time'])
+            # msg.append(conf['time'])
 
         return ' '.join([str(m) for m in msg])
 
@@ -535,8 +655,11 @@ class Logger():
         summary_path = self.get_summary_path(confs[0])
         # create new csv
         conf = confs[0]
+        keys = set([])
+        for conf in confs:
+            keys.update(conf.keys())
         with open(summary_path, "w") as f:
-            summary = csv.DictWriter(f, delimiter=',', fieldnames=conf.keys())
+            summary = csv.DictWriter(f, delimiter=',', fieldnames=keys)
             summary.writeheader()
             for conf in confs:
                 summary.writerow(conf)
@@ -561,10 +684,14 @@ class Logger():
         self.gentst = os.path.join(self.appdir,"log/gentst.log")
         self.resreport = os.path.join(self.appdir,"pir/out/resource.csv")
         self.progreport = os.path.join(self.appdir,"pir/out/program.json")
+        self.progreport_alloc = os.path.join(self.appdir,"pir/out/program_alloc.json")
+        self.progreport_split = os.path.join(self.appdir,"pir/out/program_split.json")
         self.maketst = os.path.join(self.appdir,"log/maketst.log")
         self.runp2p = os.path.join(self.appdir,"log/runp2p.log")
         self.runhybrid = os.path.join(self.appdir,"log/runhybrid.log")
         self.p2pstat = os.path.join(self.appdir,"log/p2pstat.log")
+        self.simstat = os.path.join(self.appdir,"tungsten/logs/state.json")
+        self.pirconf = os.path.join(self.appdir,"pir/out/config.csv")
         parse_genpir(self.AccelMain, self.logpath, conf, opts)
         parse_proutesummary(self.prouteSummary, conf, opts)
 
@@ -578,7 +705,8 @@ class Logger():
         parseLog(
             conf,
             'err', 
-            ["[bug]", "error", "Caught exception", "fail", "Exception", "fault", "terminated by signal"],
+            ["[bug]", "error", "Caught exception", "fail", "Exception", "fault", 
+                "terminated by signal", "Command exited with non-zero status"],
             lambda lines: lines[0],
             logs=[self.runp2p, self.runhybrid, self.maketst, self.runproute, self.gentst]
         )
@@ -681,15 +809,9 @@ class Logger():
                 logs=[self.resreport],
             )
 
-        pattern = ["MC", "DAG", "PMU", "PCU"]
-        for pat in pattern:
-            parseLog(
-                conf,
-                "V" + pat, 
-                pat,
-                lambda lines, pat=pat: int(lines[0].split(": ")[1].split(",")[0].strip()),
-                logs=[self.progreport],
-            )
+        parseProgReport(self.progreport, conf, "", opts)
+        parseProgReport(self.progreport_alloc, conf, "-alloc", opts)
+        parseProgReport(self.progreport_split, conf, "-split", opts)
 
         parseLog(
             conf,
@@ -711,6 +833,13 @@ class Logger():
             'pirArgs', 
             'args=[',
             lambda lines: lines[-1].split("args=[")[-1].split("]")[0],
+            logs=[self.gentst],
+        )
+        parseLog(
+            conf,
+            'mergeTime_ms', 
+            'GlobalMerger in',
+             lambda lines: float(lines[0].split("in ")[1].split("ms")[0].strip()),
             logs=[self.gentst],
         )
         
@@ -756,6 +885,9 @@ class Logger():
              lambda lines: int(lines[0].split("-q")[1].split("-")[0].strip()),
             logs=[self.proutesh],
         )
+        parsePirConf(self.pirconf, conf, opts)
+
+        parseSimState(self.simstat, conf, opts)
         
         conf['succeeded'] = parse_success(conf)
         derive_simfreq(conf, opts)

@@ -228,6 +228,8 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
         val children = ctrler.childDone.connected.filter { _.asInstanceOf[Field[_]].name == "parentEn" }.map { _.src.as[Controller] }
         assertUnify(children, s"$ctrler.childDone.scale") { child => compScale(child.done) }.getOrElse(Finite(ctrler.ctx.get.getScheduleFactor))
       case OutputField(n:Const, _) => Finite(n.ctx.get.getScheduleFactor)
+      case OutputField(n:ScratchpadDelay, _) => compScale(n.in.collectFirst[BufferWrite]().data.singleConnected.get)
+      case OutputField(n:Delay, _) => compScale(n.in.collectFirst[BufferWrite]().data.singleConnected.get)
       case n:LocalAccess => 
         (n, n.done.singleConnected.get) match {
           case (n, done) if n.en.isConnected => Unknown

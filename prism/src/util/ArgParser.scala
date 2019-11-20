@@ -2,6 +2,7 @@ package prism
 package util
 
 import scala.collection.mutable
+import prism.codegen.CSVPrinter
 
 case class ArgOption[T:ClassTag](key:String, default:Option[T], info:String) {
   var value:Option[T]=None
@@ -34,16 +35,30 @@ trait ArgParser {
 
   def getArgOption[T](key:String) = optionMap.get(key).asInstanceOf[Option[ArgOption[T]]]
 
-  def setOption(args:List[String]):Unit = {
+  def setOptionRec(args:List[String]):Unit = {
     args match {
       case arg::rest if isOption(arg) =>
         val (key, values, remain) = getValues(arg, rest)
         optionMap.get(key).foreach { option =>
           option.updateValue(values)
         }
-        setOption(remain)
-      case _::args => setOption(args)
+        setOptionRec(remain)
+      case _::args => setOptionRec(args)
       case Nil => 
+    }
+  }
+
+  def setOption(args:List[String], path: => String):Unit = {
+    setOptionRec(args)
+    new CSVPrinter { //TODO: this file is sometimes not generated
+      withCSV(path, "config.csv", false) {
+        optionMap.foreach { case (key, opt) =>
+          val row = newRow
+          row("key") = key
+          row(s"default") = opt.default.getOrElse("None")
+          row(s"value") = opt.value.getOrElse("None")
+        }
+      }
     }
   }
 
