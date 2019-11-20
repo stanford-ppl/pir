@@ -242,6 +242,7 @@ class CVXMerger:
         self.edges = edges[:]
         self.partition_counts = partition_counts.copy()
         self.cvx_constraints = []
+        self._pseudo_constraints = []
         self._init_node_lookup()
         self._init_partitions()
         self._init_edge_deps()
@@ -254,6 +255,10 @@ class CVXMerger:
     @property
     def num_partition_types(self):
         return len(self.partition_counts)
+
+    def _add_pseudo_constraint(self, constraint):
+        assert constraint.is_dcp()
+        self._pseudo_constraints.append(constraint)
 
     def get_assignment(self):
         next_partition = itertools.count()
@@ -420,20 +425,59 @@ class CVXMerger:
                 cvxpy.maximum(self.delays[src_node] + enforce_inequality - self.delays[dst_node], 0),
                 self.num_nodes * 2))
 
-        # constrain that nodes within the same partition have the same delay.
-        # constrain that the delay for nodes in the same partition are equal.
-        # We only care for nodes which might be in the same partition.
+        # for each node, compute its partition delay. Then constrain that the partition delay and actual delay are
+        # close.
+        partition_delays = {
+            partition_type: cvxpy.Variable(shape=count, nonneg=True) for partition_type, count in self.partition_counts.items()}
 
-        for n1, n2 in itertools.combinations(self.nodes, 2):
-            if not self._possible_in_same_partition(n1, n2):
-                continue
-            # if the nodes are in the same partition, then impose an equality constraint on the delays
-            peq = 0
-            for partition_type in self._candidate_partitions(n1) & self._candidate_partitions(n2):
-                peq += cvxpy.sum(
-                    cvxpy.maximum(self._get_row(partition_type, n1) + self._get_row(partition_type, n2) - 1, 0))
-            dne = self._project_to_bool(cvxpy.abs(self.delays[n1] - self.delays[n2]), self.num_nodes)
-            self._add_constraint(peq + dne <= 1)
+        max_delay = 4 * sum(self.partition_counts.values())
+
+        for partition_delay in partition_delays.values():
+            self._add_constraint(partition_delay <= max_delay)
+
+        for node in self.nodes:
+            target_delay_min = [max_delay]
+            target_delay_max = [0]
+            for partition_type, node_to_loc in self.node_to_loc_map.items():
+                if node not in node_to_loc:
+                    continue
+
+                loc = node_to_loc[node]
+                row = self.partition_matrices[partition_type][loc, :]
+                activation = row * -max_delay + max_delay
+                target_delay_min.append(cvxpy.min(partition_delays[partition_type] + activation))
+
+                activation = row * max_delay - max_delay
+                target_delay_max.append(cvxpy.max(partition_delays[partition_type] + activation))
+            target_min = cvxpy.minimum(*target_delay_min)
+            self._add_pseudo_constraint(cvxpy.maximum(self.delays[node] - target_min, 0))
+
+            target_max = cvxpy.maximum(*target_delay_max)
+            self._add_pseudo_constraint(cvxpy.maximum(target_max - self.delays[node], 0))
+            # # 0 if node is in partition otherwise strongly positive
+            # activation = self.node_to_partition_matrix[i, :] * -max_delay + max_delay
+            # target_delay = cvxpy.min(partition_delays + activation)
+            # # self._add_constraint(delays[i] <= target_delay)
+            # self._add_pseudo_constraint(cvxpy.maximum(delays[i] - target_delay, 0))
+            #
+            # # 0 if node is in partition otherwise strongly negative
+            # activation = self.node_to_partition_matrix[i, :] * max_delay - max_delay
+            # target_delay = cvxpy.max(partition_delays + activation)
+            # # self._add_constraint(delays[i] >= target_delay)
+            # self._add_pseudo_constraint(cvxpy.maximum(target_delay - delays[i], 0))
+        #
+        #
+        #
+        # for n1, n2 in itertools.combinations(self.nodes, 2):
+        #     if not self._possible_in_same_partition(n1, n2):
+        #         continue
+        #     # if the nodes are in the same partition, then impose an equality constraint on the delays
+        #     peq = 0
+        #     for partition_type in self._candidate_partitions(n1) & self._candidate_partitions(n2):
+        #         peq += cvxpy.sum(
+        #             cvxpy.maximum(self._get_row(partition_type, n1) + self._get_row(partition_type, n2) - 1, 0))
+        #     dne = self._project_to_bool(cvxpy.abs(self.delays[n1] - self.delays[n2]), self.num_nodes)
+        #     self._add_constraint(peq + dne <= 1)
 
     @time_this
     @functools.lru_cache()
@@ -533,12 +577,13 @@ class CVXMerger:
 
     @property
     def total_delay_violations(self):
-        return cvxpy.sum(self.delay_violations)
+        return cvxpy.sum(self.delay_violations) * 256
 
     @property
     @functools.lru_cache()
     def problem(self):
-        return cvxpy.Problem(cvxpy.Minimize(self.utilization + self.total_delay_violations), self.cvx_constraints)
+        pseudo_constraint_total = sum(self._pseudo_constraints, 0) * 256
+        return cvxpy.Problem(cvxpy.Minimize(self.utilization + self.total_delay_violations + pseudo_constraint_total), self.cvx_constraints)
 
     def solve(self, *args, **kwargs):
         self.problem.solve(*args, **kwargs)
@@ -653,7 +698,8 @@ def main():
                 ))
 
     solver = CVXMerger(nodes=nodes, edges=edges, partition_counts=partition_counts)
-    solver.solve(solver="GUROBI", verbose=True, Threads=opts.thread, MIPGap=0.15)
+    # if model is INF_OR_UNBD, set DualReductions=0
+    solver.solve(solver="GUROBI", verbose=True, Threads=opts.thread, MIPGap=0.15, DualReductions=0)
 
     with open(opts.merge, "w") as merge_file:
         writer = csv.writer(merge_file, delimiter=",")
