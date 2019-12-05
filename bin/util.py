@@ -92,10 +92,14 @@ def grep(path, patterns):
                         found[pattern].append(line)
     return found
 
-def remove(path, opts):
+def remove(path, force):
     if os.path.exists(path):
-        if (opts.force):
-            os.remove(path)
+        if (force):
+            if os.path.isdir(path): 
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
+            return True
         else:
             ans = input('remove {}? y/n '.format(path))
             if ans == 'y':
@@ -103,8 +107,10 @@ def remove(path, opts):
                     shutil.rmtree(path)
                 else:
                     os.remove(path)
+                return True
             elif ans == 'q':
                 exit(0)
+        return False
 
 def loadSimData(datapath, backends=None):
     if backends is None:

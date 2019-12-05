@@ -66,6 +66,7 @@ trait MemoryComputePartitioner extends PIRTransformer with CUCostUtil {
   def split(k:GlobalContainer, vcost:List[Cost[_]]):Set[CUMap.K] = dbgblk(s"split($k)"){
     val memPrunerHasRun = compiler.hasRun[MemoryPruner]
     val mem = k.collectDown[Memory]().head
+    // Accesses[Deped[Parallel[Context]]]
     val addrCtxs = mem.accesses.map { access =>
       val actx = access.ctx.get
       scheduler.scheduleNode(actx).map { _.filterNot { 
@@ -73,33 +74,36 @@ trait MemoryComputePartitioner extends PIRTransformer with CUCostUtil {
             var cond = ctx.hasChild[Access]
             if (!memPrunerHasRun) {
               cond |= ctx.hasChild[Shuffle]
+              cond |= ctx.getCost[StageCost].quantity == 0
             }
             cond
           case _ => true
         }
       }.filterNot { _.isEmpty }
     }.filterNot { _.isEmpty }
-    if (addrCtxs.isEmpty) return Set.empty
-
-    val addrCtx = addrCtxs.toStream.map { _.last }.flatten.maxBy { _.getCost[StageCost].quantity }
-    dbg(s"addrCtxs=$addrCtxs")
-    dbg(s"move addrCtx=$addrCtx")
-    //breakPoint(s"move addrCtx=$addrCtx")
-    val global = within(pirTop) { ComputeContainer() }
-    swapParent(addrCtx, global)
-    resetCacheOn {
-      case `k` => true
-      case (`k`, _) => true
-      case `addrCtx` => true
-      case (`addrCtx`, _) => true
-      case _ => false
-    }
-    val nkcost = getComputeCost(k)
-    //breakPoint(s"split $k")
-    if (notFit(nkcost, vcost)) {
-      split(k, vcost) + global
+    if (addrCtxs.isEmpty) {
+      Set.empty
     } else {
-      Set(global)
+      val addrCtx = addrCtxs.toStream.map { _.last }.flatten.maxBy { _.getCost[StageCost].quantity }
+      dbg(s"addrCtxs=$addrCtxs")
+      dbg(s"move addrCtx=$addrCtx")
+      //breakPoint(s"move addrCtx=$addrCtx")
+      val global = within(pirTop) { ComputeContainer() }
+      swapParent(addrCtx, global)
+      resetCacheOn {
+        case `k` => true
+        case (`k`, _) => true
+        case `addrCtx` => true
+        case (`addrCtx`, _) => true
+        case _ => false
+      }
+      val nkcost = getComputeCost(k)
+      //breakPoint(s"split $k")
+      if (notFit(nkcost, vcost)) {
+        split(k, vcost) + global
+      } else {
+        Set(global)
+      }
     }
   }
 }

@@ -19,7 +19,8 @@ trait TungstenMergeBufferGen extends TungstenCodegen with TungstenCtxGen with Tu
       val ins = n.inputs.map { in => nameOf(in.T.as[BufferRead]).& }.qlist
       val bounds = n.bounds.map { bound => nameOf(bound.T.as[BufferRead]).& }.qlist
       val init = nameOf(n.init.T.as[BufferRead]).&
-      val output = nameOf(assertOne(n.out.T, s"$n.out").as[BufferWrite].gout.get).&
+      dbg(s"$n")
+      val output = nameOf(assertOne(n.out.T, s"$n.out").as[BufferWrite].out.singleConnected.get.src).&
       val outBound = assertOneOrLess(n.outBound.T, s"$n.outBound").fold("NULL") { outBound => nameOf(outBound.as[BufferWrite].gout.get).& }
       val outInit = assertOneOrLess(n.outInit.T, s"$n.outInit").fold("NULL") { outInit => nameOf(outInit.as[BufferWrite].gout.get).& }
       genTopMember(n, Seq(n.qstr, ins, bounds, init, output, outBound, outInit), end=true)

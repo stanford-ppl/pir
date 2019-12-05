@@ -13,8 +13,8 @@ trait CSVPrinter extends Printer {
 
   type Row = CSVRow
 
-  val headers = ListBuffer[String]()
-  val rows = ListBuffer[Row]()
+  var headers = ListBuffer[String]()
+  var rows = ListBuffer[Row]()
 
   class CSVRowInst extends CSVRow {
     def update(pair:(String, Any)) = {
@@ -41,10 +41,16 @@ trait CSVPrinter extends Printer {
     headers.clear
   }
 
-  def withCSV[T](dirName:String, fileName:String, append:Boolean=false, printHeader:Boolean=true)(block: => T) = {
+  def withCSV[T](dirName:String, fileName:String, append:Boolean=false, printHeader:Boolean=true)(block: => T):T = {
     withOpen(dirName, fileName, append) {
-      block
+      val saved = (headers,rows)
+      headers = ListBuffer.empty
+      rows = ListBuffer.empty
+      val res = block
       emitCSV(printHeader)
+      headers = saved._1
+      rows = saved._2
+      res
     }
   }
 

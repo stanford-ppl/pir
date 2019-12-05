@@ -97,18 +97,31 @@ trait ExternComputePartitioner extends CSVPrinter { self:ComputePartitioner =>
       logPath=buildPath(config.splitDir, "partition.log")
     )
     val idmap = nodes.map { node => (node.id, node) }.toMap
-    val pidmap = getLines(buildPath(config.splitDir, "part.csv")).map { line =>
+    val partMap = getLines(buildPath(config.splitDir, "part.csv")).map { line =>
       val node::part::_ = line.split(",").map { _.toInt }.toList
       idmap(node) -> part
     }.toMap
     nodes.foreach { node => 
-      if (!pidmap.contains(node)) {
+      if (!partMap.contains(node)) {
         bug(s"${node} was not assigned with partition!")
       }
     }
-    pidmap.groupBy { case (node, pid) => pid }.map { case (pid,nodes) =>
-      new Partition(nodes.map { _._1 }.toList)
+    val parts = partMap.groupBy { case (node, pid) => pid }.map { case (pid,nodes) =>
+      pid -> new Partition(nodes.map { _._1 }.toList)
     }
+    val delayPath = buildPath(config.splitDir, "delay.csv")
+    if (exists(delayPath)) {
+      getLines(delayPath).foreach { line =>
+        val node::delay::_ = line.split(",").toList
+        parts(partMap(idmap(node.toInt))).delay = Some(delay.toFloat.toInt)
+      }
+    }
+    dbgblk(s"Create Partitions") {
+      parts.foreach { case (pid, part) =>
+        dbg(s"$pid -> $part")
+      }
+    }
+    parts.values.toList
   }
 
 }

@@ -46,7 +46,8 @@ case class Cache[I,O](memorization:Memorization, name:String, lambda:I => O) {
   override def toString = s"Cache($name)"
   val memory = mutable.Map[Any,O]()
   def apply(input:I) = {
-    def updateFunc = memorization.dbgblk(s"$name(${input})") { lambda(input) }
+    //def updateFunc = memorization.dbgblk(s"$name(${input})") { lambda(input) }
+    def updateFunc = lambda(input)
     if (memorization.memorizing) {
       memory.getOrElseUpdate(input, updateFunc) 
     } else {
@@ -59,7 +60,7 @@ case class Cache[I,O](memorization:Memorization, name:String, lambda:I => O) {
   def resetCacheOn(reset:Any => Boolean) = {
     val keys = memory.keys.filter(reset)
     keys.foreach(resetCache)
-    if (keys.nonEmpty) memorization.dbg(s"$this.resetCacheOn($keys)")
+    //if (keys.nonEmpty) memorization.dbg(s"$this.resetCacheOn($keys)")
   }
   def resetAll = memory.clear
 }

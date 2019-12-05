@@ -81,7 +81,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
         }
       }
 
-    case n@Shuffle(filled) =>
+    case n@Shuffle(filled,aid) =>
       emitToVec(n.from) { i => n.from.singleConnected.get.qidx(i) }
       emitToVec(n.to) { i => n.to.singleConnected.get.qidx(i) }
       emitToVec(n.base) { i => n.base.singleConnected.get.qidx(i) }
@@ -94,7 +94,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       emitUnVec(n)(s"${n}_shuffled")
 
     case n:OpDef => emitVec(n) { i => 
-      var ins = n.inputs.map { _.qidx(i) }
+      var ins = n.inputs.map { _.singleConnected.get.qidx(i) }
       var intps = n.inputs.map { _.getTp}
       n.op match {
         case FixDiv | FltDiv =>

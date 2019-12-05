@@ -17,7 +17,7 @@ trait TungstenDelayGen extends TungstenCodegen with TungstenCtxGen with Tungsten
 
     case n:ScratchpadDelay =>
       val in = nameOf(n.in.T.as[BufferRead]).&
-      val out = nameOf(assertOne(n.out.T, s"$n.out").as[BufferWrite].gout.get).&
+      val out = nameOf(assertOne(n.out.T, s"$n.out").as[BufferWrite].out.singleConnected.get.src).&
       genTopMember(n, Seq(n.qstr), end=false)
       genTopMember(
         tp="Broadcast<Token>", 

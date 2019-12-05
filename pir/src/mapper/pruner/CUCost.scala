@@ -25,7 +25,7 @@ case class ActorCost(quantity:Int=0) extends QuantityCost[ActorCost]
 
 trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
   implicit class AnyCostOp(x:Any) {
-    def getCost[C<:Cost[C]:ClassTag]:C = x match {
+    def getCost[C<:Cost[_]:ClassTag]:C = x match {
       case x:Parameter => self.getCost(x, classTag[C]).as[C]
       case x:CUMap.V => self.getCost(x.param, classTag[C]).as[C]
       case x => self.getCost(x, classTag[C]).as[C]
@@ -61,7 +61,7 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
 
   private def getCost(x:Any, ct:ClassTag[_]) = memorize("getCost", (x, ct)) { case (x, ct) => compCost(x, ct) }
 
-  protected def switch[C<:Cost[C]:ClassTag](x:Any, ct:ClassTag[_])(cfunc:PartialFunction[Any, C]) = if (ct == classTag[C] && cfunc.isDefinedAt(x)) Some(cfunc(x)) else None
+  protected def switch[C<:Cost[_]:ClassTag](x:Any, ct:ClassTag[_])(cfunc:PartialFunction[Any, C]) = if (ct == classTag[C] && cfunc.isDefinedAt(x)) Some(cfunc(x)) else None
 
   def isVec(n:prism.graph.IR) = {
     if (n.getTp == Bool) n.getVec > spadeParam.wordWidth
@@ -70,7 +70,7 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
 
   def stageCost(op:OpNode) = 1
 
-  protected def compCost(x:Any, ct:ClassTag[_]) = {
+  protected def compCost(x:Any, ct:ClassTag[_]):Cost[_] = dbgblk(s"getCost($x,${ct.getClass.getSimpleName})") {
     switch[AFGCost](x,ct) {
       case n:GlobalContainer => AFGCost(n.isInstanceOf[ArgFringe])
       case n:Parameter => AFGCost(n.isInstanceOf[ArgFringeParam])
@@ -121,7 +121,8 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
       case n:RegFile => SRAMCost(n.nBanks, n.capacity)
       case n:Lock => SRAMCost(spadeParam.vecWidth, 100)
       case n:ScratchpadDelay => SRAMCost(n.in.getVec, n.cycle * n.in.getVec)
-      case n:CUParam => SRAMCost(n.sramParam.bank, n.sramParam.sizeInWord)
+      case n:CUParam => n.sramParam.getCost[SRAMCost]
+      case n:SRAMParam => SRAMCost(n.bank, n.sizeInWord)
       case n => SRAMCost(0,0)
 
     } orElse switch[FIFOCost](x,ct) {
@@ -168,12 +169,16 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
       case n:Parameter => OutputCost(100,100)
 
     } orElse switch[StageCost](x,ct) {
+      case n:OpNode => StageCost(stageCost(n))
+      case n:Context => 
+        n.descendents.map {
+          case n:OpNode => StageCost(stageCost(n))
+          case _ => StageCost(0)
+        }.reduceOption { _ + _ }.getOrElse(StageCost())
       case n:GlobalContainer => 
         val ctxs = n.collectDown[Context]()
-        ctxs.map { _.getCost[StageCost] }.fold(StageCost()) { _ + _ }
-      case n:Context =>
-        val ops = n.collectDown[OpNode]()
-        StageCost(ops.map(stageCost).sum)
+        ctxs.map { _.getCost[StageCost] }.reduceOption { _ + _ }.getOrElse(StageCost())
+      case n:PIRNode => StageCost(0)
       case n:CUParam => 
         StageCost(n.numStage)
       case n:Parameter => StageCost(0)
@@ -181,7 +186,7 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
     } orElse switch[LaneCost](x,ct) {
       case n:GlobalContainer => 
         val ctxs = n.collectDown[Context]()
-        ctxs.map { _.getCost[LaneCost] }.fold(LaneCost()) { _ + _ }
+        ctxs.map { _.getCost[LaneCost] }.reduceOption { _ + _ }.getOrElse(LaneCost())
       case n:Context =>
         val lane = assertUnify(n.collectDown[Controller]().filter { _.getCtrl.isLeaf }.distinct, s"$n.lane") {
           _.getCtrl.getVec
@@ -193,7 +198,7 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
     } orElse switch[OpCost](x,ct) {
       case n:GlobalContainer => 
         val ctxs = n.collectDown[Context]()
-        ctxs.map { _.getCost[OpCost] }.fold(OpCost()) { _ + _ }
+        ctxs.map { _.getCost[OpCost] }.reduceOption { _ + _ }.getOrElse(OpCost())
       case n:Context =>
         val ops = n.collectDown[OpDef]()
         OpCost(ops.map { _.op }.toSet)

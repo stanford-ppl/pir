@@ -88,7 +88,7 @@ trait Session { self:Compiler =>
 
   def hasRun(pass:Pass):Boolean = passes(pass).exists(_.hasRun)
 
-  def hasRunAll(pass:Pass):Boolean = passes(pass).exists(_.hasRun) 
+  def hasRunAll(pass:Pass):Boolean = passes(pass).forall(_.hasRun) 
 
   def runCount(pass:Pass) = passes(pass).filter(_.hasRun).size
 

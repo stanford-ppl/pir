@@ -7,10 +7,7 @@ import spade.param._
 import prism.codegen._
 import prism.graph._
 
-class ProgramReport(implicit design:PIR) extends Report with PIRTraversal with JsonCodegen with ChildFirstTraversal with UnitTraversal {
-
-  val fileName = "program.json"
-  override val denseFormat = false
+class ProgramReport(val fileName:String)(implicit design:PIR) extends Report with PIRTraversal with JsonCodegen with ChildFirstTraversal with UnitTraversal {
 
   override def runPass = {
     val globals = pirTop.collectChildren[GlobalContainer]
@@ -24,23 +21,23 @@ class ProgramReport(implicit design:PIR) extends Report with PIRTraversal with J
     sinfo(s"Allocation: ")
     val (dags, rest1) = globals.partition { _.isDAG.get }
     sinfo(s"DAGs: ${dags.size}")
-    emitkv(s"DAG:", dags.size)
+    emitkv(s"DAG", dags.size)
     rest1.groupBy { _.getClass }.foreach {
       case (cl, globals) if cl == classOf[ComputeContainer]=>
         sinfo(s"PCUs: ${globals.size}")
-        emitkv(s"PCU:", globals.size)
+        emitkv(s"PCU", globals.size)
       case (cl, globals) if cl == classOf[MemoryContainer]=>
         sinfo(s"PMUs: ${globals.size}")
-        emitkv(s"PMU:", globals.size)
+        emitkv(s"PMU", globals.size)
       case (cl, globals) if cl == classOf[ArgFringe] =>
         sinfo(s"ArgFringe: ${globals.size}")
-        emitkv(s"AFG:", globals.size)
+        emitkv(s"AFG", globals.size)
       case (cl, globals) if cl == classOf[DRAMFringe] =>
         sinfo(s"MCs: ${globals.size}")
-        emitkv(s"MC:", globals.size)
+        emitkv(s"MC", globals.size)
       case (cl, globals) if cl == classOf[BlackBoxContainer] =>
         sinfo(s"BBs: ${globals.size}")
-        emitkv(s"BB:", globals.size)
+        emitkv(s"BB", globals.size)
     }
   }
 

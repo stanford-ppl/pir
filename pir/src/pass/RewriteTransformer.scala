@@ -10,14 +10,20 @@ import prism.util._
 
 import scala.collection.mutable
 
-trait RewriteUtil { self: PIRTransformer =>
+trait RewriteUtil extends PIRPass { self: PIRTransformer =>
   //TODO: make this a map of classTag => rule to speedup
   // run when the node is created
   val rewriteRules = mutable.ListBuffer[RewriteRule[_]]()
   // run during RewriteTransformer
   val transferRules = mutable.ListBuffer[TransferRule[_]]()
 
-  case class RewriteRule[A:ClassTag](name:String)(lambda:A => Option[(Output[_],Output[_])]) {
+  override def initPass = {
+    rewriteRules --= rewriteRules.filter { !_.enable() }
+    transferRules --= transferRules.filter { !_.enable() }
+    super.initPass
+  }
+
+  class RewriteRule[A:ClassTag](val name:String, val enable: () => Boolean, lambda:A => Option[(Output[_],Output[_])]) {
     rewriteRules += this
     def apply(x:PIRNode):Option[(Output[_],Output[_])] = {
       x.to[A].flatMap { x => lambda(x) }
@@ -34,11 +40,19 @@ trait RewriteUtil { self: PIRTransformer =>
       }.getOrElse(o)
     }
   }
-  case class TransferRule[A:ClassTag](lambda:A => Option[PIRNode]) {
+  object RewriteRule{
+    def apply[A:ClassTag](name:String, enable: => Boolean=true)(lambda:A => Option[(Output[_],Output[_])]) =
+      new RewriteRule(name, () => enable,lambda)
+  }
+  class TransferRule[A:ClassTag](val enable: () => Boolean, lambda:A => Option[PIRNode]) {
     transferRules += this
     def apply(x:PIRNode):Option[Any] = {
       x.to[A].flatMap { x => lambda(x) }
     }
+  }
+  object TransferRule {
+    def apply[A:ClassTag](enable: => Boolean=true)(lambda:A => Option[PIRNode]) =
+      new TransferRule(() => enable,lambda)
   }
 
   RewriteRule[MemRead](s"WrittenByConstData") { reader =>
@@ -63,36 +77,7 @@ trait RewriteUtil { self: PIRTransformer =>
     }
   }
 
-  //RewriteRule[CounterValid](s"ConnstValid") { valid =>
-    //val counter = valid.counter.T
-    //val consts = valid.is.map { i => counter.constValids.get(i) }
-    //if (consts.forall { _.nonEmpty }) {
-      //dbg(s"Constant valid $valid")
-      //val ctrler = valid.collectUp[Controller]().head
-      //val cs = consts.map { _.get }
-      //val const = within(ctrler.parent.get, valid.getCtrl) { 
-        //if (valid.is.size == 1) allocConst(cs.head) else allocConst(cs)
-      //}
-      //Some((valid.out, const.out))
-    //} else None
-  //}
-
-  //RewriteRule[CounterIter](s"ConnstIter") { iter =>
-    //val counter = iter.counter.T
-    //val consts = iter.is.map { i => counter.constIters.get(i) }
-    //dbg(s"consts=$consts")
-    //if (consts.forall { _.nonEmpty }) {
-      //dbg(s"Constant iter $iter")
-      //val ctrler = iter.collectUp[Controller]().head
-      //val cs = consts.map { _.get }
-      //val const = within(ctrler.parent.get, iter.getCtrl) { 
-        //if (iter.is.size == 1) allocConst(cs.head) else allocConst(cs)
-      //}
-      //Some((iter.out, const.out))
-    //} else None
-  //}
-
-  RewriteRule[OpDef](s"ConstProp") { case n@OpDef(op) =>
+  RewriteRule[OpDef](s"ConstProp",config.enableConstProp) { case n@OpDef(op) =>
     val ins = n.inputs.map { 
       _.connected match {
         case List(OutputField(Const(c), "out")) => Literal(c)
@@ -132,11 +117,38 @@ trait RewriteUtil { self: PIRTransformer =>
     case _ => None
   }
 
+  RewriteRule[OpDef](s"PipeAccum", config.enablePipeAccum) { 
+    case n@OpDef(Mux) =>
+      val accumWrites = n.out.neighbors.collect { case write:MemWrite if write.mem.T.isAccum => write }
+      testOne(accumWrites).flatMap { accumWrite =>
+        testOne(accumWrite.mem.T.outAccesses).flatMap { accumRead =>
+          val accumOps = accumRead.out.accum(
+            prefix = { case `n` => true; case _ => false },
+            depth = 5
+          )
+          if (accumOps.contains(n)) {
+            val redOps = accumOps.filterNot { _ == n }
+            within(n.parent.get, n.getCtrl) {
+              val first::init::_ = n.inputs.map { _.connected }
+              val ins = redOps.head.localIns.flatMap { _.connected }.filterNot { _.src == accumRead }
+              val in = assertOne(ins, s"accum $n.in")
+              val acc = stage(RegAccumOp(redOps, accumWrite.mem.T.inits.get)
+                .first(first).in(in).init(init).en(accumWrite.en.connected))
+              accumWrite.data.disconnect
+              dbgn(acc)
+              Some((n.out, acc.out))
+            }
+          } else None
+        }
+      }
+    case _ => None
+  }
+
   private def andMask(c:Int) = {
     val posMask = c.log2 - 1 
     posMask + Int.MinValue
   }
-  RewriteRule[OpDef](s"StrengthReduction") { 
+  RewriteRule[OpDef](s"StrengthReduction",config.enableStrengthReduce) { 
     case n@OpDef(FixDiv) => // Div pow of 2 to shift
       n.inputs(1) match {
         case SC(OutputField(cn@Const(c:List[_]), _)) if c.as[List[Int]].forall { c => c.isPowOf2 & (c > 0) } =>
@@ -163,13 +175,14 @@ trait RewriteUtil { self: PIRTransformer =>
       //}
     case n@OpDef(FixAdd) => // ShiftAdd to FMA
       val ConstShift = MatchRule[OpDef, (Output[_],Any)] { case n@OpDef(FixSLA) =>
-        val (const, nonConst) = n.inputs.map { _.singleConnected.get }.partition {
+        val ins = n.inputs.map { _.singleConnected.get }
+        val (const, nonConst) = ins.partition {
           case OutputField(c:Const, _) => true
           case _ => false
         }
         const.headOption.flatMap { out =>
           val value = out.src.as[Const].value
-          val mulIn = nonConst.head
+          val mulIn = ins.filterNot { _ == const }.head // Possible both are consts if consprop is disabled
           value match {
             case v:List[_] => Some((mulIn, v.map { v => (0 until v.as[Int]).map { _ => 2}.product }))
             case v:Int => Some(mulIn,((0 until v).map { _ => 2}.product))
@@ -194,9 +207,7 @@ trait RewriteUtil { self: PIRTransformer =>
     case n => None
   }
 
-  def memoryPrunerHashRun = compiler.hasRun[MemoryPruner]
-
-  RewriteRule[Shuffle](s"Shuffle") { n =>
+  RewriteRule[Shuffle](s"Shuffle",config.enableConstProp && compiler.hasRun[MemoryPruner]) { n =>
     (n.from, n.to, n.base) match {
       case (SC(OutputField(Const(from:List[_]),"out")), SC(OutputField(Const(to:List[_]),"out")), base) if from.intersect(to).isEmpty => 
         dbgblk(s"ShuffleUnmatch($n, from=${dquote(n.from.T)}, to=${dquote(n.to.T)})") {
@@ -205,7 +216,6 @@ trait RewriteUtil { self: PIRTransformer =>
           }
           Some((n.out, c.out))
         }
-      case (from, to, base) if (!memoryPrunerHashRun) => None
       case (from, to, base) if (matchInput(n.from, n.to) & n.base.T.getVec == n.from.T.getVec & n.getVec == n.to.T.getVec) => None
         dbgblk(s"ShuffleMatch($n, from=${dquote(n.from.T)}, to=${dquote(n.to.T)})") {
           val base = assertOne(n.base.connected, s"$n.base.connected")
@@ -250,22 +260,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
 
   val forward = true
 
-  var memLowerHasRun = false
-  var memPrunerHasRun = false
-  var globalInsertHasRun = false
-  var initializerHasRun = false
-  var _memoryPrunerHashRun = false
-  override def memoryPrunerHashRun = _memoryPrunerHashRun
-
-  override def initPass = {
-    super.initPass
-    memLowerHasRun = compiler.hasRun[MemoryLowering]
-    globalInsertHasRun = compiler.hasRun[GlobalInsertion]
-    initializerHasRun = compiler.hasRun[TargetInitializer]
-    _memoryPrunerHashRun = compiler.hasRun[MemoryPruner]
-  }
-
-  TransferRule[PIRNode] { n =>
+  TransferRule[PIRNode]() { n =>
     n.localIns.filter { _.as[Field[_]].name == "en" }.foreach { en =>
       en.connected.distinct.foreach {
         case out@OutputField(Const(true), "out") => 
@@ -274,7 +269,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
         case out@OutputField(Const(vs:List[_]), "out") if vs.forall { _ == true } => 
           en.disconnectFrom(out)
           dbg(s"${dquote(en)} disconnect ${dquote(out)}")
-        case out@OutputField(ctrler:LoopController, "laneValid") if ctrler.constLaneValids.get.forall { _.nonEmpty } =>
+        case out@OutputField(ctrler:LoopController, "laneValid") if config.enableRangeAnalysis && ctrler.constLaneValids.get.forall { _.nonEmpty } =>
           val const = within(ctrler.parent.get, ctrler.ctrl.get) { 
             val laneValids = ctrler.constLaneValids.get.map { _.get }
             if (laneValids.size == 1)
@@ -290,7 +285,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   }
 
   // Counter valids with par < maxValid should be always true
-  TransferRule[Counter] { counter =>
+  TransferRule[Counter](config.enableRangeAnalysis) { counter =>
     if (counter.valids.exists { _.out.isConnected }) {
       dbgblk(s"CounterConstValidIter($counter)") {
         val ctrler = counter.parent.get
@@ -327,7 +322,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     } else None
   }
 
-  TransferRule[Access] { access =>
+  TransferRule[Access]() { access =>
     val invalidAccess = access.en.connected.exists { 
       case OutputField(Const(false), _) => true
       case OutputField(Const(vs:List[_]), _) if vs.forall { _ == false } => true
@@ -343,7 +338,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     } else None
   }
 
-  TransferRule[BufferRead] { n =>
+  TransferRule[BufferRead]() { n =>
     if (n.ctx.get.streaming.get) None else {
       val writer = n.inAccess.as[BufferWrite]
       writer.data match {
@@ -358,7 +353,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     }
   }
 
-  TransferRule[MemRead] { read =>
+  TransferRule[MemRead]() { read =>
     val mem = read.mem.T
     if (mem.inAccesses.isEmpty) {
       mem.inits.v.fold { 
@@ -395,41 +390,44 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
    * w1 -> m1 -> r1 -> w2 -> m2
    * mw1 -> m2
    * */
-  TransferRule[MemWrite] { w2 =>
-    if (!initializerHasRun && !memLowerHasRun && !globalInsertHasRun) {
-      w2.data.T match {
-        case r1:MemRead if matchInput(w2.en, r1.en) =>
-          val m1 = r1.mem.T
-          val m2 = w2.mem.T
-          val w1s = m1.inAccesses
-          if (w1s.size == 1 && m1.isFIFO == m2.isFIFO && !m2.nonBlocking.get) {
-            val w1 = w1s.head.as[MemWrite]
-            if (matchInput(w1.en, w2.en) && matchInput(w1.en, r1.en)) {
-              dbgblk(s"Route through (1) $w1 -> $m1 -> $r1 -> $w2 -> $m2 detected") {
-                disconnect(w2.mem, m2)
-                val mw1 = within(w1.parent.get) { mirrorAll(List(w1))(w1).as[MemWrite] }
-                mirrorMetas(mw1,w1)
-                mirrorSyncMeta(w2, mw1)
-                dbg(s" => $mw1 -> $m2")
-                mw1.mem(m2)
-                val name = zipReduce(m1.name.v, m2.name.v) { _ + "/" + _ }
-                m2.name.reset
-                m2.name.update(name)
-              }
-              Some(w2)
+  TransferRule[MemWrite](
+    config.enableRouteElim && 
+    !compiler.hasRun[TargetInitializer] && 
+    !compiler.hasRun[MemoryLowering] && 
+    !compiler.hasRun[GlobalInsertion]
+  ) { w2 =>
+    w2.data.T match {
+      case r1:MemRead if matchInput(w2.en, r1.en) =>
+        val m1 = r1.mem.T
+        val m2 = w2.mem.T
+        val w1s = m1.inAccesses
+        if (w1s.size == 1 && m1.isFIFO == m2.isFIFO && !m2.nonBlocking.get) {
+          val w1 = w1s.head.as[MemWrite]
+          if (matchInput(w1.en, w2.en) && matchInput(w1.en, r1.en)) {
+            dbgblk(s"Route through (1) $w1 -> $m1 -> $r1 -> $w2 -> $m2 detected") {
+              disconnect(w2.mem, m2)
+              val mw1 = within(w1.parent.get) { mirrorAll(List(w1))(w1).as[MemWrite] }
+              mirrorMetas(mw1,w1)
+              mirrorSyncMeta(w2, mw1)
+              dbg(s" => $mw1 -> $m2")
+              mw1.mem(m2)
+              val name = zipReduce(m1.name.v, m2.name.v) { _ + "/" + _ }
+              m2.name.reset
+              m2.name.update(name)
             }
-            else None
-          } else None
-        case _ => None
-      }
-    } else None
+            Some(w2)
+          }
+          else None
+        } else None
+      case _ => None
+    }
   }
 
   override def compScheduleFactor(n:Context):Int = 1 
   // HACK: For now, don't care whether it's scheduled or not to check
   // rate matching
   
-  TransferRule[BufferRead] { r2 =>
+  TransferRule[BufferRead](config.enableRouteElim) { r2 =>
     val w2 = r2.inAccess.as[BufferWrite]
     //w2.data.T match {
       //case r1:BufferRead =>
@@ -490,7 +488,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     }
   }
 
-  TransferRule[BankedRead] { read =>
+  TransferRule[BankedRead](config.enableRouteElim) { read =>
     val mem = read.mem.T
     testOne(mem.inAccesses).flatMap { w =>
       val write = w.as[BankedWrite]
@@ -519,6 +517,11 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
         Some(read)
       } else None
     }
+  }
+
+  TransferRule[Shuffle](compiler.hasRun[MemoryPruner]) { n =>
+    free(n.offset)
+    None
   }
 
   override def visitNode(n:N):T = /*dbgblk(s"visitNode:${n}") */{
