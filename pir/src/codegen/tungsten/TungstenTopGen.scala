@@ -116,7 +116,7 @@ using namespace std;
     super.initPass
     emitln(s"""#include "$topFile"""")
     emitln(s"""using namespace std;""")
-    emitBSln("REPL* GetREPL()")
+    emitBSln("void RunAccel()")
     if (!noPlaceAndRoute) {
       val pattern = spadeParam.pattern.as[GridPattern]
       val row = pattern.row
@@ -170,9 +170,10 @@ using namespace std;
 
     emitln(s"$topName* top = new $topName$topArgs;")
     getBuffer("extern-end").foreach { _.flushTo(sw) }
-    emitln(s"""Module* DUT = new Module({$dutArgs}, "DUT");""")
-    emitln(s"""REPL* repl = new REPL(DUT, std::cout);""")
-    emitln(s"""return repl;""")
+    emitln(s"""Module DUT({$dutArgs}, "DUT");""")
+    emitln(s"""REPL repl(&DUT, std::cout);""")
+    emitln(s"""repl.Command("source script");""")
+    emitln(s"""delete top;""")
     emitBEln
     super.finPass
   }

@@ -40,8 +40,7 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
       deleteFile(prouteSummaryPath)
       deleteFile(prouteLog)
       if (runproute) {
-        shell("mergelink", s"make mergelink DEBUG=1", config.tstOut, prouteLog)
-        val exitCode = shellProcess("proute", s"bash proute.sh", config.appDir, prouteLog) { line =>
+        val exitCode = shellProcess("proute", s"make proute", config.tstOut, prouteLog) { line =>
           if (line.contains("Used") && line.contains("VCs.")) {
             info(Console.GREEN, s"proute", line)
           }

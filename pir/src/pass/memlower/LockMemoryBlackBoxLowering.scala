@@ -130,7 +130,6 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
         case (out,ins) => true
       }
       block.numIns := ins.size
-      info(s"$block.numIns = ${ins.size}")
       ins.foreach { 
         case (out, ins) =>
           (0 until block.outerPar).foreach { i => // Foreach tree in
