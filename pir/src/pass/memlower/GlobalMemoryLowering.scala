@@ -200,6 +200,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
         dbg(s"ofs:${dquote(ofs)} data:${data.map{dquote}}")
         (ofs.out, data.map { _.out })
       }
+      //TODO: replace reduce tree
       var red:List[(Output[PIRNode], Option[Output[PIRNode]])] = requests.toList
       while(red.size > 1) {
         red = red.sliding(2,2).map{ 

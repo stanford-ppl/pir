@@ -146,6 +146,17 @@ trait ScalaUtilFunc {
     }
   }
 
+  def reduceTree[A](list:List[A])(reduce:(A,A) => A):Option[A] = {
+    var red:List[A] = list
+    while(red.size > 1) {
+      red = red.sliding(2,2).map{ 
+        case List(a,b) => reduce(a,b)
+        case List(a) => a
+      }.toList
+    }
+    red.headOption
+  }
+
   def get[T](x:List[T],i:Int):Option[T] = if (x.size > i) Some(x(i)) else None
 
   /*

@@ -488,8 +488,83 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     }
   }
 
+  private def constFlatAddr(input:Input[PIRNode]):Option[Any] = {
+    val ins = input.connected.map { addr =>
+      val const = addr.src.to[Const]
+      if (const.isEmpty) return None
+      const.get.value
+    }
+    //TODO: flatten addr
+    if (ins.size > 1) return None
+    Some(ins.head)
+  }
+
+  private def toConstAddr(access:BankedAccess):Option[List[(Int,Int)]] = {
+    if (access.en.isConnected) return None
+    val bank = constFlatAddr(access.bank).getOrElse(return None)
+    val offset = constFlatAddr(access.offset).getOrElse(return None)
+    Some(((bank,offset) match {
+      case tup@(bank:List[_],offset:List[_]) => bank.zip(offset)
+      case (bank:List[_],offset) => bank.map { bank => (bank, offset) }
+      case (bank,offset:List[_]) => offset.map { offset => (bank, offset) }
+      case tup@(bank,offset) => List((bank,offset))
+    }).as[List[(Int,Int)]])
+  }
+
+  //TODO: move this to memory lowering to take advantage of broadcast
+  def constAddrRouteThrough(read:BankedRead):Option[BankedRead] = {
+    val mem = read.mem.T
+    val raddr = toConstAddr(read)
+    if (raddr.isEmpty) return None
+    val raddrs = raddr.get
+    if (mem.inAccesses.exists { _.order.get > read.order.get }) return None
+    val writtenAddr = scala.collection.mutable.Set[(Int,Int)]()
+    dbg (s"$read raddr=$raddrs")
+    val constWrites = mem.inAccesses.flatMap { write =>
+      val waddrs = toConstAddr(write.as[BankedWrite])
+      if (waddrs.isEmpty) return None
+      val to = raddrs.zipWithIndex.map { case (raddr, lane) =>
+        val idx = waddrs.get.indexOf(raddr)
+        if (idx > 0) {
+          if (writtenAddr.contains(raddr)) return None
+          writtenAddr += raddr
+        }
+        idx
+      }
+      if (to.exists { _ != -1 }) {
+        dbg(s"write=$write waddr=${waddrs} to=${to}")
+        Some((write.as[BankedWrite], to))
+      } else {
+        None
+      }
+    }
+    dbgblk(s"constAddrRouteThrough($read)") {
+      val shuffles = within(read.parent.get, read.getCtrl) {
+        constWrites.map { case (write, to) =>
+          val data = write.data.singleConnected.get
+          val reg = within(pirTop) {
+            stage(Reg().tp(write.getTp).banks(List(write.getVec)))
+          }
+          within(write.parent.get, write.getCtrl) {
+            stage(MemWrite().setMem(reg).data(data))
+          }
+          val read = stage(MemRead().setMem(reg).presetVec(data.getVec))
+          stage(Shuffle(0,write.id).from(allocConst((0 until data.getVec).toList)).to(allocConst(to)).base(read.out))
+        }
+      }
+      val out = within(read.parent.get, read.getCtrl) {
+        reduceTree[Output[PIRNode]](shuffles.map { _.out }) { case (s1,s2) =>
+          stage(OpDef(FixOr).addInput(s1,s2)).out
+        }.get
+      }
+      swapOutput(read.out, out)
+      Some(read)
+    }
+  }
+
   TransferRule[BankedRead](config.enableRouteElim) { read =>
     val mem = read.mem.T
+    constAddrRouteThrough(read) orElse
     testOne(mem.inAccesses).flatMap { w =>
       val write = w.as[BankedWrite]
       if (write.order.get < read.order.get) {
