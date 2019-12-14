@@ -8,7 +8,7 @@ import prism.graph._
 import prism.codegen._
 import scala.collection.mutable
 
-trait ExternMerger extends GlobalMerging with CSVPrinter { self =>
+trait ExternMerger extends GlobalMerging with CSVPrinter with PointToPointPlaceAndRoute { self =>
 
   override def mergeGlobals(x:CUMap) = if (config.mergeAlgo=="solver") {
     emitSpec(x)
@@ -97,15 +97,29 @@ trait ExternMerger extends GlobalMerging with CSVPrinter { self =>
 
   private def emitProgram(x:CUMap) = {
     withCSV(config.mergeDir, "node.csv") {
-      x.freeKeys.foreach { glob =>
-        val row = newRow
-        row("node") = glob.id
-        row("initTp") = x.freeValuesOf(glob).head.param.simpleName
-        row("comment") = glob
-        val costs = getCosts(glob)
-        costs.foreach { c =>
-          emitCost(c, row)
-        }
+      bind(x) match {
+        case Left(f) =>
+          x.freeKeys.foreach { glob =>
+            val row = newRow
+            row("node") = glob.id
+            row("initTp") = "Unknown"
+            row("comment") = glob
+            val costs = getCosts(glob)
+            costs.foreach { c =>
+              emitCost(c, row)
+            }
+          }
+        case Right(x) =>
+          x.usedMap.fmap.keys.foreach { glob =>
+            val row = newRow
+            row("node") = glob.id
+            row("initTp") = x.usedMap(glob).param.simpleName
+            row("comment") = glob
+            val costs = getCosts(glob)
+            costs.foreach { c =>
+              emitCost(c, row)
+            }
+          }
       }
     }
     withCSV(config.mergeDir, "edge.csv") {

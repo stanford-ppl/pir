@@ -58,7 +58,7 @@ trait ExternComputePartitioner extends CSVPrinter { self:ComputePartitioner =>
 
   def genInit(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
     withCSV(config.splitDir, "init.csv") {
-      val parts = withAlgo("bfs") { heuristicSplit(nodes,vcost) }
+      val parts = withAlgo("dfs") { heuristicSplit(nodes,vcost) }
       parts.zipWithIndex.foreach { case (p,i) =>
         p.scope.foreach { node =>
           val row = newRow
@@ -125,4 +125,3 @@ trait ExternComputePartitioner extends CSVPrinter { self:ComputePartitioner =>
   }
 
 }
-

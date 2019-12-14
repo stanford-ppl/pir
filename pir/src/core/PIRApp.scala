@@ -116,7 +116,6 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, matchPruner) ==>
     addPass(ctrlBlockInsert) ==>
     addPass(sanityCheck) ==>
-    //addPass(debugTransformer) ==>
     addPass(modAnalyzer) ==>
     addPass(enableMapping, placerAndRouter) ==>
     addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx8.dot")) ==>
