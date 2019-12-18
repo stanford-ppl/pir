@@ -246,7 +246,18 @@ class CVXMerger:
                  partition_counts: typing.Dict[PartitionType, int]):
         self.nodes = nodes[:]
         self.edges = edges[:]
-        self.partition_counts = partition_counts.copy()
+        # self.partition_counts = partition_counts.copy()
+        self.partition_counts = {}
+        self.conforming_nodes = {}
+        for partition_type, count in partition_counts.items():
+            conforming_nodes = [
+                node for node in self.nodes if
+                all(partition_type.get_limit(cost).accepts(cost.value) for cost in
+                    node.costs if not isinstance(cost, CustomCost))
+            ]
+            num_conforming_nodes = len(conforming_nodes)
+            self.partition_counts[partition_type] = min(count, num_conforming_nodes)
+            self.conforming_nodes[partition_type] = conforming_nodes
 
         self.model = gpy.Model("Model")
 
@@ -270,7 +281,10 @@ class CVXMerger:
             inverse_mapping = {
                 n: loc for loc, n in self.node_to_loc_map[partition_type].items()
             }
-            for loc, partition_num in np.transpose(matrix.value.nonzero()):
+            converted = np.zeros_like(matrix)
+            for index in np.ndindex(*matrix.shape):
+                converted[index] = matrix[index].X
+            for loc, partition_num in np.transpose(converted.nonzero()):
                 node = inverse_mapping[loc]
                 yield node, partition_ids[(partition_num, partition_type)], partition_type
 
@@ -300,15 +314,16 @@ class CVXMerger:
         self.partition_matrices = {}
         node_to_row_map = defaultdict(list)
         for partition_type, count in self.partition_counts.items():
-            conforming_nodes = [
-                node for node in self.nodes if
-                all(partition_type.get_limit(cost).accepts(cost.value) for cost in
-                    HardCostAbstractMixin.get_from_iterable(node.costs))
-            ]
+            # conforming_nodes = [
+            #     node for node in self.nodes if
+            #     all(partition_type.get_limit(cost).accepts(cost.value) for cost in
+            #         HardCostAbstractMixin.get_from_iterable(node.costs))
+            # ]
+            conforming_nodes = self.conforming_nodes[partition_type]
             self.node_to_loc_map[partition_type] = loc_map = {node: i for i, node in enumerate(conforming_nodes)}
             print("Map:", partition_type.typename, {node.node_id: i for node, i in loc_map.items()})
             num_conforming_nodes = len(conforming_nodes)
-            matrix = np.ndarray(shape=(num_conforming_nodes, count), dtype=object)
+            matrix = np.ndarray(shape=(num_conforming_nodes, min(count, num_conforming_nodes)), dtype=object)
             for i, j in itertools.product(range(num_conforming_nodes), range(count)):
                 matrix[i, j] = self.model.addVar(vtype=GRB.BINARY,
                                                  name="matrix_{}_{}_{}".format(partition_type.typename, i, j))
@@ -362,9 +377,7 @@ class CVXMerger:
 
     @functools.lru_cache(None)
     def _candidate_partitions(self, node: Node):
-        constraints = list(HardCostAbstractMixin.get_from_iterable(node.costs))
-        return frozenset(partition for partition in self.partition_counts if
-                         all(partition.get_limit(constraint).accepts(constraint.value) for constraint in constraints))
+        return frozenset(partition for partition in self.partition_counts if node in self.conforming_nodes[partition])
 
     @functools.lru_cache(None)
     def _possible_in_same_partition(self, a, b):
@@ -507,12 +520,12 @@ class CVXMerger:
                     continue
                 if isinstance(constraint, CustomCost):
                     method = getattr(self, "_init_custom_" + constraint.attribute_name)
-                    method(constraint, matrix, self.node_to_loc_map[pt])
+                    method(constraint, matrix, self.node_to_loc_map[pt], partitiontype)
                     continue
                 raise NotImplementedError("Not implemented yet for constraint:", constraint)
 
     @time_this
-    def _init_input_costs(self, cost: Cost, matrix, loc_map: typing.Dict[Node, int],
+    def _init_input_costs(self, cost: Cost, matrix, loc_map: typing.Dict[Node, int], partitiontype,
                           edge_type: EdgeType):
         edge_map = defaultdict(list)
         edge_srcs = {}
@@ -530,19 +543,22 @@ class CVXMerger:
             # push_set = self._project_to_bool(sum(self._get_row_or_zeroes(matrix, loc_map, dest) for dest in dst_nodes),
             #                                  cost.value)
             push_set = sum(self._get_row_or_zeroes(matrix, loc_map, dest) for dest in dst_nodes)
-            projected = np.array([self.model.addVar() for _ in push_set])
-            for proj, push in zip(projected, push_set):
-                self.model.addConstr((proj == 0) >> (push == 0))
-            diff = self._convert_to_var(push_set - src_row)
+            projected = self._project_to_bool(push_set)
+            # projected = np.array([self.model.addVar() for _ in push_set])
+            # for proj, push in zip(projected, push_set):
+            #     self.model.addConstr((proj == 0) >> (push == 0))
+            diff = self._convert_to_var(push_set - src_row, name="push-src")
             movement.append(self._convert_to_var([(gpy.max_(d, 0)) for d in diff]))
+        if not movement:
+            return
         total_movement = self._convert_to_var(sum(movement, 0))
-        for move in total_movement:
-            self.model.addConstr(move <= cost.value)
+        for i, move in enumerate(total_movement):
+            self.model.addConstr(move <= cost.value,  name="cost_{}_{}_{}_input_cost".format(partitiontype.typename, i, edge_type))
 
     _init_custom_InputCost_vin = functools.partialmethod(_init_input_costs, edge_type=EdgeType.VECTOR)
     _init_custom_InputCost_sin = functools.partialmethod(_init_input_costs, edge_type=EdgeType.SCALAR)
 
-    def _init_output_costs(self, cost: Cost, matrix, loc_map: typing.Dict[Node, int],
+    def _init_output_costs(self, cost: Cost, matrix, loc_map: typing.Dict[Node, int], partitiontype,
                            edge_type: EdgeType):
         # for each node, for count number of distinct out_ids that aren't in the same partition.
         edge_map = defaultdict(list)
@@ -578,8 +594,8 @@ class CVXMerger:
         if movement:
             self.model.update()
             total_movement = sum(movement)
-            for move in total_movement:
-                self.model.addConstr(move <= cost.value)
+            for i, move in enumerate(total_movement):
+                self.model.addConstr(move <= cost.value,  name="cost_{}_{}_{}_output_cost".format(partitiontype.typename, i, edge_type))
 
     _init_custom_OutputCost_vout = functools.partialmethod(_init_output_costs, edge_type=EdgeType.VECTOR)
     _init_custom_OutputCost_sout = functools.partialmethod(_init_output_costs, edge_type=EdgeType.SCALAR)
@@ -603,10 +619,12 @@ class CVXMerger:
         for k, v in kwargs.items():
             self.model.setParam(k, v)
         self.model.update()
-        self.model.feasRelaxS(1, False, True, True)
         self.model.optimize()
-        # self.model.computeIIS()
-        # self.model.write("model.ilp")
+        print("Status:", self.model.Status)
+        if self.model.Status == GRB.OPTIMAL:
+            return
+        self.model.computeIIS()
+        self.model.write("model.ilp")
 
     @property
     @functools.lru_cache()
@@ -624,17 +642,17 @@ class CVXMerger:
     def get_node(self, loc: int):
         return self.nodes[loc]
 
-    def _project_to_bool(self, var):
+    def _project_to_bool(self, var, name=""):
         if isinstance(var, Iterable):
-            return np.array([self._project_to_bool(v) for v in var])
-        projected = self.model.addVar(vtype=GRB.BINARY)
-        self.model.addConstr((projected == 0) >> (var == 0))
+            return np.array([self._project_to_bool(v, name=(name + str(i)) if name else "") for i, v in enumerate(var)])
+        projected = self.model.addVar(vtype=GRB.BINARY, name=name)
+        self.model.addConstr((projected == 0) >> (var == 0), name=(name + "_proj_bool" if name else ""))
         return projected
 
     def _convert_to_var(self, variable, name=""):
         if isinstance(variable, Iterable):
             return np.array([self._convert_to_var(v, name=(name + str(i)) if name else "") for i, v in enumerate(variable)])
-        new_var = self.model.addVar(name=name)
+        new_var = self.model.addVar(name=name, lb=-GRB.INFINITY, ub=GRB.INFINITY)
         constr_name = name + "_cvt_to_var" if name else ""
         self.model.addConstr(new_var == variable, name = constr_name)
         return new_var
