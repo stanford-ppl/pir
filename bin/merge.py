@@ -543,12 +543,12 @@ class CVXMerger:
             # push_set = self._project_to_bool(sum(self._get_row_or_zeroes(matrix, loc_map, dest) for dest in dst_nodes),
             #                                  cost.value)
             push_set = sum(self._get_row_or_zeroes(matrix, loc_map, dest) for dest in dst_nodes)
-            projected = self._project_to_bool(push_set)
+            projected = self._project_to_bool(push_set, name="push_set_projected")
             # projected = np.array([self.model.addVar() for _ in push_set])
             # for proj, push in zip(projected, push_set):
             #     self.model.addConstr((proj == 0) >> (push == 0))
-            diff = self._convert_to_var(push_set - src_row, name="push-src")
-            movement.append(self._convert_to_var([(gpy.max_(d, 0)) for d in diff]))
+            diff = self._convert_to_var(projected - src_row, name="push-src")
+            movement.append(self._convert_to_var([(gpy.max_(d, 0)) for d in diff], name="input_costs_pb"))
         if not movement:
             return
         total_movement = self._convert_to_var(sum(movement, 0))
@@ -592,7 +592,6 @@ class CVXMerger:
                 #                                      cost.value)
                 # movement.append(cvxpy.maximum(has_movement + src_row - 1, 0))
         if movement:
-            self.model.update()
             total_movement = sum(movement)
             for i, move in enumerate(total_movement):
                 self.model.addConstr(move <= cost.value,  name="cost_{}_{}_{}_output_cost".format(partitiontype.typename, i, edge_type))
