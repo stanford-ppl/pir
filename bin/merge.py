@@ -177,9 +177,7 @@ class SetCost(Cost, HardCostAbstractMixin):
 
 class PrefixCost(Cost, HardCostAbstractMixin):
     def accepts(self, other) -> bool:
-        if other:
-            return self.value
-        return True
+        return self.value == other
 
     @staticmethod
     def parse(s: str):
@@ -243,9 +241,10 @@ def load_csv(fname, tp, use_fieldnames=False):
 
 class CVXMerger:
     def __init__(self, nodes: typing.List[Node], edges: typing.List[Edge],
-                 partition_counts: typing.Dict[PartitionType, int]):
+                 partition_counts: typing.Dict[PartitionType, int], iis):
         self.nodes = nodes[:]
         self.edges = edges[:]
+        self.iis = iis
         # self.partition_counts = partition_counts.copy()
         self.partition_counts = {}
         self.conforming_nodes = {}
@@ -336,81 +335,9 @@ class CVXMerger:
             all_vars = np.concatenate(vecs)
             self.model.addConstr(gpy.quicksum(all_vars) == 1, name="alloc_{}".format(node.node_id))
 
-    @property
-    @functools.lru_cache(None)
-    def adjacency_matrix(self):
-        adjacency_matrix = scipy.sparse.lil_matrix((self.num_nodes, self.num_nodes), dtype=bool)
-        for edge in self.edges:
-            if edge.is_backedge:
-                continue
-            adjacency_matrix[
-                self.get_loc(self.id_to_node_lookup[edge.src]), self.get_loc(self.id_to_node_lookup[edge.dst])] = True
-        return adjacency_matrix
-
-    @property
-    @functools.lru_cache(None)
-    def reachability_matrix(self):
-        reachability_matrix = self.adjacency_matrix.copy()
-        # add in diagonal so that matrix powers work.
-        for i in range(self.num_nodes):
-            reachability_matrix[i, i] = True
-        return reachability_matrix
-
-    @property
-    @functools.lru_cache(None)
-    def full_reachability_matrix(self):
-        return self.reachability_matrix ** self.num_nodes
-
-    @cachetools.cached(cache={}, key=lambda self, src, dst, *_: (self, src, dst))
-    def _nodes_between(self, src_loc, dst_loc, current=frozenset()):
-        if src_loc == dst_loc:
-            return {src_loc}
-        results = set()
-        for _, middle in scipy.transpose(self.adjacency_matrix[src_loc].nonzero()):
-            if middle in current:
-                continue
-            results |= self._nodes_between(middle, dst_loc, frozenset(results | {middle} | current))
-        if not results:
-            return set()
-        results.add(src_loc)
-        return results
-
     @functools.lru_cache(None)
     def _candidate_partitions(self, node: Node):
         return frozenset(partition for partition in self.partition_counts if node in self.conforming_nodes[partition])
-
-    @functools.lru_cache(None)
-    def _possible_in_same_partition(self, a, b):
-        # if all the all nodes between src and dst <= 6 (inclusive), then it can fit, or if src and dst are disconnected
-        # check if they are disconnected:
-        loc1 = self.get_loc(a)
-        loc2 = self.get_loc(b)
-
-        # check if they can be in the same partition type
-        common_partitions = self._candidate_partitions(a) & self._candidate_partitions(b)
-        if not common_partitions:
-            return False
-
-        # no dependency
-        if not (self.full_reachability_matrix[loc1, loc2] or self.full_reachability_matrix[loc2, loc1]):
-            return True
-
-        for src, dst in ((loc1, loc2), (loc2, loc1)):
-            nodes_between = [self.nodes[index] for index in self._nodes_between(src, dst)]
-            candidate_partitions = functools.reduce(frozenset.union,
-                                                    [self._candidate_partitions(node) for node in nodes_between],
-                                                    frozenset())
-            if not candidate_partitions:
-                # there aren't any partitions that can take all of the intermediate nodes, or there isn't a path.
-                continue
-            for candidate_partition in candidate_partitions:
-                candidate_partition: PartitionType
-                # must fit all nodes in between.
-                for cost in ReducibleCostMixin.get_from_iterable(candidate_partition.limits):
-                    node_costs = [node.get_cost(cost).value for node in self.nodes]
-                    if cost.accepts(cost.numeric_reduce(node_costs)):
-                        return True
-        return False
 
     @functools.lru_cache()
     def _get_row(self, partition_type: PartitionType, node: Node):
@@ -481,7 +408,7 @@ class CVXMerger:
                                               name="target_delay_min_{}".format(node.node_id))
             target_max = self._convert_to_var(gpy.max_(*self._convert_to_var(target_delay_max)),
                                               name="target_delay_max_{}".format(node.node_id))
-            # self.model.addConstr(self.delays[node] == target_min, name="delay_target_min_{}".format(node.node_id))
+            self.model.addConstr(self.delays[node] == target_min, name="delay_target_min_{}".format(node.node_id))
             # self.model.addConstr(self.delays[node] >= target_max)
 
     @time_this
@@ -623,7 +550,7 @@ class CVXMerger:
         if self.model.Status == GRB.OPTIMAL:
             return
         self.model.computeIIS()
-        self.model.write("model.ilp")
+        self.model.write(self.iis)
 
     @property
     @functools.lru_cache()
@@ -682,6 +609,7 @@ def main():
     opts.spec_cost = os.path.join(opts.path, "spec_cost.csv")
     opts.costtp = os.path.join(opts.path, "costtp.csv")
     opts.merge = os.path.join(opts.path, "merge.csv")
+    opts.iis = os.path.join(opts.path, "model.ilp")
 
     with TimeContext("Cost TP parsing"):
         cost_types = {}
@@ -740,7 +668,7 @@ def main():
                     out_id=int(line["outid"])
                 ))
 
-    solver = CVXMerger(nodes=nodes, edges=edges, partition_counts=partition_counts)
+    solver = CVXMerger(nodes=nodes, edges=edges, partition_counts=partition_counts, iis=opts.iis)
     # if model is INF_OR_UNBD, set DualReductions=0
     solver.solve(Threads=opts.thread, MIPGap=0.15)
 
