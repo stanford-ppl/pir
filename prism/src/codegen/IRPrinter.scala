@@ -12,10 +12,6 @@ trait IRPrinter extends Pass with DFSTopDownTopologicalTraversal with Codegen {
 
   val forward = true
 
-  def qdef(n:N) = s"${quote(n)}${n.to[Product].fold("") { n => s"(${n.productIterator.map(quote).mkString(",")})" }}"
-
-  //val metadata:Option[Metadata]
-
   def emitBlock(ms:String)(block: =>Unit):T ={ 
     super.emitBlock(ms) {
       try {
