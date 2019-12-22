@@ -53,8 +53,8 @@ trait MemoryComputePartitioner extends PIRTransformer with CUCostUtil {
     }
   }
 
-  lazy val scheduler = new PIRTraversal with BFSTopologicalTraversal with TreeScheduler { 
-    val forward = false
+  lazy val scheduler = new PIRTraversal with BFSTopologicalTraversal with Scheduler { 
+    val forward = true
     override def visitIn(n:N) = visitLocalIn(n).collect { case ctx:Context if !ctx.hasChild[Access] => ctx }
     override def visitOut(n:N) = visitLocalOut(n).collect { case ctx:Context if !ctx.hasChild[Access] => ctx }
   }
@@ -66,28 +66,24 @@ trait MemoryComputePartitioner extends PIRTransformer with CUCostUtil {
   def split(k:GlobalContainer, vcost:List[Cost[_]]):Set[CUMap.K] = dbgblk(s"split($k)"){
     val memPrunerHasRun = compiler.hasRun[MemoryPruner]
     val mem = k.collectDown[Memory]().head
-    // Accesses[Deped[Parallel[Context]]]
-    val addrCtxs = mem.accesses.map { access =>
-      val actx = access.ctx.get
-      scheduler.scheduleNode(actx).map { _.filterNot { 
-          case ctx:Context =>
-            var cond = ctx.hasChild[Access]
-            if (!memPrunerHasRun) {
-              cond |= ctx.hasChild[Shuffle]
-              cond |= ctx.getCost[StageCost].quantity == 0
-            }
-            cond
-          case _ => true
-        }
-      }.filterNot { _.isEmpty }
-    }.filterNot { _.isEmpty }
-    if (addrCtxs.isEmpty) {
-      Set.empty
-    } else {
-      val addrCtx = addrCtxs.toStream.map { _.last }.flatten.maxBy { _.getCost[StageCost].quantity }
-      dbg(s"addrCtxs=$addrCtxs")
-      dbg(s"move addrCtx=$addrCtx")
-      //breakPoint(s"move addrCtx=$addrCtx")
+    // Deped[Parallel[Context]]
+    val actxs = mem.accesses.map { _.ctx.get }
+    val ctxs = k.collectChildren[Context].filterNot { ctx =>
+      var cond = ctx.hasChild[Access]
+      if (!memPrunerHasRun) {
+        cond |= ctx.hasChild[Shuffle]
+      }
+      cond
+    }
+    val (depFree, deped) = ctxs.partition { scheduler.isDepFree(_) }
+    val (empty,nonEmpty) = depFree.partition { _.getCost[StageCost].quantity==0 }
+    val addrCtx = nonEmpty.maxOptionBy { _.getCost[StageCost].quantity } orElse {
+      if (deped.isEmpty) None else empty.headOption
+    }
+    dbg(s"depFree=$depFree nonEmpty=$nonEmpty empty=$empty")
+    addrCtx.map { addrCtx =>
+      dbg(s"addrCtx=$addrCtx")
+      //breakPoint(s"split(${k}) move=$addrCtx depFree=$depFree")
       val global = within(pirTop) { ComputeContainer() }
       swapParent(addrCtx, global)
       resetCacheOn {
@@ -102,9 +98,9 @@ trait MemoryComputePartitioner extends PIRTransformer with CUCostUtil {
       if (notFit(nkcost, vcost)) {
         split(k, vcost) + global
       } else {
-        Set(global)
+        Set[CUMap.K](global)
       }
-    }
+    }.getOrElse(Set.empty[CUMap.K])
   }
 }
 
