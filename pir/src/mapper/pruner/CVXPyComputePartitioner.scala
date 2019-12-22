@@ -7,9 +7,8 @@ import prism.graph._
 import prism.collection.immutable._
 import prism.codegen.CSVPrinter
 
-trait ExternComputePartitioner extends CSVPrinter { self:ComputePartitioner =>
-
-  def genNodes(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
+trait CVXPyComputePartitioner extends ComputePartitioning with CSVPrinter { self:ComputePartitioner =>
+  private def genNodes(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
     withCSV(config.splitDir, "node.csv") {
       nodes.foreach { n =>
         val row = newRow
@@ -21,7 +20,7 @@ trait ExternComputePartitioner extends CSVPrinter { self:ComputePartitioner =>
     }
   }
 
-  def genEdges(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
+  private def genEdges(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
     withCSV(config.splitDir, "edge.csv") {
       val ctx = nodes.head.ctx.get
       val nodeSet = nodes.toSet
@@ -56,9 +55,9 @@ trait ExternComputePartitioner extends CSVPrinter { self:ComputePartitioner =>
     }
   }
 
-  def genInit(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
+  private def genInit(nodes:List[PIRNode], vcost:List[Cost[_]]):Unit = {
     withCSV(config.splitDir, "init.csv") {
-      val parts = withAlgo("dfs") { heuristicSplit(nodes,vcost) }
+      val parts = withAlgo("dfs") { partition(nodes,vcost) }
       parts.zipWithIndex.foreach { case (p,i) =>
         p.scope.foreach { node =>
           val row = newRow
@@ -69,7 +68,7 @@ trait ExternComputePartitioner extends CSVPrinter { self:ComputePartitioner =>
     }
   }
 
-  def genSpec(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
+  private def genSpec(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
     withCSV(config.splitDir, "spec.csv") {
       val (stageCost:StageCost)::(inCost:InputCost)::(outCost:OutputCost)::_ = vcost
       val row = newRow
@@ -81,7 +80,7 @@ trait ExternComputePartitioner extends CSVPrinter { self:ComputePartitioner =>
     }
   }
 
-  def externSplit(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
+  override def partition(nodes:List[PIRNode], vcost:List[Cost[_]]) = if (splitAlgo=="cvxpy") {
     genNodes(nodes,vcost)
     genEdges(nodes,vcost)
     genInit(nodes,vcost)
@@ -122,6 +121,6 @@ trait ExternComputePartitioner extends CSVPrinter { self:ComputePartitioner =>
       }
     }
     parts.values.toList
-  }
+  } else super.partition(nodes, vcost)
 
 }

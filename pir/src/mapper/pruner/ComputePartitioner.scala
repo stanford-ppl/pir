@@ -6,14 +6,62 @@ import pir.pass._
 import prism.graph._
 import prism.collection.immutable._
 
-trait ComputePartitioner extends CUPruner with ExternComputePartitioner with LocalRetimer with GlobalRetimer with PartitionCost { self =>
-
+trait ComputePartitioning extends CUPruner with PartitionCost {
   var splitAlgo:String = "bfs"
-  private def scheduler = splitAlgo match {
+  def withAlgo[T](algo:String)(block: => T) = {
+    val saved = splitAlgo
+    splitAlgo = algo
+    val res = block
+    splitAlgo = saved
+    res
+  }
+
+  protected def scheduler = splitAlgo match {
     case "bfs" => new PIRTraversal with BFSTopologicalTraversal with Scheduler { val forward = config.splitForward }
     case "dfs" => new PIRTraversal with DFSTopologicalTraversal with Scheduler { val forward = config.splitForward }
     case _ => new PIRTraversal with DFSTopologicalTraversal with Scheduler { val forward = config.splitForward }
   }
+
+  def partition(nodes:List[PIRNode], vcost:List[Cost[_]]):List[Partition] = 
+    err(s"Unsupported split-algo=${splitAlgo}")
+}
+
+trait TraversalPartitioner extends ComputePartitioning {
+
+  override def partition(nodes:List[PIRNode],vcost:List[Cost[_]]):List[Partition] = 
+    if (splitAlgo=="dfs" || splitAlgo == "bfs") {
+    if (nodes.size==0) return Nil
+    var canFit = true
+    var (inpart, rest) = nodes.splitAt(1)
+    while (canFit && rest.nonEmpty) {
+      inpart = inpart :+ rest.head
+      rest = rest.tail
+      val part = new Partition(inpart)
+      val kcost = getCosts(part)
+      val isolateRetime = inpart.forall { 
+        case d:Delay => !inpart.contains(d.in.T) && !inpart.contains(d.out.T.head)
+        case _ => true
+      }
+      canFit = fit(kcost, vcost) && isolateRetime
+      if (!canFit) {
+        rest = inpart.last :: rest
+        inpart = inpart.slice(0,inpart.size-1)
+      }
+    }
+    dbg(s"Split ${inpart.size}/${nodes.size}")
+    if (splitAlgo=="dfs") {
+      val restSorted = scheduler.scheduleScope(rest.reverse)
+      partition(restSorted,vcost) :+ new Partition(inpart)
+    } else {
+      partition(rest,vcost) :+ new Partition(inpart)
+    }
+  } else super.partition(nodes, vcost)
+
+}
+
+trait ComputePartitioner extends ComputePartitioning
+  with TraversalPartitioner with CVXPyComputePartitioner with GurobiComputePartitioner
+  with LocalRetimer with GlobalRetimer { self =>
 
   def split[T](k:T, vcost:List[Cost[_]]):List[T] = dbgblk(s"split($k)") {
     val kcost = getCosts(k)
@@ -61,47 +109,10 @@ trait ComputePartitioner extends CUPruner with ExternComputePartitioner with Loc
       case k:Partition if fit(kcost, vcost) => List(k)
       case k:Partition =>
         val nodes = scheduler.scheduleScope(k.scope)
-        splitAlgo match {
-          case "solver" => externSplit(nodes, vcost)
-          case _ => heuristicSplit(nodes, vcost)
+        withAlgo(config.splitAlgo) {
+          partition(nodes, vcost)
         }
     }).as[List[T]]
-  }
-
-  def withAlgo[T](algo:String)(block: => T) = {
-    val saved = splitAlgo
-    splitAlgo = algo
-    val res = block
-    splitAlgo = saved
-    res
-  }
-
-  def heuristicSplit(nodes:List[PIRNode],vcost:List[Cost[_]]):List[Partition] = {
-    if (nodes.size==0) return Nil
-    var canFit = true
-    var (inpart, rest) = nodes.splitAt(1)
-    while (canFit && rest.nonEmpty) {
-      inpart = inpart :+ rest.head
-      rest = rest.tail
-      val part = new Partition(inpart)
-      val kcost = getCosts(part)
-      val isolateRetime = inpart.forall { 
-        case d:Delay => !inpart.contains(d.in.T) && !inpart.contains(d.out.T.head)
-        case _ => true
-      }
-      canFit = fit(kcost, vcost) && isolateRetime
-      if (!canFit) {
-        rest = inpart.last :: rest
-        inpart = inpart.slice(0,inpart.size-1)
-      }
-    }
-    dbg(s"Split ${inpart.size}/${nodes.size}")
-    if (splitAlgo=="dfs") {
-      val restSorted = scheduler.scheduleScope(rest.reverse)
-      heuristicSplit(restSorted,vcost) :+ new Partition(inpart)
-    } else {
-      heuristicSplit(rest,vcost) :+ new Partition(inpart)
-    }
   }
 
   val alias = scala.collection.mutable.Map[Context,Context]()
