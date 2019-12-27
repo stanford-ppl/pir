@@ -8,7 +8,7 @@ import prism.graph._
 import prism.codegen._
 import scala.collection.mutable
 
-trait ExternMerger extends GlobalMerging with CSVPrinter { self =>
+trait ExternMerger extends GlobalMerging with PointToPointPlaceAndRoute with SolverUtil { self =>
 
   override def mergeGlobals(x:CUMap) = if (config.mergeAlgo=="solver") {
     emitSpec(x)
@@ -75,37 +75,36 @@ trait ExternMerger extends GlobalMerging with CSVPrinter { self =>
       val costs = getCosts(terms.keys.head)
       val row = newRow
       costs.foreach { c =>
-        val tp = c match {
-          case c:InputCost => "CustomCost"
-          case c:OutputCost => "CustomCost"
-          case c:PrefixCost[_] => "PrefixCost"
-          case c:QuantityCost[_] => "QuantityCost"
-          case c:MaxCost[_] => "MaxCost"
-          case c:SetCost[_,_] => "SetCost"
-        }
-        c match {
-          case c:QuantityCost[_] =>
-            c.fieldNames.foreach { n =>
-              row(s"${c.simpleName}_$n") = tp 
-            }
-          case c =>
-            row(c.simpleName) = tp 
-        }
+        emitCostType(c, row)
       }
     }
   }
 
   private def emitProgram(x:CUMap) = {
     withCSV(config.mergeDir, "node.csv") {
-      x.freeKeys.foreach { glob =>
-        val row = newRow
-        row("node") = glob.id
-        row("initTp") = x.freeValuesOf(glob).head.param.simpleName
-        row("comment") = glob
-        val costs = getCosts(glob)
-        costs.foreach { c =>
-          emitCost(c, row)
-        }
+      bind(x) match {
+        case Left(f) =>
+          x.freeKeys.foreach { glob =>
+            val row = newRow
+            row("node") = glob.id
+            row("initTp") = "Unknown"
+            row("comment") = glob
+            val costs = getCosts(glob)
+            costs.foreach { c =>
+              emitCost(c, row)
+            }
+          }
+        case Right(x) =>
+          x.usedMap.fmap.keys.foreach { glob =>
+            val row = newRow
+            row("node") = glob.id
+            row("initTp") = x.usedMap(glob).param.simpleName
+            row("comment") = glob
+            val costs = getCosts(glob)
+            costs.foreach { c =>
+              emitCost(c, row)
+            }
+          }
       }
     }
     withCSV(config.mergeDir, "edge.csv") {
@@ -124,9 +123,13 @@ trait ExternMerger extends GlobalMerging with CSVPrinter { self =>
         }
       }
     }
+    //breakPoint("")
   }
 
-  private def emitCost(c:Cost[_],row:CSVRow) = c match {
+}
+
+trait SolverUtil extends CSVPrinter {
+  protected def emitCost(c:Cost[_],row:CSVRow) = c match {
     case c:PrefixCost[_] => row(c.simpleName) = c.prefix
     case c:QuantityCost[_] => 
       c.quantities.zip(c.fieldNames).foreach { case (q,n) =>
@@ -138,5 +141,23 @@ trait ExternMerger extends GlobalMerging with CSVPrinter { self =>
       row(c.simpleName) = c.set.mkString("|")
   }
 
+  protected def emitCostType(c:Cost[_],row:CSVRow) =  {
+    val tp = c match {
+      case c:InputCost => "CustomCost"
+      case c:OutputCost => "CustomCost"
+      case c:PrefixCost[_] => "PrefixCost"
+      case c:QuantityCost[_] => "QuantityCost"
+      case c:MaxCost[_] => "MaxCost"
+      case c:SetCost[_,_] => "SetCost"
+    }
+    c match {
+      case c:QuantityCost[_] =>
+        c.fieldNames.foreach { n =>
+          row(s"${c.simpleName}_$n") = tp 
+        }
+      case c =>
+        row(c.simpleName) = tp 
+    }
+  }
 }
 

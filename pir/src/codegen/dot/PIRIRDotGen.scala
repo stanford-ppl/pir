@@ -155,12 +155,37 @@ class PIRTopDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fil
       case (from, to) => super.emitEdge(from, to, attr)
     }
   }
+  override def setAttrs(n:N):DotAttr = n match {
+    case n:PIRNode if n.isLeaf=>
+      var tooltip = new StringBuilder()
+      tooltip ++= qdef(n)
+      n.metadata.values.foreach { metadata =>
+        metadata.v.foreach { v =>
+          tooltip ++= s"${metadata.name} = $v\n"
+        }
+      }
+      super.setAttrs(n).attr("tooltip", tooltip.toString)
+    case n => super.setAttrs(n)
+  }
 }
 
 class PIRCtxDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fileName) {
   override def visitFunc(n:N) = n match {
     case n:Context => n.descendents.collect { case n:LocalAccess => n; case n:Access => n; case c:BlackBox => c }.toList
     case n => super.visitFunc(n)
+  }
+
+  override def setAttrs(n:N):DotAttr = n match {
+    case n:PIRNode if n.isLeaf=>
+      var tooltip = new StringBuilder()
+      tooltip ++= qdef(n)
+      n.metadata.values.foreach { metadata =>
+        metadata.v.foreach { v =>
+          tooltip ++= s"${metadata.name} = $v\n"
+        }
+      }
+      super.setAttrs(n).attr("tooltip", tooltip.toString)
+    case n => super.setAttrs(n)
   }
 }
 
@@ -214,7 +239,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
           edgeAttr.color("orangered1")
         }
         super.emitEdge(from,to,edgeAttr)
-      case _ => super.emitEdge(from,to,attr)
+      case (from,to) => super.emitEdge(from,to,attr.setEdge.attr("label",from.src.id))
     }
   }
 

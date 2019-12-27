@@ -5,7 +5,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   /* ------------------- Compiler --------------------  */
   register("split", default=true, info="Enable splitting")
   register("split-algo", default="dfs", info="Splitting algorithm. [dfs, bfs, solver]") 
-  register("split-forward", default=true, info="Forward splitting traversal direction") 
+  register("split-forward", default=false, info="Forward splitting traversal direction") 
   register("split-thread", default=1, info="Number of threads for external splitter") 
   register("merge", default=false, info="Enable merging")
   register("merge-algo", default="bfs", info="Merging algorithm")
@@ -14,8 +14,8 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   // Optimizations
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
   register("dupra", default=false, info="Duplicate read address calculation in receiver CU")
-  register("bcread", default=false, info="Enable broadcast read")
-  register("mdone", default=false, info="Generate done from merged access")
+  register("bcread", default=true, info="Enable broadcast read")
+  register("mdone", default=true, info="Generate done from merged access")
   register("constprop", default=true, info="Enable constant propogation")
   register("pracc", default=true, info="Enable pipeline register accumulation lowering")
   register("sr", default=true, info="Enable strength reduction")
