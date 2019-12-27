@@ -18,15 +18,6 @@ import time
 import abc
 import enum
 import atexit
-import cachetools
-
-# Constraint = namedtuple("Constraint", ["ops", "vin", "sin", "vout", "sout"])
-# Node = namedtuple("Node",
-#         ["node","initTp","comment","AFGCost","MCCost","MergeBufferCost_quantity","MergeBufferCost_ways",
-#         "SplitterCost_quantity","LockCost_quantity","SRAMCost_bank","SRAMCost_size","InputCost_sin",
-#         "InputCost_vin","OutputCost_sout","OutputCost_vout","StageCost_quantity","LaneCost","OpCost"])
-# Edge = namedtuple("Edge", ["src", "dst", "tp", "comment"])
-# NodePartition = namedtuple("NodePartition", ["node", "partition"])
 
 # Cost Types: Prefix, Quant, Max, Set
 COST_REGISTRY = {}
@@ -240,6 +231,17 @@ def load_csv(fname, tp, use_fieldnames=False):
 
 
 class CVXMerger:
+    _RETIME = {
+        "PCUParam": (16, 4),
+        "PMUParam": (16384, 4)
+    }
+
+    # used to incentivize using certain retiming units
+    _RETIME_PENALTY = {
+        "PCUParam": 0,
+        "PMUParam": 0.001
+    }
+
     def __init__(self, nodes: typing.List[Node], edges: typing.List[Edge],
                  partition_counts: typing.Dict[PartitionType, int], iis):
         self.nodes = nodes[:]
@@ -260,10 +262,20 @@ class CVXMerger:
 
         self.model = gpy.Model("Model")
 
+        self._partition_counter = itertools.count()
+
         self._init_node_lookup()
         self._init_partitions()
         self._init_edge_deps()
         self._init_partition_constraints()
+
+        self.retime_sizes = {partition_type: self._RETIME[partition_type.typename] for partition_type in
+                             partition_counts if partition_type.typename in self._RETIME}
+        self.objective_components = {
+            "retime": self.retime_cost
+        }
+
+        self.additional_usages = {partition_type: 0 for partition_type in partition_counts}
 
     @property
     def num_nodes(self):
@@ -273,10 +285,12 @@ class CVXMerger:
     def num_partition_types(self):
         return len(self.partition_counts)
 
+    @functools.lru_cache()
+    def get_partition_id(self, partitiontype, index):
+        return next(self._partition_counter)
+
     def get_assignment(self):
-        next_partition = itertools.count()
-        partition_ids = defaultdict(lambda: next(next_partition))
-        for i, (partition_type, matrix) in enumerate(self.partition_matrices.items()):
+        for partition_type, matrix in self.partition_matrices.items():
             inverse_mapping = {
                 n: loc for loc, n in self.node_to_loc_map[partition_type].items()
             }
@@ -285,7 +299,58 @@ class CVXMerger:
                 converted[index] = matrix[index].X
             for loc, partition_num in np.transpose(converted.nonzero()):
                 node = inverse_mapping[loc]
-                yield node, partition_ids[(partition_num, partition_type)], partition_type
+                yield node, self.get_partition_id(partition_type, partition_num), partition_type
+
+    def get_delays(self):
+        for partition_type, count in self.partition_counts.items():
+            for i in range(count):
+                yield self.get_partition_id(partition_type, i), self.partition_delays[partition_type][i].X
+
+    @functools.lru_cache()
+    def get_num_retiming_nodes(self):
+        # returns a map PartitionType -> count
+        retiming_counts = defaultdict(list)
+        min_retiming_delay = min([delay for delay, _ in self.retime_sizes.values()])
+        for edge in self.forward_edges:
+            src_node = self.id_to_node_lookup[edge.src]
+            dst_node = self.id_to_node_lookup[edge.dst]
+            src_delay = self.delays[src_node]
+            dst_delay = self.delays[dst_node]
+            delay_gap = self._convert_to_var(dst_delay - src_delay, "{}_delay_gap".format(edge.out_id))
+            # if dst_delay - src_delay < min(max_delay) then it doesn't need retiming.
+            requires_retiming = self.model.addVar(vtype=GRB.BINARY, name="{}_requires_retiming".format(edge.out_id))
+            self.model.addConstr((requires_retiming == 0) >> (min_retiming_delay >= delay_gap))
+            candidates = []
+            for partition_type, (max_delay, merge_probability) in self.retime_sizes.items():
+                tp_qualifies = self.model.addVar(vtype=GRB.BINARY,
+                                                 name="{}_{}_retimeable".format(edge.out_id, partition_type.typename))
+                self.model.addConstr((tp_qualifies == 1) >> (max_delay >= delay_gap))
+
+                tp_selected = self.model.addVar(vtype=GRB.BINARY,
+                                                name="{}_{}_selected".format(edge.out_id, partition_type.typename))
+                self.model.addConstr((tp_selected == 1) >> (tp_qualifies == 1))
+                candidates.append(tp_selected)
+                retiming_counts[partition_type].append(tp_selected)
+            selected = self._convert_to_var(gpy.quicksum(candidates),
+                                            name="{}_{}_selected".format(edge.out_id, partition_type.typename))
+            # if requires_retiming, then selected == 1
+            self.model.addConstr((requires_retiming == 1) >> (selected == 1))
+        return {
+            partition_type: self._convert_to_var(
+                gpy.quicksum(counts), name="{}_retiming_counts".format(partition_type.typename))
+            for partition_type, counts in retiming_counts.items()
+        }
+
+    @time_this
+    @functools.lru_cache()
+    def retime_cost(self):
+        retiming_nodes = self.get_num_retiming_nodes()
+        costs = []
+        for tp, count in retiming_nodes.items():
+            scaled_count = self._convert_to_var(count / self.retime_sizes[tp][1] * (1 + self._RETIME_PENALTY[tp.typename]))
+            self.additional_usages[tp] += scaled_count
+            costs.append(scaled_count)
+        return self._convert_to_var(gpy.quicksum(costs), name="retiming_cost")
 
     @functools.lru_cache()
     def _init_node_lookup(self):
@@ -365,27 +430,29 @@ class CVXMerger:
                 src_row = self._get_row(partition_type, src_node)
                 if partition_type not in dst_candidates:
                     self.model.addConstr((enforce_inequality == 0) >> (gpy.quicksum(src_row) == 0),
-                                         name="edge_dep_pt_constraint_{}_{}".format(edge.out_id, partition_type.typename))
+                                         name="edge_dep_pt_constraint_{}_{}".format(edge.out_id,
+                                                                                    partition_type.typename))
                     continue
                 dst_row = self._get_row(partition_type, dst_node)
                 for i, diff in enumerate(src_row - dst_row):
                     self.model.addConstr((enforce_inequality == 0) >> (diff == 0),
-                                         name="edge_dep_pt_constraint_{}_{}_{}".format(edge.out_id, partition_type.typename, i))
+                                         name="edge_dep_pt_constraint_{}_{}_{}".format(edge.out_id,
+                                                                                       partition_type.typename, i))
             self.model.addConstr(self.delays[src_node] + enforce_inequality <= self.delays[dst_node],
                                  name="edge_dep_{}".format(edge.out_id))
 
         # for each node, compute its partition delay. Then constrain that the partition delay and actual delay are
         # close.
 
-        partition_delays = {
+        self.partition_delays = {
             partition_type: self._create_matrix("partition_delays_{}".format(partition_type.typename), (count,)) for
             partition_type, count in
             self.partition_counts.items()}
 
         max_delay = self.num_nodes
-        for pt_type, delay_vec in partition_delays.items():
+        for pt_type, delay_vec in self.partition_delays.items():
             for i, delay in enumerate(delay_vec.flatten()):
-                self.model.addConstr(delay <= max_delay, name = "max_delay_{}_{}".format(pt_type.typename, i))
+                self.model.addConstr(delay <= max_delay, name="max_delay_{}_{}".format(pt_type.typename, i))
 
         for node in self.nodes:
             target_delay_min = []
@@ -400,14 +467,14 @@ class CVXMerger:
                 # we really just want row @ partition_delays[partition_type] but this is a quadratic constraint
                 # instead, formulate as two sided constraint.
                 activation = row * -max_delay + max_delay
-                target_delay_min.extend(partition_delays[partition_type] + activation)
+                target_delay_min.extend(self.partition_delays[partition_type] + activation)
 
                 activation = row * max_delay - max_delay
-                target_delay_max.extend(partition_delays[partition_type] + activation)
+                target_delay_max.extend(self.partition_delays[partition_type] + activation)
             target_min = self._convert_to_var(gpy.min_(*self._convert_to_var(target_delay_min)),
                                               name="target_delay_min_{}".format(node.node_id))
-            target_max = self._convert_to_var(gpy.max_(*self._convert_to_var(target_delay_max)),
-                                              name="target_delay_max_{}".format(node.node_id))
+            # target_max = self._convert_to_var(gpy.max_(*self._convert_to_var(target_delay_max)),
+            #                                   name="target_delay_max_{}".format(node.node_id))
             self.model.addConstr(self.delays[node] == target_min, name="delay_target_min_{}".format(node.node_id))
             # self.model.addConstr(self.delays[node] >= target_max)
 
@@ -480,7 +547,8 @@ class CVXMerger:
             return
         total_movement = self._convert_to_var(sum(movement, 0))
         for i, move in enumerate(total_movement):
-            self.model.addConstr(move <= cost.value,  name="cost_{}_{}_{}_input_cost".format(partitiontype.typename, i, edge_type))
+            self.model.addConstr(move <= cost.value,
+                                 name="cost_{}_{}_{}_input_cost".format(partitiontype.typename, i, edge_type))
 
     _init_custom_InputCost_vin = functools.partialmethod(_init_input_costs, edge_type=EdgeType.VECTOR)
     _init_custom_InputCost_sin = functools.partialmethod(_init_input_costs, edge_type=EdgeType.SCALAR)
@@ -521,7 +589,8 @@ class CVXMerger:
         if movement:
             total_movement = sum(movement)
             for i, move in enumerate(total_movement):
-                self.model.addConstr(move <= cost.value,  name="cost_{}_{}_{}_output_cost".format(partitiontype.typename, i, edge_type))
+                self.model.addConstr(move <= cost.value,
+                                     name="cost_{}_{}_{}_output_cost".format(partitiontype.typename, i, edge_type))
 
     _init_custom_OutputCost_vout = functools.partialmethod(_init_output_costs, edge_type=EdgeType.VECTOR)
     _init_custom_OutputCost_sout = functools.partialmethod(_init_output_costs, edge_type=EdgeType.SCALAR)
@@ -541,6 +610,12 @@ class CVXMerger:
         return total / total_units
 
     def solve(self, **kwargs):
+        objective = self.utilization
+        for k, v in tuple(kwargs.items()):
+            if k.startswith("_") and v:
+                objective += self.objective_components[k[1:]]()
+                del kwargs[k]
+
         self.model.setObjective(self.utilization, GRB.MINIMIZE)
         for k, v in kwargs.items():
             self.model.setParam(k, v)
@@ -577,10 +652,11 @@ class CVXMerger:
 
     def _convert_to_var(self, variable, name=""):
         if isinstance(variable, Iterable):
-            return np.array([self._convert_to_var(v, name=(name + str(i)) if name else "") for i, v in enumerate(variable)])
+            return np.array(
+                [self._convert_to_var(v, name=(name + str(i)) if name else "") for i, v in enumerate(variable)])
         new_var = self.model.addVar(name=name, lb=-GRB.INFINITY, ub=GRB.INFINITY)
         constr_name = name + "_cvt_to_var" if name else ""
-        self.model.addConstr(new_var == variable, name = constr_name)
+        self.model.addConstr(new_var == variable, name=constr_name)
         return new_var
 
     def and_(self, v1, v2):
@@ -601,6 +677,7 @@ def main():
     parser = argparse.ArgumentParser(description='Graph Partition')
     parser.add_argument('path', help='Path to node.csv graph.csv spec.csv')
     parser.add_argument('-t', '--thread', type=int, default=1, help='Number of threads for solver')
+    parser.add_argument("-s", "--solver-opt", type=str, action="append", nargs="*", default=[])
     (opts, args) = parser.parse_known_args()
 
     opts.node = os.path.join(opts.path, "node.csv")
@@ -610,6 +687,10 @@ def main():
     opts.costtp = os.path.join(opts.path, "costtp.csv")
     opts.merge = os.path.join(opts.path, "merge.csv")
     opts.iis = os.path.join(opts.path, "model.ilp")
+    opts.delay = os.path.join(opts.path, "delay.csv")
+
+    solver_opts = sum(opts.solver_opt, [])
+    formatted = ["_" + opt for opt in solver_opts]
 
     with TimeContext("Cost TP parsing"):
         cost_types = {}
@@ -670,12 +751,17 @@ def main():
 
     solver = CVXMerger(nodes=nodes, edges=edges, partition_counts=partition_counts, iis=opts.iis)
     # if model is INF_OR_UNBD, set DualReductions=0
-    solver.solve(Threads=opts.thread, MIPGap=0.15)
+    solver.solve(Threads=opts.thread, MIPGap=0.15, **{opt: True for opt in formatted})
 
     with open(opts.merge, "w") as merge_file:
         writer = csv.writer(merge_file, delimiter=",")
         for node, part_id, partition_type in solver.get_assignment():
             writer.writerow([node.node_id, part_id, partition_type.typename])
+
+    with open(opts.delay, "w") as delay_file:
+        writer = csv.writer(delay_file, delimiter=",")
+        for partition_id, delay in solver.get_delays():
+            writer.writerow([partition_id, delay])
 
 
 if __name__ == "__main__":
