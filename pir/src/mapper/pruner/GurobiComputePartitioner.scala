@@ -183,7 +183,7 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
     }
   }
 
-  override def partition(nodes:List[PIRNode], vcost:List[Cost[_]]) = if (splitAlgo=="solver"){
+  override def partition(nodes:List[PIRNode], vcost:List[Cost[_]]) = if (splitAlgo=="gurobi"){
     genProgram(nodes)
     //genInit(nodes,vcost)
     genSpec(nodes,vcost :+ ExtInCost(false) :+ ExtOutCost(false))
