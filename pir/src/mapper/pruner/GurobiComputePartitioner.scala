@@ -8,8 +8,21 @@ import prism.collection.immutable._
 import prism.codegen.CSVPrinter
 
 trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { self:ComputePartitioner =>
+
+  case class ExtInCost(prefix:Boolean=false) extends PrefixCost[ExtInCost]
+  case class ExtOutCost(prefix:Boolean=false) extends PrefixCost[ExtOutCost]
+
+  var extInVecCost = 0
+  var extInScalCost = 0
+  var extOutVecCost = 0
+  var extOutScalCost = 0
   override protected def compCost(x:Any, ct:ClassTag[_]):Cost[_] = {
-    switch[InputCost](x,ct) {
+    switch[StageCost](x,ct) {
+      case -1 => StageCost(0)
+      case -2 => StageCost(0)
+    } orElse switch[InputCost](x,ct) {
+      case -1 => InputCost(0,0)
+      case -2 => InputCost(extOutScalCost,extOutVecCost)
       case _: GlobalContainer | _:Context =>
         super.compCost(x,ct).as
       case x:PIRNode =>
@@ -19,6 +32,8 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
       case x => super.compCost(x,ct).as
 
     } orElse switch[OutputCost](x,ct) {
+      case -1 => OutputCost(extInScalCost,extInVecCost)
+      case -2 => OutputCost(0,0)
       case _: GlobalContainer | _:Context =>
         super.compCost(x,ct).as
       case x: PIRNode => 
@@ -27,57 +42,96 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
         OutputCost(souts.size, vouts.size)
       case x => super.compCost(x,ct).as
 
+    } orElse switch[ExtInCost](x,ct) {
+      case -1 => ExtInCost(true)
+      case _ => ExtInCost(false)
+
+    } orElse switch[ExtOutCost](x,ct) {
+      case -2 => ExtOutCost(true)
+      case _ => ExtOutCost(false)
+
     } getOrElse super.compCost(x,ct)
   }
 
-  private def genNodes(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
-    withCSV(config.splitDir, "node.csv") {
-      nodes.foreach { n =>
-        val row = newRow
-        row("node") = n.id
-        row("initTp") = "PCUParam"
-        row("comment") = n
-        val costs = getCosts(n)
-        costs.foreach { c =>
-          emitCost(c, row)
-        }
-      }
-    }
-  }
+  private def getCostsX(x:Any):List[Cost[_]] = getCosts(x) :+ x.getCost[ExtInCost] :+ x.getCost[ExtOutCost]
 
-  private def genEdges(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
-    withCSV(config.splitDir, "edge.csv") {
-      val ctx = nodes.head.ctx.get
-      val nodeSet = nodes.toSet
-      nodes.foreach { n =>
-        n.localOuts.foreach { out =>
-          out.connected.foreach { in =>
-            val row = newRow
-            row("outid") = n.id
-            row("src") = n.id
-            row("dst") = in.src.id
-            row("tp") = if (isVec(in)) "v" else "s"
-            row("backEdge") = false
-            row("comment") = s"${n} -> ${in.src}"
+  private def genProgram(nodes:List[PIRNode]) = {
+
+    val nodeCSV = new CSVPrinter {}
+    val edgeCSV = new CSVPrinter {}
+
+    extInVecCost = 0
+    extInScalCost = 0
+    extOutVecCost = 0
+    extOutScalCost = 0
+    nodes.foreach { n =>
+      val row = nodeCSV.newRow
+      row("node") = n.id
+      row("initTp") = "PCUParam"
+      row("comment") = n
+      val costs = getCostsX(n)
+      costs.foreach { c =>
+        emitCost(c, row)
+      }
+      n.localOuts.foreach { out =>
+        out.connected.foreach { in =>
+          val row = edgeCSV.newRow
+          val vec = isVec(in)
+          val dst = in.src match {
+            case _:LocalOutAccess => 
+              if (vec)
+                extOutVecCost += 1
+              else
+                extOutScalCost += 1
+              -2
+            case _ => in.src.id
           }
+          row("outid") = n.id
+          row("src") = n.id
+          row("dst") = dst
+          row("tp") = if (vec) "v" else "s"
+          row("backEdge") = false
+          row("comment") = s"${n} -> ${in.src}"
         }
-        n.localIns.foreach { in =>
-          in.connected.foreach { out =>
-            out.src match {
-              case a:LocalOutAccess =>
-                val row = newRow
-                row(s"outid") = s"${a.id}"
-                row(s"src") = s"${a.id}"
-                row(s"dst") = s"${n.id}"
-                row(s"tp") = if(isVec(in)) "v" else "s"
-                row("backEdge") = false
-                row("comment") = s"${a} -> ${n}"
-              case _ =>
-            }
+      }
+      n.localIns.foreach { in =>
+        in.connected.foreach { out =>
+          out.src match {
+            case a:LocalOutAccess =>
+              val row = edgeCSV.newRow
+              val vec = isVec(in)
+              row(s"outid") = s"${a.id}"
+              row(s"src") = -1
+              row(s"dst") = s"${n.id}"
+              row(s"tp") = if(vec) "v" else "s"
+              row("backEdge") = false
+              row("comment") = s"${a} -> ${n}"
+              if (vec)
+                extInVecCost += 1
+              else
+                extInScalCost += 1
+            case _ =>
           }
         }
       }
     }
+    var row = nodeCSV.newRow
+    row("node") = -1
+    row("initTp") = "ExternIn"
+    row("comment") = "ExternIn"
+    getCostsX(-1).foreach { c =>
+      emitCost(c, row)
+    }
+    row = nodeCSV.newRow
+    row("node") = -2
+    row("initTp") = "ExternOut"
+    row("comment") = "ExternOut"
+    getCostsX(-2).foreach { c =>
+      emitCost(c, row)
+    }
+
+    nodeCSV.writeToCSV(config.splitDir, "node.csv")
+    edgeCSV.writeToCSV(config.splitDir, "edge.csv")
   }
 
   private def genInit(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
@@ -95,15 +149,31 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
 
   private def genSpec(nodes:List[PIRNode], vcost:List[Cost[_]]) = {
     withCSV(config.splitDir, "spec_cost.csv") {
-      val row = newRow
+      var row = newRow
       row("tp") = "PCUParam"
       vcost.foreach { c =>
         emitCost(c, row)
       }
+      row = newRow
+      row("tp") = "ExternIn"
+      emitCost(StageCost(0), row)
+      emitCost(InputCost(1000,1000), row)
+      emitCost(OutputCost(1000,1000), row)
+      emitCost(ExtInCost(true),row)
+      emitCost(ExtOutCost(false),row)
+      row = newRow
+      row("tp") = "ExternOut"
+      emitCost(StageCost(0), row)
+      emitCost(InputCost(1000,1000), row)
+      emitCost(OutputCost(1000,1000), row)
+      emitCost(ExtInCost(false),row)
+      emitCost(ExtOutCost(true),row)
     }
     withCSV(config.splitDir, "spec_count.csv") {
       val row = newRow
       row("PCUParam") = nodes.size
+      row("ExternIn") = 1
+      row("ExternOut") = 1
     }
     withCSV(config.splitDir,"costtp.csv") {
       val row = newRow
@@ -113,11 +183,10 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
     }
   }
 
-  override def partition(nodes:List[PIRNode], vcost:List[Cost[_]]) = if (splitAlgo=="solver"){
-    genNodes(nodes,vcost)
-    genEdges(nodes,vcost)
+  override def partition(nodes:List[PIRNode], vcost:List[Cost[_]]) = if (splitAlgo=="gurobi"){
+    genProgram(nodes)
     //genInit(nodes,vcost)
-    genSpec(nodes,vcost)
+    genSpec(nodes,vcost :+ ExtInCost(false) :+ ExtOutCost(false))
     val python = buildPath(config.pirHome, "env", "bin", "python")
     if (!exists(python)) {
       err(s"$python doesn't exists. Please do make install in ${config.pirHome}")
@@ -129,11 +198,15 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
       logPath=buildPath(config.splitDir, "partition.log")
     )
     val idmap = nodes.map { node => (node.id, node) }.toMap
-    val partMap = getLines(buildPath(config.splitDir, "merge.csv")).map { line =>
+    val partMap = getLines(buildPath(config.splitDir, "merge.csv")).flatMap { line =>
       val tup = line.split(",")
       val node = tup(0).toInt
       val part = tup(1).toInt
-      idmap(node) -> part
+      node match {
+        case -1 => assert(tup(2)=="ExternIn"); None
+        case -2 => assert(tup(2)=="ExternOut"); None
+        case node => Some(idmap(node) -> part)
+      }
     }.toMap
     nodes.foreach { node => 
       if (!partMap.contains(node)) {

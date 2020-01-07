@@ -24,6 +24,7 @@ class MLP_0 extends MLP(N=2046,batch=1,dims=List(4,4,4,4),ips=List(4,4,4),mps=Li
     val Bs = dims.sliding(2,1).map { case List(prev, next) => Seq.tabulate(next) { i => i } }.toList
     val input = Seq.tabulate(N, dims.head) { case (i,j) => i*dims.head + j }
     val goldUnstaged = unstaged_mlp[scala.Int](Ws, Bs, input, unstaged_relu _)
+    createDirectories(buildPath(IR.config.genDir, "tungsten"))
     writeCSVNow2D(goldUnstaged, buildPath(IR.config.genDir, "tungsten", "gold.csv"))
 
     val indram = DRAM[T](N, dims.head)
