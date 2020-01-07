@@ -5,6 +5,7 @@ import utils.io.files._
 class MLP_0 extends MLP(N=2046,batch=1,dims=List(4,4,4,4),ips=List(4,4,4),mps=List(1,1,1),ops=List(1,1,1)){ 
   //override def pirArgs = super.pirArgs + " --split-algo=dfs --split-forward=false --retime-glob=true --retime-buffer-only=false --dupra=true --mdone=true --retime-exout=true --bcread=true --pracc=true --rtelm=true --constprop=true --merge=true --merge-algo=dfs --merge-forward=false";
 }
+class MLP_1 extends MLP(N=2046,batch=1,dims=List(4,8,4,4),ips=List(4,8,4),mps=List(1,1,1),ops=List(8,4,4))
 
 @spatial abstract class MLP(
   val N:scala.Int = 1024,

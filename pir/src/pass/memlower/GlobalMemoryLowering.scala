@@ -159,20 +159,12 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     val headAccess = leadAccesses.head
     val mergeCtrl = headAccess.getCtrl
     val mergeCtx = within(memCU, headAccess.ctx.get.getCtrl) { Context() }
-    // Optimize for fully unrolled case
-    val constAddr = leadAccesses.forall { access =>
-      access.bank.connected.forall { case (OutputField(c:Const, "out")) => true; case _ => false } &&
-      access.offset.connected.forall { case (OutputField(c:Const, "out")) => true; case _ => false } &&
-      !access.en.isConnected
-    }
     dbg(s"mergeCtrl = $mergeCtrl")
     dbg(s"mergeCtx=$mergeCtx")
-    dbg(s"constAddr=$constAddr")
     val ctrlMap = leastMatchedPeers(mem.accesses.filterNot{_.port.get.isEmpty}.map { _.getCtrl} ).get
     val red = within(mergeCtx, mergeCtrl) {
       val requests = leadAccesses.map { access =>
         val addrCtx = access match {
-          //case access if accesses.size == 1 || constAddr => mergeCtx
           //case access:BankedWrite => access.ctx.get 
           case access => 
             addrCtxs.getOrElseUpdate(access.getCtrl, {
@@ -243,11 +235,13 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     }
     mergeCtxs += newAccess -> mergeCtx
 
+    // Broadcast result of lead read access to all accesses
     newAccess.to[FlatBankedRead].foreach { newAccess =>
       accesses.groupBy { a => broadcastMap(a) }.foreach { case (lead, accesses) =>
         val leadBank = lead.bank.connected
         val leadOfst = lead.offset.connected
         val leadCtrl = lead.getCtrl
+        // TODO: change to a single shuffle for the lead access.
         accesses.as[Set[BankedRead]].foreach { access =>
           access.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx, ins) =>
             val (bank,offset) = if (!config.dupReadAddr) (leadBank,leadOfst) else {
@@ -305,7 +299,6 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
       }
     }
   }
-
 
   private def dependsOn(deped:Access, dep:Access):Option[Int] = {
     val lca = leastCommonAncesstor(deped.getCtrl, dep.getCtrl).get

@@ -321,4 +321,14 @@ trait ScalaUtilFunc {
     }
   }
 
+  def flattenND[N:Numeric](inds:List[N], dims:List[N]):N = {
+    val num = implicitly[Numeric[N]]
+    import num._
+    if (inds.size==1) return inds.head
+    assert(inds.size == dims.size, s"flattenND inds=$inds dims=$dims have different size")
+    val i::irest = inds
+    val d::drest = dims
+    i * drest.product + flattenND(irest, drest)
+  }
+
 }

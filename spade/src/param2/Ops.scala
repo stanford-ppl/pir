@@ -15,6 +15,15 @@ trait Ops extends Enumeration {
   sealed class TextOp  extends Opcode
   sealed class OtherOp  extends Opcode
 
+  /*
+   * @param input list of input operands. Each operand can be either a list or an element. If there
+   * are multiple lists in operands, they must match in dimension. Element input will be broadcast
+   * to all elements in list inputs.
+   * @param f function taking a list of element inputs (same size as input) and produce element
+   * output
+   * @return an element output produced by f all inputs are elements, or a list of elements
+   * by broadcast all single element to list inputs and evaluate f for each sets of inputs.
+   * */
   private def m(x:List[Any])(f:PartialFunction[Any,Any]):Option[Any] = {
     val vecs = x.flatMap { case Literal(vs:List[_]) if vs.size > 1 => Some(vs.size); case _ => None }
     val vec = assertIdentical(vecs, s"input vec $x").getOrElse(1)
@@ -46,6 +55,19 @@ trait Ops extends Enumeration {
         }
       }
     }
+  }
+
+  lazy val castNum = new Numeric[Any] {
+    def plus(x: Any, y: Any): Any = FixAdd.eval(List(x,y))
+    def minus(x: Any, y: Any): Any = FixSub.eval(List(x,y))
+    def times(x: Any, y: Any): Any = FixMul.eval(List(x,y))
+    def negate(x: Any): Any = FixNeg.eval(List(x))
+    def fromInt(x: Int): Any = x
+    def toInt(x: Any): Int = err(s"Cannot convert to Int from internal vec const type")
+    def toLong(x: Any): Long = err(s"Cannot convert to Long from internal vec const type")
+    def toFloat(x: Any): Float = err(s"Cannot convert to Float from internal vec const type")
+    def toDouble(x: Any): Double = err(s"Cannot convert to Double from internal vec const type")
+    def compare(x: Any, y: Any): Int = err(s"Cannot compare internal vec const type")
   }
 
   val FixInv       = new FixOp with Op1 { override def eval(ins:List[Any]) = m(ins) { case (a:Float)::Nil => Literal(1/a) } } // TODO: same as Recip?
