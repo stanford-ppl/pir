@@ -379,11 +379,6 @@ class CVXMerger:
         self.partition_matrices = {}
         node_to_row_map = defaultdict(list)
         for partition_type, count in self.partition_counts.items():
-            # conforming_nodes = [
-            #     node for node in self.nodes if
-            #     all(partition_type.get_limit(cost).accepts(cost.value) for cost in
-            #         HardCostAbstractMixin.get_from_iterable(node.costs))
-            # ]
             conforming_nodes = self.conforming_nodes[partition_type]
             self.node_to_loc_map[partition_type] = loc_map = {node: i for i, node in enumerate(conforming_nodes)}
             print("Map:", partition_type.typename, {node.node_id: i for node, i in loc_map.items()})
@@ -602,12 +597,9 @@ class CVXMerger:
         total = 0
         total_units = sum(self.partition_counts.values())
         for partition_type, matrix in self.partition_matrices.items():
-            # max_count = self.partition_counts[partition_type]
             # add up columns with non-zero elements in matrix
             active = sum(self._project_to_bool(np.sum(matrix, axis=0)))
-            # currently_active = cvxpy.sum(matrix)
             total += active
-            # total += currently_active / max_count
         return total / total_units
 
     def solve(self, **kwargs):
