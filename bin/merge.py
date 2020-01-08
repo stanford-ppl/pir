@@ -294,9 +294,10 @@ class CVXMerger:
             inverse_mapping = {
                 n: loc for loc, n in self.node_to_loc_map[partition_type].items()
             }
-            converted = np.zeros_like(matrix)
+            converted = np.zeros_like(matrix, dtype=float)
             for index in np.ndindex(*matrix.shape):
                 converted[index] = matrix[index].X
+            np.rint(converted, out=converted)
             for loc, partition_num in np.transpose(converted.nonzero()):
                 node = inverse_mapping[loc]
                 yield node, self.get_partition_id(partition_type, partition_num), partition_type
