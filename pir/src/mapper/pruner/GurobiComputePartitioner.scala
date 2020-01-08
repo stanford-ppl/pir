@@ -55,7 +55,7 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
 
   private def getCostsX(x:Any):List[Cost[_]] = getCosts(x) :+ x.getCost[ExtInCost] :+ x.getCost[ExtOutCost]
 
-  private def genProgram(nodes:List[PIRNode]) = {
+  private def genProgram(nodes:List[PIRNode], vcost:List[Cost[_]]):Unit = {
 
     val nodeCSV = new CSVPrinter {}
     val edgeCSV = new CSVPrinter {}
@@ -64,10 +64,15 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
     extInScalCost = 0
     extOutVecCost = 0
     extOutScalCost = 0
+    val parts = withAlgo("dfs") { partition(nodes,vcost) }
+    val initAssign:Map[PIRNode, Int] = parts.zipWithIndex.flatMap { case (p,i) =>
+      p.scope.map { n => n -> i }
+    }.toMap
     nodes.foreach { n =>
       val row = nodeCSV.newRow
       row("node") = n.id
       row("initTp") = "PCUParam"
+      row("initAssign") = initAssign(n)
       row("comment") = n
       val costs = getCostsX(n)
       costs.foreach { c =>
@@ -118,6 +123,7 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
     var row = nodeCSV.newRow
     row("node") = -1
     row("initTp") = "ExternIn"
+    row("initAssign") = parts.size
     row("comment") = "ExternIn"
     getCostsX(-1).foreach { c =>
       emitCost(c, row)
@@ -125,6 +131,7 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
     row = nodeCSV.newRow
     row("node") = -2
     row("initTp") = "ExternOut"
+    row("initAssign") = parts.size + 1
     row("comment") = "ExternOut"
     getCostsX(-2).foreach { c =>
       emitCost(c, row)
@@ -184,7 +191,7 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
   }
 
   override def partition(nodes:List[PIRNode], vcost:List[Cost[_]]) = if (splitAlgo=="gurobi"){
-    genProgram(nodes)
+    genProgram(nodes, vcost)
     //genInit(nodes,vcost)
     genSpec(nodes,vcost :+ ExtInCost(false) :+ ExtOutCost(false))
     val python = buildPath(config.pirHome, "env", "bin", "python")
