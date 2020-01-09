@@ -1,0 +1,16 @@
+#!env/bin/python3
+
+from util import *
+
+parser = argparse.ArgumentParser(description='Set .pirconf')
+parser.add_argument('key', type=str, help='key of config')
+parser.add_argument('value', type=str, help='value of config')
+
+def main():
+    (opts, args) = parser.parse_known_args()
+    set_config(opts.key, opts.value)
+
+if __name__ == "__main__":
+    main()
+
+

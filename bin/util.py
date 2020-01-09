@@ -7,6 +7,7 @@ import csv
 import fnmatch
 import glob
 import shutil
+from collections import OrderedDict
 
 global parser
 parser = argparse.ArgumentParser(description='Run experiments')
@@ -141,3 +142,44 @@ def loadSimData(datapath, backends=None):
 
 def loadSummary(datapath):
     return csvToDataFrame(datapath, "backend,app,param")
+
+def default_config_path():
+    path = os.path.join(os.environ['HOME'], '.pirconf')
+    return path
+
+def parse_token(token):
+    token = token.strip()
+    if token == '' or token.startswith('#'):
+        return None,None
+    if '=' in token:
+        key,value,=token.split('=')
+    else:
+        key = token
+        value = 'true'
+    return key,value
+
+def get_configs(path=default_config_path()):
+    d = OrderedDict()
+    if os.path.exists(path):
+        with open(path, 'r') as f:
+            for line in f:
+                key,value = parse_token(line)
+                if key is not None:
+                    d[key] = value
+    return d
+
+def set_config(key, value, path=default_config_path()):
+    d = OrderedDict()
+    if os.path.exists(path):
+        d = get_configs(path)
+    d[key] = value
+    with open(path, 'w') as f:
+        for key in d:
+            f.write(f'{key}={d[key]}\n')
+
+def parse_configs(optstr):
+    for opt in optstr.split('--'):
+        opt = opt.strip()
+        if opt=='':
+            continue
+        key,value = parse_token(opt)

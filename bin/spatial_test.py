@@ -25,6 +25,9 @@ def main(args=None):
             apps.append(app)
     opts.app = apps
     java_cmd = ""
+    d = get_configs()
+    if 'spatial-home' not in d:
+        args.insert(0,f'--spatial-home={os.getcwd()}')
     java_cmd += "export TEST_ARGS=\"{}\"; ".format(' '.join(args))
     java_cmd += "sbt -Dmaxthreads={} ".format(opts.thread)
     if (opts.backend is not None):

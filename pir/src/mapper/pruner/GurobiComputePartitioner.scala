@@ -187,14 +187,15 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
     genProgram(nodes)
     //genInit(nodes,vcost)
     genSpec(nodes,vcost :+ ExtInCost(false) :+ ExtOutCost(false))
-    val python = buildPath(config.pirHome, "env", "bin", "python")
+    val pirHome = config.pirHome.getOrElse("pir-home is not set")
+    val python = buildPath(pirHome, "env", "bin", "python")
     if (!exists(python)) {
-      err(s"$python doesn't exists. Please do make install in ${config.pirHome}")
+      err(s"$python doesn't exists. Please do make install in ${pirHome}")
     }
     shell(
       header="partition", 
       command=s"${buildPath("env","bin","python")} ${buildPath("bin","merge.py")} ${config.splitDir} -t ${config.splitThread}", 
-      cwd=config.pirHome,
+      cwd=pirHome,
       logPath=buildPath(config.splitDir, "partition.log")
     )
     val idmap = nodes.map { node => (node.id, node) }.toMap
