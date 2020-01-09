@@ -64,7 +64,7 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
     extInScalCost = 0
     extOutVecCost = 0
     extOutScalCost = 0
-    val parts = withAlgo("dfs") { partition(nodes,vcost) }
+    val parts = withAlgo(config.gurobiInitAlgo) { partition(nodes,vcost) }
     val initAssign:Map[PIRNode, Int] = parts.zipWithIndex.flatMap { case (p,i) =>
       p.scope.map { n => n -> i }
     }.toMap
@@ -220,14 +220,18 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
         bug(s"${node} was not assigned with partition!")
       }
     }
+    // Partition ID -> nodes
     val parts = partMap.groupBy { case (node, pid) => pid }.map { case (pid,nodes) =>
       pid -> new Partition(nodes.map { _._1 }.toList)
     }
     val delayPath = buildPath(config.splitDir, "delay.csv")
     if (exists(delayPath)) {
       getLines(delayPath).foreach { line =>
-        val node::delay::_ = line.split(",").toList
-        parts(partMap(idmap(node.toInt))).delay = Some(delay.toFloat.toInt)
+        val part::delay::_ = line.split(",").toList
+        val pid = part.toInt
+        if (parts.contains(pid)) {
+          parts(pid).delay = Some(delay.toFloat.toInt)
+        }
       }
     }
     dbgblk(s"Create Partitions") {
