@@ -13,14 +13,15 @@ trait ExternMerger extends GlobalMerging with PointToPointPlaceAndRoute with Sol
   override def mergeGlobals(x:CUMap) = if (config.mergeAlgo=="solver") {
     emitSpec(x)
     emitProgram(x)
-    val python = buildPath(config.pirHome, "env", "bin", "python")
+    val pirHome = config.pirHome.getOrElse("pir-home is not set")
+    val python = buildPath(pirHome, "env", "bin", "python")
     if (!exists(python)) {
-      err(s"$python doesn't exists. Please do make install in ${config.pirHome}")
+      err(s"$python doesn't exists. Please do make install in ${pirHome}")
     }
     shell(
       header="merge", 
-      command=s"${buildPath(config.pirHome,"env","bin","python")} ${buildPath("bin","merge.py")} ${config.mergeDir} -t ${config.splitThread}", 
-      cwd=config.pirHome,
+      command=s"${buildPath(pirHome,"env","bin","python")} ${buildPath("bin","merge.py")} ${config.mergeDir} -t ${config.splitThread}", 
+      cwd=pirHome,
       logPath=buildPath(config.mergeDir, "merge.log")
     )
     processMerge(x)
