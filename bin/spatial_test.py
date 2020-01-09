@@ -1,11 +1,18 @@
 import os
+import subprocess
 from util import *
 
 def main(args=None):
     parser.add_argument('-f', '--fast', action='store_true', default=False)
     parser.add_argument('-H', '--hybrid', action='store_true', default=False)
     parser.add_argument('-T', '--tee', action='store_true', default=False)
+    parser.add_argument('-u', '--publish', action='store_true', default=False)
     (opts, args) = parser.parse_known_args(args=args)
+
+    if opts.publish:
+        cp = subprocess.run("sbt publishAll".split(" "), cwd='pir/')
+        cp.check_returncode()
+
     if opts.app is None:
         opts.app = ["*"]
     apps = []
