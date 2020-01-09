@@ -1,16 +1,13 @@
 #!/usr/bin/env python
 
-import sys
 import os
 import csv
 import argparse
 import numpy as np
-import scipy.sparse
 import gurobipy as gpy
 from gurobipy import GRB
-from collections import namedtuple, defaultdict
+from collections import defaultdict
 from collections.abc import Iterable
-import operator
 import functools
 import typing
 import itertools
@@ -62,6 +59,11 @@ def time_this(func):
         return result
 
     return wrapper
+
+
+def create_default_counting_dict(*args, **kwargs):
+    counter = itertools.count(*args, **kwargs)
+    return defaultdict(lambda: next(counter))
 
 
 class Filterable:
@@ -242,12 +244,12 @@ class CVXMerger:
         "PMUParam": 0.001
     }
 
-    def __init__(self, nodes: typing.List[Node], edges: typing.List[Edge],
+    def __init__(self, nodes: typing.Dict[Node, typing.Tuple[PartitionType, int]], edges: typing.List[Edge],
                  partition_counts: typing.Dict[PartitionType, int], iis):
-        self.nodes = nodes[:]
+        self.nodes = nodes.keys()
+        self.initial_assignments = nodes.copy()
         self.edges = edges[:]
         self.iis = iis
-        # self.partition_counts = partition_counts.copy()
         self.partition_counts = {}
         self.conforming_nodes = {}
         for partition_type, count in partition_counts.items():
@@ -266,6 +268,7 @@ class CVXMerger:
 
         self._init_node_lookup()
         self._init_partitions()
+        self._init_warm_start()
         self._init_edge_deps()
         self._init_partition_constraints()
 
@@ -348,7 +351,8 @@ class CVXMerger:
         retiming_nodes = self.get_num_retiming_nodes()
         costs = []
         for tp, count in retiming_nodes.items():
-            scaled_count = self._convert_to_var(count / self.retime_sizes[tp][1] * (1 + self._RETIME_PENALTY[tp.typename]))
+            scaled_count = self._convert_to_var(
+                count / self.retime_sizes[tp][1] * (1 + self._RETIME_PENALTY[tp.typename]))
             self.additional_usages[tp] += scaled_count
             costs.append(scaled_count)
         return self._convert_to_var(gpy.quicksum(costs), name="retiming_cost")
@@ -472,7 +476,14 @@ class CVXMerger:
             # target_max = self._convert_to_var(gpy.max_(*self._convert_to_var(target_delay_max)),
             #                                   name="target_delay_max_{}".format(node.node_id))
             self.model.addConstr(self.delays[node] == target_min, name="delay_target_min_{}".format(node.node_id))
-            # self.model.addConstr(self.delays[node] >= target_max)
+
+    @time_this
+    @functools.lru_cache()
+    def _init_warm_start(self):
+        for node, (ptype, index) in self.initial_assignments.items():
+            matrix = self.partition_matrices[ptype]
+            node_index = self.node_to_loc_map[ptype][node]
+            matrix[node_index, index].Start = 1
 
     @time_this
     @functools.lru_cache()
@@ -534,9 +545,6 @@ class CVXMerger:
             #                                  cost.value)
             push_set = sum(self._get_row_or_zeroes(matrix, loc_map, dest) for dest in dst_nodes)
             projected = self._project_to_bool(push_set, name="push_set_projected")
-            # projected = np.array([self.model.addVar() for _ in push_set])
-            # for proj, push in zip(projected, push_set):
-            #     self.model.addConstr((proj == 0) >> (push == 0))
             diff = self._convert_to_var(projected - src_row, name="push-src")
             movement.append(self._convert_to_var([(gpy.max_(d, 0)) for d in diff], name="input_costs_pb"))
         if not movement:
@@ -576,12 +584,6 @@ class CVXMerger:
                     [gpy.max_(x, 0) for x in self._convert_to_var(self._project_to_bool(matrix_sum) - src_row)])))
                 has_movement = self._project_to_bool(out_of_partition_type_movement + in_partition_type_movement)
                 movement.append(np.array([self.and_(has_movement, s) for s in src_row]))
-                # out_of_partition_type_movement = self._project_to_bool(num_out_of_partition_type_nodes, num_outputs)
-                # in_partition_type_movement = cvxpy.sum(
-                #     cvxpy.maximum(self._project_to_bool(matrix_sum, self.num_nodes) - src_row, 0))
-                # has_movement = self._project_to_bool(out_of_partition_type_movement + in_partition_type_movement,
-                #                                      cost.value)
-                # movement.append(cvxpy.maximum(has_movement + src_row - 1, 0))
         if movement:
             total_movement = sum(movement)
             for i, move in enumerate(total_movement):
@@ -714,15 +716,23 @@ def main():
     for partition_type, count in partition_counts.items():
         print("Partition Type:", partition_type.typename, count)
 
+    # need to densify initial assignments
+    # PartitionType -> InitId -> NewID
+    initial_assignment_remapping = {partition_type: create_default_counting_dict(start=0) for partition_type in
+                                    partition_counts}
+
     with TimeContext("Node parsing"):
-        nodes: typing.List[Node] = []
+        nodes: typing.Dict[Node, typing.Tuple[PartitionType, int]] = {}
         with open(opts.node) as node_file:
             reader = csv.DictReader(node_file, delimiter=",")
             for line in reader:
                 costs = set()
                 for cost_name, cost_tp in cost_types.items():
                     costs.add(cost_tp(attribute_name=cost_name, value=cost_tp.parse(line[cost_name])))
-                nodes.append(Node(node_id=int(line["node"]), costs=frozenset(costs)))
+                node = Node(node_id=int(line["node"]), costs=frozenset(costs))
+                partition_type = partition_types[line["initTp"]]
+                assigned_index = initial_assignment_remapping[partition_type][int(line["initAssign"])]
+                nodes[node] = (partition_type, assigned_index)
 
     with TimeContext("Edge parsing"):
         edges: typing.List[Edge] = []
