@@ -10,11 +10,11 @@ class BankTest extends UnitTest {
   val bp = new BankPartitioner {}
 
   "BankTest" should "success" in {
-    check(SRAMCost(count=1, bank=36, size=1024*2052), SRAMCost(count=1,bank=16,size=65536))
-    check(SRAMCost(count=1, bank=1, size=1024*10), SRAMCost(count=1,bank=16,size=65536))
-    check(SRAMCost(count=1, bank=16, size=1024*10), SRAMCost(count=1,bank=16,size=65536))
-    check(SRAMCost(count=1, bank=16, size=1024*100), SRAMCost(count=1,bank=16,size=65536))
-    check(SRAMCost(count=1, bank=1, size=1024*100), SRAMCost(count=1,bank=16,size=65536))
+    check(SRAMCost(bank=36, size=1024*2052), SRAMCost(bank=16,size=65536))
+    check(SRAMCost(bank=1, size=1024*10), SRAMCost(bank=16,size=65536))
+    check(SRAMCost(bank=16, size=1024*10), SRAMCost(bank=16,size=65536))
+    check(SRAMCost(bank=16, size=1024*100), SRAMCost(bank=16,size=65536))
+    check(SRAMCost(bank=1, size=1024*100), SRAMCost(bank=16,size=65536))
   }
 
   def check(kcost:SRAMCost, vcost:SRAMCost) = {

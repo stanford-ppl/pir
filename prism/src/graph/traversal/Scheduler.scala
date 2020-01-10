@@ -45,7 +45,7 @@ trait Scheduler extends Traversal {
   }
 }
 
-trait TreeScheduler extends Traversal {
+trait TreeScheduler extends BFSTraversal {
   type N
   type T = List[List[N]]
 
@@ -60,14 +60,16 @@ trait TreeScheduler extends Traversal {
     traverseNode(n, zero)
   }
 
-  def scheduleNodes(ns: Iterable[N]) = {
-    resetTraversal
-    traverseNodes(ns.toList, zero)
-  }
+  // These are not right behavior
+  //def scheduleNodes(ns: List[N]) = {
+    //resetTraversal
+    //ns.foreach { n => queue ++= visitFuncInScope(n).filterNot(isScheduled) }
+    //traverseNodes(Nil, List(ns))
+  //}
 
-  def scheduleNodesInScope(scope:List[N], ns: Iterable[N]) = {
-    resetTraversal
-    traverseNodesInScope(scope, ns.toList, zero)
-  }
+  //def scheduleNodesInScope(scope:List[N], ns: Iterable[N]) = {
+    //resetTraversal
+    //traverseNodesInScope(scope, ns.toList, zero)
+  //}
 
 }

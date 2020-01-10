@@ -11,7 +11,8 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
     val conf = config
     import conf._
     if (!noPlaceAndRoute) {
-      var command = s"${config.prouteHome}/plastiroute -n node.csv -l link.csv -y outlink.csv -z inlink.csv"
+      val prouteHome = config.prouteHome.getOrElse(err(s"proute-home is not set"))
+      var command = s"${prouteHome}/plastiroute -n $prouteNodeName -l $prouteLinkName -y $prouteOutLinkName -z $prouteInLinkName"
       spadeParam.pattern match {
         case p:Checkerboard => 
           command += s" -r ${p.row} -c ${p.col}"

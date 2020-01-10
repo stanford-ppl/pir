@@ -58,6 +58,8 @@ trait Logging extends Serializable {
     else logger.withOpen[T](outDir, logFile, append) { lambda }
   }
 
+  def qdef(n:ND) = s"${dquote(n)}${n.to[Product].fold("") { n => s"(${n.productIterator.map(dquote).mkString(",")})" }}"
+
   def dbgn(n:ND, msg:Option[String]=None) = {
     dbgblk(msg.getOrElse(dquote(n))) {
       n.metadata.foreach { case (key,metadata) =>

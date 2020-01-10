@@ -4,8 +4,8 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
 
   /* ------------------- Compiler --------------------  */
   register("split", default=true, info="Enable splitting")
-  register("split-algo", default="dfs", info="Splitting algorithm. [dfs, bfs, solver]") 
-  register("split-forward", default=true, info="Forward splitting traversal direction") 
+  register("split-algo", default="dfs", info="Splitting algorithm. [dfs, bfs, gurobi, cvxpy]") 
+  register("split-forward", default=false, info="Forward splitting traversal direction") 
   register("split-thread", default=1, info="Number of threads for external splitter") 
   register("merge", default=false, info="Enable merging")
   register("merge-algo", default="bfs", info="Merging algorithm")
@@ -14,8 +14,8 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   // Optimizations
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
   register("dupra", default=false, info="Duplicate read address calculation in receiver CU")
-  register("bcread", default=false, info="Enable broadcast read")
-  register("mdone", default=false, info="Generate done from merged access")
+  register("bcread", default=true, info="Enable broadcast read")
+  register("mdone", default=true, info="Generate done from merged access")
   register("constprop", default=true, info="Enable constant propogation")
   register("pracc", default=true, info="Enable pipeline register accumulation lowering")
   register("sr", default=true, info="Enable strength reduction")
@@ -33,6 +33,8 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("igraph", default=false, info="Enable igraph codegen")
   register("dedicated-dag", default=false, info="Force DRAM AG are only used to map DRAM Address Calculation")
   register("module", default=false, info="Generate the app as a module")
+
+  register[String]("spatial-home", default=sys.env.get("SPATIAL_HOME"), info="Spatial Home")
   register[String]("pir-home", default=sys.env.get("PIR_HOME"), info="PIR Home")
 
   def arch = option[String]("arch")
@@ -64,7 +66,8 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def mergeDir = buildPath(appDir, "merge")
   def splitDir = buildPath(appDir, "split")
   def asModule = enableCodegen && option[Boolean]("module")
-  def pirHome = getOption[String]("pir-home").getOrElse(err(s"pir-home is not set"))
+  def spatialHome = getOption[String]("spatial-home")
+  def pirHome = getOption[String]("pir-home") orElse spatialHome.map { buildPath(_,"pir") }
 
   /* ------------------- Routing --------------------  */
   register("routing-algo", default="dor", info="If net=[dynamic] - [dor, planed, proute]. Option ignored for other network. dor - dimention order routing. planed - arbitrary source routing, proute - use plastiroute for place and route. If proute is chosen plastiroute will be launched from pir if $PLASTIROUTE_HOME is set") 
@@ -106,7 +109,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def runPsim = option[Boolean]("run-psim") && genPsim
   def loadPsim = getOption[String]("load-psim")
   def enableTrace = genPsim && option[Boolean]("trace")
-  def psimHome = getOption[String]("psim-home").getOrElse(err(s"psim-home is not set"))
+  def psimHome = getOption[String]("psim-home") orElse pirHome.map { buildPath(_,"plastisim") }
   def psimOut = getOption[String]("psim-out").getOrElse { buildPath(appDir, s"plastisim") }
   def psimConfigName = "psim.conf"
   def psimConfigPath = buildPath(psimOut, psimConfigName)
@@ -123,7 +126,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("run-proute", default=false, info="Run Plastiroute") 
   register[String]("module-prefix", info="Prefix to top module path")
   register[String]("extern-prefix", info="Prefix to external module path")
-  def prouteHome = getOption[String]("proute-home").getOrElse(err(s"proute-home is not set"))
+  def prouteHome = getOption[String]("proute-home") orElse pirHome.map { buildPath(_,"plastiroute") }
   def genProute = genPsim || genTungsten
   def runproute = option[Boolean]("run-proute") || runPsim || runTst 
   def proutePlaceName = "final.place"
@@ -150,7 +153,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def genTungsten = enableCodegen && option[Boolean]("tungsten")
   def runTst = option[Boolean]("run-tst")
   def tstOut = buildPath(appDir, "tungsten")
-  def tstHome = getOption[String]("tungsten-home").getOrElse(err(s"tungsten-home is not set"))
+  def tstHome = getOption[String]("tungsten-home") orElse pirHome.map { buildPath(_,"tungsten") }
   def tstLog = buildPath(appDir, "runtst.log")
   def enableSimDebug = option[Boolean]("debug-tst")
 
