@@ -260,15 +260,6 @@ class Logger():
     def __init__(self, args=None):
         (opts, args) = parser.parse_known_args(args=args)
         self.opts = opts
-        opts.show_history = opts.history_depth > 0 or \
-                            opts.history_id is not None or \
-                            opts.log is not None
-
-        if opts.print_fields:
-            fields = sorted(opts.Gistory.columns.values)
-            for f in fields:
-                print(f)
-            return
 
         self.show_history()
 
@@ -399,13 +390,20 @@ class Logger():
 
     def show_history(self):
         opts = self.opts
+
+        if opts.print_fields:
+            self.load_history(logFilter=lambda logs: [logs[0]])
+            fields = sorted(self.history.columns.values)
+            for f in fields:
+                print(f)
+            exit()
         if opts.history_id is not None:
             self.print_history(logFilter=lambda logs: [logs[opts.history_id]])
             exit()
-        elif opts.log is not None:
+        if opts.log is not None:
             self.print_history(logFilter=lambda logs: [opts.log])
             exit()
-        elif opts.walk_history:
+        if opts.walk_history:
             nlogs = len(os.listdir(opts.logdir))
             for i in range(nlogs):
                 self.print_history(logFilter=lambda logs: [logs[i]])
@@ -428,7 +426,7 @@ class Logger():
             else:
                 apps = getApps(backend, opts)
             confs = []
-            opts.show_app = len(apps)==1 and not opts.summarize and not opts.show_history
+            opts.show_app = len(apps)==1 and not opts.summarize
             for app in apps:
                 conf = OrderedDict()
                 conf['app'] = app
