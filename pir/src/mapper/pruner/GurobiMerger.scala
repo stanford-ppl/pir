@@ -8,9 +8,9 @@ import prism.graph._
 import prism.codegen._
 import scala.collection.mutable
 
-trait ExternMerger extends GlobalMerging with PointToPointPlaceAndRoute with SolverUtil { self =>
+trait GurobiMerger extends GlobalMerging with PointToPointPlaceAndRoute with SolverUtil { self =>
 
-  override def mergeGlobals(x:CUMap) = if (config.mergeAlgo=="solver") {
+  override def mergeGlobals(x:CUMap) = if (config.mergeAlgo=="gurobi") {
     emitSpec(x)
     emitProgram(x)
     val pirHome = config.pirHome.getOrElse("pir-home is not set")
@@ -85,10 +85,11 @@ trait ExternMerger extends GlobalMerging with PointToPointPlaceAndRoute with Sol
     withCSV(config.mergeDir, "node.csv") {
       bind(x) match {
         case Left(f) =>
-          x.freeKeys.foreach { glob =>
+          x.freeKeys.zipWithIndex.foreach { case (glob, i) =>
             val row = newRow
             row("node") = glob.id
             row("initTp") = "Unknown"
+            row("initAssign") = i
             row("comment") = glob
             val costs = getCosts(glob)
             costs.foreach { c =>
@@ -96,10 +97,11 @@ trait ExternMerger extends GlobalMerging with PointToPointPlaceAndRoute with Sol
             }
           }
         case Right(x) =>
-          x.usedMap.fmap.keys.foreach { glob =>
+          x.usedMap.fmap.keys.zipWithIndex.foreach { case (glob,i) =>
             val row = newRow
             row("node") = glob.id
             row("initTp") = x.usedMap(glob).param.simpleName
+            row("initAssign") = i
             row("comment") = glob
             val costs = getCosts(glob)
             costs.foreach { c =>

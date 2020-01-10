@@ -9,7 +9,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("split-forward", default=false, info="Forward splitting traversal direction") 
   register("split-thread", default=1, info="Number of threads for external splitter") 
   register("merge", default=false, info="Enable merging")
-  register("merge-algo", default="bfs", info="Merging algorithm")
+  register("merge-algo", default="bfs", info="Merging algorithm. [dfs, bfs, gurobi]")
   register("merge-forward", default=false, info="Forward merging traversal direction") 
 
   // Optimizations

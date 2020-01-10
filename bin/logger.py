@@ -260,9 +260,6 @@ class Logger():
     def __init__(self, args=None):
         (opts, args) = parser.parse_known_args(args=args)
         self.opts = opts
-        opts.show_history = opts.history_depth > 0 or \
-                            opts.history_id is not None or \
-                            opts.log is not None
 
         if opts.print_fields:
             fields = sorted(opts.Gistory.columns.values)
@@ -428,7 +425,7 @@ class Logger():
             else:
                 apps = getApps(backend, opts)
             confs = []
-            opts.show_app = len(apps)==1 and not opts.summarize and not opts.show_history
+            opts.show_app = len(apps)==1 and not opts.summarize
             for app in apps:
                 conf = OrderedDict()
                 conf['app'] = app
