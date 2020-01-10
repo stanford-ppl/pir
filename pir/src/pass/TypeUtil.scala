@@ -114,5 +114,42 @@ trait TypeUtil { self:PIRPass =>
     n.getVec == 1 && n.getTp == Bool
   }
 
+
+  def analyzeBackEdge:Set[(Output[PIRNode], Input[PIRNode])] = dbgblk(s"analyzeBackEdge"){
+    type Node = PIRNode
+    type Edge = (Output[Node], Input[Node])
+    def dfs(node:Node, backEdges:mutable.Set[Edge], visitedStack:List[Node]):Unit = {
+      node.outs.foreach { out =>
+        out.connected.foreach { in =>
+          if (!backEdges.contains((out,in))) {
+            val dst = in.src.global.get
+            if (visitedStack.contains(dst)) {
+              dbg(s"backEdges: ${out.src.id} -> ${in.src.id} ${out.src.global.get.id} -> ${in.src.global.get.id}")
+              dbg(s"stack=${visitedStack}")
+              backEdges += (out -> in)
+            }
+            else
+              dfs(dst, backEdges, visitedStack :+ node)
+          }
+        }
+      }
+    }
+    val nodes = pirTop.collectChildren[GlobalContainer]
+    val starts = nodes.filter { 
+      case g:ArgFringe => true
+      case g => g.ins.forall { !_.isConnected }
+    }
+    dbg(s"starts=$starts")
+
+    // Performing DFS
+    val backEdges = mutable.Set.empty[Edge]
+    starts.foreach { node =>
+      dfs(node, backEdges, List.empty)
+    }
+
+    backEdges.toSet
+  }
+
+
 }
 
