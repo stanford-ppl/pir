@@ -1,9 +1,7 @@
-all: env requirements.txt proute tungsten pir 
+all: env proute tungsten pir 
 
-env:
+env: requirements.txt
 	virtualenv -p python3.6 env
-
-requirements.txt:
 	env/bin/pip install -r requirements.txt
 
 clean: clean-local
