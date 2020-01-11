@@ -261,12 +261,6 @@ class Logger():
         (opts, args) = parser.parse_known_args(args=args)
         self.opts = opts
 
-        if opts.print_fields:
-            fields = sorted(opts.Gistory.columns.values)
-            for f in fields:
-                print(f)
-            return
-
         self.show_history()
 
         if opts.show_diff:
@@ -396,13 +390,20 @@ class Logger():
 
     def show_history(self):
         opts = self.opts
+
+        if opts.print_fields:
+            self.load_history(logFilter=lambda logs: [logs[0]])
+            fields = sorted(self.history.columns.values)
+            for f in fields:
+                print(f)
+            exit()
         if opts.history_id is not None:
             self.print_history(logFilter=lambda logs: [logs[opts.history_id]])
             exit()
-        elif opts.log is not None:
+        if opts.log is not None:
             self.print_history(logFilter=lambda logs: [opts.log])
             exit()
-        elif opts.walk_history:
+        if opts.walk_history:
             nlogs = len(os.listdir(opts.logdir))
             for i in range(nlogs):
                 self.print_history(logFilter=lambda logs: [logs[i]])
