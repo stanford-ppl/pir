@@ -481,6 +481,8 @@ class CVXMerger:
     @functools.lru_cache()
     def _init_warm_start(self):
         for node, (ptype, index) in self.initial_assignments.items():
+            if index < 0:
+                continue  # don't initialize if it's invalid
             matrix = self.partition_matrices[ptype]
             node_index = self.node_to_loc_map[ptype][node]
             matrix[node_index, index].Start = 1
@@ -608,6 +610,7 @@ class CVXMerger:
         objective = self.utilization
         for k, v in tuple(kwargs.items()):
             if k.startswith("_") and v:
+                print("Using objective:", k[1:])
                 objective += self.objective_components[k[1:]]()
                 del kwargs[k]
 
@@ -754,7 +757,7 @@ def main():
 
     solver = CVXMerger(nodes=nodes, edges=edges, partition_counts=partition_counts, iis=opts.iis)
     # if model is INF_OR_UNBD, set DualReductions=0
-    solver.solve(Threads=opts.thread, MIPGap=0.15, **{opt: True for opt in formatted})
+    solver.solve(Threads=opts.thread, **{opt: True for opt in formatted})
 
     with open(opts.merge, "w") as merge_file:
         writer = csv.writer(merge_file, delimiter=",")
