@@ -10,7 +10,7 @@ def main(args=None):
     (opts, args) = parser.parse_known_args(args=args)
 
     if opts.publish:
-        cp = subprocess.run("sbt publishAll".split(" "), cwd='pir/')
+        cp = subprocess.run("sbt publishAll", shell=True, cwd='pir/')
         cp.check_returncode()
 
     if opts.app is None:

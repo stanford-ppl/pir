@@ -110,6 +110,7 @@ trait GurobiMerger extends GlobalMerging with PointToPointPlaceAndRoute with Sol
           }
       }
     }
+    val backEdges = analyzeBackEdge
     withCSV(config.mergeDir, "edge.csv") {
       x.freeKeys.foreach { glob =>
         glob.outs.foreach { out =>
@@ -120,7 +121,7 @@ trait GurobiMerger extends GlobalMerging with PointToPointPlaceAndRoute with Sol
             row("src") = glob.id
             row("dst") = dstGlob.id
             row("tp") = if (isVec(in)) "v" else "s"
-            row("backEdge") = isBackEdge(in)
+            row("backEdge") = backEdges.contains((out, in))
             row("comment") = s"${glob} -> ${dstGlob}"
           }
         }
