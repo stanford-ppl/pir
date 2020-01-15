@@ -23,7 +23,7 @@ object pload extends PIRShell with Session {
   override def loadSession = {
     import config._
     val appPath = buildPath(dirName(option[String]("ckpt")), "../../")
-    setOption(List(s"--path=$appPath"), config.outDir)
+    setOption(List(s"--path=$appPath"))
     super[Session].loadSession
     if (pirenv._states.isEmpty) {
       err(s"Load session failed")
@@ -41,13 +41,13 @@ object psh extends PIRShell with Session {
   override def loadSession = {
     import config._
     val appPath = buildPath(dirName(option[String]("ckpt")), "../../")
-    setOption(List(s"--path=$appPath"), config.outDir)
+    setOption(List(s"--path=$appPath"))
     val start = getArgOption[Int]("start-id").flatMap { _.getValue }.getOrElse(-1)
     super[Session].loadSession
     if (pirenv._states.isEmpty) {
       err(s"Load session failed")
     }
-    setOption(List(s"--start-id=$start "), config.outDir)
+    setOption(List(s"--start-id=$start "))
   }
 
   override def initSession = {

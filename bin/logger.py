@@ -9,6 +9,7 @@ import math
 import fnmatch
 import json
 import traceback
+import time
 
 from util import *
 
@@ -32,6 +33,7 @@ parser.add_argument('-m', '--message', default='', help='Additional fields to pr
 parser.add_argument('-pf', '--print_fields', default=False, action='store_true', help='Print fields')
 parser.add_argument('-cg', '--clean_gen', default=False, action='store_true', 
     help='Clean generated directory')
+parser.add_argument('--live', action='store_true', default=False, help='continues showing status')
 
 def to_conf(tab, **kws):
     tab = lookup(tab, drop=False, **kws)
@@ -118,9 +120,10 @@ def parseLog(conf, key, patterns, parseLambda, default=None, logs=[], prefix=Fal
                 print(alllines)
                 traceback.print_exc()
                 print(log)
-                removed = remove(log, False)
-                if not removed:
-                    exit()
+                # removed = remove(log, False)
+                # if not removed:
+                    # exit()
+                conf[mykey] = "parse error"
 
 def parse_proutesummary(log, conf, opts):
     if not os.path.exists(log): return
@@ -290,7 +293,13 @@ class Logger():
                 opts.backend[i] = backend.split("_")[0]
 
         setFilterRules(opts)
-        self.show_gen()
+
+        if opts.live:
+            while True:
+                self.show_gen()
+                time.sleep(15)
+        else:
+            self.show_gen()
 
     def clean_gen(self):
         toremove = []
@@ -508,12 +517,19 @@ class Logger():
                 (history.backend==conf['backend'])]
         prevsucc =  history[history[diffkey]]
     
-        if not conf[diffkey] and prevsucc.shape[0] > 0:
+        error = False
+        for key in conf:
+            if 'err' in conf:
+                if conf[key] is not None:
+                    error = True
+        if error and prevsucc.shape[0] > 0:
             times = get_col(prevsucc, 'time')
             pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
             print('{} {}'.format(msg, cstr(RED,'(Regression)')))
             print('{} {} {} {}'.format(self.getMessage(pconf), pconf['spatial_sha'], 
                 get(pconf,'pir_sha'), pconf['time']))
+        elif not conf[diffkey] and not error:
+            print('{}'.format(msg))
         elif conf[diffkey] and prevsucc.shape[0] == 0:
             print('{} {}'.format(msg, cstr(GREEN,'(New)')))
         elif conf[diffkey] and prevsucc.shape[0] > 0:
@@ -524,8 +540,8 @@ class Logger():
             prevcycle = pconf['runp2p_cycle']
             cycle = conf['runp2p_cycle']
             if cycle is not None and prevcycle is not None:
-                worse = cu > prevcu or (cycle - prevcycle) > max(cycle * 0.05,200)
-                better = cu < prevcu or (prevcycle - cycle) > max(cycle * 0.05,200)
+                worse = (cu - prevcu) > 2 or (cycle - prevcycle) > max(cycle * 0.05,200)
+                better = (prevcu - cu) > 2 or (prevcycle - cycle) > max(cycle * 0.05,200)
                 if worse:
                     print('{} {}'.format(msg, cstr(RED,'(Worse)')))
                     print('{} {} {} {}'.format(self.getMessage(pconf), pconf['spatial_sha'], 

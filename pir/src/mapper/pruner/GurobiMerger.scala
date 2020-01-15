@@ -8,9 +8,9 @@ import prism.graph._
 import prism.codegen._
 import scala.collection.mutable
 
-trait ExternMerger extends GlobalMerging with PointToPointPlaceAndRoute with SolverUtil { self =>
+trait GurobiMerger extends GlobalMerging with PointToPointPlaceAndRoute with SolverUtil { self =>
 
-  override def mergeGlobals(x:CUMap) = if (config.mergeAlgo=="solver") {
+  override def mergeGlobals(x:CUMap) = if (config.mergeAlgo=="gurobi") {
     emitSpec(x)
     emitProgram(x)
     val pirHome = config.pirHome.getOrElse("pir-home is not set")
@@ -83,23 +83,28 @@ trait ExternMerger extends GlobalMerging with PointToPointPlaceAndRoute with Sol
 
   private def emitProgram(x:CUMap) = {
     withCSV(config.mergeDir, "node.csv") {
-      bind(x) match {
-        case Left(f) =>
-          x.freeKeys.foreach { glob =>
+      val initCUMap = config.gurobiInitAlgo.flatMap { initAlgo =>
+        bind(x).toOption
+      }
+      initCUMap match {
+        case Some(cumap) =>
+          cumap.usedMap.fmap.keys.zipWithIndex.foreach { case (glob,i) =>
             val row = newRow
             row("node") = glob.id
-            row("initTp") = "Unknown"
+            row("initTp") = cumap.usedMap(glob).param.simpleName
+            row("initAssign") = i
             row("comment") = glob
             val costs = getCosts(glob)
             costs.foreach { c =>
               emitCost(c, row)
             }
           }
-        case Right(x) =>
-          x.usedMap.fmap.keys.foreach { glob =>
+        case None =>
+          x.freeKeys.zipWithIndex.foreach { case (glob, i) =>
             val row = newRow
             row("node") = glob.id
-            row("initTp") = x.usedMap(glob).param.simpleName
+            row("initTp") = "PCUParam"
+            row("initAssign") = -1
             row("comment") = glob
             val costs = getCosts(glob)
             costs.foreach { c =>
@@ -108,6 +113,7 @@ trait ExternMerger extends GlobalMerging with PointToPointPlaceAndRoute with Sol
           }
       }
     }
+    val backEdges = analyzeBackEdge
     withCSV(config.mergeDir, "edge.csv") {
       x.freeKeys.foreach { glob =>
         glob.outs.foreach { out =>
@@ -118,7 +124,7 @@ trait ExternMerger extends GlobalMerging with PointToPointPlaceAndRoute with Sol
             row("src") = glob.id
             row("dst") = dstGlob.id
             row("tp") = if (isVec(in)) "v" else "s"
-            row("backEdge") = isBackEdge(in)
+            row("backEdge") = backEdges.contains((out, in))
             row("comment") = s"${glob} -> ${dstGlob}"
           }
         }

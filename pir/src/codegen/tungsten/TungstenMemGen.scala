@@ -69,8 +69,10 @@ trait TungstenMemGen extends TungstenCtxGen {
         addEscapeVar(send)
         genCtxInits {
           emitln(s"${ctrler}->AddOutput(${nameOf(send)});")
-          emitln(s"""${data.mem.T}->SetSend(${data.id}, ${nameOf(send)});""")
         }
+      }
+      genCtxInits {
+        emitln(s"""${data.mem.T}->SetSends(${data.id}, ${n.out.T.map { nameOf(_) }.qlist});""")
       }
 
     case n:LocalInAccess =>
