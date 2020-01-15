@@ -125,10 +125,12 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("proute-q", default=4, info="Maximum number of vc") 
   register("proute-opts", default="-i100 -p100 -t1 -d100", info="Plastiroute options") 
   register("proute-seed", default=0, info="Plastiroute seed") 
+  register[String]("proutesh", info="Path to customized proute command") 
   register("run-proute", default=false, info="Run Plastiroute") 
   register[String]("module-prefix", info="Prefix to top module path")
   register[String]("extern-prefix", info="Prefix to external module path")
   def prouteHome = getOption[String]("proute-home") orElse pirHome.map { buildPath(_,"plastiroute") }
+  def proutesh = getOption[String]("proutesh")
   def genProute = genPsim || genTungsten
   def runproute = option[Boolean]("run-proute") || runPsim || runTst 
   def proutePlaceName = "final.place"

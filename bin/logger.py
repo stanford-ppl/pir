@@ -667,6 +667,7 @@ class Logger():
     def summarize(self, backend, confs):
         opts = self.opts
         if not opts.summarize: return
+        if len(confs) == 0: return
         summary_path = self.get_summary_path(confs[0])
         # create new csv
         conf = confs[0]
