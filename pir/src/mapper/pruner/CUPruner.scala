@@ -12,7 +12,7 @@ trait CUPruner extends ConstrainPruner with CUCostUtil with PIRTransformer with 
       flatFold(x.freeKeys, x) { case (x, k) =>
         val kc = getCosts(k)
         val pruned = x.filterNotAtKey(k) { v => notFit(kc, getCosts(v)) }
-        recover(pruned)
+        if (config.enableSplitting) recover(pruned) else pruned
       }.asInstanceOf[EOption[T]]
     case x => super.prune(x)
   }
@@ -24,7 +24,8 @@ trait CUPruner extends ConstrainPruner with CUCostUtil with PIRTransformer with 
     val vcosts = vs.map { v => getCosts(v) }
     ks.foreach { k => 
       val kcost = getCosts(k)
-      assert(vcosts.exists { vcost => fit(kcost, vcost) }, s"After splitting $k's cost $kcost > vcosts=$vcosts")
+      val canFit = vcosts.exists { vcost => fit(kcost, vcost) }
+      if (!canFit) bug(s"After splitting $k's cost $kcost > vcosts=$vcosts")
     }
     Right(fg.mapFreeMap { _ - k ++ (ks, vs) })
   }

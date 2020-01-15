@@ -1,11 +1,10 @@
 import spatial.dsl._
 
-class BlackScholes_0 extends BlackScholes
-class BlackScholes_1 extends BlackScholes(ip=1)
+class BlackScholes_0 extends BlackScholes(op=1){ override def pirArgs = super.pirArgs + " --split-algo=bfs";  }
 
 @spatial abstract class BlackScholes(
-  N:scala.Int = 1024,
-  ts:scala.Int = 64,
+  N:scala.Int = 1024 * 128,
+  ts:scala.Int = 256,
   op:scala.Int = 1,
   ip:scala.Int = 16
 ) extends SpatialTest {
@@ -93,26 +92,24 @@ class BlackScholes_1 extends BlackScholes(ip=1)
 
     Accel {
       Foreach(size by ts par op) { i =>
-        val typeBlk   = SRAM[Int](ts)
-        val priceBlk  = SRAM[Float](ts)
-        val strikeBlk = SRAM[Float](ts)
-        val rateBlk   = SRAM[Float](ts)
-        val volBlk    = SRAM[Float](ts)
-        val timeBlk   = SRAM[Float](ts)
-        val optpriceBlk = SRAM[Float](ts)
+        val typeBlk   = FIFO[Int](ts)
+        val priceBlk  = FIFO[Float](ts)
+        val strikeBlk = FIFO[Float](ts)
+        val rateBlk   = FIFO[Float](ts)
+        val volBlk    = FIFO[Float](ts)
+        val timeBlk   = FIFO[Float](ts)
+        val optpriceBlk = FIFO[Float](ts)
 
-        Parallel {
-          typeBlk   load types(i::i+ts par ip)
-          priceBlk  load prices(i::i+ts par ip)
-          strikeBlk load strike(i::i+ts par ip)
-          rateBlk   load rate(i::i+ts par ip)
-          volBlk    load vol(i::i+ts par ip)
-          timeBlk   load times(i::i+ts par ip)
-        }
+        typeBlk   load types(i::i+ts par ip)
+        priceBlk  load prices(i::i+ts par ip)
+        strikeBlk load strike(i::i+ts par ip)
+        rateBlk   load rate(i::i+ts par ip)
+        volBlk    load vol(i::i+ts par ip)
+        timeBlk   load times(i::i+ts par ip)
 
         Foreach(ts par ip){ j =>
-          val price = BlkSchlsEqEuroNoDiv(priceBlk(j), strikeBlk(j), rateBlk(j), volBlk(j), timeBlk(j), typeBlk(j))
-          optpriceBlk(j) = price
+          val price = BlkSchlsEqEuroNoDiv(priceBlk.deq, strikeBlk.deq, rateBlk.deq, volBlk.deq, timeBlk.deq, typeBlk.deq)
+          optpriceBlk.enq(price)
         }
         optprice(i::i+ts par ip) store optpriceBlk
       }
@@ -130,7 +127,7 @@ class BlackScholes_1 extends BlackScholes(ip=1)
 
     val out = blackscholes(types, prices, strike, rate, vol, time)
 
-    printArray(out, "result: ")
+    //printArray(out, "result: ")
 
     //val cksum = out.zip(gold){ case (o, g) => (g < (o + margin)) && g > (o - margin)}.reduce{_&&_}
     val cksum = true

@@ -39,10 +39,11 @@ trait DependencyAnalyzer extends PIRTransformer {
     x:PIRNode, 
     from:Option[Context]=None,
     to:Option[Context]=None,
+    logger:Option[Logging]=None,
   ):List[PIRNode] = dbgblk(s"getDeps($x, from=$from, to=$to)"){
     val toCtx = to.getOrElse(x.ancestorTree.collectFirst { case ctx:Context => ctx }.get)
     dbg(s"toCtx=$toCtx")
-    def accumDeps(x:PIRNode) = x.accum(visitFunc=bound(from,toCtx,visitGlobalIn))
+    def accumDeps(x:PIRNode) = x.accum(visitFunc=bound(from,toCtx,visitGlobalIn), logger=logger)
     var deps = accumDeps(x)
     deps = deps.filterNot(_ == x)
     dbg(s"rawDeps=$deps")
@@ -54,8 +55,9 @@ trait DependencyAnalyzer extends PIRTransformer {
         val hasInput = (deps ++ toCtx.children).exists { _.isInstanceOf[LocalOutAccess] }
         val hasCtrler = depcb.nonEmpty || tocb.nonEmpty
         if (!hasInput && !hasCtrler) {
-          deps ++= from.collectFirstChild[ControlBlock].map(accumDeps).getOrElse(Nil)
-          deps ++= from.descendents
+          val cb = from.collectFirstChild[ControlBlock]
+          deps ++= cb.map(accumDeps).getOrElse(Nil)
+          deps ++= cb.map { _.descendents.toList }.getOrElse(Nil)
           deps = deps.distinct
         }
       }
@@ -78,7 +80,7 @@ trait DependencyAnalyzer extends PIRTransformer {
   }
 
   def mirrorDeps(to:Context, from:Option[Context]):Map[IR,IR] = dbgblk(s"mirrorDeps($to, $from)") {
-    val deps = getDeps(to, from, Some(to))
+    val deps = getDeps(to, from, Some(to),logger=Some(this))
     within(to) { mirrorAll(deps).toMap }
   }
 

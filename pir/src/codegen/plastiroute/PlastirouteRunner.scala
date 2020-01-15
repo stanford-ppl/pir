@@ -11,7 +11,8 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
     val conf = config
     import conf._
     if (!noPlaceAndRoute) {
-      var command = s"${config.prouteHome}/plastiroute -n $prouteNodeName -l $prouteLinkName"
+      val prouteHome = config.prouteHome.getOrElse(err(s"proute-home is not set"))
+      var command = s"${prouteHome}/plastiroute -n $prouteNodeName -l $prouteLinkName -y $prouteOutLinkName -z $prouteInLinkName"
       spadeParam.pattern match {
         case p:Checkerboard => 
           command += s" -r ${p.row} -c ${p.col}"
@@ -51,7 +52,7 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
       }
     }
     if (!config.asModule) {
-      val command = s"python ../tungsten/bin/idealroute.py -l link.csv -p ideal.place -i /Top/idealnet"
+      val command = s"python ../tungsten/bin/idealroute.py -l $prouteLinkName -p ideal.place -i /Top/idealnet"
       withOpen(config.appDir, s"iroute.sh", false) {
         emitln(s"cd ${getRelativePath(config.psimOut, config.appDir)}")
         emitln(command)

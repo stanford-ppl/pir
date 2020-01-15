@@ -30,7 +30,7 @@ trait ProgramOrderTraversal extends PIRTraversal with ChildFirstTraversal {
     }.map2 {
       _.partition { _.isInstanceOf[Memory]}
     }
-    val ordered = others.sortBy { _.id }
+    val ordered = others.sortBy { _.progorder.get }
     consts ++ mems ++ ordered
   }
 

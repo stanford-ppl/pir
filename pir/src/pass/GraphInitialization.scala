@@ -18,16 +18,14 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
   override def finPass = {
     super.finPass
     pirTop.topCtrl.descendentTree.foreach { setUID }
-    pirTop.collectChildren[Controller].foreach { ctrler =>
-      ctrler.en.neighbors.collect { case v:CounterValid => v }.foreach { v =>
-        disconnect(ctrler.en, v)
-      }
-    }
   }
 
   override def visitNode(n:N) = {
     n.to[Controller].foreach { n =>
       n.srcCtx.v.foreach { v => n.ctrl.get.srcCtx := v }
+      n.progorder.v.foreach { v =>
+        n.getCtrl.progorder := v
+      }
       n.sname.v.foreach { v => n.ctrl.get.sname := v }
       n.descendents.foreach { d =>
         val ctrl = n.ctrl.get
@@ -93,13 +91,6 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     n.to[DRAMCommand].foreach { n =>
       n.name(n.dram.sid)
     }
-    n.to[Def].foreach { _.getVec }
-    n.to[Access].foreach { _.getVec }
-    n.to[DRAMAddr].foreach { n =>
-      val read = n.collect[MemRead](visitFunc=visitGlobalOut _).head
-      n.tp.mirror(read.tp)
-      read.mem.T.tp.mirror(read.tp)
-    }
     n.to[HostWrite].foreach { n =>
       val mem = n.collectFirst[Memory](visitFunc=visitGlobalOut _)
       n.tp.mirror(mem.tp)
@@ -123,51 +114,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
     }
 
-    // Handle disabled load store from unaligned parallelization
-    n.to[FringeCommand].foreach { n =>
-      val reads = n.collectIn[MemRead]()
-      val writes = n.collectOut[MemWrite]()
-      (reads ++ writes).foreach { access =>
-        val setters = access match {
-          case read:MemRead => read.mem.T.inAccesses
-          case write:MemWrite => write.mem.T.outAccesses
-        }
-        setters.foreach { setter => 
-          val ctrlEns = access.getCtrl.ancestorTree.view.flatMap { c =>
-            c.ctrler.v.view.flatMap { ctrler =>
-              ctrler.en.T.collect { case v:CounterValid => v.out }
-            }
-          }.toSet[Output[PIRNode]]
-          setter.en(ctrlEns)
-        }
-      }
-    }
-
-    // Add loop valid related enables. Should add to all accesses but might be a bit expensive
-    n.to[BankedAccess].foreach { access =>
-      val ctrl = access.getCtrl
-      ctrl.ancestorTree.foreach { c =>
-        c.ctrler.v.foreach { ctrler =>
-          val ens = ctrler.en.T.collect { case v:CounterValid => v }
-          ens.foreach { en =>
-            if (!access.en.isConnectedTo(en.out)) {
-              access.en(en.out)
-            }
-          }
-        }
-      }
-    }
-
-    n.to[DRAMStoreCommand].foreach { n =>
-      val write = within(pirTop, n.getCtrl) {
-        val ack = n.ack.T.as[MemWrite].mem.T.outAccesses.head
-        within(ack.getCtrl) {
-          stage(MemWrite().data(stage(AccumAck().ack(ack))))
-        }
-      }
-      argOut(write).name(s"${n.dram.sid}_ack")
-    }
-
+    // Add laneValids to enable of memory access
     def connectLaneValid(access:Access):Unit = {
       val ctrl = access.getCtrl
       if (ctrl.isLeaf) {
@@ -184,11 +131,43 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       }
     }
 
-    // Add laneValids to enable of memory access
-    n.to[Access].foreach { connectLaneValid }
+    // Add loop valid related enables. 
+    n.to[Access].foreach { access =>
+      val connectToBB = access match {
+        case access:WriteAccess => access.data.T.isInstanceOf[BlackBox]
+        case access:ReadAccess => access.out.T.exists{ _.isInstanceOf[BlackBox] }
+      }
+      if (!connectToBB) {
+        val ctrl = access.getCtrl
+        ctrl.ancestorTree.foreach { c =>
+          c.ctrler.v.foreach { ctrler =>
+            val ens = ctrler.en.T.collect { case v:CounterValid => v }
+            ens.foreach { en =>
+              if (!access.en.isConnectedTo(en.out)) {
+                access.en(en.out)
+              }
+            }
+          }
+        }
+      }
+      connectLaneValid(access)
+    }
 
-    n.to[LoopController].foreach {analyzeLoopRange}
-    
+    n.to[OpDef].foreach { 
+      case n@OpDef(FixDiv | FltDiv) => 
+        n.out.vecMeta.reset
+        n.vec.reset
+        stage(n.addInput(n.getCtrl.ctrler.get.laneValid))
+      case _ =>
+    }
+
+    n.to[DRAMStoreCommand].foreach { n =>
+      val ack = n.ack.T.as[MemWrite].mem.T.outAccesses.head
+      within(pirTop,ack.getCtrl) {
+        stage(AccumAck().ack(ack))
+      }
+    }
+
     n match {
       case n@(_:PrintIf | _:AssertIf | _:ExitIf) =>
         n.tp.reset
@@ -200,6 +179,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       case _ =>
     }
 
+    //TODO: this should be moved to rewrite transformer
     // Convert reduction operation
     // Spaital IR:
     // accum.write (reduce(mux(dummy, input, initOrInput), accum.read))
@@ -254,57 +234,12 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       }
     }
 
+    n.to[LockMem].foreach { mem =>
+      if (mem.isDRAM) addLive(mem)
+    }
+
     super.visitNode(n)
   } 
-
-  def analyzeCounterRange(n:Counter) = dbgblk(s"analyzeCounterRange($n)") {
-    val min = n.min.T
-    val step = n.step.T
-    val max = n.max.T
-    val par = n.par
-    val constValids = (min, step, max) match {
-      case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) if (max <= min && step > 0) | (max >= min && step < 0) =>
-        dbg(s"Loop will not run.")
-        List.fill(par)(Some(false))
-      case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) =>
-        var bound = ((max - min) /! step) % par
-        if (bound == 0) {
-          bound = par
-        }
-        dbg(s"Constant loop bounds min=$min, step=$step, max=$max, par=$par bound=$bound")
-        List.tabulate(par) { i => 
-          if (i < bound) Some(true) 
-          else if (i >= max) Some(false)
-          else None
-        }
-      case (Some(Const(min:Int)), _, Some(Const(max:Int))) if max > min =>
-        dbg(s"None constant loop bounds min=$min, step=$step, max=$max, par=$par")
-        List.tabulate(par) { i => 
-          if (i == 0) Some(true) 
-          else if (i >= max) Some(false)
-          else None
-        }
-      case _ =>
-        List.tabulate(par) { i => None }
-    }
-    dbg(s"$n.constValids=[${constValids.map { _.getOrElse("unknown") }.mkString(",")}]")
-    n.constValids := constValids
-  }
-
-  def analyzeLoopRange(n:LoopController) = dbgblk(s"analyzeLoopRange($n)"){
-    n.cchain.T.foreach(analyzeCounterRange)
-    val laneValids = n.cchain.T.foldLeft[List[Option[Boolean]]](Nil) { 
-      case (Nil, ctr) => List.tabulate(ctr.par) { i => ctr.constValids.get(i) }
-      case (prev, ctr) => 
-        prev.flatMap { valid => 
-          (0 until ctr.par).map { i => 
-            zipMap(valid, ctr.constValids.get(i)) { _ && _ }
-          }
-        }
-    }
-    dbg(s"$n.laneValids=[${laneValids.map { _.getOrElse("unknown") }.mkString(",")}]")
-    n.constLaneValids := laneValids
-  }
 
   def argOut(write:MemWrite) = {
     val reg = within(pirTop.argFringe, pirTop.topCtrl) { 
@@ -319,32 +254,30 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     reg
   }
 
-  def createSeqCtrler = {
-    val tree = ControlTree(Sequenced)
-    val ctrler = within(tree) { UnitController().srcCtx("GraphInitialization") }
-    tree.par := 1
-    tree.ctrler(ctrler)
-    tree.parent.foreach { parent =>
-      parent.ctrler.v.foreach { pctrler =>
-        ctrler.parentEn(pctrler.childDone)
-      }
-    }
-    ctrler
-  }
+  // Setting uid based on controller enable doesn't work for controllers that are fully unrolled
+  //def setUID(ctrl:ControlTree) = {
+    //val cuid = ctrl.ctrler.v.fold[List[Int]](Nil) { _.en.neighbors.collect { case v:CounterValid => v }
+      //.groupBy { _.getCtrl }.toList.sortBy { _._1.ancestors.size } // Outer most to inner most
+      //.flatMap { case (pctrl, vs) => 
+        //val ps = vs.sortBy { _.counter.T.idx.get }.map { case CounterValid(List(i)) => i }
+        //dbg(s"$ctrl: $pctrl[${ps.mkString(",")}]")
+        //ps
+      //}
+    //}
+    //val puid = ctrl.parent.map { _.uid.get }.getOrElse(Nil)
+    //val uid = puid ++ cuid
+    //dbg(s"$ctrl.uid=[${uid.mkString(",")}]")
+    //ctrl.uid := uid
+  //}
 
   // UID is the unrolled ids of outer loop controllers
   def setUID(ctrl:ControlTree) = {
-    val cuid = ctrl.ctrler.v.fold[List[Int]](Nil) { _.en.neighbors.collect { case v:CounterValid => v }
-      .groupBy { _.getCtrl }.toList.sortBy { _._1.ancestors.size } // Outer most to inner most
-      .flatMap { case (pctrl, vs) => 
-        val ps = vs.sortBy { _.counter.T.idx.get }.map { case CounterValid(List(i)) => i }
-        dbg(s"$ctrl: $pctrl[${ps.mkString(",")}]")
-        ps
+    val parallels = ctrl.ancestors.filter { _.schedule == ForkJoin }
+    val uid = parallels.toList.map { parallel =>
+      parallel.children.indexWhere { child =>
+        ctrl.isDescendentOf(child) || child == ctrl
       }
     }
-    val puid = ctrl.parent.map { _.uid.get }.getOrElse(Nil)
-    val uid = puid ++ cuid
-    dbg(s"$ctrl.uid=[${uid.mkString(",")}]")
     ctrl.uid := uid
   }
 

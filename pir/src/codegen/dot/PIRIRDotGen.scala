@@ -17,12 +17,27 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
       case Some(x) => label + s"\n$field=$x"
       case x => label + s"\n$field=$value"
     }
+    def append(value:Any):String = value match {
+      case Some(v) => s"$label\n$v"
+      case None => label
+      case v => s"$label\n$v"
+    } 
+      
+  }
+
+  def quoteTp(n:PIRNode) = {
+    val tp = n.tp.v.orElse(if (n.localOuts.size==1) n.localOuts.head.tpMeta.v else None)
+    val vec = n.vec.v.orElse(if (n.localOuts.size==1) n.localOuts.head.vecMeta.v else None)
+    if (tp.isEmpty && vec.isEmpty) None else 
+    Some(tp.map { tp => tp.toString }.getOrElse("") + vec.map { vec => s"<${vec}>" }.getOrElse(""))
   }
 
   override def quote(n:Any) = {
     super.quote(n).foldAt(n.to[PIRNode]) { (q, n) =>
       q
-    .foldAt(n.to[Const]) { (q,n) =>
+    .foldAt(n.to[Delay]) { (q,n) =>
+      s"$q(${n.cycle})"
+    }.foldAt(n.to[Const]) { (q,n) =>
       n.value match {
         case v@((e:Int)::rest) => 
           val l = v.as[List[Int]]
@@ -33,9 +48,9 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
     }.foldAt(n.sname.v) { (q, v) => s"$q[$v]" }
       .append("name", n.name.v)
       .append("externAlias", n.externAlias.v)
-      .append("ctrl", n.ctrl.v.map { c => c.sname.v.fold(s"$c") { n => s"$c[$n]"} })
-      .append("tp", n.tp.v)
-      .append("vec", n.vec.v)
+      .append(n.ctrl.v.map { c => c.sname.v.fold(s"$c") { n => s"$c[$n]"} })
+      .append(quoteTp(n))
+      .append("delay", n.delay.v)
       .append("count", n.count.v)
       .append("scale", n.scale.v)
       .append("iter", n.iter.v) +
@@ -50,7 +65,10 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
     }.foldAt(n.to[Access]) { (q,n) =>
       q.append("port", n.port.v)
     }.foldAt(n.to[LocalOutAccess]) { (q,n) =>
-      if (n.initToken.get) { s"$q\ninitToken" } else q
+      var l = q
+      if (n.initToken.get) { l += s"\ninitToken" }
+      if (n.isSplit.get) { l += s"\n split" }
+      l
     }.foldAt(n.to[MemoryNode]) { (q,n) =>
       q.append("banks", n.banks.get)
       .append("depth", n.depth.get)
@@ -76,8 +94,6 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
     case n:Memory => attr.fillcolor(chartreuse).style(filled)
     case n:GlobalInput if n.psimState == Some(".") && n.out.T.map { _.ctx.get}.exists { _.psimState != Some("DONE") } => attr.setNode.fillcolor("firebrick1").style(filled)
     case n:GlobalOutput if n.psimState == Some(".") => attr.setNode.fillcolor("goldenrod1").style(filled)
-    case n:Lock => attr.fillcolor("crimson").style(filled)
-    case n:Splitter => attr.fillcolor("crimson").style(filled)
     case n:Context => 
       val color = zipOption(n.active.v, n.psimState).fold {
         if (n.streaming.get) "deepskyblue1" else "palevioletred1"
@@ -101,6 +117,7 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
     //case n:CUContainer => attr.fillcolor(deepskyblue).style(filled)
     case n:DRAMCommand => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
     case n:StreamCommand => attr.setGraph.fillcolor("lightseagreen").style(filled).setNode.fillcolor("lightseagreen").style(filled)
+    case n:BlackBox => attr.fillcolor("crimson").style(filled)
 
     case n:OpNode => attr.fillcolor("mediumorchid1").style(filled)
     case n => super.color(attr, n)
@@ -108,8 +125,8 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
 
   override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
     val newAttr = from.src match {
-      case from:GlobalOutput if from.vec.v.nonEmpty & isVecLink(from) => attr.setEdge.style(bold)
-      case from:GlobalOutput if from.vec.v.nonEmpty & isCtrlLink(from) => attr.setEdge.style(dashed)
+      case from:GlobalOutput if from.out.vecMeta.v.nonEmpty & isVecLink(from) => attr.setEdge.style(bold)
+      case from:GlobalOutput if from.out.vecMeta.v.nonEmpty & isCtrlLink(from) => attr.setEdge.style(dashed)
       case _ =>  attr.setEdge
     }
     super.emitEdge(from, to, newAttr)
@@ -138,6 +155,18 @@ class PIRTopDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fil
       case (from, to) => super.emitEdge(from, to, attr)
     }
   }
+  override def setAttrs(n:N):DotAttr = n match {
+    case n:PIRNode if n.isLeaf=>
+      var tooltip = new StringBuilder()
+      tooltip ++= qdef(n)
+      n.metadata.values.foreach { metadata =>
+        metadata.v.foreach { v =>
+          tooltip ++= s"${metadata.name} = $v\n"
+        }
+      }
+      super.setAttrs(n).attr("tooltip", tooltip.toString)
+    case n => super.setAttrs(n)
+  }
 }
 
 class PIRCtxDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fileName) {
@@ -145,9 +174,28 @@ class PIRCtxDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fil
     case n:Context => n.descendents.collect { case n:LocalAccess => n; case n:Access => n; case c:BlackBox => c }.toList
     case n => super.visitFunc(n)
   }
+
+  override def setAttrs(n:N):DotAttr = n match {
+    case n:PIRNode if n.isLeaf=>
+      var tooltip = new StringBuilder()
+      tooltip ++= qdef(n)
+      n.metadata.values.foreach { metadata =>
+        metadata.v.foreach { v =>
+          tooltip ++= s"${metadata.name} = $v\n"
+        }
+      }
+      super.setAttrs(n).attr("tooltip", tooltip.toString)
+    case n => super.setAttrs(n)
+  }
 }
 
-class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
+class PIRGlobalDotGen(fn:String, noBackEdge:Boolean=false)(implicit design:PIR) extends PIRIRDotGen(fn) {
+  var backEdges = Set.empty[(Output[PIRNode], Input[PIRNode])]
+  override def initPass = {
+    super.initPass
+    if (noBackEdge)
+      backEdges = analyzeBackEdge
+  }
   //override def fileName = pirTop.name.get + ".dot"
   //override def dirName = buildPath(config.appDir, "../figs")
   override def dotFile:String = fileName.replace(s".dot", s".html")
@@ -156,10 +204,12 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
     case n:ArgFringe => attr.setNode.fillcolor("beige").style(filled)
     case n:MemoryContainer => attr.setNode.fillcolor("limegreen").style(filled)
     case n:ComputeContainer if n.isDAG.get => attr.setNode.fillcolor("orange").style(filled)
-
+    case n:ComputeContainer if n.collectDown[BlackBox]().nonEmpty => attr.setNode.fillcolor("crimson").style(filled)
+    case n:ComputeContainer if n.collectDown[OpNode]().size==0 => attr.setNode.fillcolor("gold").style(filled)
     case n:ComputeContainer => attr.setNode.fillcolor("dodgerblue").style(filled)
     case n:DRAMFringe => attr.setNode.fillcolor("lightseagreen").style(filled)
-    case n:Top => super.color(attr,n)
+    case n:BlackBoxContainer => attr.setNode.fillcolor("crimson").style(filled)
+    case n => super.color(attr,n)
   }
 
   //override def label(attr:DotAttr, n:N) = n match {
@@ -169,14 +219,18 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
 
     //case n:ComputeContainer => attr.setNode.label("PCU")
     //case n:DRAMFringe => attr.setNode.label("MC")
+    //case n:BlackBoxContainer => attr.setNode.label("BB")
     //case n:Top => super.color(attr,n)
   //}
   
   override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
+    if (noBackEdge && backEdges.contains(from->to)) return
     (from, to) match {
       case (from@OutputField(fromsrc:GlobalOutput, _), to) if fromsrc.isUnder[ArgFringe] && from.connected.size > 5 => 
       case (from@OutputField(fromsrc:GlobalOutput, _), to@InputField(tosrc:GlobalInput, _)) => 
-        var tooltip = s"${fromsrc.in.neighbors.map(quoteSrcCtx).mkString(",")}"
+        var tooltip = s"${fromsrc}${fromsrc.externAlias.v.fold("") { a => s"($a)" }}"
+        tooltip += s"\n${tosrc}${tosrc.externAlias.v.fold("") { a => s"($a)" }}"
+        tooltip += s"\n${fromsrc.in.neighbors.map(quoteSrcCtx).mkString(",")}"
         tooltip += s"\n${tosrc.out.neighbors.map(quoteSrcCtx).mkString(",")}"
         fromsrc.count.v.foreach { c => 
           c match {
@@ -185,10 +239,14 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
             case Unknown =>
           }
         }
-        tooltip += s"\ntp=${fromsrc.getTp}\n".append("vec", fromsrc.vec.v)
+        tooltip += s"\ntp=${fromsrc.getTp}".append("vec", fromsrc.in.singleConnected.flatMap{ _.vecMeta.v })
         val dst = tosrc + "," + tosrc.out.neighbors.mkString(",")
-        super.emitEdge(from,to,attr.setEdge.attr("id",dst).attr("label",fromsrc.id).attr("labeltooltip", tooltip))
-      case _ => super.emitEdge(from,to,attr)
+        var edgeAttr = attr.setEdge.attr("id",dst).attr("label",fromsrc.id).attr("labeltooltip", tooltip)
+        if (fromsrc.in.T.isSplit.get) {
+          edgeAttr.color("orangered1")
+        }
+        super.emitEdge(from,to,edgeAttr)
+      case (from,to) => super.emitEdge(from,to,attr.setEdge.attr("label",from.src.id))
     }
   }
 
@@ -199,10 +257,11 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
       var tooltip = s"$n"
       if (mem.nonEmpty) tooltip += s"\n${mem.mkString(",")}" 
       if (bbs.nonEmpty) tooltip += s"\n${bbs.mkString(",")}"
-      val ctxs = n.collectDown[Context]().map { ctx =>
+      val ctxs = n.collectDown[Context]()
+      val ctxStr = ctxs.slice(0,3).map { ctx =>
         quote(ctx)
       }
-      tooltip += s"\n${ctxs.mkString("\n")}"
+      tooltip += s"\n${ctxStr.mkString("\n")}${if(ctxs.size>3) "\n..." else ""}"
       super.setAttrs(n).attr("tooltip", tooltip)
     case n => super.setAttrs(n)
   }
@@ -214,6 +273,8 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
         case n:ComputeContainer => "C"
         case n:MemoryContainer => "M"
         case n:DRAMFringe => "D"
+        case n:BlackBoxContainer => "B"
+        case n => n.getClass.getSimpleName
       }
       var l = s"${tp}${n.id}"
       val mem = n.collectDown[Memory]()
@@ -224,6 +285,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
       bbs.foreach { bbs =>
         bbs.name.v.foreach { name => l += s"\n$name" }
         bbs.to[Splitter].foreach{ s => l += s"\n$s" }
+        bbs.to[LockRMABlock].foreach{ s => l += s"\n$s" }
       }
       if (mem.isEmpty && bbs.isEmpty) {
         n.collectDown[LocalOutAccess]().foreach { mem =>
@@ -231,6 +293,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
         }
       }
       l
+      .append("delay", n.delay.v)
     }
   }
 
@@ -239,4 +302,5 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
     case n:GlobalContainer => emitSingleNode(n)
     case n => super.emitNode(n)
   }
+
 }

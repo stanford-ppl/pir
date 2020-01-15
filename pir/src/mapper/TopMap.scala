@@ -19,5 +19,5 @@ case class CUMap (
 ) extends OneToOneFactorGraphLike[CUMap.K,CUMap.V,CUMap] with SimpleName
 object CUMap {
   type K = GlobalContainer
-  type V = Routable
+  type V = Terminal
 }

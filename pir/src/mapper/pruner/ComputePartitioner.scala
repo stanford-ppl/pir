@@ -6,12 +6,62 @@ import pir.pass._
 import prism.graph._
 import prism.collection.immutable._
 
-trait ComputePartitioner extends CUPruner {
-
-  lazy val schedular = config.splitAlgo match {
-    case "BFS" => new PIRTraversal with BFSTopologicalTraversal with Schedular { val forward = false }
-    case "DFS" => new PIRTraversal with DFSTopologicalTraversal with Schedular { val forward = false }
+trait ComputePartitioning extends CUPruner with PartitionCost {
+  var splitAlgo:String = "bfs"
+  def withAlgo[T](algo:String)(block: => T) = {
+    val saved = splitAlgo
+    splitAlgo = algo
+    val res = block
+    splitAlgo = saved
+    res
   }
+
+  protected def scheduler = splitAlgo match {
+    case "bfs" => new PIRTraversal with BFSTopologicalTraversal with Scheduler { val forward = config.splitForward }
+    case "dfs" => new PIRTraversal with DFSTopologicalTraversal with Scheduler { val forward = config.splitForward }
+    case _ => new PIRTraversal with DFSTopologicalTraversal with Scheduler { val forward = config.splitForward }
+  }
+
+  def partition(nodes:List[PIRNode], vcost:List[Cost[_]]):List[Partition] = 
+    err(s"Unsupported split-algo=${splitAlgo}")
+}
+
+trait TraversalPartitioner extends ComputePartitioning {
+
+  override def partition(nodes:List[PIRNode],vcost:List[Cost[_]]):List[Partition] = 
+    if (splitAlgo=="dfs" || splitAlgo == "bfs") {
+    if (nodes.size==0) return Nil
+    var canFit = true
+    var (inpart, rest) = nodes.splitAt(1)
+    while (canFit && rest.nonEmpty) {
+      inpart = inpart :+ rest.head
+      rest = rest.tail
+      val part = new Partition(inpart)
+      val kcost = getCosts(part)
+      val isolateRetime = inpart.forall { 
+        case d:Delay => !inpart.contains(d.in.T) && !inpart.contains(d.out.T.head)
+        case _ => true
+      }
+      canFit = fit(kcost, vcost) && isolateRetime
+      if (!canFit) {
+        rest = inpart.last :: rest
+        inpart = inpart.slice(0,inpart.size-1)
+      }
+    }
+    dbg(s"Split ${inpart.size}/${nodes.size}")
+    if (splitAlgo=="dfs") {
+      val restSorted = scheduler.scheduleScope(rest.reverse)
+      partition(restSorted,vcost) :+ new Partition(inpart)
+    } else {
+      partition(rest,vcost) :+ new Partition(inpart)
+    }
+  } else super.partition(nodes, vcost)
+
+}
+
+trait ComputePartitioner extends ComputePartitioning
+  with TraversalPartitioner with CVXPyComputePartitioner with GurobiComputePartitioner
+  with LocalRetimer with GlobalRetimer { self =>
 
   def split[T](k:T, vcost:List[Cost[_]]):List[T] = dbgblk(s"split($k)") {
     val kcost = getCosts(k)
@@ -21,21 +71,26 @@ trait ComputePartitioner extends CUPruner {
         val ctxs:List[Context] = k.collectDown[Context]().flatMap { ctx => split(ctx, vcost) }
         val globals = ctxs.map { ctx =>
           within(pirTop) {
-            val global = ComputeContainer()
+            val global = stage(ComputeContainer().delay.update(ctx.delay.v))
+            ctx.delay.reset
             swapParent(ctx, global)
             global
           }
         }
+        val retimes = retimeGlobal(globals, vcost.collectFirst{ case cost:StageCost => cost.quantity }.get)
         removeNodes(k.descendentTree)
-        globals
+        globals ++ retimes
+      case k:Context if fit(kcost, vcost) => List(k)
       case k:Context =>
+        //breakPoint(s"$k")
         val scope = k.children.filter { include }
-        val part = new Partition(scope)
+        val delays = retimeLocal(k,scope)
+        val part = new Partition(scope ++ delays)
         val parts = split(part, vcost)
         dbg(s"partitions=${parts.size}")
         val ctxs = within(k.global.get, k.ctrl.get) {
           parts.map { case part@Partition(scope) =>
-            val ctx = Context()
+            val ctx = stage(Context().delay.update(part.delay))
             dbg(s"Create $ctx for $part")
             scope.foreach { n => swapParent(n, ctx) }
             ctx
@@ -49,15 +104,13 @@ trait ComputePartitioner extends CUPruner {
         (part::parts).foreach { removeCache }
         removeNodes(k.descendentTree)
         ctxs.foreach { ctx => if (ctx.ctrlers.isEmpty) ctx.streaming := true }
+        //breakPoint(s"$k ${ctxs}")
         ctxs
+      case k:Partition if fit(kcost, vcost) => List(k)
       case k:Partition =>
-        if (fit(kcost, vcost)) List(k)
-        else {
-          val nodes = schedular.scheduleScope(k.scope)
-          //dbg(s"schedule:")
-          //nodes.foreach { n => dbg(s"$n") }
-          val (head, tail) = nodes.splitAt(nodes.size/2)
-          split(new Partition(head), vcost) ++ split(new Partition(tail),vcost)
+        val nodes = scheduler.scheduleScope(k.scope)
+        withAlgo(config.splitAlgo) {
+          partition(nodes, vcost)
         }
     }).as[List[T]]
   }
@@ -78,56 +131,10 @@ trait ComputePartitioner extends CUPruner {
     //case n => true
   }
 
-  override protected def compCost(x:Any, ct:ClassTag[_]) = {
-    switch[InputCost](x,ct) { 
-      case x: Partition => 
-        val deps = x.deps.filter { d =>
-          include(d) || d.isInstanceOf[LocalOutAccess]
-        }.distinct.toList
-        dbg(s"deps=$deps")
-        val ins = deps
-        val (vins, sins) = ins.partition { _.getVec > 1 }
-        InputCost(sins.size, vins.size).scheduledBy(x.scope.size)
-    } orElse switch[OutputCost](x,ct) { 
-      case x: Partition => 
-        val depedFroms = x.depedsTo.keys.toSeq
-        dbg(s"depedFroms=${depedFroms.toList}")
-        val outs = depedFroms
-        val (vouts, souts) = outs.partition { _.getVec > 1 }
-        OutputCost(souts.size, vouts.size).scheduledBy(x.scope.size)
-    } orElse switch[StageCost](x,ct) { 
-      case x: Partition => 
-        StageCost(x.scope.collect{ case op:OpNode => op }.size)
-    } getOrElse super.compCost(x, ct)
+  override def isPartitionDep(out:Output[PIRNode]) = {
+    val dep = out.src
+    include(dep) || dep.isInstanceOf[LocalOutAccess]
   }
 
-}
-
-class Partition(val scope:List[PIRNode]) {
-  override def toString = s"${super.toString}(${scope.size})"
-  def deps:Seq[PIRNode] = {
-    val descendents = scope.flatMap { n => n.descendentTree }
-    val edges = descendents.toIterator.flatMap { _.localEdges }
-    val ins = edges.collect { case i:Input[PIRNode] => i }
-    ins.flatMap { in =>
-      in.connected.map { _.src }
-      .filterNot { descendents.contains } 
-    }.toSeq.distinct
-  }
-
-  def depedsTo:Map[PIRNode, Seq[PIRNode]] = {
-    val descendents = scope.flatMap { n => n.descendentTree }
-    val edges = descendents.toIterator.flatMap { _.localEdges }
-    val outs = edges.collect { case i:Output[PIRNode] => i }
-    outs.flatMap { out =>
-      out.connected.map { _.src }
-      .filterNot { descendents.contains } 
-      .map { deped => (deped, out.src) } 
-    }.toSeq.groupBy { _._2 }.mapValues { _.map { _._1 } }
-  }
-
-}
-object Partition {
-  def unapply(x:Partition):Option[List[PIRNode]] = Some(x.scope)
 }
 

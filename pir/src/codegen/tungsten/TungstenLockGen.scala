@@ -10,7 +10,7 @@ import scala.collection.mutable
 trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenMemGen with TungstenBlackBoxGen with Memorization {
 
   override def emitNode(n:N) = n match {
-    case ctx:Context if ctx.streaming.get && (ctx.descendents.collect { case lock:Lock => true; case splitter:Splitter => true }.nonEmpty) => 
+    case ctx:Context if ctx.streaming.get && (ctx.descendents.exists { case lock:Lock => true; case splitter:Splitter => true; case _ => false }) => 
       withinBB {
         visitNode(n)
       }
@@ -41,21 +41,30 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
 
     case n:Lock =>
       val (tp, name) = varOf(n)
-      val lock = n.lock.T
-      val en = assertOne(n.out.T, s"$n.out").as[BufferWrite].gout.get
       genTopMember(n, Seq(name.qstr))
+      val lock = n.lock.T
       genTopMember(
         tp="Broadcast<Token>", 
         name=s"bc_${n}_lock",
-        args=Seq(s"bc_${n}_lock".qstr, nameOf(lock).&, Seq(s"$name.GetLockPort()").qlist), 
+        args=Seq(s"bc_${n}_lock".qstr, nameOf(lock).&, Seq(s"$name.GetLockPort(${lock.id})").qlist), 
         end=true,
         extern=false,
         escape=false
       )
+      val en = assertOne(n.out.T, s"$n.out").as[BufferWrite].gout.get
       genTopMember(
         tp="Broadcast<Token>",
         name=s"bc_${n}_en",
-        args=Seq(s"bc_${n}_en".qstr, s"$name.GetLockPort()", Seq(nameOf(en).&).qlist), 
+        args=Seq(s"bc_${n}_en".qstr, s"$name.GetLockPort(${lock.id})", Seq(nameOf(en).&).qlist), 
+        end=true,
+        extern=false,
+        escape=false
+      )
+      val unlock = n.unlock.T
+      genTopMember(
+        tp="Broadcast<Token>", 
+        name=s"bc_${n}_unlock",
+        args=Seq(s"bc_${n}_unlock".qstr, nameOf(n.unlock.T).&, Seq(s"$name.GetUnlockPort(${unlock.id})").qlist), 
         end=true,
         extern=false,
         escape=false
@@ -108,19 +117,14 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
         }
       }
 
-    case n:LockSRAM => genTopMember(n, Seq(n.qstr))
+    case n:LockMem if !n.isDRAM => genTopMember(n, Seq(n.qstr))
 
-    case WithData(n:BufferWrite, data:Forward) =>
-      val ctrler = getCtrler(n)
-      n.out.T.foreach { send =>
-        addEscapeVar(send)
-        genCtxInits {
-          emitln(s"${ctrler}->AddOutput(${nameOf(send)});")
-        }
-        emitln(s"${nameOf(send)}->Push(${nameOf(data.in.T)}->Read());")
-      }
+    case n:LockRMABlock if !n.isDRAM => 
+      genTopMember(n, Seq(n.qstr, "net".&, "statnet".&, "idealnet".&))
 
-    case n:Forward =>
+    case n:LockRMABlock => 
+      val drams = n.accums.map { _.dram.get }
+      genTopMember(n, Seq(n.qstr, "net".&, "statnet".&, "idealnet".&, "DRAM".&, drams.qlist))
 
     case n => super.emitNode(n)
   }
@@ -138,7 +142,14 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
     case n:Lock => (s"SparseLock<$wordPerBank,${spadeParam.vecWidth}>", s"${n}")
     case n:LockRead => (s"${tpOf(n.mem.T)}::SparsePMUPort*", s"${n}_port")
     case n:LockWrite => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
-    case n:LockSRAM => (s"SparsePMU<${n.qtp},$wordPerBank,${spadeParam.vecWidth}>", s"$n")
+    case n:LockMem if !n.isDRAM => (s"SparsePMU<${n.qtp},$wordPerBank,${spadeParam.vecWidth}>", s"$n")
+    case n:LockRMABlock => 
+      val nlr = n.unlockReadAddrs.values.head.head.connected.size
+      val nlw = n.unlockWriteAddrs.values.head.head.connected.size
+      val nin = n.lockInputIns.size
+      val tp = if (n.isDRAM) "DRAM" else ""
+      //PMU par, RMW par, # accumTp, # accums, # banks, # unlock read, # unlock write, #input
+      (s"Sparse${tp}RMW<${n.par},${n.par},${n.accums.head.tp.qtp},${n.accums.size},${spadeParam.vecWidth},$nlr,$nlw,$nin>",s"$n")
     case n => super.varOf(n)
   }
 

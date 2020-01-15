@@ -13,11 +13,12 @@ trait GenericMemoryLowering extends PIRTraversal with SiblingFirstTraversal with
     case _ => super.visitNode(n)
   }
 
-  // And enable signals
+  // Combine enable signal if more than one exists. Change offset tp -1 if not enabled.
   def flattenEnable(access:Access) = dbgblk(s"flattenEnable($access)"){
     val parent = access.parent.get
     within(parent, parent.getCtrl) {
       val ens = access.en.connected
+      var en:Option[Output[PIRNode]] = None
       if (ens.size > 1) {
         var red:List[Output[PIRNode]] = ens.toList
         while (red.size > 1) {
@@ -26,45 +27,24 @@ trait GenericMemoryLowering extends PIRTraversal with SiblingFirstTraversal with
             case List(en1) => en1
           }.toList
         }
-        val en = red.head
-        dbg(s"And enable signals $ens => $en")
-        access.en.disconnect
-        access.en(en)
+        dbg(s"Combine enable signals $ens => $en")
+        en = Some(red.head)
+      } else {
+        en = ens.headOption
       }
+      val addr = access match {
+        case access:LockAccess => access.addr
+        case access:BankedAccess => access.offset
+      }
+      en.foreach { en =>
+        val newAddr = stage(OpDef(Mux).addInput(en, addr.singleConnected.get, allocConst(-1).out).out)
+        addr.disconnect
+        addr(newAddr)
+      }
+      access.en.disconnect
     }
   }
 
-    // Insert token for sequencial control dependency
-  def sequencedScheduleBarrierInsertion(mem:Memory):Unit = {
-    if (mem.isFIFO) return
-    dbgblk(s"sequencedScheduleBarrierInsertion($mem)") {
-      val ctrls = mem.accesses.toStream.flatMap { a => a.getCtrl.ancestorTree }.distinct
-      ctrls.foreach { ctrl =>
-        if (ctrl.schedule == Sequenced) {
-          val accesses = ctrl.children.flatMap { childCtrl => 
-            val childAccesses = mem.accesses.filter { a => 
-              a.getCtrl.isDescendentOf(childCtrl) || a.getCtrl == childCtrl
-            }
-            if (childAccesses.nonEmpty) Some((childCtrl, childAccesses)) else None
-          }
-          if (accesses.nonEmpty) {
-            dbgblk(s"Insert token for sequenced schedule of $ctrl") {
-              accesses.sliding(2, 1).foreach{
-                case List((fromCtrl, from), (toCtrl, to)) =>
-                  from.foreach { fromAccess =>
-                    to.foreach { toAccess =>
-                      dbg(s"Insert token between $fromAccess ($fromCtrl) and $toAccess ($toCtrl)")
-                      insertToken(fromAccess.ctx.get, toAccess.ctx.get).depth(1)
-                    }
-                  }
-                case _ =>
-              }
-            }
-          }
-        }
-      }
-    }
-  }
 }
 
 class MemoryLowering(implicit compiler:PIR) 
@@ -72,3 +52,4 @@ class MemoryLowering(implicit compiler:PIR)
   with GlobalMemoryLowering
   with LocalMemoryLowering
   with LockMemoryLowering
+  with LockMemoryBackBoxLowering

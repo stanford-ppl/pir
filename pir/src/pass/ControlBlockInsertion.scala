@@ -18,7 +18,7 @@ class ControlBlockInsertion(implicit compiler:PIR) extends PIRTransformer with B
     }
   }
 
-  def insertControBlock(ctx:Context):Unit = {
+  def insertControBlock(ctx:Context):Unit = dbgblk(s"insertControlBlock($ctx)"){
     // Remove existing control block
     ctx.collectChildren[ControlBlock].foreach { cb =>
       cb.children.foreach { c => swapParent(c, ctx) }
@@ -30,6 +30,11 @@ class ControlBlockInsertion(implicit compiler:PIR) extends PIRTransformer with B
     val map = nodes.groupBy { _.getCtrl }
     val ctrls = map.keys.toSeq.sortBy { _.ancestors.size }
 
+    nodes.foreach {
+      case ctrler:Controller => setLaneValid(ctrler)
+      case _ =>
+    }
+
     ctrls.foldLeft[PIRNode](ctx) { case (prev, ctrl) =>
       val (extern, intern) = map(ctrl).partition { 
         case ctrler:Controller => true
@@ -38,22 +43,24 @@ class ControlBlockInsertion(implicit compiler:PIR) extends PIRTransformer with B
         case _ => false
       }
       extern.foreach { n => swapParent(n, prev) }
-      val ctrlers = extern.collect { case ctrler:Controller => true }
-      if (ctrlers.isEmpty) {
+      val ctrlers = assertOneOrLess(extern.collect { case ctrler:Controller => ctrler }, s"ctrler for $ctrl in $ctx")
+      val ctrler = ctrlers.getOrElse {
         // Make it easier for codegen. One to one correspondance between ctrl and controller
-        val ctrler = within(prev, ctrl) { stage(UnitController()) }
-        ctrler.collectPeer[LocalAccess]().foreach { la =>
-          la.done.singleConnected match {
-            case Some(OutputField(c@Const(true), _)) if c.getCtrl == ctrl =>
-              swapConnection(la.done, c.out, ctrler.childDone)
-            case _ =>
-          }
-        }
+        within(prev, ctrl) { stage(UnitController().par(1)) }
       }
-      val cb = within(prev, ctrl) { stage(ControlBlock()) }
+      // Create dummy dependency to make sure ctrler is generated before ControlBlock
+      val cb = within(prev, ctrl) { stage(ControlBlock().dummy(ctrler.laneValid)) }
       intern.foreach { n => swapParent(n, cb) }
       cb
     }
   }
 
+  def setLaneValid(ctrler:Controller) = {
+    ctrler.en.neighbors.collect { case v:CounterValid => v }.foreach { v =>
+      disconnect(ctrler.en, v)
+      ctrler.uen(v.out)
+    }
+  }
+
 }
+

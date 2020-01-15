@@ -57,10 +57,8 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
     ctxs.clear
     super.finPass
     passTwo = false
-    if (maxCount > 1000000) {
-      dbg(s"maxCount=$maxCount")
-      warn(f"maxCount=${maxCount}%.2e $maxCountCtx")
-    }
+    dbg(s"maxCount=$maxCount")
+    info(f"maxCount=${maxCount}%.2e $maxCountCtx")
   }
 
   implicit class RuntimeOp2[N<:IR](n:N) extends RuntimeOp1[N](n) {
@@ -74,6 +72,7 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
    * Compute count of the context using reads. Return None if reads is empty
    * and ctrlers nonEmpty
    * */
+  private val input = raw"in.*".r
   def countByReads(n:Context):Option[Value[Long]] = dbgblk(s"countByReads($n)") {
     var reads = n.reads.filterNot { read =>
       if (read.nonBlocking) { read.getCount; true } else false
@@ -82,10 +81,26 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
       val connectToUnlock = read.out.connected.exists { case InputField(lock:Lock, "unlock") => true; case _ => false }
       read.initToken.get || connectToUnlock 
     }
+    reads.foreach { _.getCount }
     dbg(s"reads=$reads passTwo=$passTwo")
-    val counts = reads.flatMap { read => 
-      read.getCount.map { _ * read.getScale }
+    val bbs = n.collectDown[BlackBox]()
+    val counts = bbs.headOption match {
+      case Some(bb:MergeBuffer) => List(Unknown)
+      case Some(bb:LockRMABlock) => 
+        (bb.lockAddrs, 
+          bb.unlockReadAddrs(bb.accums.head), 
+          bb.unlockWriteAddrs(bb.accums.head)
+        ).zipped.map { case (la, ura, uwa) =>
+          import Value._
+          val lcount = la.T.getCount
+          val urcount = ura.T.map{ _.getCount }.getOrElse(Some(Finite(0l)))
+          val uwcount = uwa.T.map{ _.getCount }.getOrElse(Some(Finite(0l)))
+          zipMap(lcount,urcount,uwcount) { case (la,ura,uwa) => la + ura + uwa }.getOrElse(Unknown)
+        }
+      case Some(_) => List(Unknown)
+      case None => reads.flatMap { read => read.getCount.map { _ * read.getScale } } 
     }
+
     val (unknown, known) = counts.partition { _.unknown }
     val (finite, infinite) = known.partition { _.isFinite }
     val c = if (unknown.nonEmpty) Some(Unknown)
@@ -107,8 +122,10 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
 
   def countByController(n:Context) = dbgblk(s"countByContrller($n)"){
     val ctrlers = n.ctrlers
-    dbg(s"$n.ctrlers=$ctrlers")
-    ctrlers.map { _.getIter }.reduceOption { _ * _ }
+    if (ctrlers.exists { case top:TopController => true; case _ => false}) {
+      dbg(s"$n.ctrlers=$ctrlers")
+      ctrlers.map { _.getIter }.reduceOption { _ * _ }
+    } else Some(Unknown)
   }
 
   val StreamWriteContext = MatchRule[Context, FringeStreamWrite] { case n if n.streaming.get =>
@@ -126,7 +143,7 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
           val ctrlers = n.ctrlers
           var inferByInput = false
           inferByInput ||= n.streaming.get
-          inferByInput ||= ctrlers.exists { ctrler => ctrler.isForever && !ctrler.hasBranch }
+          inferByInput ||= ctrlers.exists { ctrler => ctrler.isForever || ctrler.hasBranch }
           inferByInput ||= ctrlers.isEmpty
           if (inferByInput) countByReads(n)
           else countByController(n)
@@ -139,6 +156,16 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
           n.in.T.getCount.map { _ /! n.writeDone.collectFirst[BufferWrite]().data.singleConnected.get.getScale }
         case WrittenBy(OutputField(_:FringeStreamRead, "lastBit")) => 
           Some(Finite(1))
+        case WrittenBy(o@OutputField(l:LockRMABlock, "unlockReadData")) => 
+          l.unlockReadAddrs(l.accumMap(o))(l.laneMap(o)).T.flatMap { _.getCount }
+        case WrittenBy(o@OutputField(l:LockRMABlock, "unlockWriteAck")) => 
+          l.unlockWriteAddrs(l.accumMap(o))(l.laneMap(o)).T.flatMap { _.getCount }
+        case WrittenBy(o@OutputField(l:LockRMABlock, "lockDataOut")) => 
+          l.lockAddrs(l.laneMap(o)).T.getCount
+        case WrittenBy(o@OutputField(l:LockRMABlock, "lockInputOut")) => 
+          l.lockAddrs(l.laneMap(o)).T.getCount
+        case WrittenBy(o@OutputField(l:LockRMABlock, "lockAck")) => 
+          l.lockAddrs(l.laneMap(o)).T.getCount
         case n:LocalOutAccess =>
           n.in.T.getCount.map { _ * n.in.getVec /! n.out.getVec }
         case n:LocalInAccess =>
@@ -185,17 +212,24 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
         size /! (n.data.getTp.bytePerWord.get * dataPar)
       case n:FringeSparseLoad => Finite(1l)
       case n:FringeSparseStore => Finite(1l)
+      case n:MergeBuffer => 
+        import Value._
+        n.bounds.map { _.T.getBound.toValue }.reduce { _ + _ }
       case n => Unknown
     }
   }
 
+  private val bound = raw"bound.*".r
+  private val input = raw"in.*".r
   def compScale(n:Any):Value[Long] = dbgblk(s"compScale($n)"){
     n match {
       case OutputField(ctrler:Controller, "done") => ctrler.getIter *  compScale(ctrler.childDone)
-      case OutputField(ctrler:Controller, "childDone" | "childDone") => 
+      case OutputField(ctrler:Controller, "childDone" | "stepped") => 
         val children = ctrler.childDone.connected.filter { _.asInstanceOf[Field[_]].name == "parentEn" }.map { _.src.as[Controller] }
         assertUnify(children, s"$ctrler.childDone.scale") { child => compScale(child.done) }.getOrElse(Finite(ctrler.ctx.get.getScheduleFactor))
       case OutputField(n:Const, _) => Finite(n.ctx.get.getScheduleFactor)
+      case OutputField(n:ScratchpadDelay, _) => compScale(n.in.collectFirst[BufferWrite]().data.singleConnected.get)
+      case OutputField(n:Delay, _) => compScale(n.in.collectFirst[BufferWrite]().data.singleConnected.get)
       case n:LocalAccess => 
         (n, n.done.singleConnected.get) match {
           case (n, done) if n.en.isConnected => Unknown
@@ -205,11 +239,17 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
             n.data.singleConnected.get match {
               case OutputField(n:FringeDenseStore, "ack") => n.getIter * n.ctx.get.getScheduleFactor
               case OutputField(n:FringeStreamRead, "lastBit") => Unknown
+              case OutputField(n:MergeBuffer, "outBound") => n.getIter * n.ctx.get.getScheduleFactor
+              case OutputField(n:LockRMABlock, output) => Unknown
               case out => Finite(n.ctx.get.getScheduleFactor)
             }
           case (n:BufferRead, done) if n.ctx.get.streaming.get =>
             n.out.connected.head match {
               case InputField(n:DRAMDenseCommand, "size" | "offset") => n.getIter * n.ctx.get.getScheduleFactor
+              case InputField(n:MergeBuffer, "init") => n.getIter * n.ctx.get.getScheduleFactor
+              case InputField(n:MergeBuffer, bound) => n.getIter * n.ctx.get.getScheduleFactor
+              case InputField(n:MergeBuffer, input) => Unknown
+              case InputField(n:LockRMABlock, input) => Unknown
               case in => Finite(n.ctx.get.getScheduleFactor)
             }
           case (n, done) => compScale(done) 
@@ -226,39 +266,42 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
     }
   }
 
-  def outputMatch(out1:Output[PIRNode], out2:Output[PIRNode]) = (out1, out2) match {
+  def matchOutput(out1:Output[PIRNode], out2:Output[PIRNode]) = (out1, out2) match {
     case (out1, out2) if out1 == out2 => true
     case (OutputField(Const(out1), "out"), OutputField(Const(out2), "out")) if out1 == out2 => true
     case (OutputField(Const(List(out1)), "out"), OutputField(Const(out2), "out")) if out1 == out2 => true
     case (OutputField(Const(out1), "out"), OutputField(Const(List(out2)), "out")) if out1 == out2 => true
-    case (OutputField(c1:UnitController, "childDone" | "done"), OutputField(c2:UnitController, "childDone" | "done")) => c1 == c2
+    case (OutputField(c1:UnitController, "stepped" | "childDone" | "done"), OutputField(c2:UnitController, "stepped" | "childDone" | "done")) => c1 == c2
     case (out1, out2) => false
   }
 
   def matchInput(in1:Input[PIRNode], in2:Input[PIRNode]) = (in1, in2) match {
     case (in1, in2) if in1.connected.size != in2.connected.size => false
     case (InputField(_,"en" | "done"), InputField(_,"en" | "done")) => //TODO: order doesn't matter
-      (in1.connected, in2.connected).zipped.forall { outputMatch _ }
-    case (in1, in2) => (in1.connected, in2.connected).zipped.forall { outputMatch _ }
+      (in1.connected, in2.connected).zipped.forall { matchOutput _ }
+    case (in1, in2) => (in1.connected, in2.connected).zipped.forall { matchOutput _ }
   }
 
   def matchInput(in1:Input[PIRNode], connected:List[Output[PIRNode]]) = {
     (in1.connected, connected).zipped.forall { case (o1, o2) =>
-      (in1.connected, connected).zipped.forall { outputMatch _ }
+      (in1.connected, connected).zipped.forall { matchOutput _ }
     }
   }
 
   def matchInput(in1:Input[PIRNode], out:Output[PIRNode]) = {
-    in1.connected.forall { outputMatch(_,out) }
+    in1.connected.forall { matchOutput(_,out) }
   }
 
   def matchRate(a1:LocalAccess, a2:LocalAccess) = {
-    (compScale(a1), compScale(a2)) match {
+    val matchScale = (compScale(a1), compScale(a2)) match {
       case (Unknown, _) => false
       case (_, Unknown) => false
       case (s1, s2) => s1 == s2
     }
+    //TODO: fix this
+    matchScale //|| (a1.done.connected.toSet == a2.done.connected.toSet)
   }
+
 
 
 }

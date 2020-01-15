@@ -3,30 +3,73 @@ package pir
 class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
 
   /* ------------------- Compiler --------------------  */
-  register("ctrl", default=true, info="Enable control logic generation")
-  register("splitting", default=true, info="Enable splitting")
-  register("split-algo", default="BFS", info="splitting algorithm. [DFS, BFS]") 
+  register("split", default=true, info="Enable splitting")
+  register("split-algo", default="dfs", info="Splitting algorithm. [dfs, bfs, gurobi, cvxpy]") 
+  register("gurobi-init-algo", info="Warm start algorithm for gurobi. [dfs, bfs]") 
+  register("split-forward", default=false, info="Forward splitting traversal direction") 
+  register("split-thread", default=1, info="Number of threads for external splitter") 
+  register("merge", default=false, info="Enable merging")
+  register("merge-algo", default="bfs", info="Merging algorithm. [dfs, bfs, gurobi]")
+  register("merge-forward", default=false, info="Forward merging traversal direction") 
+
+  // Optimizations
+  register("ag-dce", default=true, info="Enable aggressive dead code elimination")
+  register("dupra", default=false, info="Duplicate read address calculation in receiver CU")
+  register("bcread", default=true, info="Enable broadcast read")
+  register("mdone", default=true, info="Generate done from merged access")
+  register("constprop", default=true, info="Enable constant propogation")
+  register("pracc", default=true, info="Enable pipeline register accumulation lowering")
+  register("sr", default=true, info="Enable strength reduction")
+  register("lrange", default=true, info="Enable loop range analysis")
+  register("rtelm", default=true, info="Enable route through elimination")
+
+  register("retime-local", default=false, info="Enable local retiming")
+  register("retime-glob", default=false, info="Enable global retiming")
+  register("retime-exout", default=false, info="Enable retiming of external output")
+  register("retime-buffer-only", default=false, info="Only allow using input buffers of CUs for retiming")
+
   register("mapping", default=true, info="Enable mapping")
   register("arch", default="MyDesign", info="Default architecture for mapping")
-  register("ag-dce", default=true, info="Enable aggressive dead code elimination")
-  register("rt-elm", default=true, info="Enable route through elimination")
   register("stat", default=false, info="Printing statistics")
-  register("force-align", default=false, info="Remove control signals that handle unaligned parallalization")
   register("igraph", default=false, info="Enable igraph codegen")
   register("dedicated-dag", default=false, info="Force DRAM AG are only used to map DRAM Address Calculation")
+  register("module", default=false, info="Generate the app as a module")
+
+  register[String]("spatial-home", default=sys.env.get("SPATIAL_HOME"), info="Spatial Home")
+  register[String]("pir-home", default=sys.env.get("PIR_HOME"), info="PIR Home")
 
   def arch = option[String]("arch")
-  def enableSplitting = option[Boolean]("splitting")
-  def splitAlgo = option[String]("split-algo")
+  def dupReadAddr = option[Boolean]("dupra")
+  def mergeDone = option[Boolean]("mdone")
+  def enableLocalRetiming = option[Boolean]("retime-local")
+  def enableGlobalRetiming = option[Boolean]("retime-glob")
+  def enableRetimeExout = option[Boolean]("retime-exout")
+  def enableConstProp = option[Boolean]("constprop")
+  def enablePipeAccum = option[Boolean]("pracc")
+  def enableStrengthReduce = option[Boolean]("sr")
+  def enableRangeAnalysis = option[Boolean]("lrange")
+  def retimeBufferOnly = option[Boolean]("retime-buffer-only")
   def enableMapping = option[Boolean]("mapping")
+  def enableSplitting = option[Boolean]("split") && enableMapping
+  def enableBroadcastRead = option[Boolean]("bcread")
+  def splitAlgo = option[String]("split-algo")
+  def gurobiInitAlgo = getOption[String]("gurobi-init-algo")
+  def splitThread = option[Int]("split-thread")
+  def splitForward = option[Boolean]("split-forward")
+  def enableMerging = option[Boolean]("merge") && enableMapping
+  def mergeAlgo = option[String]("merge-algo")
+  def mergeForward = option[Boolean]("merge-forward")
   def deadicatedDAG = option[Boolean]("dedicated-dag")
-  def enableRouteElim = option[Boolean]("rt-elm")
+  def enableRouteElim = option[Boolean]("rtelm")
   def aggressive_dce = option[Boolean]("ag-dce")
   def printStat = option[Boolean]("stat")
-  def forceAlign = option[Boolean]("force-align")
   def enableIgraph = option[Boolean]("igraph")
-  register("module", default=false, info="Generate the app as a module")
+  def graphDir = buildPath(appDir, "graph")
+  def mergeDir = buildPath(appDir, "merge")
+  def splitDir = buildPath(appDir, "split")
   def asModule = enableCodegen && option[Boolean]("module")
+  def spatialHome = getOption[String]("spatial-home")
+  def pirHome = getOption[String]("pir-home") orElse spatialHome.map { buildPath(_,"pir") }
 
   /* ------------------- Routing --------------------  */
   register("routing-algo", default="dor", info="If net=[dynamic] - [dor, planed, proute]. Option ignored for other network. dor - dimention order routing. planed - arbitrary source routing, proute - use plastiroute for place and route. If proute is chosen plastiroute will be launched from pir if $PLASTIROUTE_HOME is set") 
@@ -68,7 +111,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def runPsim = option[Boolean]("run-psim") && genPsim
   def loadPsim = getOption[String]("load-psim")
   def enableTrace = genPsim && option[Boolean]("trace")
-  def psimHome = getOption[String]("psim-home").getOrElse(err(s"psim-home is not set"))
+  def psimHome = getOption[String]("psim-home") orElse pirHome.map { buildPath(_,"plastisim") }
   def psimOut = getOption[String]("psim-out").getOrElse { buildPath(appDir, s"plastisim") }
   def psimConfigName = "psim.conf"
   def psimConfigPath = buildPath(psimOut, psimConfigName)
@@ -84,13 +127,15 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("proute-seed", default=0, info="Plastiroute seed") 
   register("run-proute", default=false, info="Run Plastiroute") 
   register[String]("module-prefix", info="Prefix to top module path")
-  register[String]("module-name", info="Name for top-level module")
-  def prouteHome = getOption[String]("proute-home").getOrElse(err(s"proute-home is not set"))
+  register[String]("extern-prefix", info="Prefix to external module path")
+  def prouteHome = getOption[String]("proute-home") orElse pirHome.map { buildPath(_,"plastiroute") }
   def genProute = genPsim || genTungsten
   def runproute = option[Boolean]("run-proute") || runPsim || runTst 
   def proutePlaceName = "final.place"
   def proutePlacePath = buildPath(psimOut, proutePlaceName)
   def iroutePlacePath = buildPath(psimOut, "ideal.place")
+  def prouteOutLinkName = "outlink.csv"
+  def prouteInLinkName = "inlink.csv"
   def prouteLinkName = "link.csv"
   def prouteLinkPath = buildPath(psimOut, prouteLinkName)
   def prouteNodeName = "node.csv"
@@ -98,8 +143,9 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def prouteSummaryName = "summary.csv"
   def prouteSummaryPath = buildPath(psimOut, prouteSummaryName)
   def prouteLog = buildPath(appDir, "proute.log")
-  def modulePreix = getOption[String]("module-prefix")
-  def moduleName = getOption[String]("module-name")
+  def modulePrefix = getOption[String]("module-prefix")
+  def externPrefix = getOption[String]("extern-prefix")
+  def moduleName = modulePrefix.map { _.split("/").last }
 
   /* ------------------- Tungsten --------------------  */
   register[String]("tungsten-home", default=sys.env.get("TUNGSTEN_HOME"), info="Tungsten Home")
@@ -109,21 +155,18 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def genTungsten = enableCodegen && option[Boolean]("tungsten")
   def runTst = option[Boolean]("run-tst")
   def tstOut = buildPath(appDir, "tungsten")
-  def tstHome = getOption[String]("tungsten-home").getOrElse(err(s"tungsten-home is not set"))
+  def tstHome = getOption[String]("tungsten-home") orElse pirHome.map { buildPath(_,"tungsten") }
   def tstLog = buildPath(appDir, "runtst.log")
   def enableSimDebug = option[Boolean]("debug-tst")
 
   /* ------------------- Debugging --------------------  */
-  register("bp-split", default=false, info="Enable break point for splitting")
-  register("bp-pr", default=false, info="Enable break point for place and route")
   register("dot", default=false, info="Enable dot codegen")
   register("vdot", default=false, info="Enable verbose dot codegen")
-  register("snapshot", default=false, info="Enable placement snapshot")
-  register("snapint", default=10, info="Placement snapshot interval")
+  register("fast", default=false, info="Disable debugging to make running fast")
 
-  def enableSplitBreakPoint = debug && option[Boolean]("bp-split")
-  def enablePlaceAndRouteBreakPoint = debug && option[Boolean]("bp-pr")
-  def enableSnapshot = debug && option[Boolean]("snapshot")
+  def fast:Boolean = option[Boolean]("fast")
+  override def save = !fast & super.save
+  //override def debug = !fast & super.debug
   def enableDot:Boolean = enableCodegen && option[Boolean]("dot")
-  def enableVerboseDot:Boolean = enableDot && option[Boolean]("vdot")
+  def enableVerboseDot:Boolean = enableDot && option[Boolean]("vdot") && !fast
 }

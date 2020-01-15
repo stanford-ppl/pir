@@ -15,6 +15,7 @@ trait PIRApp extends PIR with Logging {
   lazy val deadCodeEliminator = new DeadCodeElimination()
   lazy val rewriter = new RewriteTransformer()
   lazy val memLowering = new MemoryLowering()
+  lazy val dramBarrierInsertion = new DRAMBarrierInsertion()
   lazy val contextAnalyzer = new ContextAnalyzer()
   lazy val contextInsertion = new ContextInsertion()
   lazy val blkboxLowering = new BlackBoxLowering()
@@ -35,8 +36,10 @@ trait PIRApp extends PIR with Logging {
   lazy val hardPruner = new HardConstrainPruner()
   lazy val computePruner = new ComputePruner()
   lazy val dagPruner = new DAGPruner()
+  lazy val mergeBufferPruner = new MergeBufferPruner()
   lazy val memoryPruner = new MemoryPruner()
   lazy val memoryComputePruner = new MemoryComputePruner()
+  lazy val globalMerger = new GlobalMerger()
   lazy val matchPruner = new MatchPruner()
   lazy val placerAndRouter = new PlaceAndRoute()
 
@@ -47,7 +50,6 @@ trait PIRApp extends PIR with Logging {
   lazy val prouteNodeGen = new PlastirouteNodeGen()
   lazy val dramTraceGen = new DRAMTraceCodegen()
   lazy val resReport = new ResourceReport()
-  lazy val progReport = new ProgramReport()
   lazy val igraphGen = new IgraphCodegen()
   //lazy val areaPowerStat = new AreaPowerStat()
   
@@ -72,10 +74,10 @@ trait PIRApp extends PIR with Logging {
     addPass(deadCodeEliminator) ==>
     addPass(contextInsertion) ==>
     addPass(blkboxLowering) ==>
-    addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx2.dot")) ==>
     addPass(enableVerboseDot, new PIRTopDotGen(s"top3.dot")) ==>
     addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx3.dot")) ==>
     addPass(memLowering) ==>
+    addPass(dramBarrierInsertion) ==>
     addPass(enableVerboseDot, new PIRTopDotGen(s"top4.dot")) ==>
     addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx4.dot")) ==>
     addPass(depDuplications).dependsOn(memLowering) ==>
@@ -88,26 +90,32 @@ trait PIRApp extends PIR with Logging {
     addPass(globalInsertion) ==>
     saveSession(buildPath(config.outDir,"pir1.ckpt")) ==>
     // ------ Load hardware constrain ----- 
-    addPass(enableMapping,progReport) ==>
+    addPass(enableMapping,new ProgramReport("program_alloc.json")) ==>
     addPass(initializer) ==>
     addPass(new ParamHtmlIRPrinter(s"param.html", pirenv.spadeParam)) ==>
     addPass(enableDot, new PIRGlobalDotGen(s"global7.dot")) ==>
-    addPass(enableDot, new PIRCtxDotGen(s"ctx7.dot")) ==>
+    addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx7.dot")) ==>
     addPass(enableVerboseDot, new PIRTopDotGen(s"top7.dot")) ==>
-    addPass(enableVerboseDot, new PIRIRPrinter(s"IR7.txt")) ==>
     addPass(sanityCheck) ==>
     // ------- Mapping  --------
     addPass(enableMapping, hardPruner) ==>
     addPass(enableMapping, memoryPruner) ==>
     addPass(rewriter) ==> // Remove unused shuffle
+    addPass(enableDot, new PIRGlobalDotGen(s"global8.dot")) ==>
     addPass(enableMapping, memoryComputePruner) ==>
+    addPass(enableDot, new PIRGlobalDotGen(s"global9.dot")) ==>
+    addPass(enableMapping, mergeBufferPruner) ==>
     addPass(enableMapping, hardPruner) ==> // prune on newly created CUs by memoryComputePruner
     addPass(enableMapping, computePruner) ==>
+    addPass(enableDot, new PIRGlobalDotGen(s"global10.dot")) ==>
+    addPass(enableMapping, hardPruner) ==>
+    addPass(enableMapping,new ProgramReport("program_split.json")) ==>
+    addPass(enableMerging, globalMerger) ==>
+    addPass(enableDot, new PIRGlobalDotGen(s"global11.dot")) ==>
     addPass(enableMapping, dagPruner) ==>
     addPass(enableMapping, matchPruner) ==>
     addPass(ctrlBlockInsert) ==>
     addPass(sanityCheck) ==>
-    //addPass(debugTransformer) ==>
     addPass(modAnalyzer) ==>
     addPass(enableMapping, placerAndRouter) ==>
     addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx8.dot")) ==>
@@ -115,13 +123,13 @@ trait PIRApp extends PIR with Logging {
     //addPass(enableVerboseDot, new PIRNetworkDotGen(s"net.dot"))
     saveSession(buildPath(config.outDir,"pir2.ckpt")) ==>
     // ------- Codegen  --------
-    addPass(enableMapping,progReport) ==>
+    addPass(enableMapping,new ProgramReport("program.json")) ==>
     addPass(enableMapping,resReport) ==>
+    addPass(enableDot, new PIRGlobalDotGen(s"global.dot")) ==>
     addPass(runtimeAnalyzer).dependsOn(placerAndRouter) ==>
     addPass(enableDot, new PIRGlobalDotGen(s"global.dot")) ==>
     addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx.dot")) ==>
     addPass(enableVerboseDot, new PIRTopDotGen(s"top.dot")) ==>
-    addPass(config.debug, new PIRIRPrinter(s"IR.txt")) ==>
     // Igraph
     addPass(enableIgraph, igraphGen).dependsOn(runtimeAnalyzer)
     // Plastiroute

@@ -37,6 +37,7 @@ trait Compiler extends FileIOUtil with ArgLoader with Session with Logging {
       loadSession
       reset
       info(s"Output directory set to ${cstr(Console.CYAN,config.outDir)}")
+      config.writeConfig(config.outDir)
       initSession
       runSession
     }.recoverWith { case e:Throwable =>

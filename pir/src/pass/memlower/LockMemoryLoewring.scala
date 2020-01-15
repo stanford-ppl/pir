@@ -8,11 +8,6 @@ import spade.param._
 import scala.collection.mutable
 
 trait LockMemoryLowering extends GenericMemoryLowering {
-  override def visitNode(n:N) = n match {
-    case n:Memory if n.isLockSRAM => lowerLockMem(n)
-    case _ => super.visitNode(n)
-  }
-
   override def finPass = {
     splitCtxs.clear
     super.finPass
@@ -20,43 +15,56 @@ trait LockMemoryLowering extends GenericMemoryLowering {
 
   private val splitCtxs = mutable.Map[ControlTree, Context]()
   private val addrCtxs = mutable.Map[ControlTree, Context]()
-  private def lowerLockMem(n:Memory) = dbgblk(s"lowerLockMem($n)"){
+  protected def lowerUnparLockMem(n:Memory) = dbgblk(s"lowerUnparLockMem($n)"){
     val memCU = within(pirTop) { MemoryContainer() }
     swapParent(n, memCU)
-    val lockMap = n.accesses.groupBy { access => access.as[LockAccess].lock.T }
+    val accesses = n.accesses.as[List[LockAccess]]
+    val lockMap = accesses.groupBy { access => access.lock.T }
     val lastAccesses = lockMap.flatMap {
       case (None, accesses) => None
       case (Some(lock), accesses) => Some(accesses.maxBy { _.order.get })
     }.toSet
     dbg(s"lastAccesses=${lastAccesses.mkString(",")}")
-    n.accesses.foreach { access =>
-      lowerAccess(n, memCU, access.as[LockAccess], lastAccesses.contains(access))
+    accesses.foreach { access =>
+      lowerAccess(n, memCU, access, lastAccesses.contains(access))
     }
-    sequencedScheduleBarrierInsertion(n)
-    n.accesses.foreach { access =>
+    val syncAccesses = accesses.groupBy { _.getCtrl }.flatMap { case (ctrl, accesses) =>
+      val (locked, unlocked) = accesses.partition { _.lock.isConnected }
+      unlocked ++ locked.headOption
+    }.toList
+    consistencyBarrier(syncAccesses)(dependsOn){ case (from,to,carried,depth) =>
+      insertToken(from.ctx.get, to.ctx.get).depth(depth)
+    }
+    accesses.foreach { access =>
       val ctx = access.ctx.get
       bufferInput(ctx, fromCtx=addrCtxs.get(access.getCtrl))
     }
     addrCtxs.clear
   }
 
+  private def dependsOn(deped:Access, dep:Access):Option[Int] = {
+    val lca = leastCommonAncesstor(deped.getCtrl, dep.getCtrl).get
+    lca.schedule match {
+      case Fork => return None
+      case ForkJoin => return None
+      case _ =>
+    }
+    val carried = dep.progorder.get > deped.progorder.get
+    if (!carried) Some(1) else None
+  }
+
   private def lowerAccess(mem:Memory, memCU:MemoryContainer, access:LockAccess, isLast:Boolean) = {
+    val isSplitAccess = access.lock.isConnected
     val ctrl = access.ctx.get.getCtrl
     // Setting up address calculation
     val addrCtx = addrCtxs.getOrElseUpdate(ctrl, {
       // Optimization. Put address calculation in PMU of doesn't have lock
-      val cu = if (access.lock.isConnected) pirTop else memCU
+      val cu = if (isSplitAccess) pirTop else memCU
       within(cu, ctrl) { Context() }
     })
     swapParent(access, addrCtx)
+    flattenEnable(access)
     var addr = access.addr.singleConnected.get
-    within(addrCtx, ctrl) {
-      flattenEnable(access)
-      access.en.singleConnected.foreach { en =>
-        addr = stage(OpDef(Mux).addInput(en, addr, allocConst(-1).out).out)
-      }
-      access.en.disconnect
-    }
     // Setting up splitter and lock if it's sparse access
     val pack = access.lock.T.map { lockOn =>
       val lock = lockOn.lock.T
@@ -66,7 +74,9 @@ trait LockMemoryLowering extends GenericMemoryLowering {
       addr = splitAddr
       if (!canReach(lock.lock,splitKey)) {
         lock.lock(splitKey)
-        bufferInput(lock.lock, fromCtx=Some(splitCtx))
+        setSplit(true) {
+          bufferInput(lock.lock, fromCtx=Some(splitCtx))
+        }
       }
       swapConnection(access.lock, lockOn.out, lock.out)
       (splitCtx, lock, splitKey)
@@ -78,8 +88,10 @@ trait LockMemoryLowering extends GenericMemoryLowering {
     val accessCtx = within(memCU, ctrl) { Context().streaming(true) }
     swapParent(access, accessCtx)
     swapConnection(access.addr, access.addr.singleConnected.get, addr)
-    bufferInput(access.addr, fromCtx=Some(splitCtx.getOrElse(addrCtx)))
-    bufferInput(accessCtx)
+    setSplit(isSplitAccess) {
+      bufferInput(access.addr, fromCtx=Some(splitCtx.getOrElse(addrCtx)))
+      bufferInput(accessCtx)
+    }
     if (isLast) {
       val mergeCtx = within(memCU, ctrl) { Context().streaming(true) }
       val dep = access match {
@@ -89,22 +101,55 @@ trait LockMemoryLowering extends GenericMemoryLowering {
       val unlock = within(mergeCtx, ctrl) {
         stage(Forward().in(splitKey.get).dummy(dep)).out
       }
-      bufferInput(mergeCtx)
+      setSplit(true) { bufferInput(mergeCtx) }
       lock.foreach { lock =>
         lock.unlock(unlock)
-        bufferInput(lock.unlock)
+        setSplit(true) { bufferInput(lock.unlock) }
       }
     }
     // Setting up connection with PCU
     access.to[LockRead].foreach { access =>
       access.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx,ins) =>
         val in::rest = ins
-        val read = bufferInput(in).head
+        val read = setSplit(isSplitAccess) { bufferInput(in) }.head
         rest.foreach { in =>
           swapConnection(in, access.out, read.out)
         }
       }
     }
+  }
+
+  private var _isSplit = false
+  def setSplit[T<:LocalOutAccess](isSplit:Boolean)(alloc: => Seq[T]):Seq[T] = {
+    val saved = _isSplit
+    _isSplit = isSplit
+    val reads = alloc
+    _isSplit = saved
+    reads
+  }
+
+  override def insertBuffer(depOut:Output[PIRNode], depedIn:Input[PIRNode], fromCtx:Option[Context]=None, isFIFO:Boolean=true):Option[BufferRead] = {
+    super.insertBuffer(depOut,depedIn,fromCtx,isFIFO).map { read =>
+      read.isSplit := _isSplit
+      read.inAccess.isSplit := _isSplit
+      read
+    }
+  }
+
+  override def childDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
+    val ctrler = if (ctx.streaming.get) {
+      within(ctx, ctrl) { 
+        allocate[UnitController]()(stage(UnitController().par(1)))
+      }
+    } else {
+      assert(!compiler.hasRun[DependencyDuplication])
+      // Centralized controller
+      ctrl.ctrler.get
+    }
+    if (_isSplit)
+      ctrler.stepped
+    else
+      ctrler.childDone
   }
 
   def allocateSplitter(ctrl:ControlTree, addr:Output[PIRNode], key:Output[PIRNode]) = {

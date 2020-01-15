@@ -71,7 +71,7 @@ trait Misc {
     else s.toInt
   }
 
-  def dbgblk[T](logger:Option[Logging], msg:Any)(f: => T):T = {
+  def dbgblk[T](logger:Option[Logging], msg: => Any)(f: => T):T = {
     logger.fold(f) { _.dbgblk(s"$msg") { f } }
   }
   
@@ -84,6 +84,16 @@ trait Misc {
   def shell(
     header:String, 
     command:String, 
+    logPath:String
+  ):Int = shell(
+    command=command, 
+    header=Some(header), 
+    logPath=Some(logPath)
+  )
+
+  def shell(
+    header:String, 
+    command:String, 
     cwd:String,
     logPath:String
   ):Int = shell(
@@ -91,15 +101,6 @@ trait Misc {
     header=Some(header), 
     cwd=Some(cwd),
     logPath=Some(logPath),
-  )
-  def shell(
-    header:String, 
-    command:String, 
-    logPath:String
-  ):Int = shell(
-    command=command, 
-    header=Some(header), 
-    logPath=Some(logPath)
   )
 
   def shellProcess(

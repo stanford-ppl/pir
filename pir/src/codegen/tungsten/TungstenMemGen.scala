@@ -28,7 +28,6 @@ trait TungstenMemGen extends TungstenCtxGen {
       val (tp, name) = varOf(n)
       genTopMember(n, Seq(n.qstr))
       addEscapeVar(n)
-      val ctrler = getCtrler(n)
       genCtxInits {
         if (n.initToken.get) {
           val initVal = n.inits.get
@@ -40,10 +39,18 @@ trait TungstenMemGen extends TungstenCtxGen {
           }
           emitln(s"$name->Init(make_token($init));")
         }
-        emitln(s"${ctrler}->AddInput(${nameOf(n)});")
+        val ctrler = n.done.T.map { 
+          case ctrler:Controller => ctrler
+          case ctrler => getCtrler(n)
+        }
+        ctrler.foreach { ctrler =>
+          emitln(s"${ctrler}->AddInput(${nameOf(n)});")
+        }
       }
       emitEn(n.en)
-      emitln(s"$name->SetReadEn(${n.en.qref});")
+      if (n.isFIFO) {
+        emitln(s"$name->SetReadEn(${n.en.qref});")
+      }
       emitIf(s"$name->Valid()") {
         emitVec(n) { i =>
           s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
@@ -62,8 +69,10 @@ trait TungstenMemGen extends TungstenCtxGen {
         addEscapeVar(send)
         genCtxInits {
           emitln(s"${ctrler}->AddOutput(${nameOf(send)});")
-          emitln(s"""${data.mem.T}->SetSend(${data.id}, ${nameOf(send)});""")
         }
+      }
+      genCtxInits {
+        emitln(s"""${data.mem.T}->SetSends(${data.id}, ${n.out.T.map { nameOf(_) }.qlist});""")
       }
 
     case n:LocalInAccess =>
@@ -82,8 +91,14 @@ trait TungstenMemGen extends TungstenCtxGen {
       n.out.T.foreach { send =>
         if (!send.isDescendentOf(ctx)) addEscapeVar(send)
         genCtxInits {
-          if (withPipe) emitln(s"${ctrler}->AddOutput(${nameOf(send)}, $name);")
-          else emitln(s"${ctrler}->AddOutput(${nameOf(send)});")
+          val ctrler = n.done.T.map { 
+            case ctrler:Controller => ctrler
+            case ctrler => getCtrler(n)
+          }
+          ctrler.foreach { ctrler =>
+            if (withPipe) emitln(s"${ctrler}->AddOutput(${nameOf(send)}, $name);")
+            else emitln(s"${ctrler}->AddOutput(${nameOf(send)});")
+          }
         }
       }
       declare(n)
@@ -105,6 +120,9 @@ trait TungstenMemGen extends TungstenCtxGen {
             emitln(s"set_token_en<${n.en.getVec}>(data, ${n.en.qref});")
           } else {
             emitln(s"set_token_en(data, ${n.en.qref});")
+          }
+          if (n.isSplit.get) {
+            emitln(s"data.done_vec = ${n.done.T.get.as[Controller].childDone.qref};")
           }
           if (withPipe) emitln(s"$name->Push(data);")
           else n.out.T.foreach { send =>

@@ -54,10 +54,14 @@ trait PageRankHost extends SpatialTest {
   }
 
   import spatial.dsl._
-  def checkGold[T:Bits](pageranks:DRAM1[T])(implicit ev:Cast[Text,T]) = {
+  def checkGold[T:Bits](pageranks:DRAM1[T])(implicit ev:Cast[Text,T]):Void = {
     val result = getMem(pageranks)
+    checkGold(result)
+  }
+
+  def checkGold[T:Bits](result:Array[T])(implicit ev:Cast[Text,T]):Void = {
     val goldRank = loadCSV1D[T](goldPath)
-    writeCSV1D(getMem(pageranks), buildPath(IR.config.genDir, "tungsten", "rank.csv"), delim="\n", format=Some("%e"))
+    writeCSV1D(result, buildPath(IR.config.genDir, "tungsten", "rank.csv"), delim="\n", format=Some("%e"))
     val cksum = approxEql[T](result, goldRank, margin=0.05)
     println("PASS: " + cksum)
     assert(cksum)

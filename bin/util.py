@@ -6,6 +6,8 @@ import os, sys
 import csv
 import fnmatch
 import glob
+import shutil
+from collections import OrderedDict
 
 global parser
 parser = argparse.ArgumentParser(description='Run experiments')
@@ -36,44 +38,6 @@ NC        = '\033[0m'
 
 def cstr(color, msg):
     return "{}{}{}".format(color, msg, NC)
-
-parsers = []
-class Parser:
-    def __init__(self, key, pattern, parseLambda, 
-            default=None, logs=[], prefix=False):
-        self.key = key
-        if type(pattern) == list:
-            patterns = pattern
-        else:
-            patterns = [pattern]
-        self.patterns = patterns
-        self.parseLambda = parseLambda
-        self.default = default
-        parsers.append(self)
-        self.logs = logs
-        self.prefix = prefix or len(self.logs) > 1
-
-    def getKey(self,log):
-        if not self.prefix: return self.key
-        else: return log + "_" + self.key
-
-    def setDefault(self, conf, log):
-        conf[self.getKey(log)] = self.default
-
-    def parse(self, found, conf, log):
-        lines = [line for pat in self.patterns for line in found[pat]]
-        if len(lines) != 0:
-            conf[self.getKey(log)] = self.parseLambda(lines, conf)
-
-def parseLog(log, conf):
-    ps = [p for p in parsers if log in p.logs]
-    for parser in ps:
-        parser.setDefault(conf, log)
-    if not os.path.exists(conf[log]): return
-    patterns = [pat for parser in ps for pat in parser.patterns] 
-    found = grep(conf[log], patterns)
-    for parser in ps:
-        parser.parse(found, conf, log)
 
 def getApps(backend, opts):
     apps = []
@@ -123,21 +87,31 @@ def grep(path, patterns):
         with open(p, 'r') as f:
             for line in f:
                 ncline = line.replace(RED,'').replace(NC,'')
+                ncline = ncline.replace('\x1b[31m','').replace('\x1b[31m','')
                 for pattern in patterns:
                     if pattern in ncline:
                         found[pattern].append(line)
     return found
 
-def remove(path, opts):
+def remove(path, force):
     if os.path.exists(path):
-        if (opts.force):
-            os.remove(path)
-        else:
-            ans = raw_input('remove {}? y/n '.format(path))
-            if ans == 'y':
+        if (force):
+            if os.path.isdir(path): 
+                shutil.rmtree(path)
+            else:
                 os.remove(path)
+            return True
+        else:
+            ans = input('remove {}? y/n '.format(path))
+            if ans == 'y':
+                if os.path.isdir(path): 
+                    shutil.rmtree(path)
+                else:
+                    os.remove(path)
+                return True
             elif ans == 'q':
                 exit(0)
+        return False
 
 def loadSimData(datapath, backends=None):
     if backends is None:
@@ -168,3 +142,44 @@ def loadSimData(datapath, backends=None):
 
 def loadSummary(datapath):
     return csvToDataFrame(datapath, "backend,app,param")
+
+def default_config_path():
+    path = os.path.join(os.environ['HOME'], '.pirconf')
+    return path
+
+def parse_token(token):
+    token = token.strip()
+    if token == '' or token.startswith('#'):
+        return None,None
+    if '=' in token:
+        key,value,=token.split('=')
+    else:
+        key = token
+        value = 'true'
+    return key,value
+
+def get_configs(path=default_config_path()):
+    d = OrderedDict()
+    if os.path.exists(path):
+        with open(path, 'r') as f:
+            for line in f:
+                key,value = parse_token(line)
+                if key is not None:
+                    d[key] = value
+    return d
+
+def set_config(key, value, path=default_config_path()):
+    d = OrderedDict()
+    if os.path.exists(path):
+        d = get_configs(path)
+    d[key] = value
+    with open(path, 'w') as f:
+        for key in d:
+            f.write(f'{key}={d[key]}\n')
+
+def parse_configs(optstr):
+    for opt in optstr.split('--'):
+        opt = opt.strip()
+        if opt=='':
+            continue
+        key,value = parse_token(opt)

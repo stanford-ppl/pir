@@ -83,6 +83,14 @@ trait Node[N<:Node[N]] extends IR { self:N =>
     assert(idx != -1, s"$top is not ancestor of the $this")
     chain.slice(0, idx+1)
   }
+  def ancestorUnder(ref:N):Option[Option[N]] = {
+    val tree = ancestorTree
+    val idx = tree.indexOf(ref)
+    if (idx == -1) None
+    else if (idx == 0) Some(None)
+    else Some(Some(tree(idx-1)))
+  }
+
   def descendents:Stream[N] = children.toStream.flatMap { child => child +: child.descendents }
   def descendentTree:Stream[N] = this.as[N] +: descendents
   def leaves:Stream[N] = if (isLeaf) Stream(this) else children.toStream.flatMap { _.leaves }
@@ -95,9 +103,9 @@ trait Node[N<:Node[N]] extends IR { self:N =>
   def localIns:Vector[Input[N]] = localEdges.toVector.collect { case i:Input[N] => i }
   def localOuts:Vector[Output[N]] = localEdges.toVector.collect { case i:Output[N] => i }
 
-  def edges = localEdges ++ descendents.flatMap { _.localEdges }
-  def ins = edges.collect { case i:Input[N] => i }
-  def outs = edges.collect { case i:Output[N] => i }
+  def edges = ins ++ outs
+  def ins = depsFrom.values.flatten.toSeq.distinct
+  def outs = depedsTo.keys
   def localDeps:Vector[N] = { 
     localIns.flatMap { _.connected.map { _.src} }.distinct
   }
@@ -168,6 +176,7 @@ trait Node[N<:Node[N]] extends IR { self:N =>
   ):Vector[N] = depeds(filter).flatMap(matchLevel)
   def globalDepeds:Vector[N] = depeds().filter { d => matchLevel(d).isEmpty }
   def neighbors:Vector[N] = deps() ++ depeds()
+  def localNeighbors:Vector[N] = localDeps ++ localDepeds
   def siblingNeighbors:Vector[N] = siblingDeps() ++ siblingDepeds()
 
 }

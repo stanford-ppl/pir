@@ -21,6 +21,13 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
     }
     toBuffer
   }
+  private val enCtxs = mutable.Map[ControlTree, Context]()
+
+  override def finPass = {
+    super.finPass
+    enCtxs.clear
+  }
+
   override def visitNode(n:N) = n match {
     case n:Memory if canLocalize(n) => bufferLowering(n)
     case _ => super.visitNode(n)
@@ -44,12 +51,13 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
             matchInput(write.en,inAccess.en.connected) && 
             matchInput(write.done,enq)
           } {
-            stage(BufferWrite(mem.isFIFO)
-              .presetVec(inAccess.inferVec.get)
+            val write = BufferWrite(mem.isFIFO)
               .data(inAccess.data.connected)
               .mirrorMetas(inAccess)
               .en(inAccess.en.connected)
-              .done(enq))
+              .done(enq)
+            write.out.presetVec(inAccess.inferVec.get)
+            stage(write)
           }
         }
         val readCtx = outAccess.parent.get.as[Context]
@@ -57,10 +65,8 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
         val (remoteReadEns, localReadEns) = outAccess.en.connected.partition { !canDuplicate(_) }
         dbg(s"remoteReadEns=${remoteReadEns.map(dquote)}")
         val remoteReadEn = if (remoteReadEns.nonEmpty) {
-          val enCtx = within(pirTop, readCtrl) { 
-            allocate[Context]({ ctx => ctx.getCtrl == readCtrl && ctx != readCtx }, allowDuplicates=true) { Context() }
-          }
-          within(enCtx) {
+          val enCtx = enCtxs.getOrElseUpdate(readCtrl, within(pirTop, readCtrl) { stage(Context()) } )
+          within(enCtx, readCtrl) {
             val en = remoteReadEns.reduce[Output[PIRNode]]{ case (en1, en2) => 
               stage(OpDef(And).addInput(en1,en2).out)
             }
@@ -75,13 +81,16 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
             matchInput(read.en,outAccess.en.connected) && 
             matchInput(read.done,deq)
           } {
-            stage(BufferRead(mem.isFIFO)
+            val read = BufferRead(mem.isFIFO)
               .in(write.out)
-              .mirrorMetas(mem)
               .mirrorMetas(outAccess)
+              .mirrorMetas(mem)
               .en(localReadEns).en(remoteReadEn.map{_._2})
               .done(deq)
-              .presetVec(outAccess.inferVec.get))
+            read.out.presetVec(outAccess.out.inferVec.get)
+            read.banks.reset
+            read.banks(List(outAccess.out.inferVec.get))
+            stage(read)
           }
         }
         remoteReadEn.foreach { case (enCtx,en) =>

@@ -147,3 +147,45 @@ class UnalignLoad_1 extends UnalignLoad(ip=5, op=3)
 
   }
 }
+
+import spatial.lib.metaprogramming._
+
+class FIFOTest_0 extends FIFOTest
+class FIFOTest_1 extends FIFOTest(op=3)
+class FIFOTest_2 extends FIFOTest(op=3,ip=5)
+class FIFOTest_3 extends FIFOTest(op=3,N=100)
+
+@spatial abstract class FIFOTest(
+  val N:scala.Int = 32,
+  val ts:scala.Int = 16,
+  val op:scala.Int = 2,
+  val ip:scala.Int = 8,
+) extends SpatialTest with MetaProgramming { self =>
+
+  val margin = 1
+
+  def main(args: Array[String]): Unit = {
+    val dram = DRAM[Int](N)
+    Accel {
+      val sram = SRAM[Int](N)
+      val fifos = FIFOs[Int](op, 16)
+      MForeach(N by ts par op) { (i,ii,v) =>
+        Foreach(ts par ip) { jj =>
+          fifos.enq(ii, i+jj)
+        }
+      }
+      MForeach(N by ts par op) { (i,ii,v) =>
+        Foreach(ts par ip) { jj =>
+          val value = fifos.deq(ii)
+          sram(i+jj) = value
+        }
+      }
+      dram(0::N) store sram
+    }
+
+    val cksum = checkGold(dram, (0::N) { i => i })
+    assert(cksum)
+  }
+
+}
+

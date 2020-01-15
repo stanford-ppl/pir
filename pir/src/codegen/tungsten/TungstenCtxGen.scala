@@ -63,7 +63,7 @@ using   namespace std;
             }
             emitln(s"public:")
             val constructorArgs = ctxExtVars.map { case (tp, field) => s"$tp* _$field" }.mkString(",")
-            val constructor = s"""explicit ${quote(n)}($constructorArgs):Context("${quote(n)}")"""
+            val constructor = s"""explicit ${quote(n)}($constructorArgs):Context(${quote(n).qstr},${quote(n.global.get).qstr},${quoteSrcCtx(n).qstr})"""
             emitBlock(constructor) {
               ctxExtVars.foreach { case (tp, field) =>
                 emitln(s"$field = _$field;")
@@ -236,7 +236,7 @@ using   namespace std;
   }
 
   def emitVec(n:IR, rhs:List[Any]) = {
-    assert(n.getVec == rhs.size)
+    assert(n.getVec == rhs.size, s"${dquote(n)}.vec ${n.getVec} != ${rhs.size}")
     n match {
       case n:Const if n.getVec == 1 =>
         declareInit(n.qtp, n.qref, Some(rhs.head))

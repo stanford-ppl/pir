@@ -11,8 +11,9 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
   override def quoteRef(n:Any):String = n match {
     case OutputField(ctrler:Controller, "done") => s"$ctrler->Done()"
     case OutputField(ctrler:Controller, "childDone") => s"$ctrler->ChildDone()"
+    case OutputField(ctrler:Controller, "stepped") => s"$ctrler->Stepped()"
     case OutputField(ctrler:LoopController, "firstIter") => s"$ctrler->FirstIter()"
-    case OutputField(ctrler:LoopController, "laneValid") => s"laneValid"
+    case OutputField(ctrler:Controller, "laneValid") => s"laneValid"
     case n => super.quoteRef(n)
   }
 
@@ -21,9 +22,13 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       val ctrler = getCtrler(n)
       emitIf(s"${ctrler}->Enabled()") {
         if (n.getCtrl.isLeaf) {
+          val uen = ctrler.ancestorTreeCtrlers.flatMap { _.uen.connected }.distinct
+          emitln(s"bool uen = ${uen.map { _.qref }.reduceOption { (a,b) => s"$a & $b" }.getOrElse("true")};")
           emitln("Active();")
+          visitNode(n)
+        } else {
+          visitNode(n)
         }
-        super.visitNode(n)
 
         ctrler.to[HostOutController].foreach { ctrler =>
           emitln(s"Complete(1);")
@@ -55,11 +60,12 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
         }
       }
 
-      super.visitNode(n)
+      visitNode(n)
 
-      n.to[LoopController].foreach { n =>
-        if (n.getCtrl.isLeaf) {
-          // If last level controller is loop controller, generate lane valids
+      if (n.getCtrl.isLeaf) {
+        n.to[LoopController].fold {
+          emitVec(n.laneValid) { i => "true" }
+        } { n =>
           val laneValids = n.cchain.T.foldLeft(List[String]()) { 
             case (Nil, ctr) => List.tabulate(ctr.par) { i => s"$ctr->Valids()[$i]" }
             case (prev, ctr) => 

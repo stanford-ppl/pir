@@ -14,8 +14,8 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     if (!dep.isUnder[Context]) return false
     (dep, depedIn) match {
       case (_,InputField(deped:LocalOutAccess, "in")) => false
-      case (dep:LocalOutAccess, _) => false
       case (_,depedIn) if depedCtx.streaming.get => true
+      case (dep:LocalOutAccess, _) => false
       case (dep,_) => !canDuplicate(depOut)
     }
   }
@@ -32,21 +32,21 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     }
   }
 
-  def bufferInput(ctx:Context):Unit = {
+  def bufferInput(ctx:Context):Seq[BufferRead] = {
     bufferInput(ctx, None)
   }
 
-  def bufferInput(ctx:Context, fromCtx:Option[Context]):Unit = dbgblk(s"bufferInput($ctx)"){
-    ctx.descendents.foreach { deped => bufferInput(deped, fromCtx) }
+  def bufferInput(ctx:Context, fromCtx:Option[Context]):Seq[BufferRead] = dbgblk(s"bufferInput($ctx)"){
+    ctx.depsFrom.flatMap { case (out, ins) =>
+      ins.flatMap { in =>
+        insertBuffer(out, in, fromCtx)
+      }
+    }.toSeq
   }
 
-  def bufferInput(deped:PIRNode, fromCtx:Option[Context]):Seq[BufferRead] = {
-    deped.localIns.flatMap { in => bufferInput(in, fromCtx) }
-  }
-
-  def bufferInput(in:Input[PIRNode], fromCtx:Option[Context]=None):Seq[BufferRead] = {
+  def bufferInput(in:Input[PIRNode], fromCtx:Option[Context]=None, isFIFO:Boolean=true):Seq[BufferRead] = {
     in.connected.distinct.flatMap { out =>
-      insertBuffer(out, in, fromCtx)
+      insertBuffer(out, in, fromCtx, isFIFO)
     }
   }
 
@@ -76,34 +76,38 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     in.canReach(out, visitEdges=visitInEdges _)
   }
 
-  private def insertBuffer(depOut:Output[PIRNode], depedIn:Input[PIRNode], fromCtx:Option[Context]=None):Option[BufferRead] = {
+  protected def insertBuffer(depOut:Output[PIRNode], depedIn:Input[PIRNode], fromCtx:Option[Context]=None, isFIFO:Boolean=true):Option[BufferRead] = {
     val dep = depOut.src
     val deped = depedIn.src
     val depedCtx = deped.ctx.get
     if (escape(depOut, depedIn, depedCtx)) {
       val depCtx = fromCtx.getOrElse { dep.ctx.get }
       val read = dbgblk(s"insertBuffer(depOut=${dquote(depOut)}, depedIn=$deped.$depedIn)") {
-        val (enq, deq) = compEnqDeq(isFIFO=true, depCtx, depedCtx, Some(depOut), List(depedIn))
+        val (enq, deq) = compEnqDeq(isFIFO=isFIFO, depCtx, depedCtx, Some(depOut), List(depedIn))
+        val bank = depOut.inferVec
         val write = within(depCtx, depCtx.getCtrl) {
           allocate[BufferWrite] { write => 
-            write.isFIFO &&
+            write.isFIFO==isFIFO &&
             canReach(write.data,depOut) &&
             canReach(write.done,enq) &&
             !write.en.isConnected //TODO: buffer function should also allow enable as input
           } {
-            stage(BufferWrite(isFIFO=true).data(depOut).done(enq))
+            stage(BufferWrite(isFIFO=isFIFO).data(depOut).done(enq))
           }
         }
+        val globalbb = depedIn.src.isInstanceOf[GlobalBlackBox]
         val read = within(depedCtx, depedCtx.getCtrl) {
           allocate[BufferRead] { read => 
-            read.isFIFO &&
+            !globalbb && 
+            read.isFIFO==isFIFO &&
             canReach(read.in,write.out) &&
             canReach(read.done,deq) &&
-            !read.en.isConnected
+            !read.en.isConnected 
           } {
-            stage(BufferRead(isFIFO=true).in(write.out).done(deq))
+            stage(BufferRead(isFIFO=isFIFO).in(write.out).done(deq))
           }
         }
+        bank.foreach { bank => read.banks(List(bank)) }
         swapConnection(depedIn, depOut, read.out)
         read
       }

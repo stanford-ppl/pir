@@ -27,7 +27,7 @@ class DCGTraversalTest extends UnitTest {
   }
 
   "DCGTestDFSTDTopo" should "success" in {
-    val traversal = new DFSTopDownTopologicalTraversal with Schedular {
+    val traversal = new DFSTopDownTopologicalTraversal with Scheduler {
       type N = TestPNode
       val top = DCG1.top
       implicit val nct:ClassTag[N] = classTag[N]
@@ -44,7 +44,7 @@ class DCGTraversalTest extends UnitTest {
   }
 
   "DCGTestBUTopo" should "success" in {
-    val traversal = new DFSBottomUpTopologicalTraversal with Schedular {
+    val traversal = new DFSBottomUpTopologicalTraversal with Scheduler {
       type N = TestPNode
       val top = DCG1.top
       implicit val nct:ClassTag[N] = classTag[N]

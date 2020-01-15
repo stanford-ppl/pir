@@ -19,9 +19,11 @@ trait TungstenTopGen extends TungstenCodegen {
 #include "module.h"
 #include "state.h"
 #include "SparsePMU.h"
+#include "SparseRMW.h"
 #include "Lock.h"
 #include "Split.h"
 #include "token.h"
+#include "merge.h"
 #include <cassert>
 #include <iomanip>
 #include <fstream>
@@ -134,7 +136,6 @@ using namespace std;
       emitTopHeader
       visitNode(n)
       enterTop = false
-    case n:GlobalContainer => visitNode(n)
     case n => super.emitNode(n)
   }
 

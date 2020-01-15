@@ -232,3 +232,23 @@ trait BottomUpTopologicalTraversal extends HierarchicalTopologicalTraversal {
 trait DFSBottomUpTopologicalTraversal extends DFSTopologicalTraversal with BottomUpTopologicalTraversal // Post-order
 trait BFSBottomUpTopologicalTraversal extends BFSTopologicalTraversal with BottomUpTopologicalTraversal
 
+trait StaticTopDownTopologicalTraversal extends ChildFirstTraversal { self =>
+  val forward:Boolean
+
+  def visitIn(n:N) = visitLocalIn(n)
+  def visitOut(n:N) = visitLocalOut(n)
+
+  def selectFrontier(unvisited:List[N]) = Nil
+
+  lazy val schedular = new Traversal with BFSTopologicalTraversal with Scheduler { 
+    type N = self.N
+    override lazy val logger = self.logger
+    val forward = self.forward
+    override def visitIn(n:N) = self.visitIn(n)
+    override def visitOut(n:N) = self.visitOut(n)
+    override def selectFrontier(unvisited:List[N]) = self.selectFrontier(unvisited)
+  }
+
+  override def visitFunc(n:N):List[N] = schedular.scheduleScope(n.children)
+}
+

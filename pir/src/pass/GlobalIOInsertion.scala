@@ -28,11 +28,18 @@ trait GlobalIOInsertion extends PIRTransformer {
           ins.foreach { in => swapConnection(in, out, gout) }
           insertGlobalInput(global, gout, ins)
         case dep =>
-          val gin = within(global) { 
-            allocate[GlobalInput] { _.in.isConnectedTo(out) } { stage(GlobalInput().in(out)) } 
+          val globalBB = global.isInstanceOf[BlackBoxContainer]
+          if (globalBB) {
+            ins.foreach { in => 
+              val gin = stage(GlobalInput().in(out))
+              swapConnection(in, out, gin.out)
+            }
+          } else {
+            val gin = within(global) { 
+              allocate[GlobalInput] { _.in.isConnectedTo(out) } { stage(GlobalInput().in(out)) } 
+            }
+            ins.foreach { in => swapConnection(in, out, gin.out) }
           }
-          ins.foreach { in => swapConnection(in, out, gin.out) }
-          gin
       }
     }
   }

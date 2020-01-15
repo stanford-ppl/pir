@@ -17,8 +17,10 @@ class TungstenPIRGen(implicit design:PIR) extends TungstenCodegen
   with TungstenBlackBoxGen 
   with TungstenDRAMGen 
   with TungstenLockGen 
+  with TungstenMergeBufferGen 
+  with TungstenDelayGen
 
-trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal with CppCodegen {
+trait TungstenCodegen extends PIRTraversal with StaticTopDownTopologicalTraversal with CppCodegen {
 
   override def dirName = buildPath(config.tstOut, s"src")
   val forward = true
@@ -28,10 +30,23 @@ trait TungstenCodegen extends PIRTraversal with DFSTopDownTopologicalTraversal w
     clearDir(dirName, { fileName => fileName.contains("Context") })
     clearDir(buildPath(config.tstOut, "build"))
     clearDir(buildPath(config.tstOut, "logs"))
-    //lnFiles(buildPath(config.tstHome, "plasticine", "resources"), config.tstOut)
-    copyFiles(buildPath(config.tstHome, "plasticine", "resources"), config.tstOut)
+    val tstHome = config.tstHome.getOrElse(err(s"tungsten-home is not set"))
+    //lnFiles(buildPath(tstHome, "plasticine", "resources"), config.tstOut)
+    copyFiles(buildPath(tstHome, "plasticine", "resources"), config.tstOut)
     withOpen(config.tstOut,"TUNGSTEN_HOME",false) {
-      emitln(config.tstHome)
+      emitln(tstHome)
+    }
+    withOpen(config.tstOut,"PSPEC",false) {
+      val tokenWidth = spadeParam match {
+        case param if param.isAsic =>
+          val tw = pirTop.children.map{ glob => 
+            glob.children.collect { case io:GlobalIO => io.getVec }.reduce { math.max(_,_) }
+          }.reduce{ math.max(_,_) }
+          info(s"TOKEN_WIDTH=${tw}")
+          tw
+        case param => param.vecWidth
+      }
+      emitln(s"-DTOKEN_WIDTH=$tokenWidth")
     }
     super.initPass
   }

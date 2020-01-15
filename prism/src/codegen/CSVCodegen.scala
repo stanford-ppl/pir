@@ -9,12 +9,12 @@ trait CSVRow {
   def update(pair:(String, Any)):Unit
 }
 
-trait CSVCodegen extends Codegen {
+trait CSVPrinter extends Printer {
 
   type Row = CSVRow
 
-  val headers = ListBuffer[String]()
-  val rows = ListBuffer[Row]()
+  var headers = ListBuffer[String]()
+  var rows = ListBuffer[Row]()
 
   class CSVRowInst extends CSVRow {
     def update(pair:(String, Any)) = {
@@ -30,15 +30,45 @@ trait CSVCodegen extends Codegen {
     row
   }
 
-  def emit(row:Row) = {
-    emitln(s"${headers.map( h => row.cell.getOrElse(h, "") ).mkString(",")}")
-  }
-
   def setHeaders(header:String*) = { headers ++= header }
 
+  def emitCSV(printHeader:Boolean) = {
+    if (printHeader) emitln(headers.mkString(","))
+    rows.foreach { row =>
+      emitln(s"${headers.map( h => row.cell.getOrElse(h, "") ).mkString(",")}")
+    }
+    rows.clear
+    headers.clear
+  }
+
+  def withCSV[T](dirName:String, fileName:String, append:Boolean=false, printHeader:Boolean=true)(block: => T):T = {
+    withOpen(dirName, fileName, append) {
+      val saved = (headers,rows)
+      headers = ListBuffer.empty
+      rows = ListBuffer.empty
+      val res = block
+      emitCSV(printHeader)
+      headers = saved._1
+      rows = saved._2
+      res
+    }
+  }
+
+  def writeToCSV(dirName:String, fileName:String, append:Boolean=false, printHeader:Boolean=true) = {
+    withOpen(dirName, fileName, append) {
+      emitCSV(printHeader)
+    }
+  }
+
+}
+
+trait CSVCodegen extends Codegen with CSVPrinter {
+
+  def printHeader:Boolean = true
+
   override def finPass = {
-    emitln(headers.mkString(","))
-    rows.foreach(emit)
+    emitCSV(printHeader)
     super.finPass
   }
 }
+

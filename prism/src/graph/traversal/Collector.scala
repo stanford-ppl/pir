@@ -110,7 +110,11 @@ trait CollectorImplicit {
 
     def collectChildren[M<:N:ClassTag]:List[M] = node.children.collect { case m:M => m }
     def collectFirstChild[M<:N:ClassTag]:Option[M] = node.children.collectFirst { case m:M => m }
-    def hasChild[M<:N:ClassTag]:Boolean = node.children.collectFirst { case m:M => m }.nonEmpty
+    def hasChild[M<:N:ClassTag]:Boolean = node.children.exists { case m:M => true; case _ => false }
+    def hasDescendent[M<:N:ClassTag]:Boolean = node.descendents.exists { case m:M => true; case _ => false }
+    def hasDescendent[M1<:N:ClassTag, M2<:N:ClassTag]:Boolean = {
+      node.descendents.exists { case m:M1 => true; case m:M2 => true; case _ => false }
+    }
 
     def accum(prefix:N => Boolean={n:N => false } , visitFunc:N => List[N], depth:Int= -1, logger:Option[Logging]=None):List[N] = 
       dbgblk(logger, s"accum(depth=$depth)"){
@@ -175,7 +179,8 @@ trait CollectorImplicit {
           if (prev.isEmpty && prefix(n)) Some(n.as[M]) else prev
         }
         val nodes = edge.neighbors.map { n => (n, depth) }.toList
-        PrefixTraversal.get[N,Option[M]](prefix _, visitFunc, accumulate _, None, logger).traverseNodes(nodes).get
+        PrefixTraversal.get[N,Option[M]](prefix _, visitFunc, accumulate _, None, logger)
+          .traverseNodes(nodes).getOrElse(bug(s"${edge.src}.${edge}.collectFirst[${classTag[M]}] is empty"))
       }
     }
 
@@ -194,7 +199,12 @@ trait CollectorImplicit {
         PrefixTraversal.get[N,Boolean](prefix _, vf _, accumulate _, false, logger).traverseNodes(nodes)
       }
 
-    def accum(prefix:N => Boolean={n:N => false } , visitFunc:N => List[N], depth:Int= -1, logger:Option[Logging]=None):List[N] = 
+    def accum(
+      prefix:N => Boolean={n:N => false }, 
+      depth:Int= -1, 
+      visitFunc:N => List[N]=if (isInput) visitGlobalIn _ else visitGlobalOut _, 
+      logger:Option[Logging]=None
+    ):List[N] = 
       dbgblk(logger, s"accum(depth=$depth)"){
         def accumulate(prev:List[N], n:N) = {
           if (!prev.contains(n)) (prev :+ n) else prev
@@ -203,10 +213,14 @@ trait CollectorImplicit {
         PrefixTraversal.get[N,List[N]](prefix, visitFunc, accumulate _, Nil, logger).traverseNodes(nodes)
       }
 
-    def accumTill[M<:N:ClassTag](visitFunc:N => List[N]=visitLocalIn _, depth:Int= -1, logger:Option[Logging]=None):List[N] = {
+    def accumTill[M<:N:ClassTag](
+      visitFunc:N => List[N]=if (isInput) visitGlobalIn _ else visitGlobalOut _, 
+      depth:Int= -1, 
+      logger:Option[Logging]=None
+    ):List[N] = {
       def prefix(n:N) = n match { case n:M => true; case _ => false }
       dbgblk(logger, s"accumTill[${classTag[M]}](depth=$depth)"){
-        accum(prefix _, visitFunc, depth, logger)
+        accum(prefix _, depth, visitFunc, logger)
       }
     }
   }

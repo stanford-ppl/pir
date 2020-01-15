@@ -12,6 +12,7 @@ class PIRStates extends States {
   var spadeParam:spade.param.TopParam = _
   var simulationCycle:Option[Long] = None
   var topMap:EOption[TopMap] = _
+  var liveNodes:Set[ND] = Set.empty
 }
 trait PIREnv extends Env { self =>
   implicit override val env:PIREnv = this
