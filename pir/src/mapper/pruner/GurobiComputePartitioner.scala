@@ -55,7 +55,7 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
 
   private def getCostsX(x:Any):List[Cost[_]] = getCosts(x) :+ x.getCost[ExtInCost] :+ x.getCost[ExtOutCost]
 
-  private def genProgram(nodes:List[PIRNode]) = {
+  private def genProgram(nodes:List[PIRNode], vcost:List[Cost[_]]):Unit = {
 
     val nodeCSV = new CSVPrinter {}
     val edgeCSV = new CSVPrinter {}
@@ -64,10 +64,21 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
     extInScalCost = 0
     extOutVecCost = 0
     extOutScalCost = 0
+    val initAssign:Map[Int, Int] = config.gurobiInitAlgo.map { initAlgo =>
+      val parts = withAlgo(initAlgo) { partition(nodes,vcost) }
+      parts.zipWithIndex.flatMap { case (p,i) =>
+        p.scope.map { n => n.id -> i }
+      }.toMap + (-1 -> parts.size) + (-2 -> (parts.size + 1))
+    }.getOrElse {
+      nodes.map { n => n.id -> -1 }.toMap + 
+      (-1 -> -1) + 
+      (-2 -> -1)
+    }
     nodes.foreach { n =>
       val row = nodeCSV.newRow
       row("node") = n.id
       row("initTp") = "PCUParam"
+      row("initAssign") = initAssign(n.id)
       row("comment") = n
       val costs = getCostsX(n)
       costs.foreach { c =>
@@ -118,6 +129,7 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
     var row = nodeCSV.newRow
     row("node") = -1
     row("initTp") = "ExternIn"
+    row("initAssign") = initAssign(-1)
     row("comment") = "ExternIn"
     getCostsX(-1).foreach { c =>
       emitCost(c, row)
@@ -125,6 +137,7 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
     row = nodeCSV.newRow
     row("node") = -2
     row("initTp") = "ExternOut"
+    row("initAssign") = initAssign(-2)
     row("comment") = "ExternOut"
     getCostsX(-2).foreach { c =>
       emitCost(c, row)
@@ -184,7 +197,7 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
   }
 
   override def partition(nodes:List[PIRNode], vcost:List[Cost[_]]) = if (splitAlgo=="gurobi"){
-    genProgram(nodes)
+    genProgram(nodes, vcost)
     //genInit(nodes,vcost)
     genSpec(nodes,vcost :+ ExtInCost(false) :+ ExtOutCost(false))
     val pirHome = config.pirHome.getOrElse("pir-home is not set")
@@ -214,14 +227,18 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
         bug(s"${node} was not assigned with partition!")
       }
     }
+    // Partition ID -> nodes
     val parts = partMap.groupBy { case (node, pid) => pid }.map { case (pid,nodes) =>
       pid -> new Partition(nodes.map { _._1 }.toList)
     }
     val delayPath = buildPath(config.splitDir, "delay.csv")
     if (exists(delayPath)) {
       getLines(delayPath).foreach { line =>
-        val node::delay::_ = line.split(",").toList
-        parts(partMap(idmap(node.toInt))).delay = Some(delay.toFloat.toInt)
+        val part::delay::_ = line.split(",").toList
+        val pid = part.toInt
+        if (parts.contains(pid)) {
+          parts(pid).delay = Some(delay.toFloat.toInt)
+        }
       }
     }
     dbgblk(s"Create Partitions") {

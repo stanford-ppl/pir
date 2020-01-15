@@ -66,7 +66,7 @@ trait GlobalMerging extends PIRTransformer with CUCostUtil with  MappingLogger {
 
 }
 
-class GlobalMerger(implicit compiler:PIR) extends GlobalMerging with ExternMerger with TraversalMerger { self =>
+class GlobalMerger(implicit compiler:PIR) extends GlobalMerging with GurobiMerger with TraversalMerger { self =>
 
   def merge[T](x:T):T = (x match {
     case x:TopMap => x.mapAll(field => merge[Any](field))

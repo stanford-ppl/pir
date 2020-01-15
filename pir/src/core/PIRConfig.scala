@@ -5,10 +5,11 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   /* ------------------- Compiler --------------------  */
   register("split", default=true, info="Enable splitting")
   register("split-algo", default="dfs", info="Splitting algorithm. [dfs, bfs, gurobi, cvxpy]") 
+  register("gurobi-init-algo", info="Warm start algorithm for gurobi. [dfs, bfs]") 
   register("split-forward", default=false, info="Forward splitting traversal direction") 
   register("split-thread", default=1, info="Number of threads for external splitter") 
   register("merge", default=false, info="Enable merging")
-  register("merge-algo", default="bfs", info="Merging algorithm")
+  register("merge-algo", default="bfs", info="Merging algorithm. [dfs, bfs, gurobi]")
   register("merge-forward", default=false, info="Forward merging traversal direction") 
 
   // Optimizations
@@ -52,6 +53,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def enableSplitting = option[Boolean]("split") && enableMapping
   def enableBroadcastRead = option[Boolean]("bcread")
   def splitAlgo = option[String]("split-algo")
+  def gurobiInitAlgo = getOption[String]("gurobi-init-algo")
   def splitThread = option[Int]("split-thread")
   def splitForward = option[Boolean]("split-forward")
   def enableMerging = option[Boolean]("merge") && enableMapping
