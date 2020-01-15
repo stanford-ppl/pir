@@ -530,26 +530,27 @@ class Logger():
                 get(pconf,'pir_sha'), pconf['time']))
         elif not conf[diffkey] and not error:
             print('{}'.format(msg))
-        elif conf[diffkey] and prevsucc.shape[0] == 0:
-            print('{} {}'.format(msg, cstr(GREEN,'(New)')))
-        elif conf[diffkey] and prevsucc.shape[0] > 0:
-            times = get_col(prevsucc, 'time')
-            pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
-            prevcu = pconf['PCU'] + pconf['PMU'] + pconf['DAG']
-            cu = conf['PCU'] + conf['PMU'] + conf['DAG']
-            prevcycle = pconf['runp2p_cycle']
-            cycle = conf['runp2p_cycle']
-            if cycle is not None and prevcycle is not None:
-                worse = (cu - prevcu) > 2 or (cycle - prevcycle) > max(cycle * 0.05,200)
-                better = (prevcu - cu) > 2 or (prevcycle - cycle) > max(cycle * 0.05,200)
-                if worse:
-                    print('{} {}'.format(msg, cstr(RED,'(Worse)')))
-                    print('{} {} {} {}'.format(self.getMessage(pconf), pconf['spatial_sha'], 
-                        get(pconf,'pir_sha'), pconf['time']))
-                elif better:
-                    print('{} {}'.format(msg, cstr(GREEN,'(Better)')))
-                    print('{} {} {} {}'.format(self.getMessage(pconf), pconf['spatial_sha'], 
-                        get(pconf,'pir_sha'), pconf['time']))
+        elif conf[diffkey]:
+            if prevsucc.shape[0] == 0:
+                print('{} {}'.format(msg, cstr(GREEN,'(New)')))
+            # else:
+                # times = get_col(prevsucc, 'time')
+                # pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
+                # prevcu = pconf['PCU'] + pconf['PMU'] + pconf['DAG']
+                # cu = conf['PCU'] + conf['PMU'] + conf['DAG']
+                # prevcycle = pconf['runp2p_cycle']
+                # cycle = conf['runp2p_cycle']
+                # if cycle is not None and prevcycle is not None:
+                    # worse = (cu - prevcu) > 2 or (cycle - prevcycle) > max(cycle * 0.05,200)
+                    # better = (prevcu - cu) > 2 or (prevcycle - cycle) > max(cycle * 0.05,200)
+                    # if worse:
+                        # print('{} {}'.format(msg, cstr(RED,'(Worse)')))
+                        # print('{} {} {} {}'.format(self.getMessage(pconf), pconf['spatial_sha'], 
+                            # get(pconf,'pir_sha'), pconf['time']))
+                    # elif better:
+                        # print('{} {}'.format(msg, cstr(GREEN,'(Better)')))
+                        # print('{} {} {} {}'.format(self.getMessage(pconf), pconf['spatial_sha'], 
+                            # get(pconf,'pir_sha'), pconf['time']))
 
     def getMessage(self, conf, isHistory=False):
         opts = self.opts
