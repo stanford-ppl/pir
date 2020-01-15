@@ -83,12 +83,15 @@ trait GurobiMerger extends GlobalMerging with PointToPointPlaceAndRoute with Sol
 
   private def emitProgram(x:CUMap) = {
     withCSV(config.mergeDir, "node.csv") {
-      bind(x) match {
-        case Left(f) =>
-          x.freeKeys.zipWithIndex.foreach { case (glob, i) =>
+      val initCUMap = config.gurobiInitAlgo.flatMap { initAlgo =>
+        bind(x).toOption
+      }
+      initCUMap match {
+        case Some(cumap) =>
+          cumap.usedMap.fmap.keys.zipWithIndex.foreach { case (glob,i) =>
             val row = newRow
             row("node") = glob.id
-            row("initTp") = "Unknown"
+            row("initTp") = cumap.usedMap(glob).param.simpleName
             row("initAssign") = i
             row("comment") = glob
             val costs = getCosts(glob)
@@ -96,12 +99,12 @@ trait GurobiMerger extends GlobalMerging with PointToPointPlaceAndRoute with Sol
               emitCost(c, row)
             }
           }
-        case Right(x) =>
-          x.usedMap.fmap.keys.zipWithIndex.foreach { case (glob,i) =>
+        case None =>
+          x.freeKeys.zipWithIndex.foreach { case (glob, i) =>
             val row = newRow
             row("node") = glob.id
-            row("initTp") = x.usedMap(glob).param.simpleName
-            row("initAssign") = i
+            row("initTp") = "PCUParam"
+            row("initAssign") = -1
             row("comment") = glob
             val costs = getCosts(glob)
             costs.foreach { c =>

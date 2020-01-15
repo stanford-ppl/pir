@@ -64,15 +64,21 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
     extInScalCost = 0
     extOutVecCost = 0
     extOutScalCost = 0
-    val parts = withAlgo(config.gurobiInitAlgo) { partition(nodes,vcost) }
-    val initAssign:Map[PIRNode, Int] = parts.zipWithIndex.flatMap { case (p,i) =>
-      p.scope.map { n => n -> i }
-    }.toMap
+    val initAssign:Map[Int, Int] = config.gurobiInitAlgo.map { initAlgo =>
+      val parts = withAlgo(initAlgo) { partition(nodes,vcost) }
+      parts.zipWithIndex.flatMap { case (p,i) =>
+        p.scope.map { n => n.id -> i }
+      }.toMap + (-1 -> parts.size) + (-2 -> (parts.size + 1))
+    }.getOrElse {
+      nodes.map { n => n.id -> -1 }.toMap + 
+      (-1 -> -1) + 
+      (-2 -> -1)
+    }
     nodes.foreach { n =>
       val row = nodeCSV.newRow
       row("node") = n.id
       row("initTp") = "PCUParam"
-      row("initAssign") = initAssign(n)
+      row("initAssign") = initAssign(n.id)
       row("comment") = n
       val costs = getCostsX(n)
       costs.foreach { c =>
@@ -123,7 +129,7 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
     var row = nodeCSV.newRow
     row("node") = -1
     row("initTp") = "ExternIn"
-    row("initAssign") = parts.size
+    row("initAssign") = initAssign(-1)
     row("comment") = "ExternIn"
     getCostsX(-1).foreach { c =>
       emitCost(c, row)
@@ -131,7 +137,7 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
     row = nodeCSV.newRow
     row("node") = -2
     row("initTp") = "ExternOut"
-    row("initAssign") = parts.size + 1
+    row("initAssign") = initAssign(-2)
     row("comment") = "ExternOut"
     getCostsX(-2).foreach { c =>
       emitCost(c, row)
