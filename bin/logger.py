@@ -692,7 +692,7 @@ class Logger():
         conf['time'] = self.pir_time
         self.appdir = os.path.join(opts.gendir,backend,app)
         self.runproute = os.path.join(self.appdir,"log/runproute.log")
-        self.proutesh = os.path.join(self.appdir,"log/runproute.sh")
+        self.proutesh = os.path.join(self.appdir,"proute.sh")
         self.prouteSummary = os.path.join(self.appdir,"plastisim","summary.csv")
         self.AccelMain = os.path.join(self.appdir,"pir","AccelMain.scala")
         self.logpath = os.path.join(self.appdir,"log/")
@@ -861,42 +861,42 @@ class Logger():
         parseLog(
             conf,
             'algo', 
-            '',
+            'plastiroute',
             lambda lines: lines[0].split("-a ")[1].split(" ")[0],
             logs=[self.proutesh],
         )
         parseLog(
             conf,
             'pattern', 
-            '',
+            'plastiroute',
              lambda lines: lines[0].split("-T ")[1].split(" ")[0],
             logs=[self.proutesh],
         )
         parseLog(
             conf,
             'slink', 
-            '',
+            'plastiroute',
              lambda lines: int(lines[0].split("-e ")[1].split(" ")[0]),
             logs=[self.proutesh],
         )
         parseLog(
             conf,
             'vlink', 
-            '',
+            'plastiroute',
              lambda lines: int(lines[0].split("-x ")[1].split(" ")[0]),
             logs=[self.proutesh],
         )
         parseLog(
             conf,
             'prtime', 
-            '',
+            '-S',
              lambda lines: int(lines[0].split("-S ")[1].split(" ")[0]),
             logs=[self.proutesh],
         )
         parseLog(
             conf,
             'vcLimit', 
-            '',
+            'plastiroute',
              lambda lines: int(lines[0].split("-q")[1].split("-")[0].strip()),
             logs=[self.proutesh],
         )
