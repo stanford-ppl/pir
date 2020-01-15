@@ -1,7 +1,9 @@
-all: env proute tungsten pir 
+all: env-update proute tungsten pir 
 
-env: requirements.txt
+env: 
 	virtualenv -p python3.6 env
+
+env-update: env requirements.txt
 	env/bin/pip install -r requirements.txt
 
 clean: clean-local
@@ -30,7 +32,7 @@ psim:
 	mkdir -p plastisim/build
 	cd plastisim && make CC=gcc Cpp=g++ CXX=g++
 
-proute-update:
+proute:
 	git submodule update --init plastiroute
 	cd plastiroute && make CC=gcc Cpp=g++ CXX=g++ 
 
@@ -58,5 +60,5 @@ endif
 gurobipy:
 	cd $(HOME)/gurobi811/linux64 && $(PWD)/env/bin/python setup.py install
 
-.PHONY: all spatial pir psim proute pull tungsten clean clean-local gurobi gurobipy
+.PHONY: all spatial pir psim proute pull tungsten clean clean-local gurobi gurobipy env-update
 
