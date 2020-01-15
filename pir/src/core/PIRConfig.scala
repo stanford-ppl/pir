@@ -121,8 +121,8 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
 
   /* ------------------- Plastiroute --------------------  */
   register[String]("proute-home", default=sys.env.get("PLASTIROUTE_HOME"), info="Plastiroute Home")
-  register("proute-algo", default="route_dor_YX", info="Plastiroute routing algorithm") 
-  register("proute-q", default=1, info="Maximum number of vc") 
+  register("proute-algo", default="route_min_directed_valient", info="Plastiroute routing algorithm") 
+  register("proute-q", default=4, info="Maximum number of vc") 
   register("proute-opts", default="-i100 -p100 -t1 -d100", info="Plastiroute options") 
   register("proute-seed", default=0, info="Plastiroute seed") 
   register("run-proute", default=false, info="Run Plastiroute") 
@@ -134,11 +134,11 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def proutePlaceName = "final.place"
   def proutePlacePath = buildPath(psimOut, proutePlaceName)
   def iroutePlacePath = buildPath(psimOut, "ideal.place")
-  def prouteOutLinkName = "outlink.csv"
-  def prouteInLinkName = "inlink.csv"
-  def prouteLinkName = "link.csv"
+  def prouteOutLinkName = "outlink_pir.csv"
+  def prouteInLinkName = "inlink_pir.csv"
+  def prouteLinkName = "link_pir.csv"
   def prouteLinkPath = buildPath(psimOut, prouteLinkName)
-  def prouteNodeName = "node.csv"
+  def prouteNodeName = "node_pir.csv"
   def prouteNodePath = buildPath(psimOut, prouteNodeName)
   def prouteSummaryName = "summary.csv"
   def prouteSummaryPath = buildPath(psimOut, prouteSummaryName)

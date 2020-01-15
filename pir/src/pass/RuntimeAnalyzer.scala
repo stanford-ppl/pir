@@ -86,7 +86,7 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
     val bbs = n.collectDown[BlackBox]()
     val counts = bbs.headOption match {
       case Some(bb:MergeBuffer) => List(Unknown)
-      case Some(bb:LockRMABlock) => 
+      case Some(bb:LockRMWBlock) => 
         (bb.lockAddrs, 
           bb.unlockReadAddrs(bb.accums.head), 
           bb.unlockWriteAddrs(bb.accums.head)
@@ -156,15 +156,15 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
           n.in.T.getCount.map { _ /! n.writeDone.collectFirst[BufferWrite]().data.singleConnected.get.getScale }
         case WrittenBy(OutputField(_:FringeStreamRead, "lastBit")) => 
           Some(Finite(1))
-        case WrittenBy(o@OutputField(l:LockRMABlock, "unlockReadData")) => 
+        case WrittenBy(o@OutputField(l:LockRMWBlock, "unlockReadData")) => 
           l.unlockReadAddrs(l.accumMap(o))(l.laneMap(o)).T.flatMap { _.getCount }
-        case WrittenBy(o@OutputField(l:LockRMABlock, "unlockWriteAck")) => 
+        case WrittenBy(o@OutputField(l:LockRMWBlock, "unlockWriteAck")) => 
           l.unlockWriteAddrs(l.accumMap(o))(l.laneMap(o)).T.flatMap { _.getCount }
-        case WrittenBy(o@OutputField(l:LockRMABlock, "lockDataOut")) => 
+        case WrittenBy(o@OutputField(l:LockRMWBlock, "lockDataOut")) => 
           l.lockAddrs(l.laneMap(o)).T.getCount
-        case WrittenBy(o@OutputField(l:LockRMABlock, "lockInputOut")) => 
+        case WrittenBy(o@OutputField(l:LockRMWBlock, "lockInputOut")) => 
           l.lockAddrs(l.laneMap(o)).T.getCount
-        case WrittenBy(o@OutputField(l:LockRMABlock, "lockAck")) => 
+        case WrittenBy(o@OutputField(l:LockRMWBlock, "lockAck")) => 
           l.lockAddrs(l.laneMap(o)).T.getCount
         case n:LocalOutAccess =>
           n.in.T.getCount.map { _ * n.in.getVec /! n.out.getVec }
@@ -240,7 +240,7 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
               case OutputField(n:FringeDenseStore, "ack") => n.getIter * n.ctx.get.getScheduleFactor
               case OutputField(n:FringeStreamRead, "lastBit") => Unknown
               case OutputField(n:MergeBuffer, "outBound") => n.getIter * n.ctx.get.getScheduleFactor
-              case OutputField(n:LockRMABlock, output) => Unknown
+              case OutputField(n:LockRMWBlock, output) => Unknown
               case out => Finite(n.ctx.get.getScheduleFactor)
             }
           case (n:BufferRead, done) if n.ctx.get.streaming.get =>
@@ -249,7 +249,7 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
               case InputField(n:MergeBuffer, "init") => n.getIter * n.ctx.get.getScheduleFactor
               case InputField(n:MergeBuffer, bound) => n.getIter * n.ctx.get.getScheduleFactor
               case InputField(n:MergeBuffer, input) => Unknown
-              case InputField(n:LockRMABlock, input) => Unknown
+              case InputField(n:LockRMWBlock, input) => Unknown
               case in => Finite(n.ctx.get.getScheduleFactor)
             }
           case (n, done) => compScale(done) 

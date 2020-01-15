@@ -13,11 +13,10 @@ class TungstenRunner(implicit compiler: PIR) extends PIRPass with Printer {
     withOpen(config.appDir, s"runtst.sh", false) {
       emitln(s"""cd tungsten""")
       emitln("rm -f tungsten")
-      emitln(s"""make DEBUG=1 """)
       if (!noPlaceAndRoute) {
-        emitln("""cp script_hybrid script""")
+        emitln(s"""make proute DEBUG=1 """)
       } else {
-        emitln("""cp script_p2p script""")
+        emitln(s"""make ideal DEBUG=1 """)
       }
       emitln("""./tungsten "$@"""")
     }

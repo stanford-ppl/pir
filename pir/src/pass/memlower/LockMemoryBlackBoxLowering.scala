@@ -37,7 +37,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
         LockAccum(mem.tp.get, mem.dims.get, mem.srcCtx.v, mem.name.v, if (mem.isDRAM) Some(mem.sname.get) else None)
       }
       val accumMap = (lockMems,lockAccums).zipped.toMap
-      val block = within(blockCtx, lock.getCtrl) { LockRMABlock(rmwpar,lockAccums) }
+      val block = within(blockCtx, lock.getCtrl) { LockRMWBlock(rmwpar,lockAccums) }
       val accesses = lockMems.flatMap { _.accesses }
       block.mirrorMetas(lock)
       withLive(accesses:_*) { // Make sure don't delete these IRs until after synchronization
@@ -110,7 +110,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
     }
   }
 
-  private def lowerLockedRMW(ig:InnerAccessGroup, block:LockRMABlock, blockCtx:Context, accumMap:Map[LockMem,LockAccum]) = dbgblk(s"lowerLockedRMW($ig)"){
+  private def lowerLockedRMW(ig:InnerAccessGroup, block:LockRMWBlock, blockCtx:Context, accumMap:Map[LockMem,LockAccum]) = dbgblk(s"lowerLockedRMW($ig)"){
     val lanes = ig.group.flatMap { _.accesses.map { case UnrolledAccess(lanes) => lanes }}.transpose
     lanes.zipWithIndex.map { case (accesses,lane) =>
 
@@ -124,11 +124,15 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
       val accumCtx = within(pirTop, accumCtrl) { stage(Context().streaming(true)) }
       exps.foreach { exp => swapParent(exp, accumCtx) }
       val unShuffledCtx = reads.head.ctx.get
-      accumCtx.depsFrom.foreach { 
-        case (OutputField(_:LockRead, _),ins) =>
-        case (out, ins) if !isVecLink(out) =>
+      val ins = accumCtx.depsFrom.filter { 
+        case (OutputField(_:LockRead, _),ins) => false
+        case (out, ins) if !isVecLink(out) => false
+        case (out,ins) => true
+      }
+      block.numIns := ins.size
+      ins.foreach { 
         case (out, ins) =>
-          (0 until block.par).foreach { i => // Foreach tree in
+          (0 until block.outerPar).foreach { i => // Foreach tree in
             val lockInputIn = block.addLockInputIn
             lockInputIn(out)
             bufferInput(lockInputIn, fromCtx=Some(unShuffledCtx))
@@ -182,16 +186,16 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
     }
   }
 
-  private def lowerUnlockAccessGroup(ig:InnerAccessGroup, block:LockRMABlock, blockCtx:Context, accumMap:Map[LockMem,LockAccum]) = dbgblk(s"lowerUnlockAccessGroup(${ig})"){
+  private def lowerUnlockAccessGroup(ig:InnerAccessGroup, block:LockRMWBlock, blockCtx:Context, accumMap:Map[LockMem,LockAccum]) = dbgblk(s"lowerUnlockAccessGroup(${ig})"){
     ig.group.flatMap { case MemGroup(mem, accesses) =>
       assert(accesses.size == 1)
       val ua@UnrolledAccess(lanes) = accesses.head
       val accum = accumMap(mem)
-      if (lanes.size != block.par) {
+      if (lanes.size != block.outerPar) {
         if (lanes.size != 1)
           err(s"Unlocked access must be either not outer loop parallelized or parallelized by the same amount as locked access ${quoteSrcCtx(accesses)}")
         val access = lanes.head
-        List(access -> lowerUnlockAccess(access, accum, (0 until block.par).toList, block, blockCtx))
+        List(access -> lowerUnlockAccess(access, accum, (0 until block.outerPar).toList, block, blockCtx))
       } else {
         lanes.zipWithIndex.map { case (access,lane) => 
           access -> lowerUnlockAccess(access, accum, List(lane), block, blockCtx)
@@ -200,7 +204,7 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
     }
   }
 
-  private def lowerUnlockAccess(access:LockAccess, accum:LockAccum, lanes:List[Int], block:LockRMABlock, blockCtx:Context) = {
+  private def lowerUnlockAccess(access:LockAccess, accum:LockAccum, lanes:List[Int], block:LockRMWBlock, blockCtx:Context) = {
     val addrCtx = access match {
       case access:LockWrite => access.ctx.get
       case access:LockRead => within(pirTop, access.getCtrl) { Context() }

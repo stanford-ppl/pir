@@ -41,7 +41,7 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
       deleteFile(prouteSummaryPath)
       deleteFile(prouteLog)
       if (runproute) {
-        val exitCode = shellProcess("proute", s"bash proute.sh", config.appDir, prouteLog) { line =>
+        val exitCode = shellProcess("proute", s"make proute", config.tstOut, prouteLog) { line =>
           if (line.contains("Used") && line.contains("VCs.")) {
             info(Console.GREEN, s"proute", line)
           }
@@ -50,14 +50,6 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
           fail(s"Plastiroute failed. details in $prouteLog")
         }
       }
-    }
-    if (!config.asModule) {
-      val command = s"python ../tungsten/bin/idealroute.py -l $prouteLinkName -p ideal.place -i /Top/idealnet"
-      withOpen(config.appDir, s"iroute.sh", false) {
-        emitln(s"cd ${getRelativePath(config.psimOut, config.appDir)}")
-        emitln(command)
-      }
-      shell(header=Some("iroute"), command=s"bash iroute.sh", cwd=Some(config.appDir))
     }
   }
 

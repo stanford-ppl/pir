@@ -119,10 +119,10 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
 
     case n:LockMem if !n.isDRAM => genTopMember(n, Seq(n.qstr))
 
-    case n:LockRMABlock if !n.isDRAM => 
-      genTopMember(n, Seq(n.qstr, "net".&, "statnet".&, "idealnet".&))
+    case n:LockRMWBlock if !n.isDRAM => 
+      genTopMember(n, Seq(n.qstr, "net".&, "statnet".&, "idealnet".&, "DRAM".&))
 
-    case n:LockRMABlock => 
+    case n:LockRMWBlock => 
       val drams = n.accums.map { _.dram.get }
       genTopMember(n, Seq(n.qstr, "net".&, "statnet".&, "idealnet".&, "DRAM".&, drams.qlist))
 
@@ -143,13 +143,14 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
     case n:LockRead => (s"${tpOf(n.mem.T)}::SparsePMUPort*", s"${n}_port")
     case n:LockWrite => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
     case n:LockMem if !n.isDRAM => (s"SparsePMU<${n.qtp},$wordPerBank,${spadeParam.vecWidth}>", s"$n")
-    case n:LockRMABlock => 
+    case n:LockRMWBlock => 
       val nlr = n.unlockReadAddrs.values.head.head.connected.size
       val nlw = n.unlockWriteAddrs.values.head.head.connected.size
-      val nin = n.lockInputIns.size
+      val nin = n.numIns.get
+      val dbk = 1 //TODO: what is DRAM_BANK
       val tp = if (n.isDRAM) "DRAM" else ""
       //PMU par, RMW par, # accumTp, # accums, # banks, # unlock read, # unlock write, #input
-      (s"Sparse${tp}RMW<${n.par},${n.par},${n.accums.head.tp.qtp},${n.accums.size},${spadeParam.vecWidth},$nlr,$nlw,$nin>",s"$n")
+      (s"Sparse${tp}RMW<${n.memPar},${n.outerPar},${n.accums.head.tp.qtp},${n.accums.size},${spadeParam.vecWidth},$nlr,$nlw,$nin,$dbk>",s"$n")
     case n => super.varOf(n)
   }
 
