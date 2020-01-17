@@ -75,6 +75,8 @@ trait FileIOUtil {
   }
 
   def copyFiles(srcDir: String, dstDir:String): Unit = {
+    if (!Files.exists(Paths.get(srcDir)))
+      err[Unit](s"$srcDir doesn't exists for copying!")
     copyFiles(new File(srcDir), new File(dstDir))
   }
 
