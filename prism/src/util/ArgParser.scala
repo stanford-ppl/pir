@@ -48,9 +48,8 @@ trait ArgParser {
     }
   }
 
-  def setOption(args:List[String], path: => String):Unit = {
-    setOptionRec(args)
-    new CSVPrinter { //TODO: this file is sometimes not generated
+  def writeConfig(path:String) = {
+    new CSVPrinter {
       withCSV(path, "config.csv", false) {
         optionMap.foreach { case (key, opt) =>
           val row = newRow
@@ -60,6 +59,10 @@ trait ArgParser {
         }
       }
     }
+  }
+
+  def setOption(args:List[String]):Unit = {
+    setOptionRec(args)
   }
 
   def printUsage = {

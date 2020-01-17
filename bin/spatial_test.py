@@ -9,8 +9,12 @@ def main(args=None):
     parser.add_argument('-u', '--publish', action='store_true', default=False)
     (opts, args) = parser.parse_known_args(args=args)
 
+    spatial_flags = [arg for arg in args if '--s:' in arg]
+    args = [arg for arg in args if '--s:' not in arg]
+    spatial_flags = [arg.replace('--s:','--') for arg in spatial_flags]
+
     if opts.publish:
-        cp = subprocess.run("sbt publishAll".split(" "), cwd='pir/')
+        cp = subprocess.run("sbt publishAll", shell=True, cwd='pir/')
         cp.check_returncode()
 
     if opts.app is None:
@@ -29,6 +33,8 @@ def main(args=None):
     if 'spatial-home' not in d:
         args.insert(0,f'--spatial-home={os.getcwd()}')
     java_cmd += "export TEST_ARGS=\"{}\"; ".format(' '.join(args))
+    if len(spatial_flags) != 0:
+        java_cmd += "export SPATIAL_FLAGS=\"{}\"; ".format(' '.join(spatial_flags))
     java_cmd += "sbt -Dmaxthreads={} ".format(opts.thread)
     if (opts.backend is not None):
         for b in opts.backend:

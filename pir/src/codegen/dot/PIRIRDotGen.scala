@@ -189,7 +189,13 @@ class PIRCtxDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fil
   }
 }
 
-class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
+class PIRGlobalDotGen(fn:String, noBackEdge:Boolean=false)(implicit design:PIR) extends PIRIRDotGen(fn) {
+  var backEdges = Set.empty[(Output[PIRNode], Input[PIRNode])]
+  override def initPass = {
+    super.initPass
+    if (noBackEdge)
+      backEdges = analyzeBackEdge
+  }
   //override def fileName = pirTop.name.get + ".dot"
   //override def dirName = buildPath(config.appDir, "../figs")
   override def dotFile:String = fileName.replace(s".dot", s".html")
@@ -218,6 +224,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
   //}
   
   override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
+    if (noBackEdge && backEdges.contains(from->to)) return
     (from, to) match {
       case (from@OutputField(fromsrc:GlobalOutput, _), to) if fromsrc.isUnder[ArgFringe] /*&& from.connected.size > 5*/ => 
       case (from@OutputField(fromsrc:GlobalOutput, _), to@InputField(tosrc:GlobalInput, _)) => 
@@ -278,7 +285,7 @@ class PIRGlobalDotGen(fn:String)(implicit design:PIR) extends PIRIRDotGen(fn) {
       bbs.foreach { bbs =>
         bbs.name.v.foreach { name => l += s"\n$name" }
         bbs.to[Splitter].foreach{ s => l += s"\n$s" }
-        bbs.to[LockRMABlock].foreach{ s => l += s"\n$s" }
+        bbs.to[LockRMWBlock].foreach{ s => l += s"\n$s" }
       }
       if (mem.isEmpty && bbs.isEmpty) {
         n.collectDown[LocalOutAccess]().foreach { mem =>

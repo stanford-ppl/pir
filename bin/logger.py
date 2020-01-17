@@ -9,6 +9,7 @@ import math
 import fnmatch
 import json
 import traceback
+import time
 
 from util import *
 
@@ -32,6 +33,7 @@ parser.add_argument('-m', '--message', default='', help='Additional fields to pr
 parser.add_argument('-pf', '--print_fields', default=False, action='store_true', help='Print fields')
 parser.add_argument('-cg', '--clean_gen', default=False, action='store_true', 
     help='Clean generated directory')
+parser.add_argument('--live', action='store_true', default=False, help='continues showing status')
 
 def to_conf(tab, **kws):
     tab = lookup(tab, drop=False, **kws)
@@ -118,9 +120,10 @@ def parseLog(conf, key, patterns, parseLambda, default=None, logs=[], prefix=Fal
                 print(alllines)
                 traceback.print_exc()
                 print(log)
-                removed = remove(log, False)
-                if not removed:
-                    exit()
+                # removed = remove(log, False)
+                # if not removed:
+                    # exit()
+                conf[mykey] = "parse error"
 
 def parse_proutesummary(log, conf, opts):
     if not os.path.exists(log): return
@@ -260,15 +263,6 @@ class Logger():
     def __init__(self, args=None):
         (opts, args) = parser.parse_known_args(args=args)
         self.opts = opts
-        opts.show_history = opts.history_depth > 0 or \
-                            opts.history_id is not None or \
-                            opts.log is not None
-
-        if opts.print_fields:
-            fields = sorted(opts.Gistory.columns.values)
-            for f in fields:
-                print(f)
-            return
 
         self.show_history()
 
@@ -299,7 +293,13 @@ class Logger():
                 opts.backend[i] = backend.split("_")[0]
 
         setFilterRules(opts)
-        self.show_gen()
+
+        if opts.live:
+            while True:
+                self.show_gen()
+                time.sleep(15)
+        else:
+            self.show_gen()
 
     def clean_gen(self):
         toremove = []
@@ -399,13 +399,20 @@ class Logger():
 
     def show_history(self):
         opts = self.opts
+
+        if opts.print_fields:
+            self.load_history(logFilter=lambda logs: [logs[0]])
+            fields = sorted(self.history.columns.values)
+            for f in fields:
+                print(f)
+            exit()
         if opts.history_id is not None:
             self.print_history(logFilter=lambda logs: [logs[opts.history_id]])
             exit()
-        elif opts.log is not None:
+        if opts.log is not None:
             self.print_history(logFilter=lambda logs: [opts.log])
             exit()
-        elif opts.walk_history:
+        if opts.walk_history:
             nlogs = len(os.listdir(opts.logdir))
             for i in range(nlogs):
                 self.print_history(logFilter=lambda logs: [logs[i]])
@@ -428,7 +435,7 @@ class Logger():
             else:
                 apps = getApps(backend, opts)
             confs = []
-            opts.show_app = len(apps)==1 and not opts.summarize and not opts.show_history
+            opts.show_app = len(apps)==1 and not opts.summarize
             for app in apps:
                 conf = OrderedDict()
                 conf['app'] = app
@@ -510,32 +517,40 @@ class Logger():
                 (history.backend==conf['backend'])]
         prevsucc =  history[history[diffkey]]
     
-        if not conf[diffkey] and prevsucc.shape[0] > 0:
+        error = False
+        for key in conf:
+            if 'err' in conf:
+                if conf[key] is not None:
+                    error = True
+        if error and prevsucc.shape[0] > 0:
             times = get_col(prevsucc, 'time')
             pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
             print('{} {}'.format(msg, cstr(RED,'(Regression)')))
             print('{} {} {} {}'.format(self.getMessage(pconf), pconf['spatial_sha'], 
                 get(pconf,'pir_sha'), pconf['time']))
-        elif conf[diffkey] and prevsucc.shape[0] == 0:
-            print('{} {}'.format(msg, cstr(GREEN,'(New)')))
-        elif conf[diffkey] and prevsucc.shape[0] > 0:
-            times = get_col(prevsucc, 'time')
-            pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
-            prevcu = pconf['PCU'] + pconf['PMU'] + pconf['DAG']
-            cu = conf['PCU'] + conf['PMU'] + conf['DAG']
-            prevcycle = pconf['runp2p_cycle']
-            cycle = conf['runp2p_cycle']
-            if cycle is not None and prevcycle is not None:
-                worse = cu > prevcu or (cycle - prevcycle) > max(cycle * 0.05,200)
-                better = cu < prevcu or (prevcycle - cycle) > max(cycle * 0.05,200)
-                if worse:
-                    print('{} {}'.format(msg, cstr(RED,'(Worse)')))
-                    print('{} {} {} {}'.format(self.getMessage(pconf), pconf['spatial_sha'], 
-                        get(pconf,'pir_sha'), pconf['time']))
-                elif better:
-                    print('{} {}'.format(msg, cstr(GREEN,'(Better)')))
-                    print('{} {} {} {}'.format(self.getMessage(pconf), pconf['spatial_sha'], 
-                        get(pconf,'pir_sha'), pconf['time']))
+        elif not conf[diffkey] and not error:
+            print('{}'.format(msg))
+        elif conf[diffkey]:
+            if prevsucc.shape[0] == 0:
+                print('{} {}'.format(msg, cstr(GREEN,'(New)')))
+            # else:
+                # times = get_col(prevsucc, 'time')
+                # pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
+                # prevcu = pconf['PCU'] + pconf['PMU'] + pconf['DAG']
+                # cu = conf['PCU'] + conf['PMU'] + conf['DAG']
+                # prevcycle = pconf['runp2p_cycle']
+                # cycle = conf['runp2p_cycle']
+                # if cycle is not None and prevcycle is not None:
+                    # worse = (cu - prevcu) > 2 or (cycle - prevcycle) > max(cycle * 0.05,200)
+                    # better = (prevcu - cu) > 2 or (prevcycle - cycle) > max(cycle * 0.05,200)
+                    # if worse:
+                        # print('{} {}'.format(msg, cstr(RED,'(Worse)')))
+                        # print('{} {} {} {}'.format(self.getMessage(pconf), pconf['spatial_sha'], 
+                            # get(pconf,'pir_sha'), pconf['time']))
+                    # elif better:
+                        # print('{} {}'.format(msg, cstr(GREEN,'(Better)')))
+                        # print('{} {} {} {}'.format(self.getMessage(pconf), pconf['spatial_sha'], 
+                            # get(pconf,'pir_sha'), pconf['time']))
 
     def getMessage(self, conf, isHistory=False):
         opts = self.opts
@@ -652,6 +667,7 @@ class Logger():
     def summarize(self, backend, confs):
         opts = self.opts
         if not opts.summarize: return
+        if len(confs) == 0: return
         summary_path = self.get_summary_path(confs[0])
         # create new csv
         conf = confs[0]
@@ -677,7 +693,7 @@ class Logger():
         conf['time'] = self.pir_time
         self.appdir = os.path.join(opts.gendir,backend,app)
         self.runproute = os.path.join(self.appdir,"log/runproute.log")
-        self.proutesh = os.path.join(self.appdir,"log/runproute.sh")
+        self.proutesh = os.path.join(self.appdir,"proute.sh")
         self.prouteSummary = os.path.join(self.appdir,"plastisim","summary.csv")
         self.AccelMain = os.path.join(self.appdir,"pir","AccelMain.scala")
         self.logpath = os.path.join(self.appdir,"log/")
@@ -846,42 +862,42 @@ class Logger():
         parseLog(
             conf,
             'algo', 
-            '',
+            'plastiroute',
             lambda lines: lines[0].split("-a ")[1].split(" ")[0],
             logs=[self.proutesh],
         )
         parseLog(
             conf,
             'pattern', 
-            '',
+            'plastiroute',
              lambda lines: lines[0].split("-T ")[1].split(" ")[0],
             logs=[self.proutesh],
         )
         parseLog(
             conf,
             'slink', 
-            '',
+            'plastiroute',
              lambda lines: int(lines[0].split("-e ")[1].split(" ")[0]),
             logs=[self.proutesh],
         )
         parseLog(
             conf,
             'vlink', 
-            '',
+            'plastiroute',
              lambda lines: int(lines[0].split("-x ")[1].split(" ")[0]),
             logs=[self.proutesh],
         )
         parseLog(
             conf,
             'prtime', 
-            '',
+            '-S',
              lambda lines: int(lines[0].split("-S ")[1].split(" ")[0]),
             logs=[self.proutesh],
         )
         parseLog(
             conf,
             'vcLimit', 
-            '',
+            'plastiroute',
              lambda lines: int(lines[0].split("-q")[1].split("-")[0].strip()),
             logs=[self.proutesh],
         )

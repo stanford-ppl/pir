@@ -5,10 +5,11 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   /* ------------------- Compiler --------------------  */
   register("split", default=true, info="Enable splitting")
   register("split-algo", default="dfs", info="Splitting algorithm. [dfs, bfs, gurobi, cvxpy]") 
+  register("gurobi-init-algo", info="Warm start algorithm for gurobi. [dfs, bfs]") 
   register("split-forward", default=false, info="Forward splitting traversal direction") 
   register("split-thread", default=1, info="Number of threads for external splitter") 
   register("merge", default=false, info="Enable merging")
-  register("merge-algo", default="bfs", info="Merging algorithm")
+  register("merge-algo", default="bfs", info="Merging algorithm. [dfs, bfs, gurobi]")
   register("merge-forward", default=false, info="Forward merging traversal direction") 
 
   // Optimizations
@@ -52,6 +53,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def enableSplitting = option[Boolean]("split") && enableMapping
   def enableBroadcastRead = option[Boolean]("bcread")
   def splitAlgo = option[String]("split-algo")
+  def gurobiInitAlgo = getOption[String]("gurobi-init-algo")
   def splitThread = option[Int]("split-thread")
   def splitForward = option[Boolean]("split-forward")
   def enableMerging = option[Boolean]("merge") && enableMapping
@@ -119,24 +121,26 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
 
   /* ------------------- Plastiroute --------------------  */
   register[String]("proute-home", default=sys.env.get("PLASTIROUTE_HOME"), info="Plastiroute Home")
-  register("proute-algo", default="route_dor_YX", info="Plastiroute routing algorithm") 
-  register("proute-q", default=1, info="Maximum number of vc") 
+  register("proute-algo", default="route_min_directed_valient", info="Plastiroute routing algorithm") 
+  register("proute-q", default=4, info="Maximum number of vc") 
   register("proute-opts", default="-i100 -p100 -t1 -d100", info="Plastiroute options") 
   register("proute-seed", default=0, info="Plastiroute seed") 
+  register[String]("proutesh", info="Path to customized proute command") 
   register("run-proute", default=false, info="Run Plastiroute") 
   register[String]("module-prefix", info="Prefix to top module path")
   register[String]("extern-prefix", info="Prefix to external module path")
   def prouteHome = getOption[String]("proute-home") orElse pirHome.map { buildPath(_,"plastiroute") }
+  def proutesh = getOption[String]("proutesh")
   def genProute = genPsim || genTungsten
   def runproute = option[Boolean]("run-proute") || runPsim || runTst 
   def proutePlaceName = "final.place"
   def proutePlacePath = buildPath(psimOut, proutePlaceName)
   def iroutePlacePath = buildPath(psimOut, "ideal.place")
-  def prouteOutLinkName = "outlink.csv"
-  def prouteInLinkName = "inlink.csv"
-  def prouteLinkName = "link.csv"
+  def prouteOutLinkName = "outlink_pir.csv"
+  def prouteInLinkName = "inlink_pir.csv"
+  def prouteLinkName = "link_pir.csv"
   def prouteLinkPath = buildPath(psimOut, prouteLinkName)
-  def prouteNodeName = "node.csv"
+  def prouteNodeName = "node_pir.csv"
   def prouteNodePath = buildPath(psimOut, prouteNodeName)
   def prouteSummaryName = "summary.csv"
   def prouteSummaryPath = buildPath(psimOut, prouteSummaryName)

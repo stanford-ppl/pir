@@ -34,14 +34,23 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
       command += s" -X ${if (config.asModule) s"/" else s"/$topName"}"
       //command += s" -o $proutePlaceName"
       // Generate proute.sh script containing proute commands to run
-      withOpen(config.appDir, s"proute.sh", false) {
-        emitln(s"cd ${getRelativePath(config.psimOut, config.appDir)}")
-        emitln(command)
+      val dst = buildPath(config.appDir, "proute.sh")
+      deleteFile(dst)
+      config.proutesh match {
+        case Some(proutesh) =>
+          if (!exists(proutesh))
+            err(s"${proutesh} doesn't exists!")
+          lnFile(proutesh, dst)
+        case None =>
+          withOpen(config.appDir, s"proute.sh", false) {
+            emitln(s"cd ${getRelativePath(config.psimOut, config.appDir)}")
+            emitln(command)
+          }
       }
       deleteFile(prouteSummaryPath)
       deleteFile(prouteLog)
       if (runproute) {
-        val exitCode = shellProcess("proute", s"bash proute.sh", config.appDir, prouteLog) { line =>
+        val exitCode = shellProcess("proute", s"make proute", config.tstOut, prouteLog) { line =>
           if (line.contains("Used") && line.contains("VCs.")) {
             info(Console.GREEN, s"proute", line)
           }
@@ -50,14 +59,6 @@ class PlastirouteRunner(implicit compiler: PIR) extends PlastisimUtil with Print
           fail(s"Plastiroute failed. details in $prouteLog")
         }
       }
-    }
-    if (!config.asModule) {
-      val command = s"python ../tungsten/bin/idealroute.py -l $prouteLinkName -p ideal.place -i /Top/idealnet"
-      withOpen(config.appDir, s"iroute.sh", false) {
-        emitln(s"cd ${getRelativePath(config.psimOut, config.appDir)}")
-        emitln(command)
-      }
-      shell(header=Some("iroute"), command=s"bash iroute.sh", cwd=Some(config.appDir))
     }
   }
 
