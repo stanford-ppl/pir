@@ -648,7 +648,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     }
   }
 
-  TransferRule[BankedRead](config.enableConstProp && !compiler.hasRun[MemoryLowering]) { read =>
+  TransferRule[BankedRead](config.enableMemElim && !compiler.hasRun[MemoryLowering]) { read =>
     constAddrRouteThrough(read) orElse
     matchAddrRouteThrough(read)
   }

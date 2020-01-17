@@ -22,6 +22,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("sr", default=true, info="Enable strength reduction")
   register("lrange", default=true, info="Enable loop range analysis")
   register("rtelm", default=true, info="Enable route through elimination")
+  register("memelm", default=true, info="Enable memory elimination")
 
   register("retime-local", default=false, info="Enable local retiming")
   register("retime-glob", default=false, info="Enable global retiming")
@@ -45,6 +46,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def enableGlobalRetiming = option[Boolean]("retime-glob")
   def enableRetimeExout = option[Boolean]("retime-exout")
   def enableConstProp = option[Boolean]("constprop")
+  def enableMemElim = option[Boolean]("memelm")
   def enablePipeAccum = option[Boolean]("pracc")
   def enableStrengthReduce = option[Boolean]("sr")
   def enableRangeAnalysis = option[Boolean]("lrange")
