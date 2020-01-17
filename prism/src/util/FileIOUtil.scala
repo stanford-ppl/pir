@@ -63,6 +63,8 @@ trait FileIOUtil {
     if (Files.exists(Paths.get(dst))) {
       Files.delete(Paths.get(dst));
     }
+    if (!Files.exists(Paths.get(src)))
+      err[Unit](s"$src doesn't exists for copying!")
     val srcFile = new File(src)
     val dstFile = new File(dst)
     new FileOutputStream(dstFile)
