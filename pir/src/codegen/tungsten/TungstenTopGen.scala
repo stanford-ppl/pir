@@ -9,13 +9,15 @@ import scala.collection.mutable
 
 trait TungstenTopGen extends TungstenCodegen {
 
-  lazy val topFile = s"$topName.h"
+  lazy val topHeader = s"$topName.h"
 
   def emitTopHeader = {
     genTop {
       emitln(
 """
-#include "example.h"
+#ifndef __TOP_H__
+#define __TOP_H__
+
 #include "module.h"
 #include "state.h"
 #include "SparsePMU.h"
@@ -29,10 +31,7 @@ trait TungstenTopGen extends TungstenCodegen {
 #include <iomanip>
 #include <fstream>
 
-#include "counter.h"
-#include "controller.h"
-#include "op.h"
-#include "context.h"
+//#include "op.h"
 #include "broadcast.h"
 #include "bankedsram.h"
 #include "nbuffer.h"
@@ -51,10 +50,7 @@ using namespace std;
             emitln(line.replace("AllocAllMems", s"AllocAllMems_${topName}"))
           }
         }
-        emitln(s"""#include "$hostio"""")
-      } else {
-        emitln(s"""#include "hostio.h"""")
-      }
+      } 
     }
   }
   
@@ -114,7 +110,10 @@ using namespace std;
 
   override def initPass = {
     super.initPass
-    emitln(s"""#include "$topFile"""")
+    emitln(s"""#ifndef __DUT_H__""")
+    emitln(s"""#define __DUT_H__""")
+
+    emitln(s"""#include "$topHeader"""")
     emitln(s"""using namespace std;""")
     emitBSln("void RunAccel()")
     if (!noPlaceAndRoute) {
@@ -128,6 +127,9 @@ using namespace std;
     genTopMember("StaticNetwork<4, 1>", "statnet", Seq("statnet".qstr), end=false, extern=true, escape=true)
     genTopMember("IdealNetwork<2>", "idealnet", Seq("idealnet".qstr), end=false, extern=true, escape=true)
     genTopMember("NetworkLinkManager", "netman", Seq("netman".qstr), end=false, extern=true, escape=true)
+    genTopCpp {
+      emitln(s"""#include "$topHeader"""")
+    }
   }
 
   override def emitNode(n:N) = n match {
@@ -156,9 +158,12 @@ using namespace std;
           s"${mem.name}(${mem.args.mkString(",")})"
         }
         val inits = (s"""Module("$topName")""" +: memberInits).mkString(",\n      ")
-        emitBlock(s"""explicit $topName(\n    $topArgsSig\n  ): $inits""") {
-          emitln(s"AddChildren({${members.map { _.name.&}.mkString(",")}});")
-          emitInit
+        emitln(s"""explicit $topName(\n    $topArgsSig\n  );""")
+        genTopCpp {
+          emitBlock(s"""$topName::$topName(\n    $topArgsSig\n  ): $inits""") {
+            emitln(s"AddChildren({${members.map { _.name.&}.mkString(",")}});")
+            emitInit
+          }
         }
         val aliasArgs = escapes.map { mem => 
           val alias = mem.alias.getOrElse(mem.name) 
@@ -166,6 +171,7 @@ using namespace std;
         }.mkString(",")
         emitln(s"""$topName(map<string, Module*> alias): $topName($aliasArgs) {}""")
       }
+      emitln(s"#endif /* __TOP_H__ */")
     }
 
     emitln(s"$topName* top = new $topName$topArgs;")
@@ -175,12 +181,15 @@ using namespace std;
     emitln(s"""repl.Command("source script");""")
     emitln(s"""delete top;""")
     emitBEln
+    emitln(s"""#endif /* __DUT_H__ */""")
     super.finPass
   }
 
   protected def emitInit = {}
 
-  protected def genTop(block: => Unit) = enterFile(dirName, topFile)(block)
+  protected def genTop(block: => Unit) = enterFile(dirName, topHeader)(block)
+
+  protected def genTopCpp(block: => Unit) = enterFile(dirName, "Top.cc")(block)
 
   private def genTopFields(block: => Unit) = enterBuffer("top", level=1)(block)
 

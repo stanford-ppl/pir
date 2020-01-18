@@ -31,6 +31,7 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen with TungstenB
       }
 
     case n:DRAMAddr =>
+      emitln(s"extern ${n.qtp} ${n.dram.sname.get};")
       declare(n.qtp, n.qref, s"(${n.qtp}) ${n.dram.sname.get}")
 
     case n:FringeDenseLoad =>

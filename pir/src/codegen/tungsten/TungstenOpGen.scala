@@ -13,10 +13,13 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:HostRead =>
       n.sname.v.foreach { sname =>
+        dbg(s"${n.input.T}")
+        emitln(s"extern ${n.qtp} $sname;")
         emitln(s"$sname = ${n.input.T};")
       }
 
     case n:HostWrite =>
+      emitln(s"extern ${n.qtp} ${n.sname.get};")
       declare(n.qtp, n.qref, n.sname.get)
 
     case n@Const(v:List[_]) => emitVec(n, v)

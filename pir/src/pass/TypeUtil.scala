@@ -51,7 +51,7 @@ trait TypeUtil { self:PIRPass =>
     def setTp(v:Option[BitType]) = n.getMeta[BitType]("tp").update(v)
     def getVec:Int = /*withLogger(self) {*/ n.inferVec.orElse(n.singleOutput.flatMap { _.inferVec }) //}
       .getOrElse(bug(s"Don't know how to infer vec of ${dquote(n)}"))
-    def getTp:BitType = n.inferTp.orElse(n.singleOutput.flatMap { _.inferTp })
+    def getTp:BitType = /*withLogger(self) { */n.inferTp.orElse(n.singleOutput.flatMap { _.inferTp }) //}
       .getOrElse(bug(s"Don't know how to infer type of ${dquote(n)}"))
     def singleOutput = n match {
       case n:Node[_] =>

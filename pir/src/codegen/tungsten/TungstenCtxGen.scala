@@ -46,7 +46,25 @@ trait TungstenCtxGen extends TungstenTopGen {
         getBuffer("computes-begin").foreach { _.reset }
         getBuffer("computes-mid").foreach { _.reset }
         getBuffer("computes-end").foreach { _.reset }
-        enterFile(dirName, s"${quote(n)}.h", false) {
+        genCtxCpp(n) {
+          emitln(s"""#include "${quote(n)}.h"""")
+        }
+        genCtxHeader(n) {
+          emitln("""
+#include "state.h"
+#include "counter.h"
+#include "controller.h"
+#include "context.h"
+#include "broadcast.h"
+#include "bankedsram.h"
+#include "nbuffer.h"
+#include "SparsePMU.h"
+#include "SparseRMW.h"
+#include "Lock.h"
+#include "Split.h"
+#include "token.h"
+            """)
+
           genCtxCompute {
             visitNode(n)
           }
@@ -63,29 +81,38 @@ using   namespace std;
             }
             emitln(s"public:")
             val constructorArgs = ctxExtVars.map { case (tp, field) => s"$tp* _$field" }.mkString(",")
-            val constructor = s"""explicit ${quote(n)}($constructorArgs):Context(${quote(n).qstr},${quote(n.global.get).qstr},${quoteSrcCtx(n).qstr})"""
-            emitBlock(constructor) {
-              ctxExtVars.foreach { case (tp, field) =>
-                emitln(s"$field = _$field;")
-              }
-              getBuffer("inits").foreach { _.flushTo(sw) }
-            }
-            emitBlock(s"void Clock()") {
-              sortedMembers.foreach { m => 
-                emitln(s"$m->Clock();")
+            val constructor = s"""${quote(n)}($constructorArgs)"""
+            emitln(s"explicit $constructor;")
+            genCtxCpp(n) {
+              emitBlock(s"""${quote(n)}::$constructor:Context(${quote(n).qstr},${quote(n.global.get).qstr},${quoteSrcCtx(n).qstr})""") {
+                ctxExtVars.foreach { case (tp, field) =>
+                  emitln(s"$field = _$field;")
+                }
+                getBuffer("inits").foreach { _.flushTo(sw) }
               }
             }
-            emitBlock(s"void Eval()") {
-              getBuffer("computes-begin").foreach { _.flushTo(sw) }
-              val checkIO = n.collectChildren[LocalAccess].filterNot{_.nonBlocking}.nonEmpty
-              getBuffer("computes").foreach { _.flushTo(sw) }
-              getBuffer("computes-mid").foreach { _.flushTo(sw) }
-              emitln(s"EvalControllers();")
-              getBuffer("computes-end").foreach { _.flushTo(sw) }
-              getBuffer("computes-end").foreach { _.flushTo(sw) }
-              sortedMembers.foreach { 
-                case _:Controller | _:Counter => 
-                case m => emitln(s"$m->Eval();")
+            emitln(s"void Clock();");
+            genCtxCpp(n) {
+              emitBlock(s"void ${quote(n)}::Clock()") {
+                sortedMembers.foreach { m => 
+                  emitln(s"$m->Clock();")
+                }
+              }
+            }
+            emitln(s"void Eval();")
+            genCtxCpp(n) {
+              emitBlock(s"void ${quote(n)}::Eval()") {
+                getBuffer("computes-begin").foreach { _.flushTo(sw) }
+                val checkIO = n.collectChildren[LocalAccess].filterNot{_.nonBlocking}.nonEmpty
+                getBuffer("computes").foreach { _.flushTo(sw) }
+                getBuffer("computes-mid").foreach { _.flushTo(sw) }
+                emitln(s"EvalControllers();")
+                getBuffer("computes-end").foreach { _.flushTo(sw) }
+                getBuffer("computes-end").foreach { _.flushTo(sw) }
+                sortedMembers.foreach { 
+                  case _:Controller | _:Counter => 
+                  case m => emitln(s"$m->Eval();")
+                }
               }
             }
           }
@@ -124,6 +151,16 @@ using   namespace std;
   }
   final protected def addEscapeVar(v:(String,String)):Unit = {
     if (!ctxExtVars.contains(v)) ctxExtVars += v
+  }
+  final protected def genCtxHeader(n:Context)(block: => Unit) = {
+    enterFile(dirName, s"${quote(n)}.h", false) {
+      block
+    }
+  }
+  final protected def genCtxCpp(n:Context)(block: => Unit) = {
+    enterFile(dirName, s"${quote(n)}.cc", false) {
+      block
+    }
   }
 
   private val members = mutable.ListBuffer[Any]()
