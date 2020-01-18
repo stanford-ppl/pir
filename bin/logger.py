@@ -177,11 +177,12 @@ def parseProgReport(log, conf, postfix, opts):
     except Exception as e:
         traceback.print_exc()
         print(log)
-        removed = remove(log, opts.force)
-        if not removed:
-            exit()
-        else:
-            return
+        # removed = remove(log, opts.force)
+        # if not removed:
+            # exit()
+        # else:
+            # return
+        return
     for k in data:
         if k == "IR":
             continue

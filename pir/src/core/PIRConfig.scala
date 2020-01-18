@@ -22,7 +22,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("sr", default=true, info="Enable strength reduction")
   register("lrange", default=true, info="Enable loop range analysis")
   register("rtelm", default=true, info="Enable route through elimination")
-  register("memelm", default=true, info="Enable memory elimination")
+  register("memelm", default=false, info="Enable memory elimination")
 
   register("retime-local", default=false, info="Enable local retiming")
   register("retime-glob", default=false, info="Enable global retiming")
