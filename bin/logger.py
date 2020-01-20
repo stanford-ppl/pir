@@ -137,17 +137,22 @@ def parse_proutesummary(log, conf, opts):
 def parseSimState(log, conf, opts):
     if not os.path.exists(log):
         return
-    with open(log) as json_file:
-        data = json.load(json_file)
-        active = []
-        for m in data['modules']:
-            if "Context"  in m:
-                active.append(int(data['modules'][m]['active']))
-        cycle = data['cycle']
-        maxActive = max(active)
-        avgActive = float(np.mean(active))
-        conf["maxActive"] = maxActive * 100.0 / cycle
-        conf["avgActive"] = avgActive * 100.0 / cycle
+    try:
+        with open(log) as json_file:
+            data = json.load(json_file)
+            active = []
+            for m in data['modules']:
+                if "Context"  in m:
+                    active.append(int(data['modules'][m]['active']))
+            cycle = data['cycle']
+            maxActive = max(active)
+            avgActive = float(np.mean(active))
+            conf["maxActive"] = maxActive * 100.0 / cycle
+            conf["avgActive"] = avgActive * 100.0 / cycle
+    except Exception as e:
+        traceback.print_exc()
+        print(log)
+        return
 
 def parsePirConf(log, conf, opts):
     if not os.path.exists(log):
