@@ -30,7 +30,7 @@ trait TungstenCodegen extends PIRTraversal with StaticTopDownTopologicalTraversa
     clearDir(dirName, { fileName => fileName.contains("Context") })
     clearDir(buildPath(config.tstOut, "build"))
     clearDir(buildPath(config.tstOut, "logs"))
-    val tstHome = config.tstHome.getOrElse(err(s"tungsten-home is not set"))
+    val tstHome = config.getTstHome
     //lnFiles(buildPath(tstHome, "plasticine", "resources"), config.tstOut)
     copyFiles(buildPath(tstHome, "plasticine", "resources"), config.tstOut)
     withOpen(config.tstOut,"TUNGSTEN_HOME",false) {

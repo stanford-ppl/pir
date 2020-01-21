@@ -18,27 +18,7 @@ trait TungstenTopGen extends TungstenCodegen {
 #ifndef __TOP_H__
 #define __TOP_H__
 
-#include "module.h"
-#include "state.h"
-#include "SparsePMU.h"
-#include "SparseRMW.h"
-#include "VirtNet.h"
-#include "Lock.h"
-#include "Split.h"
-#include "token.h"
-#include "merge.h"
-#include <cassert>
-#include <iomanip>
-#include <fstream>
-
-//#include "op.h"
-#include "broadcast.h"
-#include "bankedsram.h"
-#include "nbuffer.h"
-#include "dramag.h"
-#include "network.h"
-#include "staticnetwork.h"
-#include "idealnetwork.h"
+#include "top_import.h"
 
 using namespace std;
 

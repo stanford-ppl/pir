@@ -51,18 +51,7 @@ trait TungstenCtxGen extends TungstenTopGen {
         }
         genCtxHeader(n) {
           emitln("""
-#include "state.h"
-#include "counter.h"
-#include "controller.h"
-#include "context.h"
-#include "broadcast.h"
-#include "bankedsram.h"
-#include "nbuffer.h"
-#include "SparsePMU.h"
-#include "SparseRMW.h"
-#include "Lock.h"
-#include "Split.h"
-#include "token.h"
+#include "ctx_import.h"
             """)
 
           genCtxCompute {
@@ -136,15 +125,15 @@ using   namespace std;
 
   final protected def genCtxFields(block: => Unit) = enterBuffer("fields"){ incLevel(1); block; decLevel(1) }
 
-  final protected def genCtxInits(block: => Unit) = enterBuffer("inits") { incLevel(2); block; decLevel(2) }
+  final protected def genCtxInits(block: => Unit) = enterBuffer("inits") { incLevel(1); block; decLevel(1) }
 
-  final protected def genCtxComputeBegin(block: => Unit) = enterBuffer("computes-begin") { incLevel(2); block; decLevel(2) }
+  final protected def genCtxComputeBegin(block: => Unit) = enterBuffer("computes-begin") { incLevel(1); block; decLevel(1) }
 
-  final protected def genCtxCompute(block: => Unit) = enterBuffer("computes") { incLevel(2); block; decLevel(2) }
+  final protected def genCtxCompute(block: => Unit) = enterBuffer("computes") { incLevel(1); block; decLevel(1) }
 
-  final protected def genCtxComputeMid(block: => Unit) = enterBuffer("computes-mid") { incLevel(2); block; decLevel(2) }
+  final protected def genCtxComputeMid(block: => Unit) = enterBuffer("computes-mid") { incLevel(1); block; decLevel(1) }
 
-  final protected def genCtxComputeEnd(block: => Unit) = enterBuffer("computes-end") { incLevel(2); block; decLevel(2) }
+  final protected def genCtxComputeEnd(block: => Unit) = enterBuffer("computes-end") { incLevel(1); block; decLevel(1) }
 
   final protected def addEscapeVar(n:PIRNode):Unit = {
     addEscapeVar(varOf(n))
@@ -223,7 +212,7 @@ using   namespace std;
   }
 
   def declare(n:IR):Unit = {
-    declare(s"${getSig(n)};")
+    declare(getSig(n))
   }
 
   /*
