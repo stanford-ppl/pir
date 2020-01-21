@@ -31,7 +31,7 @@ def main():
             if not opts.conti:
                 os.system('rm -r ../gen/{}'.format(gendir))
             apps = ' '.join(['-a ' + a for a in apps])
-            os.system('nice -20 bin/test -t {} -p {} -b {} {} --save=false --dot=false --debug=false {}'.format(opts.thread, project,backend,
+            os.system('nice -20 bin/test -t {} -p {} -b {} {} --fast=true {}'.format(opts.thread, project,backend,
                 apps, ' '.join(args)))
             os.system('bin/log ../gen/{} -d -p {} -b {} {} -m VPCU,VPMU,VDAG'.format(gendir, project,
                 opts.backend,apps))

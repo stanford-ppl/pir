@@ -167,11 +167,12 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   /* ------------------- Debugging --------------------  */
   register("dot", default=false, info="Enable dot codegen")
   register("vdot", default=false, info="Enable verbose dot codegen")
-  register("fast", default=false, info="Disable debugging to make running fast")
+  register("fast", default=false, info="Alias for --vdot=false --rundot=false --save=false")
 
   def fast:Boolean = option[Boolean]("fast")
   override def save = !fast & super.save
   //override def debug = !fast & super.debug
   def enableDot:Boolean = enableCodegen && option[Boolean]("dot")
   def enableVerboseDot:Boolean = enableDot && option[Boolean]("vdot") && !fast
+  override def enableRunDot = super.enableRunDot && !fast
 }

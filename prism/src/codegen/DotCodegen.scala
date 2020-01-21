@@ -141,7 +141,10 @@ trait DotCodegen extends Codegen {
       dotPath.split("\\.")(1).trim
     }
     val command = s"dot $flag -T$tp -o $dotPath $outputPath"
-    shell(command)
+    dbg(s"$command")
+    if (config.enableRunDot) {
+      shell(command)
+    }
   }
 
   def open = {

@@ -22,6 +22,7 @@ class Config(compiler:Compiler) extends ArgParser {
   register[String]("ckpt", info="Path for checkpoint")
   register("load", false, "Load checkpoint")
   register("save", true, "Save checkpoint")
+  register("rundot", default=true, info="Running graphviz after codegen")
 
   def appDir = getOption[String]("path").getOrElse { cwd }
   def outDir = getOption[String]("out").getOrElse { buildPath(appDir, "pir", "out") }
@@ -38,6 +39,7 @@ class Config(compiler:Compiler) extends ArgParser {
   }
   def enableCodegen = option[Boolean]("codegen")
   def verbose = option[Boolean]("verbose")
+  def enableRunDot = option[Boolean]("rundot")
 
   lazy val PIR_HOME = sys.env.get("PIR_HOME")
   lazy val SPATIAL_HOME = sys.env.get("SPATIAL_HOME")
