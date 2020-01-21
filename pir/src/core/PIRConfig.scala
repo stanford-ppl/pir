@@ -160,6 +160,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def runTst = option[Boolean]("run-tst")
   def tstOut = buildPath(appDir, "tungsten")
   def tstHome = getOption[String]("tungsten-home") orElse pirHome.map { buildPath(_,"tungsten") }
+  def getTstHome = tstHome.getOrElse(err(s"tungsten-home is not set"))
   def tstLog = buildPath(appDir, "runtst.log")
   def enableSimDebug = option[Boolean]("debug-tst")
 

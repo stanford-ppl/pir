@@ -22,6 +22,7 @@ object pload extends PIRShell with Session {
   }
   override def loadSession = {
     import config._
+    setOption(List(s"--pir-home=${config.cwd}"))
     val appPath = buildPath(dirName(option[String]("ckpt")), "../../")
     setOption(List(s"--path=$appPath"))
     super[Session].loadSession

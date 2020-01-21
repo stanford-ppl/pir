@@ -46,7 +46,14 @@ trait TungstenCtxGen extends TungstenTopGen {
         getBuffer("computes-begin").foreach { _.reset }
         getBuffer("computes-mid").foreach { _.reset }
         getBuffer("computes-end").foreach { _.reset }
-        enterFile(dirName, s"${quote(n)}.h", false) {
+        genCtxCpp(n) {
+          emitln(s"""#include "${quote(n)}.h"""")
+        }
+        genCtxHeader(n) {
+          emitln("""
+#include "ctx_import.h"
+            """)
+
           genCtxCompute {
             visitNode(n)
           }
@@ -63,29 +70,38 @@ using   namespace std;
             }
             emitln(s"public:")
             val constructorArgs = ctxExtVars.map { case (tp, field) => s"$tp* _$field" }.mkString(",")
-            val constructor = s"""explicit ${quote(n)}($constructorArgs):Context(${quote(n).qstr},${quote(n.global.get).qstr},${quoteSrcCtx(n).qstr})"""
-            emitBlock(constructor) {
-              ctxExtVars.foreach { case (tp, field) =>
-                emitln(s"$field = _$field;")
-              }
-              getBuffer("inits").foreach { _.flushTo(sw) }
-            }
-            emitBlock(s"void Clock()") {
-              sortedMembers.foreach { m => 
-                emitln(s"$m->Clock();")
+            val constructor = s"""${quote(n)}($constructorArgs)"""
+            emitln(s"explicit $constructor;")
+            genCtxCpp(n) {
+              emitBlock(s"""${quote(n)}::$constructor:Context(${quote(n).qstr},${quote(n.global.get).qstr},${quoteSrcCtx(n).qstr})""") {
+                ctxExtVars.foreach { case (tp, field) =>
+                  emitln(s"$field = _$field;")
+                }
+                getBuffer("inits").foreach { _.flushTo(sw) }
               }
             }
-            emitBlock(s"void Eval()") {
-              getBuffer("computes-begin").foreach { _.flushTo(sw) }
-              val checkIO = n.collectChildren[LocalAccess].filterNot{_.nonBlocking}.nonEmpty
-              getBuffer("computes").foreach { _.flushTo(sw) }
-              getBuffer("computes-mid").foreach { _.flushTo(sw) }
-              emitln(s"EvalControllers();")
-              getBuffer("computes-end").foreach { _.flushTo(sw) }
-              getBuffer("computes-end").foreach { _.flushTo(sw) }
-              sortedMembers.foreach { 
-                case _:Controller | _:Counter => 
-                case m => emitln(s"$m->Eval();")
+            emitln(s"void Clock();");
+            genCtxCpp(n) {
+              emitBlock(s"void ${quote(n)}::Clock()") {
+                sortedMembers.foreach { m => 
+                  emitln(s"$m->Clock();")
+                }
+              }
+            }
+            emitln(s"void Eval();")
+            genCtxCpp(n) {
+              emitBlock(s"void ${quote(n)}::Eval()") {
+                getBuffer("computes-begin").foreach { _.flushTo(sw) }
+                val checkIO = n.collectChildren[LocalAccess].filterNot{_.nonBlocking}.nonEmpty
+                getBuffer("computes").foreach { _.flushTo(sw) }
+                getBuffer("computes-mid").foreach { _.flushTo(sw) }
+                emitln(s"EvalControllers();")
+                getBuffer("computes-end").foreach { _.flushTo(sw) }
+                getBuffer("computes-end").foreach { _.flushTo(sw) }
+                sortedMembers.foreach { 
+                  case _:Controller | _:Counter => 
+                  case m => emitln(s"$m->Eval();")
+                }
               }
             }
           }
@@ -109,21 +125,31 @@ using   namespace std;
 
   final protected def genCtxFields(block: => Unit) = enterBuffer("fields"){ incLevel(1); block; decLevel(1) }
 
-  final protected def genCtxInits(block: => Unit) = enterBuffer("inits") { incLevel(2); block; decLevel(2) }
+  final protected def genCtxInits(block: => Unit) = enterBuffer("inits") { incLevel(1); block; decLevel(1) }
 
-  final protected def genCtxComputeBegin(block: => Unit) = enterBuffer("computes-begin") { incLevel(2); block; decLevel(2) }
+  final protected def genCtxComputeBegin(block: => Unit) = enterBuffer("computes-begin") { incLevel(1); block; decLevel(1) }
 
-  final protected def genCtxCompute(block: => Unit) = enterBuffer("computes") { incLevel(2); block; decLevel(2) }
+  final protected def genCtxCompute(block: => Unit) = enterBuffer("computes") { incLevel(1); block; decLevel(1) }
 
-  final protected def genCtxComputeMid(block: => Unit) = enterBuffer("computes-mid") { incLevel(2); block; decLevel(2) }
+  final protected def genCtxComputeMid(block: => Unit) = enterBuffer("computes-mid") { incLevel(1); block; decLevel(1) }
 
-  final protected def genCtxComputeEnd(block: => Unit) = enterBuffer("computes-end") { incLevel(2); block; decLevel(2) }
+  final protected def genCtxComputeEnd(block: => Unit) = enterBuffer("computes-end") { incLevel(1); block; decLevel(1) }
 
   final protected def addEscapeVar(n:PIRNode):Unit = {
     addEscapeVar(varOf(n))
   }
   final protected def addEscapeVar(v:(String,String)):Unit = {
     if (!ctxExtVars.contains(v)) ctxExtVars += v
+  }
+  final protected def genCtxHeader(n:Context)(block: => Unit) = {
+    enterFile(dirName, s"${quote(n)}.h", false) {
+      block
+    }
+  }
+  final protected def genCtxCpp(n:Context)(block: => Unit) = {
+    enterFile(dirName, s"${quote(n)}.cc", false) {
+      block
+    }
   }
 
   private val members = mutable.ListBuffer[Any]()
@@ -186,7 +212,7 @@ using   namespace std;
   }
 
   def declare(n:IR):Unit = {
-    declare(s"${getSig(n)};")
+    declare(getSig(n))
   }
 
   /*

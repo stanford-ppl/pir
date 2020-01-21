@@ -396,8 +396,8 @@ case class Shuffle(filled:Any, aid:Int)(implicit env:Env) extends OpNode with De
 }
 case class HostRead()(implicit env:Env) extends Def {
   val input = new InputField[PIRNode]("input")
+  override def compType(n:IR) = input.singleConnected.flatMap { _.inferTp }
   out.presetVec(1)
-  out.tp(Fix(true,64,0))
 }
 case class HostWrite()(implicit env:Env) extends Def {
   out.presetVec(1)
