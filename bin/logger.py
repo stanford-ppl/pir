@@ -534,8 +534,8 @@ class Logger():
             print('{} {}'.format(msg, cstr(RED,'(Regression)')))
             print('{} {} {} {}'.format(self.getMessage(pconf), pconf['spatial_sha'], 
                 get(pconf,'pir_sha'), pconf['time']))
-        elif not conf[diffkey] and not error:
-            print('{}'.format(msg))
+        # elif not conf[diffkey] and not error:
+            # print('{}'.format(msg))
         elif conf[diffkey]:
             if prevsucc.shape[0] == 0:
                 print('{} {}'.format(msg, cstr(GREEN,'(New)')))
