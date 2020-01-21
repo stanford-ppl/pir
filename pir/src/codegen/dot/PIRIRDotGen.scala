@@ -226,7 +226,7 @@ class PIRGlobalDotGen(fn:String, noBackEdge:Boolean=false)(implicit design:PIR) 
   override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
     if (noBackEdge && backEdges.contains(from->to)) return
     (from, to) match {
-      case (from@OutputField(fromsrc:GlobalOutput, _), to) if fromsrc.isUnder[ArgFringe] && from.connected.size > 5 => 
+      case (from@OutputField(fromsrc:GlobalOutput, _), to) if fromsrc.isUnder[ArgFringe] /*&& from.connected.size > 5*/ => 
       case (from@OutputField(fromsrc:GlobalOutput, _), to@InputField(tosrc:GlobalInput, _)) => 
         var tooltip = s"${fromsrc}${fromsrc.externAlias.v.fold("") { a => s"($a)" }}"
         tooltip += s"\n${tosrc}${tosrc.externAlias.v.fold("") { a => s"($a)" }}"

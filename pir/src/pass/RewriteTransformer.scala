@@ -12,19 +12,23 @@ import scala.collection.mutable
 
 trait RewriteUtil extends PIRPass { self: PIRTransformer =>
   //TODO: make this a map of classTag => rule to speedup
+  //
   // run when the node is created
-  val rewriteRules = mutable.ListBuffer[RewriteRule[_]]()
+  val allRewriteRules = mutable.ListBuffer[RewriteRule[_]]()
   // run during RewriteTransformer
-  val transferRules = mutable.ListBuffer[TransferRule[_]]()
+  val allTransferRules = mutable.ListBuffer[TransferRule[_]]()
+
+  var rewriteRules:Iterable[RewriteRule[_]] = Nil
+  var transferRules:Iterable[TransferRule[_]] = Nil
 
   override def initPass = {
-    rewriteRules --= rewriteRules.filter { !_.enable() }
-    transferRules --= transferRules.filter { !_.enable() }
+    rewriteRules = allRewriteRules.filter { _.enable() }
+    transferRules = allTransferRules.filter { _.enable() }
     super.initPass
   }
 
   class RewriteRule[A:ClassTag](val name:String, val enable: () => Boolean, lambda:A => Option[(Output[_],Output[_])]) {
-    rewriteRules += this
+    allRewriteRules += this
     def apply(x:PIRNode):Option[(Output[_],Output[_])] = {
       x.to[A].flatMap { x => lambda(x) }
     }
@@ -40,12 +44,12 @@ trait RewriteUtil extends PIRPass { self: PIRTransformer =>
       }.getOrElse(o)
     }
   }
-  object RewriteRule{
+  object RewriteRule {
     def apply[A:ClassTag](name:String, enable: => Boolean=true)(lambda:A => Option[(Output[_],Output[_])]) =
       new RewriteRule(name, () => enable,lambda)
   }
   class TransferRule[A:ClassTag](val enable: () => Boolean, lambda:A => Option[PIRNode]) {
-    transferRules += this
+    allTransferRules += this
     def apply(x:PIRNode):Option[Any] = {
       x.to[A].flatMap { x => lambda(x) }
     }
@@ -488,7 +492,132 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     }
   }
 
-  TransferRule[BankedRead](config.enableRouteElim) { read =>
+  type ConstBankAddr = List[(Int,Int)]
+  val constCastAddr = mutable.HashMap[(Memory, Seq[Int]), Option[ConstBankAddr]]()
+  val constCastRead = mutable.HashMap[(Memory, Seq[Int]), Output[PIRNode]]()
+
+  import spade.param._
+  private def constFlatAddr(input:Input[PIRNode], dims:List[Int]):Option[Any] = {
+    val ins = input.connected.map { addr =>
+      val const = addr.src.to[Const]
+      if (const.isEmpty) return None
+      const.get.value
+    }
+    Some(flattenND[Any](ins, dims)(castNum))
+  }
+
+  /*
+   * Returns an option of constant flatten address and flatten bank
+   * */
+  private def toConstAddr(access:BankedAccess, mem:Memory):Option[ConstBankAddr] = {
+    def analyzeAddr:Option[ConstBankAddr] = {
+      if (access.en.isConnected) return None
+      val dims = mem match {
+        case mem:SRAM => mem.banks.get
+        case mem:LUT => mem.dims.get
+        case mem:RegFile => mem.dims.get
+      }
+      val bank = constFlatAddr(access.bank, dims).getOrElse(return None)
+      val offset = constFlatAddr(access.offset, dims).getOrElse(return None)
+      Some(((bank,offset) match {
+        case tup@(bank:List[_],offset:List[_]) => bank.zip(offset)
+        case (bank:List[_],offset) => bank.map { bank => (bank, offset) }
+        case (bank,offset:List[_]) => offset.map { offset => (bank, offset) }
+        case tup@(bank,offset) => List((bank,offset))
+      }).as[List[(Int,Int)]])
+    }
+    // For read access, check if the access group is already analyzed
+    access match {
+      case access:BankedRead =>
+        val group = if (config.enableBroadcastRead) access.castgroup.v else None
+        group.foreach { grp =>
+          constCastAddr.get((mem, grp)).foreach { res =>
+            return res
+          }
+        }
+        val res = analyzeAddr
+        group.foreach { grp =>
+          constCastAddr += ((mem, grp) -> res)
+        }
+        res
+      case access:BankedWrite => analyzeAddr
+    }
+  }
+
+  def constAddrRouteThrough(read:BankedRead):Option[BankedRead] = {
+    val mem = read.mem.T
+    val raddrs = toConstAddr(read, mem).getOrElse(return None)
+    if (mem.inAccesses.exists { _.order.get > read.order.get }) return None
+    // A pair of bank ID and bank offset
+    val writtenAddr = scala.collection.mutable.Set[(Int,Int)]()
+    dbg (s"$read raddrs=$raddrs")
+    // For each constant writer, get the shuffle transformation for this reader
+    val constWrites = mem.inAccesses.flatMap { write =>
+      val waddrs = toConstAddr(write.as[BankedWrite], mem).getOrElse(return None)
+      val to = raddrs.map { raddr =>
+        val idx = waddrs.indexOf(raddr)
+        if (idx > 0) {
+          // If a single address is written multiple times, then stop
+          if (writtenAddr.contains(raddr)) return None
+          writtenAddr += raddr
+        }
+        idx
+      }
+      if (to.exists { _ != -1 }) {
+        dbg(s"write=$write waddr=${waddrs} to=${to}")
+        Some((write.as[BankedWrite], to))
+      } else {
+        None
+      }
+    }
+    dbgblk(s"constAddrRouteThrough($read)") {
+      val group = if (config.enableBroadcastRead) read.castgroup.v else None
+      val readCtrl = read.getCtrl
+      val out = group.flatMap { grp =>
+        constCastRead.get((mem, grp))
+      } getOrElse {
+        val shuffles = within(read.parent.get, readCtrl) {
+          constWrites.map { case (write, to) =>
+            val data = write.data.singleConnected.get
+            val reg = within(pirTop) {
+              stage(Reg().tp(write.getTp).banks(List(write.getVec)))
+            }
+            within(write.parent.get, write.getCtrl) {
+              stage(MemWrite().setMem(reg).data(data))
+            }
+            val read = stage(MemRead().setMem(reg).presetVec(data.getVec))
+            stage(Shuffle(0,write.id).from(allocConst((0 until data.getVec).toList)).to(allocConst(to)).base(read.out))
+          }
+        }
+        within(read.parent.get, readCtrl) {
+          reduceTree[Output[PIRNode]](shuffles.map { _.out }) { case (s1,s2) =>
+            stage(OpDef(FixOr).addInput(s1,s2)).out
+          }.get
+        }
+      }
+      val readBy = read.out.connected
+      val outsrc = out.src
+      if (outsrc.getCtrl == readCtrl) {
+        swapOutput(read.out, out)
+      } else {
+        val fifo = within(pirTop) {
+          stage(FIFO().tp(read.getTp).banks(List(read.getVec)))
+        }
+        within(outsrc.parent.get, outsrc.getCtrl) {
+          stage(MemWrite()).setMem(fifo).data(out)
+        }
+        val fifoRead = within(read.parent.get, readCtrl) {
+          stage(MemRead()).setMem(fifo)
+        }
+        readBy.foreach { in =>
+          swapConnection(in, read.out, fifoRead.out)
+        }
+      }
+      Some(read)
+    }
+  }
+
+  def matchAddrRouteThrough(read:BankedRead):Option[BankedRead] = {
     val mem = read.mem.T
     testOne(mem.inAccesses).flatMap { w =>
       val write = w.as[BankedWrite]
@@ -519,6 +648,11 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     }
   }
 
+  TransferRule[BankedRead](config.enableMemElim && !compiler.hasRun[MemoryLowering]) { read =>
+    constAddrRouteThrough(read) orElse
+    matchAddrRouteThrough(read)
+  }
+
   TransferRule[Shuffle](compiler.hasRun[MemoryPruner]) { n =>
     free(n.offset)
     None
@@ -541,8 +675,9 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     }
   }
 
-  override def finPass = {
-    super.finPass
+  override def initPass = {
+    constCastAddr.clear
+    super.initPass
   }
 
   // Breaking loop in traversal

@@ -2,8 +2,10 @@ import spatial.dsl._
 import spatial.lib.ML._
 import utils.io.files._
 
-class MLP_0 extends MLP(N=2046,batch=1,dims=List(4,4,4,4),ips=List(4,4,4),mps=List(1,1,1),ops=List(1,1,1)){ 
-  //override def pirArgs = super.pirArgs + " --split-algo=dfs --split-forward=false --retime-glob=true --retime-buffer-only=false --dupra=true --mdone=true --retime-exout=true --bcread=true --pracc=true --rtelm=true --constprop=true --merge=true --merge-algo=dfs --merge-forward=false";
+class MLP_0 extends MLP(N=2046,batch=1,dims=List(4,4,4,4),ips=List(4,4,4),mps=List(1,1,1),ops=List(1,1,1))
+class MLP_1 extends MLP(N=2046,batch=1,dims=List(4,8,4,4),ips=List(4,8,4),mps=List(1,1,1),ops=List(8,4,4))
+class MLP_2 extends MLP(N=2046,batch=1,dims=List(4,8,4,4),ips=List(4,8,4),mps=List(1,1,1),ops=List(8,4,4)) {
+  override def pirArgs = super.pirArgs + " --memelm";
 }
 
 @spatial abstract class MLP(
@@ -24,7 +26,11 @@ class MLP_0 extends MLP(N=2046,batch=1,dims=List(4,4,4,4),ips=List(4,4,4),mps=Li
     val Bs = dims.sliding(2,1).map { case List(prev, next) => Seq.tabulate(next) { i => i } }.toList
     val input = Seq.tabulate(N, dims.head) { case (i,j) => i*dims.head + j }
     val goldUnstaged = unstaged_mlp[scala.Int](Ws, Bs, input, unstaged_relu _)
+
     createDirectories(buildPath(IR.config.genDir, "tungsten"))
+    writeCSVNow3D(Ws, buildPath(IR.config.genDir, "tungsten", "weights.csv"))
+    writeCSVNow2D(Bs, buildPath(IR.config.genDir, "tungsten", "biases.csv"))
+    writeCSVNow2D(input, buildPath(IR.config.genDir, "tungsten", "input.csv"))
     writeCSVNow2D(goldUnstaged, buildPath(IR.config.genDir, "tungsten", "gold.csv"))
 
     val indram = DRAM[T](N, dims.head)

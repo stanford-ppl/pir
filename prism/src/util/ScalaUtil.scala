@@ -146,6 +146,17 @@ trait ScalaUtilFunc {
     }
   }
 
+  def reduceTree[A](list:List[A])(reduce:(A,A) => A):Option[A] = {
+    var red:List[A] = list
+    while(red.size > 1) {
+      red = red.sliding(2,2).map{ 
+        case List(a,b) => reduce(a,b)
+        case List(a) => a
+      }.toList
+    }
+    red.headOption
+  }
+
   def get[T](x:List[T],i:Int):Option[T] = if (x.size > i) Some(x(i)) else None
 
   /*
@@ -312,6 +323,16 @@ trait ScalaUtilFunc {
       while (xx.startsWith(f)) xx = xx.stripPrefix(f)
       xx
     }
+  }
+
+  def flattenND[N:Numeric](inds:List[N], dims:List[N]):N = {
+    val num = implicitly[Numeric[N]]
+    import num._
+    if (inds.size==1) return inds.head
+    assert(inds.size == dims.size, s"flattenND inds=$inds dims=$dims have different size")
+    val i::irest = inds
+    val d::drest = dims
+    i * drest.product + flattenND(irest, drest)
   }
 
 }
