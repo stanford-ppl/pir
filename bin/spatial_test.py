@@ -3,7 +3,7 @@ import subprocess
 from util import *
 
 def main(args=None):
-    parser.add_argument('-f', '--fast', action='store_true', default=False)
+    parser.add_argument('-f', '--cppfast', action='store_true', default=False)
     parser.add_argument('-H', '--hybrid', action='store_true', default=False)
     parser.add_argument('-T', '--tee', action='store_true', default=False)
     parser.add_argument('-u', '--publish', action='store_true', default=False)
@@ -46,7 +46,7 @@ def main(args=None):
         java_cmd += "-Dci=true "
     java_cmd += "-Dproject={} ".format(opts.project)
     java_cmd += "-Dhybrid={} ".format("true" if opts.hybrid else "false")
-    java_cmd += "-Dfast={} ".format("true" if opts.fast else "false")
+    java_cmd += "-Dfast={} ".format("true" if opts.cppfast else "false")
     java_cmd += "-Dtest.tee={} ".format("true" if opts.tee else "false")
     java_cmd += "\"; "
     java_cmd += " project {}; testOnly {}".format(opts.project, ' '.join(opts.app))
