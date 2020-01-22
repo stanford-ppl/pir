@@ -30,7 +30,8 @@ def main(args=None):
     opts.app = apps
     java_cmd = ""
     d = get_configs()
-    if 'spatial-home' not in d and ('--pir' in args or opts.backend=='Tst'):
+    enablePIR = '--pir' in args or (opts.backend is not None and 'Tst' in opts.backend)
+    if 'spatial-home' not in d and enablePIR:
         args.insert(0,f'--spatial-home={os.getcwd()}')
     java_cmd += "export TEST_ARGS=\"{}\"; ".format(' '.join(args))
     if len(spatial_flags) != 0:
