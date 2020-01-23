@@ -28,7 +28,7 @@ package object node {
         n match {
           case n:Edge[_,_,_] if n.getMeta[Int]("presetVec").nonEmpty => n.getMeta[Int]("presetVec").v
           case n:Edge[_,_,_] => n.src.as[PIRNode].compVec(n)
-          case n:PIRNode => n.compVec(n)
+          case n:PIRNode => n.presetVec.v.orElse(n.compVec(n))
           case n:ControlTree => if (n.children.isEmpty) Some(n.par.get) else Some(1)
           case _ => None
         }

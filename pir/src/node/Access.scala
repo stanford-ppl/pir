@@ -134,9 +134,10 @@ case class MemWrite()(implicit env:Env) extends WriteAccess { self =>
         if (mem.isConnected) {
           mem.T match {
             case mem:FIFO =>
-              this.getCtrl.schedule match {
-                case Streaming => Some(mem.banks.get.head)
-                case _ => Some(this.getCtrl.par.get)
+              val ctrl = this.getCtrl
+              ctrl.schedule match {
+                case Streaming if !ctrl.isLoop.get => Some(mem.banks.get.head)
+                case _ => Some(ctrl.par.get)
               }
             case mem:Reg => data.inferVec
           }

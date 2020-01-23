@@ -126,8 +126,12 @@ def parseSimState(log, conf, opts):
             cycle = data['cycle']
             maxActive = max(active)
             avgActive = float(np.mean(active))
-            conf["maxActive"] = maxActive * 100.0 / cycle
-            conf["avgActive"] = avgActive * 100.0 / cycle
+            if cycle == 0:
+                conf["maxActive"] = 0
+                conf["avgActive"] = 0
+            else:
+                conf["maxActive"] = maxActive * 100.0 / cycle
+                conf["avgActive"] = avgActive * 100.0 / cycle
     except Exception as e:
         traceback.print_exc()
         print(log)
@@ -548,7 +552,9 @@ class Logger():
             if 'err' in key:
                 if conf[key] is not None:
                     error = True
-
+            if 'deadlock' in key:
+                if conf[key] is not None and conf[key]:
+                    error = True
         if error and prevsucc.shape[0] > 0:
             times = get_col(prevsucc, 'time')
             pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
