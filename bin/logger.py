@@ -60,23 +60,14 @@ def parse_success(conf):
     return conf['runp2p_success']
 
 def parse_genpir(pirsrc, logpath, conf, opts):
-    if os.path.exists(pirsrc):
+    exception_path = os.path.join(logpath,conf['app'] + '_exception.log')
+    if os.path.exists(exception_path):
+        conf['genpir'] = False
+        with open(exception_path, 'r') as f:
+            conf['genpir_err'] = f.readline().strip();
+    elif os.path.exists(pirsrc):
         conf['genpir'] = True
         conf['genpir_err'] = None
-    else:
-        conf['genpir'] = False
-        conf['genpir_err'] = None
-        # match = grep("{}/00*".format(logpath),
-                # ["error", "exception", "Exception"])
-        # lines = [line for pat in match for line in match[pat]]
-
-        # match = grep("{}/*_exception.log".format(logpath),
-                # ["error", "exception", "Exception"])
-        # lines = lines + [line for pat in match for line in match[pat]]
-        # if len(lines) != 0:
-            # conf['genpir_err'] = lines[0].replace("\n","")
-        # else:
-            # conf['genpir_err'] = None
 
 def parseLog(conf, key, patterns, parseLambda, default=None, logs=[], prefix=False):
     prefix = prefix or len(logs) > 1
