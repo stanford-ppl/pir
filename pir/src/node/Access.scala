@@ -109,7 +109,7 @@ case class MemWrite()(implicit env:Env) extends WriteAccess { self =>
           mem.T match {
             case mem:FIFO =>
               this.getCtrl.schedule match {
-                case Streaming => Some(mem.banks.get.head)
+                //case Streaming => Some(mem.banks.get.head) //TODO: fix this case
                 case _ => Some(this.getCtrl.par.get)
               }
             case mem:Reg => data.inferVec

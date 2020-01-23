@@ -57,6 +57,9 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
   }
 
   def childDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
+    if (ctx.getCtrl.ancestorSlice(ctrl).exists { _.isAsync }) {
+      err(s"Trying to get done of $ctrl where $ctx is under async controller ctx.ctrl=${ctx.getCtrl}")
+    }
     val ctrler = if (ctx.streaming.get) {
       within(ctx, ctrl) { 
         allocate[UnitController]()(stage(UnitController().par(1)))
@@ -72,6 +75,16 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
   }
 
   def done(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
+    if (ctx.getCtrl.ancestorSlice(ctrl).exists { _.isAsync }) {
+      if (ctrl == pirTop.accelTopCtrl) {
+        val const = within(ctx, ctrl) {
+          allocConst(false, Some(Bool))
+        }
+        return const.out
+      } else {
+        err(s"Trying to get done of $ctrl where $ctx is under async controller ctx.ctrl=${ctx.getCtrl}")
+      }
+    }
     if (!compiler.hasRun[DependencyDuplication]) {
       // Centralized controller
       ctrl.ctrler.get.done
