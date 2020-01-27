@@ -52,7 +52,7 @@ def main(args=None):
             (hostname in ['lagos','tucson'] or 'edo-' in hostname) and \
             os.getcwd().startswith('/home'):
         current = os.getcwd()
-        scratch = current.replace('/home/','/scratch/') + '/gen'
+        scratch = current.replace('/home/','/scratch/')
         print(f'Change gendir to {scratch}. Use --gendir override')
         spatialargs.append('--gendir={}'.format(scratch))
 
