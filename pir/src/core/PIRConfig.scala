@@ -5,7 +5,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   /* ------------------- Compiler --------------------  */
   register("split", default=true, info="Enable splitting")
   register("split-algo", default="dfs", info="Splitting algorithm. [dfs, bfs, gurobi, cvxpy]") 
-  register("gurobi-init-algo", info="Warm start algorithm for gurobi. [dfs, bfs]") 
+  register[String]("gurobi-init-algo", info="Warm start algorithm for gurobi. [dfs, bfs]") 
   register("split-forward", default=false, info="Forward splitting traversal direction") 
   register("split-thread", default=1, info="Number of threads for external splitter") 
   register("merge", default=false, info="Enable merging")
