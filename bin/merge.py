@@ -734,7 +734,11 @@ def main():
                     costs.add(cost_tp(attribute_name=cost_name, value=cost_tp.parse(line[cost_name])))
                 node = Node(node_id=int(line["node"]), costs=frozenset(costs))
                 partition_type = partition_types[line["initTp"]]
-                assigned_index = initial_assignment_remapping[partition_type][int(line["initAssign"])]
+                given_index = int(line["initAssign"])
+                if given_index < 0:
+                    assigned_index = given_index
+                else:
+                    assigned_index = initial_assignment_remapping[partition_type][given_index]
                 nodes[node] = (partition_type, assigned_index)
 
     with TimeContext("Edge parsing"):
