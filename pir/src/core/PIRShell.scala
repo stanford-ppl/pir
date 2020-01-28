@@ -27,7 +27,8 @@ object pload extends PIRShell with Session {
     setOption(List(s"--path=$appPath"))
     super[Session].loadSession
     if (pirenv._states.isEmpty) {
-      err(s"Load session failed")
+      err[Unit](s"Load session failed", false)
+      sys.exit(-1)
     }
   }
 }

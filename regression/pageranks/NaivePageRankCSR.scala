@@ -5,7 +5,7 @@ import utils.io.files._
 class NaivePageRankCSR_0 extends NaivePageRankCSR()(ipls=1, ip=1)
 class NaivePageRankCSR_1 extends NaivePageRankCSR()(ipls=16, ip=16)
 class NaivePageRankCSR_2 extends NaivePageRankCSR()(opts=2,ipls=16, ip=16)
-class NaivePageRankCSR_3 extends NaivePageRankCSR()(opN=3,opts=3,ipls=16, ip=16)
+class NaivePageRankCSR_3 extends NaivePageRankCSR()(opN=3,opts=2,ipls=16, ip=16)
 class NaivePageRankCSR_4 extends NaivePageRankCSR(iters=2)(ipls=1, ip=1)
 
 @spatial class NaivePageRankCSR(
