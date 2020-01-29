@@ -2,6 +2,7 @@ import os
 import subprocess
 from util import *
 import socket
+import sys
 
 class SpatialTest:
     def __init__(self, args=None):
@@ -88,5 +89,5 @@ class SpatialTest:
 
     def run(self):
         java_cmd = self.opts.cmd
-        print(java_cmd)
+        sys.stdout.flush()
         ecode = os.system(java_cmd)

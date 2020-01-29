@@ -8,6 +8,7 @@ import fnmatch
 import glob
 import shutil
 import timeit
+import datetime
 from collections import OrderedDict
 
 global parser
@@ -187,8 +188,9 @@ def parse_configs(optstr):
 
 start_time = None
 def tic():
+    global start_time
     start_time = timeit.default_timer()
 
 def toc():
-    duration = timeit.default_timer() - self._start_time 
+    duration = timeit.default_timer() - start_time 
     return str(datetime.timedelta(seconds=round(duration, 2)))

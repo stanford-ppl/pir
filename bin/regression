@@ -5,6 +5,7 @@ import subprocess
 from spatial_test import SpatialTest
 from logger import Logger
 from util import *
+import socket
 
 import os
 
@@ -19,7 +20,7 @@ def main():
     (opts, args) = parser.parse_known_args()
     if not os.path.exists("logs/"):
         os.mkdir('logs/')
-    os.system('sbt "; project pir; publishAll"')
+    # os.system('sbt "; project pir; publishAll"')
     apps = opts.app
     if apps is None: apps = []
     if opts.project is None:
@@ -30,7 +31,7 @@ def main():
     for project in opts.project:
         for backend in opts.backend:
             apps = ' '.join(['-a ' + a for a in apps])
-            spatial_args = '-t {} -p {} -b {} {} --fast=true {} --nice'.format(opts.thread, project,backend, apps, ' '.join(args))
+            spatial_args = '-t {} -p {} -b {} {} --fast=true {}'.format(opts.thread, project,backend, apps, ' '.join(args))
             tester = SpatialTest(spatial_args.split(" "))
             gendir = tester.opts.gendir
             if "Tst" in backend:
@@ -42,13 +43,14 @@ def main():
             tic()
             tester.run()
             duration = toc()
-            print(f'Regression run for {duration}')
             logger_args = '{} -d -p {} -b {} {} -m VPCU,VPMU,VDAG --spatial_dir={}'.format(gendir, project,
                 opts.backend,apps,os.getcwd())
             Logger(logger_args.split(" "))
             logger_args = '{} -s -d -p {} -b {} {} --spatial_dir={}'.format(gendir, project,
                 opts.backend,apps,os.getcwd())
             Logger(logger_args.split(" "))
+            hostname = socket.gethostname()
+            print(f'Regression run for {duration} on {hostname}')
 
 if __name__ == "__main__":
     main()
