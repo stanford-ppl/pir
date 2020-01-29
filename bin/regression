@@ -2,6 +2,9 @@
 import argparse
 import time
 import subprocess
+from spatial_test import SpatialTest
+from logger import Logger
+from util import *
 
 import os
 
@@ -23,20 +26,29 @@ def main():
         opts.project = ['pirTest', 'test']
     if (opts.backend is None):
         opts.backend = ['Tst']
+    os.chdir("../")
     for project in opts.project:
         for backend in opts.backend:
-            gendir = backend
-            if "Tst" in backend:
-                gendir = backend + "_" + project
-            if not opts.conti:
-                os.system('rm -r ../gen/{}'.format(gendir))
             apps = ' '.join(['-a ' + a for a in apps])
-            os.system('nice -20 bin/test -t {} -p {} -b {} {} --fast=true {}'.format(opts.thread, project,backend,
-                apps, ' '.join(args)))
-            os.system('bin/log ../gen/{} -d -p {} -b {} {} -m VPCU,VPMU,VDAG'.format(gendir, project,
-                opts.backend,apps))
-            os.system('bin/log ../gen/{} -s -p {} -b {} {}'.format(gendir, project,
-                opts.backend,apps))
+            spatial_args = '-t {} -p {} -b {} {} --fast=true {} --nice'.format(opts.thread, project,backend, apps, ' '.join(args))
+            tester = SpatialTest(spatial_args.split(" "))
+            gendir = tester.opts.gendir
+            if "Tst" in backend:
+                gendir += '/' + backend + "_" + project
+            else:
+                gendir += '/' + backend
+            if not opts.conti:
+                remove(gendir, True)
+            tic()
+            tester.run()
+            duration = toc()
+            print(f'Regression run for {duration}')
+            logger_args = '{} -d -p {} -b {} {} -m VPCU,VPMU,VDAG --spatial_dir={}'.format(gendir, project,
+                opts.backend,apps,os.getcwd())
+            Logger(logger_args.split(" "))
+            logger_args = '{} -s -d -p {} -b {} {} --spatial_dir={}'.format(gendir, project,
+                opts.backend,apps,os.getcwd())
+            Logger(logger_args.split(" "))
 
 if __name__ == "__main__":
     main()

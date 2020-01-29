@@ -10,30 +10,9 @@ import fnmatch
 import json
 import traceback
 import time
+import socket
 
 from util import *
-
-parser.add_argument('path', type=str, help='Path to parsing directory')
-parser.add_argument('-A', '--isApp', dest="path_type", action='store_const', const='app',
-        default='backend')
-parser.add_argument('-B', '--isBackend', dest="path_type", action='store_const', const='backend', default='backend')
-parser.add_argument('-G', '--isGen', dest="path_type", action='store_const', const='gen',
-        default='backend')
-parser.add_argument('-s', '--summarize', action='store_true', default=False, help='summarize log into csv')
-parser.add_argument('-d', '--diff', dest='show_diff', action='store_true', default=False, help='showing difference')
-parser.add_argument('-H', '--history', dest='history_depth', type=int, default=0, help='showing history with depth')
-parser.add_argument('-i', '--history_id', type=int, help='showing ith history in reverse order')
-parser.add_argument('-l', '--log', type=str, help='showing log by name')
-parser.add_argument('-wh', '--walk_history', default=False, action='store_true', help='Walk through history')
-parser.add_argument('--logdir', default="{}/spatial/pir/logs/".format(os.environ['HOME']))
-parser.add_argument('--spatial_dir', default="{}/spatial/".format(os.environ['HOME']))
-parser.add_argument('--pir_dir', default="{}/spatial/pir".format(os.environ['HOME']))
-parser.add_argument('-f', '--filter', dest='filter_str', action='append', help='Filter apps')
-parser.add_argument('-m', '--message', default='', help='Additional fields to print in message')
-parser.add_argument('-pf', '--print_fields', default=False, action='store_true', help='Print fields')
-parser.add_argument('-cg', '--clean_gen', default=False, action='store_true', 
-    help='Clean generated directory')
-parser.add_argument('--live', action='store_true', default=False, help='continues showing status')
 
 def to_conf(tab, **kws):
     tab = lookup(tab, drop=False, **kws)
@@ -267,8 +246,42 @@ def setFilterRules(opts):
 
 class Logger():
     def __init__(self, args=None):
+        parser = argparse.ArgumentParser(description='Run experiments')
+        parser.add_argument('path', type=str, help='Path to parsing directory')
+        parser.add_argument('-a', '--app', action='append', help='name of application to run')
+        parser.add_argument('-b', '--backend', type=str, action="append", help='Testing Backend')
+        parser.add_argument('-p', '--project', type=str, default="pirTest", help='project name')
+        # parser.add_argument('--gendir', default="gen/")
+        parser.add_argument('-r', '--rerun', action='append', help='passes to rerun', default=[])
+        parser.add_argument('-F', '--force', action='store_true', default=False)
+        parser.add_argument('-A', '--isApp', dest="path_type", action='store_const', const='app',
+                default='backend')
+        parser.add_argument('-B', '--isBackend', dest="path_type", action='store_const', const='backend', default='backend')
+        parser.add_argument('-G', '--isGen', dest="path_type", action='store_const', const='gen',
+                default='backend')
+        parser.add_argument('-s', '--summarize', action='store_true', default=False, help='summarize log into csv')
+        parser.add_argument('-d', '--diff', dest='show_diff', action='store_true', default=False, help='showing difference')
+        parser.add_argument('-H', '--history', dest='history_depth', type=int, default=0, help='showing history with depth')
+        parser.add_argument('-i', '--history_id', type=int, help='showing ith history in reverse order')
+        parser.add_argument('-l', '--log', type=str, help='showing log by name')
+        parser.add_argument('-wh', '--walk_history', default=False, action='store_true', help='Walk through history')
+        parser.add_argument('--logdir')
+        parser.add_argument('--spatial_dir')
+        parser.add_argument('--pir_dir')
+        parser.add_argument('-f', '--filter', dest='filter_str', action='append', help='Filter apps')
+        parser.add_argument('-m', '--message', default='', help='Additional fields to print in message')
+        parser.add_argument('-pf', '--print_fields', default=False, action='store_true', help='Print fields')
+        parser.add_argument('-cg', '--clean_gen', default=False, action='store_true', 
+            help='Clean generated directory')
+        parser.add_argument('--live', action='store_true', default=False, help='continues showing status')
         (opts, args) = parser.parse_known_args(args=args)
         self.opts = opts
+
+        if opts.pir_dir is None:
+            opts.pir_dir = os.path.join(opts.spatial_dir, 'pir/')
+
+        if opts.logdir is None:
+            opts.logdir = os.path.join(opts.pir_dir, 'logs/')
 
         self.show_history()
 
@@ -347,12 +360,13 @@ class Logger():
         opts = self.opts
         logs = os.listdir(opts.logdir)
         logs = sorted(logs, reverse = True)
+        logs = [os.path.join(opts.logdir, log) for log in logs]
         logs = logFilter(logs)
         opts.logs = logs
         history = None
         for log in logs:
-            tab = pd.read_csv(opts.logdir + log, header=0)
-            tab['time'] = os.path.getmtime(opts.logdir + log)
+            tab = pd.read_csv(log, header=0)
+            tab['time'] = os.path.getmtime(log)
             tab['log'] = log
             if history is None:
                 history = tab
@@ -660,14 +674,9 @@ class Logger():
     def get_summary_path(self, conf):
         time = conf['time']
         timeshort = time[2:].replace("-","").replace(" ","_").replace(":","")
-        summary_path = "{}/{}_{}_{}_{}_{}.csv".format(
-            self.opts.logdir, 
-            timeshort, 
-            conf['backend'],
-            conf['project'],
-            conf['pir_sha'],
-            conf['spatial_sha']
-            )
+        hostname = socket.gethostname()
+        summary_path = f"{timeshort}_{conf['backend']}_{conf['project']}_{hostname}_{conf['pir_sha']}_{conf['spatial_sha']}.csv"
+        summary_path = os.path.join(self.opts.logdir, summary_path)
         return summary_path
 
     def summarize(self, backend, confs):

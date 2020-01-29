@@ -7,6 +7,7 @@ import csv
 import fnmatch
 import glob
 import shutil
+import timeit
 from collections import OrderedDict
 
 global parser
@@ -183,3 +184,11 @@ def parse_configs(optstr):
         if opt=='':
             continue
         key,value = parse_token(opt)
+
+start_time = None
+def tic():
+    start_time = timeit.default_timer()
+
+def toc():
+    duration = timeit.default_timer() - self._start_time 
+    return str(datetime.timedelta(seconds=round(duration, 2)))
