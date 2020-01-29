@@ -200,7 +200,7 @@ def toc():
 
 def oncluster():
     hostname = socket.gethostname()
-    return hostname in ['lagos','tucson'] or 'edo-' in hostname
+    return hostname in ['lagos','tucson'] or 'slurm' in hostname
 
 def create_ivy2():
     username = getpass.getuser()
@@ -208,3 +208,28 @@ def create_ivy2():
         ivy2 = f'/scratch/{username}/.ivy2'
         if not os.path.exists(ivy2):
             os.mkdir(ivy2)
+
+
+def create_gendir():
+    gendir = 'gen'
+    if oncluster():
+        if os.getcwd().startswith('/home'):
+            if not os.path.exists('gen/'):
+                current = os.getcwd()
+                gendir = current.replace('/home/','/scratch/')
+                if not os.path.exists(gendir):
+                    os.mkdir(gendir)
+                os.symlink(gendir, 'gen')
+            elif not os.path.islink('gen'):
+                print(cstr(YELLOW, 'WARNING ' + os.path.abspath('gen') + ' is under network drive'))
+            else:
+                gendir = os.readlink('gen')
+
+        if gendir != 'gen':
+            hostname = socket.gethostname()
+            if 'slurm' in hostname:
+                slurmgen = f'gen-{hostname}'.replace('edo-','')
+                if not os.path.islink(slurmgen):
+                    os.symlink(gendir.replace('/scratch',f'/remote-scratch/{hostname}'), slurmgen)
+
+    return gendir

@@ -53,16 +53,18 @@ class SpatialTest:
         if 'spatial-home' not in d and opts.backend is not None:
             pirargs.insert(0,f'--spatial-home={os.getcwd()}')
 
-        # if on cluster and currently under /home, put gen in the scratch
-        if all(['--gendir' not in arg for arg in args]) and \
-                oncluster() and \
-                os.getcwd().startswith('/home'):
-            current = os.getcwd()
-            self.opts.gendir = current.replace('/home/','/scratch/')
-            print(f'Change gendir to {self.opts.gendir}. Use --gendir override')
-            spatialargs.append('--gendir={}'.format(self.opts.gendir))
-        else:
-            self.opts.gendir = os.path.join(os.gencwd(), 'gen')
+        # # if on cluster and currently under /home, put gen in the scratch
+        # if all(['--gendir' not in arg for arg in args]) and \
+                # oncluster() and \
+                # os.getcwd().startswith('/home'):
+            # current = os.getcwd()
+            # self.opts.gendir = current.replace('/home/','/scratch/')
+            # print(f'Change gendir to {self.opts.gendir}. Use --gendir override')
+            # spatialargs.append('--gendir={}'.format(self.opts.gendir))
+        # else:
+            # self.opts.gendir = os.path.join(os.gencwd(), 'gen')
+
+        self.opts.gendir = create_gendir()
 
         java_cmd = ""
         java_cmd += "export TEST_ARGS=\"{}\"; ".format(' '.join(spatialargs))
