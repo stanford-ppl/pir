@@ -214,7 +214,7 @@ def create_gendir():
     gendir = 'gen'
     if oncluster():
         if os.getcwd().startswith('/home'):
-            if not os.path.exists('gen/'):
+            if not os.path.exists('gen/') and not os.path.islink('gen'):
                 current = os.getcwd()
                 gendir = current.replace('/home/','/scratch/')
                 if not os.path.exists(gendir):
