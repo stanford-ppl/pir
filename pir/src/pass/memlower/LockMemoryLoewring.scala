@@ -58,7 +58,7 @@ trait LockMemoryLowering extends GenericMemoryLowering {
     val ctrl = access.ctx.get.getCtrl
     // Setting up address calculation
     val addrCtx = addrCtxs.getOrElseUpdate(ctrl, {
-      // Optimization. Put address calculation in PMU of doesn't have lock
+      // Optimization. Put address calculation in PMU if doesn't have lock
       val cu = if (isSplitAccess) pirTop else memCU
       within(cu, ctrl) { Context() }
     })
@@ -104,7 +104,7 @@ trait LockMemoryLowering extends GenericMemoryLowering {
       setSplit(true) { bufferInput(mergeCtx) }
       lock.foreach { lock =>
         lock.unlock(unlock)
-        setSplit(true) { bufferInput(lock.unlock) }
+        setSplit(true) { bufferInput(lock.unlock).map { _.setSrcCtx("unlock") } }
       }
     }
     // Setting up connection with PCU

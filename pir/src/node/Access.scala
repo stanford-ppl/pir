@@ -38,10 +38,10 @@ trait LockAccess extends Access {
   }
 }
 trait InAccess extends Access { // Memory as output
-  val mem = new OutputField[Memory]("mem")
+  val mem = OutputField[Memory]
 }
 trait OutAccess extends Access { // Memory as input
-  val out = new OutputField[List[PIRNode]]("out")
+  val out = OutputField[List[PIRNode]]
   override def asOutput = Some(out)
   val mem = new InputField[Memory]("mem")
 }
@@ -80,7 +80,7 @@ case class FlatBankedWrite()(implicit env:Env) extends WriteAccess with FlatBank
 
 case class LockRead()(implicit env:Env) extends ReadAccess with LockAccess 
 case class LockWrite()(implicit env:Env) extends WriteAccess with LockAccess {
-  val ack = new OutputField[List[PIRNode]]("ack").presetVec(1).tp(Bool)
+  val ack = OutputField[List[PIRNode]].presetVec(1).tp(Bool)
 }
 case class MemRead()(implicit env:Env) extends ReadAccess {
   override def compVec(n:IR) = (n, mem.T) match {
@@ -127,14 +127,14 @@ trait LocalAccess extends PIRNode with Def {
   // done is branch independent
   // Check valid when en is true
   // Pop when if done and all en are true
-  val en = new InputField[Set[PIRNode]]("en").tp(Bool) // if not connected, default true
-  val done = new InputField[Option[PIRNode]]("done").tp(Bool).presetVec(1) // if not connected, default false
+  val en = InputField[Set[PIRNode]].tp(Bool) // if not connected, default true
+  val done = InputField[Option[PIRNode]].tp(Bool).presetVec(1) // if not connected, default false
 
   val isSplit = Metadata[Boolean]("isSplit", default=false)
 }
 trait LocalInAccess extends LocalAccess 
 trait LocalOutAccess extends LocalAccess with MemoryNode {
-  val in = new InputField[PIRNode]("in")
+  val in = InputField[PIRNode]
   val initToken = Metadata[Boolean]("initToken", default=false)
   override def compType(n:IR) = n match {
     case `out` => in.inferTp
@@ -142,7 +142,7 @@ trait LocalOutAccess extends LocalAccess with MemoryNode {
   }
 }
 case class BufferWrite(isFIFO:Boolean)(implicit env:Env) extends LocalInAccess {
-  val data = new InputField[PIRNode]("data")
+  val data = InputField[PIRNode]
   override def compType(n:IR) = n match {
     case `out` => data.inferTp
     case _ => super.compType(n)
@@ -165,15 +165,15 @@ case class BufferRead(isFIFO:Boolean)(implicit env:Env) extends LocalOutAccess {
   }
 }
 case class BufferRegRead()(implicit env:Env) extends LocalOutAccess {
-  val writeEn = new InputField[Option[PIRNode]]("writeEn")
-  val writeDone = new InputField[Option[PIRNode]]("writeDone")
+  val writeEn = InputField[Option[PIRNode]]
+  val writeDone = InputField[Option[PIRNode]]
 }
 trait TokenAccess extends LocalAccess {
   out.tp(Bool).presetVec(1)
   en.tp(Bool).presetVec(1)
 }
 case class TokenWrite()(implicit env:Env) extends TokenAccess with LocalInAccess {
-  val dummy = new InputField[PIRNode]("dummy")
+  val dummy = InputField[PIRNode]
 }
 case class TokenRead()(implicit env:Env) extends TokenAccess with LocalOutAccess {
   in.tp(Bool).presetVec(1)

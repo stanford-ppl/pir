@@ -23,6 +23,9 @@ abstract class PIRNode(implicit env:BuildEnvironment)
   val srcCtx = new Metadata[String]("srcCtx") {
     override def check(v:String) = {}
   }
+  def setSrcCtx(name:String):self.type = {
+    srcCtx(getSrcCtx(name))
+  }
 
   val ctrl = new Metadata[ControlTree]("ctrl") {
     override def apply(value:ControlTree, reset:Boolean=false) = self match {

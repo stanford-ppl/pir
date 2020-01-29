@@ -38,18 +38,18 @@ trait DRAMCommand extends FringeCommand {
 }
 
 trait DRAMDenseCommand extends DRAMCommand {
-  val offset = new InputField[PIRNode]("offset")
-  val size = new InputField[PIRNode]("size")
+  val offset = InputField[PIRNode]
+  val size = InputField[PIRNode]
 }
 trait DRAMSparseCommand extends DRAMCommand {
-  val addr = new InputField[PIRNode]("addr").presetVec(1)
+  val addr = InputField[PIRNode].presetVec(1)
 }
 trait DRAMLoadCommand extends DRAMCommand {
-  val data = new OutputField[PIRNode]("data")
+  val data = OutputField[PIRNode]
 }
 trait DRAMStoreCommand extends DRAMCommand {
-  val data = new InputField[PIRNode]("data")
-  val ack = new OutputField[PIRNode]("ack").tp(Bool).presetVec(1)
+  val data = InputField[PIRNode]
+  val ack = OutputField[PIRNode].tp(Bool).presetVec(1)
 }
 
 case class FringeDenseLoad(dram:DRAM)(implicit env:Env) extends DRAMDenseCommand with DRAMLoadCommand {
@@ -64,7 +64,7 @@ case class FringeSparseLoad(dram:DRAM)(implicit env:Env) extends DRAMSparseComma
 }
 
 case class FringeDenseStore(dram:DRAM)(implicit env:Env) extends DRAMDenseCommand with DRAMStoreCommand {
-  val valid = new InputField[PIRNode]("valid")
+  val valid = InputField[PIRNode]
   override def compVec(n:IR) = n match {
     case `data` | `valid` => Some(burstSize /! data.inferTp.get.nbits.get)
     case _ => super.compVec(n)
@@ -93,5 +93,5 @@ case class FringeStreamWrite(bus:Bus)(implicit env:Env) extends StreamCommand {
 case class FringeStreamRead(bus:Bus)(implicit env:Env) extends StreamCommand {
   def addStreams(xs:List[Any]) = DynamicInputFields[PIRNode]("stream", xs)
   override def streams = getDynamicInputFields[PIRNode]("stream")
-  val lastBit = new OutputField[Option[PIRNode]]("lastBit").tp(Bool).presetVec(1)
+  val lastBit = OutputField[Option[PIRNode]].tp(Bool).presetVec(1)
 }
