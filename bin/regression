@@ -56,7 +56,7 @@ def main():
             logger_args = '{} -s -d -p {} -b {} {} --spatial_dir={}'.format(gendir, project,
                 opts.backend,apps,os.getcwd())
             Logger(logger_args.split(" "))
-            print(f'Regression run for {duration} on {hostname}')
+            print(f'Regression run for {cstr(CYAN,duration)} on {cstr(CYAN,hostname)}')
 
 if __name__ == "__main__":
     main()
