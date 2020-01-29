@@ -250,7 +250,7 @@ class Logger():
         parser.add_argument('path', type=str, help='Path to parsing directory')
         parser.add_argument('-a', '--app', action='append', help='name of application to run')
         parser.add_argument('-b', '--backend', type=str, action="append", help='Testing Backend')
-        parser.add_argument('-p', '--project', type=str, default="pirTest", help='project name')
+        parser.add_argument('-p', '--project', type=str, help='project name')
         # parser.add_argument('--gendir', default="gen/")
         parser.add_argument('-r', '--rerun', action='append', help='passes to rerun', default=[])
         parser.add_argument('-F', '--force', action='store_true', default=False)
@@ -356,11 +356,16 @@ class Logger():
                 remove(path,self.opts.force)
         exit()
 
-    def load_history(self, logFilter=lambda logs: logs):
+    def get_logs(self):
         opts = self.opts
         logs = os.listdir(opts.logdir)
         logs = sorted(logs, reverse = True)
         logs = [os.path.join(opts.logdir, log) for log in logs]
+        return logs
+
+    def load_history(self, logFilter=lambda logs: logs):
+        opts = self.opts
+        logs = self.get_logs()
         logs = logFilter(logs)
         opts.logs = logs
         history = None
@@ -433,11 +438,12 @@ class Logger():
             self.print_history(logFilter=lambda logs: [opts.log])
             exit()
         if opts.walk_history:
-            nlogs = len(os.listdir(opts.logdir))
-            for i in range(nlogs):
-                self.print_history(logFilter=lambda logs: [logs[i]])
-                ans = input('[{}] continue? '.format(i))
-                if ans != 'y' and ans !='n':
+            for i,log in enumerate(self.get_logs()):
+                self.print_history(logFilter=lambda logs: [log])
+                ans = input('[{}] next? [n] remove? [r] '.format(i))
+                if ans == 'r':
+                    remove(log, True)
+                elif ans != 'n':
                     exit()
             exit()
 
