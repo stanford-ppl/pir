@@ -95,7 +95,7 @@ class TiledPageRank_4 extends TiledPageRank(iters=2)(ipls=1, ip=1)
               val farNeighborRanks = FIFO[T](ets)
               farNeighborRanks gather pageranks(farDBNeighbors, farCount.value)
               val farNeighborLens = FIFO[Int](ets)
-              farNeighborLens gather lens(farNeighbors)
+              farNeighborLens gather lens(farNeighbors, farCount.value)
               val nearCount = Reg[Int]
               Pipe {
                 nearCount := etsBound - farCount.value

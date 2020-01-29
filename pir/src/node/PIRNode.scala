@@ -117,7 +117,6 @@ case class ControlTree(schedule:CtrlSchedule)(implicit env:Env) extends EnvNode[
   val ctrler = new Metadata[Controller]("ctrler")
   val par = new Metadata[Int]("par", default=Some(1))
   val isLoop = new Metadata[Boolean]("isLoop", default=Some(false))
-  val isForever = new Metadata[Boolean]("isForever", default=Some(false))
   val srcCtx = new Metadata[String]("srcCtx")
   val uid = new Metadata[List[Int]]("uid")
   val progorder = new Metadata[Int]("progorder")
@@ -128,8 +127,6 @@ case class ControlTree(schedule:CtrlSchedule)(implicit env:Env) extends EnvNode[
     else if (that.isAncestorOf(this)) -1
     else bug(s"Cannot compare $this with $that")
   }
-
-  def isAsync = schedule == Streaming && isForever.get
 
   env.initNode(this)
 }
