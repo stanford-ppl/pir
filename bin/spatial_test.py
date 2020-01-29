@@ -21,6 +21,8 @@ class SpatialTest:
 
         self.opts = opts
 
+        create_ivy2()
+
         if opts.publish:
             cp = subprocess.run("sbt publishAll", shell=True, cwd='pir/')
             cp.check_returncode()
@@ -50,11 +52,10 @@ class SpatialTest:
         d = get_configs()
         if 'spatial-home' not in d and opts.backend is not None:
             pirargs.insert(0,f'--spatial-home={os.getcwd()}')
-        hostname = socket.gethostname()
 
         # if on cluster and currently under /home, put gen in the scratch
         if all(['--gendir' not in arg for arg in args]) and \
-                (hostname in ['lagos','tucson'] or 'edo-' in hostname) and \
+                oncluster() and \
                 os.getcwd().startswith('/home'):
             current = os.getcwd()
             self.opts.gendir = current.replace('/home/','/scratch/')

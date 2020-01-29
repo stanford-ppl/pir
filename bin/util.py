@@ -9,6 +9,9 @@ import glob
 import shutil
 import timeit
 import datetime
+import socket
+import getpass
+import socket
 from collections import OrderedDict
 
 global parser
@@ -194,3 +197,14 @@ def tic():
 def toc():
     duration = timeit.default_timer() - start_time 
     return str(datetime.timedelta(seconds=round(duration, 2)))
+
+def oncluster():
+    hostname = socket.gethostname()
+    return hostname in ['lagos','tucson'] or 'edo-' in hostname
+
+def create_ivy2():
+    username = getpass.getuser()
+    if oncluster():
+        ivy2 = f'/scratch/{username}/.ivy2'
+        if not os.path.exists(ivy2):
+            os.mkdir(ivy2)

@@ -20,14 +20,21 @@ def main():
     (opts, args) = parser.parse_known_args()
     if not os.path.exists("logs/"):
         os.mkdir('logs/')
-    # os.system('sbt "; project pir; publishAll"')
+    hostname = socket.gethostname()
+    print(f'Running regression on {cstr(CYAN,hostname)}', flush=True)
+    create_ivy2()
+
+    os.system('sbt "; project pir; publishAll"')
     apps = opts.app
     if apps is None: apps = []
     if opts.project is None:
         opts.project = ['pirTest', 'test']
     if (opts.backend is None):
         opts.backend = ['Tst']
+
     os.chdir("../")
+    os.system('sbt "; project models; publishLocal; project utils; publishLocal"')
+
     for project in opts.project:
         for backend in opts.backend:
             apps = ' '.join(['-a ' + a for a in apps])
@@ -49,7 +56,6 @@ def main():
             logger_args = '{} -s -d -p {} -b {} {} --spatial_dir={}'.format(gendir, project,
                 opts.backend,apps,os.getcwd())
             Logger(logger_args.split(" "))
-            hostname = socket.gethostname()
             print(f'Regression run for {duration} on {hostname}')
 
 if __name__ == "__main__":
