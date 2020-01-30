@@ -97,7 +97,7 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
             canReach(write.done,enq) &&
             !write.en.isConnected //TODO: buffer function should also allow enable as input
           } {
-            stage(BufferWrite(isFIFO=isFIFO).data(depOut).done(enq).srcCtx(s"${file.value}:${line.value}"))
+            stage(BufferWrite(isFIFO=isFIFO).data(depOut).done(enq))
           }
         }
         val globalbb = depedIn.src.isInstanceOf[GlobalBlackBox]
@@ -109,7 +109,7 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
             canReach(read.done,deq) &&
             !read.en.isConnected 
           } {
-            stage(BufferRead(isFIFO=isFIFO).in(write.out).done(deq).srcCtx(s"${file.value}:${line.value}"))
+            stage(BufferRead(isFIFO=isFIFO).in(write.out).done(deq))
           }
         }
         bank.foreach { bank => read.banks(List(bank)) }

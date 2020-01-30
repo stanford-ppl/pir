@@ -26,12 +26,12 @@ trait Access extends PIRNode {
   }
 }
 trait BankedAccess extends Access {
-  val bank = new InputField[List[PIRNode]]("bank")
-  val offset = new InputField[PIRNode]("offset")
+  val bank = InputField[List[PIRNode]]
+  val offset = InputField[PIRNode]
 }
 trait LockAccess extends Access {
-  val addr = new InputField[PIRNode]("addr")
-  val lock = new InputField[Option[LockOnKeys]]("lock")
+  val addr = InputField[PIRNode]
+  val lock = InputField[Option[LockOnKeys]]
   override def compVec(n:IR) = n match {
     case out:Output[_] => Some(this.getCtrl.par.get)
     case _ => super.compVec(n)
@@ -43,10 +43,10 @@ trait InAccess extends Access { // Memory as output
 trait OutAccess extends Access { // Memory as input
   val out = OutputField[List[PIRNode]]
   override def asOutput = Some(out)
-  val mem = new InputField[Memory]("mem")
+  val mem = InputField[Memory]
 }
 trait WriteAccess extends InAccess {
-  val data = new InputField[PIRNode]("data")
+  val data = InputField[PIRNode]
 }
 trait ReadAccess extends OutAccess {
   override def compType(n:IR) = n match {
@@ -69,7 +69,7 @@ case class BankedWrite()(implicit env:Env) extends WriteAccess with BankedAccess
 }
 // Nodes after lowering
 trait FlatBankedAccess extends Access { // lowered access
-  val offset = new InputField[PIRNode]("offset")
+  val offset = InputField[PIRNode]
   override def compVec(n:IR) = n match {
     case _:Edge[_,_,_] => Some(mem.T.nBanks)
     case _ => super.compVec(n)
@@ -80,6 +80,11 @@ case class FlatBankedWrite()(implicit env:Env) extends WriteAccess with FlatBank
 
 case class LockRead()(implicit env:Env) extends ReadAccess with LockAccess 
 case class LockWrite()(implicit env:Env) extends WriteAccess with LockAccess {
+  val ack = OutputField[List[PIRNode]].presetVec(1).tp(Bool)
+}
+case class LockRMW(exp:PIRNode)(implicit env:Env) extends LockAccess {
+  val mem = InputField[Memory]
+  val input = InputField[PIRNode]
   val ack = OutputField[List[PIRNode]].presetVec(1).tp(Bool)
 }
 case class MemRead()(implicit env:Env) extends ReadAccess {

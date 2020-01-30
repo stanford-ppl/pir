@@ -7,30 +7,15 @@ import prism.graph._
 import spade.param._
 import scala.collection.mutable
 
-trait LockMemoryBackBoxLowering extends LockMemoryLowering {
 
-  override def visitNode(n:N) = n match {
-    case n:Lock => 
-      lowerPattern(n) match {
-        case Right(ret) => ret
-        case Left(msg) =>
-          dbg(msg)
-          err(msg) 
-      }
-    case n:LockMem =>
-    case _ => super.visitNode(n)
-  }
+trait LockMemoryBackBoxLowering extends GenericMemoryLowering { self:LockMemoryLowering =>
 
-  override def finPass = {
-    super.finPass
-  }
-
-  private def lowerRMW(
+  protected def lowerRMW(
     lock:Lock, 
     rmwpar:Int,
     lockMems:List[LockMem], // Lock address, one per outer loop lane
     igs:List[InnerAccessGroup] // A list of sparse accum group
-  ) = dbgblk(s"lowerRMW($lock)"){
+  ):Unit = dbgblk(s"lowerRMW($lock)"){
     within(pirTop, lock.getCtrl) {
       val blockCtx = within(pirTop, lock.getCtrl) { stage(Context().streaming(true)) }
       val lockAccums = lockMems.map { mem => 
@@ -66,9 +51,6 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
       free(accesses)
       stage(block)
     }
-  }
-
-  def lowerUnparRMW(mem:Memory) = {
   }
 
   // No multibuffer. Every one depends on everyone
@@ -113,8 +95,13 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
     }
   }
 
-  private def lowerLockedRMW(ig:InnerAccessGroup, block:LockRMWBlock, blockCtx:Context, accumMap:Map[LockMem,LockAccum]) = dbgblk(s"lowerLockedRMW($ig)"){
-    val lanes = ig.group.flatMap { _.accesses.map { case UnrolledAccess(lanes) => lanes }}.transpose
+  private def lowerLockedRMW(
+    ig:InnerAccessGroup, 
+    block:LockRMWBlock, 
+    blockCtx:Context, 
+    accumMap:Map[LockMem,LockAccum]
+  ):List[(LockAccess, (Input[PIRNode], Output[PIRNode]))] = dbgblk(s"lowerLockedRMW($ig)"){
+    val lanes = ig.accesses.map { case UnrolledAccess(lanes) => lanes }.transpose
     lanes.zipWithIndex.map { case (accesses,lane) =>
 
       val reads = accesses.collect { case access:LockRead => access }
@@ -189,14 +176,17 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
     }
   }
 
-  private def lowerUnlockAccessGroup(ig:InnerAccessGroup, block:LockRMWBlock, blockCtx:Context, accumMap:Map[LockMem,LockAccum]) = dbgblk(s"lowerUnlockAccessGroup(${ig})"){
-    ig.group.flatMap { case InnerAccessMemGroup(mem, accesses) =>
-      assert(accesses.size == 1)
-      val ua@UnrolledAccess(lanes) = accesses.head
-      val accum = accumMap(mem)
+  private def lowerUnlockAccessGroup(
+    ig:InnerAccessGroup, 
+    block:LockRMWBlock, 
+    blockCtx:Context, 
+    accumMap:Map[LockMem,LockAccum]
+  ):List[(LockAccess, (Input[PIRNode], Output[PIRNode]))] = dbgblk(s"lowerUnlockAccessGroup(${ig})"){
+    ig.accesses.flatMap { case ua@UnrolledAccess(lanes) =>
+      val accum = accumMap(lanes.head.mem.T.as[LockMem])
       if (lanes.size != block.outerPar) {
         if (lanes.size != 1)
-          err(s"Unlocked access must be either not outer loop parallelized or parallelized by the same amount as locked access ${quoteSrcCtx(accesses)}")
+          err(s"Unlocked access must be either not outer loop parallelized or parallelized by the same amount as locked access ${quoteSrcCtx(ua)}")
         val access = lanes.head
         List(access -> lowerUnlockAccess(access, accum, (0 until block.outerPar).toList, block, blockCtx))
       } else {
@@ -268,139 +258,6 @@ trait LockMemoryBackBoxLowering extends LockMemoryLowering {
           }
         }
         (reqPort ,dataPort)
-    }
-  }
-
-  def lowerPattern(n:Lock):Either[String,T] = {
-    dbg(s"lowerPattern($n)")
-    val lockOns = n.out.T.as[List[LockOnKeys]]
-    val lockAccesses = lockOns.flatMap { _.out.T }.as[List[LockAccess]].toSet
-    val lockMems = lockAccesses.map { _.mem.T }.toList.sortBy { _.progorder.get }.as[List[LockMem]]
-    val accesses = lockMems.flatMap { _.accesses.as[List[LockAccess]] }.distinct
-    val lockKeys = lockOns.map { _.key.T }.distinct
-    val preunrollKey = lockKeys.map { _.progorder.v }.distinct
-    if (preunrollKey.size > 1) return Left(s"Multiple locked keys ${lockKeys.map { quoteSrcCtx }}")
-
-    // A list of list accesses, each list contains unrolled accesses belong to the same
-    // preunrolled access.
-    // Each list of unrolled access is sorted by their unrolling order
-    val sortedAccesses:List[UnrolledAccess[LockAccess]] = accesses.groupBy { a => a.progorder.get }.toList.sortBy { _._1 }
-      .map { case (po, as) => UnrolledAccess(as.sortBy { _.order.get }) }
-
-    // Accum[InnerCtrl[Urolled[Access]]]
-    val sortedGroupedAccesses = sortedAccesses.groupBy { ua => ua.lanes.head.getCtrl }
-      .toList.sortBy { _._1.progorder.get }.map { case (ctrl,group) => 
-        val mgroup = group.groupBy { _.lanes.head.mem.T.as[LockMem] }.map { case (mem, as) => InnerAccessMemGroup(mem, as) }
-        InnerAccessGroup(ctrl,mgroup.toList)
-      }
-
-    dbgblk(s"sortedGroupedAccesses") {
-      sortedGroupedAccesses.foreach { ig =>
-        dbg(s"$ig")
-      }
-    }
-
-    val noOuterPar = sortedAccesses.forall { ig => ig.lanes.size == 1 }
-    val isDRAM = assertUnify(lockMems, s"Cannot have both DRAM and SRAM on the same lock ${quoteSrcCtx(n)}") { _.isDRAM }.get
-
-    val (pure, impure) = sortedGroupedAccesses.partition { _.isPure }
-    if (impure.nonEmpty) 
-      return Left(s"Cannot have unlocked and locked statement in the same basic block: ${quoteSrcCtx(impure)}}")
-
-    val (rmws, unlocked) = pure.partition { ig => ig.isRMW }
-    if (rmws.size > 1) return Left(s"Cannot have more than 1 read modify write block ${quoteSrcCtx(rmws)}")
-
-    //if (noOuterPar && !isDRAM && rmws.size == 1) return Right(mems.map { mem => lowerUnparRMW(mem) })
-    if (noOuterPar && lockMems.size == 1 && !isDRAM) return Right(lowerUnparLockMem(lockMems.head))
-
-    if (rmws.size == 1) {
-      val rmwpar = rmws.head.group.head.accesses.head.lanes.size
-      unlocked.foreach { case InnerAccessGroup(ctrl,group) =>
-        group.foreach { case InnerAccessMemGroup(mem, accesses) =>
-          accesses.foreach { case UnrolledAccess(lanes) =>
-            val par = lanes.size
-            if (par > 1 && par != rmwpar)
-              return Left(s"Cannot parallelize the unlocked accesses ${quoteSrcCtx(lanes.head)} with different par with locked access for ${quoteSrcCtx(n)} ")
-          }
-        }
-      }
-      assertUnify(lockMems, s"${quoteSrcCtx(n)} have different types for read modify accumulators") { mem => mem.tp.get }
-      assertUnify(lockMems, s"${quoteSrcCtx(n)} have different dimensions for read modify accumulators") { mem => mem.dims.get }
-      return Right(lowerRMW(n, rmwpar, lockMems, pure))
-    } else {
-      return Left(s"Unsupported access pattern ${quoteSrcCtx(n)}")
-    }
-  }
-
-  override def quoteSrcCtx(x:Any):String = x match {
-    case UnrolledAccess(lanes) => quoteSrcCtx(lanes.head)
-    case InnerAccessMemGroup(mem, accesses) => quoteSrcCtx(accesses)
-    case InnerAccessGroup(ctrl, group) => quoteSrcCtx(ctrl)
-    case l:List[_] => l.map { quoteSrcCtx }.mkString("\n")
-    case x => super.quoteSrcCtx(x)
-  }
-
-  implicit class UnrolledAccessUtil(n:UnrolledAccess[LockAccess]) {
-    def isLockedAccess = n.lanes.head.isLockedAccess
-    def isLockedRead = isLockedAccess && n.lanes.head.isRead
-    def isLockedWrite = isLockedAccess && n.lanes.head.isWrite
-    def isUnlockedAccess = !isLockedAccess
-  }
-
-  implicit class LockAccessUtil(n:LockAccess) {
-    def isLockedAccess = n.lock.isConnected
-    def isUnlockedAccess = !isLockedAccess
-  }
-
-  /*
-   * A list of accesses belonging to the same basic block/inner loop and the same memory, sorted by program order
-   * */
-  class InnerAccessMemGroup(val mem:LockMem, val accesses:List[UnrolledAccess[LockAccess]]) {
-    def isUnlockedAccess = accesses.forall { _.isUnlockedAccess }
-    def isLockedAccess = accesses.forall { _.isLockedAccess }
-    def isPure = accesses.forall { a => a.isUnlockedAccess | a.isLockedAccess }
-  }
-
-  object InnerAccessMemGroup {
-    def apply(mem:LockMem, accesses:List[UnrolledAccess[LockAccess]]):InnerAccessMemGroup = {
-      accesses match {
-        case List(a,b) => 
-          val isLockRMW = a.isLockedRead && b.isLockedWrite && a.lanes.head.addr.T == b.lanes.head.addr.T
-          if (isLockRMW) {
-            val addrs = a.lanes.map { _.addr.T }
-            return InnerAccessRMWGroup(mem, a, b, addrs)
-          }
-        case _ =>
-      }
-      return new InnerAccessMemGroup(mem, accesses)
-    }
-    def unapply(x:InnerAccessMemGroup):Option[(LockMem, List[UnrolledAccess[LockAccess]])] = Some(x.mem, x.accesses)
-  }
-
-  /*
-   * A read modify write access combo within a basic block.
-   * */
-  case class InnerAccessRMWGroup(
-    override val mem:LockMem,
-    read:UnrolledAccess[LockAccess],
-    write:UnrolledAccess[LockAccess],
-    addrs:List[PIRNode],
-  ) extends InnerAccessMemGroup(mem, List(read,write)) {
-  }
-  
-  /*
-   * A list of accesses belonging to the same basic block/inner loop
-   * */
-  case class InnerAccessGroup(ctrl:ControlTree, group:List[InnerAccessMemGroup]) {
-    def isUnlockedAccess = group.forall { _.isUnlockedAccess }
-    def isLockedAccess = group.forall { _.isLockedAccess }
-    def isPure = group.forall { a => a.isUnlockedAccess | a.isLockedAccess }
-    def isRMW:Boolean = {
-      val addrs = group.map { mg =>
-        val addrs:List[PIRNode] = mg.to[InnerAccessRMWGroup].map { _.addrs }.getOrElse(return false)
-        addrs
-      }
-      testIdentical(addrs).nonEmpty
     }
   }
 

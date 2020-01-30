@@ -65,7 +65,7 @@ with BufferAnalyzer
     }
   }
 
-  def stage[T<:PIRNode](n:T):T = {
+  def stage[T<:PIRNode](n:T)(implicit file:sourcecode.File, line: sourcecode.Line):T = {
     n.localIns.foreach { in => 
       //withLogger(this) {
         in.inferVec
@@ -79,11 +79,14 @@ with BufferAnalyzer
       //}
     }
     //dbgn(n)
+    if (n.srcCtx.isEmpty) {
+      n.setSrcCtx
+    }
     dbg(s"Stage ${dquote(n)}")
     n
   }
 
-  def stage(out:Output[PIRNode]):Output[PIRNode] = {
+  def stage(out:Output[PIRNode])(implicit file:sourcecode.File, line: sourcecode.Line):Output[PIRNode] = {
     stage(out.src)
     withGC(false) {
       rewriteRules.foldLeft(out) { (out, rule) => rule.apply(out).as[Output[PIRNode]] }
