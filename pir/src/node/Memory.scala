@@ -124,12 +124,12 @@ case class LockRMWBlock(
   val memPar = outerPar
   val numIns = Metadata[Int]("numIns") // This is not known before instantiate the template
 
-  val unlockReadAddrs = accums.map { a => a -> List.fill(outerPar) { new InputField[Option[PIRNode]](s"unlockReadAddr").tp(Fix(true, 32, 0)) } }.toMap
-  val unlockReadDatas = accums.map { a => a -> List.fill(outerPar) { OutputField[Option[PIRNode]].tp(a.tp) } }.toMap
+  val unlockReadAddr = accums.map { a => a -> List.fill(outerPar) { InputField[Option[PIRNode]].tp(Fix(true, 32, 0)) } }.toMap
+  val unlockReadData = accums.map { a => a -> List.fill(outerPar) { OutputField[Option[PIRNode]].tp(a.tp) } }.toMap
 
-  val unlockWriteAddrs = accums.map { a => a -> List.fill(outerPar) { new InputField[Option[PIRNode]](s"unlockWriteAddr").tp(Fix(true, 32, 0)) } }.toMap
-  val unlockWriteDatas = accums.map { a => a -> List.fill(outerPar) { new InputField[Option[PIRNode]](s"unlockWriteData").tp(a.tp) } }.toMap
-  val unlockWriteAcks = accums.map { a => a -> List.fill(outerPar) { OutputField[Option[PIRNode]].tp(Bool).presetVec(1) } }.toMap
+  val unlockWriteAddr = accums.map { a => a -> List.fill(outerPar) { InputField[Option[PIRNode]].tp(Fix(true, 32, 0)) } }.toMap
+  val unlockWriteData = accums.map { a => a -> List.fill(outerPar) { InputField[Option[PIRNode]].tp(a.tp) } }.toMap
+  val unlockWriteAck = accums.map { a => a -> List.fill(outerPar) { OutputField[Option[PIRNode]].tp(Bool).presetVec(1) } }.toMap
 
   def addLockInputIn = DynamicInputFields[PIRNode](s"lockInputIn")
   def addLockInputOut = DynamicOutputFields[PIRNode](s"lockInputOut")
@@ -145,31 +145,31 @@ case class LockRMWBlock(
   }
   val lockAddrs = List.fill(outerPar) { InputField[PIRNode].tp(Fix(true,32,0)) }
   assert(lockAddrs.head.name == "lockAddrs")
-  val lockDataIns = accums.map { a => a -> List.fill(memPar) { InputField[PIRNode].tp(a.tp) } }.toMap
-  val lockDataOuts = accums.map { a => a -> List.fill(memPar) { OutputField[PIRNode].tp(a.tp) } }.toMap
+  val lockDataIn = accums.map { a => a -> List.fill(memPar) { InputField[PIRNode].tp(a.tp) } }.toMap
+  val lockDataOut = accums.map { a => a -> List.fill(memPar) { OutputField[PIRNode].tp(a.tp) } }.toMap
   val lockAcks = List.fill(outerPar) { OutputField[PIRNode].tp(Bool).presetVec(1) }
 
   val accumMap:Map[Edge[_,_,_],LockAccum] = 
-    unlockReadAddrs.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
-    unlockReadDatas.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
-    unlockWriteAddrs.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
-    unlockWriteDatas.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
-    unlockWriteAcks.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
-    lockDataIns.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
-    lockDataOuts.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ }
+    unlockReadAddr.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
+    unlockReadData.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
+    unlockWriteAddr.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
+    unlockWriteData.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
+    unlockWriteAck.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
+    lockDataIn.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
+    lockDataOut.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ }
 
   def treeInMap:Map[Edge[_,_,_],Int] =
     lockInputIns.flatMap { _.flatMap { _.zipWithIndex } }.toMap
 
   def laneMap:Map[Edge[_,_,_],Int] = //def because of dynamic edges
-    unlockReadAddrs.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
-    unlockReadDatas.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
-    unlockWriteAddrs.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++ 
-    unlockWriteDatas.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
-    unlockWriteAcks.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    unlockReadAddr.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    unlockReadData.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    unlockWriteAddr.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++ 
+    unlockWriteData.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    unlockWriteAck.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
     lockAddrs.zipWithIndex.toMap ++
-    lockDataIns.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
-    lockDataOuts.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    lockDataIn.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    lockDataOut.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
     lockInputIns.zipWithIndex.flatMap { case (ins,lane) => ins.flatten.map { _ -> lane } }.toMap ++
     lockInputOuts.zipWithIndex.flatMap { case (outs,lane) => outs.map { _ -> lane } }.toMap ++
     lockAcks.zipWithIndex.toMap
@@ -182,7 +182,7 @@ case class LockRMWBlock(
     case n@OutputField(_,"lockDataOut") => 
       lockAddrs(laneMap(n)).inferVec
     case n@OutputField(_,"unlockReadData") => 
-      unlockReadAddrs(accumMap(n))(laneMap(n)).inferVec
+      unlockReadAddr(accumMap(n))(laneMap(n)).inferVec
     case n@OutputField(_,"lockInputOut") => 
       getDynamicInputFields[PIRNode](s"lockInputIn")(n.dynamicIdx.get).inferVec
     case _ => super.compVec(n)

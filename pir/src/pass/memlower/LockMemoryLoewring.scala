@@ -123,17 +123,13 @@ trait LockMemoryLowering extends GenericMemoryLowering {
   def setSplit[T<:LocalOutAccess](isSplit:Boolean)(alloc: => Seq[T]):Seq[T] = {
     val saved = _isSplit
     _isSplit = isSplit
-    val reads = alloc
-    _isSplit = saved
-    reads
-  }
-
-  override def insertBuffer(depOut:Output[PIRNode], depedIn:Input[PIRNode], fromCtx:Option[Context]=None, isFIFO:Boolean=true):Option[BufferRead] = {
-    super.insertBuffer(depOut,depedIn,fromCtx,isFIFO).map { read =>
+    val reads = alloc.map { read =>
       read.isSplit := _isSplit
       read.inAccess.isSplit := _isSplit
       read
     }
+    _isSplit = saved
+    reads
   }
 
   override def childDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {

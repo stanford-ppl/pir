@@ -32,11 +32,11 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     }
   }
 
-  def bufferInput(ctx:Context):Seq[BufferRead] = {
+  def bufferInput(ctx:Context)(implicit file:sourcecode.File, line: sourcecode.Line):Seq[BufferRead] = {
     bufferInput(ctx, None)
   }
 
-  def bufferInput(ctx:Context, fromCtx:Option[Context]):Seq[BufferRead] = dbgblk(s"bufferInput($ctx)"){
+  def bufferInput(ctx:Context, fromCtx:Option[Context])(implicit file:sourcecode.File, line: sourcecode.Line):Seq[BufferRead] = dbgblk(s"bufferInput($ctx)"){
     ctx.depsFrom.flatMap { case (out, ins) =>
       ins.flatMap { in =>
         insertBuffer(out, in, fromCtx)
@@ -44,13 +44,13 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     }.toSeq
   }
 
-  def bufferInput(in:Input[PIRNode], fromCtx:Option[Context]=None, isFIFO:Boolean=true):Seq[BufferRead] = {
+  def bufferInput(in:Input[PIRNode], fromCtx:Option[Context]=None, isFIFO:Boolean=true)(implicit file:sourcecode.File, line: sourcecode.Line):Seq[BufferRead] = {
     in.connected.distinct.flatMap { out =>
       insertBuffer(out, in, fromCtx, isFIFO)
     }
   }
 
-  def bufferInputFrom(out:Output[PIRNode], in:Input[PIRNode], fromCtx:Context):Option[BufferRead] = {
+  def bufferInputFrom(out:Output[PIRNode], in:Input[PIRNode], fromCtx:Context)(implicit file:sourcecode.File, line: sourcecode.Line):Option[BufferRead] = {
     val saved = out.src.parent.get
     swapParent(out.src, fromCtx)
     val read = insertBuffer(out,in)
@@ -58,7 +58,7 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     read
   }
 
-  def bufferOutput(out:Output[PIRNode]):Seq[BufferRead] = {
+  def bufferOutput(out:Output[PIRNode])(implicit file:sourcecode.File, line: sourcecode.Line):Seq[BufferRead] = {
     out.connected.distinct.flatMap { in =>
       insertBuffer(out, in)
     }
@@ -76,7 +76,12 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     in.canReach(out, visitEdges=visitInEdges _)
   }
 
-  protected def insertBuffer(depOut:Output[PIRNode], depedIn:Input[PIRNode], fromCtx:Option[Context]=None, isFIFO:Boolean=true):Option[BufferRead] = {
+  protected def insertBuffer(
+    depOut:Output[PIRNode], 
+    depedIn:Input[PIRNode], 
+    fromCtx:Option[Context]=None, 
+    isFIFO:Boolean=true
+  )(implicit file:sourcecode.File, line: sourcecode.Line):Option[BufferRead] = {
     val dep = depOut.src
     val deped = depedIn.src
     val depedCtx = deped.ctx.get
@@ -92,7 +97,7 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
             canReach(write.done,enq) &&
             !write.en.isConnected //TODO: buffer function should also allow enable as input
           } {
-            stage(BufferWrite(isFIFO=isFIFO).data(depOut).done(enq))
+            stage(BufferWrite(isFIFO=isFIFO).data(depOut).done(enq).srcCtx(s"${file.value}:${line.value}"))
           }
         }
         val globalbb = depedIn.src.isInstanceOf[GlobalBlackBox]
@@ -104,7 +109,7 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
             canReach(read.done,deq) &&
             !read.en.isConnected 
           } {
-            stage(BufferRead(isFIFO=isFIFO).in(write.out).done(deq))
+            stage(BufferRead(isFIFO=isFIFO).in(write.out).done(deq).srcCtx(s"${file.value}:${line.value}"))
           }
         }
         bank.foreach { bank => read.banks(List(bank)) }

@@ -98,7 +98,7 @@ trait FieldNode[N<:Node[N]] extends Node[N] { self:N =>
     override def toString = s"${super.toString}_$name"
   }
   object InputField {
-    def apply[T:TypeTag:ClassTag](implicit name:sourcecode.Name) = new InputField(name.value)
+    def apply[T:TypeTag:ClassTag](implicit name:sourcecode.Name) = new InputField[T](name.value)
     def unapply(x: Input[_] with Field[_]):Option[(ND, String)] = Some((x.node, x.name))
   }
   
@@ -108,7 +108,7 @@ trait FieldNode[N<:Node[N]] extends Node[N] { self:N =>
     override def toString = s"${super.toString}_$name"
   }
   object OutputField {
-    def apply[T:TypeTag:ClassTag](implicit name:sourcecode.Name) = new OutputField(name.value)
+    def apply[T:TypeTag:ClassTag](implicit name:sourcecode.Name) = new OutputField[T](name.value)
     def unapply(x:Output[_] with Field[_]):Option[(ND, String)] = Some((x.node, x.name))
   }
 

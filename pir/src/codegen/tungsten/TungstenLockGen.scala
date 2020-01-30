@@ -144,8 +144,8 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
     case n:LockWrite => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
     case n:LockMem if !n.isDRAM => (s"SparsePMU<${n.qtp},$wordPerBank,${spadeParam.vecWidth}>", s"$n")
     case n:LockRMWBlock => 
-      val nlr = n.unlockReadAddrs.values.head.head.connected.size
-      val nlw = n.unlockWriteAddrs.values.head.head.connected.size
+      val nlr = n.unlockReadAddr.values.head.head.connected.size
+      val nlw = n.unlockWriteAddr.values.head.head.connected.size
       val nin = n.numIns.get
       val dbk = 1 //TODO: what is DRAM_BANK
       val tp = if (n.isDRAM) "DRAM" else ""

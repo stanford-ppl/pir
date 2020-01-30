@@ -88,8 +88,8 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
       case Some(bb:MergeBuffer) => List(Unknown)
       case Some(bb:LockRMWBlock) => 
         (bb.lockAddrs, 
-          bb.unlockReadAddrs(bb.accums.head), 
-          bb.unlockWriteAddrs(bb.accums.head)
+          bb.unlockReadAddr(bb.accums.head), 
+          bb.unlockWriteAddr(bb.accums.head)
         ).zipped.map { case (la, ura, uwa) =>
           import Value._
           val lcount = la.T.getCount
@@ -157,9 +157,9 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
         case WrittenBy(OutputField(_:FringeStreamRead, "lastBit")) => 
           Some(Finite(1))
         case WrittenBy(o@OutputField(l:LockRMWBlock, "unlockReadData")) => 
-          l.unlockReadAddrs(l.accumMap(o))(l.laneMap(o)).T.flatMap { _.getCount }
+          l.unlockReadAddr(l.accumMap(o))(l.laneMap(o)).T.flatMap { _.getCount }
         case WrittenBy(o@OutputField(l:LockRMWBlock, "unlockWriteAck")) => 
-          l.unlockWriteAddrs(l.accumMap(o))(l.laneMap(o)).T.flatMap { _.getCount }
+          l.unlockWriteAddr(l.accumMap(o))(l.laneMap(o)).T.flatMap { _.getCount }
         case WrittenBy(o@OutputField(l:LockRMWBlock, "lockDataOut")) => 
           l.lockAddrs(l.laneMap(o)).T.getCount
         case WrittenBy(o@OutputField(l:LockRMWBlock, "lockInputOut")) => 
