@@ -66,7 +66,7 @@ object psh extends PIRShell with Session {
     //addPass(runPsim, psimRunner)
     //addPass(psimParser)
     addPass(new PIRCtxDotGen(s"simple10.dot"))
-    addPass(new PIRIRDotGen(s"top10.dot"))
+    addPass(new PIRTopDotGen(s"top10.dot"))
 
     //addPass("tracer") { runner =>
       //val ctxs = pirTop.collectDown[Context]()

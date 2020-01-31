@@ -158,10 +158,6 @@ trait Misc {
     exitCode
   } 
 
-  def getSrcCtx(name:String)(implicit file:sourcecode.File, line: sourcecode.Line) = {
-    s"$name ${file.value.split("/").last}:${line.value}"
-  }
-
   def getSrcCtx(implicit file:sourcecode.File, line: sourcecode.Line) = {
     s"${file.value.split("/").last}:${line.value}"
   }

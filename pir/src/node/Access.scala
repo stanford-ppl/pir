@@ -1,6 +1,7 @@
 package pir
 package node
 
+import spade.param._
 import prism.graph._
 
 trait Access extends PIRNode {
@@ -82,8 +83,8 @@ case class LockRead()(implicit env:Env) extends ReadAccess with LockAccess
 case class LockWrite()(implicit env:Env) extends WriteAccess with LockAccess {
   val ack = OutputField[List[PIRNode]].presetVec(1).tp(Bool)
 }
-case class LockRMW(exp:PIRNode)(implicit env:Env) extends LockAccess {
-  val mem = InputField[Memory]
+case class LockRMW(op:Opcode)(implicit env:Env) extends LockAccess {
+  val mem = OutputField[Memory]
   val input = InputField[PIRNode]
   val ack = OutputField[List[PIRNode]].presetVec(1).tp(Bool)
 }

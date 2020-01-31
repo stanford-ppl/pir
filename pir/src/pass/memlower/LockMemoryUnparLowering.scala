@@ -61,7 +61,7 @@ trait LockMemoryUnparLoweirng extends GenericMemoryLowering { self:LockMemoryLow
     val addrCtx = addrCtxs.getOrElseUpdate(ctrl, {
       // Optimization. Put address calculation in PMU if doesn't have lock
       val cu = if (isSplitAccess) pirTop else memCU
-      within(cu, ctrl) { Context() }
+      within(cu, ctrl) { stage(Context()) }
     })
     swapParent(access, addrCtx)
     flattenEnable(access)
@@ -86,7 +86,7 @@ trait LockMemoryUnparLoweirng extends GenericMemoryLowering { self:LockMemoryLow
     val lock = pack.map { _._2 }
     val splitKey = pack.map { _._3 }
     // Setting up access within PMU
-    val accessCtx = within(memCU, ctrl) { Context().streaming(true) }
+    val accessCtx = within(memCU, ctrl) { stage(Context().streaming(true)) }
     swapParent(access, accessCtx)
     swapConnection(access.addr, access.addr.singleConnected.get, addr)
     setSplit(isSplitAccess) {
@@ -94,7 +94,7 @@ trait LockMemoryUnparLoweirng extends GenericMemoryLowering { self:LockMemoryLow
       bufferInput(accessCtx)
     }
     if (isLast) {
-      val mergeCtx = within(memCU, ctrl) { Context().streaming(true) }
+      val mergeCtx = within(memCU, ctrl) { stage(Context().streaming(true)) }
       val dep = access match {
         case access:LockRead => access.out
         case access:LockWrite => access.ack
@@ -151,9 +151,9 @@ trait LockMemoryUnparLoweirng extends GenericMemoryLowering { self:LockMemoryLow
 
   private def allocateSplitter(ctrl:ControlTree, addr:Output[PIRNode], key:Output[PIRNode]) = {
     val ctx = splitCtxs.getOrElseUpdate(ctrl, {
-      val ctx = within(pirTop, ctrl) { Context().streaming(true) }
+      val ctx = within(pirTop, ctrl) { stage(Context().streaming(true)) }
       within(ctx, ctrl) {
-        Splitter()
+        stage(Splitter())
       }
       ctx
     })

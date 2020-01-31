@@ -30,6 +30,7 @@ trait LockMemoryBackBoxLowering extends GenericMemoryLowering { self:LockMemoryL
           if (ig.isLockedAccess) lowerLockedRMW(ig, block, blockCtx, accumMap)
           else lowerUnlockAccessGroup(ig, block, blockCtx, accumMap)
         }
+        // Insert tokens across accesses to enforce ordering
         reqresp.groupBy { case (access,reqresp) => access.mem.T }.foreach { case (mem, accesses) =>
           val reqrespMap = accesses.toMap
           val sorted = consistencyBarrier(reqrespMap.keys.toList)(dependsOn){ case (from,to,carried,depth) =>

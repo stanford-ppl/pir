@@ -23,7 +23,7 @@ trait PIR extends Compiler {
       tryDot(new PIRCtxDotGen(s"ctx.dot"))
     }
     if (config.enableVerboseDot)
-      tryDot(new PIRIRDotGen(s"top.dot"))
+      tryDot(new PIRTopDotGen(s"top.dot"))
   }
 
   def tryDot(dotGen:PIRIRDotGen) = {

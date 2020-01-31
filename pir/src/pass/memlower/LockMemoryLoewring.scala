@@ -60,8 +60,13 @@ trait LockMemoryLowering extends GenericMemoryLowering
     if (rmws.size > 1) err(s"Cannot have more than 1 read modify write block ${quoteSrcCtx(rmws)}")
 
     //if (noOuterPar && !isDRAM && rmws.size == 1) return mems.map { mem => lowerUnparRMW(mem) }
-    if (noOuterPar && !isDRAM && rmws.forall { _.accums.forall { case (mem, read, write, exps) => exps.size == 1 } }) {
+    def specialRMW(exps:List[PIRNode]) = exps match {
+      case List(exp@OpDef(FixAdd | FixMul | FltAdd)) => true
+      case _ => false
+    }
+    if (noOuterPar && !isDRAM && rmws.forall { _.accums.forall { case (mem, read, write, exps) => specialRMW(exps) } }) {
       lockMems.foreach { mem => lowerUnparRMW(mem) }
+      return
     }
     if (noOuterPar && lockMems.size == 1 && !isDRAM) return lowerUnparLockMem(lockMems.head)
 

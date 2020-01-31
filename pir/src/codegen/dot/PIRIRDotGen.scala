@@ -6,8 +6,7 @@ import prism.codegen._
 import prism.util._
 import prism.graph._
 
-class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDotCodegen { self =>
-  def fileName = fn
+trait PIRIRDotGen extends PIRTraversal with IRDotCodegen { self =>
 
   implicit class PIRStringHelper(label:String) {
     def append(field:String, value:Any):String = value match {
@@ -53,8 +52,7 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
       .append("delay", n.delay.v)
       .append("count", n.count.v)
       .append("scale", n.scale.v)
-      .append("iter", n.iter.v) +
-      n.srcCtx.v.fold("") { sc => s"\n$sc" }
+      .append("iter", n.iter.v)
     }.foldAt(n.to[Counter]) { (q, n) =>
       q.append("min", n.min.T)
       .append("max", n.max.T)
@@ -82,7 +80,6 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
       .append("state", n.psimState)
       .append("activeRate", n.activeRate) +
       n.getCtrl.uid.v.fold("") { uid => s"\nuid=[${uid.mkString(",")}], par=${n.getCtrl.par.get}"} +
-      n.ctrl.get.srcCtx.v.fold("") { sc => s"\n$sc" } + 
       s"\nop=${n.collectDown[OpNode]().size}"
     }
   }
@@ -143,53 +140,47 @@ class PIRIRDotGen(fn:String)(implicit design:PIR) extends PIRTraversal with IRDo
   }
 
   override def setAttrs(n:N):DotAttr = {
-    super.setAttrs(n).url(htmlGen.fileName + s"#$n")
+    val attr = super.setAttrs(n).url(htmlGen.fileName + s"#$n")
+    n match {
+      case n:PIRNode if n.isLeaf =>
+        attr.setNode.attr("tooltip", quoteToolTip(n)) 
+      case n:PIRNode =>
+        attr.setGraph.attr("tooltip", quoteToolTip(n)) 
+      case n => attr
+    }
+  }
+
+  def quoteToolTip(n:PIRNode) = {
+    var tooltip = new StringBuilder()
+    tooltip ++= qdef(n)
+    n.metadata.values.foreach { metadata =>
+      metadata.v.foreach { v =>
+        tooltip ++= s"${metadata.name} = $v\n"
+      }
+    }
+    tooltip.toString
   }
 
 }
 
-class PIRTopDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fileName) {
+class PIRTopDotGen(val fileName:String)(implicit design:PIR) extends PIRIRDotGen {
   override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
     (from, to) match {
       case (OutputField(from:GlobalOutput, _), InputField(to:GlobalInput,_)) =>
       case (from, to) => super.emitEdge(from, to, attr)
     }
   }
-  override def setAttrs(n:N):DotAttr = n match {
-    case n:PIRNode if n.isLeaf=>
-      var tooltip = new StringBuilder()
-      tooltip ++= qdef(n)
-      n.metadata.values.foreach { metadata =>
-        metadata.v.foreach { v =>
-          tooltip ++= s"${metadata.name} = $v\n"
-        }
-      }
-      super.setAttrs(n).attr("tooltip", tooltip.toString)
-    case n => super.setAttrs(n)
-  }
+
 }
 
-class PIRCtxDotGen(fileName:String)(implicit design:PIR) extends PIRIRDotGen(fileName) {
+class PIRCtxDotGen(val fileName:String)(implicit design:PIR) extends PIRIRDotGen {
   override def visitFunc(n:N) = n match {
     case n:Context => n.descendents.collect { case n:LocalAccess => n; case n:Access => n; case c:BlackBox => c }.toList
     case n => super.visitFunc(n)
   }
-
-  override def setAttrs(n:N):DotAttr = n match {
-    case n:PIRNode if n.isLeaf=>
-      var tooltip = new StringBuilder()
-      tooltip ++= qdef(n)
-      n.metadata.values.foreach { metadata =>
-        metadata.v.foreach { v =>
-          tooltip ++= s"${metadata.name} = $v\n"
-        }
-      }
-      super.setAttrs(n).attr("tooltip", tooltip.toString)
-    case n => super.setAttrs(n)
-  }
 }
 
-class PIRGlobalDotGen(fn:String, noBackEdge:Boolean=false)(implicit design:PIR) extends PIRIRDotGen(fn) {
+class PIRGlobalDotGen(val fileName:String, noBackEdge:Boolean=false)(implicit design:PIR) extends PIRIRDotGen {
   var backEdges = Set.empty[(Output[PIRNode], Input[PIRNode])]
   override def initPass = {
     super.initPass
@@ -252,17 +243,17 @@ class PIRGlobalDotGen(fn:String, noBackEdge:Boolean=false)(implicit design:PIR) 
 
   override def setAttrs(n:N):DotAttr = n match {
     case n:GlobalContainer =>
-      val mem = n.collectDown[Memory]().map { quote(_) }
-      val bbs = n.collectDown[BlackBox]().map { quote(_) }
-      var tooltip = s"$n"
+      val mem = n.collectDown[Memory]().map { quoteToolTip(_) }
+      val bbs = n.collectDown[BlackBox]().map { quoteToolTip(_) }
+      var tooltip = quoteToolTip(n)
       if (mem.nonEmpty) tooltip += s"\n${mem.mkString(",")}" 
       if (bbs.nonEmpty) tooltip += s"\n${bbs.mkString(",")}"
       val ctxs = n.collectDown[Context]()
       val ctxStr = ctxs.slice(0,3).map { ctx =>
-        quote(ctx)
+        quoteToolTip(ctx)
       }
       tooltip += s"\n${ctxStr.mkString("\n")}${if(ctxs.size>3) "\n..." else ""}"
-      super.setAttrs(n).attr("tooltip", tooltip)
+      super.setAttrs(n).setNode.attr("tooltip", tooltip)
     case n => super.setAttrs(n)
   }
   
