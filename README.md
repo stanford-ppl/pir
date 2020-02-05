@@ -33,6 +33,8 @@ bin/test -a <app> -b <backend> -p <project> -t <threads> [-H, -T]
 example command:
 `bin/test -a DotProduct_0 -b Tst -p pirTest`
 
+*By default bin/test cache succeeded passes. To force rerun all passes, add `-r all`*
+
 which will generates apps in `spatial/gen/Tst_pirTest`. 
 
 While `bin/test` is running. you can monitor the status by run `bin/log <gendir>`, which will show the progress of each pass. you can add `-m field1,field2` to get summary of the apps. Useful fields includes VPCU,VPMU,VDAG,VMC, which are number of virual CUs used. PCU,PMU,DAG,MC,for number of physical CUs used. 
