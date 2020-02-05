@@ -13,7 +13,7 @@ trait PIRDebugger extends Debugger {
 
   def openPIRDot:BreakAction = { case ("top", state, callBack) =>
     info(s"Open PIRIRDotGen")
-    new PIRIRDotGen(s"top.dot").run
+    new PIRTopDotGen(s"top.dot").run
     callBack()
   }
 

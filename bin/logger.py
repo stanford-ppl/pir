@@ -545,17 +545,18 @@ class Logger():
     
         error = False
         for key in conf:
-            if 'err' in conf:
+            if 'err' in key:
                 if conf[key] is not None:
                     error = True
+
         if error and prevsucc.shape[0] > 0:
             times = get_col(prevsucc, 'time')
             pconf = to_conf(prevsucc.iloc[np.argmax(times), :])
             print('{} {}'.format(msg, cstr(RED,'(Regression)')))
             print('{} {} {} {}'.format(self.getMessage(pconf), pconf['spatial_sha'], 
                 get(pconf,'pir_sha'), pconf['time']))
-        # elif not conf[diffkey] and not error:
-            # print('{}'.format(msg))
+        elif not conf[diffkey] and not error:
+            print('{}'.format(msg))
         elif conf[diffkey]:
             if prevsucc.shape[0] == 0:
                 print('{} {}'.format(msg, cstr(GREEN,'(New)')))

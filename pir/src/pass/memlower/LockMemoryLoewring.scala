@@ -7,171 +7,151 @@ import prism.graph._
 import spade.param._
 import scala.collection.mutable
 
-trait LockMemoryLowering extends GenericMemoryLowering {
-  override def finPass = {
-    splitCtxs.clear
-    super.finPass
+trait LockMemoryLowering extends GenericMemoryLowering 
+  with LockMemoryUnparRMWLoweirng 
+  with LockMemoryUnparLoweirng 
+  with LockMemoryBackBoxLowering {
+
+  override def visitNode(n:N) = n match {
+    case n:Lock => lowerPattern(n)
+    case n:LockMem =>
+    case _ => super.visitNode(n)
   }
 
-  private val splitCtxs = mutable.Map[ControlTree, Context]()
-  private val addrCtxs = mutable.Map[ControlTree, Context]()
-  protected def lowerUnparLockMem(n:Memory) = dbgblk(s"lowerUnparLockMem($n)"){
-    val memCU = within(pirTop) { MemoryContainer() }
-    swapParent(n, memCU)
-    val accesses = n.accesses.as[List[LockAccess]]
-    val lockMap = accesses.groupBy { access => access.lock.T }
-    val lastAccesses = lockMap.flatMap {
-      case (None, accesses) => None
-      case (Some(lock), accesses) => Some(accesses.maxBy { _.order.get })
-    }.toSet
-    dbg(s"lastAccesses=${lastAccesses.mkString(",")}")
-    accesses.foreach { access =>
-      lowerAccess(n, memCU, access, lastAccesses.contains(access))
-    }
-    val syncAccesses = accesses.groupBy { _.getCtrl }.flatMap { case (ctrl, accesses) =>
-      val (locked, unlocked) = accesses.partition { _.lock.isConnected }
-      unlocked ++ locked.headOption
-    }.toList
-    consistencyBarrier(syncAccesses)(dependsOn){ case (from,to,carried,depth) =>
-      insertToken(from.ctx.get, to.ctx.get).depth(depth)
-    }
-    accesses.foreach { access =>
-      val ctx = access.ctx.get
-      bufferInput(ctx, fromCtx=addrCtxs.get(access.getCtrl))
-    }
-    addrCtxs.clear
-  }
+  def lowerPattern(n:Lock):Unit = {
+    dbg(s"lowerPattern($n)")
+    val lockOns = n.out.T.as[List[LockOnKeys]]
+    val lockAccesses = lockOns.flatMap { _.out.T }.as[List[LockAccess]].toSet
+    val lockMems = lockAccesses.map { _.mem.T }.toList.sortBy { _.progorder.get }.as[List[LockMem]]
+    val accesses = lockMems.flatMap { _.accesses.as[List[LockAccess]] }.distinct
+    val lockKeys = lockOns.map { _.key.T }.distinct
+    val preunrollKey = lockKeys.map { _.progorder.v }.distinct
+    if (preunrollKey.size > 1) err(s"Multiple locked keys ${lockKeys.map { quoteSrcCtx }}")
 
-  private def dependsOn(deped:Access, dep:Access):Option[Int] = {
-    val lca = leastCommonAncesstor(deped.getCtrl, dep.getCtrl).get
-    lca.schedule match {
-      case Fork => return None
-      case ForkJoin => return None
-      case _ =>
-    }
-    val carried = dep.progorder.get > deped.progorder.get
-    if (!carried) Some(1) else None
-  }
+    // A list of list accesses, each list contains unrolled accesses belong to the same
+    // preunrolled access.
+    // Each list of unrolled access is sorted by their unrolling order
+    val sortedAccesses:List[UnrolledAccess[LockAccess]] = accesses.groupBy { a => a.progorder.get }.toList.sortBy { _._1 }
+      .map { case (po, as) => UnrolledAccess(as.sortBy { _.order.get }) }
 
-  private def lowerAccess(mem:Memory, memCU:MemoryContainer, access:LockAccess, isLast:Boolean) = {
-    val isSplitAccess = access.lock.isConnected
-    val ctrl = access.ctx.get.getCtrl
-    // Setting up address calculation
-    val addrCtx = addrCtxs.getOrElseUpdate(ctrl, {
-      // Optimization. Put address calculation in PMU of doesn't have lock
-      val cu = if (isSplitAccess) pirTop else memCU
-      within(cu, ctrl) { Context() }
-    })
-    swapParent(access, addrCtx)
-    flattenEnable(access)
-    var addr = access.addr.singleConnected.get
-    // Setting up splitter and lock if it's sparse access
-    val pack = access.lock.T.map { lockOn =>
-      val lock = lockOn.lock.T
-      val key = lockOn.key.singleConnected.get
-      val (splitAddr, splitKey, splitCtx) = allocateSplitter(ctrl, addr, key)
-      bufferInput(splitCtx, fromCtx=Some(addrCtx))
-      addr = splitAddr
-      if (!canReach(lock.lock,splitKey)) {
-        lock.lock(splitKey)
-        setSplit(true) {
-          bufferInput(lock.lock, fromCtx=Some(splitCtx))
-        }
+    // List of InnerAccessGroup sorted by program order on the same lock
+    val sortedGroupedAccesses:List[InnerAccessGroup] = sortedAccesses.groupBy { ua => ua.lanes.head.getCtrl }
+      .toList.sortBy { _._1.progorder.get }.map { case (ctrl:ControlTree,accesses:List[UnrolledAccess[LockAccess]]) => 
+        InnerAccessGroup(ctrl,accesses)
       }
-      swapConnection(access.lock, lockOn.out, lock.out)
-      (splitCtx, lock, splitKey)
-    }
-    val splitCtx = pack.map { _._1 }
-    val lock = pack.map { _._2 }
-    val splitKey = pack.map { _._3 }
-    // Setting up access within PMU
-    val accessCtx = within(memCU, ctrl) { Context().streaming(true) }
-    swapParent(access, accessCtx)
-    swapConnection(access.addr, access.addr.singleConnected.get, addr)
-    setSplit(isSplitAccess) {
-      bufferInput(access.addr, fromCtx=Some(splitCtx.getOrElse(addrCtx)))
-      bufferInput(accessCtx)
-    }
-    if (isLast) {
-      val mergeCtx = within(memCU, ctrl) { Context().streaming(true) }
-      val dep = access match {
-        case access:LockRead => access.out
-        case access:LockWrite => access.ack
-      }
-      val unlock = within(mergeCtx, ctrl) {
-        stage(Forward().in(splitKey.get).dummy(dep)).out
-      }
-      setSplit(true) { bufferInput(mergeCtx) }
-      lock.foreach { lock =>
-        lock.unlock(unlock)
-        setSplit(true) { bufferInput(lock.unlock) }
-      }
-    }
-    // Setting up connection with PCU
-    access.to[LockRead].foreach { access =>
-      access.out.connected.distinct.groupBy { in => in.src.ctx.get }.foreach { case (inCtx,ins) =>
-        val in::rest = ins
-        val read = setSplit(isSplitAccess) { bufferInput(in) }.head
-        rest.foreach { in =>
-          swapConnection(in, access.out, read.out)
-        }
-      }
-    }
-  }
 
-  private var _isSplit = false
-  def setSplit[T<:LocalOutAccess](isSplit:Boolean)(alloc: => Seq[T]):Seq[T] = {
-    val saved = _isSplit
-    _isSplit = isSplit
-    val reads = alloc
-    _isSplit = saved
-    reads
-  }
-
-  override def insertBuffer(depOut:Output[PIRNode], depedIn:Input[PIRNode], fromCtx:Option[Context]=None, isFIFO:Boolean=true):Option[BufferRead] = {
-    super.insertBuffer(depOut,depedIn,fromCtx,isFIFO).map { read =>
-      read.isSplit := _isSplit
-      read.inAccess.isSplit := _isSplit
-      read
-    }
-  }
-
-  override def childDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
-    val ctrler = if (ctx.streaming.get) {
-      within(ctx, ctrl) { 
-        allocate[UnitController]()(stage(UnitController().par(1)))
+    dbgblk(s"sortedGroupedAccesses") {
+      sortedGroupedAccesses.foreach { ig =>
+        dbg(s"$ig")
       }
+    }
+
+    val noOuterPar = sortedAccesses.forall { ig => ig.lanes.size == 1 }
+    val isDRAM = assertUnify(lockMems, s"Cannot have both DRAM and SRAM on the same lock ${quoteSrcCtx(n)}") { _.isDRAM }.get
+
+    val (lockConsis, lockInconsist) = sortedGroupedAccesses.partition { _.isLockConsist }
+    if (lockInconsist.nonEmpty) 
+      err(s"Cannot have unlocked and locked statement in the same basic block: ${quoteSrcCtx(lockInconsist)}}")
+
+    val rmws = sortedGroupedAccesses.collect { case rmw:InnerAccessRMW => rmw }
+    val others = sortedGroupedAccesses.collect { case ig:InnerAccessGroup if !ig.isInstanceOf[InnerAccessRMW] => ig }
+    val (locked, unlocked) = others.partition { _.isLockedAccess }
+    if (locked.nonEmpty) err(s"Do not handle locked non read modify write accesses ${quoteSrcCtx(others)}")
+    if (rmws.size > 1) err(s"Cannot have more than 1 read modify write block ${quoteSrcCtx(rmws)}")
+
+    //if (noOuterPar && !isDRAM && rmws.size == 1) return mems.map { mem => lowerUnparRMW(mem) }
+    def specialRMW(exps:List[PIRNode]) = exps match {
+      case List(exp@OpDef(FixAdd | FixMul | FltAdd)) => true
+      case _ => false
+    }
+    if (noOuterPar && !isDRAM && rmws.forall { _.accums.forall { case (mem, read, write, exps) => specialRMW(exps) } }) {
+      lockMems.foreach { mem => lowerUnparRMW(mem) }
+      return
+    }
+    if (noOuterPar && lockMems.size == 1 && !isDRAM) return lowerUnparLockMem(lockMems.head)
+
+    if (rmws.size == 1) {
+      val rmwpar = rmws.head.addrs.size
+      unlocked.foreach { case InnerAccessGroup(ctrl,accesses) =>
+        //group.foreach { case InnerAccessMemGroup(mem, accesses) =>
+          accesses.foreach { case UnrolledAccess(lanes) =>
+            val par = lanes.size
+            if (par > 1 && par != rmwpar)
+              err(s"Cannot parallelize the unlocked accesses ${quoteSrcCtx(lanes.head)} with different par with locked access for ${quoteSrcCtx(n)} ")
+          }
+        //}
+      }
+      assertUnify(lockMems, s"${quoteSrcCtx(n)} have different types for read modify accumulators") { mem => mem.tp.get }
+      assertUnify(lockMems, s"${quoteSrcCtx(n)} have different dimensions for read modify accumulators") { mem => mem.dims.get }
+      return lowerRMW(n, rmwpar, lockMems, sortedGroupedAccesses)
     } else {
-      assert(!compiler.hasRun[DependencyDuplication])
-      // Centralized controller
-      ctrl.ctrler.get
+      err(s"Unsupported access pattern ${quoteSrcCtx(n)}")
     }
-    if (_isSplit)
-      ctrler.stepped
-    else
-      ctrler.childDone
   }
 
-  def allocateSplitter(ctrl:ControlTree, addr:Output[PIRNode], key:Output[PIRNode]) = {
-    val ctx = splitCtxs.getOrElseUpdate(ctrl, {
-      val ctx = within(pirTop, ctrl) { Context().streaming(true) }
-      within(ctx, ctrl) {
-        Splitter()
+  override def quoteSrcCtx(x:Any):String = x match {
+    case UnrolledAccess(lanes) => quoteSrcCtx(lanes.head)
+    case x:InnerAccessRMW => quoteSrcCtx(x.ctrl)
+    case InnerAccessGroup(ctrl, group) => quoteSrcCtx(ctrl)
+    case l:List[_] => l.map { quoteSrcCtx }.mkString("\n")
+    case x => super.quoteSrcCtx(x)
+  }
+
+  implicit class UnrolledAccessUtil(n:UnrolledAccess[LockAccess]) {
+    def isLockedAccess = n.lanes.head.isLockedAccess
+    def isLockedRead = isLockedAccess && n.lanes.head.isRead
+    def isLockedWrite = isLockedAccess && n.lanes.head.isWrite
+    def isUnlockedAccess = !isLockedAccess
+  }
+
+  implicit class LockAccessUtil(n:LockAccess) {
+    def isLockedAccess = n.lock.isConnected
+    def isUnlockedAccess = !isLockedAccess
+  }
+
+  /*
+   * A list of accesses belonging to the same basic block/inner loop
+   * */
+  class InnerAccessGroup(val ctrl:ControlTree, val accesses:List[UnrolledAccess[LockAccess]]) {
+    def isUnlockedAccess = accesses.forall { _.isUnlockedAccess }
+    def isLockedAccess = accesses.forall { _.isLockedAccess }
+    /*
+     * returns whether accesses within a basic block is all locked or all unlocked
+     * */
+    def isLockConsist = accesses.forall { a => a.isUnlockedAccess | a.isLockedAccess }
+  }
+
+  object InnerAccessGroup {
+    def apply(ctrl:ControlTree, accesses:List[UnrolledAccess[LockAccess]]):InnerAccessGroup = {
+      val as = accesses.groupBy { _.lanes.head.mem.T.as[LockMem] }.map { 
+        case (mem, List(a,b)) =>
+          val isLockRMW = a.isLockedRead && b.isLockedWrite && a.lanes.head.addr.T == b.lanes.head.addr.T
+          if (isLockRMW) {
+            val addrs:List[PIRNode] = a.lanes.map { _.addr.T }
+            val exps:List[PIRNode] = a.lanes.head.as[LockRead].out.accumTill[LockWrite]().filterNot { case access:Access => true; case _ => false }
+            (mem,a,b,addrs,exps)
+          } else {
+            return new InnerAccessGroup(ctrl, accesses)
+          }
+        case _ => return new InnerAccessGroup(ctrl, accesses)
+      }.toList
+      val addrs:List[List[PIRNode]] = as.map { case (mem, read, write, addrs, exps) => addrs }
+      testIdentical(addrs) match {
+        case Some(addr) => 
+          InnerAccessRMW(ctrl, addr, as.map { case (mem, read, write, addr, exps) => (mem, read, write, exps) })
+        case None => new InnerAccessGroup(ctrl, accesses)
       }
-      ctx
-    })
-    val splitter = ctx.collectFirstChild[Splitter].get
-    val splitAddr = allocAddr(splitter, addr)
-    val splitKey = allocAddr(splitter, key)
-    stage(splitter)
-    (splitAddr, splitKey, ctx)
+    }
+    def unapply(x:InnerAccessGroup) = Some((x.ctrl, x.accesses))
   }
 
-  def allocAddr(splitter:Splitter, addr:Output[PIRNode]) = {
-    splitter.addrIn.find { canReach(_,addr) }.fold {
-      splitter.addAddrIn(addr).addAddrOut(1).head
-    } { addrIn =>
-      splitter.addrOut(splitter.addrIn.indexOf(addrIn))
-    }
+  case class InnerAccessRMW (
+    override val ctrl:ControlTree,
+    addrs:List[PIRNode], 
+    // (memory, reads, write, rmwexp)
+    // rmwexp: expression for read modify write in first outer lane
+    accums:List[(Memory, UnrolledAccess[LockAccess], UnrolledAccess[LockAccess], List[PIRNode])],
+  ) extends InnerAccessGroup(ctrl, accums.flatMap { case (mem, read, write, exp) => List(read, write) }) {
   }
+
 }

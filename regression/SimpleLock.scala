@@ -20,7 +20,6 @@ class SimpleLock_1 extends SimpleLock(P=16)
         Foreach(N by 1 par P) { j =>
           val addr = j % d
           val id = addr // % 5
-
           val lock = lockSRAMUnit.lock(id) 
           val old: I32 = lockSRAM(addr, lock) // R1
           val next: I32 = old + j

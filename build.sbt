@@ -16,6 +16,7 @@ val bldSettings = Defaults.coreDefaultSettings ++ Seq(
   libraryDependencies += "org.scalatest" % "scalatest_2.12" % "3.0.5" % "test",
   libraryDependencies += "com.github.pureconfig" %% "pureconfig" % "0.7.0",
   libraryDependencies += "io.spray" %%  "spray-json" % "1.3.4",
+  libraryDependencies += "com.lihaoyi" %% "sourcecode" % "0.1.9", // Scala-JVM,
   /*libraryDependencies += "com.thoughtworks.xstream" % "xstream" % "1.4.3",*/
   //libraryDependencies += "io.suzaku" %% "boopickle" % "1.3.0",
   retrieveManaged := true,

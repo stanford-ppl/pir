@@ -97,11 +97,19 @@ trait FieldNode[N<:Node[N]] extends Node[N] { self:N =>
     val Tct = classTag[T]
     override def toString = s"${super.toString}_$name"
   }
+  object InputField {
+    def apply[T:TypeTag:ClassTag](implicit name:sourcecode.Name) = new InputField[T](name.value)
+    def unapply(x: Input[_] with Field[_]):Option[(ND, String)] = Some((x.node, x.name))
+  }
   
   class OutputField[T:TypeTag:ClassTag](val name:String) extends Output[N]()(self) with FieldEdge[T,Output[N],Input[N]] {
     val Ttt = typeTag[T]
     val Tct = classTag[T]
     override def toString = s"${super.toString}_$name"
+  }
+  object OutputField {
+    def apply[T:TypeTag:ClassTag](implicit name:sourcecode.Name) = new OutputField[T](name.value)
+    def unapply(x:Output[_] with Field[_]):Option[(ND, String)] = Some((x.node, x.name))
   }
 
   private def getDynamicInputIndex(name:String) = {

@@ -207,7 +207,7 @@ def create_ivy2():
     if oncluster():
         ivy2 = f'/scratch/{username}/.ivy2'
         if not os.path.exists(ivy2):
-            os.mkdir(ivy2)
+            os.makedirs(ivy2)
 
 
 def create_gendir():
@@ -218,12 +218,14 @@ def create_gendir():
                 current = os.getcwd()
                 gendir = current.replace('/home/','/scratch/')
                 if not os.path.exists(gendir):
-                    os.mkdir(gendir)
+                    os.makedirs(gendir)
                 os.symlink(gendir, 'gen')
-            elif not os.path.islink('gen'):
-                print(cstr(YELLOW, 'WARNING ' + os.path.abspath('gen') + ' is under network drive'))
-            else:
+            elif os.path.islink('gen'):
                 gendir = os.readlink('gen')
+                if not os.path.exists(gendir):
+                    os.makedirs(gendir)
+            else:
+                print(cstr(YELLOW, 'WARNING ' + os.path.abspath('gen') + ' is under network drive'))
 
         if gendir != 'gen':
             hostname = socket.gethostname()

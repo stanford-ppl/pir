@@ -15,7 +15,7 @@ class BlackBoxLowering(implicit compiler:PIR) extends PIRTraversal with SiblingF
   def moveToContext(n:BlackBox) = {
     val ctrl = n.ctrl.get
     val ctx = within(pirTop, ctrl) { 
-      Context().streaming(true)
+      stage(Context()).streaming(true)
     }
     swapParent(n, ctx)
     (n.localDeps ++ n.localDepeds).foreach { neighbor =>
@@ -25,7 +25,7 @@ class BlackBoxLowering(implicit compiler:PIR) extends PIRTraversal with SiblingF
     }
     bufferInput(ctx)
     n.to[Lock].foreach { n =>
-      val memCU = within(pirTop) { MemoryContainer() }
+      val memCU = within(pirTop) { stage(MemoryContainer()) }
       swapParent(ctx,memCU)
     }
   }

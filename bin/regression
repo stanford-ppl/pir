@@ -24,6 +24,7 @@ def main():
     print(f'Running regression on {cstr(CYAN,hostname)}', flush=True)
     create_ivy2()
 
+    remove(os.environ['HOME'] + "/.ivy2/cache/edu.stanford.ppl",force=True)
     os.system('sbt "; project pir; publishAll"')
     apps = opts.app
     if apps is None: apps = []

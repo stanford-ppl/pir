@@ -34,8 +34,8 @@ abstract class Memory(implicit env:Env) extends MemoryNode with DefNode[PIRNode]
 
   val nonBlocking = Metadata[Boolean]("nonBlocking", default=false)
   /*  ------- Fields -------- */
-  val in = new InputField[List[Access]]("in")
-  val out = new OutputField[List[Access]]("out")
+  val in = InputField[List[Access]]
+  val out = OutputField[List[Access]]
 
   override def asInput = Some(in)
   override def asOutput = Some(out)
@@ -59,9 +59,9 @@ case class LUT()(implicit env:Env) extends Memory
 case class LockMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory
 
 case class Lock()(implicit env:Env) extends BlackBox with DefNode[PIRNode] {
-  val lock = new InputField[PIRNode]("lock")
-  val unlock = new InputField[PIRNode]("unlock")
-  val out = new OutputField[List[PIRNode]]("out").tp(Bool).presetVec(1)
+  val lock = InputField[PIRNode]
+  val unlock = InputField[PIRNode]
+  val out = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
   override def asOutput = Some(out)
 }
 case class Splitter()(implicit env:Env) extends BlackBox {
@@ -81,9 +81,9 @@ case class Splitter()(implicit env:Env) extends BlackBox {
 case class MergeBuffer(ways:Int, par:Int)(implicit env:Env) extends BlackBox with Def { self =>
   val inputs = List.tabulate(ways) { i => new InputField[PIRNode](s"in$i") }
   val bounds = List.tabulate(ways) { i => new InputField[PIRNode](s"bound$i") }
-  val init = new InputField[PIRNode](s"init").tp(Bool).presetVec(1)
-  val outBound = new OutputField[List[PIRNode]]("outBound")
-  val outInit = new OutputField[List[PIRNode]]("outInit").tp(Bool).presetVec(1)
+  val init = InputField[PIRNode].tp(Bool).presetVec(1)
+  val outBound = OutputField[List[PIRNode]]
+  val outInit = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
   override def compType(n:IR) = n match {
     case `outBound` => assertUnify(bounds, s"$n.outBound.tp") { _.inferTp }.get
     case `out` => self.inferTp
@@ -97,8 +97,8 @@ case class MergeBuffer(ways:Int, par:Int)(implicit env:Env) extends BlackBox wit
   }
 }
 case class Forward()(implicit env:Env) extends Def {
-  val in = new InputField[PIRNode]("in")
-  val dummy = new InputField[List[PIRNode]]("dummy")
+  val in = InputField[PIRNode]
+  val dummy = InputField[List[PIRNode]]
   override def compType(n:IR) = n match {
     case `out` => in.inferTp
     case _ => super.compType(n)
@@ -109,8 +109,8 @@ case class Forward()(implicit env:Env) extends Def {
   }
 }
 case class LockOnKeys()(implicit env:Env) extends Def {
-  val lock = new InputField[Lock]("lock")
-  val key = new InputField[PIRNode]("key")
+  val lock = InputField[Lock]
+  val key = InputField[PIRNode]
   presetVec(1)
   tp(Bool)
 }
@@ -124,12 +124,12 @@ case class LockRMWBlock(
   val memPar = outerPar
   val numIns = Metadata[Int]("numIns") // This is not known before instantiate the template
 
-  val unlockReadAddrs = accums.map { a => a -> List.fill(outerPar) { new InputField[Option[PIRNode]](s"unlockReadAddr").tp(Fix(true, 32, 0)) } }.toMap
-  val unlockReadDatas = accums.map { a => a -> List.fill(outerPar) { new OutputField[Option[PIRNode]](s"unlockReadData").tp(a.tp) } }.toMap
+  val unlockReadAddr = accums.map { a => a -> List.fill(outerPar) { InputField[Option[PIRNode]].tp(Fix(true, 32, 0)) } }.toMap
+  val unlockReadData = accums.map { a => a -> List.fill(outerPar) { OutputField[Option[PIRNode]].tp(a.tp) } }.toMap
 
-  val unlockWriteAddrs = accums.map { a => a -> List.fill(outerPar) { new InputField[Option[PIRNode]](s"unlockWriteAddr").tp(Fix(true, 32, 0)) } }.toMap
-  val unlockWriteDatas = accums.map { a => a -> List.fill(outerPar) { new InputField[Option[PIRNode]](s"unlockWriteData").tp(a.tp) } }.toMap
-  val unlockWriteAcks = accums.map { a => a -> List.fill(outerPar) { new OutputField[Option[PIRNode]](s"unlockWriteAck").tp(Bool).presetVec(1) } }.toMap
+  val unlockWriteAddr = accums.map { a => a -> List.fill(outerPar) { InputField[Option[PIRNode]].tp(Fix(true, 32, 0)) } }.toMap
+  val unlockWriteData = accums.map { a => a -> List.fill(outerPar) { InputField[Option[PIRNode]].tp(a.tp) } }.toMap
+  val unlockWriteAck = accums.map { a => a -> List.fill(outerPar) { OutputField[Option[PIRNode]].tp(Bool).presetVec(1) } }.toMap
 
   def addLockInputIn = DynamicInputFields[PIRNode](s"lockInputIn")
   def addLockInputOut = DynamicOutputFields[PIRNode](s"lockInputOut")
@@ -143,32 +143,33 @@ case class LockRMWBlock(
     val outs = getDynamicOutputFields[PIRNode](s"lockInputOut")
     outs.grouped(numIns.get).toList
   }
-  val lockAddrs = List.fill(outerPar) { new InputField[PIRNode](s"lockAddr").tp(Fix(true,32,0)) }
-  val lockDataIns = accums.map { a => a -> List.fill(memPar) { new InputField[PIRNode](s"lockDataIn").tp(a.tp) } }.toMap
-  val lockDataOuts = accums.map { a => a -> List.fill(memPar) { new OutputField[PIRNode](s"lockDataOut").tp(a.tp) } }.toMap
-  val lockAcks = List.fill(outerPar) { new OutputField[PIRNode](s"lockAck").tp(Bool).presetVec(1) }
+  val lockAddrs = List.fill(outerPar) { InputField[PIRNode].tp(Fix(true,32,0)) }
+  assert(lockAddrs.head.name == "lockAddrs")
+  val lockDataIn = accums.map { a => a -> List.fill(memPar) { InputField[PIRNode].tp(a.tp) } }.toMap
+  val lockDataOut = accums.map { a => a -> List.fill(memPar) { OutputField[PIRNode].tp(a.tp) } }.toMap
+  val lockAcks = List.fill(outerPar) { OutputField[PIRNode].tp(Bool).presetVec(1) }
 
   val accumMap:Map[Edge[_,_,_],LockAccum] = 
-    unlockReadAddrs.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
-    unlockReadDatas.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
-    unlockWriteAddrs.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
-    unlockWriteDatas.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
-    unlockWriteAcks.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
-    lockDataIns.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
-    lockDataOuts.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ }
+    unlockReadAddr.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
+    unlockReadData.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
+    unlockWriteAddr.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
+    unlockWriteData.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
+    unlockWriteAck.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
+    lockDataIn.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ } ++
+    lockDataOut.map { case (k,vs) => vs.map { v => (v,k) }.toMap }.reduce { _ ++ _ }
 
   def treeInMap:Map[Edge[_,_,_],Int] =
     lockInputIns.flatMap { _.flatMap { _.zipWithIndex } }.toMap
 
   def laneMap:Map[Edge[_,_,_],Int] = //def because of dynamic edges
-    unlockReadAddrs.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
-    unlockReadDatas.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
-    unlockWriteAddrs.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++ 
-    unlockWriteDatas.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
-    unlockWriteAcks.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    unlockReadAddr.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    unlockReadData.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    unlockWriteAddr.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++ 
+    unlockWriteData.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    unlockWriteAck.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
     lockAddrs.zipWithIndex.toMap ++
-    lockDataIns.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
-    lockDataOuts.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    lockDataIn.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
+    lockDataOut.map { case (k,vs) => vs.zipWithIndex.toMap }.reduce { _ ++ _ } ++
     lockInputIns.zipWithIndex.flatMap { case (ins,lane) => ins.flatten.map { _ -> lane } }.toMap ++
     lockInputOuts.zipWithIndex.flatMap { case (outs,lane) => outs.map { _ -> lane } }.toMap ++
     lockAcks.zipWithIndex.toMap
@@ -181,7 +182,7 @@ case class LockRMWBlock(
     case n@OutputField(_,"lockDataOut") => 
       lockAddrs(laneMap(n)).inferVec
     case n@OutputField(_,"unlockReadData") => 
-      unlockReadAddrs(accumMap(n))(laneMap(n)).inferVec
+      unlockReadAddr(accumMap(n))(laneMap(n)).inferVec
     case n@OutputField(_,"lockInputOut") => 
       getDynamicInputFields[PIRNode](s"lockInputIn")(n.dynamicIdx.get).inferVec
     case _ => super.compVec(n)
@@ -216,8 +217,8 @@ case class DRAMFringe()(implicit env:Env) extends GlobalContainer
 trait GlobalIO extends PIRNode
 case class GlobalInput()(implicit env:Env) extends GlobalIO {
   override def className = "gi"
-  val in = new InputField[GlobalOutput]("in")
-  val out = new OutputField[List[LocalOutAccess]]("outs")
+  val in = InputField[GlobalOutput]
+  val out = OutputField[List[LocalOutAccess]]
   override def compType(n:IR) = n match {
     case `out` => in.inferTp
     case _ => super.compType(n)
@@ -229,8 +230,8 @@ case class GlobalInput()(implicit env:Env) extends GlobalIO {
 }
 case class GlobalOutput()(implicit env:Env) extends GlobalIO {
   override def className = "go"
-  val in = new InputField[LocalInAccess]("in")
-  val out = new OutputField[List[GlobalInput]]("outs")
+  val in = InputField[LocalInAccess]
+  val out = OutputField[List[GlobalInput]]
   override def compType(n:IR) = n match {
     case `out` => in.inferTp
     case _ => super.compType(n)
@@ -248,7 +249,7 @@ case class Context()(implicit env:Env) extends PIRNode {
 }
 
 trait Def extends PIRNode with DefNode[PIRNode] {
-  final val out = new OutputField[List[PIRNode]]("out")
+  final val out = OutputField[List[PIRNode]]
   override def asOutput = Some(out)
 }
 
@@ -275,13 +276,13 @@ case class Const(value:Any)(implicit env:Env) extends Def {
   })
 }
 case class AccumAck()(implicit env:Env) extends Def {
-  val ack = new InputField[PIRNode]("ack")
+  val ack = InputField[PIRNode]
   out.presetVec(1)
   out.tp(Bool)
 }
 trait DelayOp extends Def {
   val cycle:Int
-  val in = new InputField[PIRNode]("in")
+  val in = InputField[PIRNode]
   override def compVec(n:IR) = n match {
     case `out` => in.inferVec
     case _ => super.compVec(n)
@@ -296,8 +297,8 @@ case class Delay(cycle:Int)(implicit env:Env) extends DelayOp
 // Mapped to PMU 
 case class ScratchpadDelay(cycle:Int)(implicit env:Env) extends DelayOp with BlackBox
 case class PrintIf()(implicit env:Env) extends Def {
-  val en = new InputField[List[PIRNode]]("en").tp(Bool)
-  val msg = new InputField[PIRNode]("mgs")
+  val en = InputField[List[PIRNode]].tp(Bool)
+  val msg = InputField[PIRNode]
   out.tp(Bool)
   override def compVec(n:IR) = n match {
     case `out` => msg.inferVec
@@ -305,9 +306,9 @@ case class PrintIf()(implicit env:Env) extends Def {
   }
 }
 case class AssertIf()(implicit env:Env) extends Def {
-  val en = new InputField[List[PIRNode]]("en").tp(Bool)
-  val cond = new InputField[List[PIRNode]]("cond").tp(Bool)
-  val msg = new InputField[Option[PIRNode]]("msg")
+  val en = InputField[List[PIRNode]].tp(Bool)
+  val cond = InputField[List[PIRNode]].tp(Bool)
+  val msg = InputField[Option[PIRNode]]
   out.tp(Bool)
   override def compVec(n:IR) = n match {
     case `out` => msg.inferVec
@@ -315,9 +316,9 @@ case class AssertIf()(implicit env:Env) extends Def {
   }
 }
 case class ExitIf()(implicit env:Env) extends Def {
-  val en = new InputField[List[PIRNode]]("en").tp(Bool)
-  val cond = new InputField[List[PIRNode]]("cond").tp(Bool)
-  val msg = new InputField[PIRNode]("mgs")
+  val en = InputField[List[PIRNode]].tp(Bool)
+  val cond = InputField[List[PIRNode]].tp(Bool)
+  val msg = InputField[PIRNode]
   out.tp(Bool)
   override def compVec(n:IR) = n match {
     case `out` => msg.inferVec
@@ -345,11 +346,11 @@ case class OpDef(op:Opcode)(implicit env:Env) extends OpNode with Def {
 // op can be eigher a string, if from spatial, or a list of reduction op if
 // transformed in graph initialization
 case class RegAccumFMA(identity:Any)(implicit env:Env) extends OpNode with Def {
-  val in1 = new InputField[PIRNode]("in1")
-  val in2 = new InputField[PIRNode]("in2")
-  val en = new InputField[Set[PIRNode]]("en").tp(Bool)
-  val first = new InputField[Option[PIRNode]]("first")
-  val init = new InputField[Option[PIRNode]]("init")
+  val in1 = InputField[PIRNode]
+  val in2 = InputField[PIRNode]
+  val en = InputField[Set[PIRNode]].tp(Bool)
+  val first = InputField[Option[PIRNode]]
+  val init = InputField[Option[PIRNode]]
   override def compType(n:IR) = n match {
     case `out` => in1.inferTp
     case _ => super.compType(n)
@@ -363,10 +364,10 @@ case class RegAccumFMA(identity:Any)(implicit env:Env) extends OpNode with Def {
 // op can be eigher a string, if from spatial, or a list of reduction op if
 // transformed in graph initialization
 case class RegAccumOp(op:Any, identity:Any)(implicit env:Env) extends OpNode with Def {
-  val in = new InputField[PIRNode]("in")
-  val en = new InputField[Set[PIRNode]]("en").tp(Bool)
-  val first = new InputField[Option[PIRNode]]("first")
-  val init = new InputField[Option[PIRNode]]("init")
+  val in = InputField[PIRNode]
+  val en = InputField[Set[PIRNode]].tp(Bool)
+  val first = InputField[Option[PIRNode]]
+  val init = InputField[Option[PIRNode]]
   override def compType(n:IR) = n match {
     case `out` => in.inferTp
     case _ => super.compType(n)
@@ -379,10 +380,10 @@ case class RegAccumOp(op:Any, identity:Any)(implicit env:Env) extends OpNode wit
 }
 // Filled can be "0" or "-0". based on shuffling address or data
 case class Shuffle(filled:Any, aid:Int)(implicit env:Env) extends OpNode with Def {
-  val from = new InputField[PIRNode]("from")
-  val to = new InputField[PIRNode]("to")
-  val base = new InputField[PIRNode]("base")
-  val offset = new InputField[Option[PIRNode]]("offset")
+  val from = InputField[PIRNode]
+  val to = InputField[PIRNode]
+  val base = InputField[PIRNode]
+  val offset = InputField[Option[PIRNode]]
   override def compType(n:IR) = n match {
     case `out` => base.inferTp
     case _ => super.compType(n)
@@ -395,7 +396,7 @@ case class Shuffle(filled:Any, aid:Int)(implicit env:Env) extends OpNode with De
   }
 }
 case class HostRead()(implicit env:Env) extends Def {
-  val input = new InputField[PIRNode]("input")
+  val input = InputField[PIRNode]
   override def compType(n:IR) = input.singleConnected.flatMap { _.inferTp }
   out.presetVec(1)
 }
@@ -409,11 +410,11 @@ case class DRAMAddr(dram:DRAM)(implicit env:Env) extends Def {
 }
 case class Counter(par:Int, isForever:Boolean=false)(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
-  val min = new InputField[Option[PIRNode]]("min")
-  val step = new InputField[Option[PIRNode]]("step")
-  val max = new InputField[Option[PIRNode]]("max")
-  val out = new OutputField[List[PIRNode]]("out")
-  val isFirstIter = new OutputField[List[PIRNode]]("isFirstIter")
+  val min = InputField[Option[PIRNode]]
+  val step = InputField[Option[PIRNode]]
+  val max = InputField[Option[PIRNode]]
+  val out = OutputField[List[PIRNode]]
+  val isFirstIter = OutputField[List[PIRNode]]
   override def asOutput = Some(out)
 
   def iters = this.collectOut[CounterIter]()
@@ -427,27 +428,27 @@ case class Counter(par:Int, isForever:Boolean=false)(implicit env:Env) extends P
 }
 
 case class CounterIter(is:List[Int])(implicit env:Env) extends Def {
-  val counter = new InputField[Counter]("counter")
+  val counter = InputField[Counter]
   out.tp(Fix(true, 32, 0)).presetVec(is.size)
 }
 case class CounterValid(is:List[Int])(implicit env:Env) extends Def {
-  val counter = new InputField[Counter]("counter")
+  val counter = InputField[Counter]
   out.tp(Bool).presetVec(is.size)
 }
 
 abstract class Controller(implicit env:Env) extends PIRNode {
   /*  ------- Fields -------- */
-  val en = new InputField[List[PIRNode]]("en").tp(Bool).presetVec(1)
-  val parentEn = new InputField[Option[Controller]]("parentEn").tp(Bool).presetVec(1)
+  val en = InputField[List[PIRNode]].tp(Bool).presetVec(1)
+  val parentEn = InputField[Option[Controller]].tp(Bool).presetVec(1)
 
-  val done = new OutputField[List[PIRNode]]("done").tp(Bool).presetVec(1)
-  val childDone = new OutputField[List[PIRNode]]("childDone").tp(Bool).presetVec(1)
-  val stepped = new OutputField[List[PIRNode]]("stepped").tp(Bool).presetVec(1)
+  val done = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
+  val childDone = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
+  val stepped = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
 
   def isForever = this.collectDown[Counter]().exists { _.isForever }
   def hasBranch = this.ctrl.v.get == Fork || this.to[LoopController].fold(false) { _.stopWhen.isConnected }
-  val uen = new InputField[List[PIRNode]]("uen").tp(Bool).presetVec(1)
-  val laneValid = new OutputField[List[PIRNode]]("laneValid").tp(Bool)
+  val uen = InputField[List[PIRNode]].tp(Bool).presetVec(1)
+  val laneValid = OutputField[List[PIRNode]].tp(Bool)
 
   override def compVec(n:IR) = n match {
     case `laneValid` => par.v
@@ -465,14 +466,14 @@ case class TopController()(implicit env:Env) extends Controller
 case class LoopController()(implicit env:Env) extends Controller {
   /*  ------- Fields -------- */
   val cchain = new ChildField[Counter, List[Counter]]("cchain")
-  val firstIter = new OutputField[List[PIRNode]]("firstIter").tp(Bool).presetVec(1)
-  val stopWhen = new InputField[Option[PIRNode]]("stopWhen").tp(Bool)
+  val firstIter = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
+  val stopWhen = InputField[Option[PIRNode]].tp(Bool)
 
   val constLaneValids = new Metadata[List[Option[Boolean]]]("constLaneValids")
 }
 
 case class ControlBlock()(implicit env:Env) extends PIRNode {
-  val dummy = new InputField[Option[PIRNode]]("dummy").tp(Bool).presetVec(1)
+  val dummy = InputField[Option[PIRNode]].tp(Bool).presetVec(1)
   val ctrlers = new ChildField[Controller, List[Controller]]("ctrlers")
 }
 
@@ -481,7 +482,7 @@ trait MemoryUtil extends CollectorImplicit {
   implicit class MemOp[M<:Memory](n:M) {
     def inAccesses = n.collect[InAccess](visitGlobalIn _)
     def outAccesses = n.collect[OutAccess](visitGlobalOut _)
-    def accesses:List[Access] = inAccesses ++ outAccesses
+    def accesses:List[Access] = n.collect[Access](visitGlobalIn _) ++ n.collect[Access](visitGlobalOut _)
 
     def isFIFO = n match {
       case n:FIFO => true

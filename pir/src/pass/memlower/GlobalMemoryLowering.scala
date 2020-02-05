@@ -122,7 +122,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
   }
 
   private def lowerAccess(mem:Memory, memCU:MemoryContainer, access:Access) = dbgblk(s"lowerAccess($mem, $memCU, $access)") {
-    val ctx = within(memCU, access.ctx.get.getCtrl) { Context() }
+    val ctx = within(memCU, access.ctx.get.getCtrl) { stage(Context()) }
     if (mem.isFIFO) {
       ctx.streaming(false)
     } else {
@@ -158,7 +158,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     val leadAccesses = broadcastMap.values.toList.distinct
     val headAccess = leadAccesses.head
     val mergeCtrl = headAccess.getCtrl
-    val mergeCtx = within(memCU, headAccess.ctx.get.getCtrl) { Context() }
+    val mergeCtx = within(memCU, headAccess.ctx.get.getCtrl) { stage(Context()) }
     dbg(s"mergeCtrl = $mergeCtrl")
     dbg(s"mergeCtx=$mergeCtx")
     val ctrlMap = leastMatchedPeers(mem.accesses.filterNot{_.port.get.isEmpty}.map { _.getCtrl} ).get
@@ -168,7 +168,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
           //case access:BankedWrite => access.ctx.get 
           case access => 
             addrCtxs.getOrElseUpdate(access.getCtrl, {
-              within(memCU, access.ctx.get.getCtrl) { Context() }
+              within(memCU, access.ctx.get.getCtrl) { stage(Context()) }
             })
         }
         dbg(s"addrCtx for $access = $addrCtx")
@@ -210,7 +210,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     }
 
     val List((ofs, data)) = red
-    val accessCtx = within(memCU, headAccess.ctx.get.getCtrl) { Context().streaming(true) }
+    val accessCtx = within(memCU, headAccess.ctx.get.getCtrl) { stage(Context().streaming(true)) }
     val newAccess = within(accessCtx) {
       data.fold[FlatBankedAccess]{
         stage(FlatBankedRead().offset(ofs).mem(mem).mirrorMetas(headAccess))
