@@ -920,7 +920,7 @@ class Logger():
             conf,
             'vcLimit', 
             'plastiroute',
-             lambda lines: int(lines[0].split("-q")[1].split("-")[0].strip()),
+             lambda lines: int(lines[0].split(" -q")[1].split("-")[0].strip()),
             logs=[self.proutesh],
         )
         parsePirConf(self.pirconf, conf, opts)

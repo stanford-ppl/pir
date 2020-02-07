@@ -47,11 +47,19 @@ trait DefaultParamLoader extends Transformer {
       case n:PCUParam =>
         n.mapFieldWithName {
           case ("numStage", x, arg) => getOptOrElse("pcu-stage", arg)
+          case ("numVin", x, arg) => getOptOrElse("pcu-vin", arg)
+          case ("numVout", x, arg) => getOptOrElse("pcu-vout", arg)
+          case ("numSin", x, arg) => getOptOrElse("pcu-sin", arg)
+          case ("numSout", x, arg) => getOptOrElse("pcu-sout", arg)
           case (_, x, arg) => transform(arg)
         }
       case n:PMUParam =>
         n.mapFieldWithName {
           case ("numStage", x, arg) => getOptOrElse("pmu-stage", arg)
+          case ("numVin", x, arg) => getOptOrElse("pmu-vin", arg)
+          case ("numVout", x, arg) => getOptOrElse("pmu-vout", arg)
+          case ("numSin", x, arg) => getOptOrElse("pmu-sin", arg)
+          case ("numSout", x, arg) => getOptOrElse("pmu-sout", arg)
           case (_, x, arg) => transform(arg)
         }
       case n:DramAGParam =>
