@@ -74,7 +74,7 @@ class StreamInfKmeans_7 extends StreamInfKmeans[scala.Int,Int]()(ipf=8, opk=4, o
 
 import spatial.lang.{FileBus,FileEOFBus}
 
-//class StreamInfKmeans2_0 extends StreamInfKmeans2()()
+class StreamInfKmeans2_0 extends StreamInfKmeans2()()
 
 @spatial abstract class StreamInfKmeans2(
   val N:scala.Int = 1, // Number of points
@@ -105,7 +105,7 @@ import spatial.lang.{FileBus,FileEOFBus}
       val cLUT = LUT.fromSeq[T](centroids.map { _.map { _.to[T] } })
       val in  = StreamIn[T](FileBus[T](infile))
       val out  = StreamOut[Tup2[T,Bit]](FileEOFBus[Tup2[T,Bit]](outfile))
-      Foreach(*) { _ =>
+      Stream.Foreach(*) { _ =>
         val packet = SRAM[T](field)
         Foreach(0 until field par ipf) { f =>
           packet(f) = in.value
