@@ -74,7 +74,7 @@ class StreamInfKmeans_7 extends StreamInfKmeans[scala.Int,Int]()(ipf=8, opk=4, o
 
 import spatial.lang.{FileBus,FileEOFBus}
 
-class StreamInfKmeans2_0 extends StreamInfKmeans2()()
+//class StreamInfKmeans2_0 extends StreamInfKmeans2()()
 
 @spatial abstract class StreamInfKmeans2(
   val N:scala.Int = 1, // Number of points

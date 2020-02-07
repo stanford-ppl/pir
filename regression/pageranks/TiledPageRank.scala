@@ -5,7 +5,7 @@ import utils.io.files._
 class TiledPageRank_0 extends TiledPageRank()(ipls=1, ip=1)
 class TiledPageRank_1 extends TiledPageRank()(ipls=16, ip=16)
 class TiledPageRank_2 extends TiledPageRank()(opts=2,ipls=16, ip=16)
-class TiledPageRank_3 extends TiledPageRank()(opN=3,opts=3,ipls=16, ip=16)
+//class TiledPageRank_3 extends TiledPageRank()(opN=3,opts=3,ipls=16, ip=16)
 class TiledPageRank_4 extends TiledPageRank(iters=2)(ipls=1, ip=1)
 
 // Preprocess graph. Sort graph with highest to lowest degree
