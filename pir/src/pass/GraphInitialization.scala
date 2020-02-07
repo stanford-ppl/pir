@@ -238,6 +238,17 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       if (mem.isDRAM) addLive(mem)
     }
 
+    //n.to[CounterValid].foreach { valid =>
+      //valid.counter.T match {
+        //case Counter(_, true) => 
+          //val c = within(valid.parent.get, valid.getCtrl) {
+            //stage(Const(true))
+          //}
+          //swapOutput(valid.out, c.out)
+        //case _ =>
+      //}
+    //}
+
     super.visitNode(n)
   } 
 

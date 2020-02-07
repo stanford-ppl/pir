@@ -71,3 +71,74 @@ class StreamInfKmeans_7 extends StreamInfKmeans[scala.Int,Int]()(ipf=8, opk=4, o
   }
 
 }
+
+import spatial.lang.{FileBus,FileEOFBus}
+
+class StreamInfKmeans2_0 extends StreamInfKmeans2()()
+
+@spatial abstract class StreamInfKmeans2(
+  val N:scala.Int = 1, // Number of points
+  val K:scala.Int = 5, // Number of centroids
+  val field:scala.Int = 11,
+)(
+  val opk:scala.Int = K,
+  val ipf:scala.Int = math.min(field, 16),
+  val ipk:scala.Int = math.min(K, 16),
+) extends SpatialTest {
+
+  type T = Int
+
+  val r = scala.util.Random
+  val centroids = Seq.tabulate(K) { k => Seq.tabulate(field) { f => k } }
+
+  def main(args: Array[String]): Unit = {
+    val infile = buildPath(IR.config.genDir, "tungsten", "in.csv")
+    val outfile = buildPath(IR.config.genDir, "tungsten", "out.csv")
+    createDirectories(dirName(infile))
+
+    val inputs = List.tabulate(N) {i => 
+      List.tabulate(field) { j => i }
+    }
+    writeCSVNow2D(inputs, infile)
+
+    Accel {
+      val cLUT = LUT.fromSeq[T](centroids.map { _.map { _.to[T] } })
+      val in  = StreamIn[T](FileBus[T](infile))
+      val out  = StreamOut[Tup2[T,Bit]](FileEOFBus[Tup2[T,Bit]](outfile))
+      Foreach(*) { _ =>
+        val packet = SRAM[T](field)
+        Foreach(0 until field par ipf) { f =>
+          packet(f) = in.value
+        }
+        val dists = SRAM[T](K)
+        Foreach(0 until K par opk) { k =>
+          val dist = Reg[T]
+          Reduce(dist)(0 until field par ipf) { f =>
+            val d = packet(f) - cLUT(k,f)
+            d * d
+          } { _ + _ }
+          dists(k) = dist.value
+        }
+        val dfifo1 = FIFO[T](4)
+        val dfifo2 = FIFO[T](4)
+        Foreach(0 until K par ipk) { k =>
+          val d = dists(k)
+          dfifo1.enq(d)
+          dfifo2.enq(d)
+        }
+        val minDist = Reg[T]
+        Reduce(minDist)(0 until K par ipk) { k => 
+          dfifo1.deq 
+        } { Num[T].min(_,_) }
+        val minIdx = Reg[Int]
+        Reduce(minIdx)(0 until K par ipk) { k =>
+          mux(dfifo2.deq == minDist.value, k, K+1)
+        } { min(_,_) }
+        out := Tup2(minIdx.value, true)
+      }
+    }
+
+    assert(true)
+  }
+
+}

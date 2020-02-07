@@ -203,11 +203,11 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
     val step = n.step.T
     val max = n.max.T
     val par = n.par
-    val (constValids, constIters) = (min, step, max) match {
-      case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) if (max <= min && step > 0) | (max >= min && step < 0) =>
+    val (constValids, constIters) = (n.isForever, min, step, max) match {
+      case (false, Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) if (max <= min && step > 0) | (max >= min && step < 0) =>
         dbg(s"Loop will not run.")
         (List.fill(par)(Some(false)), List.fill(par)(Some(min)))
-      case (Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) =>
+      case (false, Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) =>
         var bound = ((max - min) /! step) % par
         if (bound == 0) {
           bound = par
@@ -220,7 +220,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
           else None
         },
         List.tabulate(par) { i => if (fullyUnrolled) Some(min + step*i) else None })
-      case (Some(Const(min:Int)), _, Some(Const(max:Int))) if max > min =>
+      case (false, Some(Const(min:Int)), _, Some(Const(max:Int))) if max > min =>
         dbg(s"None constant loop bounds min=$min, step=$step, max=$max, par=$par")
         (List.tabulate(par) { i => 
           if (i == 0) Some(true) 
@@ -228,6 +228,8 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
           else None
         }, 
         List.tabulate(par) { i => None })
+      case (true, _, _, _) => // forever counter
+        (List.tabulate(par) { i => Some(true) }, List.tabulate(par) { i => None })
       case _ =>
         (List.fill(par) { None }, List.fill(par) { None })
     }
