@@ -21,6 +21,111 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
   }
 
   override def visitNode(n:N) = {
+    processControllers(n)
+
+    processNameType(n)
+
+    processLaneValids(n)
+
+    processAsyncControl(n) // after processLaneValids
+
+    processDRAMStore(n)
+    
+    processDebugging(n)
+
+    processReduction(n)
+
+    n.to[LockMem].foreach { mem =>
+      if (mem.isDRAM) addLive(mem)
+    }
+
+    super.visitNode(n)
+  } 
+
+  def processNameType(n:N) = {
+    n match {
+      case n:DRAMCommand =>
+        n.name(n.dram.sid)
+      case n:HostWrite =>
+        val mem = n.collectFirst[Memory](visitFunc=visitGlobalOut _)
+        n.tp.mirror(mem.tp)
+        n.sname.mirror(mem.sname)
+      case n:HostRead =>
+        n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
+      case n:InAccess =>
+        n.tp.mirror(n.mem.T.tp)
+      case n:FringeCommand =>
+        n.localOuts.foreach { out =>
+          if (out.isConnected) {
+            val fifo = out.collectFirst[FIFO]()
+            out.setTp(fifo.tp.v)
+            if (!n.isInstanceOf[DRAMCommand]) {
+              out.setVec(fifo.banks.get.head)
+            }
+          }
+        }
+      case _ =>
+    }
+  }
+
+  def processReduction(n:N) = {
+    //TODO: this should be moved to rewrite transformer
+    // Convert reduction operation
+    // Spaital IR:
+    // accum.write (reduce(mux(dummy, input, initOrInput), accum.read))
+    // Mux can be eliminated if input == initOrInput
+    n.to[MemWrite].foreach { writer =>
+      if (writer.isInnerReduceOp.get && writer.mem.T.isInnerAccum.get) {
+        dbgblk(s"Transforming Reduce Op $writer") {
+          var reduceOps = writer.accum(visitFunc = { case n:PIRNode => 
+              visitGlobalIn(n).filter { _.isInnerReduceOp.get }
+            }
+          ).filterNot { _ == writer }.reverse
+          if (reduceOps.size < 2) {
+            err(s"Unexpected reduce op for writer $writer: ${reduceOps}")
+          }
+          val reader = reduceOps.head.as[OutAccess]
+          reduceOps = reduceOps.tail
+          dbg(s"reader=$reader")
+          dbg(s"reduceOps=$reduceOps")
+          val readerParent = reader.parent.get
+          val readerCtrl = reader.getCtrl
+          val (init, input) = reduceOps.head match {
+            case op@OpDef(Mux) =>
+              reduceOps = reduceOps.tail
+              val init = op.inputs(2).singleConnected.get
+              val input = op.inputs(1).singleConnected.get
+              val mapping = mirrorAll(reduceOps, mapping=mutable.Map[IR,IR](init->reader.out, op.out->input))
+              (Some(mapping(reduceOps.last)), input)
+            case op@OpDef(_) =>
+              (None, op.inputs(0).singleConnected.get)
+          }
+          val identity = writer.mem.T.inits.v.getOrElse(bug(s"No identity value for reduction ${quoteSrcCtx(writer)}"))
+          dbg(s"init=${dquote(init)}")
+          dbg(s"input=${dquote(input)}")
+          val accumOp = within(readerParent, readerCtrl) {
+            val firstIter = writer.getCtrl.ctrler.get.to[LoopController].map { _ .firstIter }
+            stage(RegAccumOp(reduceOps, identity).in(input).en(writer.en.connected).first(firstIter).init(init))
+          }
+          val redOp = reduceOps.last.as[DefNode[PIRNode]]
+          if (redOp.output.get.neighbors.collect { case w:MemWrite => true }.size > 1) {
+            // 1. 
+            // val acc1 = redOp(input, acc1) // isInnerAccum
+            // val acc2 = redOp(input, acc1)
+            disconnect(writer, redOp)
+            swapOutput(reduceOps.last.as[DefNode[PIRNode]].output.get, accumOp.out)
+          } else {
+            // 2. 
+            // val acc1 = redOp(input, acc1) // isInnerAccum
+            // val ... = acc1.read
+            swapConnection(writer.data, redOp.output.get, accumOp.out)
+          }
+        }
+      }
+    }
+  }
+
+  def processControllers(n:N) = {
     n.to[Controller].foreach { n =>
       n.srcCtx.v.foreach { v => n.ctrl.get.srcCtx := v }
       n.progorder.v.foreach { v =>
@@ -88,32 +193,72 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
         //n.stopWhen(stop)
       //}
     //}
-    n.to[DRAMCommand].foreach { n =>
-      n.name(n.dram.sid)
-    }
-    n.to[HostWrite].foreach { n =>
-      val mem = n.collectFirst[Memory](visitFunc=visitGlobalOut _)
-      n.tp.mirror(mem.tp)
-      n.sname.mirror(mem.sname)
-    }
-    n.to[InAccess].foreach { n =>
-      n.tp.mirror(n.mem.T.tp)
-    }
-    n.to[FringeCommand].foreach { n =>
-      n.localOuts.foreach { out =>
-        if (out.isConnected) {
-          val fifo = out.collectFirst[FIFO]()
-          out.setTp(fifo.tp.v)
-          if (!n.isInstanceOf[DRAMCommand]) {
-            out.setVec(fifo.banks.get.head)
+  }
+
+  /*
+   * If a controller is asynchronous streaming, it means the controller enabled pure by its IO
+   * dependencies and is not synchronized with its outer controller. We can remove the outer
+   * controller as data dependency from this controller and all enables of the accesses under this 
+   * controller that reference outer controllers will be removed
+   * Currently we use spatial Stream.Forever to represents async controller
+   * */
+  def processAsyncControl(n:N) = {
+    n match {
+      case n:Controller if n.getCtrl.isAsync =>
+        dbgblk(s"processAsyncControl($n)") {
+          n.parentEn.disconnect
+          n.en.disconnect
+          n.to[LoopController].foreach { n =>
+            n.stopWhen.disconnect
           }
         }
+      case n:Access =>
+        val (head, tail) = n.getCtrl.ancestorTree.span { !_.isAsync }
+        tail.headOption.foreach { async =>
+          dbgblk(s"processAsyncControl($n)") {
+            val toSync = head :+ async
+            val noSync = tail.tail.toSet
+            dbg(s"noSync=${noSync}")
+            n.en.connected.foreach { en =>
+              dbg(s"${dquote(en.src)} ${en.src.getCtrl}")
+              if (noSync.contains(en.src.getCtrl)) {
+                n.en.disconnectFrom(en)
+                dbg(s"disconnect ${dquote(n.en)} from ${dquote(en)}")
+              }
+            }
+          }
+        }
+      case _ =>
+    }
+  }
+
+  def processDRAMStore(n:N) = {
+    n.to[DRAMStoreCommand].foreach { n =>
+      val ack = n.ack.T.as[MemWrite].mem.T.outAccesses.head
+      within(pirTop,ack.getCtrl) {
+        stage(AccumAck().ack(ack))
       }
     }
-    n.to[HostRead].foreach { n =>
-      n.sname.mirror(n.collectFirst[Memory](visitGlobalIn _).sname)
-    }
+  }
 
+  /*
+   * Create dependency between IO statement with host to force simulation stop after these
+   * statements are completed.
+   * */
+  def processDebugging(n:N) = {
+    n match {
+      case n@(_:PrintIf | _:AssertIf | _:ExitIf) =>
+        n.tp.reset
+        n.tp := Bool
+        if (config.enableSimDebug) {
+          val write = within(n.parent.get, n.getCtrl) { stage(MemWrite().data(n.as[Def].out)) }
+          argOut(write)
+        }
+      case _ =>
+    }
+  }
+
+  def processLaneValids(n:N) = {
     // Add laneValids to enable of memory access
     def connectLaneValid(access:Access):Unit = {
       val ctrl = access.getCtrl
@@ -154,6 +299,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       connectLaneValid(access)
     }
 
+    // Add lane valid as an operand to division to prevent divide by zero when lane is invalid
     n.to[OpDef].foreach { 
       case n@OpDef(FixDiv | FltDiv) => 
         n.out.vecMeta.reset
@@ -162,96 +308,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       case _ =>
     }
 
-    n.to[DRAMStoreCommand].foreach { n =>
-      val ack = n.ack.T.as[MemWrite].mem.T.outAccesses.head
-      within(pirTop,ack.getCtrl) {
-        stage(AccumAck().ack(ack))
-      }
-    }
-
-    n match {
-      case n@(_:PrintIf | _:AssertIf | _:ExitIf) =>
-        n.tp.reset
-        n.tp := Bool
-        if (config.enableSimDebug) {
-          val write = within(n.parent.get, n.getCtrl) { stage(MemWrite().data(n.as[Def].out)) }
-          argOut(write)
-        }
-      case _ =>
-    }
-
-    //TODO: this should be moved to rewrite transformer
-    // Convert reduction operation
-    // Spaital IR:
-    // accum.write (reduce(mux(dummy, input, initOrInput), accum.read))
-    // Mux can be eliminated if input == initOrInput
-    n.to[MemWrite].foreach { writer =>
-      if (writer.isInnerReduceOp.get && writer.mem.T.isInnerAccum.get) {
-        dbgblk(s"Transforming Reduce Op $writer") {
-          var reduceOps = writer.accum(visitFunc = { case n:PIRNode => 
-              visitGlobalIn(n).filter { _.isInnerReduceOp.get }
-            }
-          ).filterNot { _ == writer }.reverse
-          if (reduceOps.size < 2) {
-            err(s"Unexpected reduce op for writer $writer: ${reduceOps}")
-          }
-          val reader = reduceOps.head.as[OutAccess]
-          reduceOps = reduceOps.tail
-          dbg(s"reader=$reader")
-          dbg(s"reduceOps=$reduceOps")
-          val readerParent = reader.parent.get
-          val readerCtrl = reader.getCtrl
-          val (init, input) = reduceOps.head match {
-            case op@OpDef(Mux) =>
-              reduceOps = reduceOps.tail
-              val init = op.inputs(2).singleConnected.get
-              val input = op.inputs(1).singleConnected.get
-              val mapping = mirrorAll(reduceOps, mapping=mutable.Map[IR,IR](init->reader.out, op.out->input))
-              (Some(mapping(reduceOps.last)), input)
-            case op@OpDef(_) =>
-              (None, op.inputs(0).singleConnected.get)
-          }
-          val identity = writer.mem.T.inits.v.getOrElse(bug(s"No identity value for reduction ${quoteSrcCtx(writer)}"))
-          dbg(s"init=${dquote(init)}")
-          dbg(s"input=${dquote(input)}")
-          val accumOp = within(readerParent, readerCtrl) {
-            val firstIter = writer.getCtrl.ctrler.get.to[LoopController].map { _ .firstIter }
-            stage(RegAccumOp(reduceOps, identity).in(input).en(writer.en.connected).first(firstIter).init(init))
-          }
-          val redOp = reduceOps.last.as[DefNode[PIRNode]]
-          if (redOp.output.get.neighbors.collect { case w:MemWrite => true }.size > 1) {
-            // 1. 
-            // val acc1 = redOp(input, acc1) // isInnerAccum
-            // val acc2 = redOp(input, acc1)
-            disconnect(writer, redOp)
-            swapOutput(reduceOps.last.as[DefNode[PIRNode]].output.get, accumOp.out)
-          } else {
-            // 2. 
-            // val acc1 = redOp(input, acc1) // isInnerAccum
-            // val ... = acc1.read
-            swapConnection(writer.data, redOp.output.get, accumOp.out)
-          }
-        }
-      }
-    }
-
-    n.to[LockMem].foreach { mem =>
-      if (mem.isDRAM) addLive(mem)
-    }
-
-    //n.to[CounterValid].foreach { valid =>
-      //valid.counter.T match {
-        //case Counter(_, true) => 
-          //val c = within(valid.parent.get, valid.getCtrl) {
-            //stage(Const(true))
-          //}
-          //swapOutput(valid.out, c.out)
-        //case _ =>
-      //}
-    //}
-
-    super.visitNode(n)
-  } 
+  }
 
   def argOut(write:MemWrite) = {
     val reg = within(pirTop.argFringe, pirTop.topCtrl) { 
@@ -265,22 +322,6 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
     }
     reg
   }
-
-  // Setting uid based on controller enable doesn't work for controllers that are fully unrolled
-  //def setUID(ctrl:ControlTree) = {
-    //val cuid = ctrl.ctrler.v.fold[List[Int]](Nil) { _.en.neighbors.collect { case v:CounterValid => v }
-      //.groupBy { _.getCtrl }.toList.sortBy { _._1.ancestors.size } // Outer most to inner most
-      //.flatMap { case (pctrl, vs) => 
-        //val ps = vs.sortBy { _.counter.T.idx.get }.map { case CounterValid(List(i)) => i }
-        //dbg(s"$ctrl: $pctrl[${ps.mkString(",")}]")
-        //ps
-      //}
-    //}
-    //val puid = ctrl.parent.map { _.uid.get }.getOrElse(Nil)
-    //val uid = puid ++ cuid
-    //dbg(s"$ctrl.uid=[${uid.mkString(",")}]")
-    //ctrl.uid := uid
-  //}
 
   // UID is the unrolled ids of outer loop controllers
   def setUID(ctrl:ControlTree) = {

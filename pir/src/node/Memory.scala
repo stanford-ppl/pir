@@ -200,6 +200,7 @@ case class Top()(implicit env:Env) extends PIRNode {
   var topCtrl:ControlTree = _
   var hostInCtrl:ControlTree = _
   var hostOutCtrl:ControlTree = _
+  var accelTopCtrl:ControlTree = _
   var argFringe:ArgFringe = _
 }
 
