@@ -17,6 +17,7 @@ class TungstenPIRGen(implicit design:PIR) extends TungstenCodegen
   with TungstenBlackBoxGen 
   with TungstenDRAMGen 
   with TungstenLockGen 
+  with TungstenSparseGen 
   with TungstenMergeBufferGen 
   with TungstenDelayGen
 

@@ -30,14 +30,6 @@ trait BankedAccess extends Access {
   val bank = InputField[List[PIRNode]]
   val offset = InputField[PIRNode]
 }
-trait LockAccess extends Access {
-  val addr = InputField[PIRNode]
-  val lock = InputField[Option[LockOnKeys]]
-  override def compVec(n:IR) = n match {
-    case out:Output[_] => Some(this.getCtrl.par.get)
-    case _ => super.compVec(n)
-  }
-}
 trait InAccess extends Access { // Memory as output
   val mem = OutputField[Memory]
 }
@@ -54,6 +46,10 @@ trait ReadAccess extends OutAccess {
     case `out` => mem.T.inferTp
     case _ => super.compType(n)
   }
+}
+trait RMWAccess extends Access {
+  val mem = OutputField[Memory]
+  val input = InputField[PIRNode]
 }
 // Nodes before lowering
 case class BankedRead()(implicit env:Env) extends ReadAccess with BankedAccess {
@@ -79,15 +75,39 @@ trait FlatBankedAccess extends Access { // lowered access
 case class FlatBankedRead()(implicit env:Env) extends ReadAccess with FlatBankedAccess
 case class FlatBankedWrite()(implicit env:Env) extends WriteAccess with FlatBankedAccess
 
+trait LockAccess extends Access {
+  val addr = InputField[PIRNode]
+  val lock = InputField[Option[LockOnKeys]]
+  override def compVec(n:IR) = n match {
+    case out:Output[_] => Some(this.getCtrl.par.get)
+    case _ => super.compVec(n)
+  }
+}
 case class LockRead()(implicit env:Env) extends ReadAccess with LockAccess 
 case class LockWrite()(implicit env:Env) extends WriteAccess with LockAccess {
   val ack = OutputField[List[PIRNode]].presetVec(1).tp(Bool)
 }
-case class LockRMW(op:Opcode)(implicit env:Env) extends LockAccess {
-  val mem = OutputField[Memory]
-  val input = InputField[PIRNode]
+case class LockRMW(op:Opcode)(implicit env:Env) extends LockAccess with RMWAccess {
   val ack = OutputField[List[PIRNode]].presetVec(1).tp(Bool)
 }
+
+
+trait SparseAccess extends Access {
+  val addr = InputField[PIRNode]
+  //val lock = InputField[Option[LockOnKeys]]
+  override def compVec(n:IR) = n match {
+    case out:Output[_] => Some(this.getCtrl.par.get)
+    case _ => super.compVec(n)
+  }
+}
+case class SparseRead()(implicit env:Env) extends ReadAccess with SparseAccess 
+case class SparseWrite()(implicit env:Env) extends WriteAccess with SparseAccess {
+  val ack = OutputField[List[PIRNode]].presetVec(1).tp(Bool)
+}
+case class SparseRMW(op:String, opOrder:String)(implicit env:Env) extends SparseAccess with RMWAccess {
+  val ack = OutputField[List[PIRNode]].presetVec(1).tp(Bool)
+}
+
 case class MemRead()(implicit env:Env) extends ReadAccess {
   override def compVec(n:IR) = (n, mem.T) match {
     case (`out`, mem:Reg) => Some(mem.banks.get.head)

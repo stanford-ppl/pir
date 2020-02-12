@@ -35,6 +35,7 @@ trait GenericMemoryLowering extends PIRTraversal with SiblingFirstTraversal with
       val addr = access match {
         case access:LockAccess => access.addr
         case access:BankedAccess => access.offset
+        case access:SparseAccess => access.addr
       }
       en.foreach { en =>
         val newAddr = stage(OpDef(Mux).addInput(en, addr.singleConnected.get, allocConst(-1).out).out)
@@ -52,3 +53,4 @@ class MemoryLowering(implicit compiler:PIR)
   with GlobalMemoryLowering
   with LocalMemoryLowering
   with LockMemoryLowering
+  with SparseMemoryLowering

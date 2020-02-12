@@ -9,7 +9,7 @@ import scala.collection.mutable
 
 trait LockMemoryUnparRMWLoweirng extends GenericMemoryLowering { self:LockMemoryLowering =>
   protected def lowerUnparRMW(n:Memory) = dbgblk(s"lowerUnparRMW($n)"){
-    val memCU = within(pirTop) { MemoryContainer() }
+    val memCU = within(pirTop) { stage(MemoryContainer()) }
     swapParent(n, memCU)
 
     val sortedAccesses = n.accesses.groupBy { a => a.progorder.get }.toList.sortBy { _._1 }
@@ -63,7 +63,7 @@ trait LockMemoryUnparRMWLoweirng extends GenericMemoryLowering { self:LockMemory
     access match {
       case access:LockWrite =>
         within(memCU, ctrl) {
-          flattenEnable(access)
+          flattenEnable(access) // in write ctx
           val accessCtx = stage(Context().streaming(true))
           swapParent(access, accessCtx)
           bufferInput(accessCtx)
@@ -79,7 +79,7 @@ trait LockMemoryUnparRMWLoweirng extends GenericMemoryLowering { self:LockMemory
         within(memCU, ctrl) {
           val addrCtx = stage(Context().name("addrCtx"))
           swapParent(access, addrCtx)
-          flattenEnable(access)
+          flattenEnable(access) // in addrCtx
           val accessCtx = stage(Context().streaming(true))
           swapParent(access, accessCtx)
           bufferInput(access.addr, fromCtx=Some(addrCtx))

@@ -136,6 +136,7 @@ class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with Sibli
       val connectToBB = access match {
         case access:WriteAccess => access.data.T.isInstanceOf[BlackBox]
         case access:ReadAccess => access.out.T.exists{ _.isInstanceOf[BlackBox] }
+        case access:RMWAccess => access.input.T.isInstanceOf[BlackBox] 
       }
       if (!connectToBB) {
         val ctrl = access.getCtrl

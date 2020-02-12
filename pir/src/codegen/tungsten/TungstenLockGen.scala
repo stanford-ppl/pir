@@ -154,8 +154,8 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
     super.initPass
   }
 
-  def sramParam = memorize("sramParam") { spadeParam.traceIn[PMUParam].head.sramParam }
-  def wordPerBank = {
+  private def sramParam = memorize("sramParam") { spadeParam.traceIn[PMUParam].head.sramParam }
+  private def wordPerBank = {
     sramParam.sizeInWord / sramParam.bank
   }
 

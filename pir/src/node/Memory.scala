@@ -57,6 +57,7 @@ case class SRAM()(implicit env:Env) extends Memory
 case class RegFile()(implicit env:Env) extends Memory
 case class LUT()(implicit env:Env) extends Memory
 case class LockMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory
+case class SparseMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory
 
 case class Lock()(implicit env:Env) extends BlackBox with DefNode[PIRNode] {
   val lock = InputField[PIRNode]
@@ -299,31 +300,19 @@ case class ScratchpadDelay(cycle:Int)(implicit env:Env) extends DelayOp with Bla
 case class PrintIf()(implicit env:Env) extends Def {
   val en = InputField[List[PIRNode]].tp(Bool)
   val msg = InputField[PIRNode]
-  out.tp(Bool)
-  override def compVec(n:IR) = n match {
-    case `out` => msg.inferVec
-    case _ => super.compVec(n)
-  }
+  out.tp(Bool).presetVec(1)
 }
 case class AssertIf()(implicit env:Env) extends Def {
   val en = InputField[List[PIRNode]].tp(Bool)
   val cond = InputField[List[PIRNode]].tp(Bool)
   val msg = InputField[Option[PIRNode]]
-  out.tp(Bool)
-  override def compVec(n:IR) = n match {
-    case `out` => msg.inferVec
-    case _ => super.compVec(n)
-  }
+  out.tp(Bool).presetVec(1)
 }
 case class ExitIf()(implicit env:Env) extends Def {
   val en = InputField[List[PIRNode]].tp(Bool)
   val cond = InputField[List[PIRNode]].tp(Bool)
   val msg = InputField[PIRNode]
-  out.tp(Bool)
-  override def compVec(n:IR) = n match {
-    case `out` => msg.inferVec
-    case _ => super.compVec(n)
-  }
+  out.tp(Bool).presetVec(1)
 }
 trait OpNode extends PIRNode
 case class OpDef(op:Opcode)(implicit env:Env) extends OpNode with Def {
