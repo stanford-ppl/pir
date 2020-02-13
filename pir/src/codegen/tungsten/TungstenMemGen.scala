@@ -39,13 +39,14 @@ trait TungstenMemGen extends TungstenCtxGen {
           }
           emitln(s"$name->Init(make_token($init));")
         }
-        val ctrler = n.done.T.map { 
-          case ctrler:Controller => ctrler
-          case ctrler => getCtrler(n)
-        }
-        ctrler.foreach { ctrler =>
+        //val ctrler = n.done.T.map { 
+          //case ctrler:Controller => ctrler
+          //case ctrler => getCtrler(n)
+        //}
+        val ctrler = n.collectPeer[ControlBlock]().head.collectChildren[Controller].head
+        //ctrler.foreach { ctrler =>
           emitln(s"${ctrler}->AddInput(${nameOf(n)});")
-        }
+        //}
       }
       emitEn(n.en)
       if (n.isFIFO) {

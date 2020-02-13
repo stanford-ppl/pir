@@ -12,7 +12,8 @@ class BlackBoxLowering(implicit compiler:PIR) extends PIRTraversal with SiblingF
     case _ => super.visitNode(n)
   }
 
-  def moveToContext(n:BlackBox) = {
+  def moveToContext(n:BlackBox):Unit = {
+    //if (n.parent.get.isInstanceOf[Context]) return
     val ctrl = n.ctrl.get
     val ctx = within(pirTop, ctrl) { 
       stage(Context()).streaming(true)

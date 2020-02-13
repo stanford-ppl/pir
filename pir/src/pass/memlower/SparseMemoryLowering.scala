@@ -46,7 +46,7 @@ trait SparseMemoryLowering extends GenericMemoryLowering {
           flattenEnable(access) // in addrCtx
           val accessCtx = stage(Context().streaming(true))
           swapParent(access, accessCtx)
-          bufferInput(access.addr, fromCtx=Some(addrCtx))
+          bufferInput(access.addr, BufferParam(fromCtx=Some(addrCtx)))
           access.out.connected.foreach { in =>
             bufferInput(in)
           }

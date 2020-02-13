@@ -126,7 +126,7 @@ trait LockMemoryBackBoxLowering extends GenericMemoryLowering { self:LockMemoryL
           (0 until block.outerPar).foreach { i => // Foreach tree in
             val lockInputIn = block.addLockInputIn
             lockInputIn(out)
-            bufferInput(lockInputIn, fromCtx=Some(unShuffledCtx))
+            bufferInput(lockInputIn, BufferParam(fromCtx=Some(unShuffledCtx)))
           }
           val lockInputOut = block.addLockInputOut
           ins.foreach { in =>
@@ -134,7 +134,7 @@ trait LockMemoryBackBoxLowering extends GenericMemoryLowering { self:LockMemoryL
             bufferInput(in)
           }
       }
-      bufferInput(accumCtx, fromCtx=Some(unShuffledCtx))
+      bufferInput(accumCtx, BufferParam(fromCtx=Some(unShuffledCtx)))
 
       // Wire up address port
       val addrCtx = within(pirTop, accumCtrl) { stage(Context()) }
@@ -144,7 +144,7 @@ trait LockMemoryBackBoxLowering extends GenericMemoryLowering { self:LockMemoryL
       flattenEnable(accesses.head)
       val addrPort = block.lockAddrs(lane)
       addrPort(addr)
-      bufferInput(addrPort, fromCtx=Some(addrCtx))
+      bufferInput(addrPort, BufferParam(fromCtx=Some(addrCtx)))
 
       // Wire up read data
       reads.foreach { read =>
@@ -161,7 +161,7 @@ trait LockMemoryBackBoxLowering extends GenericMemoryLowering { self:LockMemoryL
       writes.foreach { write =>
         val writeDataPort = block.lockDataIn(accumMap(write.mem.T.as[LockMem]))(lane)
         writeDataPort(write.data.singleConnected.get)
-        bufferInput(writeDataPort, fromCtx=Some(accumCtx))
+        bufferInput(writeDataPort, BufferParam(fromCtx=Some(accumCtx)))
       }
 
       val reqPort = addrPort.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
@@ -233,7 +233,7 @@ trait LockMemoryBackBoxLowering extends GenericMemoryLowering { self:LockMemoryL
         val (reqPorts, dataPorts) = lanes.map { lane =>
           val addrPort = block.unlockReadAddr(accum)(lane)
           addrPort(access.addr.singleConnected.get)
-          bufferInput(addrPort, fromCtx=Some(addrCtx))
+          bufferInput(addrPort, BufferParam(fromCtx=Some(addrCtx)))
           val reqPort = addrPort.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
           val dataPort = block.unlockReadData(accum)(lane)
           (reqPort, dataPort)

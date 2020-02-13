@@ -68,14 +68,18 @@ case class Lock()(implicit env:Env) extends BlackBox with DefNode[PIRNode] {
 case class Splitter()(implicit env:Env) extends BlackBox {
   def addrIn = getDynamicInputFields[PIRNode]("addrIn")
   def addrOut = getDynamicOutputFields[PIRNode]("addrOut")
+  def ctrlOut = getDynamicOutputFields[PIRNode]("ctrlOut")
   def addAddrIn(xs:Any*) = DynamicInputFields[PIRNode]("addrIn", xs)
   def addAddrOut(num:Int) = DynamicOutputFields[PIRNode]("addrOut", num)
+  def addCtrlOut(num:Int) = DynamicOutputFields[PIRNode]("ctrlOut", num)
   override def compType(n:IR) = n match {
     case n@OutputField(_,"addrOut") => addrIn(n.dynamicIdx.get).inferTp
+    case n@OutputField(_,"ctrlOut") => Some(Bool)
     case _ => super.compType(n)
   }
   override def compVec(n:IR) = n match {
     case n@OutputField(_,"addrOut") => addrIn(n.dynamicIdx.get).inferVec
+    case n@OutputField(_,"ctrlOut") => addrIn(n.dynamicIdx.get).inferVec
     case _ => super.compVec(n)
   }
 }
@@ -460,6 +464,11 @@ case class LoopController()(implicit env:Env) extends Controller {
   val stopWhen = InputField[Option[PIRNode]].tp(Bool)
 
   val constLaneValids = new Metadata[List[Option[Boolean]]]("constLaneValids")
+}
+
+case class SplitController()(implicit env:Env) extends Controller {
+  /*  ------- Fields -------- */
+  val splitOn = InputField[PIRNode]
 }
 
 case class ControlBlock()(implicit env:Env) extends PIRNode {
