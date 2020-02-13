@@ -38,7 +38,7 @@ trait LockMemoryUnparLoweirng extends GenericMemoryLowering { self:LockMemoryLow
     }
     accesses.foreach { access =>
       val ctx = access.ctx.get
-      bufferInput(ctx, fromCtx=addrCtxs.get(access.getCtrl))
+      bufferInput(ctx, BufferParam(fromCtx=addrCtxs.get(access.getCtrl)))
     }
     addrCtxs.clear
   }
@@ -71,12 +71,12 @@ trait LockMemoryUnparLoweirng extends GenericMemoryLowering { self:LockMemoryLow
       val lock = lockOn.lock.T
       val key = lockOn.key.singleConnected.get
       val (splitAddr, splitKey, splitCtx) = allocateSplitter(ctrl, addr, key)
-      bufferInput(splitCtx, fromCtx=Some(addrCtx))
+      bufferInput(splitCtx, BufferParam(fromCtx=Some(addrCtx)))
       addr = splitAddr
       if (!canReach(lock.lock,splitKey)) {
         lock.lock(splitKey)
         setSplit(true) {
-          bufferInput(lock.lock, fromCtx=Some(splitCtx))
+          bufferInput(lock.lock, BufferParam(fromCtx=Some(splitCtx)))
         }
       }
       swapConnection(access.lock, lockOn.out, lock.out)
@@ -90,7 +90,7 @@ trait LockMemoryUnparLoweirng extends GenericMemoryLowering { self:LockMemoryLow
     swapParent(access, accessCtx)
     swapConnection(access.addr, access.addr.singleConnected.get, addr)
     setSplit(isSplitAccess) {
-      bufferInput(access.addr, fromCtx=Some(splitCtx.getOrElse(addrCtx)))
+      bufferInput(access.addr, BufferParam(fromCtx=Some(splitCtx.getOrElse(addrCtx))))
       bufferInput(accessCtx)
     }
     if (isLast) {

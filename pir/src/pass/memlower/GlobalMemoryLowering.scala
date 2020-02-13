@@ -80,7 +80,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
       val fromCtx = if (config.mergeDone) {
         mergeCtxs.get(access) orElse addrCtxs.get(access.getCtrl)
       } else addrCtxs.get(access.getCtrl)
-      bufferInput(ctx, fromCtx=fromCtx)
+      bufferInput(ctx, BufferParam(fromCtx=fromCtx))
     }
     addrCtxs.clear
     mergeCtxs.clear
@@ -179,13 +179,13 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
         val bank = access.bank.connected
         val ofsOut = access.offset.singleConnected.get
         val ofs = stage(Shuffle(-1,access.id).from(bank).to(allocConst(mem.bankids.get)).base(ofsOut))
-        bufferInput(ofs.base, fromCtx=Some(addrCtx))
-        bufferInput(ofs.from, fromCtx=Some(addrCtx))
+        bufferInput(ofs.base, BufferParam(fromCtx=Some(addrCtx)))
+        bufferInput(ofs.from, BufferParam(fromCtx=Some(addrCtx)))
         val data = access match {
           case access:BankedWrite => 
             val shuffle = stage(Shuffle(0,access.id).from(bank).to(allocConst(mem.bankids.get)).base(access.data.connected))
             bufferInput(shuffle.base) // Prevent copying data producer into addrCtx
-            bufferInput(shuffle.from, fromCtx=Some(addrCtx))
+            bufferInput(shuffle.from, BufferParam(fromCtx=Some(addrCtx)))
             Some(shuffle)
           case access => None
         }
@@ -231,7 +231,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
       val ctrl = ctrlMap(mergeCtrl)
       newAccess.done(done(ctrl, accessCtx))
       val fromCtx = if (config.mergeDone) mergeCtx else addrCtx
-      bufferInput(newAccess.done, fromCtx=Some(fromCtx))
+      bufferInput(newAccess.done, BufferParam(fromCtx=Some(fromCtx)))
     }
     mergeCtxs += newAccess -> mergeCtx
 
@@ -260,7 +260,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
             dbg(s"val $shuffle = Shuffle() // bankRead")
             bufferInput(shuffle.base)
             if (!config.dupReadAddr) {
-              bufferInput(shuffle.to, fromCtx=Some(addrCtxs(leadCtrl)))
+              bufferInput(shuffle.to, BufferParam(fromCtx=Some(addrCtxs(leadCtrl))))
             }
             ins.foreach { in =>
               swapConnection(in, access.out, shuffle.out)
