@@ -27,7 +27,14 @@ class ControlBlockInsertion(implicit compiler:PIR) extends PIRTransformer with B
 
     val (consts, nodes) = ctx.children.partition { case c:Const => true; case _ => false }
     // Insert one control block per ctrl. Controller and buffer reads are outside control block
-    val map = nodes.groupBy { _.getCtrl }
+    val map = nodes.groupBy { 
+      case n:LocalOutAccess =>
+        n.done.T.flatMap { 
+          case ctrler:Controller => Some(ctrler.getCtrl) // Branch independent pop
+          case _ => None
+        } getOrElse { n.getCtrl }
+      case n => n.getCtrl
+    }
     val ctrls = map.keys.toSeq.sortBy { _.ancestors.size }
 
     nodes.foreach {

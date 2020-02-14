@@ -12,6 +12,7 @@ class ControlTreeDotGen(val fileName:String)(implicit compiler:PIR) extends Cont
       s"$q\n${n.schedule}" + 
       n.par.v.fold("") { s => s"\npar=$s" } +
       n.isLoop.v.fold("") { s => s"\nisLoop=$s" } +
+      n.isForever.v.fold("") { s => s"\nisForever=$s" } +
       n.srcCtx.v.fold(""){ s => s"\n$s" } +
       n.uid.v.fold("") { uid => s"\nuid=[${uid.mkString(",")}]"}
     }

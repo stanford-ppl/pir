@@ -29,6 +29,9 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
         endState[Ctrl]
       }
       compiler.staging(top)
+      topCtrl.children.filterNot { _ == hostInCtrl }.foreach { accelTopCtrl =>
+        pirTop.accelTopCtrl = accelTopCtrl
+      }
       within(argFringe) {
         val hostOutCtrler = stage(createCtrl(Sequenced) { HostOutController() })
         top.hostOutCtrl = hostOutCtrler.ctrl.get
@@ -97,12 +100,14 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
     val par = ctrler.par.getOrElseUpdate { 
       ctrler match {
         case ctrler:LoopController => ctrler.cchain.T.map { _.par }.product
+        case ctrler:SplitController => tree.parent.get.par.get
         case ctrler => 1
       }
     }
     tree.par := par
     tree.ctrler(ctrler)
     tree.isLoop := ctrler.isInstanceOf[LoopController]
+    tree.isForever := ctrler.isForever && ctrler.to[LoopController].fold(true) { !_.stopWhen.isConnected }
     tree.parent.foreach { parent =>
       parent.ctrler.v.foreach { pctrler =>
         ctrler.parentEn(pctrler.childDone)

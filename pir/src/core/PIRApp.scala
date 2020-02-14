@@ -18,11 +18,12 @@ trait PIRApp extends PIR with Logging {
   lazy val dramBarrierInsertion = new DRAMBarrierInsertion()
   lazy val contextAnalyzer = new ContextAnalyzer()
   lazy val contextInsertion = new ContextInsertion()
+  lazy val splitterTransformer = new SplitterTransformer()
   lazy val blkboxLowering = new BlackBoxLowering()
   lazy val depDuplications = new DependencyDuplication()
   lazy val bufferInsertion = new BufferInsertion()
   lazy val globalInsertion = new GlobalInsertion()
-  lazy val graphInit = new GraphInitialization()
+  lazy val graphPreprocess = new GraphPreprocessing()
   lazy val runtimeAnalyzer = new RuntimeAnalyzer()
   lazy val ctxMerging = new ContextMerging()
   lazy val psimParser = new PlastisimLogParser()
@@ -66,13 +67,14 @@ trait PIRApp extends PIR with Logging {
     // ------- Analysis and Transformations --------
     addPass(enableVerboseDot, new PIRTopDotGen(s"top1.dot")) ==>
     addPass(enableTrace && genPsim, dramTraceGen) ==>
-    addPass(graphInit) ==>
+    addPass(graphPreprocess) ==>
     addPass(enableVerboseDot, new PIRTopDotGen(s"top2.dot")) ==>
     addPass(enableDot, new ControlTreeDotGen(s"ctop.dot")) ==>
     addPass(enableVerboseDot, new ControlTreeHtmlIRPrinter(s"ctrl.html")) ==>
     addPass(rewriter) ==>
     addPass(deadCodeEliminator) ==>
     addPass(contextInsertion) ==>
+    addPass(splitterTransformer) ==>
     addPass(blkboxLowering) ==>
     addPass(enableVerboseDot, new PIRTopDotGen(s"top3.dot")) ==>
     addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx3.dot")) ==>

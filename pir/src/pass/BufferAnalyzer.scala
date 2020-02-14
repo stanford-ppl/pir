@@ -32,21 +32,28 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     }
   }
 
+  case class BufferParam(
+    fromCtx:Option[Context]=None, 
+    isFIFO:Boolean=true,
+    depCtrl:Option[ControlTree]=None,
+    depedCtrl:Option[ControlTree]=None,
+  )
+
   def bufferInput(ctx:Context)(implicit file:sourcecode.File, line: sourcecode.Line):Seq[BufferRead] = {
-    bufferInput(ctx, None)
+    bufferInput(ctx, BufferParam())
   }
 
-  def bufferInput(ctx:Context, fromCtx:Option[Context])(implicit file:sourcecode.File, line: sourcecode.Line):Seq[BufferRead] = dbgblk(s"bufferInput($ctx)"){
+  def bufferInput(ctx:Context, param:BufferParam)(implicit file:sourcecode.File, line: sourcecode.Line):Seq[BufferRead] = dbgblk(s"bufferInput($ctx)"){
     ctx.depsFrom.flatMap { case (out, ins) =>
       ins.flatMap { in =>
-        insertBuffer(out, in, fromCtx)
+        insertBuffer(out, in, param)
       }
     }.toSeq
   }
 
-  def bufferInput(in:Input[PIRNode], fromCtx:Option[Context]=None, isFIFO:Boolean=true)(implicit file:sourcecode.File, line: sourcecode.Line):Seq[BufferRead] = {
+  def bufferInput(in:Input[PIRNode], param:BufferParam=BufferParam())(implicit file:sourcecode.File, line: sourcecode.Line):Seq[BufferRead] = {
     in.connected.distinct.flatMap { out =>
-      insertBuffer(out, in, fromCtx, isFIFO)
+      insertBuffer(out, in, param)
     }
   }
 
@@ -79,37 +86,46 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
   protected def insertBuffer(
     depOut:Output[PIRNode], 
     depedIn:Input[PIRNode], 
-    fromCtx:Option[Context]=None, 
-    isFIFO:Boolean=true
+    param:BufferParam = BufferParam(),
   )(implicit file:sourcecode.File, line: sourcecode.Line):Option[BufferRead] = {
     val dep = depOut.src
     val deped = depedIn.src
     val depedCtx = deped.ctx.get
     if (escape(depOut, depedIn, depedCtx)) {
-      val depCtx = fromCtx.getOrElse { dep.ctx.get }
+      val depCtx = param.fromCtx.getOrElse { dep.ctx.get }
       val read = dbgblk(s"insertBuffer(depOut=${dquote(depOut)}, depedIn=$deped.$depedIn)") {
-        val (enq, deq) = compEnqDeq(isFIFO=isFIFO, depCtx, depedCtx, Some(depOut), List(depedIn))
+        val (enq, deq) = compEnqDeq(isFIFO=param.isFIFO, depCtx, depedCtx, Some(depOut), List(depedIn))
         val bank = depOut.inferVec
-        val write = within(depCtx, depCtx.getCtrl) {
+        val depCtxCtrl = depCtx.getCtrl
+        val depCtrl = param.depCtrl.map { depCtrl =>
+          assert(depCtxCtrl.isDescendentOf(depCtrl) || depCtxCtrl == depCtrl, s"$depCtrl is not relate to $depCtxCtrl")
+          depCtrl
+        }.getOrElse(depCtxCtrl)
+        val write = within(depCtx, depCtrl) {
           allocate[BufferWrite] { write => 
-            write.isFIFO==isFIFO &&
+            write.isFIFO==param.isFIFO &&
             canReach(write.data,depOut) &&
             canReach(write.done,enq) &&
             !write.en.isConnected //TODO: buffer function should also allow enable as input
           } {
-            stage(BufferWrite(isFIFO=isFIFO).data(depOut).done(enq))
+            stage(BufferWrite(isFIFO=param.isFIFO).data(depOut).done(enq))
           }
         }
         val globalbb = depedIn.src.isInstanceOf[GlobalBlackBox]
-        val read = within(depedCtx, depedCtx.getCtrl) {
+        val depedCtxCtrl = depedCtx.getCtrl
+        val depedCtrl = param.depedCtrl.map { depedCtrl =>
+          assert(depedCtxCtrl.isDescendentOf(depedCtrl) || depedCtxCtrl == depedCtrl, s"$depedCtrl is not relate to $depedCtxCtrl")
+          depedCtrl
+        }.getOrElse(depedCtxCtrl)
+        val read = within(depedCtx, depedCtrl) {
           allocate[BufferRead] { read => 
             !globalbb && 
-            read.isFIFO==isFIFO &&
+            read.isFIFO==param.isFIFO &&
             canReach(read.in,write.out) &&
             canReach(read.done,deq) &&
             !read.en.isConnected 
           } {
-            stage(BufferRead(isFIFO=isFIFO).in(write.out).done(deq))
+            stage(BufferRead(isFIFO=param.isFIFO).in(write.out).done(deq))
           }
         }
         bank.foreach { bank => read.banks(List(bank)) }

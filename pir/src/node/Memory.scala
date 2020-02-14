@@ -57,6 +57,7 @@ case class SRAM()(implicit env:Env) extends Memory
 case class RegFile()(implicit env:Env) extends Memory
 case class LUT()(implicit env:Env) extends Memory
 case class LockMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory
+case class SparseMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory
 
 case class Lock()(implicit env:Env) extends BlackBox with DefNode[PIRNode] {
   val lock = InputField[PIRNode]
@@ -75,6 +76,20 @@ case class Splitter()(implicit env:Env) extends BlackBox {
   }
   override def compVec(n:IR) = n match {
     case n@OutputField(_,"addrOut") => addrIn(n.dynamicIdx.get).inferVec
+    case _ => super.compVec(n)
+  }
+}
+case class SplitLeader()(implicit env:Env) extends BlackBox {
+  val addrIn = InputField[PIRNode]
+  val addrOut = OutputField[PIRNode]
+  val ctrlOut = OutputField[List[PIRNode]].tp(Bool)
+  override def compType(n:IR) = n match {
+    case `addrOut` => addrIn.inferTp
+    case _ => super.compType(n)
+  }
+  override def compVec(n:IR) = n match {
+    case `addrOut` => addrIn.inferVec
+    case `ctrlOut` => addrIn.inferVec
     case _ => super.compVec(n)
   }
 }
@@ -199,6 +214,7 @@ case class Top()(implicit env:Env) extends PIRNode {
   var topCtrl:ControlTree = _
   var hostInCtrl:ControlTree = _
   var hostOutCtrl:ControlTree = _
+  var accelTopCtrl:ControlTree = _
   var argFringe:ArgFringe = _
 }
 
@@ -299,31 +315,19 @@ case class ScratchpadDelay(cycle:Int)(implicit env:Env) extends DelayOp with Bla
 case class PrintIf()(implicit env:Env) extends Def {
   val en = InputField[List[PIRNode]].tp(Bool)
   val msg = InputField[PIRNode]
-  out.tp(Bool)
-  override def compVec(n:IR) = n match {
-    case `out` => msg.inferVec
-    case _ => super.compVec(n)
-  }
+  out.tp(Bool).presetVec(1)
 }
 case class AssertIf()(implicit env:Env) extends Def {
   val en = InputField[List[PIRNode]].tp(Bool)
   val cond = InputField[List[PIRNode]].tp(Bool)
   val msg = InputField[Option[PIRNode]]
-  out.tp(Bool)
-  override def compVec(n:IR) = n match {
-    case `out` => msg.inferVec
-    case _ => super.compVec(n)
-  }
+  out.tp(Bool).presetVec(1)
 }
 case class ExitIf()(implicit env:Env) extends Def {
   val en = InputField[List[PIRNode]].tp(Bool)
   val cond = InputField[List[PIRNode]].tp(Bool)
   val msg = InputField[PIRNode]
-  out.tp(Bool)
-  override def compVec(n:IR) = n match {
-    case `out` => msg.inferVec
-    case _ => super.compVec(n)
-  }
+  out.tp(Bool).presetVec(1)
 }
 trait OpNode extends PIRNode
 case class OpDef(op:Opcode)(implicit env:Env) extends OpNode with Def {
@@ -470,6 +474,11 @@ case class LoopController()(implicit env:Env) extends Controller {
   val stopWhen = InputField[Option[PIRNode]].tp(Bool)
 
   val constLaneValids = new Metadata[List[Option[Boolean]]]("constLaneValids")
+}
+
+case class SplitController()(implicit env:Env) extends Controller {
+  /*  ------- Fields -------- */
+  val splitOn = InputField[PIRNode]
 }
 
 case class ControlBlock()(implicit env:Env) extends PIRNode {

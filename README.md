@@ -2,8 +2,9 @@
 
 # Get Started
 ## Compile app from spatial
-Clone spatial repo and checkout pir branch or pir-dev branch for latest development
+Clone spatial repo and checkout pir branch for latest development
 For place and route and simulation, you need to get access to these repos
+
 https://github.com/acrucker/plastiroute.git
 
 https://github.com/acrucker/tungsten.git
@@ -14,8 +15,15 @@ git checkout pir --
 make pir
 ```
 
-## Run app end-to-end
+`make pir` initializes and compiles all submodlues, which can takes some time for the first time. It will print bunch of stuff and make sure there's no error before proceeding. 
+
+## Run test end-to-end
+If your app extends `SpatialTest` instead of SpatialApp, you can run all following passes with the script `bin/test`. 
+
+Each ScalaTest has multiple backend that runs FPGA or Plasticine simulation. For Plasticine, the `Tst` backend runs
+
 Spatial -> PIR -> IdealNetwork Simulation -> PlaceAndRoute -> Hybrid Network Simulation 
+
 ```
 cd $SPAITAL_HOME
 bin/test -a <app> -b <backend> -p <project> -t <threads> [-H, -T]
@@ -111,4 +119,12 @@ Command line options start with `--`. `--mapping` is equivalent to `mapping=true
 --pcu-stage: number of stages for PCU, similar for pmu, and dag
 ```
 
+## Troubleshooting
+
+- `SpatialTest` extends ScalaTest which can be run in parallel managed by their sbt plugin. If your app is an `SpatialTest`, you must have an assertion check in your app, orelse you will get the following error. 
+```
+ argon.UnhandledException: Uncaught exception Test had no validation checks. (Indeterminate result) (null)   
+```
+
+- When you start sbt, it first looks at your `project/build.properties` for a sbt version. If the version you installed doesn't match the required version in your `build.sbt`, it will download the required version in `~/.sbt`. Then it looks for library dependencies and download them to your local ivy cache in `~/.ivy2`. Sometimes the cached version can be corrupted. You can remove the the wrong sbt in `~/.sbt` or the problematic library in `~/.ivy2/cache/libpath`. 
 
