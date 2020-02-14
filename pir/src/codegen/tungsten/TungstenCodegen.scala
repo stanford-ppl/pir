@@ -60,6 +60,8 @@ trait TungstenCodegen extends PIRTraversal with StaticTopDownTopologicalTraversa
   }
 
   def filterEdge(out:Output[PIRNode], in:Input[PIRNode]) = (out,in) match {
+    case (_, InputField(BufferRead(true), "en")) => true 
+    case (_, InputField(_:LocalOutAccess, "en" | "done")) => false // signals used to pop the input buffer in the next cycle.
     case (OutputField(_:LocalInAccess, _), InputField(_:LocalOutAccess, _)) => false
     case (_,InputField(_:LoopController, "stopWhen")) => false
     case _ => true

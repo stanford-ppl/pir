@@ -18,7 +18,7 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
     case n:Splitter =>
       val (tp, name) = varOf(n)
       genTopMember(n, Seq(name.qstr))
-      n.addrIn.toStream.zip(n.addrOut).zipWithIndex.foreach{ case ((ain, aout),i) =>
+      n.addrIn.zipWithIndex.foreach{ case (ain,i) =>
         val ainfifo = ain.T
         genTopMember(
           tp="Broadcast<Token>", 
@@ -28,6 +28,8 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
           extern=false,
           escape=false
         )
+      }
+      n.addrOut.zipWithIndex.foreach { case (aout,i) =>
         val aoutfifo = aout.T.as[BufferWrite].gout.get
         genTopMember(
           tp="Broadcast<Token>", 
@@ -117,7 +119,7 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
         case op => err(s"Unspported RMW op $op")
       }
       genCtxInits {
-        emitln(s"""$name = ${nameOf(n.mem.T)}->GetRMWPorts("$rmwOp",${n.id});""")
+        emitln(s"""$name = ${nameOf(n.mem.T)}->GetRMWPorts("$rmwOp","",${n.id});""")
         emitln(s"${ctrler}->AddOutput(${name}.first);") // (addr input, ack)
         emitln(s"${ctrler}->AddOutput(${name}.second);") // (data)
       }

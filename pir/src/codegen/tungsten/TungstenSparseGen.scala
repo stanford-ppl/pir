@@ -10,10 +10,15 @@ import scala.collection.mutable
 trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with TungstenMemGen with TungstenBlackBoxGen with Memorization {
 
   override def emitNode(n:N) = n match {
-    //case ctx:Context if ctx.streaming.get && (ctx.descendents.exists { case lock:Lock => true; case splitter:Splitter => true; case _ => false }) => 
-      //withinBB {
-        //visitNode(n)
-      //}
+    case ctx:Context if ctx.streaming.get && (ctx.descendents.exists { case splitter:SplitLeader => true; case _ => false }) => 
+      withinBB {
+        visitNode(n)
+      }
+      
+    case n:SplitLeader =>
+      val addrIn = nameOf(n.addrIn.T.as[BufferRead]).&
+      val ctrlOut = nameOf(assertOne(n.ctrlOut.T, s"$n.out").as[BufferWrite].out.singleConnected.get.src).&
+      genTopMember(n, Seq(n.qstr, addrIn, ctrlOut), end=true)
 
     case n:SparseWrite =>
       emitln(s"// ${n}")
@@ -57,7 +62,7 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
       val (tp, name) = varOf(n)
       declareInit(tp, name, init=None);
       genCtxInits {
-        emitln(s"""$name = ${nameOf(n.mem.T)}->GetRMWPorts("$op",${n.id});""")
+        emitln(s"""$name = ${nameOf(n.mem.T)}->GetRMWPorts("$op","$opOrder",${n.id});""")
         emitln(s"${ctrler}->AddOutput(${name}.first);") // (addr input, ack)
         emitln(s"${ctrler}->AddOutput(${name}.second);") // (data)
       }
@@ -100,18 +105,11 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
   }
 
   override def varOf(n:PIRNode):(String,String) = n match {
+    case n:SplitLeader => (s"SplitLeader", s"${n}")
     case n:SparseRead => (s"${tpOf(n.mem.T)}::SparsePMUPort*", s"${n}_port")
     case n:SparseWrite => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
     case n:SparseRMW => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
     case n:SparseMem if !n.isDRAM => (s"SparsePMU<${n.qtp},$wordPerBank,${spadeParam.vecWidth}>", s"$n")
-    //case n:SparseRMWBlock => 
-      //val nlr = n.unlockReadAddr.values.head.head.connected.size
-      //val nlw = n.unlockWriteAddr.values.head.head.connected.size
-      //val nin = n.numIns.get
-      //val dbk = 1 //TODO: what is DRAM_BANK
-      //val tp = if (n.isDRAM) "DRAM" else ""
-      ////PMU par, RMW par, # accumTp, # accums, # banks, # unlock read, # unlock write, #input
-      //(s"Sparse${tp}RMW<${n.memPar},${n.outerPar},${n.accums.head.tp.qtp},${n.accums.size},${spadeParam.vecWidth},$nlr,$nlw,$nin,$dbk>",s"$n")
     case n => super.varOf(n)
   }
 
