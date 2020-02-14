@@ -1,131 +1,145 @@
 import spatial.dsl._
 
-//class LSTM_0 extends LSTMApp
-//class LSTM_1 extends LSTMApp(rp=2)
-//class LSTM_2 extends LSTMApp(rp=4)
-//class LSTM_3 extends LSTMApp(rp=6)
-//class LSTM_4 extends LSTMApp(rp=8)
+//class LSTM_4 extends LSTM(H = 1024, step = 4, hp = 1, rp = 4, ip = 16)
 
-@spatial abstract class LSTMApp(
-  hp:scala.Int=1,
-  rp:scala.Int=1
-) extends SpatialTest with RNNHelper {
+@spatial abstract class LSTM(
+    N: scala.Int = 1,
+    H: scala.Int = 512,
+    step: scala.Int = 2,
+    np: scala.Int = 1,
+    hp: scala.Int = 1,
+    rp: scala.Int = 1,
+    ip: scala.Int = 16,
+) extends SpatialTest
+    with AppUtil {
 
-  val nHiddenUnits = 512
-  val nGates = 4
-  val innerPar = 16
+  type T = Float
+  type F = Float
+
+  val nGates: scala.Int = 4
 
   def main(args: Array[String]): Unit = {
+    val xData = DRAM[T](N,step, H)
+    setMem(xData, (0::N, 0::step, 0::H) { (i,j,k) => 1.to[T] })
 
-    val cArg = ArgOut[T]
-    val hArg = ArgOut[T]
+    val hResult = DRAM[T](N,step, H)
+    val cResult = DRAM[T](N,step, H)
+
     Accel {
-      val wxhgLUTs = scala.Array.tabulate (nGates) { _ =>
-        getLUT2D (
-          nHiddenUnits,
-          nHiddenUnits * 2
-        )
-      }
-      val bLUTs = scala.Array.tabulate (nGates) { _ =>
-        getLUT1D (
-          nHiddenUnits
-        )
-      }
-      val xhInit = getLUT1D (nHiddenUnits * 2)
-      val cInit = getLUT1D (nHiddenUnits)
-      val c = SRAM[T](nHiddenUnits)
-      val h = SRAM[T](nHiddenUnits)
-      val sigLUT = getLUT1D(1024)//LUT.fromFile[T](1024)(sigSrcPath)
-      val tanhLUT = getLUT1D(1024)//LUT.fromFile[T](1024)(tanhSrcPath)
-      val nUnitsPerReduceTile:scala.Int = nHiddenUnits * 2 / rp
+      val wxhgLUTs = List.fill(nGates) { newLUT[T](H, H * 2) }
+      val bLUTs = List.fill(nGates) { newLUT[T](H) }
 
-      Foreach (nHiddenUnits by 1 par hp) { iHiddenUnit =>
-        val ijfo: scala.Array[T] = wxhgLUTs.map { wxhSrc =>
-          val g = Reduce (Reg[T]) (rp by 1 par rp) { iReduce =>
-            val gInner = Reduce (Reg[T]) (nUnitsPerReduceTile by 1 par innerPar) { iReduceInner =>
-              val iReduceIdx = iReduceInner + iReduce * nUnitsPerReduceTile
-              wxhSrc (iHiddenUnit, iReduceIdx) * xhInit (iReduceIdx)
-            } {_+_}
-            gInner
-          } {_+_} // assume that we div by 2
-          g.value
-        }
+      val sigLUT = newLUT[T](1024)
+      val tanhLUT = newLUT[T](1024)
+      val nUnitsPerReduceTile: scala.Int = H * 2 / rp
 
-        val soReg = Reg[T] (0.to[T])
+      Foreach(N by 1 par np) { i =>
+        val xBuf = SRAM[T](step, H)
+        val hBuf = SRAM[T](step, H).buffer
+        val cBuf = SRAM[T](step, H)
 
-        val bijfo = scala.Array.tabulate (4) { i =>
-          bLUTs (i) (iHiddenUnit) + ijfo (i)
-        }
+        xBuf load xData(i,0 :: step, 0 :: H par ip)
+        Sequential.Foreach(step by 1) { iStep =>
+          Foreach(H by 1 par hp) { iHiddenUnit =>
+            val ijfo: scala.List[T] = wxhgLUTs.map { wxhSrc =>
+              val g = Reg[T]
+              Reduce(g)(H*2 by ip par rp) { iOuter =>
+                val gInner = Reg[T]
+                Reduce(gInner)(0 until ip par ip) { iInner =>
+                  val iReduceIdx = (iOuter + iInner)
+                  val isX = iReduceIdx < H
+                  val firstStep = iStep == 0.to[I32]
+                  val xEle = xBuf.read(Seq(iStep, iReduceIdx), Set(isX))
+                  val hEle = mux(firstStep,0.to[T], hBuf.read(Seq(iStep - 1, iReduceIdx-H),Set(!isX,!firstStep)))
+                  val xhEle = if (isX) xEle else hEle
+                  wxhSrc(iHiddenUnit, iReduceIdx) * xhEle
+                } { _ + _ }
+                gInner.value
+              } { _ + _ }
+              g.value
+            }
 
-        val indexQ = FIFO[Int](1)
-        val cIndexQ = FIFO[Int](1)
-        Foreach (4 by 1 par 4) { iGate =>
-          val gate = mux (
-            iGate == 0, bijfo (0), mux (
-              iGate == 1, bijfo (1), mux (
-                iGate == 2, bijfo (2), bijfo (3)
+            val bijfo = List.tabulate(nGates) { i =>
+              bLUTs(i)(iHiddenUnit) + ijfo(i)
+            }
+
+            val iReg :: jReg :: fReg :: oReg :: rr =
+              List.fill(nGates)(Reg[T](0.to[T]))
+
+            val indexFIFO = FIFO[Int](16)
+            Foreach(nGates by 1) { iGate =>
+              val flt = mux(iGate === 0,
+                            bijfo.head,
+                            mux(iGate === 1,
+                                bijfo(1),
+                                mux(iGate === 2, bijfo(2), bijfo(3))))
+
+              val index = indexTranslate(flt)
+              indexFIFO.enq(index)
+            }
+
+            Foreach(nGates by 1) { iGate =>
+              val index = indexFIFO.deq()
+              val sigEle = sigLUT(index)
+              val tanhEle = tanhLUT(index)
+              val actEle = mux(
+                iGate == 1.to[I32],
+                tanhEle,
+                sigEle
               )
-            )
-          )
 
-          val ltBias = (-8).to[T]
-          val ltScale = 64.to[T]
-          val gateIndex = gate
+              iReg.write(actEle, iGate === 0)
+              jReg.write(actEle, iGate === 1)
+              fReg.write(actEle, iGate === 2)
+              oReg.write(actEle, iGate === 3)
+            }
 
-          val index = min (
-            1023.to[Int], max (
-              0.to[Int], ((gateIndex - ltBias) * ltScale).to[Int]
-            )
-          )
-          indexQ.enq(index)
+            val cIndexFIFO = FIFO[Int](16)
+
+            Pipe {
+              val si = iReg.value
+              val tj = jReg.value
+              val sf = fReg.value
+              val sitjEM = si * tj
+              val ctsfEM = sf * {
+                mux(iStep == 0.to[I32], 0.to[T], cBuf(iStep - 1, iHiddenUnit))
+              }
+              val cNew = sitjEM + ctsfEM
+              cBuf(iStep, iHiddenUnit) = cNew
+              val cIndex = indexTranslate(cNew)
+              cIndexFIFO.enq(cIndex)
+            }
+
+            Pipe {
+              val so = oReg.value
+              val cIndex = cIndexFIFO.deq()
+              val cTanh = tanhLUT(cIndex)
+              val hNew = cTanh * so
+              hBuf(iStep, iHiddenUnit) = hNew
+            }
+          }
         }
 
-        Foreach (4 by 1 par 4) { iGate =>
-          val index = indexQ.deq()
-          val sigEle = sigLUT (index)
-          val tanhEle = tanhLUT (index)
-          val actEle = mux (
-            iGate == 1,
-            tanhEle,
-            sigEle
-          )
-          val siReg = actEle
-          val tjReg = actEle
-          val sfReg = actEle
-          soReg := actEle
-
-          val si = siReg
-          val tj = tjReg
-          val sf = sfReg
-
-          val sitjEM = si * tj
-          val ctsfEM = cInit (iHiddenUnit) * sf
-          val cNew = sitjEM + ctsfEM
-          c (iHiddenUnit) = cNew
-
-          val cIndex = min (
-            1023.to[Int], max (
-              0.to[Int], ((cNew - (-8).to[T]) * 64.to[T]).to[Int]
-            )
-          )
-
-          cIndexQ.enq (cIndex)
-        }
-
-        Foreach (4 by 1 par 4) { iGate =>
-          val so = soReg.value
-
-          val cIndex = cIndexQ.deq()
-          val cTanh = tanhLUT (cIndex)
-          // val cTanh = tanhWrapper (cNew) // Assuming that we don't need extra logic to do look up
-          val hNew = cTanh * so
-          h (iHiddenUnit) = hNew
-        }
+        hResult(i,0 :: step, 0 :: H par ip) store hBuf
+        cResult(i,0 :: step, 0 :: H par ip) store cBuf
       }
-
-      cArg := c (0)
-      hArg := h (0)
     }
+
+    //printMatrix(getMatrix(hResult))
+    //printMatrix(getMatrix(cResult))
     assert(true)
+  }
+
+  def indexTranslate(x: T): I32 = {
+    val ltBias = -8.to[T]
+    val ltScale = 64.to[T]
+    val re: I32 = min(
+      1023.to[I32],
+      max(
+        0.to[I32],
+        ((x - ltBias) * ltScale).to[I32]
+      )
+    )
+    re
   }
 }

@@ -66,6 +66,7 @@ case class Runner(session:Session, id:Int) extends Serializable with RunnerStatu
         case Failure(e:Throwable) => 
           setFailed
           bug(s"$name throw $e", exception=false)
+          bug(s"${e.getStackTrace.head}", exception=false)
           pass.handle(e)
       }
       info(s"Finished ${cstr(Console.CYAN, name)} in ${toc("ms")}ms")

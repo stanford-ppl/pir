@@ -8,6 +8,7 @@ import spade.param._
 import prism.collection.immutable._
 import prism.util._
 import prism.mapper._
+import prism.graph._
 
 case class AFGCost(prefix:Boolean=false) extends PrefixCost[AFGCost]
 case class MCCost(prefix:Boolean=false) extends PrefixCost[MCCost]
@@ -22,6 +23,7 @@ case class StageCost(quantity:Int=0) extends QuantityCost[StageCost]
 case class LaneCost(quantity:Int=1) extends MaxCost[LaneCost]
 case class OpCost(set:Set[Opcode]=Set.empty) extends SetCost[Opcode,OpCost]
 case class ActorCost(quantity:Int=0) extends QuantityCost[ActorCost]
+case class PRCost(quantity:Int=0) extends MaxCost[PRCost]
 
 trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
   implicit class AnyCostOp(x:Any) {
@@ -70,7 +72,7 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
 
   def stageCost(op:OpNode) = 1
 
-  protected def compCost(x:Any, ct:ClassTag[_]):Cost[_] = dbgblk(s"getCost($x,${ct.getClass.getSimpleName})") {
+  protected def compCost(x:Any, ct:ClassTag[_]):Cost[_] = dbgblk(s"getCost($x,${ct.toString.split("\\.").last})") {
     switch[AFGCost](x,ct) {
       case n:GlobalContainer => AFGCost(n.isInstanceOf[ArgFringe])
       case n:Parameter => AFGCost(n.isInstanceOf[ArgFringeParam])
@@ -205,9 +207,64 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
       case n:CUParam => OpCost(n.ops)
       case n:Parameter => OpCost(Set.empty)
 
+    } orElse switch[PRCost](x,ct) {
+      case n:ArgFringe => PRCost(0)
+      case n:DRAMFringe => PRCost(0)
+      case n:GlobalContainer => 
+        val ctxs = n.collectDown[Context]()
+        ctxs.map { _.getCost[PRCost] }.reduceOption { _ + _ }.getOrElse(PRCost())
+      case n:Context =>
+        val ops = n.children.filter {
+          case _:OpNode => true
+          case _ => false
+        }
+        getPRCost(n,ops)
+      case n:CUParam => PRCost(n.numReg)
+      case n:Parameter => PRCost(0)
+
     } getOrElse {
       bug(s"Don't know how to compute $ct of $x")
     }
   }
+
+  def getPRCost(n:Any, ops:List[PIRNode]) = {
+    dfsScheduler.resetTraversal
+    val depFree = dfsScheduler.scheduleDepFree(ops)
+    val liveOuts = depFree.flatMap { _.outs.filter { _.isConnected } }.toSet
+    val (dfsReg, _) = dfsScheduler.traverseScope(ops, (liveOuts.size, liveOuts))
+    val numRegs = dfsReg
+    PRCost(numRegs)
+  }
+
+  private trait PRTraversal extends PIRTraversal with TopologicalTraversal {
+    type T = (Int, Set[Output[PIRNode]])
+    val forward = false
+
+    def zero = (0, Set.empty)
+
+    override def visitNode(n:N, prev:T) = {
+      val defs = n.localOuts
+      val (maxLives, lives) = prev
+      val newLives = lives -- defs ++ n.localIns.flatMap { _.connected.filterNot {
+        case OutputField(_:Const, _) => true
+        case OutputField(_:Controller, _) => true // Control signals doesn't take pr
+        case _ => false
+      } }
+      var numRegs = newLives.size
+      //breakPoint(s"$n $numRegs ${newLives.map { dquote }}")
+      n match {
+        case _:RegAccumOp | _:RegAccumFMA => numRegs += 1
+        case _ =>
+      }
+      val newMaxLives = math.max(maxLives, newLives.size)
+      (newMaxLives, newLives)
+    } 
+
+    override def visitIn(n:N):List[N] = visitGlobalIn(n)
+    override def visitOut(n:N):List[N] = visitGlobalOut(n)
+  }
+
+  private lazy val dfsScheduler = new PRTraversal with DFSTopologicalTraversal {}
+  private lazy val bfsScheduler = new PRTraversal with BFSTopologicalTraversal {}
 
 }

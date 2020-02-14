@@ -33,6 +33,8 @@ class SpadeConfig(compiler:Compiler) extends prism.Config(compiler) {
   register[Int]("vfifo", default=4, info="Number of vector FIFO within Terminal")
   register[Int]("vlink", default=2, info="Number of vector link between switches")
   register[Int]("slink", default=4, info="Number of scalar link between switches")
+  register[Int]("pcu-pr", info="Number of pipeline register in pcu")
+  register[Int]("pmu-pr", info="Number of pipeline register in pmu")
   register[Int]("pcu-vin", info="Number of vector input to pcu")
   register[Int]("pcu-vout", info="Number of vector output to pcu")
   register[Int]("pmu-vin", info="Number of vector input to pmu")
