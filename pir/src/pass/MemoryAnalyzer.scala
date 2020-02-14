@@ -8,7 +8,11 @@ import scala.collection.mutable
 
 trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
 
-  def insertToken(fctx:Context, tctx:Context, dep:Option[Output[PIRNode]]=None):TokenRead = {
+  def insertToken(
+    fctx:Context, 
+    tctx:Context, 
+    dep:Option[Output[PIRNode]]=None
+  )(implicit file:sourcecode.File, line: sourcecode.Line):TokenRead = {
     val isFIFO = false
     val fctrl = fctx.ctrl.get
     val tctrl = tctx.ctrl.get

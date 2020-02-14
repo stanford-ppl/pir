@@ -63,7 +63,7 @@ class LogReg_6 extends LogReg(op=3, mp=3)
               sub := yTile(ii) - sigmoid[T](dot.value)
             }
             val gradRow = SRAM[T](D)
-            Foreach(D by 1 par ip) { d => gradRow(d) = xTile(ii, d) - sub.value }
+            Foreach(D by 1 par ip) { d => gradRow(d) = xTile(ii, d) * sub.value }
             gradRow
           } { _ + _ }
         } { _ + _ }
@@ -99,7 +99,7 @@ class LogReg_6 extends LogReg(op=3, mp=3)
       val next = sX.zip(sY) {case (row, y) =>
         val dot = row.zip(gold){(a,b) =>a*b}.reduce{_+_}
         val sub = y - sigmoid(dot)
-        row.map{a =>a - sub}
+        row.map{a =>a * sub}
       }.reduce{(a,b) => a.zip(b){_+_}}
       for (i <- 0 until D) {
         gold(i) = gold(i) + next(i)

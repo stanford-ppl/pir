@@ -68,18 +68,28 @@ case class Lock()(implicit env:Env) extends BlackBox with DefNode[PIRNode] {
 case class Splitter()(implicit env:Env) extends BlackBox {
   def addrIn = getDynamicInputFields[PIRNode]("addrIn")
   def addrOut = getDynamicOutputFields[PIRNode]("addrOut")
-  def ctrlOut = getDynamicOutputFields[PIRNode]("ctrlOut")
   def addAddrIn(xs:Any*) = DynamicInputFields[PIRNode]("addrIn", xs)
   def addAddrOut(num:Int) = DynamicOutputFields[PIRNode]("addrOut", num)
-  def addCtrlOut(num:Int) = DynamicOutputFields[PIRNode]("ctrlOut", num)
   override def compType(n:IR) = n match {
     case n@OutputField(_,"addrOut") => addrIn(n.dynamicIdx.get).inferTp
-    case n@OutputField(_,"ctrlOut") => Some(Bool)
     case _ => super.compType(n)
   }
   override def compVec(n:IR) = n match {
     case n@OutputField(_,"addrOut") => addrIn(n.dynamicIdx.get).inferVec
-    case n@OutputField(_,"ctrlOut") => addrIn(n.dynamicIdx.get).inferVec
+    case _ => super.compVec(n)
+  }
+}
+case class SplitLeader()(implicit env:Env) extends BlackBox {
+  val addrIn = InputField[PIRNode]
+  val addrOut = OutputField[PIRNode]
+  val ctrlOut = OutputField[List[PIRNode]].tp(Bool)
+  override def compType(n:IR) = n match {
+    case `addrOut` => addrIn.inferTp
+    case _ => super.compType(n)
+  }
+  override def compVec(n:IR) = n match {
+    case `addrOut` => addrIn.inferVec
+    case `ctrlOut` => addrIn.inferVec
     case _ => super.compVec(n)
   }
 }

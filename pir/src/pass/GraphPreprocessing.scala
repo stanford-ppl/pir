@@ -7,7 +7,7 @@ import spade.param._
 
 import scala.collection.mutable
 
-class GraphInitialization(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with PIRTransformer {
+class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with UnitTraversal with PIRTransformer {
 
   override def runPass = {
     withGC(false) {
