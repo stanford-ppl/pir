@@ -1,6 +1,5 @@
 package pir
 package codegen
-
 import pir.node._
 import prism.graph._
 import prism.codegen._
@@ -85,6 +84,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       }
 
       visitNode(n)
+
       emitLaneValid(n)
 
     case n:Counter =>
@@ -107,23 +107,18 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case n => super.emitNode(n)
   }
 
-  def getLoopLaneValids(n:LoopController) = {
-    n.cchain.T.foldLeft(List[String]()) { 
-      case (Nil, ctr) => List.tabulate(ctr.par) { i => s"$ctr->Valids()[$i]" }
-      case (prev, ctr) => 
-        prev.flatMap { valid => (0 until ctr.par).map { i => s"$valid & $ctr->Valids()[$i]" } }
-    }
-  }
-
   def emitLaneValid(n:Controller) = {
     if (n.getCtrl.isLeaf) {
       n match {
         case n:LoopController => 
-          emitVec(n.laneValid, getLoopLaneValids(n))
+          emitln(s"$n->EvalLaneValids();")
+          emitVec(n.laneValid) { i =>
+            s"$n->LaneValids()[${i.getOrElse("0")}]"
+          }
         case n:SplitController => 
-          n.parent.get match {
-            case p:LoopController => emitVec(n.laneValid, getLoopLaneValids(p))
-            case p => emitVec(n.laneValid) { i => "true" }
+          emitln(s"$n->EvalLaneValids();")
+          emitVec(n.laneValid) { i =>
+            s"$n->LaneValids()[${i.getOrElse("0")}]"
           }
         case n => emitVec(n.laneValid) { i => "true" }
       }

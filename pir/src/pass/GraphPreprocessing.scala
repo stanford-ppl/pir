@@ -264,7 +264,7 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
       val ctrl = access.getCtrl
       if (ctrl.isLeaf) {
         ctrl.ctrler.v.foreach { 
-          case ctrler:LoopController =>
+          case ctrler@(_:LoopController | _:SplitController) =>
             access.mem.T match {
               case mem:Reg if ctrler.par.get > 1 | access.isInnerReduceOp.get => return
               case _ => 
