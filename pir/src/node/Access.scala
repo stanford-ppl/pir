@@ -91,10 +91,23 @@ case class LockRMW(op:Opcode)(implicit env:Env) extends LockAccess with RMWAcces
   val ack = OutputField[List[PIRNode]].presetVec(1).tp(Bool)
 }
 
+class Barrier(val ctrl:ControlTree, val init:Int) extends Serializable {
+  override def toString = {
+    s"Barrier($init,$ctrl,${ctrl.srcCtx.v.getOrElse("No Source Context")})"
+  }
+}
+object Barrier {
+  def apply(ctrl:ControlTree, init:Int) = new Barrier(ctrl, init)
+  def unapply(x:Barrier) = Some((x.ctrl,x.init))
+}
 
 trait SparseAccess extends Access {
   val addr = InputField[PIRNode]
   //val lock = InputField[Option[LockOnKeys]]
+  
+  // a list of (ControlTree, init, isWrite)
+  val barriers = Metadata[List[(Barrier, Boolean)]]("barriers", default=Nil)
+
   override def compVec(n:IR) = n match {
     case out:Output[_] => Some(this.getCtrl.par.get)
     case _ => super.compVec(n)
@@ -162,7 +175,7 @@ trait LocalAccess extends PIRNode with Def {
 trait LocalInAccess extends LocalAccess 
 trait LocalOutAccess extends LocalAccess with MemoryNode {
   val in = InputField[PIRNode]
-  val initToken = Metadata[Boolean]("initToken", default=false)
+  val initToken = Metadata[Int]("initToken", default=0)
   override def compType(n:IR) = n match {
     case `out` => in.inferTp
     case _ => super.compType(n)

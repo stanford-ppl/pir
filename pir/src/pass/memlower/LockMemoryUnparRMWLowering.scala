@@ -51,7 +51,7 @@ trait LockMemoryUnparRMWLoweirng extends GenericMemoryLowering { self:LockMemory
     val toctx = torqst.src.ctx.get
     val read = insertToken(fromctx, toctx, dep=Some(fromresp)).depth(depth)
     if (carried) {
-      read.initToken := true
+      read.initToken := 1
       read.inits := true
     }
     val original = torqst.singleConnected.get

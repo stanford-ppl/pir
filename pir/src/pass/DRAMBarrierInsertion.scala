@@ -80,7 +80,7 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
       }
       //breakPoint(s"insertToken($fromCmd, $toCmd, $fromCtx, $toCtx)")
       if (!forward) {
-        tokenRead.initToken := true
+        tokenRead.initToken := 1
         tokenRead.inits(true)
       }
     }
