@@ -64,7 +64,7 @@ trait PIRIRDotGen extends PIRTraversal with IRDotCodegen { self =>
       q.append("port", n.port.v)
     }.foldAt(n.to[LocalOutAccess]) { (q,n) =>
       var l = q
-      if (n.initToken.get) { l += s"\ninitToken" }
+      if (n.initToken.get>0) { l += s"\ninitToken=${n.initToken.get}" }
       if (n.isSplit.get) { l += s"\n split" }
       l
     }.foldAt(n.to[MemoryNode]) { (q,n) =>

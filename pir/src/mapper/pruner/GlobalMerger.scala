@@ -42,7 +42,7 @@ trait GlobalMerging extends PIRTransformer with CUCostUtil with  MappingLogger {
     if (in.src.isUnder[ArgFringe]) true
     else {
       val out = in.singleConnected.get
-      out.src.ctx.get.collectDown[LocalOutAccess]().exists { _.initToken.get }
+      out.src.ctx.get.collectDown[LocalOutAccess]().exists { _.initToken.get>0 }
     }
   }
 

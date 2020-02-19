@@ -148,8 +148,8 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
       }
     } else {
       n.reads.view.zipWithIndex.foreach { case (read, idx) =>
-        if (read.initToken.get) {
-          emitln(s"unscaled_init_token[${idx}] = 1")
+        if (read.initToken.get>0) {
+          emitln(s"unscaled_init_token[${idx}] = ${read.initToken.get}")
         }
       }
     }

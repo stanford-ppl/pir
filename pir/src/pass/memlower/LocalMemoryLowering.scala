@@ -97,8 +97,8 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
           bufferInputFrom(en, read.en, enCtx)
         }
         if (inAccess.order.get > outAccess.order.get ) {
-          dbg(s"$read.initToken = true")
-          read.initToken := true
+          dbg(s"$read.initToken = 1")
+          read.initToken := 1
         }
         swapOutput(outAccess.out, read.out)
       }

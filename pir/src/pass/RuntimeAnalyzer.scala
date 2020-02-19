@@ -79,7 +79,7 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
     }
     if (!passTwo) reads = reads.filterNot { read => 
       val connectToUnlock = read.out.connected.exists { case InputField(lock:Lock, "unlock") => true; case _ => false }
-      read.initToken.get || connectToUnlock 
+      read.initToken.get>0 || connectToUnlock 
     }
     reads.foreach { _.getCount }
     dbg(s"reads=$reads passTwo=$passTwo")

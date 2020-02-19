@@ -29,7 +29,7 @@ trait TungstenMemGen extends TungstenCtxGen {
       genTopMember(n, Seq(n.qstr))
       addEscapeVar(n)
       genCtxInits {
-        if (n.initToken.get) {
+        if (n.initToken.get>0) {
           val initVal = n.inits.get
           val banks = n.banks.map { _.head }.getOrElse(n.getVec)
           val init = if (banks > 1) {
@@ -37,7 +37,9 @@ trait TungstenMemGen extends TungstenCtxGen {
           } else {
             s"(${n.qtp}) $initVal"
           }
-          emitln(s"$name->Init(make_token($init));")
+          (0 until n.initToken.get).foreach { i =>
+            emitln(s"$name->Init(make_token($init));")
+          }
         }
         val ctrler = getCtrler(n)
         emitln(s"${ctrler}->AddInput(${nameOf(n)});")
