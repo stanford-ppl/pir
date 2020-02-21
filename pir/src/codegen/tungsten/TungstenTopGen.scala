@@ -172,7 +172,7 @@ using namespace std;
 
   protected def genTopCpp(block: => Unit) = enterFile(dirName, "Top.cc")(block)
 
-  private def genTopFields(block: => Unit) = enterBuffer("top", level=1)(block)
+  protected def genTopFields(block: => Unit) = enterBuffer("top", level=1)(block)
 
   private def genTopEndFields(block: => Unit) = enterBuffer("top-end", level=1)(block)
 

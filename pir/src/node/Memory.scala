@@ -217,6 +217,8 @@ case class SparseDRAMBlock(
   dramPar:Int, // Number of DramAG
 )(implicit env:Env) extends GlobalBlackBox {
 
+  val dims = Metadata[List[Int]]("dims", default=List(1))
+
   type ReadPort = (Input[PIRNode], Output[PIRNode])
   type WritePort = (Input[PIRNode], Input[PIRNode], Output[PIRNode])
   type RMWPort = (Input[PIRNode], Input[PIRNode], Output[PIRNode], String, String)
