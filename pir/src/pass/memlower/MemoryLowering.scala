@@ -53,4 +53,5 @@ class MemoryLowering(implicit compiler:PIR)
   with GlobalMemoryLowering
   with LocalMemoryLowering
   with LockMemoryLowering
-  with SparseMemoryLowering
+  with SparseSRAMLowering
+  with SparseDRAMLowering

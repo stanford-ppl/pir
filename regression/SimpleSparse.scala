@@ -46,3 +46,68 @@ import spatial.dsl._
     assert(cksum)
   }
 }
+
+@spatial class SimpleSparseDRAM extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+
+  def main(args: Array[String]): Unit = {
+
+    val N = 128
+    val ts = 32
+    val ip = 16
+
+    val out = ArgOut[T]
+
+    Accel {
+      // Test dense read/write and RMW
+      val s1 = SparseDRAM[T](1)(ts)
+      Reduce(out)(N by ts) { i =>
+        val forwardBarrier = Barrier[Token](0)
+        val backwardBarrier = Barrier[Token](init=1) 
+        Foreach(ts by 1 par ip) { j =>
+          s1.barrierWrite(j, i+j, Seq(forwardBarrier.push, backwardBarrier.pop))
+        }
+        Reduce(Reg[T])(ts by 1 par ip) { j =>
+          s1.barrierRead(j, Seq(forwardBarrier.pop, backwardBarrier.push))
+        } { _ + _ }
+      } { _ + _ }
+    }
+
+    val gold = List.tabulate(N) { i => i }.sum
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (SimpleSparseDRAM)")
+    assert(cksum)
+  }
+}
+
+@spatial class SimpleScan extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  type T = Int
+  val N = 16
+
+  def main(args: Array[String]): Unit = {
+
+    val out = ArgOut[T]
+
+    Accel {
+      val sram = SRAM[U512](N)
+      Foreach(N by 1) { i =>
+        sram(i) = i.to[U512]
+      }
+      Reduce(out)(N by 1) { i =>
+        val mask = sram(i)
+        Reduce(Reg[T])(Scan(mask)) { j =>
+          j.to[T]
+        } { _ + _ }
+      } { _ + _ }
+    }
+
+    assert(true)
+    //val cksum = checkGold[T](out, gold)
+    //println("PASS: " + cksum + " (SimpleScan)")
+    //assert(cksum)
+  }
+}

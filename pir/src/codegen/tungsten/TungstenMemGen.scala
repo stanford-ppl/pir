@@ -9,19 +9,19 @@ import scala.collection.mutable
 
 trait TungstenMemGen extends TungstenCtxGen {
 
-  override def emitInit = {
-    val luts = pirTop.collectChildren[MemoryContainer].flatMap { _.collectChildren[LUT] }
-    luts.foreach { lut =>
-      val (tp, name) = varOf(lut)
-      emitln(s"${lut.qtp} ${name}_init[] = {${lut.inits.get.as[List[_]].mkString(",")}};")
-      emitBlock(s"for (auto* buf: $name.buffers)") {
-        emitBlock(s"for (auto* bank: buf->banks)") {
-          emitln(s"memcpy(bank->data.data(), &${name}_init, sizeof(${name}_init));")
-        }
-      }
-    }
-    super.emitInit
-  }
+  //override def emitInit = {
+    //val luts = pirTop.collectChildren[MemoryContainer].flatMap { _.collectChildren[LUT] }
+    //luts.foreach { lut =>
+      //val (tp, name) = varOf(lut)
+      //emitln(s"${lut.qtp} ${name}_init[] = {${lut.inits.get.as[List[_]].mkString(",")}};")
+      //emitBlock(s"for (auto* buf: $name.buffers)") {
+        //emitBlock(s"for (auto* bank: buf->banks)") {
+          //emitln(s"memcpy(bank->data.data(), &${name}_init, sizeof(${name}_init));")
+        //}
+      //}
+    //}
+    //super.emitInit
+  //}
 
   override def emitNode(n:N) = n match {
     case n:LocalOutAccess =>
@@ -134,6 +134,18 @@ trait TungstenMemGen extends TungstenCtxGen {
     case n:Memory =>
       val accesses = n.accesses.map { a => s"""make_tuple(${a.id}, ${a.isInAccess}, ${a.port.get.isEmpty})""" }.mkString(",")
       genTopMember(n, Seq(n.qstr, s"{$accesses}"))
+
+      n.to[LUT].foreach { lut =>
+        val (tp, name) = varOf(lut)
+        genTopInit {
+          emitln(s"${lut.qtp} ${name}_init[] = {${lut.inits.get.as[List[_]].mkString(",")}};")
+          emitBlock(s"for (auto* buf: $name.buffers)") {
+            emitBlock(s"for (auto* bank: buf->banks)") {
+              emitln(s"memcpy(bank->data.data(), &${name}_init, sizeof(${name}_init));")
+            }
+          }
+        }
+      }
 
     case n:MemRead if n.mem.T.isFIFO =>
       val mem = n.mem.T
