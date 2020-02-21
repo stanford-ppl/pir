@@ -84,12 +84,20 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
 
     case n:SparseMem if !n.isDRAM => genTopMember(n, Seq(n.qstr))
 
-    //case n:SparseRMWBlock if !n.isDRAM => 
-      //genTopMember(n, Seq(n.qstr, "net".&, "statnet".&, "idealnet".&, "DRAM".&))
-
-    //case n:SparseRMWBlock => 
-      //val drams = n.accums.map { _.dram.get }
-      //genTopMember(n, Seq(n.qstr, "net".&, "statnet".&, "idealnet".&, "DRAM".&, drams.qlist))
+    case n:SparseDRAMBlock => 
+      genTopMember(n, Seq(n.qstr, "\"order\"", "&DRAM", "nullptr", s"make_tuple(&net, &statnet, &idealnet)"))
+      genTopInit {
+        n.readPorts.foreach { case (a, ports) =>
+          emitln(s"""$n.RegisterRead("read${a}_", {${(0 until ports.size).map { i => i }.mkString(",")}});""")
+        }
+        n.writePorts.foreach { case (a, ports) =>
+          emitln(s"""$n.RegisterWrite("write${a}_", {${(0 until ports.size).map { i => i }.mkString(",")}});""")
+        }
+        n.rmwPorts.foreach { case (a, ports) =>
+          val (op, order) = n.rmwOps(a)
+          emitln(s"""$n.RegisterRMW("rmw${a}_", "$op", "$order", {${(0 until ports.size).map { i => i }.mkString(",")}})""")
+        }
+      }
 
     case n => super.emitNode(n)
   }
@@ -110,6 +118,7 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
     case n:SparseWrite => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
     case n:SparseRMW => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
     case n:SparseMem if !n.isDRAM => (s"SparsePMU<${n.qtp},$wordPerBank,${spadeParam.vecWidth}>", s"$n")
+    case n:SparseDRAMBlock => (s"ParDRAM<${n.dramPar},${n.qtp}>", s"$n")
     case n => super.varOf(n)
   }
 

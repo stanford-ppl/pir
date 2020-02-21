@@ -3,6 +3,7 @@ package node
 
 import spade.param._
 import prism.graph._
+import scala.collection.mutable
 
 trait MemoryNode extends PIRNode {
   /*  ------- Metadata -------- */
@@ -57,7 +58,7 @@ case class SRAM()(implicit env:Env) extends Memory
 case class RegFile()(implicit env:Env) extends Memory
 case class LUT()(implicit env:Env) extends Memory
 case class LockMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory
-case class SparseMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory
+case class SparseMem(isDRAM:Boolean=false, dramPar:Int=1)(implicit env:Env) extends Memory
 
 case class Lock()(implicit env:Env) extends BlackBox with DefNode[PIRNode] {
   val lock = InputField[PIRNode]
@@ -147,6 +148,7 @@ case class LockRMWBlock(
   val unlockWriteAck = accums.map { a => a -> List.fill(outerPar) { OutputField[Option[PIRNode]].tp(Bool).presetVec(1) } }.toMap
 
   def addLockInputIn = DynamicInputFields[PIRNode](s"lockInputIn")
+  val sparseReadIn = mutable.Map[Int,mutable.ListBuffer[Input[PIRNode]]]()
   def addLockInputOut = DynamicOutputFields[PIRNode](s"lockInputOut")
   // MemPar[NumIn[OuterPar[]]]
   def lockInputIns = {
@@ -209,6 +211,83 @@ case class LockRMWBlock(
   }
 
   def isDRAM = assertUnify(accums, s"$this have both DRAM and SRAm in accums=${accums}") { _.dram.nonEmpty }.get
+}
+// This is not a mirrable node
+case class SparseDRAMBlock(
+  dramPar:Int, // Number of DramAG
+)(implicit env:Env) extends GlobalBlackBox {
+
+  type ReadPort = (Input[PIRNode], Output[PIRNode])
+  type WritePort = (Input[PIRNode], Input[PIRNode], Output[PIRNode])
+  type RMWPort = (Input[PIRNode], Input[PIRNode], Output[PIRNode], String, String)
+
+  // Mapping between access ID a list of ports for different lanes
+  val readPorts = mutable.Map[Int,mutable.ListBuffer[ReadPort]]()
+  val writePorts = mutable.Map[Int,mutable.ListBuffer[WritePort]]()
+  val rmwPorts = mutable.Map[Int,mutable.ListBuffer[RMWPort]]()
+  val rmwOps = mutable.Map[Int,(String,String)]()
+
+  // Mapping between edge to access ID and lane ID in the list buffer
+  val portMap = mutable.Map[Edge[PIRNode,_,_], (Int,Int)]()
+
+  def addReadPort(accessid:Int) = {
+    val list = readPorts.getOrElseUpdate(accessid, mutable.ListBuffer.empty)
+    val ports = (
+      DynamicInputFields[PIRNode](s"readAddr"), 
+      DynamicOutputFields[List[PIRNode]](s"readData")
+    )
+    portMap += ports._1 -> (accessid, list.size)
+    portMap += ports._2 -> (accessid, list.size)
+    list += ports
+    ports
+  }
+
+  def addWritePort(accessid:Int) = {
+    val list = writePorts.getOrElseUpdate(accessid, mutable.ListBuffer.empty)
+    val ports = (
+      DynamicInputFields[PIRNode](s"writeAddr"), 
+      DynamicInputFields[PIRNode](s"writeData"), 
+      DynamicOutputFields[List[PIRNode]](s"writeAck").presetVec(1).tp(Bool)
+    )
+    portMap += ports._1 -> (accessid, list.size)
+    portMap += ports._2 -> (accessid, list.size)
+    portMap += ports._3 -> (accessid, list.size)
+    list += ports
+    ports
+  }
+
+  def addRMWPort(accessid:Int, op:String, order:String) = {
+    val list = writePorts.getOrElseUpdate(accessid, mutable.ListBuffer.empty)
+    rmwOps += accessid -> (op, order)
+    val ports = (
+      DynamicInputFields[PIRNode](s"rmwAddr"), 
+      DynamicInputFields[PIRNode](s"rmwDataIn"), 
+      DynamicOutputFields[List[PIRNode]](s"rmwDataOut"),
+    )
+    portMap += ports._1 -> (accessid, list.size)
+    portMap += ports._2 -> (accessid, list.size)
+    portMap += ports._3 -> (accessid, list.size)
+    list += ports
+    ports
+  }
+
+  override def compVec(n:IR) = n match {
+    case n@OutputField(_,"readData") =>  
+      val (aid, lane) = portMap(n.as)
+      readPorts(aid)(lane)._1.inferVec
+    case n@OutputField(_,"rmwDataOut") => 
+      val (aid, lane) = portMap(n.as)
+      rmwPorts(aid)(lane)._2.inferVec
+    case _ => super.compVec(n)
+  }
+
+  override def compType(n:IR) = n match {
+    case n@OutputField(_,"readData") => this.inferTp
+    case n@OutputField(_,"rmwDataOut") => this.inferTp
+    case _ => super.compType(n)
+  }
+
+  // MemPar[NumIn[OuterPar[]]]
 }
 case class Top()(implicit env:Env) extends PIRNode {
   var topCtrl:ControlTree = _

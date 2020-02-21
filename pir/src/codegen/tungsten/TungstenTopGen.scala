@@ -142,7 +142,8 @@ using namespace std;
         genTopCpp {
           emitBlock(s"""$topName::$topName(\n    $topArgsSig\n  ): $inits""") {
             emitln(s"AddChildren({${members.map { _.name.&}.mkString(",")}});")
-            emitInit
+            getBuffer("top-init").foreach { _.flushTo(sw) }
+            //emitInit
           }
         }
         val aliasArgs = escapes.map { mem => 
@@ -165,7 +166,7 @@ using namespace std;
     super.finPass
   }
 
-  protected def emitInit = {}
+  //protected def emitInit = {}
 
   protected def genTop(block: => Unit) = enterFile(dirName, topHeader)(block)
 
@@ -176,5 +177,7 @@ using namespace std;
   private def genTopEndFields(block: => Unit) = enterBuffer("top-end", level=1)(block)
 
   protected def genExternEnd(block: => Unit) = enterBuffer("extern-end", level=1)(block)
+
+  protected def genTopInit(block: => Unit) = enterBuffer("top-init", level=1)(block)
 
 }
