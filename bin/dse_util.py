@@ -27,7 +27,10 @@ def pirArgs(**kws):
     def func(kws):
         pa = []
         for k in kws:
-            pa.append('--{}={}'.format(k.replace("_",'-'),kws[k]))
+            if 'more' in k:
+                pa.append(kws[k])
+            else:
+                pa.append('--{}={}'.format(k.replace("_",'-'),kws[k]))
         return ' '.join(pa)
     return recurse(func,**kws)
 
