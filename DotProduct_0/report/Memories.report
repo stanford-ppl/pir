@@ -1,0 +1,497 @@
+---------------------------
+Estimated Total Memories: 
+---------------------------
+---------------------------
+
+
+
+---------------------------------------------------------------------
+Name: out (x128)
+Type: Reg[Fix[TRUE,_32,_0]]
+Src:  DotProduct.scala:25:21
+Src:      val out = ArgOut[T]
+---------------------------------------------------------------------
+Symbol:     x128 = ArgOutNew(Const(0))
+Instances: 1
+
+
+Instance Summary: 
+  #0: Banked
+     Resource: SRAM
+     Depth:    1
+     Padding:  List()
+     Accum:    None
+     Banks:    1 <Flat>
+       Dims {}: Cyclic: N=1, B=1, alpha=<>, P=<> (1 solutions, 0 checks)
+     Ports: 
+         0 [Type:WR]:
+           - Mux Port #0: 
+             x220 = RegWrite(x128,x219,Set()) {}
+             out := Reduce(accO)(N by ts par op){i => (DotProduct.scala:31:11)
+               Directly Banked: false
+               Port: <offset: 0, castgroup: (0), broadcast: (0)>
+
+         0 [Type:RD]:
+           - Mux Port #0: 
+             x229 = GetReg(x128) {}
+             val cksum = checkGold(out, gold) (DotProduct.scala:52:26)
+               Directly Banked: false
+               Port: <offset: 0, castgroup: (0), broadcast: (0)>
+
+
+
+
+Control Tree: 
+Host
+---------------------------------------------------------------------
+
+
+
+
+---------------------------------------------------------------------
+Name: x163
+Type: StreamOut[BurstCmd]
+Src:  DotProduct.scala:36:16
+Src:            bBlk load b(i::i+ts par ip)
+---------------------------------------------------------------------
+Symbol:     x163 = StreamOutNew(BurstCmdBus)
+Instances: 1
+
+
+Instance Summary: 
+  #0: Banked
+     Resource: SRAM
+     Depth:    1
+     Padding:  List(0)
+     Accum:    None
+     Banks:    1 <Flat>
+       Dims {0}: Cyclic: N=1, B=1, alpha=<1>, P=<1> (1 solutions, 0 checks)
+     Ports: 
+         0 [Type:WR]:
+           - Mux Port #0: 
+             x171 = StreamOutBankedWrite(x163,ArrayBuffer(x169),ArrayBuffer(Set(x170))) {}
+             bBlk load b(i::i+ts par ip) (DotProduct.scala:36:16)
+               Directly Banked: false
+               Port: <offset: 0, castgroup: (0), broadcast: (0)>
+
+         0 [Type:RD]:
+
+
+
+Control Tree: 
+x172: UnitPipe (-1) [Level: InnerControl, Loop: Single, Schedule: Sequenced]
+  x171: StreamOutBankedWrite
+---------------------------------------------------------------------
+
+
+
+
+---------------------------------------------------------------------
+Name: x139
+Type: StreamOut[BurstCmd]
+Src:  DotProduct.scala:35:16
+Src:            aBlk load a(i::i+ts par ip)
+---------------------------------------------------------------------
+Symbol:     x139 = StreamOutNew(BurstCmdBus)
+Instances: 1
+
+
+Instance Summary: 
+  #0: Banked
+     Resource: SRAM
+     Depth:    1
+     Padding:  List(0)
+     Accum:    None
+     Banks:    1 <Flat>
+       Dims {0}: Cyclic: N=1, B=1, alpha=<1>, P=<1> (1 solutions, 0 checks)
+     Ports: 
+         0 [Type:WR]:
+           - Mux Port #0: 
+             x147 = StreamOutBankedWrite(x139,ArrayBuffer(x145),ArrayBuffer(Set(x146))) {}
+             aBlk load a(i::i+ts par ip) (DotProduct.scala:35:16)
+               Directly Banked: false
+               Port: <offset: 0, castgroup: (0), broadcast: (0)>
+
+         0 [Type:RD]:
+
+
+
+Control Tree: 
+x148: UnitPipe (-1) [Level: InnerControl, Loop: Single, Schedule: Sequenced]
+  x147: StreamOutBankedWrite
+---------------------------------------------------------------------
+
+
+
+
+---------------------------------------------------------------------
+Name: x140
+Type: StreamIn[Fix[TRUE,_32,_0]]
+Src:  DotProduct.scala:35:16
+Src:            aBlk load a(i::i+ts par ip)
+---------------------------------------------------------------------
+Symbol:     x140 = StreamInNew(BurstDataBus())
+Instances: 1
+
+
+Instance Summary: 
+  #0: Banked
+     Resource: SRAM
+     Depth:    1
+     Padding:  List(15)
+     Accum:    None
+     Banks:    16 <Hierarchical>
+       Dims {0}: Cyclic: N=16, B=1, alpha=<1>, P=<16> (16 solutions, 120 checks)
+     Ports: 
+         0 [Type:WR]:
+         0 [Type:RD]:
+           - Mux Port #0: 
+             x154 = StreamInBankedRead(x140,ArrayBuffer(Set(b153))) {}
+             aBlk load a(i::i+ts par ip) (DotProduct.scala:35:16)
+               Directly Banked: false
+               Port: <offset: -1, castgroup: (0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15), broadcast: (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)>
+
+
+
+
+Control Tree: 
+x161: UnrolledForeach (-1) [Level: InnerControl, Loop: Looped, Schedule: Pipelined]
+  x154: StreamInBankedRead
+---------------------------------------------------------------------
+
+
+
+
+---------------------------------------------------------------------
+Name: accO_1 (x132)
+Type: Reg[Fix[TRUE,_32,_0]]
+Src:  DotProduct.scala:30:24
+Src:        val accO = Reg[T](0.to[T])
+---------------------------------------------------------------------
+Symbol:     x132 = RegNew(Const(0))
+Instances: 1
+
+
+Instance Summary: 
+  #0: Banked
+     Resource: SRAM
+     Depth:    1
+     Padding:  List()
+     Accum:    None
+     Banks:    1 <Flat>
+       Dims {}: Cyclic: N=1, B=1, alpha=<>, P=<> (1 solutions, 0 checks)
+     Ports: 
+         0 [Type:WR]:
+           - Mux Port #0: 
+             x216 = RegWrite(x132,x214,Set()) {}
+             }{_+_} (DotProduct.scala:39:8)
+               Directly Banked: false
+               Port: <offset: 0, castgroup: (0), broadcast: (0)>
+
+         0 [Type:RD]:
+           - Mux Port #0: 
+             x219 = RegRead(x132) {}
+             }{_+_} (DotProduct.scala:39:8)
+               Directly Banked: false
+               Port: <offset: 0, castgroup: (0), broadcast: (0)>
+
+
+
+
+Control Tree: 
+x44: AccelScope (-1) [Level: OuterControl, Loop: Single, Schedule: Sequenced]
+  x218: UnrolledReduce (-1) [Level: OuterControl, Loop: Looped, Schedule: Pipelined]
+    x217: UnitPipe (-1) [Level: InnerControl, Loop: Single, Schedule: Sequenced]
+      x216: RegWrite
+  x221: UnitPipe (-1) [Level: InnerControl, Loop: Single, Schedule: Sequenced]
+    x219: RegRead
+---------------------------------------------------------------------
+
+
+
+
+---------------------------------------------------------------------
+Name: x164
+Type: StreamIn[Fix[TRUE,_32,_0]]
+Src:  DotProduct.scala:36:16
+Src:            bBlk load b(i::i+ts par ip)
+---------------------------------------------------------------------
+Symbol:     x164 = StreamInNew(BurstDataBus())
+Instances: 1
+
+
+Instance Summary: 
+  #0: Banked
+     Resource: SRAM
+     Depth:    1
+     Padding:  List(15)
+     Accum:    None
+     Banks:    16 <Hierarchical>
+       Dims {0}: Cyclic: N=16, B=1, alpha=<1>, P=<16> (16 solutions, 120 checks)
+     Ports: 
+         0 [Type:WR]:
+         0 [Type:RD]:
+           - Mux Port #0: 
+             x178 = StreamInBankedRead(x164,ArrayBuffer(Set(b177))) {}
+             bBlk load b(i::i+ts par ip) (DotProduct.scala:36:16)
+               Directly Banked: false
+               Port: <offset: -1, castgroup: (0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15), broadcast: (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)>
+
+
+
+
+Control Tree: 
+x185: UnrolledForeach (-1) [Level: InnerControl, Loop: Looped, Schedule: Pipelined]
+  x178: StreamInBankedRead
+---------------------------------------------------------------------
+
+
+
+
+---------------------------------------------------------------------
+Name: x189
+Type: Reg[Fix[TRUE,_32,_0]]
+Src:  DotProduct.scala:38:25
+Src:          dp_flat(ts, ip) { ii => (aBlk(ii), bBlk(ii)) }
+---------------------------------------------------------------------
+Symbol:     x189 = RegNew(Const(0))
+Instances: 1
+
+
+Instance Summary: 
+  #0: Banked
+     Resource: SRAM
+     Depth:    1
+     Padding:  List()
+     Accum:    Buffer
+     Banks:    1 <Flat>
+       Dims {}: Cyclic: N=1, B=1, alpha=<>, P=<> (1 solutions, 0 checks)
+     Ports: 
+         0 [Type:WR]:
+           - Mux Port #0: 
+             x208 = RegWrite(x189,x207,Set()) {}
+             dp_flat(ts, ip) { ii => (aBlk(ii), bBlk(ii)) } (DotProduct.scala:38:25)
+               Directly Banked: false
+               Port: <offset: 0, castgroup: (0), broadcast: (0)>
+
+         0 [Type:RD]:
+           - Mux Port #0: 
+             x205 = RegRead(x189) {}
+             dp_flat(ts, ip) { ii => (aBlk(ii), bBlk(ii)) } (DotProduct.scala:38:25)
+               Directly Banked: false
+               Port: <offset: 0, castgroup: (0), broadcast: (0)>
+
+
+
+
+Control Tree: 
+x210: UnrolledReduce (-1) [Level: InnerControl, Loop: Looped, Schedule: Pipelined]
+  x205: RegRead
+  x208: RegWrite
+---------------------------------------------------------------------
+
+
+
+
+---------------------------------------------------------------------
+Name: accO_0 (x131)
+Type: Reg[Fix[TRUE,_32,_0]]
+Src:  DotProduct.scala:30:24
+Src:        val accO = Reg[T](0.to[T])
+---------------------------------------------------------------------
+Symbol:     x131 = RegNew(Const(0))
+Instances: 1
+
+
+Instance Summary: 
+  #0: Banked
+     Resource: SRAM
+     Depth:    1
+     Padding:  List()
+     Accum:    Buffer
+     Banks:    1 <Flat>
+       Dims {}: Cyclic: N=1, B=1, alpha=<>, P=<> (1 solutions, 0 checks)
+     Ports: 
+         0 [Type:WR]:
+           - Mux Port #0: 
+             x215 = RegWrite(x131,x214,Set()) {}
+             }{_+_} (DotProduct.scala:39:8)
+               Directly Banked: false
+               Port: <offset: 0, castgroup: (0), broadcast: (0)>
+
+         0 [Type:RD]:
+           - Mux Port #0: 
+             x211 = RegRead(x131) {}
+             }{_+_} (DotProduct.scala:39:8)
+               Directly Banked: false
+               Port: <offset: 0, castgroup: (0), broadcast: (0)>
+
+
+
+
+Control Tree: 
+x217: UnitPipe (-1) [Level: InnerControl, Loop: Single, Schedule: Sequenced]
+  x211: RegRead
+  x215: RegWrite
+---------------------------------------------------------------------
+
+
+
+
+---------------------------------------------------------------------
+Name: aBlk_0 (x137)
+Type: SRAM1[Fix[TRUE,_32,_0]]
+Src:  DotProduct.scala:32:27
+Src:          val aBlk = SRAM[T](ts)
+---------------------------------------------------------------------
+Symbol:     x137 = SRAMNew(List(Const(32)),SRAM1[Fix[TRUE,_32,_0]])
+Instances: 1
+
+
+Instance Summary: 
+  #0: Banked
+     Resource: SRAM
+     Depth:    2
+     Padding:  List(0)
+     Accum:    None
+     Banks:    16 <Hierarchical>
+       Dims {0}: Cyclic: N=16, B=1, alpha=<1>, P=<16> (30 solutions, 120 checks)
+     Ports: 
+         0 [Type:WR]:
+           - Mux Port #0: 
+             x160 = SRAMBankedWrite(x137,Vector(x155),Vector(List(x156)),Vector(x157),Vector(Set(b153))) {}
+             aBlk load a(i::i+ts par ip) (DotProduct.scala:35:16)
+               Directly Banked: false
+               Port: <offset: -1, castgroup: (0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15), broadcast: (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)>
+
+         0 [Type:RD]:
+         1 [Type:WR]:
+         1 [Type:RD]:
+           - Mux Port #0: 
+             x199 = SRAMBankedRead(x137,Vector(List(x195)),Vector(x196),Vector(Set(b194, b136)),Vec[Fix[TRUE,_32,_0]]) {}
+             dp_flat(ts, ip) { ii => (aBlk(ii), bBlk(ii)) } (DotProduct.scala:38:38)
+               Directly Banked: false
+               Port: <offset: -1, castgroup: (0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15), broadcast: (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)>
+
+         M [Type:WR]:
+         M [Type:RD]:
+
+
+
+Control Tree: 
+x218: UnrolledReduce (-1) [Level: OuterControl, Loop: Looped, Schedule: Pipelined]
+  x187: ParallelPipe (-1) [Level: OuterControl, Loop: Single, Schedule: ForkJoin]
+    x162: UnitPipe (-1) [Level: OuterControl, Loop: Single, Schedule: Streaming]
+      x161: UnrolledForeach (-1) [Level: InnerControl, Loop: Looped, Schedule: Pipelined]
+        x160: SRAMBankedWrite
+  x210: UnrolledReduce (-1) [Level: InnerControl, Loop: Looped, Schedule: Pipelined]
+    x199: SRAMBankedRead
+---------------------------------------------------------------------
+
+
+
+
+---------------------------------------------------------------------
+Name: bBlk_0 (x138)
+Type: SRAM1[Fix[TRUE,_32,_0]]
+Src:  DotProduct.scala:33:27
+Src:          val bBlk = SRAM[T](ts)
+---------------------------------------------------------------------
+Symbol:     x138 = SRAMNew(List(Const(32)),SRAM1[Fix[TRUE,_32,_0]])
+Instances: 1
+
+
+Instance Summary: 
+  #0: Banked
+     Resource: SRAM
+     Depth:    2
+     Padding:  List(0)
+     Accum:    None
+     Banks:    16 <Hierarchical>
+       Dims {0}: Cyclic: N=16, B=1, alpha=<1>, P=<16> (30 solutions, 120 checks)
+     Ports: 
+         0 [Type:WR]:
+           - Mux Port #0: 
+             x184 = SRAMBankedWrite(x138,Vector(x179),Vector(List(x180)),Vector(x181),Vector(Set(b177))) {}
+             bBlk load b(i::i+ts par ip) (DotProduct.scala:36:16)
+               Directly Banked: false
+               Port: <offset: -1, castgroup: (0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15), broadcast: (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)>
+
+         0 [Type:RD]:
+         1 [Type:WR]:
+         1 [Type:RD]:
+           - Mux Port #0: 
+             x201 = SRAMBankedRead(x138,Vector(List(x195)),Vector(x196),Vector(Set(b194, b136)),Vec[Fix[TRUE,_32,_0]]) {}
+             dp_flat(ts, ip) { ii => (aBlk(ii), bBlk(ii)) } (DotProduct.scala:38:48)
+               Directly Banked: false
+               Port: <offset: -1, castgroup: (0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15), broadcast: (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)>
+
+         M [Type:WR]:
+         M [Type:RD]:
+
+
+
+Control Tree: 
+x218: UnrolledReduce (-1) [Level: OuterControl, Loop: Looped, Schedule: Pipelined]
+  x187: ParallelPipe (-1) [Level: OuterControl, Loop: Single, Schedule: ForkJoin]
+    x186: UnitPipe (-1) [Level: OuterControl, Loop: Single, Schedule: Streaming]
+      x185: UnrolledForeach (-1) [Level: InnerControl, Loop: Looped, Schedule: Pipelined]
+        x184: SRAMBankedWrite
+  x210: UnrolledReduce (-1) [Level: InnerControl, Loop: Looped, Schedule: Pipelined]
+    x201: SRAMBankedRead
+---------------------------------------------------------------------
+
+
+
+
+---------------------------------------------------------------------
+Name: x188
+Type: Reg[Fix[TRUE,_32,_0]]
+Src:  DotProduct.scala:38:25
+Src:          dp_flat(ts, ip) { ii => (aBlk(ii), bBlk(ii)) }
+---------------------------------------------------------------------
+Symbol:     x188 = RegNew(Const(0))
+Instances: 1
+
+
+Instance Summary: 
+  #0: Banked
+     Resource: SRAM
+     Depth:    2
+     Padding:  List()
+     Accum:    None
+     Banks:    1 <Flat>
+       Dims {}: Cyclic: N=1, B=1, alpha=<>, P=<> (1 solutions, 0 checks)
+     Ports: 
+         0 [Type:WR]:
+           - Mux Port #0: 
+             x209 = RegWrite(x188,x207,Set()) {}
+             dp_flat(ts, ip) { ii => (aBlk(ii), bBlk(ii)) } (DotProduct.scala:38:25)
+               Directly Banked: false
+               Port: <offset: 0, castgroup: (0), broadcast: (0)>
+
+         0 [Type:RD]:
+         1 [Type:WR]:
+         1 [Type:RD]:
+           - Mux Port #0: 
+             x247 = RegRead(x188) {}
+             dp_flat(ts, ip) { ii => (aBlk(ii), bBlk(ii)) } (DotProduct.scala:38:25)
+               Directly Banked: false
+               Port: <offset: 0, castgroup: (0), broadcast: (0)>
+
+         M [Type:WR]:
+         M [Type:RD]:
+
+
+
+Control Tree: 
+x218: UnrolledReduce (-1) [Level: OuterControl, Loop: Looped, Schedule: Pipelined]
+  x210: UnrolledReduce (-1) [Level: InnerControl, Loop: Looped, Schedule: Pipelined]
+    x209: RegWrite
+  x217: UnitPipe (-1) [Level: InnerControl, Loop: Single, Schedule: Sequenced]
+    x247: RegRead
+---------------------------------------------------------------------
+
+
+
+

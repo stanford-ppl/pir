@@ -1,0 +1,4107 @@
+Top0() {
+  parent=None
+  children=List(ArgFringe3, Context153, Context154, Context155, Context156, Context157, Context158, Context159, Context160, Context161) ...
+  deps {
+  }
+  depeds {
+  }
+  isExtern = false
+  name = DotProduct_0
+  isInnerReduceOp = false
+  Context153() {
+    parent=Some(Top0)
+    children=List(TopController2)
+    deps {
+    }
+    depeds {
+      OutputField1132180758_childDone: Vector(HostInController5.InputField1593144095_parentEn(Context166), UnitController8.InputField650493298_parentEn(Context154), HostOutController136.InputField45406428_parentEn(Context167))
+    }
+    streaming = false
+    isExtern = false
+    ctrl = ControlTree1
+    isInnerReduceOp = false
+    srcCtx = SpatialPIRGenStaging.scala:22
+    TopController2() {
+      parent=Some(Context153)
+      InputField1794961286_en=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField6072645_parentEn=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField943833115_done=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1132180758_childDone=[List(HostInController5.InputField1593144095_parentEn, UnitController8[x44].InputField650493298_parentEn, HostOutController136.InputField45406428_parentEn)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField974303387_stepped=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField306562046_uen=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField511333553_laneValid=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField1132180758_childDone: Vector(HostInController5.InputField1593144095_parentEn(Context166), UnitController8.InputField650493298_parentEn(Context154), HostOutController136.InputField45406428_parentEn(Context167))
+      }
+      par = 1
+      isExtern = false
+      ctrl = ControlTree1
+      isInnerReduceOp = false
+      srcCtx = SpatialPIRGenStaging.scala:22
+    }
+  }
+  Context154() {
+    parent=Some(Top0)
+    children=List(UnitController8, Const12, Const13, Const14)
+    deps {
+      TopController2.OutputField1132180758_childDone(Context153): Vector(UnitController8.InputField650493298_parentEn)
+    }
+    depeds {
+      OutputField1409428235_childDone: Vector(LoopController16.InputField1678976321_parentEn(Context155), UnitController132.InputField1863111402_parentEn(Context165))
+      OutputField1395693222_out: Vector(Counter11.InputField1201389391_min(LoopController16))
+      OutputField1065316934_done: Vector(BufferRead263.InputField113380661_done(Context158), BufferRead269.InputField1403361024_done(Context161), BufferWrite272.InputField549606855_done(Context164))
+      OutputField71504195_out: Vector(Counter11.InputField1057240426_max(LoopController16))
+      OutputField1535454257_out: Vector(Counter11.InputField141271447_step(LoopController16))
+    }
+    streaming = false
+    isExtern = false
+    ctrl = ControlTree7
+    isInnerReduceOp = false
+    srcCtx = DotProduct.scala:29:11
+    UnitController8[x44]() {
+      parent=Some(Context154)
+      InputField2071687966_en=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField650493298_parentEn=[List(TopController2.OutputField1132180758_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1065316934_done=[List(BufferRead263[x143].InputField113380661_done, BufferRead269[x167].InputField1403361024_done, BufferWrite272[x216].InputField549606855_done)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1409428235_childDone=[List(LoopController16[x218].InputField1678976321_parentEn, UnitController132[x221].InputField1863111402_parentEn)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1950433558_stepped=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField2137283777_uen=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1003351081_laneValid=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      deps {
+        TopController2.OutputField1132180758_childDone(Context153): Vector(UnitController8.InputField650493298_parentEn)
+      }
+      depeds {
+        OutputField1409428235_childDone: Vector(LoopController16.InputField1678976321_parentEn(Context155), UnitController132.InputField1863111402_parentEn(Context165))
+        OutputField1065316934_done: Vector(BufferRead263.InputField113380661_done(Context158), BufferRead269.InputField1403361024_done(Context161), BufferWrite272.InputField549606855_done(Context164))
+      }
+      par = 1
+      isExtern = false
+      ctrl = ControlTree7
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:29:11
+      sname = x44
+    }
+    Const12(0)(0) {
+      parent=Some(Context154)
+      OutputField1395693222_out=[List(Counter11[x133].InputField1201389391_min)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField1395693222_out: Vector(Counter11.InputField1201389391_min(LoopController16))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree7
+      isInnerReduceOp = false
+    }
+    Const13(32)(32) {
+      parent=Some(Context154)
+      OutputField1535454257_out=[List(Counter11[x133].InputField141271447_step)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField1535454257_out: Vector(Counter11.InputField141271447_step(LoopController16))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree7
+      isInnerReduceOp = false
+    }
+    Const14(1024)(1024) {
+      parent=Some(Context154)
+      OutputField71504195_out=[List(Counter11[x133].InputField1057240426_max)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField71504195_out: Vector(Counter11.InputField1057240426_max(LoopController16))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree7
+      isInnerReduceOp = false
+    }
+  }
+  Context155() {
+    parent=Some(Top0)
+    children=List(LoopController16, Const104, Const105, Const106, Const140)
+    deps {
+      UnitController8.OutputField1409428235_childDone(Context154): Vector(LoopController16.InputField1678976321_parentEn)
+      Const13.OutputField1535454257_out(Context154): Vector(Counter11.InputField141271447_step)
+      Const12.OutputField1395693222_out(Context154): Vector(Counter11.InputField1201389391_min)
+      Const14.OutputField71504195_out(Context154): Vector(Counter11.InputField1057240426_max)
+    }
+    depeds {
+      OutputField6441609_out: Vector(Counter103.InputField1195845862_min(LoopController108))
+      OutputField1831302906_out: Vector(OpDef31.InputField1142095842_input(Context158), OpDef70.InputField875772853_input(Context161), OpDef124.InputField1377169783_input(Context164))
+      OutputField246683727_out: Vector(Counter103.InputField1441762935_step(LoopController108))
+      OutputField708733885_childDone: Vector(UnitController22.InputField1865836350_parentEn(Context156), LoopController108.InputField201454960_parentEn(Context163), UnitController122.InputField1202982835_parentEn(Context164))
+      OutputField1125063383_out: Vector(RegAccumFMA150.InputField1863605303_en(Context163))
+      OutputField644044072_out: Vector(Counter103.InputField609371900_max(LoopController108))
+    }
+    streaming = false
+    isExtern = false
+    ctrl = ControlTree15
+    isInnerReduceOp = false
+    srcCtx = DotProduct.scala:39:8
+    LoopController16[x218]() {
+      parent=Some(Context155)
+      children=List(Counter11, CounterIter17, CounterValid18)
+      InputField328409882_en=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1678976321_parentEn=[List(UnitController8[x44].OutputField1409428235_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1557286432_done=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField708733885_childDone=[List(UnitController22[x187].InputField1865836350_parentEn, LoopController108[x210].InputField201454960_parentEn, UnitController122[x217].InputField1202982835_parentEn)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField541005331_stepped=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1568347768_uen=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField328655033_laneValid=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      OutputField389416668_firstIter=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField420526228_stopWhen=[List()] {
+        tp = Bool
+      }
+      deps {
+        UnitController8.OutputField1409428235_childDone(Context154): Vector(LoopController16.InputField1678976321_parentEn)
+        Const13.OutputField1535454257_out(Context154): Vector(Counter11.InputField141271447_step)
+        Const12.OutputField1395693222_out(Context154): Vector(Counter11.InputField1201389391_min)
+        Const14.OutputField71504195_out(Context154): Vector(Counter11.InputField1057240426_max)
+      }
+      depeds {
+        OutputField708733885_childDone: Vector(UnitController22.InputField1865836350_parentEn(Context156), LoopController108.InputField201454960_parentEn(Context163), UnitController122.InputField1202982835_parentEn(Context164))
+        OutputField1831302906_out: Vector(OpDef31.InputField1142095842_input(Context158), OpDef70.InputField875772853_input(Context161), OpDef124.InputField1377169783_input(Context164))
+      }
+      par = 1
+      isExtern = false
+      constLaneValids = List(Some(true))
+      ctrl = ControlTree15
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:39:8
+      progorder = 60
+      sname = x218
+      Counter11[x133](1,false) {
+        parent=Some(LoopController16)
+        InputField1201389391_min=[List(Const12(0).OutputField1395693222_out)] {
+          tp = Fix(true,32,0)
+          vec = 1
+        }
+        InputField141271447_step=[List(Const13(32).OutputField1535454257_out)] {
+          tp = Fix(true,32,0)
+          vec = 1
+        }
+        InputField1057240426_max=[List(Const14(1024).OutputField71504195_out)] {
+          tp = Fix(true,32,0)
+          vec = 1
+        }
+        OutputField85147944_out=[List(CounterIter17[b135].InputField184157222_counter, CounterValid18[b136].InputField1395772206_counter)] {
+        }
+        OutputField1119791670_isFirstIter=[List()] {
+        }
+        deps {
+          Const13.OutputField1535454257_out(Context154): Vector(Counter11.InputField141271447_step)
+          Const12.OutputField1395693222_out(Context154): Vector(Counter11.InputField1201389391_min)
+          Const14.OutputField71504195_out(Context154): Vector(Counter11.InputField1057240426_max)
+        }
+        depeds {
+          OutputField85147944_out: Vector(CounterIter17.InputField184157222_counter(LoopController16), CounterValid18.InputField1395772206_counter(LoopController16))
+        }
+        constValids = List(Some(true))
+        constIters = List(None)
+        isExtern = false
+        idx = 0
+        ctrl = ControlTree15
+        isInnerReduceOp = false
+        srcCtx = DotProduct.scala:31:35
+        progorder = 1
+        sname = x133
+      }
+      CounterIter17[b135](List(0)) {
+        parent=Some(LoopController16)
+        OutputField1831302906_out=[List(OpDef31(FixSLA).InputField1142095842_input, OpDef70(FixSLA).InputField875772853_input, OpDef124(FixEql).InputField1377169783_input)] {
+          tp = Fix(true,32,0)
+          presetVec = 1
+          vec = 1
+        }
+        InputField184157222_counter=[List(Counter11[x133].OutputField85147944_out)] {
+        }
+        deps {
+          Counter11.OutputField85147944_out(LoopController16): Vector(CounterIter17.InputField184157222_counter)
+        }
+        depeds {
+          OutputField1831302906_out: Vector(OpDef31.InputField1142095842_input(Context158), OpDef70.InputField875772853_input(Context161), OpDef124.InputField1377169783_input(Context164))
+        }
+        tp = Fix(true,32,0)
+        isExtern = false
+        ctrl = ControlTree15
+        isInnerReduceOp = false
+        srcCtx = Staging.scala:26:82
+        sname = b135
+      }
+      CounterValid18[b136](List(0)) {
+        parent=Some(LoopController16)
+        OutputField1029465201_out=[List()] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        InputField1395772206_counter=[List(Counter11[x133].OutputField85147944_out)] {
+        }
+        deps {
+          Counter11.OutputField85147944_out(LoopController16): Vector(CounterValid18.InputField1395772206_counter)
+        }
+        depeds {
+        }
+        tp = Bool
+        isExtern = false
+        ctrl = ControlTree15
+        isInnerReduceOp = false
+        srcCtx = Staging.scala:26:82
+        sname = b136
+      }
+    }
+    Const104(0)(0) {
+      parent=Some(Context155)
+      OutputField6441609_out=[List(Counter103[x191].InputField1195845862_min)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField6441609_out: Vector(Counter103.InputField1195845862_min(LoopController108))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree15
+      isInnerReduceOp = false
+    }
+    Const105(1)(1) {
+      parent=Some(Context155)
+      OutputField246683727_out=[List(Counter103[x191].InputField1441762935_step)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField246683727_out: Vector(Counter103.InputField1441762935_step(LoopController108))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree15
+      isInnerReduceOp = false
+    }
+    Const106(32)(32) {
+      parent=Some(Context155)
+      OutputField644044072_out=[List(Counter103[x191].InputField609371900_max)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField644044072_out: Vector(Counter103.InputField609371900_max(LoopController108))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree15
+      isInnerReduceOp = false
+    }
+    Const140(true)(true) {
+      parent=Some(Context155)
+      OutputField1125063383_out=[List(RegAccumFMA150.InputField1863605303_en)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField1125063383_out: Vector(RegAccumFMA150.InputField1863605303_en(Context163))
+      }
+      isExtern = false
+      ctrl = ControlTree15
+      isInnerReduceOp = false
+      srcCtx = MemoryAnalyzer.scala:138
+    }
+  }
+  Context165() {
+    parent=Some(Top0)
+    children=List(UnitController132)
+    deps {
+      UnitController8.OutputField1409428235_childDone(Context154): Vector(UnitController132.InputField1863111402_parentEn)
+    }
+    depeds {
+    }
+    streaming = false
+    isExtern = false
+    ctrl = ControlTree131
+    isInnerReduceOp = false
+    srcCtx = PipeInserter.scala:176:18
+    UnitController132[x221]() {
+      parent=Some(Context165)
+      InputField322930321_en=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1863111402_parentEn=[List(UnitController8[x44].OutputField1409428235_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1609746660_done=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField976696890_childDone=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1431512291_stepped=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1556162337_uen=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField364732853_laneValid=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      deps {
+        UnitController8.OutputField1409428235_childDone(Context154): Vector(UnitController132.InputField1863111402_parentEn)
+      }
+      depeds {
+      }
+      par = 1
+      isExtern = false
+      ctrl = ControlTree131
+      isInnerReduceOp = false
+      srcCtx = PipeInserter.scala:176:18
+      progorder = 118
+      sname = x221
+    }
+  }
+  Context156() {
+    parent=Some(Top0)
+    children=List(UnitController22)
+    deps {
+      LoopController16.OutputField708733885_childDone(Context155): Vector(UnitController22.InputField1865836350_parentEn)
+    }
+    depeds {
+      OutputField373023560_childDone: Vector(UnitController24.InputField720726684_parentEn(Context157), UnitController63.InputField531994684_parentEn(Context160))
+      OutputField2055923775_done: Vector(BufferWrite195.InputField452096997_data(Context177), BufferWrite236.InputField1619925689_data(Context218))
+    }
+    streaming = false
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = DotProduct.scala:34:18
+    UnitController22[x187]() {
+      parent=Some(Context156)
+      InputField191388916_en=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1865836350_parentEn=[List(LoopController16[x218].OutputField708733885_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField2055923775_done=[List(BufferWrite195.InputField452096997_data, BufferWrite236.InputField1619925689_data)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField373023560_childDone=[List(UnitController24[x162].InputField720726684_parentEn, UnitController63[x186].InputField531994684_parentEn)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1610453639_stepped=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField53346769_uen=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField784911003_laneValid=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      deps {
+        LoopController16.OutputField708733885_childDone(Context155): Vector(UnitController22.InputField1865836350_parentEn)
+      }
+      depeds {
+        OutputField373023560_childDone: Vector(UnitController24.InputField720726684_parentEn(Context157), UnitController63.InputField531994684_parentEn(Context160))
+        OutputField2055923775_done: Vector(BufferWrite195.InputField452096997_data(Context177), BufferWrite236.InputField1619925689_data(Context218))
+      }
+      par = 1
+      isExtern = false
+      ctrl = ControlTree21
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:34:18
+      progorder = 63
+      sname = x187
+    }
+  }
+  Context157() {
+    parent=Some(Top0)
+    children=List(UnitController24, Const50, Const51, Const52)
+    deps {
+      UnitController22.OutputField373023560_childDone(Context156): Vector(UnitController24.InputField720726684_parentEn)
+    }
+    depeds {
+      OutputField1154919645_childDone: Vector(UnitController30.InputField77326326_parentEn(Context158), LoopController54.InputField1133490641_parentEn(Context159))
+      OutputField1520639683_out: Vector(Counter49.InputField1709471621_max(LoopController54))
+      OutputField1813137734_out: Vector(Counter49.InputField489085982_step(LoopController54))
+      OutputField1637452833_out: Vector(Counter49.InputField1860519188_min(LoopController54))
+    }
+    streaming = false
+    isExtern = false
+    ctrl = ControlTree23
+    isInnerReduceOp = false
+    srcCtx = DotProduct.scala:35:16
+    UnitController24[x162]() {
+      parent=Some(Context157)
+      InputField1331538891_en=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField720726684_parentEn=[List(UnitController22[x187].OutputField373023560_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField714900528_done=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1154919645_childDone=[List(UnitController30[x148].InputField77326326_parentEn, LoopController54[x161].InputField1133490641_parentEn)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1727480959_stepped=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1733784503_uen=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField698668649_laneValid=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      deps {
+        UnitController22.OutputField373023560_childDone(Context156): Vector(UnitController24.InputField720726684_parentEn)
+      }
+      depeds {
+        OutputField1154919645_childDone: Vector(UnitController30.InputField77326326_parentEn(Context158), LoopController54.InputField1133490641_parentEn(Context159))
+      }
+      par = 1
+      isExtern = false
+      ctrl = ControlTree23
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:35:16
+      progorder = 64
+      sname = x162
+    }
+    Const50(0)(0) {
+      parent=Some(Context157)
+      OutputField1637452833_out=[List(Counter49[x150].InputField1860519188_min)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField1637452833_out: Vector(Counter49.InputField1860519188_min(LoopController54))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree23
+      isInnerReduceOp = false
+    }
+    Const51(1)(1) {
+      parent=Some(Context157)
+      OutputField1813137734_out=[List(Counter49[x150].InputField489085982_step)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField1813137734_out: Vector(Counter49.InputField489085982_step(LoopController54))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree23
+      isInnerReduceOp = false
+    }
+    Const52(32)(32) {
+      parent=Some(Context157)
+      OutputField1520639683_out=[List(Counter49[x150].InputField1709471621_max)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField1520639683_out: Vector(Counter49.InputField1709471621_max(LoopController54))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree23
+      isInnerReduceOp = false
+    }
+  }
+  Context160() {
+    parent=Some(Top0)
+    children=List(UnitController63, Const89, Const90, Const91)
+    deps {
+      UnitController22.OutputField373023560_childDone(Context156): Vector(UnitController63.InputField531994684_parentEn)
+    }
+    depeds {
+      OutputField1247240246_childDone: Vector(UnitController69.InputField1070480752_parentEn(Context161), LoopController93.InputField1226565520_parentEn(Context162))
+      OutputField685460679_out: Vector(Counter88.InputField1901158667_step(LoopController93))
+      OutputField984162789_out: Vector(Counter88.InputField1359709865_min(LoopController93))
+      OutputField307566852_out: Vector(Counter88.InputField239232382_max(LoopController93))
+    }
+    streaming = false
+    isExtern = false
+    ctrl = ControlTree62
+    isInnerReduceOp = false
+    srcCtx = DotProduct.scala:36:16
+    UnitController63[x186]() {
+      parent=Some(Context160)
+      InputField1078315711_en=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField531994684_parentEn=[List(UnitController22[x187].OutputField373023560_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField338056171_done=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1247240246_childDone=[List(UnitController69[x172].InputField1070480752_parentEn, LoopController93[x185].InputField1226565520_parentEn)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField615078897_stepped=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField393106208_uen=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField837940013_laneValid=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      deps {
+        UnitController22.OutputField373023560_childDone(Context156): Vector(UnitController63.InputField531994684_parentEn)
+      }
+      depeds {
+        OutputField1247240246_childDone: Vector(UnitController69.InputField1070480752_parentEn(Context161), LoopController93.InputField1226565520_parentEn(Context162))
+      }
+      par = 1
+      isExtern = false
+      ctrl = ControlTree62
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:36:16
+      progorder = 81
+      sname = x186
+    }
+    Const89(0)(0) {
+      parent=Some(Context160)
+      OutputField984162789_out=[List(Counter88[x174].InputField1359709865_min)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField984162789_out: Vector(Counter88.InputField1359709865_min(LoopController93))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree62
+      isInnerReduceOp = false
+    }
+    Const90(1)(1) {
+      parent=Some(Context160)
+      OutputField685460679_out=[List(Counter88[x174].InputField1901158667_step)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField685460679_out: Vector(Counter88.InputField1901158667_step(LoopController93))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree62
+      isInnerReduceOp = false
+    }
+    Const91(32)(32) {
+      parent=Some(Context160)
+      OutputField307566852_out=[List(Counter88[x174].InputField239232382_max)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField307566852_out: Vector(Counter88.InputField239232382_max(LoopController93))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree62
+      isInnerReduceOp = false
+    }
+  }
+  ArgFringe3() {
+    parent=Some(Top0)
+    children=List(Context166, Context167)
+    deps {
+      BufferWrite272.OutputField260966777_out(Context164): Vector(BufferRead273.InputField770346172_in)
+      TopController2.OutputField1132180758_childDone(Context153): Vector(HostInController5.InputField1593144095_parentEn, HostOutController136.InputField45406428_parentEn)
+    }
+    depeds {
+      OutputField581331852_out: Vector(BufferRead263.InputField664902885_in(Context158))
+      OutputField61623030_out: Vector(BufferRead269.InputField2092765689_in(Context161))
+    }
+    isExtern = false
+    isInnerReduceOp = false
+    srcCtx = SpatialPIRGenStaging.scala:25
+    isDAG = false
+    Context166() {
+      parent=Some(ArgFringe3)
+      children=List(HostInController5, DRAMAddr35, DRAMAddr74, BufferWrite262, BufferWrite268)
+      deps {
+        TopController2.OutputField1132180758_childDone(Context153): Vector(HostInController5.InputField1593144095_parentEn)
+      }
+      depeds {
+        OutputField581331852_out: Vector(BufferRead263.InputField664902885_in(Context158))
+        OutputField61623030_out: Vector(BufferRead269.InputField2092765689_in(Context161))
+      }
+      streaming = false
+      isExtern = false
+      ctrl = ControlTree4
+      isInnerReduceOp = false
+      srcCtx = SpatialPIRGenStaging.scala:27
+      HostInController5() {
+        parent=Some(Context166)
+        InputField861658549_en=[List()] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        InputField1593144095_parentEn=[List(TopController2.OutputField1132180758_childDone)] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        OutputField1693463230_done=[List(BufferWrite262.InputField1327018585_done, BufferWrite268.InputField840548608_done)] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        OutputField763472757_childDone=[List()] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        OutputField1088056581_stepped=[List()] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        InputField901944202_uen=[List()] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        OutputField1354900046_laneValid=[List()] {
+          tp = Bool
+          vec = 1
+        }
+        deps {
+          TopController2.OutputField1132180758_childDone(Context153): Vector(HostInController5.InputField1593144095_parentEn)
+        }
+        depeds {
+          OutputField1693463230_done: Vector(BufferWrite262.InputField1327018585_done(Context166), BufferWrite268.InputField840548608_done(Context166))
+        }
+        par = 1
+        isExtern = false
+        ctrl = ControlTree4
+        isInnerReduceOp = false
+        srcCtx = SpatialPIRGenStaging.scala:27
+      }
+      DRAMAddr35(DRAM1775919543[a]) {
+        parent=Some(Context166)
+        OutputField1796546241_out=[List(BufferWrite262.InputField636927758_data)] {
+          tp = Fix(true,64,0)
+          presetVec = 1
+          vec = 1
+        }
+        deps {
+        }
+        depeds {
+          OutputField1796546241_out: Vector(BufferWrite262.InputField636927758_data(Context166))
+        }
+        isExtern = false
+        ctrl = ControlTree4
+        name = a
+        isInnerReduceOp = false
+        srcCtx = SpatialPIRGenStaging.scala:124
+      }
+      BufferWrite262(false) {
+        parent=Some(Context166)
+        OutputField581331852_out=[List(BufferRead263[x143].InputField664902885_in)] {
+          tp = Fix(true,64,0)
+          presetVec = 1
+          vec = 1
+        }
+        InputField1491676719_en=[List()] {
+          tp = Bool
+          vec = 1
+        }
+        InputField1327018585_done=[List(HostInController5.OutputField1693463230_done)] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        InputField636927758_data=[List(DRAMAddr35.OutputField1796546241_out)] {
+          tp = Fix(true,64,0)
+          vec = 1
+        }
+        deps {
+          HostInController5.OutputField1693463230_done(Context166): Vector(BufferWrite262.InputField1327018585_done)
+          DRAMAddr35.OutputField1796546241_out(Context166): Vector(BufferWrite262.InputField636927758_data)
+        }
+        depeds {
+          OutputField581331852_out: Vector(BufferRead263.InputField664902885_in(Context158))
+        }
+        tp = Fix(true,64,0)
+        order = 36.0
+        isExtern = false
+        ctrl = ControlTree4
+        srcCtx = SpatialPIRGenStaging.scala:125
+        isInnerReduceOp = false
+        isSplit = false
+        port = Some(0)
+      }
+      DRAMAddr74(DRAM2124464116[b]) {
+        parent=Some(Context166)
+        OutputField1525872705_out=[List(BufferWrite268.InputField295396686_data)] {
+          tp = Fix(true,64,0)
+          presetVec = 1
+          vec = 1
+        }
+        deps {
+        }
+        depeds {
+          OutputField1525872705_out: Vector(BufferWrite268.InputField295396686_data(Context166))
+        }
+        isExtern = false
+        ctrl = ControlTree4
+        name = b
+        isInnerReduceOp = false
+        srcCtx = SpatialPIRGenStaging.scala:124
+      }
+      BufferWrite268(false) {
+        parent=Some(Context166)
+        OutputField61623030_out=[List(BufferRead269[x167].InputField2092765689_in)] {
+          tp = Fix(true,64,0)
+          presetVec = 1
+          vec = 1
+        }
+        InputField1149553353_en=[List()] {
+          tp = Bool
+          vec = 1
+        }
+        InputField840548608_done=[List(HostInController5.OutputField1693463230_done)] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        InputField295396686_data=[List(DRAMAddr74.OutputField1525872705_out)] {
+          tp = Fix(true,64,0)
+          vec = 1
+        }
+        deps {
+          HostInController5.OutputField1693463230_done(Context166): Vector(BufferWrite268.InputField840548608_done)
+          DRAMAddr74.OutputField1525872705_out(Context166): Vector(BufferWrite268.InputField295396686_data)
+        }
+        depeds {
+          OutputField61623030_out: Vector(BufferRead269.InputField2092765689_in(Context161))
+        }
+        tp = Fix(true,64,0)
+        order = 75.0
+        isExtern = false
+        ctrl = ControlTree4
+        srcCtx = SpatialPIRGenStaging.scala:125
+        isInnerReduceOp = false
+        isSplit = false
+        port = Some(0)
+      }
+    }
+    Context167() {
+      parent=Some(ArgFringe3)
+      children=List(HostOutController136, HostRead137, BufferRead273)
+      deps {
+        BufferWrite272.OutputField260966777_out(Context164): Vector(BufferRead273.InputField770346172_in)
+        TopController2.OutputField1132180758_childDone(Context153): Vector(HostOutController136.InputField45406428_parentEn)
+      }
+      depeds {
+      }
+      streaming = false
+      isExtern = false
+      ctrl = ControlTree135
+      isInnerReduceOp = false
+      srcCtx = SpatialPIRGenStaging.scala:36
+      HostOutController136() {
+        parent=Some(Context167)
+        InputField263075942_en=[List()] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        InputField45406428_parentEn=[List(TopController2.OutputField1132180758_childDone)] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        OutputField399929194_done=[List(BufferRead273[x128].InputField1924937825_done)] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        OutputField678598036_childDone=[List()] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        OutputField1449260532_stepped=[List()] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        InputField1916253660_uen=[List()] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        OutputField1446914511_laneValid=[List()] {
+          tp = Bool
+          vec = 1
+        }
+        deps {
+          TopController2.OutputField1132180758_childDone(Context153): Vector(HostOutController136.InputField45406428_parentEn)
+        }
+        depeds {
+          OutputField399929194_done: Vector(BufferRead273.InputField1924937825_done(Context167))
+        }
+        par = 1
+        isExtern = false
+        ctrl = ControlTree135
+        isInnerReduceOp = false
+        srcCtx = SpatialPIRGenStaging.scala:36
+      }
+      BufferRead273[x128](false) {
+        parent=Some(Context167)
+        OutputField814196083_out=[List(HostRead137[x128].InputField1311228259_input)] {
+          tp = Fix(true,32,0)
+          presetVec = 1
+          vec = 1
+        }
+        InputField47821513_en=[List()] {
+          tp = Bool
+          vec = 1
+        }
+        InputField1924937825_done=[List(HostOutController136.OutputField399929194_done)] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        InputField770346172_in=[List(BufferWrite272[x216].OutputField260966777_out)] {
+          tp = Fix(true,32,0)
+          vec = 1
+        }
+        deps {
+          BufferWrite272.OutputField260966777_out(Context164): Vector(BufferRead273.InputField770346172_in)
+          HostOutController136.OutputField399929194_done(Context167): Vector(BufferRead273.InputField1924937825_done)
+        }
+        depeds {
+          OutputField814196083_out: Vector(HostRead137.InputField1311228259_input(Context167))
+        }
+        tp = Fix(true,32,0)
+        dims = List()
+        inits = 0
+        order = 138.0
+        numPart = 1
+        darkVolume = 0
+        isExtern = false
+        isInnerAccum = false
+        ctrl = ControlTree135
+        name = accO_1/out
+        srcCtx = DotProduct.scala:25:21
+        isInnerReduceOp = false
+        banks = List(1)
+        initToken = 0
+        depth = 1
+        isSplit = false
+        sname = x128
+        port = Some(0)
+        nonBlocking = false
+      }
+      HostRead137[x128]() {
+        parent=Some(Context167)
+        OutputField540458590_out=[List()] {
+          tp = Fix(true,32,0)
+          presetVec = 1
+          vec = 1
+        }
+        InputField1311228259_input=[List(BufferRead273[x128].OutputField814196083_out)] {
+          tp = Fix(true,32,0)
+          vec = 1
+        }
+        deps {
+          BufferRead273.OutputField814196083_out(Context167): Vector(HostRead137.InputField1311228259_input)
+        }
+        depeds {
+        }
+        isExtern = false
+        ctrl = ControlTree135
+        isInnerReduceOp = false
+        srcCtx = SpatialPIRGenStaging.scala:153
+        sname = x128
+      }
+    }
+  }
+  Context158() {
+    parent=Some(Top0)
+    children=List(UnitController30, OpDef31, Const32, OpDef33, OpDef38, Const39, BufferWrite170, BufferWrite258, BufferRead263)
+    deps {
+      UnitController24.OutputField1154919645_childDone(Context157): Vector(UnitController30.InputField77326326_parentEn)
+      BufferWrite262.OutputField581331852_out(Context166): Vector(BufferRead263.InputField664902885_in)
+      CounterIter17.OutputField1831302906_out(LoopController16): Vector(OpDef31.InputField1142095842_input)
+      UnitController8.OutputField1065316934_done(Context154): Vector(BufferRead263.InputField113380661_done)
+    }
+    depeds {
+      OutputField337633171_out: Vector(BufferRead171.InputField1782163084_in(Context168))
+      OutputField430770731_out: Vector(BufferRead259.InputField419517634_in(Context168))
+    }
+    streaming = false
+    isExtern = false
+    ctrl = ControlTree29
+    isInnerReduceOp = false
+    srcCtx = DotProduct.scala:35:16
+    UnitController30[x148]() {
+      parent=Some(Context158)
+      InputField626703844_en=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField77326326_parentEn=[List(UnitController24[x162].OutputField1154919645_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField556596690_done=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField559583721_childDone=[List(BufferWrite170.InputField1585177413_done, BufferWrite258[x147_offset].InputField1890079311_done)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1369419195_stepped=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField182469673_uen=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1290070730_laneValid=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      deps {
+        UnitController24.OutputField1154919645_childDone(Context157): Vector(UnitController30.InputField77326326_parentEn)
+      }
+      depeds {
+        OutputField559583721_childDone: Vector(BufferWrite170.InputField1585177413_done(Context158), BufferWrite258.InputField1890079311_done(Context158))
+      }
+      par = 1
+      isExtern = false
+      ctrl = ControlTree29
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:35:16
+      progorder = 67
+      sname = x148
+    }
+    Const32(2)(2) {
+      parent=Some(Context158)
+      OutputField217365902_out=[List(OpDef31(FixSLA).InputField1513286149_input)] {
+        tp = Fix(true,16,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField217365902_out: Vector(OpDef31.InputField1513286149_input(Context158))
+      }
+      tp = Fix(true,16,0)
+      isExtern = false
+      ctrl = ControlTree29
+      isInnerReduceOp = false
+    }
+    OpDef31(FixSLA)(FixSLA) {
+      parent=Some(Context158)
+      OutputField1992941612_out=[List(OpDef33(FixToFix).InputField344276760_input)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      InputField1142095842_input=[List(CounterIter17[b135].OutputField1831302906_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+        dynamicIdx = 0
+      }
+      InputField1513286149_input=[List(Const32(2).OutputField217365902_out)] {
+        tp = Fix(true,16,0)
+        vec = 1
+        dynamicIdx = 1
+      }
+      deps {
+        CounterIter17.OutputField1831302906_out(LoopController16): Vector(OpDef31.InputField1142095842_input)
+        Const32.OutputField217365902_out(Context158): Vector(OpDef31.InputField1513286149_input)
+      }
+      depeds {
+        OutputField1992941612_out: Vector(OpDef33.InputField344276760_input(Context158))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree29
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:35:16
+      progorder = 68
+      sname = x141
+    }
+    OpDef33(FixToFix)(FixToFix) {
+      parent=Some(Context158)
+      OutputField1091957665_out=[List(OpDef38(FixAdd).InputField323181584_input)] {
+        tp = Fix(true,64,0)
+        vec = 1
+      }
+      InputField344276760_input=[List(OpDef31(FixSLA).OutputField1992941612_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+        dynamicIdx = 0
+      }
+      deps {
+        OpDef31.OutputField1992941612_out(Context158): Vector(OpDef33.InputField344276760_input)
+      }
+      depeds {
+        OutputField1091957665_out: Vector(OpDef38.InputField323181584_input(Context158))
+      }
+      tp = Fix(true,64,0)
+      isExtern = false
+      ctrl = ControlTree29
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:35:16
+      progorder = 69
+      sname = x142
+    }
+    Const39(128)(128) {
+      parent=Some(Context158)
+      OutputField484977607_out=[List(BufferWrite170.InputField1592074245_data)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField484977607_out: Vector(BufferWrite170.InputField1592074245_data(Context158))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree29
+      name = size
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:35:16
+      progorder = 72
+      sname = x145_size
+    }
+    BufferWrite170(true) {
+      parent=Some(Context158)
+      OutputField337633171_out=[List(BufferRead171.InputField1782163084_in)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      InputField181586437_en=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      InputField1585177413_done=[List(UnitController30[x148].OutputField559583721_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1592074245_data=[List(Const39(128).OutputField484977607_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      deps {
+        Const39.OutputField484977607_out(Context158): Vector(BufferWrite170.InputField1592074245_data)
+        UnitController30.OutputField559583721_childDone(Context158): Vector(BufferWrite170.InputField1585177413_done)
+      }
+      depeds {
+        OutputField337633171_out: Vector(BufferRead171.InputField1782163084_in(Context168))
+      }
+      isExtern = false
+      ctrl = ControlTree29
+      isInnerReduceOp = false
+      srcCtx = BlackBoxLowering.scala:30
+      isSplit = false
+    }
+    BufferRead263[x143](false) {
+      parent=Some(Context158)
+      OutputField1612414799_out=[List(OpDef38(FixAdd).InputField968422624_input)] {
+        tp = Fix(true,64,0)
+        presetVec = 1
+        vec = 1
+      }
+      InputField1815171974_en=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      InputField113380661_done=[List(UnitController8[x44].OutputField1065316934_done)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField664902885_in=[List(BufferWrite262.OutputField581331852_out)] {
+        tp = Fix(true,64,0)
+        vec = 1
+      }
+      deps {
+        BufferWrite262.OutputField581331852_out(Context166): Vector(BufferRead263.InputField664902885_in)
+        UnitController8.OutputField1065316934_done(Context154): Vector(BufferRead263.InputField113380661_done)
+      }
+      depeds {
+        OutputField1612414799_out: Vector(OpDef38.InputField968422624_input(Context158))
+      }
+      tp = Fix(true,64,0)
+      dims = List(1)
+      order = 37.0
+      numPart = 1
+      darkVolume = 0
+      isExtern = false
+      isInnerAccum = false
+      ctrl = ControlTree29
+      name = x126_addr
+      srcCtx = SpatialPIRGenStaging.scala:122
+      isInnerReduceOp = false
+      banks = List(1)
+      progorder = 70
+      initToken = 0
+      depth = 1
+      isSplit = false
+      sname = x143
+      port = Some(0)
+      nonBlocking = false
+    }
+    OpDef38(FixAdd)(FixAdd) {
+      parent=Some(Context158)
+      OutputField1115862703_out=[List(BufferWrite258[x147_offset].InputField1739157901_data)] {
+        tp = Fix(true,64,0)
+        vec = 1
+      }
+      InputField323181584_input=[List(OpDef33(FixToFix).OutputField1091957665_out)] {
+        tp = Fix(true,64,0)
+        vec = 1
+        dynamicIdx = 0
+      }
+      InputField968422624_input=[List(BufferRead263[x143].OutputField1612414799_out)] {
+        tp = Fix(true,64,0)
+        vec = 1
+        dynamicIdx = 1
+      }
+      deps {
+        OpDef33.OutputField1091957665_out(Context158): Vector(OpDef38.InputField323181584_input)
+        BufferRead263.OutputField1612414799_out(Context158): Vector(OpDef38.InputField968422624_input)
+      }
+      depeds {
+        OutputField1115862703_out: Vector(BufferWrite258.InputField1739157901_data(Context158))
+      }
+      tp = Fix(true,64,0)
+      isExtern = false
+      ctrl = ControlTree29
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:35:16
+      progorder = 71
+      sname = x144
+    }
+    BufferWrite258[x147_offset](true) {
+      parent=Some(Context158)
+      OutputField430770731_out=[List(BufferRead259[x139_offset].InputField419517634_in)] {
+        tp = Fix(true,64,0)
+        presetVec = 1
+        vec = 1
+      }
+      InputField1420500519_en=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      InputField1890079311_done=[List(UnitController30[x148].OutputField559583721_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1739157901_data=[List(OpDef38(FixAdd).OutputField1115862703_out)] {
+        tp = Fix(true,64,0)
+        vec = 1
+      }
+      deps {
+        OpDef38.OutputField1115862703_out(Context158): Vector(BufferWrite258.InputField1739157901_data)
+        UnitController30.OutputField559583721_childDone(Context158): Vector(BufferWrite258.InputField1890079311_done)
+      }
+      depeds {
+        OutputField430770731_out: Vector(BufferRead259.InputField419517634_in(Context168))
+      }
+      tp = Fix(true,64,0)
+      order = 42.0
+      isExtern = false
+      ctrl = ControlTree29
+      name = offset
+      srcCtx = DotProduct.scala:35:16
+      isInnerReduceOp = false
+      broadcast = List(0)
+      progorder = 74
+      castgroup = List(0)
+      isSplit = false
+      sname = x147_offset
+      muxPort = 0
+      port = Some(0)
+    }
+  }
+  Context161() {
+    parent=Some(Top0)
+    children=List(UnitController69, OpDef70, Const71, OpDef72, OpDef77, Const78, BufferWrite174, BufferWrite264, BufferRead269)
+    deps {
+      UnitController63.OutputField1247240246_childDone(Context160): Vector(UnitController69.InputField1070480752_parentEn)
+      CounterIter17.OutputField1831302906_out(LoopController16): Vector(OpDef70.InputField875772853_input)
+      BufferWrite268.OutputField61623030_out(Context166): Vector(BufferRead269.InputField2092765689_in)
+      UnitController8.OutputField1065316934_done(Context154): Vector(BufferRead269.InputField1403361024_done)
+    }
+    depeds {
+      OutputField1138327307_out: Vector(BufferRead175.InputField669755605_in(Context172))
+      OutputField2050011955_out: Vector(BufferRead265.InputField1889679025_in(Context172))
+    }
+    streaming = false
+    isExtern = false
+    ctrl = ControlTree68
+    isInnerReduceOp = false
+    srcCtx = DotProduct.scala:36:16
+    UnitController69[x172]() {
+      parent=Some(Context161)
+      InputField1253230302_en=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1070480752_parentEn=[List(UnitController63[x186].OutputField1247240246_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1972910072_done=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1329616520_childDone=[List(BufferWrite174.InputField842966155_done, BufferWrite264[x171_offset].InputField1197497653_done)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField328793480_stepped=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1576236854_uen=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1776336007_laneValid=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      deps {
+        UnitController63.OutputField1247240246_childDone(Context160): Vector(UnitController69.InputField1070480752_parentEn)
+      }
+      depeds {
+        OutputField1329616520_childDone: Vector(BufferWrite174.InputField842966155_done(Context161), BufferWrite264.InputField1197497653_done(Context161))
+      }
+      par = 1
+      isExtern = false
+      ctrl = ControlTree68
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:36:16
+      progorder = 84
+      sname = x172
+    }
+    Const71(2)(2) {
+      parent=Some(Context161)
+      OutputField1511885752_out=[List(OpDef70(FixSLA).InputField134375022_input)] {
+        tp = Fix(true,16,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField1511885752_out: Vector(OpDef70.InputField134375022_input(Context161))
+      }
+      tp = Fix(true,16,0)
+      isExtern = false
+      ctrl = ControlTree68
+      isInnerReduceOp = false
+    }
+    OpDef70(FixSLA)(FixSLA) {
+      parent=Some(Context161)
+      OutputField1895403147_out=[List(OpDef72(FixToFix).InputField221756469_input)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      InputField875772853_input=[List(CounterIter17[b135].OutputField1831302906_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+        dynamicIdx = 0
+      }
+      InputField134375022_input=[List(Const71(2).OutputField1511885752_out)] {
+        tp = Fix(true,16,0)
+        vec = 1
+        dynamicIdx = 1
+      }
+      deps {
+        CounterIter17.OutputField1831302906_out(LoopController16): Vector(OpDef70.InputField875772853_input)
+        Const71.OutputField1511885752_out(Context161): Vector(OpDef70.InputField134375022_input)
+      }
+      depeds {
+        OutputField1895403147_out: Vector(OpDef72.InputField221756469_input(Context161))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree68
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:36:16
+      progorder = 85
+      sname = x165
+    }
+    OpDef72(FixToFix)(FixToFix) {
+      parent=Some(Context161)
+      OutputField544523549_out=[List(OpDef77(FixAdd).InputField917375741_input)] {
+        tp = Fix(true,64,0)
+        vec = 1
+      }
+      InputField221756469_input=[List(OpDef70(FixSLA).OutputField1895403147_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+        dynamicIdx = 0
+      }
+      deps {
+        OpDef70.OutputField1895403147_out(Context161): Vector(OpDef72.InputField221756469_input)
+      }
+      depeds {
+        OutputField544523549_out: Vector(OpDef77.InputField917375741_input(Context161))
+      }
+      tp = Fix(true,64,0)
+      isExtern = false
+      ctrl = ControlTree68
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:36:16
+      progorder = 86
+      sname = x166
+    }
+    Const78(128)(128) {
+      parent=Some(Context161)
+      OutputField988951364_out=[List(BufferWrite174.InputField1887384535_data)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField988951364_out: Vector(BufferWrite174.InputField1887384535_data(Context161))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree68
+      name = size
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:36:16
+      progorder = 89
+      sname = x169_size
+    }
+    BufferWrite174(true) {
+      parent=Some(Context161)
+      OutputField1138327307_out=[List(BufferRead175.InputField669755605_in)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      InputField699283414_en=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      InputField842966155_done=[List(UnitController69[x172].OutputField1329616520_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1887384535_data=[List(Const78(128).OutputField988951364_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      deps {
+        UnitController69.OutputField1329616520_childDone(Context161): Vector(BufferWrite174.InputField842966155_done)
+        Const78.OutputField988951364_out(Context161): Vector(BufferWrite174.InputField1887384535_data)
+      }
+      depeds {
+        OutputField1138327307_out: Vector(BufferRead175.InputField669755605_in(Context172))
+      }
+      isExtern = false
+      ctrl = ControlTree68
+      isInnerReduceOp = false
+      srcCtx = BlackBoxLowering.scala:30
+      isSplit = false
+    }
+    BufferRead269[x167](false) {
+      parent=Some(Context161)
+      OutputField1141184521_out=[List(OpDef77(FixAdd).InputField139714449_input)] {
+        tp = Fix(true,64,0)
+        presetVec = 1
+        vec = 1
+      }
+      InputField1300597558_en=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      InputField1403361024_done=[List(UnitController8[x44].OutputField1065316934_done)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField2092765689_in=[List(BufferWrite268.OutputField61623030_out)] {
+        tp = Fix(true,64,0)
+        vec = 1
+      }
+      deps {
+        BufferWrite268.OutputField61623030_out(Context166): Vector(BufferRead269.InputField2092765689_in)
+        UnitController8.OutputField1065316934_done(Context154): Vector(BufferRead269.InputField1403361024_done)
+      }
+      depeds {
+        OutputField1141184521_out: Vector(OpDef77.InputField139714449_input(Context161))
+      }
+      tp = Fix(true,64,0)
+      dims = List(1)
+      order = 76.0
+      numPart = 1
+      darkVolume = 0
+      isExtern = false
+      isInnerAccum = false
+      ctrl = ControlTree68
+      name = x127_addr
+      srcCtx = SpatialPIRGenStaging.scala:122
+      isInnerReduceOp = false
+      banks = List(1)
+      progorder = 87
+      initToken = 0
+      depth = 1
+      isSplit = false
+      sname = x167
+      port = Some(0)
+      nonBlocking = false
+    }
+    OpDef77(FixAdd)(FixAdd) {
+      parent=Some(Context161)
+      OutputField1248797216_out=[List(BufferWrite264[x171_offset].InputField3041846_data)] {
+        tp = Fix(true,64,0)
+        vec = 1
+      }
+      InputField917375741_input=[List(OpDef72(FixToFix).OutputField544523549_out)] {
+        tp = Fix(true,64,0)
+        vec = 1
+        dynamicIdx = 0
+      }
+      InputField139714449_input=[List(BufferRead269[x167].OutputField1141184521_out)] {
+        tp = Fix(true,64,0)
+        vec = 1
+        dynamicIdx = 1
+      }
+      deps {
+        BufferRead269.OutputField1141184521_out(Context161): Vector(OpDef77.InputField139714449_input)
+        OpDef72.OutputField544523549_out(Context161): Vector(OpDef77.InputField917375741_input)
+      }
+      depeds {
+        OutputField1248797216_out: Vector(BufferWrite264.InputField3041846_data(Context161))
+      }
+      tp = Fix(true,64,0)
+      isExtern = false
+      ctrl = ControlTree68
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:36:16
+      progorder = 88
+      sname = x168
+    }
+    BufferWrite264[x171_offset](true) {
+      parent=Some(Context161)
+      OutputField2050011955_out=[List(BufferRead265[x163_offset].InputField1889679025_in)] {
+        tp = Fix(true,64,0)
+        presetVec = 1
+        vec = 1
+      }
+      InputField1812832997_en=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      InputField1197497653_done=[List(UnitController69[x172].OutputField1329616520_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField3041846_data=[List(OpDef77(FixAdd).OutputField1248797216_out)] {
+        tp = Fix(true,64,0)
+        vec = 1
+      }
+      deps {
+        OpDef77.OutputField1248797216_out(Context161): Vector(BufferWrite264.InputField3041846_data)
+        UnitController69.OutputField1329616520_childDone(Context161): Vector(BufferWrite264.InputField1197497653_done)
+      }
+      depeds {
+        OutputField2050011955_out: Vector(BufferRead265.InputField1889679025_in(Context172))
+      }
+      tp = Fix(true,64,0)
+      order = 81.0
+      isExtern = false
+      ctrl = ControlTree68
+      name = offset
+      srcCtx = DotProduct.scala:36:16
+      isInnerReduceOp = false
+      broadcast = List(0)
+      progorder = 91
+      castgroup = List(0)
+      isSplit = false
+      sname = x171_offset
+      muxPort = 0
+      port = Some(0)
+    }
+  }
+  Context168() {
+    parent=Some(Top0)
+    children=List(FringeDenseLoad45, UnitController169, BufferRead171, BufferRead259, BufferWrite260)
+    deps {
+      BufferWrite170.OutputField337633171_out(Context158): Vector(BufferRead171.InputField1782163084_in)
+      BufferWrite258.OutputField430770731_out(Context158): Vector(BufferRead259.InputField419517634_in)
+    }
+    depeds {
+      OutputField196028014_out: Vector(BufferRead261.InputField178874873_in(Context159))
+    }
+    streaming = true
+    isExtern = false
+    ctrl = ControlTree23
+    isInnerReduceOp = false
+    srcCtx = BlackBoxLowering.scala:22
+    UnitController169() {
+      parent=Some(Context168)
+      InputField1955307245_en=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField679382640_parentEn=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1050857693_done=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1500327475_childDone=[List(BufferRead171.InputField1096012263_done, BufferRead259[x139_offset].InputField1377739451_done, BufferWrite260.InputField594843460_done)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1907994373_stepped=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField770224716_uen=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField98876180_laneValid=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField1500327475_childDone: Vector(BufferRead171.InputField1096012263_done(Context168), BufferRead259.InputField1377739451_done(Context168), BufferWrite260.InputField594843460_done(Context168))
+      }
+      par = 1
+      isExtern = false
+      ctrl = ControlTree23
+      isInnerReduceOp = false
+      srcCtx = MemoryAnalyzer.scala:69
+    }
+    BufferRead171(true) {
+      parent=Some(Context168)
+      OutputField2111000977_out=[List(FringeDenseLoad45[x149].InputField1443338728_size)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      InputField1561620868_en=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      InputField1096012263_done=[List(UnitController169.OutputField1500327475_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1782163084_in=[List(BufferWrite170.OutputField337633171_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      deps {
+        BufferWrite170.OutputField337633171_out(Context158): Vector(BufferRead171.InputField1782163084_in)
+        UnitController169.OutputField1500327475_childDone(Context168): Vector(BufferRead171.InputField1096012263_done)
+      }
+      depeds {
+        OutputField2111000977_out: Vector(FringeDenseLoad45.InputField1443338728_size(Context168))
+      }
+      dims = List(1)
+      numPart = 1
+      darkVolume = 0
+      isExtern = false
+      isInnerAccum = false
+      ctrl = ControlTree23
+      srcCtx = BlackBoxLowering.scala:30
+      isInnerReduceOp = false
+      banks = List(1)
+      initToken = 0
+      depth = 1
+      isSplit = false
+    }
+    BufferRead259[x139_offset](true) {
+      parent=Some(Context168)
+      OutputField1451610302_out=[List(FringeDenseLoad45[x149].InputField508859602_offset)] {
+        tp = Fix(true,64,0)
+        presetVec = 1
+        vec = 1
+      }
+      InputField768502724_en=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      InputField1377739451_done=[List(UnitController169.OutputField1500327475_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField419517634_in=[List(BufferWrite258[x147_offset].OutputField430770731_out)] {
+        tp = Fix(true,64,0)
+        vec = 1
+      }
+      deps {
+        BufferWrite258.OutputField430770731_out(Context158): Vector(BufferRead259.InputField419517634_in)
+        UnitController169.OutputField1500327475_childDone(Context168): Vector(BufferRead259.InputField1377739451_done)
+      }
+      depeds {
+        OutputField1451610302_out: Vector(FringeDenseLoad45.InputField508859602_offset(Context168))
+      }
+      tp = Fix(true,64,0)
+      dims = List(1)
+      order = 46.0
+      numPart = 1
+      darkVolume = 0
+      isExtern = false
+      isInnerAccum = false
+      ctrl = ControlTree23
+      name = offset
+      srcCtx = DotProduct.scala:35:16
+      isInnerReduceOp = false
+      banks = List(1)
+      progorder = 65
+      initToken = 0
+      depth = 1
+      isSplit = false
+      sname = x139_offset
+      port = Some(0)
+      nonBlocking = false
+    }
+    FringeDenseLoad45[x149](DRAM1775919543[a]) {
+      parent=Some(Context168)
+      InputField508859602_offset=[List(BufferRead259[x139_offset].OutputField1451610302_out)] {
+        tp = Fix(true,64,0)
+        vec = 1
+      }
+      InputField1443338728_size=[List(BufferRead171.OutputField2111000977_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      OutputField1412982464_data=[List(BufferWrite260.InputField1696506335_data)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      deps {
+        BufferRead259.OutputField1451610302_out(Context168): Vector(FringeDenseLoad45.InputField508859602_offset)
+        BufferRead171.OutputField2111000977_out(Context168): Vector(FringeDenseLoad45.InputField1443338728_size)
+      }
+      depeds {
+        OutputField1412982464_data: Vector(BufferWrite260.InputField1696506335_data(Context168))
+      }
+      isExtern = false
+      ctrl = ControlTree23
+      name = a
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:35:16
+      progorder = 75
+      sname = x149
+    }
+    BufferWrite260(true) {
+      parent=Some(Context168)
+      OutputField196028014_out=[List(BufferRead261[x140].InputField178874873_in)] {
+        tp = Fix(true,32,0)
+        presetVec = 16
+        vec = 16
+      }
+      InputField566747872_en=[List()] {
+        tp = Bool
+        vec = 16
+      }
+      InputField594843460_done=[List(UnitController169.OutputField1500327475_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1696506335_data=[List(FringeDenseLoad45[x149].OutputField1412982464_data)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      deps {
+        FringeDenseLoad45.OutputField1412982464_data(Context168): Vector(BufferWrite260.InputField1696506335_data)
+        UnitController169.OutputField1500327475_childDone(Context168): Vector(BufferWrite260.InputField594843460_done)
+      }
+      depeds {
+        OutputField196028014_out: Vector(BufferRead261.InputField178874873_in(Context159))
+      }
+      tp = Fix(true,32,0)
+      order = 48.0
+      isExtern = false
+      ctrl = ControlTree23
+      srcCtx = LocalMemoryLowering.scala:60
+      isInnerReduceOp = false
+      isSplit = false
+      port = Some(0)
+    }
+  }
+  Context172() {
+    parent=Some(Top0)
+    children=List(FringeDenseLoad84, UnitController173, BufferRead175, BufferRead265, BufferWrite266)
+    deps {
+      BufferWrite174.OutputField1138327307_out(Context161): Vector(BufferRead175.InputField669755605_in)
+      BufferWrite264.OutputField2050011955_out(Context161): Vector(BufferRead265.InputField1889679025_in)
+    }
+    depeds {
+      OutputField1448115609_out: Vector(BufferRead267.InputField636121121_in(Context162))
+    }
+    streaming = true
+    isExtern = false
+    ctrl = ControlTree62
+    isInnerReduceOp = false
+    srcCtx = BlackBoxLowering.scala:22
+    UnitController173() {
+      parent=Some(Context172)
+      InputField1941089505_en=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1607421455_parentEn=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField511399205_done=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField958132561_childDone=[List(BufferRead175.InputField1856714623_done, BufferRead265[x163_offset].InputField1218684462_done, BufferWrite266.InputField1658952406_done)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1596491575_stepped=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField2058491371_uen=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1042589157_laneValid=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField958132561_childDone: Vector(BufferRead175.InputField1856714623_done(Context172), BufferRead265.InputField1218684462_done(Context172), BufferWrite266.InputField1658952406_done(Context172))
+      }
+      par = 1
+      isExtern = false
+      ctrl = ControlTree62
+      isInnerReduceOp = false
+      srcCtx = MemoryAnalyzer.scala:69
+    }
+    BufferRead175(true) {
+      parent=Some(Context172)
+      OutputField547267503_out=[List(FringeDenseLoad84[x173].InputField321415735_size)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      InputField1732461003_en=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      InputField1856714623_done=[List(UnitController173.OutputField958132561_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField669755605_in=[List(BufferWrite174.OutputField1138327307_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      deps {
+        BufferWrite174.OutputField1138327307_out(Context161): Vector(BufferRead175.InputField669755605_in)
+        UnitController173.OutputField958132561_childDone(Context172): Vector(BufferRead175.InputField1856714623_done)
+      }
+      depeds {
+        OutputField547267503_out: Vector(FringeDenseLoad84.InputField321415735_size(Context172))
+      }
+      dims = List(1)
+      numPart = 1
+      darkVolume = 0
+      isExtern = false
+      isInnerAccum = false
+      ctrl = ControlTree62
+      srcCtx = BlackBoxLowering.scala:30
+      isInnerReduceOp = false
+      banks = List(1)
+      initToken = 0
+      depth = 1
+      isSplit = false
+    }
+    BufferRead265[x163_offset](true) {
+      parent=Some(Context172)
+      OutputField2128836539_out=[List(FringeDenseLoad84[x173].InputField326976959_offset)] {
+        tp = Fix(true,64,0)
+        presetVec = 1
+        vec = 1
+      }
+      InputField992941223_en=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      InputField1218684462_done=[List(UnitController173.OutputField958132561_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1889679025_in=[List(BufferWrite264[x171_offset].OutputField2050011955_out)] {
+        tp = Fix(true,64,0)
+        vec = 1
+      }
+      deps {
+        UnitController173.OutputField958132561_childDone(Context172): Vector(BufferRead265.InputField1218684462_done)
+        BufferWrite264.OutputField2050011955_out(Context161): Vector(BufferRead265.InputField1889679025_in)
+      }
+      depeds {
+        OutputField2128836539_out: Vector(FringeDenseLoad84.InputField326976959_offset(Context172))
+      }
+      tp = Fix(true,64,0)
+      dims = List(1)
+      order = 85.0
+      numPart = 1
+      darkVolume = 0
+      isExtern = false
+      isInnerAccum = false
+      ctrl = ControlTree62
+      name = offset
+      srcCtx = DotProduct.scala:36:16
+      isInnerReduceOp = false
+      banks = List(1)
+      progorder = 82
+      initToken = 0
+      depth = 1
+      isSplit = false
+      sname = x163_offset
+      port = Some(0)
+      nonBlocking = false
+    }
+    FringeDenseLoad84[x173](DRAM2124464116[b]) {
+      parent=Some(Context172)
+      InputField326976959_offset=[List(BufferRead265[x163_offset].OutputField2128836539_out)] {
+        tp = Fix(true,64,0)
+        vec = 1
+      }
+      InputField321415735_size=[List(BufferRead175.OutputField547267503_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      OutputField396630800_data=[List(BufferWrite266.InputField971932538_data)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      deps {
+        BufferRead175.OutputField547267503_out(Context172): Vector(FringeDenseLoad84.InputField321415735_size)
+        BufferRead265.OutputField2128836539_out(Context172): Vector(FringeDenseLoad84.InputField326976959_offset)
+      }
+      depeds {
+        OutputField396630800_data: Vector(BufferWrite266.InputField971932538_data(Context172))
+      }
+      isExtern = false
+      ctrl = ControlTree62
+      name = b
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:36:16
+      progorder = 92
+      sname = x173
+    }
+    BufferWrite266(true) {
+      parent=Some(Context172)
+      OutputField1448115609_out=[List(BufferRead267[x164].InputField636121121_in)] {
+        tp = Fix(true,32,0)
+        presetVec = 16
+        vec = 16
+      }
+      InputField60240811_en=[List()] {
+        tp = Bool
+        vec = 16
+      }
+      InputField1658952406_done=[List(UnitController173.OutputField958132561_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField971932538_data=[List(FringeDenseLoad84[x173].OutputField396630800_data)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      deps {
+        UnitController173.OutputField958132561_childDone(Context172): Vector(BufferWrite266.InputField1658952406_done)
+        FringeDenseLoad84.OutputField396630800_data(Context172): Vector(BufferWrite266.InputField971932538_data)
+      }
+      depeds {
+        OutputField1448115609_out: Vector(BufferRead267.InputField636121121_in(Context162))
+      }
+      tp = Fix(true,32,0)
+      order = 87.0
+      isExtern = false
+      ctrl = ControlTree62
+      srcCtx = LocalMemoryLowering.scala:60
+      isInnerReduceOp = false
+      isSplit = false
+      port = Some(0)
+    }
+  }
+  Context159() {
+    parent=Some(Top0)
+    children=List(LoopController54, Const58, OpDef59, Const60, Const144, Const146, BufferWrite186, BufferRead261)
+    deps {
+      Const51.OutputField1813137734_out(Context157): Vector(Counter49.InputField489085982_step)
+      Const52.OutputField1520639683_out(Context157): Vector(Counter49.InputField1709471621_max)
+      Const50.OutputField1637452833_out(Context157): Vector(Counter49.InputField1860519188_min)
+      UnitController24.OutputField1154919645_childDone(Context157): Vector(LoopController54.InputField1133490641_parentEn)
+      BufferWrite260.OutputField196028014_out(Context168): Vector(BufferRead261.InputField178874873_in)
+    }
+    depeds {
+      OutputField22296306_out: Vector(BufferWrite183.InputField1008265629_data(Context178))
+      OutputField1985274767_childDone: Vector(BufferWrite183.InputField1732120636_done(Context178), BufferRead184.InputField384425733_done(Context177), BufferRead187.InputField1023513237_done(Context177), BufferWrite191.InputField1477849039_done(Context177), BufferWrite193.InputField158327302_done(Context177), BufferWrite195.InputField1052299894_done(Context177))
+      OutputField800972320_out: Vector(BufferRead187.InputField827332625_in(Context177))
+      OutputField886293601_out: Vector(Shuffle181.InputField337048799_from(Context177), Shuffle185.InputField2074514862_from(Context177))
+    }
+    streaming = false
+    isExtern = false
+    ctrl = ControlTree53
+    isInnerReduceOp = false
+    srcCtx = DotProduct.scala:35:16
+    LoopController54[x161]() {
+      parent=Some(Context159)
+      children=List(Counter49, CounterIter55, CounterValid56)
+      InputField1836945153_en=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1133490641_parentEn=[List(UnitController24[x162].OutputField1154919645_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField686110888_done=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1985274767_childDone=[List(BufferWrite183.InputField1732120636_done, BufferRead184.InputField384425733_done, BufferWrite186.InputField806740052_done, BufferRead187.InputField1023513237_done, BufferWrite191.InputField1477849039_done, BufferWrite193.InputField158327302_done, BufferWrite195.InputField1052299894_done, BufferRead261[x140].InputField519530292_done)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField2010148803_stepped=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1240418769_uen=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1213073468_laneValid=[List()] {
+        tp = Bool
+        vec = 16
+      }
+      OutputField433574433_firstIter=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1829574831_stopWhen=[List()] {
+        tp = Bool
+      }
+      deps {
+        UnitController24.OutputField1154919645_childDone(Context157): Vector(LoopController54.InputField1133490641_parentEn)
+        Const52.OutputField1520639683_out(Context157): Vector(Counter49.InputField1709471621_max)
+        Const51.OutputField1813137734_out(Context157): Vector(Counter49.InputField489085982_step)
+        Const50.OutputField1637452833_out(Context157): Vector(Counter49.InputField1860519188_min)
+      }
+      depeds {
+        OutputField1138011680_out: Vector(OpDef59.InputField1592099372_input(Context159))
+        OutputField1985274767_childDone: Vector(BufferWrite183.InputField1732120636_done(Context178), BufferRead184.InputField384425733_done(Context177), BufferWrite186.InputField806740052_done(Context159), BufferRead187.InputField1023513237_done(Context177), BufferWrite191.InputField1477849039_done(Context177), BufferWrite193.InputField158327302_done(Context177), BufferWrite195.InputField1052299894_done(Context177), BufferRead261.InputField519530292_done(Context159))
+      }
+      par = 16
+      isExtern = false
+      constLaneValids = List(Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true))
+      ctrl = ControlTree53
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:35:16
+      progorder = 78
+      sname = x161
+      Counter49[x150](16,false) {
+        parent=Some(LoopController54)
+        InputField1860519188_min=[List(Const50(0).OutputField1637452833_out)] {
+          tp = Fix(true,32,0)
+          vec = 1
+        }
+        InputField489085982_step=[List(Const51(1).OutputField1813137734_out)] {
+          tp = Fix(true,32,0)
+          vec = 1
+        }
+        InputField1709471621_max=[List(Const52(32).OutputField1520639683_out)] {
+          tp = Fix(true,32,0)
+          vec = 1
+        }
+        OutputField1214469465_out=[List(CounterIter55[b152].InputField1247643596_counter, CounterValid56[b153].InputField577519378_counter)] {
+        }
+        OutputField208303268_isFirstIter=[List()] {
+        }
+        deps {
+          Const52.OutputField1520639683_out(Context157): Vector(Counter49.InputField1709471621_max)
+          Const51.OutputField1813137734_out(Context157): Vector(Counter49.InputField489085982_step)
+          Const50.OutputField1637452833_out(Context157): Vector(Counter49.InputField1860519188_min)
+        }
+        depeds {
+          OutputField1214469465_out: Vector(CounterIter55.InputField1247643596_counter(LoopController54), CounterValid56.InputField577519378_counter(LoopController54))
+        }
+        constValids = List(Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true))
+        constIters = List(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+        isExtern = false
+        idx = 0
+        ctrl = ControlTree53
+        isInnerReduceOp = false
+        srcCtx = DotProduct.scala:35:16
+        progorder = 76
+        sname = x150
+      }
+      CounterIter55[b152](List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)) {
+        parent=Some(LoopController54)
+        OutputField1138011680_out=[List(OpDef59(FixSRA).InputField1592099372_input)] {
+          tp = Fix(true,32,0)
+          presetVec = 16
+          vec = 16
+        }
+        InputField1247643596_counter=[List(Counter49[x150].OutputField1214469465_out)] {
+        }
+        deps {
+          Counter49.OutputField1214469465_out(LoopController54): Vector(CounterIter55.InputField1247643596_counter)
+        }
+        depeds {
+          OutputField1138011680_out: Vector(OpDef59.InputField1592099372_input(Context159))
+        }
+        tp = Fix(true,32,0)
+        isExtern = false
+        ctrl = ControlTree53
+        isInnerReduceOp = false
+        srcCtx = Staging.scala:26:82
+        sname = b152
+      }
+      CounterValid56[b153](List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)) {
+        parent=Some(LoopController54)
+        OutputField984197229_out=[List()] {
+          tp = Bool
+          presetVec = 16
+          vec = 16
+        }
+        InputField577519378_counter=[List(Counter49[x150].OutputField1214469465_out)] {
+        }
+        deps {
+          Counter49.OutputField1214469465_out(LoopController54): Vector(CounterValid56.InputField577519378_counter)
+        }
+        depeds {
+        }
+        tp = Bool
+        isExtern = false
+        ctrl = ControlTree53
+        isInnerReduceOp = false
+        srcCtx = Staging.scala:26:82
+        sname = b153
+      }
+    }
+    Const58(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15))(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)) {
+      parent=Some(Context159)
+      OutputField886293601_out=[List(Shuffle181.InputField337048799_from, Shuffle185.InputField2074514862_from)] {
+        tp = Fix(true,32,0)
+        presetVec = 16
+        vec = 16
+      }
+      deps {
+      }
+      depeds {
+        OutputField886293601_out: Vector(Shuffle181.InputField337048799_from(Context177), Shuffle185.InputField2074514862_from(Context177))
+      }
+      isExtern = false
+      ctrl = ControlTree53
+      isInnerReduceOp = false
+      srcCtx = CounterIterRewriteRule.scala:21:17
+      sname = x156
+    }
+    Const60(4)(4) {
+      parent=Some(Context159)
+      OutputField661721961_out=[List(OpDef59(FixSRA).InputField2124860580_input)] {
+        tp = Fix(true,16,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField661721961_out: Vector(OpDef59.InputField2124860580_input(Context159))
+      }
+      tp = Fix(true,16,0)
+      isExtern = false
+      ctrl = ControlTree53
+      isInnerReduceOp = false
+    }
+    OpDef59(FixSRA)(FixSRA) {
+      parent=Some(Context159)
+      OutputField22296306_out=[List(BufferWrite183.InputField1008265629_data)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField1592099372_input=[List(CounterIter55[b152].OutputField1138011680_out)] {
+        tp = Fix(true,32,0)
+        vec = 16
+        dynamicIdx = 0
+      }
+      InputField2124860580_input=[List(Const60(4).OutputField661721961_out)] {
+        tp = Fix(true,16,0)
+        vec = 1
+        dynamicIdx = 1
+      }
+      deps {
+        Const60.OutputField661721961_out(Context159): Vector(OpDef59.InputField2124860580_input)
+        CounterIter55.OutputField1138011680_out(LoopController54): Vector(OpDef59.InputField1592099372_input)
+      }
+      depeds {
+        OutputField22296306_out: Vector(BufferWrite183.InputField1008265629_data(Context178))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree53
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:35:16
+      sname = x157
+    }
+    Const144(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true))(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)) {
+      parent=Some(Context159)
+      OutputField1232227192_out=[List(BufferRead261[x140].InputField251084652_en)] {
+        tp = Bool
+        presetVec = 16
+        vec = 16
+      }
+      deps {
+      }
+      depeds {
+        OutputField1232227192_out: Vector(BufferRead261.InputField251084652_en(Context159))
+      }
+      isExtern = false
+      ctrl = ControlTree53
+      isInnerReduceOp = false
+      srcCtx = MemoryAnalyzer.scala:138
+    }
+    BufferRead261[x140](true) {
+      parent=Some(Context159)
+      OutputField155080632_out=[List(BufferWrite186.InputField918458711_data)] {
+        tp = Fix(true,32,0)
+        presetVec = 16
+        vec = 16
+      }
+      InputField251084652_en=[List(Const144(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)).OutputField1232227192_out)] {
+        tp = Bool
+        vec = 16
+      }
+      InputField519530292_done=[List(LoopController54[x161].OutputField1985274767_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField178874873_in=[List(BufferWrite260.OutputField196028014_out)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      deps {
+        BufferWrite260.OutputField196028014_out(Context168): Vector(BufferRead261.InputField178874873_in)
+        LoopController54.OutputField1985274767_childDone(Context159): Vector(BufferRead261.InputField519530292_done)
+        Const144.OutputField1232227192_out(Context159): Vector(BufferRead261.InputField251084652_en)
+      }
+      depeds {
+        OutputField155080632_out: Vector(BufferWrite186.InputField918458711_data(Context159))
+      }
+      tp = Fix(true,32,0)
+      dims = List(1)
+      order = 57.0
+      numPart = 1
+      darkVolume = 0
+      isExtern = false
+      isInnerAccum = false
+      ctrl = ControlTree53
+      srcCtx = DotProduct.scala:35:16
+      isInnerReduceOp = false
+      broadcast = List(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+      banks = List(16)
+      progorder = 79
+      castgroup = List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+      initToken = 0
+      depth = 1
+      isSplit = false
+      sname = x140
+      port = Some(0)
+      muxPort = 0
+      nonBlocking = false
+    }
+    BufferWrite186(true) {
+      parent=Some(Context159)
+      OutputField800972320_out=[List(BufferRead187.InputField827332625_in)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField1102289625_en=[List()] {
+        tp = Bool
+        vec = 16
+      }
+      InputField806740052_done=[List(LoopController54[x161].OutputField1985274767_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField918458711_data=[List(BufferRead261[x140].OutputField155080632_out)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      deps {
+        BufferRead261.OutputField155080632_out(Context159): Vector(BufferWrite186.InputField918458711_data)
+        LoopController54.OutputField1985274767_childDone(Context159): Vector(BufferWrite186.InputField806740052_done)
+      }
+      depeds {
+        OutputField800972320_out: Vector(BufferRead187.InputField827332625_in(Context177))
+      }
+      isExtern = false
+      ctrl = ControlTree53
+      isInnerReduceOp = false
+      srcCtx = GlobalMemoryLowering.scala:187
+      isSplit = false
+    }
+    Const146(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true))(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)) {
+      parent=Some(Context159)
+      OutputField1097439003_out=[List()] {
+        tp = Bool
+        presetVec = 16
+        vec = 16
+      }
+      deps {
+      }
+      depeds {
+      }
+      isExtern = false
+      ctrl = ControlTree53
+      isInnerReduceOp = false
+      srcCtx = MemoryAnalyzer.scala:138
+    }
+  }
+  Context162() {
+    parent=Some(Top0)
+    children=List(LoopController93, Const97, OpDef98, Const99, Const145, Const147, BufferWrite227, BufferRead267)
+    deps {
+      Const91.OutputField307566852_out(Context160): Vector(Counter88.InputField239232382_max)
+      Const89.OutputField984162789_out(Context160): Vector(Counter88.InputField1359709865_min)
+      Const90.OutputField685460679_out(Context160): Vector(Counter88.InputField1901158667_step)
+      UnitController63.OutputField1247240246_childDone(Context160): Vector(LoopController93.InputField1226565520_parentEn)
+      BufferWrite266.OutputField1448115609_out(Context172): Vector(BufferRead267.InputField636121121_in)
+    }
+    depeds {
+      OutputField1420591426_out: Vector(BufferWrite224.InputField1060140506_data(Context219))
+      OutputField1205563660_out: Vector(Shuffle222.InputField1950968239_from(Context218), Shuffle226.InputField1605238287_from(Context218))
+      OutputField1435106767_childDone: Vector(BufferWrite224.InputField327446887_done(Context219), BufferRead225.InputField559446906_done(Context218), BufferRead228.InputField454402444_done(Context218), BufferWrite232.InputField134365634_done(Context218), BufferWrite234.InputField584561816_done(Context218), BufferWrite236.InputField51605920_done(Context218))
+      OutputField1278110942_out: Vector(BufferRead228.InputField660869892_in(Context218))
+    }
+    streaming = false
+    isExtern = false
+    ctrl = ControlTree92
+    isInnerReduceOp = false
+    srcCtx = DotProduct.scala:36:16
+    LoopController93[x185]() {
+      parent=Some(Context162)
+      children=List(Counter88, CounterIter94, CounterValid95)
+      InputField1347199826_en=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1226565520_parentEn=[List(UnitController63[x186].OutputField1247240246_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1360571859_done=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1435106767_childDone=[List(BufferWrite224.InputField327446887_done, BufferRead225.InputField559446906_done, BufferWrite227.InputField1923853472_done, BufferRead228.InputField454402444_done, BufferWrite232.InputField134365634_done, BufferWrite234.InputField584561816_done, BufferWrite236.InputField51605920_done, BufferRead267[x164].InputField1976977189_done)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1625985567_stepped=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1994120949_uen=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1647940552_laneValid=[List()] {
+        tp = Bool
+        vec = 16
+      }
+      OutputField2017750469_firstIter=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1275749048_stopWhen=[List()] {
+        tp = Bool
+      }
+      deps {
+        UnitController63.OutputField1247240246_childDone(Context160): Vector(LoopController93.InputField1226565520_parentEn)
+        Const90.OutputField685460679_out(Context160): Vector(Counter88.InputField1901158667_step)
+        Const89.OutputField984162789_out(Context160): Vector(Counter88.InputField1359709865_min)
+        Const91.OutputField307566852_out(Context160): Vector(Counter88.InputField239232382_max)
+      }
+      depeds {
+        OutputField1435106767_childDone: Vector(BufferWrite224.InputField327446887_done(Context219), BufferRead225.InputField559446906_done(Context218), BufferWrite227.InputField1923853472_done(Context162), BufferRead228.InputField454402444_done(Context218), BufferWrite232.InputField134365634_done(Context218), BufferWrite234.InputField584561816_done(Context218), BufferWrite236.InputField51605920_done(Context218), BufferRead267.InputField1976977189_done(Context162))
+        OutputField1801385924_out: Vector(OpDef98.InputField1907056481_input(Context162))
+      }
+      par = 16
+      isExtern = false
+      constLaneValids = List(Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true))
+      ctrl = ControlTree92
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:36:16
+      progorder = 95
+      sname = x185
+      Counter88[x174](16,false) {
+        parent=Some(LoopController93)
+        InputField1359709865_min=[List(Const89(0).OutputField984162789_out)] {
+          tp = Fix(true,32,0)
+          vec = 1
+        }
+        InputField1901158667_step=[List(Const90(1).OutputField685460679_out)] {
+          tp = Fix(true,32,0)
+          vec = 1
+        }
+        InputField239232382_max=[List(Const91(32).OutputField307566852_out)] {
+          tp = Fix(true,32,0)
+          vec = 1
+        }
+        OutputField1355630598_out=[List(CounterIter94[b176].InputField1266109664_counter, CounterValid95[b177].InputField491626992_counter)] {
+        }
+        OutputField1568584312_isFirstIter=[List()] {
+        }
+        deps {
+          Const90.OutputField685460679_out(Context160): Vector(Counter88.InputField1901158667_step)
+          Const89.OutputField984162789_out(Context160): Vector(Counter88.InputField1359709865_min)
+          Const91.OutputField307566852_out(Context160): Vector(Counter88.InputField239232382_max)
+        }
+        depeds {
+          OutputField1355630598_out: Vector(CounterIter94.InputField1266109664_counter(LoopController93), CounterValid95.InputField491626992_counter(LoopController93))
+        }
+        constValids = List(Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true))
+        constIters = List(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+        isExtern = false
+        idx = 0
+        ctrl = ControlTree92
+        isInnerReduceOp = false
+        srcCtx = DotProduct.scala:36:16
+        progorder = 93
+        sname = x174
+      }
+      CounterIter94[b176](List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)) {
+        parent=Some(LoopController93)
+        OutputField1801385924_out=[List(OpDef98(FixSRA).InputField1907056481_input)] {
+          tp = Fix(true,32,0)
+          presetVec = 16
+          vec = 16
+        }
+        InputField1266109664_counter=[List(Counter88[x174].OutputField1355630598_out)] {
+        }
+        deps {
+          Counter88.OutputField1355630598_out(LoopController93): Vector(CounterIter94.InputField1266109664_counter)
+        }
+        depeds {
+          OutputField1801385924_out: Vector(OpDef98.InputField1907056481_input(Context162))
+        }
+        tp = Fix(true,32,0)
+        isExtern = false
+        ctrl = ControlTree92
+        isInnerReduceOp = false
+        srcCtx = Staging.scala:26:82
+        sname = b176
+      }
+      CounterValid95[b177](List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)) {
+        parent=Some(LoopController93)
+        OutputField4616775_out=[List()] {
+          tp = Bool
+          presetVec = 16
+          vec = 16
+        }
+        InputField491626992_counter=[List(Counter88[x174].OutputField1355630598_out)] {
+        }
+        deps {
+          Counter88.OutputField1355630598_out(LoopController93): Vector(CounterValid95.InputField491626992_counter)
+        }
+        depeds {
+        }
+        tp = Bool
+        isExtern = false
+        ctrl = ControlTree92
+        isInnerReduceOp = false
+        srcCtx = Staging.scala:26:82
+        sname = b177
+      }
+    }
+    Const97(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15))(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)) {
+      parent=Some(Context162)
+      OutputField1205563660_out=[List(Shuffle222.InputField1950968239_from, Shuffle226.InputField1605238287_from)] {
+        tp = Fix(true,32,0)
+        presetVec = 16
+        vec = 16
+      }
+      deps {
+      }
+      depeds {
+        OutputField1205563660_out: Vector(Shuffle222.InputField1950968239_from(Context218), Shuffle226.InputField1605238287_from(Context218))
+      }
+      isExtern = false
+      ctrl = ControlTree92
+      isInnerReduceOp = false
+      srcCtx = CounterIterRewriteRule.scala:21:17
+      sname = x180
+    }
+    Const99(4)(4) {
+      parent=Some(Context162)
+      OutputField1411987512_out=[List(OpDef98(FixSRA).InputField1102931591_input)] {
+        tp = Fix(true,16,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField1411987512_out: Vector(OpDef98.InputField1102931591_input(Context162))
+      }
+      tp = Fix(true,16,0)
+      isExtern = false
+      ctrl = ControlTree92
+      isInnerReduceOp = false
+    }
+    OpDef98(FixSRA)(FixSRA) {
+      parent=Some(Context162)
+      OutputField1420591426_out=[List(BufferWrite224.InputField1060140506_data)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField1907056481_input=[List(CounterIter94[b176].OutputField1801385924_out)] {
+        tp = Fix(true,32,0)
+        vec = 16
+        dynamicIdx = 0
+      }
+      InputField1102931591_input=[List(Const99(4).OutputField1411987512_out)] {
+        tp = Fix(true,16,0)
+        vec = 1
+        dynamicIdx = 1
+      }
+      deps {
+        Const99.OutputField1411987512_out(Context162): Vector(OpDef98.InputField1102931591_input)
+        CounterIter94.OutputField1801385924_out(LoopController93): Vector(OpDef98.InputField1907056481_input)
+      }
+      depeds {
+        OutputField1420591426_out: Vector(BufferWrite224.InputField1060140506_data(Context219))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree92
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:36:16
+      sname = x181
+    }
+    Const145(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true))(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)) {
+      parent=Some(Context162)
+      OutputField510753572_out=[List(BufferRead267[x164].InputField946791937_en)] {
+        tp = Bool
+        presetVec = 16
+        vec = 16
+      }
+      deps {
+      }
+      depeds {
+        OutputField510753572_out: Vector(BufferRead267.InputField946791937_en(Context162))
+      }
+      isExtern = false
+      ctrl = ControlTree92
+      isInnerReduceOp = false
+      srcCtx = MemoryAnalyzer.scala:138
+    }
+    BufferRead267[x164](true) {
+      parent=Some(Context162)
+      OutputField1446506811_out=[List(BufferWrite227.InputField1767544191_data)] {
+        tp = Fix(true,32,0)
+        presetVec = 16
+        vec = 16
+      }
+      InputField946791937_en=[List(Const145(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)).OutputField510753572_out)] {
+        tp = Bool
+        vec = 16
+      }
+      InputField1976977189_done=[List(LoopController93[x185].OutputField1435106767_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField636121121_in=[List(BufferWrite266.OutputField1448115609_out)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      deps {
+        BufferWrite266.OutputField1448115609_out(Context172): Vector(BufferRead267.InputField636121121_in)
+        LoopController93.OutputField1435106767_childDone(Context162): Vector(BufferRead267.InputField1976977189_done)
+        Const145.OutputField510753572_out(Context162): Vector(BufferRead267.InputField946791937_en)
+      }
+      depeds {
+        OutputField1446506811_out: Vector(BufferWrite227.InputField1767544191_data(Context162))
+      }
+      tp = Fix(true,32,0)
+      dims = List(1)
+      order = 96.0
+      numPart = 1
+      darkVolume = 0
+      isExtern = false
+      isInnerAccum = false
+      ctrl = ControlTree92
+      srcCtx = DotProduct.scala:36:16
+      isInnerReduceOp = false
+      broadcast = List(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+      banks = List(16)
+      progorder = 96
+      castgroup = List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+      initToken = 0
+      depth = 1
+      isSplit = false
+      sname = x164
+      port = Some(0)
+      muxPort = 0
+      nonBlocking = false
+    }
+    BufferWrite227(true) {
+      parent=Some(Context162)
+      OutputField1278110942_out=[List(BufferRead228.InputField660869892_in)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField935141099_en=[List()] {
+        tp = Bool
+        vec = 16
+      }
+      InputField1923853472_done=[List(LoopController93[x185].OutputField1435106767_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1767544191_data=[List(BufferRead267[x164].OutputField1446506811_out)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      deps {
+        BufferRead267.OutputField1446506811_out(Context162): Vector(BufferWrite227.InputField1767544191_data)
+        LoopController93.OutputField1435106767_childDone(Context162): Vector(BufferWrite227.InputField1923853472_done)
+      }
+      depeds {
+        OutputField1278110942_out: Vector(BufferRead228.InputField660869892_in(Context218))
+      }
+      isExtern = false
+      ctrl = ControlTree92
+      isInnerReduceOp = false
+      srcCtx = GlobalMemoryLowering.scala:187
+      isSplit = false
+    }
+    Const147(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true))(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)) {
+      parent=Some(Context162)
+      OutputField761576238_out=[List()] {
+        tp = Bool
+        presetVec = 16
+        vec = 16
+      }
+      deps {
+      }
+      depeds {
+      }
+      isExtern = false
+      ctrl = ControlTree92
+      isInnerReduceOp = false
+      srcCtx = MemoryAnalyzer.scala:138
+    }
+  }
+  Context164() {
+    parent=Some(Top0)
+    children=List(UnitController122, OpDef124, Const125, RegAccumOp151, BufferRead271, BufferWrite272)
+    deps {
+      LoopController16.OutputField708733885_childDone(Context155): Vector(UnitController122.InputField1202982835_parentEn)
+      CounterIter17.OutputField1831302906_out(LoopController16): Vector(OpDef124.InputField1377169783_input)
+      UnitController8.OutputField1065316934_done(Context154): Vector(BufferWrite272.InputField549606855_done)
+      BufferWrite270.OutputField1906933288_out(Context163): Vector(BufferRead271.InputField510785973_in)
+    }
+    depeds {
+      OutputField260966777_out: Vector(BufferRead273.InputField770346172_in(Context167))
+    }
+    streaming = false
+    isExtern = false
+    ctrl = ControlTree121
+    isInnerReduceOp = false
+    srcCtx = DotProduct.scala:39:8
+    UnitController122[x217]() {
+      parent=Some(Context164)
+      InputField1018216177_en=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1202982835_parentEn=[List(LoopController16[x218].OutputField708733885_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField59582426_done=[List(BufferRead271[x188].InputField1053819375_done)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1413698994_childDone=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1841118973_stepped=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField169045358_uen=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1623861249_laneValid=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      deps {
+        LoopController16.OutputField708733885_childDone(Context155): Vector(UnitController122.InputField1202982835_parentEn)
+      }
+      depeds {
+        OutputField59582426_done: Vector(BufferRead271.InputField1053819375_done(Context164))
+      }
+      par = 1
+      isExtern = false
+      ctrl = ControlTree121
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:39:8
+      sname = x217
+    }
+    BufferRead271[x188](false) {
+      parent=Some(Context164)
+      OutputField1169697088_out=[List(RegAccumOp151.InputField665036918_in, RegAccumOp151.InputField958669567_init)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      InputField933517068_en=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      InputField1053819375_done=[List(UnitController122[x217].OutputField59582426_done)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField510785973_in=[List(BufferWrite270[x209].OutputField1906933288_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      deps {
+        UnitController122.OutputField59582426_done(Context164): Vector(BufferRead271.InputField1053819375_done)
+        BufferWrite270.OutputField1906933288_out(Context163): Vector(BufferRead271.InputField510785973_in)
+      }
+      depeds {
+        OutputField1169697088_out: Vector(RegAccumOp151.InputField665036918_in(Context164), RegAccumOp151.InputField958669567_init(Context164))
+      }
+      tp = Fix(true,32,0)
+      dims = List()
+      inits = 0
+      order = 126.0
+      numPart = 1
+      darkVolume = 0
+      isExtern = false
+      isInnerAccum = false
+      ctrl = ControlTree121
+      srcCtx = DotProduct.scala:38:25
+      isInnerReduceOp = false
+      broadcast = List(0)
+      banks = List(1)
+      progorder = 99
+      castgroup = List(0)
+      initToken = 0
+      depth = 2
+      isSplit = false
+      sname = x188
+      port = Some(1)
+      muxPort = 0
+      nonBlocking = false
+    }
+    Const125(0)(0) {
+      parent=Some(Context164)
+      OutputField1922082386_out=[List(OpDef124(FixEql).InputField442585414_input)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField1922082386_out: Vector(OpDef124.InputField442585414_input(Context164))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree121
+      isInnerReduceOp = false
+    }
+    OpDef124(FixEql)(FixEql) {
+      parent=Some(Context164)
+      OutputField827276901_out=[List(RegAccumOp151.InputField748105097_first)] {
+        tp = Bool
+        vec = 1
+      }
+      InputField1377169783_input=[List(CounterIter17[b135].OutputField1831302906_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+        dynamicIdx = 0
+      }
+      InputField442585414_input=[List(Const125(0).OutputField1922082386_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+        dynamicIdx = 1
+      }
+      deps {
+        Const125.OutputField1922082386_out(Context164): Vector(OpDef124.InputField442585414_input)
+        CounterIter17.OutputField1831302906_out(LoopController16): Vector(OpDef124.InputField1377169783_input)
+      }
+      depeds {
+        OutputField827276901_out: Vector(RegAccumOp151.InputField748105097_first(Context164))
+      }
+      tp = Bool
+      isExtern = false
+      ctrl = ControlTree121
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:39:8
+      sname = x212
+    }
+    RegAccumOp151(List(OpDef127(FixAdd)),0) {
+      parent=Some(Context164)
+      OutputField851766344_out=[List(BufferWrite272[x216].InputField57569148_data)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      InputField665036918_in=[List(BufferRead271[x188].OutputField1169697088_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      InputField1480791239_en=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      InputField748105097_first=[List(OpDef124(FixEql).OutputField827276901_out)] {
+        tp = Bool
+        vec = 1
+      }
+      InputField958669567_init=[List(BufferRead271[x188].OutputField1169697088_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      deps {
+        OpDef124.OutputField827276901_out(Context164): Vector(RegAccumOp151.InputField748105097_first)
+        BufferRead271.OutputField1169697088_out(Context164): Vector(RegAccumOp151.InputField665036918_in, RegAccumOp151.InputField958669567_init)
+      }
+      depeds {
+        OutputField851766344_out: Vector(BufferWrite272.InputField57569148_data(Context164))
+      }
+      isExtern = false
+      ctrl = ControlTree121
+      isInnerReduceOp = false
+      srcCtx = RewriteTransformer.scala:139
+    }
+    BufferWrite272[x216](false) {
+      parent=Some(Context164)
+      OutputField260966777_out=[List(BufferRead273[x128].InputField770346172_in)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      InputField837791262_en=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      InputField549606855_done=[List(UnitController8[x44].OutputField1065316934_done)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField57569148_data=[List(RegAccumOp151.OutputField851766344_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      deps {
+        RegAccumOp151.OutputField851766344_out(Context164): Vector(BufferWrite272.InputField57569148_data)
+        UnitController8.OutputField1065316934_done(Context154): Vector(BufferWrite272.InputField549606855_done)
+      }
+      depeds {
+        OutputField260966777_out: Vector(BufferRead273.InputField770346172_in(Context167))
+      }
+      tp = Fix(true,32,0)
+      order = 130.0
+      isExtern = false
+      ctrl = ControlTree121
+      srcCtx = DotProduct.scala:39:8
+      isInnerReduceOp = false
+      broadcast = List(0)
+      progorder = 117
+      castgroup = List(0)
+      isSplit = false
+      sname = x216
+      muxPort = 0
+      port = Some(0)
+    }
+  }
+  Context163() {
+    parent=Some(Top0)
+    children=List(LoopController108, Const111, OpDef112, Const113, Const148, Const149, RegAccumFMA150, Shuffle212, BufferRead214, Shuffle253) ...
+    deps {
+      Const104.OutputField6441609_out(Context155): Vector(Counter103.InputField1195845862_min)
+      BufferWrite213.OutputField1497317999_out(Context205): Vector(BufferRead214.InputField777050728_in)
+      Const105.OutputField246683727_out(Context155): Vector(Counter103.InputField1441762935_step)
+      BufferWrite254.OutputField623074961_out(Context246): Vector(BufferRead255.InputField1351243593_in)
+      LoopController16.OutputField708733885_childDone(Context155): Vector(LoopController108.InputField201454960_parentEn)
+      Const140.OutputField1125063383_out(Context155): Vector(RegAccumFMA150.InputField1863605303_en)
+      Const106.OutputField644044072_out(Context155): Vector(Counter103.InputField609371900_max)
+    }
+    depeds {
+      OutputField692997576_out: Vector(BufferWrite203.InputField450449252_data(Context198), BufferWrite244.InputField687980385_data(Context239))
+      OutputField1906933288_out: Vector(BufferRead271.InputField510785973_in(Context164))
+      OutputField1125767924_done: Vector(BufferWrite210.InputField220641439_data(Context197), BufferWrite251.InputField322328891_data(Context238))
+      OutputField1794435688_out: Vector(Shuffle201.InputField1478087330_from(Context197), Shuffle242.InputField481733943_from(Context238))
+      OutputField1386001132_childDone: Vector(BufferWrite203.InputField1966346620_done(Context198), BufferRead204.InputField2040579903_done(Context197), BufferWrite208.InputField1549144512_done(Context197), BufferWrite210.InputField861281190_done(Context197), BufferWrite244.InputField1788347820_done(Context239), BufferRead245.InputField1122446914_done(Context238), BufferWrite249.InputField449863765_done(Context238), BufferWrite251.InputField615190743_done(Context238))
+    }
+    streaming = false
+    isExtern = false
+    ctrl = ControlTree107
+    isInnerReduceOp = false
+    srcCtx = DotProduct.scala:38:25
+    LoopController108[x210]() {
+      parent=Some(Context163)
+      children=List(Counter103, CounterIter109, CounterValid110)
+      InputField1113163889_en=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField201454960_parentEn=[List(LoopController16[x218].OutputField708733885_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1125767924_done=[List(BufferWrite210.InputField220641439_data, BufferWrite251.InputField322328891_data, BufferWrite270[x209].InputField443355251_done)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1386001132_childDone=[List(BufferWrite203.InputField1966346620_done, BufferRead204.InputField2040579903_done, BufferWrite208.InputField1549144512_done, BufferWrite210.InputField861281190_done, BufferRead214.InputField351476595_done, BufferWrite244.InputField1788347820_done, BufferRead245.InputField1122446914_done, BufferWrite249.InputField449863765_done, BufferWrite251.InputField615190743_done, BufferRead255.InputField1560154177_done)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1552462542_stepped=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1604417114_uen=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1382205728_laneValid=[List()] {
+        tp = Bool
+        vec = 16
+      }
+      OutputField1700665938_firstIter=[List(RegAccumFMA150.InputField1665559314_first)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField2094648053_stopWhen=[List()] {
+        tp = Bool
+      }
+      deps {
+        LoopController16.OutputField708733885_childDone(Context155): Vector(LoopController108.InputField201454960_parentEn)
+        Const104.OutputField6441609_out(Context155): Vector(Counter103.InputField1195845862_min)
+        Const106.OutputField644044072_out(Context155): Vector(Counter103.InputField609371900_max)
+        Const105.OutputField246683727_out(Context155): Vector(Counter103.InputField1441762935_step)
+      }
+      depeds {
+        OutputField1891603233_out: Vector(OpDef112.InputField1552974760_input(Context163))
+        OutputField1700665938_firstIter: Vector(RegAccumFMA150.InputField1665559314_first(Context163))
+        OutputField1386001132_childDone: Vector(BufferWrite203.InputField1966346620_done(Context198), BufferRead204.InputField2040579903_done(Context197), BufferWrite208.InputField1549144512_done(Context197), BufferWrite210.InputField861281190_done(Context197), BufferRead214.InputField351476595_done(Context163), BufferWrite244.InputField1788347820_done(Context239), BufferRead245.InputField1122446914_done(Context238), BufferWrite249.InputField449863765_done(Context238), BufferWrite251.InputField615190743_done(Context238), BufferRead255.InputField1560154177_done(Context163))
+        OutputField1125767924_done: Vector(BufferWrite210.InputField220641439_data(Context197), BufferWrite251.InputField322328891_data(Context238), BufferWrite270.InputField443355251_done(Context163))
+      }
+      par = 16
+      isExtern = false
+      constLaneValids = List(Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true))
+      ctrl = ControlTree107
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:38:25
+      progorder = 108
+      sname = x210
+      Counter103[x191](16,false) {
+        parent=Some(LoopController108)
+        InputField1195845862_min=[List(Const104(0).OutputField6441609_out)] {
+          tp = Fix(true,32,0)
+          vec = 1
+        }
+        InputField1441762935_step=[List(Const105(1).OutputField246683727_out)] {
+          tp = Fix(true,32,0)
+          vec = 1
+        }
+        InputField609371900_max=[List(Const106(32).OutputField644044072_out)] {
+          tp = Fix(true,32,0)
+          vec = 1
+        }
+        OutputField1643786869_out=[List(CounterIter109[b193].InputField1292626148_counter, CounterValid110[b194].InputField2054176450_counter)] {
+        }
+        OutputField528758452_isFirstIter=[List()] {
+        }
+        deps {
+          Const104.OutputField6441609_out(Context155): Vector(Counter103.InputField1195845862_min)
+          Const106.OutputField644044072_out(Context155): Vector(Counter103.InputField609371900_max)
+          Const105.OutputField246683727_out(Context155): Vector(Counter103.InputField1441762935_step)
+        }
+        depeds {
+          OutputField1643786869_out: Vector(CounterIter109.InputField1292626148_counter(LoopController108), CounterValid110.InputField2054176450_counter(LoopController108))
+        }
+        constValids = List(Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true))
+        constIters = List(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+        isExtern = false
+        idx = 0
+        ctrl = ControlTree107
+        isInnerReduceOp = false
+        srcCtx = DotProduct.scala:38:25
+        progorder = 100
+        sname = x191
+      }
+      CounterIter109[b193](List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)) {
+        parent=Some(LoopController108)
+        OutputField1891603233_out=[List(OpDef112(FixSRA).InputField1552974760_input)] {
+          tp = Fix(true,32,0)
+          presetVec = 16
+          vec = 16
+        }
+        InputField1292626148_counter=[List(Counter103[x191].OutputField1643786869_out)] {
+        }
+        deps {
+          Counter103.OutputField1643786869_out(LoopController108): Vector(CounterIter109.InputField1292626148_counter)
+        }
+        depeds {
+          OutputField1891603233_out: Vector(OpDef112.InputField1552974760_input(Context163))
+        }
+        tp = Fix(true,32,0)
+        isExtern = false
+        ctrl = ControlTree107
+        isInnerReduceOp = false
+        srcCtx = Staging.scala:26:82
+        sname = b193
+      }
+      CounterValid110[b194](List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)) {
+        parent=Some(LoopController108)
+        OutputField58075092_out=[List()] {
+          tp = Bool
+          presetVec = 16
+          vec = 16
+        }
+        InputField2054176450_counter=[List(Counter103[x191].OutputField1643786869_out)] {
+        }
+        deps {
+          Counter103.OutputField1643786869_out(LoopController108): Vector(CounterValid110.InputField2054176450_counter)
+        }
+        depeds {
+        }
+        tp = Bool
+        isExtern = false
+        ctrl = ControlTree107
+        isInnerReduceOp = false
+        srcCtx = Staging.scala:26:82
+        sname = b194
+      }
+    }
+    Const111(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15))(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)) {
+      parent=Some(Context163)
+      OutputField1794435688_out=[List(Shuffle201.InputField1478087330_from, Shuffle212.InputField1518615463_from, Shuffle212.InputField1313624914_to, Shuffle242.InputField481733943_from, Shuffle253.InputField180264924_from, Shuffle253.InputField613063085_to)] {
+        tp = Fix(true,32,0)
+        presetVec = 16
+        vec = 16
+      }
+      deps {
+      }
+      depeds {
+        OutputField1794435688_out: Vector(Shuffle201.InputField1478087330_from(Context197), Shuffle212.InputField1518615463_from(Context163), Shuffle212.InputField1313624914_to(Context163), Shuffle242.InputField481733943_from(Context238), Shuffle253.InputField180264924_from(Context163), Shuffle253.InputField613063085_to(Context163))
+      }
+      isExtern = false
+      ctrl = ControlTree107
+      isInnerReduceOp = false
+      srcCtx = CounterIterRewriteRule.scala:21:17
+      sname = x195
+    }
+    Const113(4)(4) {
+      parent=Some(Context163)
+      OutputField1072934717_out=[List(OpDef112(FixSRA).InputField132888063_input)] {
+        tp = Fix(true,16,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField1072934717_out: Vector(OpDef112.InputField132888063_input(Context163))
+      }
+      tp = Fix(true,16,0)
+      isExtern = false
+      ctrl = ControlTree107
+      isInnerReduceOp = false
+    }
+    OpDef112(FixSRA)(FixSRA) {
+      parent=Some(Context163)
+      OutputField692997576_out=[List(BufferWrite203.InputField450449252_data, BufferWrite244.InputField687980385_data)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField1552974760_input=[List(CounterIter109[b193].OutputField1891603233_out)] {
+        tp = Fix(true,32,0)
+        vec = 16
+        dynamicIdx = 0
+      }
+      InputField132888063_input=[List(Const113(4).OutputField1072934717_out)] {
+        tp = Fix(true,16,0)
+        vec = 1
+        dynamicIdx = 1
+      }
+      deps {
+        Const113.OutputField1072934717_out(Context163): Vector(OpDef112.InputField132888063_input)
+        CounterIter109.OutputField1891603233_out(LoopController108): Vector(OpDef112.InputField1552974760_input)
+      }
+      depeds {
+        OutputField692997576_out: Vector(BufferWrite203.InputField450449252_data(Context198), BufferWrite244.InputField687980385_data(Context239))
+      }
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree107
+      isInnerReduceOp = false
+      srcCtx = DotProduct.scala:38:38
+      sname = x196
+    }
+    Const148(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true))(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)) {
+      parent=Some(Context163)
+      OutputField1790377875_out=[List()] {
+        tp = Bool
+        presetVec = 16
+        vec = 16
+      }
+      deps {
+      }
+      depeds {
+      }
+      isExtern = false
+      ctrl = ControlTree107
+      isInnerReduceOp = false
+      srcCtx = MemoryAnalyzer.scala:138
+    }
+    Const149(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true))(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)) {
+      parent=Some(Context163)
+      OutputField1401106896_out=[List()] {
+        tp = Bool
+        presetVec = 16
+        vec = 16
+      }
+      deps {
+      }
+      depeds {
+      }
+      isExtern = false
+      ctrl = ControlTree107
+      isInnerReduceOp = false
+      srcCtx = MemoryAnalyzer.scala:138
+    }
+    BufferRead214(true) {
+      parent=Some(Context163)
+      OutputField1223760843_out=[List(Shuffle212.InputField728723987_base)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField1968585019_en=[List()] {
+        tp = Bool
+        vec = 16
+      }
+      InputField351476595_done=[List(LoopController108[x210].OutputField1386001132_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField777050728_in=[List(BufferWrite213.OutputField1497317999_out)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      deps {
+        LoopController108.OutputField1386001132_childDone(Context163): Vector(BufferRead214.InputField351476595_done)
+        BufferWrite213.OutputField1497317999_out(Context205): Vector(BufferRead214.InputField777050728_in)
+      }
+      depeds {
+        OutputField1223760843_out: Vector(Shuffle212.InputField728723987_base(Context163))
+      }
+      dims = List(1)
+      numPart = 1
+      darkVolume = 0
+      isExtern = false
+      isInnerAccum = false
+      ctrl = ControlTree107
+      srcCtx = GlobalMemoryLowering.scala:261
+      isInnerReduceOp = false
+      banks = List(16)
+      initToken = 0
+      depth = 1
+      isSplit = false
+    }
+    Shuffle212(0,114) {
+      parent=Some(Context163)
+      OutputField1298991112_out=[List(RegAccumFMA150.InputField1445758257_in1)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField1518615463_from=[List(Const111(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)).OutputField1794435688_out)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField1313624914_to=[List(Const111(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)).OutputField1794435688_out)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField728723987_base=[List(BufferRead214.OutputField1223760843_out)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField250020414_offset=[List()] {
+      }
+      deps {
+        Const111.OutputField1794435688_out(Context163): Vector(Shuffle212.InputField1518615463_from, Shuffle212.InputField1313624914_to)
+        BufferRead214.OutputField1223760843_out(Context163): Vector(Shuffle212.InputField728723987_base)
+      }
+      depeds {
+        OutputField1298991112_out: Vector(RegAccumFMA150.InputField1445758257_in1(Context163))
+      }
+      isExtern = false
+      ctrl = ControlTree107
+      isInnerReduceOp = false
+      srcCtx = GlobalMemoryLowering.scala:255
+    }
+    BufferRead255(true) {
+      parent=Some(Context163)
+      OutputField36877115_out=[List(Shuffle253.InputField2055593109_base)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField803804004_en=[List()] {
+        tp = Bool
+        vec = 16
+      }
+      InputField1560154177_done=[List(LoopController108[x210].OutputField1386001132_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1351243593_in=[List(BufferWrite254.OutputField623074961_out)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      deps {
+        BufferWrite254.OutputField623074961_out(Context246): Vector(BufferRead255.InputField1351243593_in)
+        LoopController108.OutputField1386001132_childDone(Context163): Vector(BufferRead255.InputField1560154177_done)
+      }
+      depeds {
+        OutputField36877115_out: Vector(Shuffle253.InputField2055593109_base(Context163))
+      }
+      dims = List(1)
+      numPart = 1
+      darkVolume = 0
+      isExtern = false
+      isInnerAccum = false
+      ctrl = ControlTree107
+      srcCtx = GlobalMemoryLowering.scala:261
+      isInnerReduceOp = false
+      banks = List(16)
+      initToken = 0
+      depth = 1
+      isSplit = false
+    }
+    Shuffle253(0,115) {
+      parent=Some(Context163)
+      OutputField1679207705_out=[List(RegAccumFMA150.InputField1663381796_in2)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField180264924_from=[List(Const111(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)).OutputField1794435688_out)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField613063085_to=[List(Const111(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)).OutputField1794435688_out)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField2055593109_base=[List(BufferRead255.OutputField36877115_out)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField724224185_offset=[List()] {
+      }
+      deps {
+        Const111.OutputField1794435688_out(Context163): Vector(Shuffle253.InputField180264924_from, Shuffle253.InputField613063085_to)
+        BufferRead255.OutputField36877115_out(Context163): Vector(Shuffle253.InputField2055593109_base)
+      }
+      depeds {
+        OutputField1679207705_out: Vector(RegAccumFMA150.InputField1663381796_in2(Context163))
+      }
+      isExtern = false
+      ctrl = ControlTree107
+      isInnerReduceOp = false
+      srcCtx = GlobalMemoryLowering.scala:255
+    }
+    RegAccumFMA150(0) {
+      parent=Some(Context163)
+      OutputField481361707_out=[List(BufferWrite270[x209].InputField781516090_data)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      InputField1445758257_in1=[List(Shuffle212.OutputField1298991112_out)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField1663381796_in2=[List(Shuffle253.OutputField1679207705_out)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField1863605303_en=[List(Const140(true).OutputField1125063383_out)] {
+        tp = Bool
+        vec = 1
+      }
+      InputField1665559314_first=[List(LoopController108[x210].OutputField1700665938_firstIter)] {
+        tp = Bool
+        vec = 1
+      }
+      InputField1776782138_init=[List()] {
+      }
+      deps {
+        Shuffle253.OutputField1679207705_out(Context163): Vector(RegAccumFMA150.InputField1663381796_in2)
+        LoopController108.OutputField1700665938_firstIter(Context163): Vector(RegAccumFMA150.InputField1665559314_first)
+        Shuffle212.OutputField1298991112_out(Context163): Vector(RegAccumFMA150.InputField1445758257_in1)
+        Const140.OutputField1125063383_out(Context155): Vector(RegAccumFMA150.InputField1863605303_en)
+      }
+      depeds {
+        OutputField481361707_out: Vector(BufferWrite270.InputField781516090_data(Context163))
+      }
+      isExtern = false
+      ctrl = ControlTree107
+      isInnerReduceOp = false
+      srcCtx = RewriteTransformer.scala:110
+    }
+    BufferWrite270[x209](false) {
+      parent=Some(Context163)
+      OutputField1906933288_out=[List(BufferRead271[x188].InputField510785973_in)] {
+        tp = Fix(true,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      InputField248248970_en=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      InputField443355251_done=[List(LoopController108[x210].OutputField1125767924_done)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField781516090_data=[List(RegAccumFMA150.OutputField481361707_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      deps {
+        LoopController108.OutputField1125767924_done(Context163): Vector(BufferWrite270.InputField443355251_done)
+        RegAccumFMA150.OutputField481361707_out(Context163): Vector(BufferWrite270.InputField781516090_data)
+      }
+      depeds {
+        OutputField1906933288_out: Vector(BufferRead271.InputField510785973_in(Context164))
+      }
+      tp = Fix(true,32,0)
+      order = 120.0
+      isExtern = false
+      ctrl = ControlTree107
+      srcCtx = DotProduct.scala:38:25
+      isInnerReduceOp = true
+      broadcast = List(0)
+      progorder = 114
+      castgroup = List(0)
+      isSplit = false
+      sname = x209
+      muxPort = 0
+      port = Some(0)
+    }
+  }
+  MemoryContainer176() {
+    parent=Some(Top0)
+    children=List(SRAM19, Context177, Context178, Context188, Context197, Context198, Context205)
+    deps {
+      OpDef112.OutputField692997576_out(Context163): Vector(BufferWrite203.InputField450449252_data)
+      BufferWrite186.OutputField800972320_out(Context159): Vector(BufferRead187.InputField827332625_in)
+      UnitController22.OutputField2055923775_done(Context156): Vector(BufferWrite195.InputField452096997_data)
+      Const58.OutputField886293601_out(Context159): Vector(Shuffle181.InputField337048799_from, Shuffle185.InputField2074514862_from)
+      LoopController108.OutputField1125767924_done(Context163): Vector(BufferWrite210.InputField220641439_data)
+      Const111.OutputField1794435688_out(Context163): Vector(Shuffle201.InputField1478087330_from)
+      LoopController54.OutputField1985274767_childDone(Context159): Vector(BufferRead184.InputField384425733_done, BufferRead187.InputField1023513237_done, BufferWrite191.InputField1477849039_done, BufferWrite193.InputField158327302_done, BufferWrite195.InputField1052299894_done, BufferWrite183.InputField1732120636_done)
+      LoopController108.OutputField1386001132_childDone(Context163): Vector(BufferRead204.InputField2040579903_done, BufferWrite208.InputField1549144512_done, BufferWrite210.InputField861281190_done, BufferWrite203.InputField1966346620_done)
+      OpDef59.OutputField22296306_out(Context159): Vector(BufferWrite183.InputField1008265629_data)
+    }
+    depeds {
+      OutputField1497317999_out: Vector(BufferRead214.InputField777050728_in(Context163))
+    }
+    isExtern = false
+    isInnerReduceOp = false
+    isDAG = false
+    Context178() {
+      parent=Some(MemoryContainer176)
+      children=List(BufferWrite183)
+      deps {
+        OpDef59.OutputField22296306_out(Context159): Vector(BufferWrite183.InputField1008265629_data)
+        LoopController54.OutputField1985274767_childDone(Context159): Vector(BufferWrite183.InputField1732120636_done)
+      }
+      depeds {
+        OutputField1187993339_out: Vector(BufferRead184.InputField1989546739_in(Context177))
+      }
+      streaming = false
+      isExtern = false
+      ctrl = ControlTree53
+      isInnerReduceOp = false
+      srcCtx = GlobalMemoryLowering.scala:171
+      BufferWrite183(true) {
+        parent=Some(Context178)
+        OutputField1187993339_out=[List(BufferRead184.InputField1989546739_in)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField1337372631_en=[List()] {
+          tp = Bool
+          vec = 16
+        }
+        InputField1732120636_done=[List(LoopController54[x161].OutputField1985274767_childDone)] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        InputField1008265629_data=[List(OpDef59(FixSRA).OutputField22296306_out)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        deps {
+          OpDef59.OutputField22296306_out(Context159): Vector(BufferWrite183.InputField1008265629_data)
+          LoopController54.OutputField1985274767_childDone(Context159): Vector(BufferWrite183.InputField1732120636_done)
+        }
+        depeds {
+          OutputField1187993339_out: Vector(BufferRead184.InputField1989546739_in(Context177))
+        }
+        isExtern = false
+        ctrl = ControlTree53
+        isInnerReduceOp = false
+        srcCtx = GlobalMemoryLowering.scala:182
+        isSplit = false
+      }
+    }
+    Context198() {
+      parent=Some(MemoryContainer176)
+      children=List(BufferWrite203)
+      deps {
+        LoopController108.OutputField1386001132_childDone(Context163): Vector(BufferWrite203.InputField1966346620_done)
+        OpDef112.OutputField692997576_out(Context163): Vector(BufferWrite203.InputField450449252_data)
+      }
+      depeds {
+        OutputField1776623413_out: Vector(BufferRead204.InputField90533545_in(Context197))
+      }
+      streaming = false
+      isExtern = false
+      ctrl = ControlTree107
+      isInnerReduceOp = false
+      srcCtx = GlobalMemoryLowering.scala:171
+      BufferWrite203(true) {
+        parent=Some(Context198)
+        OutputField1776623413_out=[List(BufferRead204.InputField90533545_in)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField39107056_en=[List()] {
+          tp = Bool
+          vec = 16
+        }
+        InputField1966346620_done=[List(LoopController108[x210].OutputField1386001132_childDone)] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        InputField450449252_data=[List(OpDef112(FixSRA).OutputField692997576_out)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        deps {
+          LoopController108.OutputField1386001132_childDone(Context163): Vector(BufferWrite203.InputField1966346620_done)
+          OpDef112.OutputField692997576_out(Context163): Vector(BufferWrite203.InputField450449252_data)
+        }
+        depeds {
+          OutputField1776623413_out: Vector(BufferRead204.InputField90533545_in(Context197))
+        }
+        isExtern = false
+        ctrl = ControlTree107
+        isInnerReduceOp = false
+        srcCtx = GlobalMemoryLowering.scala:182
+        isSplit = false
+      }
+    }
+    Context177() {
+      parent=Some(MemoryContainer176)
+      children=List(Shuffle181, Const182, BufferRead184, Shuffle185, BufferRead187, BufferWrite191, BufferWrite193, BufferWrite195)
+      deps {
+        BufferWrite186.OutputField800972320_out(Context159): Vector(BufferRead187.InputField827332625_in)
+        UnitController22.OutputField2055923775_done(Context156): Vector(BufferWrite195.InputField452096997_data)
+        Const58.OutputField886293601_out(Context159): Vector(Shuffle181.InputField337048799_from, Shuffle185.InputField2074514862_from)
+        LoopController54.OutputField1985274767_childDone(Context159): Vector(BufferRead184.InputField384425733_done, BufferRead187.InputField1023513237_done, BufferWrite191.InputField1477849039_done, BufferWrite193.InputField158327302_done, BufferWrite195.InputField1052299894_done)
+        BufferWrite183.OutputField1187993339_out(Context178): Vector(BufferRead184.InputField1989546739_in)
+      }
+      depeds {
+        OutputField885261958_out: Vector(BufferRead194.InputField1383261744_in(Context188))
+        OutputField1200518506_out: Vector(BufferRead192.InputField111909280_in(Context188))
+        OutputField146950838_out: Vector(BufferRead196.InputField1084329585_in(Context188))
+      }
+      streaming = false
+      isExtern = false
+      ctrl = ControlTree53
+      isInnerReduceOp = false
+      srcCtx = GlobalMemoryLowering.scala:161
+      Const182(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15))(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)) {
+        parent=Some(Context177)
+        OutputField1373010074_out=[List(Shuffle181.InputField1383567222_to, Shuffle185.InputField1029767587_to)] {
+          tp = Fix(true,32,0)
+          presetVec = 16
+          vec = 16
+        }
+        deps {
+        }
+        depeds {
+          OutputField1373010074_out: Vector(Shuffle181.InputField1383567222_to(Context177), Shuffle185.InputField1029767587_to(Context177))
+        }
+        isExtern = false
+        ctrl = ControlTree53
+        isInnerReduceOp = false
+        srcCtx = MemoryAnalyzer.scala:138
+      }
+      BufferRead184(true) {
+        parent=Some(Context177)
+        OutputField2062469024_out=[List(Shuffle181.InputField1750428259_base)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField1833338673_en=[List()] {
+          tp = Bool
+          vec = 16
+        }
+        InputField384425733_done=[List(LoopController54[x161].OutputField1985274767_childDone)] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        InputField1989546739_in=[List(BufferWrite183.OutputField1187993339_out)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        deps {
+          LoopController54.OutputField1985274767_childDone(Context159): Vector(BufferRead184.InputField384425733_done)
+          BufferWrite183.OutputField1187993339_out(Context178): Vector(BufferRead184.InputField1989546739_in)
+        }
+        depeds {
+          OutputField2062469024_out: Vector(Shuffle181.InputField1750428259_base(Context177))
+        }
+        dims = List(1)
+        numPart = 1
+        darkVolume = 0
+        isExtern = false
+        isInnerAccum = false
+        ctrl = ControlTree53
+        srcCtx = GlobalMemoryLowering.scala:182
+        isInnerReduceOp = false
+        banks = List(16)
+        initToken = 0
+        depth = 1
+        isSplit = false
+      }
+      Shuffle181(-1,61) {
+        parent=Some(Context177)
+        OutputField494433206_out=[List(BufferWrite193.InputField1349376445_data)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField337048799_from=[List(Const58(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)).OutputField886293601_out)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField1383567222_to=[List(Const182(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)).OutputField1373010074_out)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField1750428259_base=[List(BufferRead184.OutputField2062469024_out)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField1867949172_offset=[List()] {
+        }
+        deps {
+          Const182.OutputField1373010074_out(Context177): Vector(Shuffle181.InputField1383567222_to)
+          BufferRead184.OutputField2062469024_out(Context177): Vector(Shuffle181.InputField1750428259_base)
+          Const58.OutputField886293601_out(Context159): Vector(Shuffle181.InputField337048799_from)
+        }
+        depeds {
+          OutputField494433206_out: Vector(BufferWrite193.InputField1349376445_data(Context177))
+        }
+        isExtern = false
+        ctrl = ControlTree53
+        isInnerReduceOp = false
+        srcCtx = GlobalMemoryLowering.scala:181
+      }
+      BufferWrite193(true) {
+        parent=Some(Context177)
+        OutputField885261958_out=[List(BufferRead194.InputField1383261744_in)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField226229507_en=[List()] {
+          tp = Bool
+          vec = 16
+        }
+        InputField158327302_done=[List(LoopController54[x161].OutputField1985274767_childDone)] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        InputField1349376445_data=[List(Shuffle181.OutputField494433206_out)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        deps {
+          Shuffle181.OutputField494433206_out(Context177): Vector(BufferWrite193.InputField1349376445_data)
+          LoopController54.OutputField1985274767_childDone(Context159): Vector(BufferWrite193.InputField158327302_done)
+        }
+        depeds {
+          OutputField885261958_out: Vector(BufferRead194.InputField1383261744_in(Context188))
+        }
+        isExtern = false
+        ctrl = ControlTree53
+        isInnerReduceOp = false
+        srcCtx = GlobalMemoryLowering.scala:225
+        isSplit = false
+      }
+      BufferRead187(true) {
+        parent=Some(Context177)
+        OutputField14163628_out=[List(Shuffle185.InputField257439089_base)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField1285263815_en=[List()] {
+          tp = Bool
+          vec = 16
+        }
+        InputField1023513237_done=[List(LoopController54[x161].OutputField1985274767_childDone)] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        InputField827332625_in=[List(BufferWrite186.OutputField800972320_out)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        deps {
+          LoopController54.OutputField1985274767_childDone(Context159): Vector(BufferRead187.InputField1023513237_done)
+          BufferWrite186.OutputField800972320_out(Context159): Vector(BufferRead187.InputField827332625_in)
+        }
+        depeds {
+          OutputField14163628_out: Vector(Shuffle185.InputField257439089_base(Context177))
+        }
+        dims = List(1)
+        numPart = 1
+        darkVolume = 0
+        isExtern = false
+        isInnerAccum = false
+        ctrl = ControlTree53
+        srcCtx = GlobalMemoryLowering.scala:187
+        isInnerReduceOp = false
+        banks = List(16)
+        initToken = 0
+        depth = 1
+        isSplit = false
+      }
+      Shuffle185(0,61) {
+        parent=Some(Context177)
+        OutputField594507569_out=[List(BufferWrite191.InputField1791610072_data)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField2074514862_from=[List(Const58(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)).OutputField886293601_out)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField1029767587_to=[List(Const182(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)).OutputField1373010074_out)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField257439089_base=[List(BufferRead187.OutputField14163628_out)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField1473650004_offset=[List()] {
+        }
+        deps {
+          BufferRead187.OutputField14163628_out(Context177): Vector(Shuffle185.InputField257439089_base)
+          Const182.OutputField1373010074_out(Context177): Vector(Shuffle185.InputField1029767587_to)
+          Const58.OutputField886293601_out(Context159): Vector(Shuffle185.InputField2074514862_from)
+        }
+        depeds {
+          OutputField594507569_out: Vector(BufferWrite191.InputField1791610072_data(Context177))
+        }
+        isExtern = false
+        ctrl = ControlTree53
+        isInnerReduceOp = false
+        srcCtx = GlobalMemoryLowering.scala:186
+      }
+      BufferWrite191(true) {
+        parent=Some(Context177)
+        OutputField1200518506_out=[List(BufferRead192.InputField111909280_in)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField1146694758_en=[List()] {
+          tp = Bool
+          vec = 16
+        }
+        InputField1477849039_done=[List(LoopController54[x161].OutputField1985274767_childDone)] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        InputField1791610072_data=[List(Shuffle185.OutputField594507569_out)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        deps {
+          Shuffle185.OutputField594507569_out(Context177): Vector(BufferWrite191.InputField1791610072_data)
+          LoopController54.OutputField1985274767_childDone(Context159): Vector(BufferWrite191.InputField1477849039_done)
+        }
+        depeds {
+          OutputField1200518506_out: Vector(BufferRead192.InputField111909280_in(Context188))
+        }
+        isExtern = false
+        ctrl = ControlTree53
+        isInnerReduceOp = false
+        srcCtx = GlobalMemoryLowering.scala:225
+        isSplit = false
+      }
+      BufferWrite195(true) {
+        parent=Some(Context177)
+        OutputField146950838_out=[List(BufferRead196.InputField1084329585_in)] {
+          tp = Bool
+          vec = 1
+        }
+        InputField2001191403_en=[List()] {
+          tp = Bool
+          vec = 1
+        }
+        InputField1052299894_done=[List(LoopController54[x161].OutputField1985274767_childDone)] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        InputField452096997_data=[List(UnitController22[x187].OutputField2055923775_done)] {
+          tp = Bool
+          vec = 1
+        }
+        deps {
+          LoopController54.OutputField1985274767_childDone(Context159): Vector(BufferWrite195.InputField1052299894_done)
+          UnitController22.OutputField2055923775_done(Context156): Vector(BufferWrite195.InputField452096997_data)
+        }
+        depeds {
+          OutputField146950838_out: Vector(BufferRead196.InputField1084329585_in(Context188))
+        }
+        isExtern = false
+        ctrl = ControlTree53
+        isInnerReduceOp = false
+        srcCtx = GlobalMemoryLowering.scala:234
+        isSplit = false
+      }
+    }
+    Context197() {
+      parent=Some(MemoryContainer176)
+      children=List(Shuffle201, Const202, BufferRead204, BufferWrite208, BufferWrite210)
+      deps {
+        Const111.OutputField1794435688_out(Context163): Vector(Shuffle201.InputField1478087330_from)
+        LoopController108.OutputField1386001132_childDone(Context163): Vector(BufferRead204.InputField2040579903_done, BufferWrite208.InputField1549144512_done, BufferWrite210.InputField861281190_done)
+        BufferWrite203.OutputField1776623413_out(Context198): Vector(BufferRead204.InputField90533545_in)
+        LoopController108.OutputField1125767924_done(Context163): Vector(BufferWrite210.InputField220641439_data)
+      }
+      depeds {
+        OutputField1191769081_out: Vector(BufferRead209.InputField1895599827_in(Context205))
+        OutputField1393373548_out: Vector(BufferRead211.InputField1742613664_in(Context205))
+      }
+      streaming = false
+      isExtern = false
+      ctrl = ControlTree107
+      isInnerReduceOp = false
+      srcCtx = GlobalMemoryLowering.scala:161
+      Const202(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15))(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)) {
+        parent=Some(Context197)
+        OutputField346847097_out=[List(Shuffle201.InputField274717154_to)] {
+          tp = Fix(true,32,0)
+          presetVec = 16
+          vec = 16
+        }
+        deps {
+        }
+        depeds {
+          OutputField346847097_out: Vector(Shuffle201.InputField274717154_to(Context197))
+        }
+        isExtern = false
+        ctrl = ControlTree107
+        isInnerReduceOp = false
+        srcCtx = MemoryAnalyzer.scala:138
+      }
+      BufferRead204(true) {
+        parent=Some(Context197)
+        OutputField2084068884_out=[List(Shuffle201.InputField674860_base)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField693243678_en=[List()] {
+          tp = Bool
+          vec = 16
+        }
+        InputField2040579903_done=[List(LoopController108[x210].OutputField1386001132_childDone)] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        InputField90533545_in=[List(BufferWrite203.OutputField1776623413_out)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        deps {
+          LoopController108.OutputField1386001132_childDone(Context163): Vector(BufferRead204.InputField2040579903_done)
+          BufferWrite203.OutputField1776623413_out(Context198): Vector(BufferRead204.InputField90533545_in)
+        }
+        depeds {
+          OutputField2084068884_out: Vector(Shuffle201.InputField674860_base(Context197))
+        }
+        dims = List(1)
+        numPart = 1
+        darkVolume = 0
+        isExtern = false
+        isInnerAccum = false
+        ctrl = ControlTree107
+        srcCtx = GlobalMemoryLowering.scala:182
+        isInnerReduceOp = false
+        banks = List(16)
+        initToken = 0
+        depth = 1
+        isSplit = false
+      }
+      Shuffle201(-1,114) {
+        parent=Some(Context197)
+        OutputField187494476_out=[List(BufferWrite208.InputField1545841178_data)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField1478087330_from=[List(Const111(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)).OutputField1794435688_out)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField274717154_to=[List(Const202(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)).OutputField346847097_out)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField674860_base=[List(BufferRead204.OutputField2084068884_out)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField1816687345_offset=[List()] {
+        }
+        deps {
+          Const111.OutputField1794435688_out(Context163): Vector(Shuffle201.InputField1478087330_from)
+          Const202.OutputField346847097_out(Context197): Vector(Shuffle201.InputField274717154_to)
+          BufferRead204.OutputField2084068884_out(Context197): Vector(Shuffle201.InputField674860_base)
+        }
+        depeds {
+          OutputField187494476_out: Vector(BufferWrite208.InputField1545841178_data(Context197))
+        }
+        isExtern = false
+        ctrl = ControlTree107
+        isInnerReduceOp = false
+        srcCtx = GlobalMemoryLowering.scala:181
+      }
+      BufferWrite208(true) {
+        parent=Some(Context197)
+        OutputField1191769081_out=[List(BufferRead209.InputField1895599827_in)] {
+          tp = Fix(true,32,0)
+          vec = 16
+        }
+        InputField1847748194_en=[List()] {
+          tp = Bool
+          vec = 16
+        }
+        InputField1549144512_done=[List(LoopController108[x210].OutputField1386001132_childDone)] {
+          tp = Bool
+          presetVec = 1
+          vec = 1
+        }
+        InputField1545841178_data=[List(Shuffle201.O
