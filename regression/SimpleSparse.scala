@@ -62,8 +62,8 @@ import spatial.dsl._
 
     Accel {
       // Test dense read/write and RMW
-      val s1 = SparseDRAM[T](1)(ts)
-      Reduce(out)(N by ts) { i =>
+      val s1 = SparseDRAM[T](2)(ts)
+      Reduce(out)(N by ts par 2) { i =>
         val forwardBarrier = Barrier[Token](0)
         val backwardBarrier = Barrier[Token](init=1) 
         Foreach(ts by 1 par ip) { j =>
