@@ -185,9 +185,9 @@ def applyHistFilter(history, fs, opts):
     if ":" in fs:
         p,pat = fs.split(":",1)
         if pat == "notNone":
-            return history[history[pat].notnull]
+            return history[history[p].notnull()]
         if pat == "None":
-            return history[history[pat].isnull]
+            return history[history[p].isnull()]
         mask = []
         for v in history[p].values:
             mask.append(fnmatch.fnmatch(str(v), pat))

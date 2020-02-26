@@ -51,6 +51,7 @@ trait DefaultParamLoader extends Transformer {
           case ("numVout", x, arg) => getOptOrElse("pcu-vout", arg)
           case ("numSin", x, arg) => getOptOrElse("pcu-sin", arg)
           case ("numSout", x, arg) => getOptOrElse("pcu-sout", arg)
+          case ("numReg", x, arg) => getOptOrElse("pcu-pr", arg)
           case (_, x, arg) => transform(arg)
         }
       case n:PMUParam =>
@@ -60,6 +61,7 @@ trait DefaultParamLoader extends Transformer {
           case ("numVout", x, arg) => getOptOrElse("pmu-vout", arg)
           case ("numSin", x, arg) => getOptOrElse("pmu-sin", arg)
           case ("numSout", x, arg) => getOptOrElse("pmu-sout", arg)
+          case ("numReg", x, arg) => getOptOrElse("pmu-pr", arg)
           case (_, x, arg) => transform(arg)
         }
       case n:DramAGParam =>

@@ -23,6 +23,7 @@ class ComputePruner(implicit compiler:PIR) extends CUPruner with ComputePartitio
         x.getCost[StageCost] ::
         x.getCost[InputCost] ::
         x.getCost[OutputCost] ::
+        x.getCost[PRCost] ::
         //x.getCost[FIFOCost] ::
         Nil
     }
@@ -34,8 +35,8 @@ class ComputePruner(implicit compiler:PIR) extends CUPruner with ComputePartitio
         val vs = fg.freeValuesOf(k)
         val kcost = getCosts(k)
         val vcost = vs.map { v => (getCosts(v), v.params.get) }.maxBy { 
-          case (List(StageCost(sc), InputCost(sin, vin), OutputCost(sout,vout)), param) => 
-            (param.isInstanceOf[PCUParam], sc, vin, vout, sin, sout)
+          case (List(StageCost(sc), InputCost(sin, vin), OutputCost(sout,vout), PRCost(prs)), param) => 
+            (param.isInstanceOf[PCUParam], sc, vin, vout, prs, sin, sout)
         }._1
         dbg(s"Recover $k")
         dbg(s"kcost=$kcost")

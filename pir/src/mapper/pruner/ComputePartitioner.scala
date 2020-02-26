@@ -32,7 +32,8 @@ trait TraversalPartitioner extends ComputePartitioning {
     if (splitAlgo=="dfs" || splitAlgo == "bfs") {
     if (nodes.size==0) return Nil
     var canFit = true
-    var (inpart, rest) = nodes.splitAt(1)
+    var (inpart, rest) = nodes.splitAt(0)
+    var prevPart:Partition = null
     while (canFit && rest.nonEmpty) {
       inpart = inpart :+ rest.head
       rest = rest.tail
@@ -46,14 +47,16 @@ trait TraversalPartitioner extends ComputePartitioning {
       if (!canFit) {
         rest = inpart.last :: rest
         inpart = inpart.slice(0,inpart.size-1)
+      } else {
+        prevPart = part
       }
     }
-    dbg(s"Split ${inpart.size}/${nodes.size}")
+    dbg(s"Split ${inpart.size}/${nodes.size} $prevPart")
     if (splitAlgo=="dfs") {
       val restSorted = scheduler.scheduleScope(rest.reverse)
-      partition(restSorted,vcost) :+ new Partition(inpart)
+      partition(restSorted,vcost) :+ prevPart
     } else {
-      partition(rest,vcost) :+ new Partition(inpart)
+      partition(rest,vcost) :+ prevPart
     }
   } else super.partition(nodes, vcost)
 

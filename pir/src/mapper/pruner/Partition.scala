@@ -9,7 +9,7 @@ import prism.collection.immutable._
 trait PartitionCost extends CUCostUtil {
   def isPartitionDep(out:Output[PIRNode]):Boolean = true
 
-  override protected def compCost(x:Any, ct:ClassTag[_]):Cost[_] = {
+  override protected def compCost(x:Any, ct:ClassTag[_]):Cost[_] = dbgblk(s"getCost($x,${ct.toString.split("\\.").last})") {
     switch[InputCost](x,ct) { 
       case x: Partition => 
         val scope = x.scope
@@ -37,6 +37,15 @@ trait PartitionCost extends CUCostUtil {
             OutputCost(souts.size, vouts.size).scheduledBy(scope.size)
           }.reduceOption { _ + _ }.getOrElse(OutputCost())
         }.reduceOption { _ + _ }.getOrElse(OutputCost())
+    } orElse switch[PRCost](x,ct) { 
+      case x: Partition => 
+        val scope = x.scope.filter {
+          case _:OpNode => true
+          case _ => false
+        }
+        val cost = getPRCost(x, scope)
+        //breakPoint(s"$scope $cost")
+        cost
     } orElse x.to[Partition].map { x =>
       type C = C forSome{ type C <:Cost[C] }
       x.scope.map { _.getCost[C](ct.as) }.reduce[Cost[_]]{ (a,b) => a.add(b) }
@@ -46,7 +55,7 @@ trait PartitionCost extends CUCostUtil {
 
 class Partition(val scope:List[PIRNode]) {
   var delay:Option[Int] = None
-  override def toString = s"${super.toString}(${scope.size},delay=$delay)"
+  override def toString = s"${super.toString.split("\\.").last}(${scope.size},delay=$delay)"
 }
 object Partition {
   def unapply(x:Partition):Option[List[PIRNode]] = Some(x.scope)
