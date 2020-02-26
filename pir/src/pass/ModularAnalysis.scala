@@ -73,14 +73,14 @@ trait LockRMABlockAliaser extends ExternIOAliaser {
     case InputField(l:LockRMWBlock, "unlockWriteData") => s"$l/pmu_data_init_a${accumName(l,io)}_p${l.laneMap(io)}"
     case OutputField(l:LockRMWBlock, "unlockWriteAck") => s"$l/pmu_ack_init_a${accumName(l,io)}_p${l.laneMap(io)}"
 
-    case InputField(b:SparseDRAMBlock, "readAddr") => s"$b/read${agID(b,io)}/addr"
-    case OutputField(b:SparseDRAMBlock, "readData") => s"$b/read${agID(b,io)}/data_out"
-    case InputField(b:SparseDRAMBlock, "writeAddr") => s"$b/write${agID(b,io)}/addr"
-    case InputField(b:SparseDRAMBlock, "writeData") => s"$b/write${agID(b,io)}/data_in"
-    case OutputField(b:SparseDRAMBlock, "writeAck") => s"$b/write${agID(b,io)}/data_out"
-    case InputField(b:SparseDRAMBlock, "rmwAddr") => s"$b/rmw${agID(b,io)}/addr"
-    case InputField(b:SparseDRAMBlock, "rmwDataIn") => s"$b/rmw${agID(b,io)}/data_in"
-    case OutputField(b:SparseDRAMBlock, "rmwDataOut") => s"$b/rmw${agID(b,io)}/data_out"
+    case InputField(b:SparseDRAMBlock, "readAddr") => s"$b/read${agID(b,io)}/addr/out0"
+    case OutputField(b:SparseDRAMBlock, "readData") => s"$b/read${agID(b,io)}/data_out/in"
+    case InputField(b:SparseDRAMBlock, "writeAddr") => s"$b/write${agID(b,io)}/addr/out0"
+    case InputField(b:SparseDRAMBlock, "writeData") => s"$b/write${agID(b,io)}/data_in/out0"
+    case OutputField(b:SparseDRAMBlock, "writeAck") => s"$b/write${agID(b,io)}/data_out/in"
+    case InputField(b:SparseDRAMBlock, "rmwAddr") => s"$b/rmw${agID(b,io)}/addr/out0"
+    case InputField(b:SparseDRAMBlock, "rmwDataIn") => s"$b/rmw${agID(b,io)}/data_in/out0"
+    case OutputField(b:SparseDRAMBlock, "rmwDataOut") => s"$b/rmw${agID(b,io)}/data_out/in"
     case _ => super.getAlias(io)
   }
 }
