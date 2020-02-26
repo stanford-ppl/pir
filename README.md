@@ -11,7 +11,7 @@ https://github.com/acrucker/tungsten.git
 ```
 git clone https://github.com/stanford-ppl/spatial.git
 cd spatial
-git checkout pir --     # << Don't miss the double dash!
+git checkout pir --     # << Don't miss the double dashes!
 make pir
 ```
 
