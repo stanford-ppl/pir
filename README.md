@@ -133,3 +133,5 @@ Command line options start with `--`. `--mapping` is equivalent to `mapping=true
  java.lang.NoClassDefFoundError: sourcecode/Name 
 ```
 Try `cd spatial/pir; make clean-local; make pir`
+
+- If you see errors saying something related to `syntax error EOF`. That's outdated emptyness dependency. Remove your `~/bin/emptyness*` and rerun again. You need to have `pkg-config`, which spatial uses to install `emptyness`
