@@ -53,7 +53,7 @@ trait PIRIRDotGen extends PIRTraversal with IRDotCodegen { self =>
       .append("count", n.count.v)
       .append("scale", n.scale.v)
       .append("iter", n.iter.v)
-    }.foldAt(n.to[Counter]) { (q, n) =>
+    }.foldAt(n.to[StridedCounter]) { (q, n) =>
       q.append("min", n.min.T)
       .append("max", n.max.T)
       .append("step", n.step.T)
