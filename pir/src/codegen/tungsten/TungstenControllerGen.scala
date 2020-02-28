@@ -87,14 +87,20 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
 
       emitLaneValid(n)
 
-    case n:Counter =>
+    case n:StridedCounter =>
       genCtxMember(n)
-      if (!n.isForever) {
-        emitln(s"$n->setMin(${n.min.T.get});")
-        emitln(s"$n->setStep(${n.step.T.get});")
-        emitln(s"$n->setMax(${n.max.T.get});")
-        emitln(s"$n->Eval(); // ${n.getCtrl}")
-      }
+      emitln(s"$n->setMin(${n.min.T});")
+      emitln(s"$n->setStep(${n.step.T});")
+      emitln(s"$n->setMax(${n.max.T});")
+      emitln(s"$n->Eval(); // ${n.getCtrl}")
+
+    case n:ForeverCounter =>
+      genCtxMember(n)
+
+    case n:ScanCounter =>
+      genCtxMember(n)
+      emitln(s"$n->setCount(${n.cnt.T});")
+      emitln(s"$n->setIndex(${n.index.T});")
 
     case n@CounterIter(is) =>
       val ctr = n.counter.T
@@ -130,8 +136,9 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case n:LoopController => (s"LoopController",s"$n")
     case n:TopController => (s"StepController",s"$n")
     case n:Controller => (s"UnitController",s"$n")
-    case n:Counter if n.isForever => (s"ForeverCounter<${n.par}>",s"$n")
-    case n:Counter => (s"Counter<${n.par}>",s"$n")
+    case n:ForeverCounter => (s"ForeverCounter<1>",s"$n")
+    case n:StridedCounter => (s"Counter<${n.par}>",s"$n")
+    case n:ScanCounter => (s"ScanCounter",s"$n")
     case n => super.varOf(n)
   }
 }

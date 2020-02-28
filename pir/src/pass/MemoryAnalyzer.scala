@@ -39,6 +39,7 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
       dbg(s"out=$from.$out")
       dbg(s"ins=${ins.map { in => s"${in.src}.$in"}.mkString(",")}")
       (out, ins) match {
+        case (out,Seq(InputField(n:ScanCounter, "cnt"))) if isFIFO => (childDone(o, octx), done(i, ictx))
         case (out,ins) if isFIFO => (childDone(o, octx), childDone(i, ictx))
         case (out,Seq(InputField(n:LoopController, "stopWhen"))) if o == i => (childDone(o, octx), childDone(i, ictx))
         case (out,ins) if o == i => (done(o, octx), done(i, ictx)) // This should be childDone other than hack for block reduce token
