@@ -88,7 +88,7 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
       genTopFields {
         emitln(s"${n.qtp}* ${n}_data = (${n.qtp}*) malloc(sizeof(${n.qtp}) * ${n.dims.get.product} + ${spadeParam.burstSizeByte});")
       }
-      genTopMember(n, Seq(n.qstr, "\"order\"", "&DRAM", s"${n}_data", s"make_tuple(&net, &statnet, &idealnet)"))
+      genTopMember(n, Seq(n.qstr, "\"order\"", "&DRAM", s"${n}_data", s"make_tuple(&net, &statnet, &idealnet)", s"false"))
       genTopInit {
         n.readPorts.foreach { case (a, ports) =>
           emitln(s"""$n.RegisterRead("read${a}_", {${(0 until ports.size).map { i => i }.mkString(",")}});""")
@@ -122,7 +122,7 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
     case n:SparseWrite => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
     case n:SparseRMW => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
     case n:SparseMem if !n.isDRAM => (s"SparsePMU<${n.qtp},$wordPerBank,${spadeParam.vecWidth}>", s"$n")
-    case n:SparseDRAMBlock => (s"ParDRAM<${n.dramPar},${n.qtp}>", s"$n")
+    case n:SparseDRAMBlock => (s"ParDRAM<${n.dramPar},${n.qtp},1>", s"$n")
     case n => super.varOf(n)
   }
 
