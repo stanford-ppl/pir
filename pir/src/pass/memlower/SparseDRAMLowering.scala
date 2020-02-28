@@ -34,6 +34,7 @@ trait SparseDRAMLowering extends SparseLowering {
 
   private def lowerAccess(uaccess:UnrolledAccess[SparseAccess], block:SparseDRAMBlock) = {
     val par = uaccess.lanes.size
+    val accessid = uaccess.lanes.head.id
     uaccess.lanes.map { access =>
       access.barriers.get.foreach { 
         case (barrier,true) => barrierWrite.getOrElseUpdate(barrier, mutable.ListBuffer()) += access
@@ -42,7 +43,7 @@ trait SparseDRAMLowering extends SparseLowering {
       val ctrl = access.getCtrl
       val reqresp = access match {
         case access:SparseRead =>
-          val (readAddr, readData) = block.addReadPort(access.id)
+          val (readAddr, readData) = block.addReadPort(accessid)
           val addrCtx = within(pirTop, ctrl) {
             stage(Context().name("addrCtx"))
           }
@@ -61,7 +62,7 @@ trait SparseDRAMLowering extends SparseLowering {
           val resp = reads.head.out
           access -> (req,resp)
         case access:SparseWrite =>
-          val (writeAddr, writeData, writeAck) = block.addWritePort(access.id)
+          val (writeAddr, writeData, writeAck) = block.addWritePort(accessid)
           flattenEnable(access) // in write ctx
           writeAddr(access.addr.connected)
           writeData(access.data.connected)
@@ -81,7 +82,7 @@ trait SparseDRAMLowering extends SparseLowering {
           val req = writeAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
           access -> (req,accumAck.out)
         case access:SparseRMW =>
-          val (rmwAddr, rmwDataIn, rmwDataOut) = block.addRMWPort(access.id, access.op, access.opOrder)
+          val (rmwAddr, rmwDataIn, rmwDataOut) = block.addRMWPort(accessid, access.op, access.opOrder)
           flattenEnable(access) // in write ctx
           rmwAddr(access.addr.connected)
           rmwDataIn(access.input.connected)

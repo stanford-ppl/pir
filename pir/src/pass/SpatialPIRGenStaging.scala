@@ -85,7 +85,9 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
     x.to[PIRNode].foreach { x => if (x.sname.isEmpty) x.sname(name) }
     x match {
       case n:DRAM => n.sname(name)
-      case n:Counter => analyzeCounterRange(n)
+      case n:StridedCounter => analyzeCounterRange(n)
+      case n:ScanCounter => analyzeCounterRange(n)
+      case n:ForeverCounter => analyzeCounterRange(n)
       case n:LoopController => analyzeLoopRange(n)
       case _ =>
     }
@@ -203,16 +205,32 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
     }
   }
 
-  def analyzeCounterRange(n:Counter) = dbgblk(s"analyzeCounterRange($n)") {
+  def analyzeCounterRange(n:ScanCounter):Unit = dbgblk(s"analyzeCounterRange($n)") {
+    val (constValids, constIters) = (List.tabulate(1) { i => Some(true) }, List.tabulate(1) { i => None })
+    dbg(s"$n.constValids=[${constValids.map { _.getOrElse("unknown") }.mkString(",")}]")
+    dbg(s"$n.constIters=[${constIters.map { _.getOrElse("unknown") }.mkString(",")}]")
+    n.constValids := constValids
+    n.constIters := constIters
+  }
+
+  def analyzeCounterRange(n:ForeverCounter):Unit = dbgblk(s"analyzeCounterRange($n)") {
+    val (constValids, constIters) = (List.tabulate(1) { i => Some(true) }, List.tabulate(1) { i => None })
+    dbg(s"$n.constValids=[${constValids.map { _.getOrElse("unknown") }.mkString(",")}]")
+    dbg(s"$n.constIters=[${constIters.map { _.getOrElse("unknown") }.mkString(",")}]")
+    n.constValids := constValids
+    n.constIters := constIters
+  }
+
+  def analyzeCounterRange(n:StridedCounter):Unit = dbgblk(s"analyzeCounterRange($n)") {
     val min = n.min.T
     val step = n.step.T
     val max = n.max.T
     val par = n.par
-    val (constValids, constIters) = (n.isForever, min, step, max) match {
-      case (false, Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) if (max <= min && step > 0) | (max >= min && step < 0) =>
+    val (constValids, constIters) = (min, step, max) match {
+      case (Const(min:Int), Const(step:Int), Const(max:Int)) if (max <= min && step > 0) | (max >= min && step < 0) =>
         dbg(s"Loop will not run.")
         (List.fill(par)(Some(false)), List.fill(par)(Some(min)))
-      case (false, Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) =>
+      case (Const(min:Int), Const(step:Int), Const(max:Int)) =>
         var bound = ((max - min) /! step) % par
         if (bound == 0) {
           bound = par
@@ -225,7 +243,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
           else None
         },
         List.tabulate(par) { i => if (fullyUnrolled) Some(min + step*i) else None })
-      case (false, Some(Const(min:Int)), _, Some(Const(max:Int))) if max > min =>
+      case (Const(min:Int), _, Const(max:Int)) if max > min =>
         dbg(s"None constant loop bounds min=$min, step=$step, max=$max, par=$par")
         (List.tabulate(par) { i => 
           if (i == 0) Some(true) 
@@ -233,8 +251,6 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
           else None
         }, 
         List.tabulate(par) { i => None })
-      case (true, _, _, _) => // forever counter
-        (List.tabulate(par) { i => Some(true) }, List.tabulate(par) { i => None })
       case _ =>
         (List.fill(par) { None }, List.fill(par) { None })
     }

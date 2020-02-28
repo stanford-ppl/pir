@@ -39,8 +39,48 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
       if (mem.isDRAM) addLive(mem)
     }
 
+    processScanCounter(n)
+
     super.visitNode(n)
   } 
+
+  def processScanCounter(n:N) = {
+    n.to[ScanCounter].foreach { n =>
+      // Spatial insert a register in front of the scan counter
+      // Remove this register and replace with a scanner
+      val read = n.mask.T.asInstanceOf[MemRead]
+      val readCtrl = read.getCtrl
+      val writer = assertOne(read.mem.T.inAccesses, s"$n.mask writer").as[MemWrite]
+      val scanRead = writer.data.T.asInstanceOf[OutAccess]
+      scanRead.out.vecMeta.reset
+      scanRead.out.presetVec(16)
+      val scanCtrl = scanRead.getCtrl
+      val scanner = within(pirTop, scanCtrl) {
+        stage(Scanner().mask(scanRead))
+      }
+      val cntFIFO = within(pirTop) {
+        stage(FIFO().banks(List(1)).name("cntFIFO"))
+      }
+      val cntWrite = within(pirTop, scanCtrl) {
+        stage(MemWrite().setMem(cntFIFO).data(scanner.cnt))
+      }
+      val cntRead = within(pirTop, n.getCtrl) {
+        stage(MemRead().setMem(cntFIFO))
+      }
+      val indexFIFO = within(pirTop) {
+        stage(FIFO().banks(List(1)).name("indexFIFO"))
+      }
+      val indexWrite = within(pirTop, scanCtrl) {
+        stage(MemWrite().setMem(indexFIFO).data(scanner.index))
+      }
+      val indexRead = within(pirTop, n.getCtrl) {
+        stage(MemRead().setMem(indexFIFO))
+      }
+      n.mask.disconnect
+      n.cnt(cntRead.out)
+      n.index(indexRead.out)
+    }
+  }
 
   def processNameType(n:N) = {
     n match {

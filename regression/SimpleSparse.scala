@@ -54,7 +54,7 @@ import spatial.dsl._
 
   def main(args: Array[String]): Unit = {
 
-    val N = 128
+    val N = 65536
     val ts = 32
     val ip = 16
 
@@ -62,15 +62,15 @@ import spatial.dsl._
 
     Accel {
       // Test dense read/write and RMW
-      val s1 = SparseDRAM[T](1)(ts)
-      Reduce(out)(N by ts) { i =>
+      val s1 = SparseDRAM[T](8)(16*N)
+      Reduce(out)(N by ts par 8) { i =>
         val forwardBarrier = Barrier[Token](0)
         val backwardBarrier = Barrier[Token](init=1) 
         Foreach(ts by 1 par ip) { j =>
-          s1.barrierWrite(j, i+j, Seq(forwardBarrier.push, backwardBarrier.pop))
+          s1.barrierWrite(7*(i+j), i+j, Seq(forwardBarrier.push, backwardBarrier.pop))
         }
         Reduce(Reg[T])(ts by 1 par ip) { j =>
-          s1.barrierRead(j, Seq(forwardBarrier.pop, backwardBarrier.push))
+          s1.barrierRead(7*(i+j), Seq(forwardBarrier.pop, backwardBarrier.push))
         } { _ + _ }
       } { _ + _ }
     }
@@ -86,28 +86,51 @@ import spatial.dsl._
 @spatial class SimpleScan extends SpatialTest {
   override def runtimeArgs: Args = "32"
   type T = Int
-  val N = 16
+  val N = 32
+  val ts = 16
+  val ip = 16
 
   def main(args: Array[String]): Unit = {
 
     val out = ArgOut[T]
 
     Accel {
-      val sram = SRAM[U512](N)
-      Foreach(N by 1) { i =>
-        sram(i) = i.to[U512]
-      }
-      Reduce(out)(N by 1) { i =>
-        val mask = sram(i)
-        Reduce(Reg[T])(Scan(mask)) { j =>
+      Reduce(out)(N by ts) { i =>
+        val sram = SRAM[U32](ts)
+        Foreach(ts by 1) { j =>
+          sram(j) = (i+j).to[U32]
+        }
+        val fifo = FIFO[U32](16)
+        Foreach(ts by 1 par ip) { j =>
+          val mask = sram(j)
+          fifo.enq(mask)
+        }
+        Reduce(Reg[T])(Scan(fifo.deq)) { j =>
           j.to[T]
         } { _ + _ }
       } { _ + _ }
     }
 
-    assert(true)
-    //val cksum = checkGold[T](out, gold)
-    //println("PASS: " + cksum + " (SimpleScan)")
-    //assert(cksum)
+    val gold = scala.collection.immutable.Range(0, N, ts).map { i =>
+      val mask = scala.collection.immutable.Range(0, ts).map{ j => 
+        val bi = (i+j).toBinaryString
+        val pad = "0" * (32 - bi.size) + bi
+        pad.reverse
+      }.reduce { _ + _ }
+      Console.println(mask)
+      val nonZero = mask.count { _ == '1' }
+      val sum = mask.zipWithIndex.map { case (char, k) =>
+        char match {
+          case '1' => k 
+          case _ => 0
+        }
+      }.sum
+      Console.println(s"nonZero=$nonZero, partial sum $sum")
+      sum
+    }.sum
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (SimpleScan)")
+    assert(cksum)
   }
 }

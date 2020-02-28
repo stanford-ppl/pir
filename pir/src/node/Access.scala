@@ -139,6 +139,7 @@ case class MemRead()(implicit env:Env) extends ReadAccess {
         case List(i@InputField(cmd:FringeDenseStore, "data" | "valid")) => i.inferVec
         case List(i@InputField(cmd:FringeSparseLoad, "addr")) => i.inferVec
         case List(i@InputField(cmd:FringeSparseStore, "addr" | "data")) => i.inferVec
+        case List(i@InputField(cmd:Scanner, "input")) => i.inferVec
         case _ => broadcast.v.map { _.size }.orElse(Some(mem.banks.get.head))
       }
     case _ => super.compVec(n)

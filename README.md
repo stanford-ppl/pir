@@ -11,7 +11,7 @@ https://github.com/acrucker/tungsten.git
 ```
 git clone https://github.com/stanford-ppl/spatial.git
 cd spatial
-git checkout pir --
+git checkout pir --     # << Don't miss the double dashes!
 make pir
 ```
 
@@ -128,3 +128,10 @@ Command line options start with `--`. `--mapping` is equivalent to `mapping=true
 
 - When you start sbt, it first looks at your `project/build.properties` for a sbt version. If the version you installed doesn't match the required version in your `build.sbt`, it will download the required version in `~/.sbt`. Then it looks for library dependencies and download them to your local ivy cache in `~/.ivy2`. Sometimes the cached version can be corrupted. You can remove the the wrong sbt in `~/.sbt` or the problematic library in `~/.ivy2/cache/libpath`. 
 
+- If you see this error
+```
+ java.lang.NoClassDefFoundError: sourcecode/Name 
+```
+Try `cd spatial/pir; make clean-local; make pir`
+
+- If you see errors saying something related to `syntax error EOF`. That's outdated emptyness dependency. Remove your `~/bin/emptyness*` and rerun again. You need to have `pkg-config`, which spatial uses to install `emptyness`

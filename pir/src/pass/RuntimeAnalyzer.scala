@@ -191,11 +191,11 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
 
   def compIter(n:PIRNode):Value[Long] = dbgblk(s"compIter($n)"){
     n match {
-      case n:Counter if n.isForever => Infinite
-      case n:Counter if !n.isForever => 
-        val min = n.min.T.get.getBound.toValue
-        val max = n.max.T.get.getBound.toValue
-        val step = n.step.T.get.getBound.toValue
+      case n:ForeverCounter => Infinite
+      case n:StridedCounter => 
+        val min = n.min.T.getBound.toValue
+        val max = n.max.T.getBound.toValue
+        val step = n.step.T.getBound.toValue
         val par = n.par
         (max - min) /! (step * par)
       case n:LoopController if n.stopWhen.T.nonEmpty => Unknown
