@@ -132,6 +132,12 @@ Command line options start with `--`. `--mapping` is equivalent to `mapping=true
 ```
  java.lang.NoClassDefFoundError: sourcecode/Name 
 ```
+or 
+```
+[error] sbt.internal.inc.InvalidScalaInstance: Scala instance doesn't exist or is invalid:                                                                               
+[error]     version 2.12.10, library jar: /home/yaqiz/pldi20/spatial/pir/lib_managed/jars/org.scala-lang/scala-library/scala-library-2.12.10.jar, compiler jar: /home/yaqiz/pldi20/spatial/pir/lib_managed/jars/org.scala-lang/scala-compile
+r/scala-compiler-2.12.10.jar, other jars: /home/yaqiz/pldi20/spatial/pir/lib_managed/jars/org.scala-lang/scala-reflect/scala-reflect-2.12.10.jar, /home/yaqiz/pldi20/spatial/pir/lib_managed/bundles/org.scala-lang.modules/scala-xml_2.12/scala-xml_2.12-1.0.6.jar, /home/yaqiz/pldi20/spatial/pir/lib_managed/jars/jline/jline/jline-2.14.6.jar, /home/yaqiz/pldi20/spatial/pir/lib_managed/jars/org.fusesource.jansi/jansi/jansi-1.12.jar
+```
 Or error relates to `AbstractMethod` or other `ClassDefNotFoundError` during genpir pass, recompile pir and try again. 
 ```
 cd spatial/pir
