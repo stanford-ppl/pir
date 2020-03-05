@@ -121,17 +121,33 @@ Command line options start with `--`. `--mapping` is equivalent to `mapping=true
 
 ## Troubleshooting
 
-- `SpatialTest` extends ScalaTest which can be run in parallel managed by their sbt plugin. If your app is an `SpatialTest`, you must have an assertion check in your app, orelse you will get the following error. 
+1. `SpatialTest` extends ScalaTest which can be run in parallel managed by their sbt plugin. If your app is an `SpatialTest`, you must have an assertion check in your app, orelse you will get the following error. 
 ```
  argon.UnhandledException: Uncaught exception Test had no validation checks. (Indeterminate result) (null)   
 ```
 
-- When you start sbt, it first looks at your `project/build.properties` for a sbt version. If the version you installed doesn't match the required version in your `build.sbt`, it will download the required version in `~/.sbt`. Then it looks for library dependencies and download them to your local ivy cache in `~/.ivy2`. Sometimes the cached version can be corrupted. You can remove the the wrong sbt in `~/.sbt` or the problematic library in `~/.ivy2/cache/libpath`. 
+2. When you start sbt, it first looks at your `project/build.properties` for a sbt version. If the version you installed doesn't match the required version in your `build.sbt`, it will download the required version in `~/.sbt`. Then it looks for library dependencies and download them to your local ivy cache in `~/.ivy2`. Sometimes the cached version can be corrupted. You can remove the the wrong sbt in `~/.sbt` or the problematic library in `~/.ivy2/cache/libpath`. 
 
-- If you see this error
+3. If you see this error
 ```
  java.lang.NoClassDefFoundError: sourcecode/Name 
 ```
-Try `cd spatial/pir; make clean-local; make pir`
+Or error relates to `AbstractMethod` or other `ClassDefNotFoundError` during genpir pass, recompile pir and try again. 
+```
+cd spatial/pir
+make clean-local
+make pir
+```
 
-- If you see errors saying something related to `syntax error EOF`. That's outdated emptyness dependency. Remove your `~/bin/emptyness*` and rerun again. You need to have `pkg-config`, which spatial uses to install `emptyness`
+4. If you see errors saying something related to `syntax error EOF`. That's outdated emptyness dependency. Remove your `~/bin/emptyness*` and rerun again. You need to have `pkg-config`, which spatial uses to install `emptyness` dependency.
+
+5. If you see an error like this when starting sbt
+```
+SERVER ERROR: HTTPS Required url=http://repo1.maven.org/maven2/org/scala-sbt/sbt/1.1.1/sbt-1.1.1.jar
+...
+unresolved dependency: org.scala-sbt#sbt;1.1.1: not found
+...
+```
+Try `cp spatial/pir/bin/repositories ~/.sbt/repositories` and load sbt again. 
+This repo uses sbt 1.1.1. If you have a old version of sbt, the default repositories uses http, which they now moved to https. This fix manually adds new urls for repositories in `~/.sbt/repositories`, which uses https. 
+Sbt then should download the required sbt version and you can remove the file once sbt 1.1.1 is downloaded. 
