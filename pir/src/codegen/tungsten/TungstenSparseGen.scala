@@ -79,7 +79,7 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
       val dataOut = n.data.singleConnected.get match {
         case OutputField(data:SparseRead,"out") => nameOf(data)
         case OutputField(data:SparseWrite,"ack") => s"${nameOf(data)}.first"
-        case OutputField(data:SparseRMW,"ack") => s"${nameOf(data)}.first"
+        case OutputField(data:SparseRMW,"dataOut") => s"${nameOf(data)}.first"
       }
       genCtxMember("Broadcast<Token>", s"bc_$data", Seq(dataOut, n.out.T.map { nameOf(_) }.qlist), end=true)
       genCtxInits {
