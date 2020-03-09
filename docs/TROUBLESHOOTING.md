@@ -36,5 +36,6 @@ unresolved dependency: org.scala-sbt#sbt;1.1.1: not found
 ...
 ```
 Try `cp spatial/pir/bin/repositories ~/.sbt/repositories` and load sbt again. 
-This repo uses sbt 1.1.1. If you have a old version of sbt, the default repositories uses http, which they now moved to https. This fix manually adds new urls for repositories in `~/.sbt/repositories`, which uses https. 
-Sbt then should download the required sbt version and you can remove the file once sbt 1.1.1 is downloaded. 
+This repo uses sbt 1.1.1. sbt 0.13 uses http for the default repositories, which they now moved to https. This fix manually adds https urls for repositories in `~/.sbt/repositories`. 
+Sbt then should download the required sbt version and you can remove the file once the newer version
+of the sbt is downloaded. 

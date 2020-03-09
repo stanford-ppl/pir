@@ -10,7 +10,7 @@ usually behind for plasticine features.
 
 ## [Use Spatial as a Submodule](https://github.com/stanford-ppl/spatial-quickstart-submodule)
 This repo contains setup that uses spatial as a git submodule, which you can track on a specific
-branch of spatial. This is recommended for Plasticine applications.
+branch of spatial that is more up to date. This is recommended for Plasticine applications.
 
 ## [Troubleshooting](docs/TROUBLESHOOTING.md)
 Troubleshooting for installation.
