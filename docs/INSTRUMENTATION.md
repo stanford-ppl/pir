@@ -81,6 +81,8 @@ instrumentation.
 
 ## Simulation Instrumentation
 During simulation, you can turn on the instrumentation logs of individual modules for debugging.
+Depends on how many modules are turned on for logging, logging can substantially slow down
+simulation.
 
 To turn on logging of a specific module, add `logon <module name>` right before `log2files` in
 `<gendir>/tungsten/script`. If remove `log2files`, all logs will print to STDOUT.
@@ -91,9 +93,13 @@ with name starting with `go`, which are virtual unit outputs shown in the `globa
 For example the edge with ID `7109` in `global.html` graph corresponds to `go7109.log` in the
 generated logs.
 
+If no module name is provided, all modules will be logged. However, **there's a limit on how many file
+descriptors can be opened at the same time.** So logging too many modules might result in some modules
+not showing up in the log file. `logon` without module name is not recommended.
+
 After simulation, another file `<gendir>/tungsten/logs/state.json` stores information about the
 simulation as well as end states of each module. 
-Here are some of the performance counter for some of the modules:
+Here are some of the performance counters for some of the modules:
 
 - active: number of cycle the module was active
 - inactive: number of cycle the module was inactive
