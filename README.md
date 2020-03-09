@@ -17,3 +17,6 @@ Troubleshooting for installation.
 
 ## [Instrumentation](docs/INSTRUMENTATION.md)
 Application functional and performance debugging.
+
+## [DSE](docs/DSE.md)
+Design space exploration of application parameters (parallelization factors) and compiler options for Plasticine applications.

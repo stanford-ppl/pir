@@ -150,7 +150,7 @@ cycle the edge was active. The color of the label means:
 
 - green: the edge as sent number of elements expected by static analysis of the compiler. 
 - yellow: the edge is stalling
-- read: the edge is starving
+- red: the edge is starving
 
 The expected number of elements sent on a link analyzed by the compiler is shown as `count=<#>` when 
 hovering over the link label. 
@@ -162,6 +162,6 @@ either because the producer is under a controller with data-dependent iterations
 stateless controller. If the count cannot be statically analyzed, the edge will be in red even if
 all expected elements were sent over the link.
 
-To debug deadlocking, starting from draining point of the app, which are edge that goes to host
-node, traverse the graph backward and find the first node that have a red and a yellow output links.
-The yellow output links is likely be the issue.
+To debug deadlocking, starting from draining point of the app, which are edges that go to host
+node, traverse the graph backward and find the first node that have both red and yellow output links.
+The yellow output links are likely be the issue.
