@@ -6,7 +6,7 @@
 
 - `-T` when running `bin/test`. This flag prints logs for each pass, which can make it easier to
   tell which pass the error is coming from. You can also track status and error message of each pass
-  with `bin/log <gendir>`. More detail in [Quick Start](docs/QUICKSTART.md).
+  with `bin/log <gendir>`. More detail in [Quick Start](QUICKSTART.md).
 
 - `--debug` PIR flag. Turn on logging in pir. Recommend to turn off in batch jobs.
 
@@ -16,7 +16,7 @@ All PIR flags can be specified when running `bin/test` or within `$HOME/.pirconf
 
 ## Logs
 When using bin/test to run spatial app, there will be a summary log for each of the pass described
-in [Quick Start](docs/QUICKSTART.md) in `<gendir>/log`, e.g.
+in [Quick Start](QUICKSTART.md) in `<gendir>/log`, e.g.
 `spatial/gen/Tst_pirTest/DotProduct_0/log/genpir.log`.  `bin/log` parses these logs to produce a
 summary of useful informations.
 
@@ -41,7 +41,7 @@ spatial. The red ovals are Block node. Clicking on those node will navigates to 
 block. Generally you want to look for the `Accel` block within `Top.html` to show IRs within the
 Accel block.
 
-![Spatial Dot Graph](docs/figs/Top.html) 
+![Spatial Dot Graph](figs/Top.html) 
 
 Spatial also contains an expandable controller tree diagram in the same directory called `controller_tree.html`, 
 which shows a more concise view of the controller hierarchy.
