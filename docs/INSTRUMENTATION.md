@@ -45,3 +45,62 @@ Accel block.
 
 Spatial also contains an expandable controller tree diagram in the same directory called `controller_tree.html`, 
 which shows a more concise view of the controller hierarchy.
+
+<img src="figs/controller_tree.png" width="250" />
+
+### PIR Visualization
+The most useful visualization would be the Virtual Unit dataflow graph after PIR compilation in
+```
+<gendir>/pir/out/dot/global.html
+```
+
+<img src="figs/global.png" width="250" />
+
+Each node within the graph corresponds to a virtual unit (VU) that will be placed and routed onto a
+physical tile on the chip.
+
+The color of a VU denotes the VU type:
+
+- blue: virtual compute unit
+- cyan: memory controller interface
+- green: virtual memory unit
+- white: host node
+
+Edge: 
+
+- bold: vector link
+- regular: scalar link
+
+The variable names of memories declared in spatial app will show up in VUs that contain them.
+DRAM variable names will show up in the memory controller interface units that load or store to them.
+More useful information related to source code line number will show up when **hovering over** the
+node or edge labels of the dot graph. 
+
+Numbers next to the edges are output edge ID, which can be used to associate to simulation
+instrumentation.
+
+## Simulation Instrumentation
+During simulation, you can turn on the instrumentation logs of individual modules for debugging.
+
+To turn on logging of a specific module, add `logon <module name>` right before `log2files` in
+`<gendir>/tungsten/script`. If remove `log2files`, all logs will print to STDOUT.
+Each module will be log to a individual file in `<gendir>/tungsten/logs/<module name>.log`. 
+
+`<module name>` can use wildcard matching. `e.g. logon go*` will turn on logging for all modules
+with name starting with `go`, which are virtual unit outputs shown in the `global.html`.
+For example the edge with ID `7109` in `global.html` graph corresponds to `go7109.log` in the
+generated logs.
+
+After simulation, another file `<gendir>/tungsten/logs/state.json` stores information about the
+simulation as well as end states of each module. 
+Here are some of the performance counter for some of the modules:
+
+- active: number of cycle the module was active
+- inactive: number of cycle the module was inactive
+- valid: number of cycle the buffer contains element
+- ready: number of cycle the buffer was not full
+- stall: number of cycle the buffer was full
+- starve: number of cycle the buffer was empty
+- nelem: number elements in the buffer after simulation
+- cont\_inactive: number of cycles the module continuously inactive right before the end of the
+simulation. Used to determine deadlock.
