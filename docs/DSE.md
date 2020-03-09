@@ -45,7 +45,8 @@ To run apps, run `bin/dse -a BlackScholes_D* [options]`
 Options used by `bin/test` can be used in `bin/dse` options. To override default pir options, 
 set `dse.pirArgs = 'new options'` before calling `dse.setup_dse`
 
-`dseApp` will create a cross product space between key value pairs of its named arguments. 
+`dseApp` will create a cross product space between key value pairs of its named arguments. In this
+app, they are `ip`, `op`, and `N`. These arguments can be a single element or a list.
 If the corss product space is too large,
 `dseApp` can also take another parameter---`filterNot` that can take in a lambda or a function to
 prune the space.
