@@ -110,3 +110,44 @@ Here are some of the performance counters for some of the modules:
 - nelem: number elements in the buffer after simulation
 - cont\_inactive: number of cycles the module continuously inactive right before the end of the
 simulation. Used to determine deadlock.
+
+You can run `python3 bin/annotate.py` in `<gendir>/tungsten` that will backward annotate some of 
+these module states to the virtual unit dataflow graph in `<gendir>/pir/out/dot/gsim.html`. 
+
+### Performance Debugging
+
+If your app finished without deadlock, the graph will look like
+
+<img src="figs/gsim.png" width="150" />
+
+The edge is annotated with 
+
+- a: percentage of the runtime the link is active 
+- !v: percentage of the runtime the link is not valid/starving
+- !r: percentage of the runtime the link is not ready/stalling
+
+If most of the links are running at a low active rate, the app is either DRAM-bound or imbalanced.
+You can tell weather the app is DRAM-bound by looking at achieved DRAM bandwidth printed during
+simulation, or in `<gendir>/log/runp2p.log`. `bin/log` also parses this number.
+If your app is imbalanced, find the VU with highest output link activation rate, and parallelize
+around this VU. Hover over the VU to find the corresponding controller source code line number.
+
+### Deadlock Debugging
+
+If your app finished with deadlock, the graph will look like
+
+<img src="figs/gsim_deadlock.png" width="150" />
+
+The edge are marked with edge IDs, and the number under the edge ID within the bracket are number of
+cycle the edge was active. The color of the label means:
+
+- green: the edge as sent number of elements expected by static analysis of the compiler. 
+- yellow: the edge is stalling
+- read: the edge is starving
+
+The expected number of elements sent on a link analyzed by the compiler is shown as `count=<#>` when 
+hovering over the link label. 
+If count is not printed, it means the expected number of elements cannot be statically analyzed
+either because the producer is under a controller with data-dependent iterations or a streaming
+stateless controller. If the count cannot be statically analyzed, the edge will be in red even if
+all expected elements were sent over the link.
