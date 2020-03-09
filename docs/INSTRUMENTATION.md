@@ -54,7 +54,7 @@ The most useful visualization would be the Virtual Unit dataflow graph after PIR
 <gendir>/pir/out/dot/global.html
 ```
 
-<img src="figs/global.png" width="250" />
+<img src="figs/global.png" width="150" />
 
 Each node within the graph corresponds to a virtual unit (VU) that will be placed and routed onto a
 physical tile on the chip.
