@@ -119,4 +119,4 @@ Command line options start with `--`. `--mapping` is equivalent to `mapping=true
 --pcu-stage: number of stages for PCU, similar for pmu, and dag
 ```
 
-## [Troubleshooting] (docs/troubleshooting.md)
+## [Troubleshooting](docs/troubleshooting.md)
