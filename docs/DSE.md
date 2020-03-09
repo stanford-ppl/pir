@@ -45,3 +45,11 @@ To run apps, run `bin/dse -a BlackScholes_D* [options]`
 Options used by `bin/test` can be used in `bin/dse` options. To override default pir options, 
 set `dse.pirArgs = 'new options'` before calling `dse.setup_dse`
 
+`dseApp` will create a cross product space between key value pairs of its named arguments. 
+If the corss product space is too large,
+`dseApp` can also take another parameter---`filterNot` that can take in a lambda or a function to
+prune the space.
+The input of the filterNot is a dictionary of parameter names to parameter values, and the lambda returns
+a boolean for whether this design point should be dropped from DSE. 
+For example `filterNot=lambda param: param['ip'] != param['op']` will drop design points whose ip ==
+op.
