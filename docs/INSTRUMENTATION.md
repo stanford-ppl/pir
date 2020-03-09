@@ -41,7 +41,7 @@ spatial. The red ovals are Block node. Clicking on those node will navigates to 
 block. Generally you want to look for the `Accel` block within `Top.html` to show IRs within the
 Accel block.
 
-![Spatial Dot Graph](figs/Top.html) 
+![Spatial Dot Graph](figs/Top.png) 
 
 Spatial also contains an expandable controller tree diagram in the same directory called `controller_tree.html`, 
 which shows a more concise view of the controller hierarchy.
