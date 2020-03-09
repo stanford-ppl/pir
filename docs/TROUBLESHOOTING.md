@@ -1,3 +1,5 @@
+[README](README.md)
+
 # Troubleshooting
 
 1. `SpatialTest` extends ScalaTest which can be run in parallel managed by their sbt plugin. If your app is an `SpatialTest`, you must have an assertion check in your app, orelse you will get the following error. 
