@@ -1,4 +1,4 @@
-[README](README.md)
+[README](../README.md)
 
 # Get Started
 
@@ -21,20 +21,21 @@ make pir
 ## Run test end-to-end
 If your app extends `SpatialTest` instead of SpatialApp, you can run all following passes with the script `bin/test`. 
 
-Each ScalaTest has multiple backend that runs FPGA or Plasticine simulation. For Plasticine, the `Tst` backend runs
-the following passes (passname):
-
-- Compile Spatial (genpir)
-- Compile PIR (gentst)
-- Compile generated Cpp simulator (maketst)
-- Run ideal network simulation (runp2p)
-- Place and Route (runproute)
-- Run hybrid network simulation (runhybrid)
-
 ```
 cd $SPAITAL_HOME
 bin/test -a <app> -b <backend> -p <project> -t <threads> [-H, -T]
 ```
+
+Each ScalaTest has multiple backend that runs FPGA or Plasticine simulation. For Plasticine, the `Tst` backend runs
+the following passes (passname):
+
+1. Compile Spatial (genpir)
+2. Compile PIR (gentst)
+3. Compile generated Cpp simulator (maketst)
+4. Run ideal network simulation (runp2p)
+5. Place and Route (runproute)
+6. Run hybrid network simulation (runhybrid)
+
 `<app>` can use wildcard matching, for example DotProduct*. Unspecified will run all apps in the project. You can provide multiple -a for a list of apps to run. 
 
 `<backend>` to target plasticine use Tst, to FPGA Chisel simulation use VCS
@@ -45,23 +46,31 @@ bin/test -a <app> -b <backend> -p <project> -t <threads> [-H, -T]
 
 `-T` will prints logs of individual passes in console for easy debugging. it's recommanded only if you are running a single app. 
 
-example command:
-`bin/test -a DotProduct_0 -b Tst -p pirTest`
+`-u` will recompile pir and publish pir to sbt local ivy cache. This is required if you make change
+in pir.
 
-*By default bin/test cache succeeded passes. To force rerun all passes, add `-r all`*
+example command:
+`bin/test -a DotProduct_0 -b Tst -p pirTest -T`
+
+**By default bin/test cache succeeded passes.** To force rerun all passes, add `-r all`
 
 which will generates apps in `spatial/gen/Tst_pirTest`. 
 
 ### Monitor Job Status
 
-While `bin/test` is running. you can monitor the status by run `bin/log <gendir>`, which will show the progress of each pass. you can add `-m field1,field2` to get summary of the apps. Useful fields includes VPCU,VPMU,VDAG,VMC, which are number of virual CUs used. PCU,PMU,DAG,MC,for number of physical CUs used. 
+While `bin/test` is running, you can monitor the status with `bin/log <gendir>`, which will show the progress of each pass. 
+
+You can add `-m field1,field2` to get summary of the apps. Useful fields includes VPCU,VPMU,VDAG,VMC, which are number of virual CUs used. PCU,PMU,DAG,MC,for number of physical CUs used. 
 example: `bin/log gen/Tst_pirTest -m PCU,PMU`, `bin/log x --print_fields` for all possible fields to check. 
 
 To produce a snapshot of the summary with `bin/log` use `-s`, which will stores the parsed fields
-and apps into a csv file. To change directory to store the log file, use `--logdir`. For more option
-in `bin/log` use `bin/log --help`.
+and apps into a csv file. To change directory to store the log file, use `--logdir`. 
 
-## Run each step by hand
+For more options in `bin/log`, use `bin/log --help`.
+
+## Run Passes by Hand
+If you don't want to use bin/test, you can generate each pass by hand.
+
 Generate app from spatial
 ```
 bin/spatial <App> --pir

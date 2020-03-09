@@ -5,7 +5,7 @@ Quick start on running existing regression tests.
 
 ## [Spatial Quick Start](https://github.com/stanford-ppl/spatial-quickstart)
 Example repo to use spatial as a library dependency. This repo contains sbt build file pointing to
-stable release of spatial artifact, which might not contain latest features. Spatial master is
+the stable release of spatial artifact, which might not contain the latest features. Spatial master is
 usually behind for plasticine features. 
 
 ## [Use Spatial as a Submodule](https://github.com/stanford-ppl/spatial-quickstart-submodule)
