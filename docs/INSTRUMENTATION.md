@@ -86,7 +86,7 @@ simulation.
 
 To turn on logging of a specific module, add `logon <module name>` right before `log2files` in
 `<gendir>/tungsten/script`. If remove `log2files`, all logs will print to STDOUT.
-Each module will be log to a individual file in `<gendir>/tungsten/logs/<module name>.log`. 
+Each module will be log to an individual file in `<gendir>/tungsten/logs/<module name>.log`. 
 
 `<module name>` can use wildcard matching. `e.g. logon go*` will turn on logging for all modules
 with name starting with `go`, which are virtual unit outputs shown in the `global.html`.
@@ -126,7 +126,7 @@ The edge is annotated with
 - !v: percentage of the runtime the link is not valid/starving
 - !r: percentage of the runtime the link is not ready/stalling
 
-If most of the links are running at a low active rate, the app is DRAM-bound, imbalanced, or lack of
+If most of the links are running at a low active rate, the app is DRAM-bound (in this example), imbalanced, or lack of
 retiming.
 
 - You can tell weather the app is DRAM-bound by looking at achieved DRAM bandwidth printed during
