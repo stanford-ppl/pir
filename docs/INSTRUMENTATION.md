@@ -126,10 +126,17 @@ The edge is annotated with
 - !v: percentage of the runtime the link is not valid/starving
 - !r: percentage of the runtime the link is not ready/stalling
 
-If most of the links are running at a low active rate, the app is either DRAM-bound or imbalanced.
-You can tell weather the app is DRAM-bound by looking at achieved DRAM bandwidth printed during
-simulation, or in `<gendir>/log/runp2p.log`. `bin/log` also parses this number.
-If your app is imbalanced, find the VU with highest output link activation rate, and parallelize
+If most of the links are running at a low active rate, the app is DRAM-bound, imbalanced, or lack of
+retiming.
+
+- You can tell weather the app is DRAM-bound by looking at achieved DRAM bandwidth printed during
+simulation, or in `<gendir>/log/runp2p.log`. `bin/log` also parses this number. Compare this number
+with theoretical maximum of the memory technology, specified with `--mem-tech `.
+
+- If your app has link with large `!r` value, that link is stalling a lot which bottlenecks the
+performance. You need to add retiming along that path to improve runtime.
+
+- If your app is imbalanced, find the VU with highest output link activation rate, and parallelize
 around this VU. Hover over the VU to find the corresponding controller source code line number.
 
 ### Deadlock Debugging
@@ -154,3 +161,7 @@ If count is not printed, it means the expected number of elements cannot be stat
 either because the producer is under a controller with data-dependent iterations or a streaming
 stateless controller. If the count cannot be statically analyzed, the edge will be in red even if
 all expected elements were sent over the link.
+
+To debug deadlocking, starting from draining point of the app, which are edge that goes to host
+node, traverse the graph backward and find the first node that have a red and a yellow output links.
+The yellow output links is likely be the issue.

@@ -139,4 +139,5 @@ Command line options start with `--`. `--mapping` is equivalent to `mapping=true
 --vlink: number of static links in vector network [default=4]
 --slink: number of static links in scalar network [default=2]
 --pcu-stage: number of stages for PCU, similar for pmu, and dag
+--mem-tech: DRAM technology. [DDR3, DDR4, HBM]
 ```
