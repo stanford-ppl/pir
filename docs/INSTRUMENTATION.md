@@ -147,6 +147,9 @@ cycle the edge was active. The color of the label means:
 
 The expected number of elements sent on a link analyzed by the compiler is shown as `count=<#>` when 
 hovering over the link label. 
+
+<img src="figs/gsim_link.png" width="100" />
+
 If count is not printed, it means the expected number of elements cannot be statically analyzed
 either because the producer is under a controller with data-dependent iterations or a streaming
 stateless controller. If the count cannot be statically analyzed, the edge will be in red even if
