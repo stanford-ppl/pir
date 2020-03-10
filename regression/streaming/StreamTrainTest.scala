@@ -5,7 +5,7 @@ import spatial.lang.{FileBus,FileEOFBus}
 import spatial.metadata.bounds._
 import spatial.metadata.memory._
 
-class StreamTrainTest_0 extends StreamTrainTest[Float]()()
+//class StreamTrainTest_0 extends StreamTrainTest[Float]()() // Currently deadlock
 
 // Reference https://blog.goodaudience.com/logistic-regression-from-scratch-in-numpy-5841c09e425f 
 @spatial abstract class StreamTrainTest[T:Num](

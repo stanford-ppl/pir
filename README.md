@@ -20,3 +20,6 @@ Application functional and performance debugging.
 
 ## [DSE](docs/DSE.md)
 Design space exploration of application parameters (parallelization factors) and compiler options for Plasticine applications.
+
+## [DSE](docs/REGRESSION.md)
+Description on how to run Plasticine regression tests.
