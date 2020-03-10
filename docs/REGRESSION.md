@@ -25,8 +25,8 @@ The Plasticine regression tests take about 1.5 hours to run.
 ```
 srun -c 40 --mem=150 regression_command
 ```
-When running regression on the slurm machines, the script will creates a symlink to the generated
-directory on those machine named `gen-slurmX` in the running directory.
+When running regression on the slurm machines, the script will create a symlink to the generated
+directory on those machines named `gen-slurmX` in the running directory.
 You can use this symlink to check status of the regression job
 
 ### Status checking on the regression job
