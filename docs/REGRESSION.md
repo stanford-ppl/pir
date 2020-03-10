@@ -21,7 +21,7 @@ bin/regression -b Tst -p test -t <#parallel apps>
 
 ### Running regression on slurm machines. 
 
-The Plasticine regression tests takes about 1.5 hours to run.
+The Plasticine regression tests take about 1.5 hours to run.
 ```
 srun -c 40 --mem=150 regression_command
 ```
