@@ -52,7 +52,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
   // Allocate one new Context per controller. This approach might not work if the address
   // calculation of different accesses in the same controller are data dependent on some other
   // memory access, which will create cycle on that context
-  private val addrCtxs = mutable.Map[ControlTree, Context]()
+  private val addrCtxs = mutable.Map[Access, Context]()
   private val mergeCtxs = mutable.Map[Access, Context]()
   private def createMemGlobal(mem:Memory) = dbgblk(s"createMemGlobal($mem)"){
     val memCU = within(pirTop) { MemoryContainer() }
@@ -78,8 +78,8 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     mem.accesses.foreach { access =>
       val ctx = access.ctx.get
       val fromCtx = if (config.mergeDone) {
-        mergeCtxs.get(access) orElse addrCtxs.get(access.getCtrl)
-      } else addrCtxs.get(access.getCtrl)
+        mergeCtxs.get(access) orElse addrCtxs.get(access)
+      } else addrCtxs.get(access)
       bufferInput(ctx, BufferParam(fromCtx=fromCtx))
     }
     addrCtxs.clear
@@ -167,7 +167,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
         val addrCtx = access match {
           //case access:BankedWrite => access.ctx.get 
           case access => 
-            addrCtxs.getOrElseUpdate(access.getCtrl, {
+            addrCtxs.getOrElseUpdate(access, {
               within(memCU, access.ctx.get.getCtrl) { stage(Context()) }
             })
         }
@@ -224,7 +224,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     }
     bufferInput(accessCtx)
 
-    val addrCtx = addrCtxs(headAccess.getCtrl)
+    val addrCtx = addrCtxs(headAccess)
     // Connect access.done
     if (mem.depth.get > 1 && newAccess.port.get.nonEmpty) {
       val ctrlMap = leastMatchedPeers(mem.accesses.filterNot{_.port.get.isEmpty}.map { _.getCtrl} ).get
@@ -260,7 +260,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
             dbg(s"val $shuffle = Shuffle() // bankRead")
             bufferInput(shuffle.base)
             if (!config.dupReadAddr) {
-              bufferInput(shuffle.to, BufferParam(fromCtx=Some(addrCtxs(leadCtrl))))
+              bufferInput(shuffle.to, BufferParam(fromCtx=Some(addrCtxs(headAccess))))
             }
             ins.foreach { in =>
               swapConnection(in, access.out, shuffle.out)
