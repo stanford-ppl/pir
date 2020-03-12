@@ -15,6 +15,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   // Optimizations
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
   register("dupra", default=false, info="Duplicate read address calculation in receiver CU")
+  register("share-adctx", default=false, info="For all accesses happened within the same basic block, use a single context to calculate the addresses instead of using one saperate context per access. Setting this flag can save some resources but potentially introduces performance slowdown in a memory reduce.")
   register("bcread", default=true, info="Enable broadcast read")
   register("mdone", default=true, info="Generate done from merged access")
   register("constprop", default=true, info="Enable constant propogation")
@@ -41,6 +42,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
 
   def arch = option[String]("arch")
   def dupReadAddr = option[Boolean]("dupra")
+  def shareAddrCtx = option[Boolean]("share-adctx")
   def mergeDone = option[Boolean]("mdone")
   def enableLocalRetiming = option[Boolean]("retime-local")
   def enableGlobalRetiming = option[Boolean]("retime-glob")

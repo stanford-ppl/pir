@@ -52,7 +52,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
   // Allocate one new Context per controller. This approach might not work if the address
   // calculation of different accesses in the same controller are data dependent on some other
   // memory access, which will create cycle on that context
-  private val addrCtxs = mutable.Map[Access, Context]()
+  private val addrCtxs = mutable.Map[Either[ControlTree, Access], Context]()
   private val mergeCtxs = mutable.Map[Access, Context]()
   private def createMemGlobal(mem:Memory) = dbgblk(s"createMemGlobal($mem)"){
     val memCU = within(pirTop) { MemoryContainer() }
@@ -77,9 +77,10 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     }
     mem.accesses.foreach { access =>
       val ctx = access.ctx.get
+      val key = if (config.shareAddrCtx) Left(access.getCtrl) else Right(access)
       val fromCtx = if (config.mergeDone) {
-        mergeCtxs.get(access) orElse addrCtxs.get(access)
-      } else addrCtxs.get(access)
+        mergeCtxs.get(access) orElse addrCtxs.get(key)
+      } else addrCtxs.get(key)
       bufferInput(ctx, BufferParam(fromCtx=fromCtx))
     }
     addrCtxs.clear
@@ -167,8 +168,9 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
         val addrCtx = access match {
           //case access:BankedWrite => access.ctx.get 
           case access => 
-            addrCtxs.getOrElseUpdate(access, {
-              within(memCU, access.ctx.get.getCtrl) { stage(Context()) }
+            val key = if (config.shareAddrCtx) Left(access.getCtrl) else Right(access)
+            addrCtxs.getOrElseUpdate(key, {
+              within(memCU, access.ctx.get.getCtrl) { stage(Context().name(s"${access}_addrCtx")) }
             })
         }
         dbg(s"addrCtx for $access = $addrCtx")
@@ -224,7 +226,8 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     }
     bufferInput(accessCtx)
 
-    val addrCtx = addrCtxs(headAccess)
+    val key = if (config.shareAddrCtx) Left(headAccess.getCtrl) else Right(headAccess)
+    val addrCtx = addrCtxs(key)
     // Connect access.done
     if (mem.depth.get > 1 && newAccess.port.get.nonEmpty) {
       val ctrlMap = leastMatchedPeers(mem.accesses.filterNot{_.port.get.isEmpty}.map { _.getCtrl} ).get
@@ -260,7 +263,8 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
             dbg(s"val $shuffle = Shuffle() // bankRead")
             bufferInput(shuffle.base)
             if (!config.dupReadAddr) {
-              bufferInput(shuffle.to, BufferParam(fromCtx=Some(addrCtxs(headAccess))))
+              val key = if (config.shareAddrCtx) Left(leadCtrl) else Right(lead)
+              bufferInput(shuffle.to, BufferParam(fromCtx=Some(addrCtxs(key))))
             }
             ins.foreach { in =>
               swapConnection(in, access.out, shuffle.out)
