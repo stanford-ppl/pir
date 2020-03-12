@@ -105,7 +105,7 @@ Commend line options will override config file options. Example config
 mapping=true
 stat=true # print out CU statistics
 
-# architectural configs
+# Architectural configs
 topo=mesh
 row=4
 col=4
