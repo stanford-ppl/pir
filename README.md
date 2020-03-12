@@ -1,5 +1,8 @@
 # PIR
 
+Internal IR to target [Plasticine architecture](https://github.com/raghup17/plasticine.git) from 
+[Spatial](https://github.com/stanford-ppl/spatial-lang.git).
+
 ## [Quick Start](docs/QUICKSTART.md)
 Quick start on running existing regression tests.
 

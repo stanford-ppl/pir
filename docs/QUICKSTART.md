@@ -116,10 +116,8 @@ Command line options start with `--`. `--mapping` is equivalent to `mapping=true
 ```
 --stat: Printing CU statistics [default=false]
 --dot: Enable dot codegen [default=true]
---psim: Enable plastisim generation [default=true]
---run-psim: run simulation [default=false]
---trace: enable dram trace generation [default=true]
---tungsten: Enable tungsten generation [default=false]
+--proutesh: passing an absolute path to a script to run plastiroute with customized options. It should be a
+bash script, which will be called to run plastiroute. 
 ```
 
 ## Architectural Parameters
