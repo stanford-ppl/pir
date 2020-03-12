@@ -123,9 +123,11 @@ trait RewriteUtil extends PIRPass { self: PIRTransformer =>
 
   RewriteRule[OpDef](s"PipeAccum", config.enablePipeAccum) { 
     case n@OpDef(Mux) =>
-      val accumWrites = n.out.neighbors.collect { case write:MemWrite if write.mem.T.isAccum => write }
+      val writes = n.out.neighbors.collect { case write:MemWrite => write }
+      val (accumWrites, nonAccumWrites) = writes.partition { _.isAccumWrite.get }
       testOne(accumWrites).flatMap { accumWrite =>
-        testOne(accumWrite.mem.T.outAccesses).flatMap { accumRead =>
+        val (accumReads, nonAccumReads) = accumWrite.mem.T.outAccesses.partition  { _.isAccumRead.get }
+        testOne(accumReads).flatMap { accumRead =>
           val accumOps = accumRead.out.accum(
             prefix = { case `n` => true; case _ => false },
             depth = 5
@@ -138,7 +140,13 @@ trait RewriteUtil extends PIRPass { self: PIRTransformer =>
               val in = assertOne(ins, s"accum $n.in")
               val acc = stage(RegAccumOp(redOps, accumWrite.mem.T.inits.get)
                 .first(first).in(in).init(init).en(accumWrite.en.connected))
-              accumWrite.data.disconnect
+              if (nonAccumWrites.nonEmpty && nonAccumReads.isEmpty) {
+                accumWrite.data.disconnect
+              } else {
+                accumWrite.mem.T.isAccum.reset
+                accumWrite.isAccumWrite.reset
+                assert(nonAccumWrites.isEmpty && nonAccumReads.nonEmpty, s"unexpected accum pattern ${accumRead} ${accumWrite}")
+              }
               dbgn(acc)
               Some((n.out, acc.out))
             }
@@ -661,7 +669,8 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   override def visitNode(n:N):T = /*dbgblk(s"visitNode:${n}") */{
     super.visitNode(n)
     val res = rewriteRules.foldLeft[Option[_]](None) {
-      case (None, rule) => rule(n).map { case (o1, o2) =>
+      case (None, rule) => 
+        rule(n).map { case (o1, o2) =>
           dbgblk(s"${rule.name}") {
             swapOutput(o1.as, o2.as)
           }

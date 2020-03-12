@@ -33,6 +33,8 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
     
     processDebugging(n)
 
+    analyzeAccum(n)
+
     processReduction(n)
 
     n.to[LockMem].foreach { mem =>
@@ -105,6 +107,25 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
           }
         }
       case _ =>
+    }
+  }
+
+  def analyzeAccum(n:N) = {
+    n.to[Reg].foreach { reg =>
+      if (reg.accesses.forall { !_.progorder.v.isEmpty }) {
+        reg.accesses.toList.sortBy { _.progorder.get }.sliding(2,1).foreach {
+          case List(prev:ReadAccess, next:WriteAccess) =>
+            val lca = leastCommonAncesstor(prev.getCtrl, next.getCtrl).get
+            val isAccum = lca.ancestorTree.exists { _.isLoop.get }
+            if (isAccum) {
+              dbg(s"setAccum($reg) = true")
+              reg.isAccum := true
+              prev.isAccumRead := true
+              next.isAccumWrite := true
+            }
+          case _ => 
+        }
+      }
     }
   }
 

@@ -17,6 +17,7 @@ trait MemoryNode extends PIRNode {
   // Number of partitions after splitting
   val numPart = Metadata[Int]("numPart", default=1) 
   val depth = Metadata[Int]("depth", default=1)
+  val isAccum = Metadata[Boolean]("isAccum", default=false)
   val isInnerAccum = Metadata[Boolean]("isInnerAccum", default=false)
   def getBanks = banks.get
   def getDepth = depth.get
@@ -606,15 +607,6 @@ trait MemoryUtil extends CollectorImplicit {
       n
     }
 
-    def isAccum:Boolean = {
-      if (n.accesses.exists { _.progorder.v.isEmpty }) return false
-      n.accesses.toList.sortBy { _.progorder.get }.sliding(2,1).exists {
-        case List(prev:ReadAccess, next:WriteAccess) =>
-          val lca = leastCommonAncesstor(prev.getCtrl, next.getCtrl).get
-          lca.ancestorTree.exists { _.isLoop.get }
-        case _ => false
-      }
-    }
   }
 
   implicit class GlobalOp(n:GlobalContainer) {

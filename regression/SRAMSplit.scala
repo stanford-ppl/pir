@@ -8,6 +8,7 @@ class SRAMSplit_3 extends SRAMSplit(ip=16, mp=2, op=3, N=8*64*1024)
 class SRAMSplit_4 extends SRAMSplit(ip=16, mp=2, op=3, N=8*64*1024) {
   override def pirArgs = super.pirArgs + " --bcread"
 }
+class SRAMSplit_5 extends SRAMSplit(ip=16, op=1, N=1024)
 
 @spatial abstract class SRAMSplit(
   N:scala.Int = 4*64*1024,

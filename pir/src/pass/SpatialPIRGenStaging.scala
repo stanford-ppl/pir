@@ -12,6 +12,15 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
     setAnnotation(pirTop)
   }
 
+  private var progorder = 0
+  implicit class PIRNodeHelper[T<:PIRNode](x:T) {
+    def setProgOrder:T = {
+      x.progorder := progorder
+      progorder += 1
+      x
+    }
+  }
+
   def stageGraph = {
     compiler.pirenv.createNewState
     tic
@@ -152,7 +161,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
     }
   }
   def processArgOut(mem:Reg) = {
-    stage(HostRead().input(MemRead().setMem(mem)))
+    stage(HostRead().input(MemRead().setMem(mem).setProgOrder).setProgOrder)
   }
 
   def streamIn(fifos:List[FIFO], bus:Bus) = {
@@ -187,7 +196,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
       case bus =>
         within(ControlTree(Streaming)) {
           val reads = fifos.map { fifo =>
-            stage(MemRead().setMem(fifo).presetVec(fifo.banks.get.head)).out
+            stage(MemRead().setMem(fifo).presetVec(fifo.banks.get.head).setProgOrder).out
           }
           val sr = stage(FringeStreamRead(bus).addStreams(reads))
           name.foreach { name => sr.name(name) }
@@ -197,7 +206,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
               val lastBit = stage(FIFO().addAccess(writer).tp(Bool).banks(List(1)).name(s"${name.getOrElse(sr.toString)}_lastBit"))
               within(pirTop.hostOutCtrl) {
                 val read = stage(MemRead().setMem(lastBit))
-                stage(HostRead().input(read))
+                stage(HostRead().input(read).setProgOrder)
               }
             }
           }
@@ -272,6 +281,15 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
     }
     dbg(s"$n.laneValids=[${laneValids.map { _.getOrElse("unknown") }.mkString(",")}]")
     n.constLaneValids := laneValids
+  }
+
+  override def stage[T<:PIRNode](n:T)(implicit file:sourcecode.File, line: sourcecode.Line):T = {
+    super.stage[T](n).to[PIRNode].map { n =>
+      n.progorder.v.foreach { po =>
+        progorder = po
+      }
+      n
+    }.getOrElse(n).as[T]
   }
 
 }

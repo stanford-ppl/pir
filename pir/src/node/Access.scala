@@ -5,11 +5,17 @@ import spade.param._
 import prism.graph._
 
 trait Access extends PIRNode {
+
+  /* Metadata set by spatial */
   val order = Metadata[Float]("order")
   val port = Metadata[Option[Int]]("port", default=Some(0))
   val muxPort = Metadata[Int]("muxPort")
   val broadcast = Metadata[Seq[Int]]("broadcast")
   val castgroup = Metadata[Seq[Int]]("castgroup")
+
+  /* Metadata set by spatial */
+  val isAccumRead = Metadata[Boolean]("isAccumRead", default=false)
+  val isAccumWrite = Metadata[Boolean]("isAccumWrite", default=false)
 
   val en = new InputField[List[PIRNode]]("en").tp(Bool)
   val done = new InputField[Option[PIRNode]]("done").tp(Bool).presetVec(1)
