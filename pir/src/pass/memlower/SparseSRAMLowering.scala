@@ -51,9 +51,11 @@ trait SparseSRAMLowering extends SparseLowering {
           val accessCtx = stage(Context().streaming(true))
           swapParent(access, accessCtx)
           bufferInput(access.addr, BufferParam(fromCtx=Some(addrCtx)))
-          val reads = access.out.connected.flatMap { in =>
-            bufferInput(in)
+          val ins = access.out.connected
+          ins.distinct.foreach { in =>
+            bufferInput(in).foreach { read => read.inAccess.name := "readOut" }
           }
+          val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
           val req = access.addr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
           val resp = reads.head.out
           access -> (req,resp)

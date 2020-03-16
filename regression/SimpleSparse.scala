@@ -134,3 +134,43 @@ import spatial.dsl._
     assert(cksum)
   }
 }
+
+import spatial.metadata.memory.{Barrier => _,_}
+@spatial class SparseDRAMAlias extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+
+  def main(args: Array[String]): Unit = {
+
+    val N = 32
+    val ip = 16
+
+    val dram = DRAM[T](N)
+    val out = ArgOut[T]
+    setMem(dram, (0 until N) { i => i })
+
+    Accel {
+      // Test dense read/write and RMW
+      val mem = SparseDRAM[T](1)(N)
+      mem.alias = dram
+      val barrier1 = Barrier[Token](0)
+      Foreach(N by 1 par ip) { i =>
+        mem.RMW(i,
+          i.to[T],
+          op = "add",
+          order = "unordered",
+          bs = Seq(barrier1.push))
+      }
+      Reduce(out)(N by 1 par ip) { i =>
+        mem.barrierRead(i, Seq(barrier1.pop))
+      } { _ + _ }
+    }
+
+    val gold = (0 until N) { i => i+i }.reduce { _ + _ }
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (SparseDRAMAlias)")
+    assert(cksum)
+  }
+}

@@ -125,6 +125,7 @@ trait GarbageCollector { self:PIRTransformer =>
     case n:HostOutController => Some(true)
     case n:Controller if !depDupHasRun => Some(true)
     case n:AccumAck if !dramBarrierInsertionHasRun => Some(true)
+    case n@SparseMem(true,_) if n.alias.v.nonEmpty => Some(true)
     case n if n.isUnder[Controller] && !depDupHasRun => Some(true)
     case n if states.liveNodes.contains(n) => Some(true)
     case n => None

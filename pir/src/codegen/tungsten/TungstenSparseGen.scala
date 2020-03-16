@@ -91,10 +91,19 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
     case n:SparseMem if !n.isDRAM => genTopMember(n, Seq(n.qstr))
 
     case n:SparseDRAMBlock => 
-      genTopFields {
-        emitln(s"${n.qtp}* ${n}_data = (${n.qtp}*) malloc(sizeof(${n.qtp}) * ${n.dims.get.product} + ${spadeParam.burstSizeByte});")
+      val order = assertOneOrLess(n.rmwPorts.map { case (a, ports) => n.rmwOps(a)._2 }, s"$n RMW order").getOrElse("order")
+      n.alias.v match {
+        case None =>
+          genTopFields {
+            emitln(s"${n.qtp}* ${n}_data = (${n.qtp}*) malloc(sizeof(${n.qtp}) * ${n.dims.get.product} + ${spadeParam.burstSizeByte});")
+          }
+          genTopMember(n, Seq(n.qstr, order.qstr, "&DRAM", s"${n}_data", s"make_tuple(&net, &statnet, &idealnet)", s"false"))
+        case Some(alias) =>
+          genTopAfterModule {
+            emitln(s"extern void* ${alias.sname.get};")
+          }
+          genTopMember(n, Seq(n.qstr, order.qstr, "&DRAM", s"(${n.qtp}*) ${alias.sname.get}", s"make_tuple(&net, &statnet, &idealnet)", s"false"))
       }
-      genTopMember(n, Seq(n.qstr, "\"order\"", "&DRAM", s"${n}_data", s"make_tuple(&net, &statnet, &idealnet)", s"false"))
       genTopInit {
         n.readPorts.foreach { case (a, ports) =>
           emitln(s"""$n.RegisterRead("read${a}_", {${(0 until ports.size).map { i => i }.mkString(",")}});""")

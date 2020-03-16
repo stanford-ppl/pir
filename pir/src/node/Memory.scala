@@ -59,7 +59,9 @@ case class SRAM()(implicit env:Env) extends Memory
 case class RegFile()(implicit env:Env) extends Memory
 case class LUT()(implicit env:Env) extends Memory
 case class LockMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory
-case class SparseMem(isDRAM:Boolean=false, dramPar:Int=1)(implicit env:Env) extends Memory
+case class SparseMem(isDRAM:Boolean=false, dramPar:Int=1)(implicit env:Env) extends Memory {
+  val alias = Metadata[DRAM]("alias")
+}
 
 case class Lock()(implicit env:Env) extends BlackBox with DefNode[PIRNode] {
   val lock = InputField[PIRNode]
@@ -224,10 +226,11 @@ case class SparseDRAMBlock(
 )(implicit env:Env) extends GlobalBlackBox {
 
   val dims = Metadata[List[Int]]("dims", default=List(1))
+  val alias = Metadata[DRAM]("alias")
 
   type ReadPort = (Input[PIRNode], Output[PIRNode])
   type WritePort = (Input[PIRNode], Input[PIRNode], Output[PIRNode])
-  type RMWPort = (Input[PIRNode], Input[PIRNode], Output[PIRNode], String, String)
+  type RMWPort = (Input[PIRNode], Input[PIRNode], Output[PIRNode])
 
   // Mapping between access ID a list of ports for different lanes
   val readPorts = mutable.Map[Int,mutable.ListBuffer[ReadPort]]()
@@ -265,7 +268,7 @@ case class SparseDRAMBlock(
   }
 
   def addRMWPort(accessid:Int, op:String, order:String) = {
-    val list = writePorts.getOrElseUpdate(accessid, mutable.ListBuffer.empty)
+    val list = rmwPorts.getOrElseUpdate(accessid, mutable.ListBuffer.empty)
     rmwOps += accessid -> (op, order)
     val ports = (
       DynamicInputFields[PIRNode](s"rmwAddr"), 

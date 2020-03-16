@@ -152,6 +152,7 @@ using namespace std;
         }.mkString(",")
         emitln(s"""$topName(map<string, Module*> alias): $topName($aliasArgs) {}""")
       }
+      getBuffer("top-after-module").foreach { _.flushTo(sw) }
       emitln(s"#endif /* __TOP_H__ */")
     }
 
@@ -179,5 +180,7 @@ using namespace std;
   protected def genExternEnd(block: => Unit) = enterBuffer("extern-end", level=1)(block)
 
   protected def genTopInit(block: => Unit) = enterBuffer("top-init", level=1)(block)
+
+  protected def genTopAfterModule(block: => Unit) = enterBuffer("top-after-module")(block)
 
 }
