@@ -12,7 +12,8 @@ trait TraversalMerger extends GlobalMerging with CSVPrinter with PartitionCost {
 
   override def mergeGlobals(x:CUMap) = scheduler.map { scheduler =>
     val globs = pirTop.children
-    val nodes = scheduler.scheduleScope(globs).as[List[GlobalContainer]]
+    var nodes = scheduler.scheduleScope(globs).as[List[GlobalContainer]]
+    nodes = nodes.filterNot { case x:BlackBoxContainer => true; case _ => false }
     merge(nodes, x, scheduler)
   }.getOrElse(super.mergeGlobals(x))
 
