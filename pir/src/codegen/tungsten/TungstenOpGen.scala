@@ -136,7 +136,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
     def tb = intps(1)
     def tc = intps(2)
     op match {
-      //case FixInv                 => s"1/$a"  // TODO: same as Recip?
+      case FixInv                   => s"~ $a"
       case FixNeg                   => s"- $a"
       case FixAdd                   => s"$a + $b"
       case FixSub                   => s"$a - $b"
