@@ -27,8 +27,20 @@ trait SparseDRAMLowering extends SparseLowering {
     }
     block.mirrorMetas(n)
 
-    sortedAccesses.foreach { access =>
-      accessReqResp ++= lowerAccess(access, block)
+    val naccess = sortedAccesses.size
+    sortedAccesses.zipWithIndex.foreach { case (ua, i) =>
+      var synchronizeWithHost = false
+      if (i==naccess-1) { // Last access
+        synchronizeWithHost = ua.lanes.head match {
+          case access:SparseRead => false
+          case access:SparseRMW => !access.dataOut.isConnected
+          case access:SparseWrite => true
+        }
+      }
+      accessReqResp ++= lowerAccess(ua, block)
+      if (synchronizeWithHost) {
+        insertTokenToHost(ua)
+      }
     }
     n.alias.reset
     free(n)
@@ -115,6 +127,17 @@ trait SparseDRAMLowering extends SparseLowering {
       }
       free(access)
       reqresp
+    }
+  }
+
+  def insertTokenToHost(ua:UnrolledAccess[SparseAccess]) = dbgblk(s"insertTokenToHost($ua)"){
+    val hostOutCtx = pirTop.argFringe.collectFirst[HostOutController](visitDown _).ctx.get
+    ua.lanes.foreach { access =>
+      val resp = accessReqResp(access)._2
+      val tokenRead = insertToken(resp.src.ctx.get, hostOutCtx, dep=Some(resp))
+      within(hostOutCtx, hostOutCtx.getCtrl) {
+        stage(HostRead().input(tokenRead.out))
+      }
     }
   }
 

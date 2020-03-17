@@ -147,7 +147,7 @@ import spatial.metadata.memory.{Barrier => _,_}
     val ip = 16
 
     val dram = DRAM[T](N)
-    val out = ArgOut[T]
+    //val out = ArgOut[T]
     setMem(dram, (0 until N) { i => i })
 
     Accel {
@@ -162,14 +162,11 @@ import spatial.metadata.memory.{Barrier => _,_}
           order = "unordered",
           bs = Seq(barrier1.push))
       }
-      Reduce(out)(N by 1 par ip) { i =>
-        mem.barrierRead(i, Seq(barrier1.pop))
-      } { _ + _ }
     }
 
-    val gold = (0 until N) { i => i+i }.reduce { _ + _ }
+    val gold = (0 until N) { i => i+i }
 
-    val cksum = checkGold[T](out, gold)
+    val cksum = checkGold[T](dram, gold)
     println("PASS: " + cksum + " (SparseDRAMAlias)")
     assert(cksum)
   }
