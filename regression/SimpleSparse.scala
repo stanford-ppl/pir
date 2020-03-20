@@ -171,6 +171,7 @@ import spatial.metadata.memory.{Barrier => _,_}
     assert(cksum)
   }
 }
+
 @spatial class SimpleRMW extends SpatialTest {
   override def runtimeArgs: Args = "32"
   //type T = FixPt[TRUE, _16, _16]

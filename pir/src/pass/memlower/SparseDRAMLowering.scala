@@ -103,7 +103,6 @@ trait SparseDRAMLowering extends SparseLowering {
           rmwDataIn(access.input.connected)
           bufferInput(rmwAddr).foreach { _.name := "rmwAddr" }
           bufferInput(rmwDataIn).foreach { _.name := "rmwDataIn" }
-          access.mem.disconnect
           var ins = access.dataOut.connected
           if (ins.size == 0) {
             val accumAck = within(pirTop, access.getCtrl) {
