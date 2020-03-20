@@ -41,7 +41,7 @@ class SimpleLock_1 extends SimpleLock(P=16)
 }
 
 //class OuterLock_0 extends OuterLock(op=1)
-class OuterLock_1 extends OuterLock(op=2)
+//class OuterLock_1 extends OuterLock(op=2)
 
 @spatial abstract class OuterLock(
   d:scala.Int = 14,
