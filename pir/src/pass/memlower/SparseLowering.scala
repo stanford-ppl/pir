@@ -38,7 +38,7 @@ trait SparseLowering extends GenericMemoryLowering {
     val barrierCtx = within(pirTop, barrier.ctrl) {
       stage(Context().name.mirror(barrier.name).srcCtx.mirror(barrier.srcCtx).streaming(true))
     }
-    val writes = barrierWrite.get(barrier).getOrElse(mutable.ListBuffer.empty)
+    val writes = barrierWrite(barrier)
     val intokens:Iterable[Output[PIRNode]] = writes.map { writer =>
       val resp = accessReqResp(writer)._2
       insertToken(fctx=resp.src.ctx.get, tctx=barrierCtx, dep=Some(resp)).out
@@ -48,7 +48,7 @@ trait SparseLowering extends GenericMemoryLowering {
         stage(Forward().in(out1).dummy(out2)).out
       }
     }
-    val reads = barrierRead.get(barrier).getOrElse(mutable.ListBuffer.empty)
+    val reads = barrierRead(barrier)
     reads.foreach { access =>
       val req = accessReqResp(access)._1
       val reqctx = req.src.ctx.get

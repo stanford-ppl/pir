@@ -104,9 +104,6 @@ class Barrier(val ctrl:ControlTree, val init:Int) extends prism.graph.IR {
   val srcCtx = new Metadata[String]("srcCtx") {
     override def check(v:String) = {}
   }
-  override def toString = {
-    s"Barrier($init,$ctrl,${ctrl.srcCtx.v.getOrElse("No Source Context")})"
-  }
 }
 object Barrier {
   def apply(ctrl:ControlTree, init:Int) = new Barrier(ctrl, init)

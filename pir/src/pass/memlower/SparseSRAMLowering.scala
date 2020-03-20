@@ -24,8 +24,12 @@ trait SparseSRAMLowering extends SparseLowering {
 
   private def lowerSparseAccess(access:SparseAccess, memCU:MemoryContainer) = dbgblk(s"lower($access)"){
     access.barriers.get.foreach { 
-      case (barrier,true) => barrierWrite.getOrElseUpdate(barrier, mutable.ListBuffer()) += access
-      case (barrier,false) => barrierRead.getOrElseUpdate(barrier, mutable.ListBuffer()) += access
+      case (barrier,true) => 
+        dbg(s"Adding $barrier to write")
+        barrierWrite.getOrElseUpdate(barrier, mutable.ListBuffer()) += access
+      case (barrier,false) => 
+        dbg(s"Adding $barrier to read")
+        barrierRead.getOrElseUpdate(barrier, mutable.ListBuffer()) += access
     }
     val ctrl = access.getCtrl
     access match {

@@ -29,6 +29,7 @@ trait GarbageCollector { self:PIRTransformer =>
 
   private def visitOut(n:PIRNode):List[PIRNode] = n match {
     case n@UnderControlBlock(cb) if depDupHasRun => visitGlobalOut(cb) ++ visitGlobalOut(n)
+    case n:RMWAccess => visitGlobalOut(n) :+ n.mem.T
     case n => visitGlobalOut(n)
   }
 
@@ -126,7 +127,6 @@ trait GarbageCollector { self:PIRTransformer =>
     case n:Controller if !depDupHasRun => Some(true)
     case n:AccumAck if !dramBarrierInsertionHasRun => Some(true)
     case n@SparseMem(true,_) if n.alias.v.nonEmpty => Some(true)
-    case n:SparseRMW => isLive(n.mem.T)
     case n if n.isUnder[Controller] && !depDupHasRun => Some(true)
     case n if states.liveNodes.contains(n) => Some(true)
     case n => None
