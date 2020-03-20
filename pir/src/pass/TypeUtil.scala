@@ -85,6 +85,11 @@ trait TypeUtil { self:PIRPass =>
       msg += " " + n.srcCtx.v.getOrElse("No source context")
       n.ctx.map { ctx => msg += s" ($ctx)"}
       msg
+    case n:Barrier =>
+      var msg = dquote(n)
+      n.name.v.foreach { n => msg += s": $n" }
+      msg += " " + n.srcCtx.v.getOrElse("No source context")
+      msg
     case n:ControlTree =>
       s"$n[${n.uid.get.mkString(",")}] ${n.srcCtx.v.getOrElse("No source context")}"
     case n => s"$n"
