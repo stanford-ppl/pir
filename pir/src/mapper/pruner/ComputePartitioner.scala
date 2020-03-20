@@ -93,7 +93,7 @@ trait ComputePartitioner extends ComputePartitioning
         dbg(s"partitions=${parts.size}")
         val ctxs = within(k.global.get, k.ctrl.get) {
           parts.map { case part@Partition(scope) =>
-            val ctx = stage(Context().delay.update(part.delay))
+            val ctx = stage(Context().delay.update(part.delay).name.mirror(k.name).srcCtx.mirror(k.srcCtx))
             dbg(s"Create $ctx for $part")
             scope.foreach { n => swapParent(n, ctx) }
             ctx

@@ -205,9 +205,19 @@ def oncluster():
 def create_ivy2():
     username = getpass.getuser()
     if oncluster():
-        ivy2 = f'/scratch/{username}/.ivy2'
-        if not os.path.exists(ivy2):
-            os.makedirs(ivy2)
+        ivy2_path = f'/home/{username}/.ivy2'
+        if os.path.exists(ivy2_path):
+            if not os.path.islink(ivy2_path):
+                print(cstr(YELLOW, 'WARNING ' + ivy2_path + ' is shared under network drive!'))
+            else:
+                path = os.readlink(ivy2_path)
+                if not os.path.exists(path):
+                    os.makedirs(gendir)
+        else:
+            ivy2_scratch = f'/scratch/{username}/.ivy2'
+            if not os.path.exists(ivy2_scratch):
+                os.makedirs(ivy2_scratch)
+            os.symlink(ivy2_scratch, ivy2_path)
 
 
 def create_gendir():

@@ -97,7 +97,10 @@ case class LockRMW(op:Opcode)(implicit env:Env) extends LockAccess with RMWAcces
   val ack = OutputField[List[PIRNode]].presetVec(1).tp(Bool)
 }
 
-class Barrier(val ctrl:ControlTree, val init:Int) extends Serializable {
+class Barrier(val ctrl:ControlTree, val init:Int) extends prism.graph.IR {
+  val srcCtx = new Metadata[String]("srcCtx") {
+    override def check(v:String) = {}
+  }
   override def toString = {
     s"Barrier($init,$ctrl,${ctrl.srcCtx.v.getOrElse("No Source Context")})"
   }
