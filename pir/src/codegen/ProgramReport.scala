@@ -60,7 +60,7 @@ class ProgramReport(val fileName:String)(implicit design:PIR) extends Report wit
               case n => (n,n)
             }.map { case (n,op) => 
               val vec = n match {
-                case n@RegAccumOp(_,_) => n.in.T.getVec
+                case n@RegAccumOp(_,_) => n.in.getVec
                 case n@RegAccumFMA(_) => math.max(n.in1.T.getVec, n.in2.T.getVec)
                 case _ => n.getVec
               }

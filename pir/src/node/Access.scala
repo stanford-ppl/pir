@@ -54,7 +54,7 @@ trait ReadAccess extends OutAccess {
   }
 }
 trait RMWAccess extends Access {
-  val mem = OutputField[Memory]
+  val mem = InputField[Memory]
   val input = InputField[PIRNode]
 }
 // Nodes before lowering
@@ -98,6 +98,9 @@ case class LockRMW(op:Opcode)(implicit env:Env) extends LockAccess with RMWAcces
 }
 
 class Barrier(val ctrl:ControlTree, val init:Int) extends prism.graph.IR {
+  val name = new Metadata[String]("name") {
+    override def check(v:String) = {}
+  }
   val srcCtx = new Metadata[String]("srcCtx") {
     override def check(v:String) = {}
   }
@@ -128,6 +131,7 @@ case class SparseWrite()(implicit env:Env) extends WriteAccess with SparseAccess
 }
 case class SparseRMW(op:String, opOrder:String)(implicit env:Env) extends SparseAccess with RMWAccess {
   val dataOut = OutputField[List[PIRNode]]
+  override def asOutput = Some(dataOut)
   override def compVec(n:IR) = n match {
     case `dataOut` => input.inferVec
     case _ => super.compVec(n)

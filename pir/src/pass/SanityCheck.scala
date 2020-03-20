@@ -53,6 +53,7 @@ class SanityCheck(implicit compiler:PIR) extends PIRTraversal with SiblingFirstT
             in.src match {
               case f:LocalOutAccess =>
               case f:OutAccess =>
+              case d:RMWAccess =>
               case f => err(s"$n input at ${f}.$in")
             }
           }
@@ -61,7 +62,6 @@ class SanityCheck(implicit compiler:PIR) extends PIRTraversal with SiblingFirstT
           out.src match {
             case d:LocalInAccess =>
             case d:InAccess =>
-            case d:RMWAccess =>
             case d => err(s"$n output at ${d}.$out")
           }
           depedsIn.foreach { in =>
