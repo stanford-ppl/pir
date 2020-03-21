@@ -591,9 +591,9 @@ case class ControlBlock()(implicit env:Env) extends PIRNode {
 trait MemoryUtil extends CollectorImplicit {
 
   implicit class MemOp[M<:Memory](n:M) {
-    def inAccesses = n.collect[InAccess](visitGlobalIn _)
-    def outAccesses = n.collect[OutAccess](visitGlobalOut _)
-    def accesses:List[Access] = n.collect[Access](visitGlobalIn _) ++ n.collect[Access](visitGlobalOut _)
+    def inAccesses = n.in.neighbors.collect { case a:InAccess => a }.toList
+    def outAccesses = n.out.neighbors.collect { case a:OutAccess => a }.toList
+    def accesses = n.in.neighbors.collect { case a:Access => a }.toList ++ outAccesses
 
     def isFIFO = n match {
       case n:FIFO => true

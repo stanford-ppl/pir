@@ -11,6 +11,7 @@ with GarbageCollector
 with RewriteUtil
 with BufferAnalyzer
 { self =>
+  protected def inProgramStaging = false
 
   override def finPass = {
     super.finPass
@@ -81,6 +82,15 @@ with BufferAnalyzer
     //dbgn(n)
     if (n.srcCtx.isEmpty) {
       n.setSrcCtx
+    } else {
+    }
+    if (!inProgramStaging) {
+      n.srcCtx.v match {
+        case None => n.setSrcCtx
+        case Some(sc) => 
+          val nsc = getSrcCtx
+          if (sc != nsc) n.srcCtx(s"$sc\n${nsc}")
+      }
     }
     dbg(s"Stage ${dquote(n)}")
     n

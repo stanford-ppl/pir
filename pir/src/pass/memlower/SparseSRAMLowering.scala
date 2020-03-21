@@ -17,6 +17,7 @@ trait SparseSRAMLowering extends SparseLowering {
   private def lowerSparseSRAM(n:SparseMem):Unit = dbgblk(s"lower($n)"){
     val memCU = within(pirTop) { stage(MemoryContainer()) }
     swapParent(n, memCU)
+    dbg(s"accesses=${n.accesses}")
     n.accesses.foreach { access =>
       accessReqResp += lowerSparseAccess(access.as[SparseAccess], memCU)
     }

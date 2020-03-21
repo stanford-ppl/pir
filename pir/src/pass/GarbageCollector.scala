@@ -29,7 +29,6 @@ trait GarbageCollector { self:PIRTransformer =>
 
   private def visitOut(n:PIRNode):List[PIRNode] = n match {
     case n@UnderControlBlock(cb) if depDupHasRun => visitGlobalOut(cb) ++ visitGlobalOut(n)
-    case n:RMWAccess => visitGlobalOut(n) :+ n.mem.T
     case n => visitGlobalOut(n)
   }
 

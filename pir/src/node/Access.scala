@@ -29,6 +29,9 @@ trait Access extends PIRNode {
     // memories that gets merged
     this.order := order
     mem(m)
+    this.to[RMWAccess].foreach { rmw =>
+      rmw.memOut(m)
+    }
     this
   }
 }
@@ -55,6 +58,7 @@ trait ReadAccess extends OutAccess {
 }
 trait RMWAccess extends Access {
   val mem = InputField[Memory]
+  val memOut = OutputField[Memory]
   val input = InputField[PIRNode]
 }
 // Nodes before lowering

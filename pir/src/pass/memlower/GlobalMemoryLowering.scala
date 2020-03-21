@@ -123,7 +123,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
   }
 
   private def lowerAccess(mem:Memory, memCU:MemoryContainer, access:Access) = dbgblk(s"lowerAccess($mem, $memCU, $access)") {
-    val ctx = within(memCU, access.ctx.get.getCtrl) { stage(Context()) }
+    val ctx = within(memCU, access.ctx.get.getCtrl) { stage(Context().srcCtx.mirror(access.srcCtx)) }
     if (mem.isFIFO) {
       ctx.streaming(false)
     } else {
@@ -159,7 +159,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     val leadAccesses = broadcastMap.values.toList.distinct
     val headAccess = leadAccesses.head
     val mergeCtrl = headAccess.getCtrl
-    val mergeCtx = within(memCU, headAccess.ctx.get.getCtrl) { stage(Context()) }
+    val mergeCtx = within(memCU, headAccess.ctx.get.getCtrl) { stage(Context().srcCtx.mirror(headAccess.srcCtx)) }
     dbg(s"mergeCtrl = $mergeCtrl")
     dbg(s"mergeCtx=$mergeCtx")
     val ctrlMap = leastMatchedPeers(mem.accesses.filterNot{_.port.get.isEmpty}.map { _.getCtrl} ).get
@@ -170,7 +170,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
           case access => 
             val key = if (config.shareAddrCtx) Left(access.getCtrl) else Right(access)
             addrCtxs.getOrElseUpdate(key, {
-              within(memCU, access.ctx.get.getCtrl) { stage(Context().name(s"${access}_addrCtx")) }
+              within(memCU, access.ctx.get.getCtrl) { stage(Context().name(s"${access}_addrCtx").srcCtx.mirror(access.srcCtx)) }
             })
         }
         dbg(s"addrCtx for $access = $addrCtx")
@@ -212,7 +212,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     }
 
     val List((ofs, data)) = red
-    val accessCtx = within(memCU, headAccess.ctx.get.getCtrl) { stage(Context().streaming(true)) }
+    val accessCtx = within(memCU, headAccess.ctx.get.getCtrl) { stage(Context().streaming(true).srcCtx.mirror(headAccess.srcCtx)) }
     val newAccess = within(accessCtx) {
       data.fold[FlatBankedAccess]{
         stage(FlatBankedRead().offset(ofs).mem(mem).mirrorMetas(headAccess))
