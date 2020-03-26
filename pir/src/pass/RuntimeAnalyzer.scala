@@ -292,16 +292,19 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
     in1.connected.forall { matchOutput(_,out) }
   }
 
-  def matchRate(a1:LocalAccess, a2:LocalAccess) = {
+  def matchRate(a1:LocalAccess, a2:LocalAccess):Boolean = {
     val matchScale = (compScale(a1), compScale(a2)) match {
       case (Unknown, _) => false
       case (_, Unknown) => false
       case (s1, s2) => s1 == s2
     }
-    //TODO: fix this
-    matchScale //|| (a1.done.connected.toSet == a2.done.connected.toSet)
+    if (matchScale) return true
+    if (a1.getCtrl == a2.getCtrl) {
+      dbg(s"Done Match Rate! $a1 ${dquote(a1.done.connected)} $a2 ${dquote(a2.done.connected)}")
+      if (a1.done.connected.toSet == a2.done.connected.toSet) 
+        return true
+    }
+    return false
   }
-
-
 
 }
