@@ -445,14 +445,34 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   def checkRouteThrough(r1:BufferRead, w2:BufferWrite, r2:BufferRead):Boolean = {
     if (r1.isFIFO != r2.isFIFO) return false
     if (r2.nonBlocking) return false
+    val matchwidth = r1.out.getVec == r2.out.getVec
+    if (!matchwidth) return false
     val matchrate = matchRate(r1, w2)
     dbg(s"matchrate = $matchrate")
     if (!matchrate) return false
     val matchen = matchInput(r1.en, w2.en)
     dbg(s"matchen = $matchen")
-    if (!matchen) return false
-    val matchwidth = r1.out.getVec == r2.out.getVec
-    matchwidth
+    if (matchen) return true
+    if (r1.getCtrl == w2.getCtrl) {
+      r1.inAccess match {
+        case w:BufferWrite => 
+          w.data.T match {
+            case access:Access =>
+              val allGeneratedLaneEnables = w2.en.connected.forall {
+                case OutputField(x:LoopController, "laneValid") => true
+                case OutputField(x:CounterValid, "out") => true
+                case _ => false
+              }
+              if (allGeneratedLaneEnables) {
+                //breakPoint(s"$r1")
+                return true
+              }
+            case _ =>
+          }
+        case _ =>
+      }
+    }
+    return false
   }
 
   TransferRule[BufferRead](config.enableRouteElim) { r2 =>
@@ -460,7 +480,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     w2.data.T match {
       case r1:BufferRead if checkRouteThrough(r1,w2,r2) =>
         val w1 = r1.inAccess.as[BufferWrite]
-        dbgblk(s"Route through (2) $w1 -> $r1 -> $w2 -> $r2 detected => ") {
+        dbgblk(s"Route through (2) $w1 -> $r1 -> $w2 -> $r2 detected => ${quoteSrcCtx(r1)}") {
           dbg(s" => $w1 -> $r2")
           if (r2.in.getVec != r1.in.getVec) {
             r2.in.vecMeta.reset

@@ -55,7 +55,7 @@ trait TungstenMemGen extends TungstenCtxGen {
       }
       genCtxComputeEnd {
         val cond = if (n.isFIFO) List(n.done.qref, n.en.qany) else List(n.done.qref)
-        emitIf(cond.mkString(" & ")) {
+        emitIf(cond.mkString(" && ")) {
           emitln(s"$name->Pop();")
         }
       }
@@ -111,7 +111,7 @@ trait TungstenMemGen extends TungstenCtxGen {
           }
         }
         val cond = if (n.isFIFO) List(n.done.qref, n.en.qany) else List(n.done.qref)
-        emitIf(cond.mkString(" & ")) {
+        emitIf(cond.mkString(" && ")) {
           emitln(s"Token data = make_token(${n.qref});")
           if (n.en.getVec > 1) {
             emitln(s"set_token_en<${n.en.getVec}>(data, ${n.en.qref});")
@@ -166,7 +166,7 @@ trait TungstenMemGen extends TungstenCtxGen {
       }
       genCtxComputeEnd {
         val cond = List(n.done.qref, n.en.qany)
-        emitIf(cond.mkString(" & ")) {
+        emitIf(cond.mkString(" && ")) {
           emitln(s"$name->Pop();")
         }
       }
@@ -189,7 +189,7 @@ trait TungstenMemGen extends TungstenCtxGen {
           }
         }
         val cond = List(n.done.qref, n.en.qany)
-        emitIf(cond.mkString(" & ")) {
+        emitIf(cond.mkString(" && ")) {
           emitln(s"Token data = make_token(${n.qref});")
           if (n.en.getVec > 1) {
             emitln(s"set_token_en<${n.en.getVec}>(data, ${n.en.qref});")
@@ -267,7 +267,7 @@ trait TungstenMemGen extends TungstenCtxGen {
     }
     emitAssign(en) { i =>
       var ens = en.connected.map { _.qidx(i) }
-      ens.distinct.reduceOption[String]{ _ + " & " + _ }.getOrElse("true")
+      ens.distinct.reduceOption[String]{ _ + " && " + _ }.getOrElse("true")
     }
   }
 
@@ -282,7 +282,7 @@ trait TungstenMemGen extends TungstenCtxGen {
       }
       //n.as[Input[PIRNode]].singleConnected.map { _.qref }.getOrElse("false")
       n.as[Input[PIRNode]].singleConnected.map { 
-        case done@OutputField(read:BufferRead, _) if !isFIFO => read.done.qref + " & " + done.qref
+        case done@OutputField(read:BufferRead, _) if !isFIFO => read.done.qref + " && " + done.qref
         case done => done.qref
       }.getOrElse("false")
     case n@InputField(x:LocalOutAccess, "in") => varOf(x)._2
