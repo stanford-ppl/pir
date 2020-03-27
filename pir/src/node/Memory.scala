@@ -54,7 +54,9 @@ abstract class Memory(implicit env:Env) extends MemoryNode with DefNode[PIRNode]
 }
 
 case class Reg()(implicit env:Env) extends Memory
-case class FIFO()(implicit env:Env) extends Memory
+case class FIFO()(implicit env:Env) extends Memory {
+  val retiming = Metadata[Boolean]("retiming", Some(false)) 
+}
 case class SRAM()(implicit env:Env) extends Memory
 case class RegFile()(implicit env:Env) extends Memory
 case class LUT()(implicit env:Env) extends Memory

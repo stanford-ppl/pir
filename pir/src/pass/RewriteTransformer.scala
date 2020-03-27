@@ -455,7 +455,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     if (matchen) return true
     if (r1.getCtrl == w2.getCtrl) {
       r1.inAccess match {
-        case w:BufferWrite => 
+        case w:BufferWrite if config.option[Boolean]("rtelm-unsafe") => 
           w.data.T match {
             case access:Access =>
               val allGeneratedLaneEnables = w2.en.connected.forall {
@@ -464,7 +464,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
                 case _ => false
               }
               if (allGeneratedLaneEnables) {
-                //breakPoint(s"$r1")
+                dbg(s"Unsafe Route Through $r1 => $w2 => $r2")
                 return true
               }
             case _ =>

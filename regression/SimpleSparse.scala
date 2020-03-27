@@ -137,6 +137,63 @@ import spatial.dsl._
   }
 }
 
+// Spatial Bug: Using scan iterator == 0 in reduce is incorrect!
+@spatial abstract class OuterScan extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  type T = Int
+  val N = 32
+  val ts = 16
+  val ip = 16
+
+  def main(args: Array[String]): Unit = {
+
+    val out = ArgOut[T]
+
+    Accel {
+      Reduce(out)(N by ts) { i =>
+        val sram = SRAM[U32](ts)
+        Foreach(ts by 1) { j =>
+          sram(j) = (i+j).to[U32]
+        }
+        val fifo = FIFO[U32](16)
+        Foreach(ts by 1 par ip) { j =>
+          val mask = sram(j)
+          fifo.enq(mask)
+        }
+        Reduce(Reg[T])(Scan(fifo.deq)) { j =>
+          Reduce(Reg[T])(10 by 1) { _ =>
+            j.to[T]
+          } { _ + _ }
+        } { _ + _ }
+      } { _ + _ }
+    }
+
+    val gold = scala.collection.immutable.Range(0, N, ts).map { i =>
+      val mask = scala.collection.immutable.Range(0, ts).map{ j => 
+        val bi = (i+j).toBinaryString
+        val pad = "0" * (32 - bi.size) + bi
+        pad.reverse
+      }.reduce { _ + _ }
+      Console.println(mask)
+      val nonZero = mask.count { _ == '1' }
+      val sum = mask.zipWithIndex.map { case (char, k) =>
+        val idx = char match {
+          case '1' => k
+          case _ => 0
+        }
+        idx * 10
+      }.sum
+      Console.println(s"nonZero=$nonZero, partial sum $sum")
+      sum
+    }.sum
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (OuterScan)")
+    assert(cksum)
+  }
+}
+
+
 import spatial.metadata.memory.{Barrier => _,_}
 @spatial class SparseDRAMAlias extends SpatialTest {
   override def runtimeArgs: Args = "32"
