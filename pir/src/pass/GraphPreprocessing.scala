@@ -358,8 +358,11 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
         }
       }
       connectLaneValid(access)
-      if (access.mem.T.isFIFO) {
-        access.en.disconnect
+
+      access.mem.T.to[FIFO].foreach { fifo =>
+        if (fifo.retiming.get) {
+          access.en.disconnect
+        }
       }
     }
 
