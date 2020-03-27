@@ -98,9 +98,10 @@ using   namespace std;
                 emitln(s"EvalControllers();")
                 getBuffer("computes-end").foreach { _.flushTo(sw) }
                 getBuffer("computes-end").foreach { _.flushTo(sw) }
-                sortedMembers.foreach { 
-                  case _:Controller | _:Counter => 
-                  case m => emitln(s"$m->Eval();")
+                sortedMembers.foreach { m =>
+                  if (!m.contains("Controller") && !m.contains("Counter")) {
+                    emitln(s"$m->Eval();")
+                  }
                 }
               }
             }
@@ -152,14 +153,14 @@ using   namespace std;
     }
   }
 
-  private val members = mutable.ListBuffer[Any]()
+  private val members = mutable.ListBuffer[String]()
 
   def genCtxMember(n:PIRNode, args:Any*):Unit = {
     val (tp,name) = varOf(n)
     genCtxMember(tp, name, args, false)
   }
 
-  def genCtxMember(tp:String, name:Any, args:Seq[Any], end:Boolean=false):Unit = {
+  def genCtxMember(tp:String, name:String, args:Seq[Any], end:Boolean=false):Unit = {
     genCtxFields {
       if (end) {
         emitln(s"$tp* $name;")

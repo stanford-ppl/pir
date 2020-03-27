@@ -121,7 +121,9 @@ import spatial.dsl._
       val nonZero = mask.count { _ == '1' }
       val sum = mask.zipWithIndex.map { case (char, k) =>
         char match {
-          case '1' => k 
+          case '1' => 
+            Console.println(k)
+            k 
           case _ => 0
         }
       }.sum

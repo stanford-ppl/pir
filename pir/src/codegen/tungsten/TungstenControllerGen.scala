@@ -101,6 +101,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       genCtxMember(n)
       emitln(s"$n->setCount(${n.cnt.T});")
       emitln(s"$n->setIndex(${n.index.T});")
+      emitln(s"$n->Eval(); // ${n.getCtrl}")
 
     case n@CounterIter(is) =>
       val ctr = n.counter.T
