@@ -64,7 +64,7 @@ class ProgramReport(val fileName:String)(implicit design:PIR) extends Report wit
                 case n@RegAccumFMA(_) => math.max(n.in1.T.getVec, n.in2.T.getVec)
                 case _ => n.getVec
               }
-              s"${vec}|$op|${n.srcCtx.v.getOrElse("")}"
+              s"${vec}|$op|${n.srcCtx.v.getOrElse("").replace("\n",";")}"
             }
             emitkv(ctx, ops)
           }
