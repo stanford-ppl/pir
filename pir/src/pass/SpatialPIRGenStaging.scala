@@ -216,7 +216,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
   }
 
   def analyzeCounterRange(n:ScanCounter):Unit = dbgblk(s"analyzeCounterRange($n)") {
-    val (constValids, constIters) = (List.tabulate(1) { i => Some(true) }, List.tabulate(1) { i => None })
+    val (constValids, constIters) = (List.tabulate(1) { i => None }, List.tabulate(1) { i => None })
     dbg(s"$n.constValids=[${constValids.map { _.getOrElse("unknown") }.mkString(",")}]")
     dbg(s"$n.constIters=[${constIters.map { _.getOrElse("unknown") }.mkString(",")}]")
     n.constValids := constValids
