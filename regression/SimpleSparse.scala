@@ -87,7 +87,6 @@ import spatial.dsl._
   override def runtimeArgs: Args = "32"
   type T = Int
   val N = 32
-  val ts = 16
   val ip = 16
 
   def main(args: Array[String]): Unit = {
@@ -95,13 +94,13 @@ import spatial.dsl._
     val out = ArgOut[T]
 
     Accel {
-      Reduce(out)(N by ts) { i =>
-        val sram = SRAM[U32](ts)
-        Foreach(ts by 1) { j =>
+      Reduce(out)(N by ip) { i =>
+        val sram = SRAM[U32](ip)
+        Foreach(ip by 1) { j =>
           sram(j) = (i+j).to[U32]
         }
         val fifo = FIFO[U32](16)
-        Foreach(ts by 1 par ip) { j =>
+        Foreach(ip by 1 par ip) { j =>
           val mask = sram(j)
           fifo.enq(mask)
         }
@@ -111,8 +110,8 @@ import spatial.dsl._
       } { _ + _ }
     }
 
-    val gold = scala.collection.immutable.Range(0, N, ts).map { i =>
-      val mask = scala.collection.immutable.Range(0, ts).map{ j => 
+    val gold = scala.collection.immutable.Range(0, N, ip).map { i =>
+      val mask = scala.collection.immutable.Range(0, ip).map{ j => 
         val bi = (i+j).toBinaryString
         val pad = "0" * (32 - bi.size) + bi
         pad.reverse
@@ -142,7 +141,6 @@ import spatial.dsl._
   override def runtimeArgs: Args = "32"
   type T = Int
   val N = 32
-  val ts = 16
   val ip = 16
 
   def main(args: Array[String]): Unit = {
@@ -150,13 +148,13 @@ import spatial.dsl._
     val out = ArgOut[T]
 
     Accel {
-      Reduce(out)(N by ts) { i =>
-        val sram = SRAM[U32](ts)
-        Foreach(ts by 1) { j =>
+      Reduce(out)(N by ip) { i =>
+        val sram = SRAM[U32](ip)
+        Foreach(ip by 1) { j =>
           sram(j) = (i+j).to[U32]
         }
         val fifo = FIFO[U32](16)
-        Foreach(ts by 1 par ip) { j =>
+        Foreach(ip by 1 par ip) { j =>
           val mask = sram(j)
           fifo.enq(mask)
         }
@@ -168,8 +166,8 @@ import spatial.dsl._
       } { _ + _ }
     }
 
-    val gold = scala.collection.immutable.Range(0, N, ts).map { i =>
-      val mask = scala.collection.immutable.Range(0, ts).map{ j => 
+    val gold = scala.collection.immutable.Range(0, N, ip).map { i =>
+      val mask = scala.collection.immutable.Range(0, ip).map{ j => 
         val bi = (i+j).toBinaryString
         val pad = "0" * (32 - bi.size) + bi
         pad.reverse
@@ -231,6 +229,57 @@ import spatial.metadata.memory.{Barrier => _,_}
   }
 }
 
+@spatial class ZeroScan extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  type T = Int
+  val N = 32
+  val ip = 16
+
+  def main(args: Array[String]): Unit = {
+
+    val out = ArgOut[T]
+
+    Accel {
+      val fifo = FIFO[U32](16)
+      Foreach(N by 1) { i =>
+        Foreach(ip by 1 par ip) { j =>
+          val mask = (i % 10).to[U32]
+          fifo.enq(mask)
+        }
+      }
+      Reduce(out)(N by 1) { i =>
+        Reduce(Reg[T])(Scan(fifo.deq)) { j =>
+          j.to[T]
+        } { _ + _ }
+      } { _ + _ }
+    }
+
+    val gold = scala.collection.immutable.Range(0, N).map { i =>
+      val mask = scala.collection.immutable.Range(0, ip).map{ j => 
+        val bi = (i % 10).toBinaryString
+        val pad = "0" * (32 - bi.size) + bi
+        pad.reverse
+      }.reduce { _ + _ }
+      Console.println(mask)
+      val nonZero = mask.count { _ == '1' }
+      val sum = mask.zipWithIndex.map { case (char, k) =>
+        char match {
+          case '1' => 
+            Console.println(k)
+            k 
+          case _ => 0
+        }
+      }.sum
+      Console.println(s"nonZero=$nonZero, partial sum $sum")
+      sum
+    }.sum
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (ZeroScan)")
+    assert(cksum)
+  }
+}
+
 @spatial class SimpleRMW extends SpatialTest {
   override def runtimeArgs: Args = "32"
   //type T = FixPt[TRUE, _16, _16]
@@ -247,7 +296,8 @@ import spatial.metadata.memory.{Barrier => _,_}
 
     Accel {
       // Test dense read/write and RMW
-      val mem = SparseSRAM[T](N)
+      val mem = SparseDRAM[T](1)(N)
+      mem.alias = dram
       val fifo = FIFO[T](16)
       Foreach(N by 1 par ip) { i =>
         val elem = mem.RMW(i,
@@ -263,6 +313,42 @@ import spatial.metadata.memory.{Barrier => _,_}
     }
 
     val gold = (0 until N) { i => i+i }.reduce { _ + _ }
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (SimpleRMW)")
+    assert(cksum)
+  }
+}
+
+@spatial class OuterWrite extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+
+  def main(args: Array[String]): Unit = {
+
+    val N = 64
+    val ts = 32
+    val ip = 16
+
+    val dram = DRAM[T](N)
+    val out = ArgOut[T]
+    setMem(dram, (0 until N) { i => i })
+
+    Accel {
+      // Test dense read/write and RMW
+      val sram = SRAM[T](N)
+      Foreach(N by 1) { i =>
+        Foreach(ts by ip) { j =>
+          sram(i) = i
+        }
+      }
+      Reduce(out)(N by 1){ i =>
+        sram(i)
+      } { _ + _ }
+    }
+
+    val gold = (0 until N) { i => i }.reduce { _ + _ }
 
     val cksum = checkGold[T](out, gold)
     println("PASS: " + cksum + " (SimpleRMW)")
