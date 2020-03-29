@@ -132,8 +132,17 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
     n.collectDown[FringeStreamWrite]().headOption
   }
 
+  private def quote(n:PIRNode) = n match {
+    case n:Context => s"${n} (${n.parent.get})"
+    case n => n.toString
+  }
+
+  val countStack = scala.collection.mutable.Stack[PIRNode]()
   def compCount(n:PIRNode):Option[Value[Long]] = {
-    dbgblk(s"compCount($n)"){
+    val cnt:Option[Value[Long]] = dbgblk(s"compCount(${quote(n)})"){
+      if (countStack.contains(n))
+        err(s"Cycle in the program graph! ${countStack.collect { case ctx:Context => quote(ctx) + s" ${quoteSrcCtx(ctx)}" }.mkString("\n")}")
+      countStack.push(n)
       n match {
         case StreamWriteContext(sw) => sw.count.v match {
           case Some(v) => Some(v)
@@ -166,6 +175,15 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
           l.lockAddrs(l.laneMap(o)).T.getCount
         case WrittenBy(o@OutputField(l:LockRMWBlock, "lockAck")) => 
           l.lockAddrs(l.laneMap(o)).T.getCount
+        case WrittenBy(o@OutputField(l:SparseDRAMBlock, "rmwDataOut")) => 
+          val (aid, lane) = l.portMap(o.as)
+          l.rmwPorts(aid)(lane)._2.singleConnected.get.src.getCount
+        case WrittenBy(o@OutputField(l:SparseDRAMBlock, "readData")) => 
+          val (aid, lane) = l.portMap(o.as)
+          l.readPorts(aid)(lane)._1.singleConnected.get.src.getCount
+        case WrittenBy(o@OutputField(l:SparseDRAMBlock, "writeAck")) => 
+          val (aid, lane) = l.portMap(o.as)
+          l.writePorts(aid)(lane)._1.singleConnected.get.src.getCount
         case n:LocalOutAccess =>
           n.in.T.getCount.map { _ * n.in.getVec /! n.out.getVec }
         case n:LocalInAccess =>
@@ -177,6 +195,8 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
         case n => bug(s"Don't know how to compute count of $n")
       }
     }
+    countStack.pop
+    cnt
   }
 
 
