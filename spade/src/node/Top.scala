@@ -29,10 +29,12 @@ trait SpadeNodeUtil extends CollectorImplicit {
       if (n.param.isAsic || n.param.isInf) rts else {
         var reservePCUs = compiler.config.option[Int]("reserve-pcu")
         var reservePMUs = compiler.config.option[Int]("reserve-pmu")
+        var reserveDAGs = compiler.config.option[Int]("reserve-dag")
         rts.filterNot { cu =>
           cu.params match {
             case Some(param:PCUParam) if reservePCUs > 0 => reservePCUs-=1; true
             case Some(param:PMUParam) if reservePMUs > 0 => reservePMUs-=1; true
+            case Some(param:DramAGParam) if reserveDAGs > 0 => reserveDAGs-=1; true
             case param => false
           }
         }
