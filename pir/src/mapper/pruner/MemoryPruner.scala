@@ -49,6 +49,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
     if (memNotFit) {
       mem match {
         case mem:SRAM =>
+        case mem:LUT =>
         case mem => 
           err(s"${quoteSrcCtx(mem)} exceeds memory capacity but is not splittable!")
       }

@@ -320,9 +320,10 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
     }
     if (matchScale) return true
     if (a1.getCtrl == a2.getCtrl) {
-      dbg(s"Done Match Rate! $a1 ${dquote(a1.done.connected)} $a2 ${dquote(a2.done.connected)}")
-      if (a1.done.connected.toSet == a2.done.connected.toSet) 
+      if (a1.done.connected.toSet == a2.done.connected.toSet)  {
+        dbg(s"Done Match Rate! $a1 ${dquote(a1.done.connected)} $a2 ${dquote(a2.done.connected)}")
         return true
+      }
     }
     return false
   }
