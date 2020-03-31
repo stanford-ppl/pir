@@ -60,7 +60,9 @@ case class FIFO()(implicit env:Env) extends Memory {
 case class SRAM()(implicit env:Env) extends Memory
 case class RegFile()(implicit env:Env) extends Memory
 case class LUT()(implicit env:Env) extends Memory
-case class LockMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory
+case class LockMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory {
+  override def nBanks:Int = banks.get.product
+}
 case class SparseMem(isDRAM:Boolean=false, dramPar:Int=1)(implicit env:Env) extends Memory {
   val alias = Metadata[DRAM]("alias")
   override def nBanks:Int = banks.get.product
