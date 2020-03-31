@@ -170,13 +170,13 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
     bus match {
       case DRAMBus =>
       case bus =>
-        within(ControlTree(Streaming)) {
+        val count = assertUnify(fifos, s"$sw.count")(_.count.v).get
+        within(ControlTree(Streaming).iter.update(count)) {
           val sw = stage(FringeStreamWrite(bus))
           name.foreach { name => sw.name(name) }
           val data = fifos.map { fifo =>
             stage(MemWrite().setMem(fifo).presetVec(fifo.banks.get.head).tp.mirror(fifo.tp)).data
           }
-          val count = assertUnify(fifos, s"$sw.count")(_.count.v).get
           count.foreach { c => sw.count(c) }
           fifos.foreach { _.count.reset }
           sw.addStreams(data)

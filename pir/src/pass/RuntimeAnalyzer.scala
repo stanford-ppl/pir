@@ -325,8 +325,8 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
     val branch2 = a2.getCtrl.ancestorSlice(lca).dropRight(1)
     dbg(s"branch1=$branch1")
     dbg(s"branch2=$branch2")
-    val rate1 = branch1.map { _.iter.get }.reduceOption { _ * _ }.getOrElse(Finite(1l))
-    val rate2 = branch2.map { _.iter.get }.reduceOption { _ * _ }.getOrElse(Finite(1l))
+    val rate1 = branch1.map { _.iter.v.getOrElse(Unknown) }.reduceOption { _ * _ }.getOrElse(Finite(1l))
+    val rate2 = branch2.map { _.iter.v.getOrElse(Unknown) }.reduceOption { _ * _ }.getOrElse(Finite(1l))
     if (rate1 == Unknown) return false
     if (rate2 == Unknown) return false
     return rate1 == rate2
