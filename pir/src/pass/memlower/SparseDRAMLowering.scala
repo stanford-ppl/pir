@@ -19,7 +19,7 @@ trait SparseDRAMLowering extends SparseLowering {
       .map { case (po, as) => UnrolledAccess(as.as[List[SparseAccess]].sortBy { _.order.get }) }
 
     val ctrl = leastCommonAncesstor(n.accesses.map { _.getCtrl }).get
-    val block = within(pirTop, ctrl) {
+    val block = within(pirTop, ctrl, n.srcCtx.v) {
       val ctx = stage(Context().streaming(true)) 
       within(ctx) {
         stage(SparseDRAMBlock(n.dramPar))
@@ -58,7 +58,7 @@ trait SparseDRAMLowering extends SparseLowering {
       val reqresp = access match {
         case access:SparseRead =>
           val (readAddr, readData) = block.addReadPort(accessid)
-          val addrCtx = within(pirTop, ctrl) {
+          val addrCtx = within(pirTop, ctrl, access.srcCtx.v) {
             stage(Context().name("addrCtx"))
           }
           swapParent(access, addrCtx)
@@ -83,10 +83,10 @@ trait SparseDRAMLowering extends SparseLowering {
           writeData(access.data.connected)
           bufferInput(writeAddr).foreach { _.name := "writeAddr" }
           bufferInput(writeData).foreach { _.name := "writeData" }
-          val ackCtx = within(pirTop, ctrl) {
+          val ackCtx = within(pirTop, ctrl, access.srcCtx.v) {
             stage(Context().name("ackCtx"))
           }
-          val accumAck = within(ackCtx, ctrl) {
+          val accumAck = within(ackCtx, ctrl, access.srcCtx.v) {
             stage(AccumAck().ack(writeAck))
           }
           access.mem.disconnect
@@ -105,9 +105,9 @@ trait SparseDRAMLowering extends SparseLowering {
           bufferInput(rmwDataIn).foreach { _.name := "rmwDataIn" }
           var ins = access.dataOut.connected
           if (ins.size == 0) {
-            val accumAck = within(pirTop, access.getCtrl) {
+            val accumAck = within(pirTop, access.getCtrl, access.srcCtx.v) {
               val ctx = stage(Context().name("RMW_ackAccum"))
-              within(ctx, access.getCtrl) {
+              within(ctx) {
                 stage(AccumAck().ack(access.dataOut))
               }
             }

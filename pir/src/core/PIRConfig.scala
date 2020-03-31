@@ -12,6 +12,8 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("merge-algo", default="bfs", info="Merging algorithm. [dfs, bfs, gurobi]")
   register("merge-forward", default=false, info="Forward merging traversal direction") 
 
+  register("rtanal", default=true, info="Enable runtime analysis") 
+
   // Optimizations
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
   register("dupra", default=false, info="Duplicate read address calculation in receiver CU")
@@ -23,6 +25,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("sr", default=true, info="Enable strength reduction")
   register("lrange", default=true, info="Enable loop range analysis")
   register("rtelm", default=true, info="Enable route through elimination")
+  register("rtelm-unsafe", default=false, info="Enable unsafe route through elimination")
   register("memelm", default=false, info="Enable memory elimination when bank and address can be constant propogate away")
 
   register("retime-local", default=false, info="Enable local retiming")
@@ -68,6 +71,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def aggressive_dce = option[Boolean]("ag-dce")
   def printStat = option[Boolean]("stat")
   def enableIgraph = option[Boolean]("igraph")
+  def enableRuntimeAnalysis = option[Boolean]("rtanal")
   def graphDir = buildPath(appDir, "graph")
   def mergeDir = buildPath(appDir, "merge")
   def splitDir = buildPath(appDir, "split")

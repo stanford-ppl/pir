@@ -107,6 +107,8 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
     } orElse switch[SRAMCost](x,ct) {
       case n:GlobalContainer =>
         n.descendents.collect {
+          case mem:SparseMem => mem.getCost[SRAMCost]
+          case mem:LockMem => mem.getCost[SRAMCost]
           case mem:SRAM => mem.getCost[SRAMCost]
           case mem:LUT => mem.getCost[SRAMCost]
           case mem:RegFile => mem.getCost[SRAMCost]
@@ -119,6 +121,8 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
           case mem:ScratchpadDelay => mem.getCost[SRAMCost]
         }.reduceOption { _ + _ }.getOrElse(SRAMCost(0,0))
       case n:SRAM => SRAMCost(n.nBanks, n.capacity)
+      case n:SparseMem => SRAMCost(n.nBanks, n.capacity)
+      case n:LockMem => SRAMCost(n.nBanks, n.capacity)
       case n:LUT => SRAMCost(n.nBanks, n.capacity)
       case n:RegFile => SRAMCost(n.nBanks, n.capacity)
       case n:Lock => SRAMCost(spadeParam.vecWidth, 100)

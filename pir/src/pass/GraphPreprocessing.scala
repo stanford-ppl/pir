@@ -57,7 +57,7 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
       scanRead.out.vecMeta.reset
       scanRead.out.presetVec(16)
       val scanCtrl = scanRead.getCtrl
-      val scanner = within(pirTop, scanCtrl) {
+      val scanner = within(pirTop, scanCtrl, n.srcCtx.v) {
         stage(Scanner().mask(scanRead))
       }
       val cntFIFO = within(pirTop) {
@@ -358,7 +358,14 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
         }
       }
       connectLaneValid(access)
+
+      access.mem.T.to[FIFO].foreach { fifo =>
+        if (fifo.retiming.get) {
+          access.en.disconnect
+        }
+      }
     }
+
 
     // Add lane valid as an operand to division to prevent divide by zero when lane is invalid
     n.to[OpDef].foreach { 

@@ -129,7 +129,7 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping,new ProgramReport("program.json")) ==>
     addPass(enableMapping,resReport) ==>
     addPass(enableDot, new PIRGlobalDotGen(s"global.dot")) ==>
-    addPass(runtimeAnalyzer).dependsOn(placerAndRouter) ==>
+    addPass(enableRuntimeAnalysis, runtimeAnalyzer).dependsOn(placerAndRouter) ==>
     addPass(enableDot, new PIRGlobalDotGen(s"global.dot")) ==>
     addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx.dot")) ==>
     addPass(enableVerboseDot, new PIRTopDotGen(s"top.dot")) ==>

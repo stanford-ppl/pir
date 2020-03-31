@@ -441,26 +441,50 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   // HACK: For now, don't care whether it's scheduled or not to check
   // rate matching
   
+  // w1 => r1 => w2 => r2
+  def checkRouteThrough(r1:BufferRead, w2:BufferWrite, r2:BufferRead):Boolean = {
+    if (r1.isFIFO != r2.isFIFO) return false
+    if (r2.nonBlocking) return false
+    val matchwidth = r1.out.getVec == r2.out.getVec
+    if (!matchwidth) return false
+    val w1 = r1.inAccess.as[BufferWrite]
+    var matchrate = matchRate(r1, w2) 
+    if (r1.isFIFO) {
+      matchrate &&= (matchRate(w2,r2) || matchRate(w1,r1))
+    }
+    dbg(s"matchrate = $matchrate")
+    if (!matchrate) return false
+    var matchen = matchInput(r1.en, w2.en)
+    dbg(s"matchen = $matchen")
+    if (!matchen) return false
+    //if (r1.getCtrl == w2.getCtrl) {
+      //r1.inAccess match {
+        //case w:BufferWrite if config.option[Boolean]("rtelm-unsafe") => 
+          //w.data.T match {
+            //case access:Access =>
+              //val allGeneratedLaneEnables = w2.en.connected.forall {
+                //case OutputField(x:LoopController, "laneValid") => true
+                //case OutputField(x:CounterValid, "out") => true
+                //case _ => false
+              //}
+              //if (allGeneratedLaneEnables) {
+                //dbg(s"Unsafe Route Through $r1 => $w2 => $r2")
+                //return true
+              //}
+            //case _ =>
+          //}
+        //case _ =>
+      //}
+    //}
+    return true
+  }
+
   TransferRule[BufferRead](config.enableRouteElim) { r2 =>
     val w2 = r2.inAccess.as[BufferWrite]
-    //w2.data.T match {
-      //case r1:BufferRead =>
-        //val w1 = r1.inAccess.as[BufferWrite]
-        //dbg(s"Testing Route through (2) $w1 -> $r1 -> $w2 -> $r2")
-        //dbg(s"isFIFO = ${r1.isFIFO == r2.isFIFO}")
-        //dbg(s"matchRate = ${matchRate(r1, w2)}")
-        //dbg(s"matchEn = ${matchInput(r1.en, w2.en)}")
-        //dbg(s"sameVec = ${r1.out.getVec == r2.out.getVec}")
-      //case _ =>
-    //}
     w2.data.T match {
-      case r1:BufferRead if r1.isFIFO == r2.isFIFO && 
-                            matchRate(r1, w2) & 
-                            matchInput(r1.en, w2.en) & 
-                            !r2.nonBlocking &&
-                            r1.out.getVec == r2.out.getVec =>
+      case r1:BufferRead if checkRouteThrough(r1,w2,r2) =>
         val w1 = r1.inAccess.as[BufferWrite]
-        dbgblk(s"Route through (2) $w1 -> $r1 -> $w2 -> $r2 detected => ") {
+        dbgblk(s"Route through (2) $w1 -> $r1 -> $w2 -> $r2 detected => ${quoteSrcCtx(r1)}") {
           dbg(s" => $w1 -> $r2")
           if (r2.in.getVec != r1.in.getVec) {
             r2.in.vecMeta.reset

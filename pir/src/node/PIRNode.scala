@@ -21,7 +21,9 @@ abstract class PIRNode(implicit env:BuildEnvironment)
     override def check(v:String) = {}
   }
   val srcCtx = new Metadata[String]("srcCtx") {
-    override def check(v:String) = {}
+    override def :=(v:String) = { 
+      value = Some(value.map { _ + "\n" + v }.getOrElse(v))
+    }
   }
   def setSrcCtx(implicit file:sourcecode.File, line: sourcecode.Line):self.type = srcCtx(getSrcCtx)
   def setSrcCtx(name:String)(implicit file:sourcecode.File, line: sourcecode.Line):self.type = {
@@ -122,7 +124,11 @@ case class ControlTree(schedule:CtrlSchedule)(implicit env:Env) extends EnvNode[
   val par = new Metadata[Int]("par", default=Some(1))
   val isLoop = new Metadata[Boolean]("isLoop", default=Some(false))
   val isForever = new Metadata[Boolean]("isForever", default=Some(false))
-  val srcCtx = new Metadata[String]("srcCtx")
+  val srcCtx = new Metadata[String]("srcCtx") {
+    override def :=(v:String) = { 
+      value = Some(value.map { _ + "\n" + v }.getOrElse(v))
+    }
+  }
   val uid = new Metadata[List[Int]]("uid")
   val progorder = new Metadata[Int]("progorder")
 

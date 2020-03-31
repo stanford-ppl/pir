@@ -24,8 +24,8 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
       case Left(f@InvalidFactorGraph(fg:CUMap, k:CUMap.K)) =>
         val kcost = getCosts(k)
         val vs = fg.freeValuesOf(k)
+        dbg(s"Recover $k ${quoteSrcCtx(k)}")
         val vcost = assertOne(vs.map { getCosts(_) }, s"MemoryCost")
-        dbg(s"Recover $k")
         dbg(s"kcost=$kcost")
         dbg(s"vcost=$vcost")
         val mem = quoteSrcCtx(k.collectDown[Memory]().head)
@@ -45,6 +45,15 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
 
     val memNotFit = notFit(kMemCost, vMemCost)
     val compNotFit = notFit(kCompCost, vCompCost)
+
+    if (memNotFit) {
+      mem match {
+        case mem:SRAM =>
+        case mem:LUT =>
+        case mem => 
+          err(s"${quoteSrcCtx(mem)} exceeds memory capacity but is not splittable!")
+      }
+    }
 
     // Capacity Splitting. Update bank calculation
     if (memNotFit && bankMult > 1) {
@@ -89,7 +98,13 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
 
     val nodes = k.descendentTree.toList
     val toBanks = mem.accesses.flatMap { access =>
-      val shuffles = access.collect[Shuffle](visitFunc=visitIn _)
+      val shuffles = access match {
+        case access:FlatBankedRead =>
+          access.offset.collect[Shuffle](visitFunc=visitIn _)
+        case access:FlatBankedWrite =>
+          access.data.collect[Shuffle](visitFunc=visitIn _) ++ access.offset.collect[Shuffle](visitFunc=visitIn _)
+        case access => Nil
+      }
       dbg(s"access=${access} shuffles=${shuffles}")
       shuffles.map { s => s.to.T.to[Const].getOrElse(bug(s"$s.to is not constant ${s.to.T}")) }
     }.distinct

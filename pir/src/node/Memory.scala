@@ -54,13 +54,18 @@ abstract class Memory(implicit env:Env) extends MemoryNode with DefNode[PIRNode]
 }
 
 case class Reg()(implicit env:Env) extends Memory
-case class FIFO()(implicit env:Env) extends Memory
+case class FIFO()(implicit env:Env) extends Memory {
+  val retiming = Metadata[Boolean]("retiming", Some(false)) 
+}
 case class SRAM()(implicit env:Env) extends Memory
 case class RegFile()(implicit env:Env) extends Memory
 case class LUT()(implicit env:Env) extends Memory
-case class LockMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory
+case class LockMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory {
+  override def nBanks:Int = banks.get.product
+}
 case class SparseMem(isDRAM:Boolean=false, dramPar:Int=1)(implicit env:Env) extends Memory {
   val alias = Metadata[DRAM]("alias")
+  override def nBanks:Int = banks.get.product
 }
 
 case class Lock()(implicit env:Env) extends BlackBox with DefNode[PIRNode] {

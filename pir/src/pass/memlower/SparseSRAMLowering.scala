@@ -15,7 +15,7 @@ trait SparseSRAMLowering extends SparseLowering {
   }
   
   private def lowerSparseSRAM(n:SparseMem):Unit = dbgblk(s"lower($n)"){
-    val memCU = within(pirTop) { stage(MemoryContainer()) }
+    val memCU = within(pirTop,n.srcCtx.v) { stage(MemoryContainer()) }
     swapParent(n, memCU)
     dbg(s"accesses=${n.accesses}")
     n.accesses.foreach { access =>
@@ -35,10 +35,18 @@ trait SparseSRAMLowering extends SparseLowering {
     val ctrl = access.getCtrl
     access match {
       case access:SparseWrite =>
-        within(memCU, ctrl) {
+        within(memCU, ctrl,access.srcCtx.v) {
           flattenEnable(access) // in write ctx
           val accessCtx = stage(Context().streaming(true))
           swapParent(access, accessCtx)
+          if (access.data.T.getCtrl != ctrl || access.addr.T.getCtrl != ctrl) {
+            val addrCtx = stage(Context().name("addrCtx"))
+            bufferInput(access.addr, BufferParam(fromCtx=Some(addrCtx)))
+            bufferInput(access.data, BufferParam(fromCtx=Some(addrCtx)))
+          } else {
+            bufferInput(access.addr)
+            bufferInput(access.data)
+          }
           bufferInput(accessCtx)
           val req = access.addr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
           val ackCtx = stage(Context().name("ackCtx"))
@@ -49,7 +57,7 @@ trait SparseSRAMLowering extends SparseLowering {
           access -> (req,accumAck.out)
         }
       case access:SparseRead =>
-        within(memCU, ctrl) {
+        within(memCU, ctrl, access.srcCtx.v) {
           val addrCtx = stage(Context().name("addrCtx"))
           swapParent(access, addrCtx)
           flattenEnable(access) // in addrCtx
@@ -66,12 +74,18 @@ trait SparseSRAMLowering extends SparseLowering {
           access -> (req,resp)
         }
       case access:SparseRMW =>
-        within(memCU, ctrl) {
+        within(memCU, ctrl, access.srcCtx.v) {
           flattenEnable(access) // in wirte ctx
           val accessCtx = stage(Context().streaming(true))
           swapParent(access, accessCtx)
-          bufferInput(access.addr)
-          bufferInput(access.input)
+          if (access.addr.T.getCtrl != ctrl || access.input.T.getCtrl != ctrl) {
+            val addrCtx = stage(Context().name("addrCtx"))
+            bufferInput(access.addr, BufferParam(fromCtx=Some(addrCtx)))
+            bufferInput(access.input, BufferParam(fromCtx=Some(addrCtx)))
+          } else {
+            bufferInput(access.addr)
+            bufferInput(access.input)
+          }
 
           val ins = access.dataOut.connected
           ins.distinct.foreach { in =>

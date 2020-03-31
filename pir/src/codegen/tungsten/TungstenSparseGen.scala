@@ -91,7 +91,8 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
     case n:SparseMem if !n.isDRAM => genTopMember(n, Seq(n.qstr))
 
     case n:SparseDRAMBlock => 
-      val order = assertOneOrLess(n.rmwPorts.map { case (a, ports) => n.rmwOps(a)._2 }, s"$n RMW order").getOrElse("order")
+      val orderList = n.rmwPorts.map { case (a, ports) => n.rmwOps(a)._2 }.to[List]
+      val order = assertOneOrLess(orderList.distinct, s"$n RMW order").getOrElse("order")
       n.alias.v match {
         case None =>
           genTopFields {

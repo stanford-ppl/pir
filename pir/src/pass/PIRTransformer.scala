@@ -80,17 +80,8 @@ with BufferAnalyzer
       //}
     }
     //dbgn(n)
-    if (n.srcCtx.isEmpty) {
-      n.setSrcCtx
-    } else {
-    }
     if (!inProgramStaging) {
-      n.srcCtx.v match {
-        case None => n.setSrcCtx
-        case Some(sc) => 
-          val nsc = getSrcCtx
-          if (sc != nsc) n.srcCtx(s"$sc\n${nsc}")
-      }
+      n.setSrcCtx
     }
     dbg(s"Stage ${dquote(n)}")
     n
@@ -122,6 +113,7 @@ with BufferAnalyzer
       case (from,to,"castgroup",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to,"muxport",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to:BufferRead,"banks",Some(fvalue),Some(tvalue)) => Some(List(to.in.getVec))
+      case (from,to,"retiming",Some(v1:Boolean),Some(v2:Boolean)) => Some(v1 || v2)
     } { mirrorMetas(from,to) }
     mirrorMetas(from.out, to.out)
   }

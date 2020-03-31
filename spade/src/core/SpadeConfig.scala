@@ -23,6 +23,7 @@ class SpadeConfig(compiler:Compiler) extends prism.Config(compiler) {
   register[Int]("col", default=8, info="number of columns in network")
   register[Int]("reserve-pcu", default=0, info="number of PCUs to reserve in black box")
   register[Int]("reserve-pmu", default=0, info="number of PMUs to reserve in black box")
+  register[Int]("reserve-dag", default=0, info="number of DRAM AG to reserve in black box")
   register[Boolean]("nn", default=false, info="enable nearest neighbor")
   register[Boolean]("dag", default=true, info="enable dram address generator in network")
   register[String]("pattern", default="checkerboard", info="Pattern in layout of different CU types. [checkerboard,mcmcstrip]")
