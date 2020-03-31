@@ -19,7 +19,7 @@ class SplitterTransformer(implicit compiler:PIR) extends PIRPass with PIRTransfo
 
   def closure(ctx:Context, sc:SplitController) = dbgblk(s"closure($ctx)"){
     val ctrl = ctx.getCtrl
-    val splitter = within(pirTop, ctrl) {
+    val splitter = within(pirTop, ctrl, sc.srcCtx.v) {
       val ctx = stage(Context().streaming(true))
       within(ctx, ctx.getCtrl) {
         stage(SplitLeader().addrIn(sc.splitOn.connected))

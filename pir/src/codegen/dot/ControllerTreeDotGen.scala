@@ -11,6 +11,7 @@ class ControlTreeDotGen(val fileName:String)(implicit compiler:PIR) extends Cont
     .foldAt(n.to[ControlTree]) { (q,n) => 
       s"$q\n${n.schedule}" + 
       n.par.v.fold("") { s => s"\npar=$s" } +
+      n.iter.v.fold("") { s => s"\niter=$s" } +
       n.isLoop.v.fold("") { s => s"\nisLoop=$s" } +
       n.isForever.v.fold("") { s => s"\nisForever=$s" } +
       n.srcCtx.v.fold(""){ s => s"\n$s" } +

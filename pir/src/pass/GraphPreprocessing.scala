@@ -199,6 +199,7 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
         d.ctrl := ctrl
         dbg(s"Resetting $d.ctrl = $ctrl")
       }
+      n.getIter
     }
     //n.to[LoopController].foreach { n =>
       //n.stopWhen.T.foreach { n =>
