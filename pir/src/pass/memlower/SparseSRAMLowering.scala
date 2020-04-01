@@ -70,7 +70,7 @@ trait SparseSRAMLowering extends SparseLowering {
           }
           val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
           val req = access.addr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
-          val resp = reads.head.out
+          val resp = reads.headOption.getOrElse(err(s"${quoteSrcCtx(access)} is not used by anyone!")).out
           access -> (req,resp)
         }
       case access:SparseRMW =>
