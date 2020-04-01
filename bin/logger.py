@@ -740,7 +740,7 @@ class Logger():
         parseLog(
             conf,
             'err', 
-            ["[bug]", "error", "Caught exception", "fail", "Exception", "fault", 
+            ["[bug]", "error", "Caught exception", "fail", "Exception", "segfault", 
                 "terminated by signal", "Command exited with non-zero status"],
             lambda lines: lines[0],
             logs=[self.runp2p, self.runhybrid, self.maketst, self.runproute, self.gentst]

@@ -130,7 +130,7 @@ case class SparseRead()(implicit env:Env) extends ReadAccess with SparseAccess
 case class SparseWrite()(implicit env:Env) extends WriteAccess with SparseAccess {
   val ack = OutputField[List[PIRNode]].presetVec(1).tp(Bool)
 }
-case class SparseRMW(op:String, opOrder:String)(implicit env:Env) extends SparseAccess with RMWAccess {
+case class SparseRMW(op:String, opOrder:String, remoteAddr:Boolean)(implicit env:Env) extends SparseAccess with RMWAccess {
   val dataOut = OutputField[List[PIRNode]]
   override def asOutput = Some(dataOut)
   override def compVec(n:IR) = n match {

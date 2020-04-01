@@ -78,7 +78,7 @@ trait SparseSRAMLowering extends SparseLowering {
           flattenEnable(access) // in wirte ctx
           val accessCtx = stage(Context().streaming(true))
           swapParent(access, accessCtx)
-          if (access.addr.T.getCtrl != ctrl || access.input.T.getCtrl != ctrl) {
+          if (access.addr.T.getCtrl != ctrl || access.input.T.getCtrl != ctrl || access.remoteAddr) {
             val addrCtx = stage(Context().name("addrCtx"))
             bufferInput(access.addr, BufferParam(fromCtx=Some(addrCtx)))
             bufferInput(access.input, BufferParam(fromCtx=Some(addrCtx)))
