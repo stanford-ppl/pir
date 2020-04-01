@@ -456,6 +456,8 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     if (!matchrate) return false
     var matchen = matchInput(r1.en, w2.en)
     dbg(s"matchen = $matchen")
+    //if (r2.name.v == Some("doUpd_0"))
+      //breakPoint(s"matchrate=$matchrate matchen=$matchen")
     if (!matchen) return false
     //if (r1.getCtrl == w2.getCtrl) {
       //r1.inAccess match {
