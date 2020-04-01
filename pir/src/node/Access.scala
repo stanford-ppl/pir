@@ -14,8 +14,8 @@ trait Access extends PIRNode {
   val castgroup = Metadata[Seq[Int]]("castgroup")
 
   /* Metadata set by spatial */
-  val isAccumRead = Metadata[Boolean]("isAccumRead", default=false)
-  val isAccumWrite = Metadata[Boolean]("isAccumWrite", default=false)
+  val isAccumAccess = Metadata[Boolean]("isAccumAccess", default=false)
+  val isMemReduce = Metadata[Boolean]("isMemReduce", default=false)
 
   val en = new InputField[List[PIRNode]]("en").tp(Bool)
   val done = new InputField[Option[PIRNode]]("done").tp(Bool).presetVec(1)

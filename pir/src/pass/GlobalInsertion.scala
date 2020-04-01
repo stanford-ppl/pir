@@ -15,7 +15,7 @@ class GlobalInsertion(implicit compiler:PIR) extends PIRTraversal with SiblingFi
         n match {
           case n if n.hasDescendent[DRAMCommand,StreamCommand] => DRAMFringe()
           case n if n.hasDescendent[GlobalBlackBox] => BlackBoxContainer()
-          case n => ComputeContainer()
+          case n => stage(ComputeContainer().name.mirror(n.name))
         }
       }
       swapParent(n,global)

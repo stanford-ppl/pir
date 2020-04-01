@@ -110,22 +110,35 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
     }
   }
 
-  def analyzeAccum(n:N) = {
-    n.to[Reg].foreach { reg =>
-      if (reg.accesses.forall { !_.progorder.v.isEmpty }) {
-        reg.accesses.toList.sortBy { _.progorder.get }.sliding(2,1).foreach {
-          case List(prev:ReadAccess, next:WriteAccess) =>
-            val lca = leastCommonAncesstor(prev.getCtrl, next.getCtrl).get
-            val isAccum = lca.ancestorTree.exists { _.isLoop.get }
-            if (isAccum) {
-              dbg(s"setAccum($reg) = true")
-              reg.isAccum := true
-              prev.isAccumRead := true
-              next.isAccumWrite := true
+  def markAccum(n:Memory) = {
+    if (n.accesses.forall { !_.progorder.v.isEmpty }) {
+      n.accesses.toList.sortBy { _.progorder.get }.sliding(2,1).foreach {
+        case List(prev:ReadAccess, next:WriteAccess) =>
+          val lca = leastCommonAncesstor(prev.getCtrl, next.getCtrl).get
+          val isAccum = lca.ancestorTree.exists { _.isLoop.get }
+          if (isAccum) {
+            dbg(s"setAccum($n) = true")
+            n.isAccum := true
+            prev.isAccumAccess := true
+            next.isAccumAccess := true
+            (prev, next) match {
+              case (prev:BankedRead, next:BankedWrite) =>
+                val isMemReduce = prev.bank.T == next.bank.T && prev.offset.T == next.offset.T
+                prev.isMemReduce := isMemReduce
+                next.isMemReduce := isMemReduce
+              case _ =>
             }
-          case _ => 
-        }
+          }
+        case _ => 
       }
+    }
+  }
+
+  def analyzeAccum(n:N) = {
+    n match {
+      case n:Reg => markAccum(n)
+      case n:SRAM => markAccum(n)
+      case _ =>
     }
   }
 

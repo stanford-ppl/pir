@@ -11,13 +11,14 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
   def insertToken(
     fctx:Context, 
     tctx:Context, 
-    dep:Option[Output[PIRNode]]=None
+    dep:Option[Output[PIRNode]]=None,
+    isMemReduce:Boolean = false
   )(implicit file:sourcecode.File, line: sourcecode.Line):TokenRead = {
     val isFIFO = false
     val fctrl = fctx.ctrl.get
     val tctrl = tctx.ctrl.get
     dbgblk(s"InsertToken(fctx=$fctx($fctrl), tctx=$tctx($tctrl))") {
-      val (enq, deq) = compEnqDeq(isFIFO=isFIFO, fctx, tctx, None, Nil)
+      val (enq, deq) = compEnqDeq(isFIFO=isFIFO, fctx, tctx, None, Nil, isMemReduce=isMemReduce)
       val write = within(fctx, fctrl) {
         allocate[TokenWrite](_.done.isConnectedTo(enq)) {
           stage(TokenWrite().done(enq).dummy(dep))
@@ -31,7 +32,14 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
     }
   }
 
-  def compEnqDeq(isFIFO:Boolean, octx:Context, ictx:Context, out:Option[Output[PIRNode]], ins:Seq[Input[PIRNode]]):(Output[PIRNode], Output[PIRNode]) = {
+  def compEnqDeq(
+    isFIFO:Boolean, 
+    octx:Context, 
+    ictx:Context, 
+    out:Option[Output[PIRNode]], 
+    ins:Seq[Input[PIRNode]], 
+    isMemReduce:Boolean=false
+  ):(Output[PIRNode], Output[PIRNode]) = {
     val from = out.map { _.src }
     val o = octx.ctrl.get
     val i = ictx.ctrl.get
@@ -42,7 +50,9 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
         case (out,Seq(InputField(n:ScanCounter, "cnt"))) if isFIFO => (childDone(o, octx), done(i, ictx))
         case (out,ins) if isFIFO => (childDone(o, octx), childDone(i, ictx))
         case (out,Seq(InputField(n:LoopController, "stopWhen"))) if o == i => (childDone(o, octx), childDone(i, ictx))
-        case (out,ins) if o == i => (done(o, octx), done(i, ictx)) // This should be childDone other than hack for block reduce token
+        case (out,ins) if o == i => 
+          if (isMemReduce) (done(o, octx), done(i, ictx)) // hack for mem reduce to improve performance
+          else (childDone(o, octx), childDone(i, ictx))
         case (out,ins) =>
           val lca = leastCommonAncesstor(o,i).get
           val oAncesstors = o.ancestorTree

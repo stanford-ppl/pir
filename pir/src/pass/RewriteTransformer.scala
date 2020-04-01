@@ -124,9 +124,9 @@ trait RewriteUtil extends PIRPass { self: PIRTransformer =>
   RewriteRule[OpDef](s"PipeAccum", config.enablePipeAccum) { 
     case n@OpDef(Mux) =>
       val writes = n.out.neighbors.collect { case write:MemWrite => write }
-      val (accumWrites, nonAccumWrites) = writes.partition { _.isAccumWrite.get }
+      val (accumWrites, nonAccumWrites) = writes.partition { _.isAccumAccess.get }
       testOne(accumWrites).flatMap { accumWrite =>
-        val (accumReads, nonAccumReads) = accumWrite.mem.T.outAccesses.partition  { _.isAccumRead.get }
+        val (accumReads, nonAccumReads) = accumWrite.mem.T.outAccesses.partition  { _.isAccumAccess.get }
         testOne(accumReads).flatMap { accumRead =>
           val accumOps = accumRead.out.accum(
             prefix = { case `n` => true; case _ => false },
@@ -144,7 +144,7 @@ trait RewriteUtil extends PIRPass { self: PIRTransformer =>
                 accumWrite.data.disconnect
               } else {
                 accumWrite.mem.T.isAccum.reset
-                accumWrite.isAccumWrite.reset
+                accumWrite.isAccumAccess.reset
                 assert(nonAccumWrites.isEmpty && nonAccumReads.nonEmpty, s"unexpected accum pattern ${accumRead} ${accumWrite}")
               }
               dbgn(acc)

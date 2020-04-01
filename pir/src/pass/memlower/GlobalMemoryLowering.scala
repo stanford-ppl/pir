@@ -327,7 +327,11 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
   }
 
   private def insertBarrier(from:Access, to:Access, carried:Boolean,depth:Int) = {
-    val token = insertToken(from.ctx.get, to.ctx.get).depth(depth)
+    val isMemReduce = from.isMemReduce.get && to.isMemReduce.get
+    if (isMemReduce) {
+      dbg(s"isMemReduce=${isMemReduce} $from $to")
+    }
+    val token = insertToken(from.ctx.get, to.ctx.get,isMemReduce=isMemReduce).depth(depth)
     if (carried) {
       token.initToken := 1
       token.inits := true
