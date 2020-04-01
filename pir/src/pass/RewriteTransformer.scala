@@ -448,36 +448,18 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     val matchwidth = r1.out.getVec == r2.out.getVec
     if (!matchwidth) return false
     val w1 = r1.inAccess.as[BufferWrite]
+    dbg(s"checkRouteThrough $w1 => $r1 => $w2 => $r2")
     var matchrate = matchRate(r1, w2) 
     if (r1.isFIFO) {
-      matchrate &&= (matchRate(w2,r2) || matchRate(w1,r1))
+      val r1w1Match = matchRate(w1,r1) || r1.retiming.get
+      val r2w2Match = matchRate(w2,r2) || r2.retiming.get
+      matchrate &&= (r1w1Match || r2w2Match)
     }
     dbg(s"matchrate = $matchrate")
     if (!matchrate) return false
     var matchen = matchInput(r1.en, w2.en)
     dbg(s"matchen = $matchen")
-    //if (r2.name.v == Some("doUpd_0"))
-      //breakPoint(s"matchrate=$matchrate matchen=$matchen")
     if (!matchen) return false
-    //if (r1.getCtrl == w2.getCtrl) {
-      //r1.inAccess match {
-        //case w:BufferWrite if config.option[Boolean]("rtelm-unsafe") => 
-          //w.data.T match {
-            //case access:Access =>
-              //val allGeneratedLaneEnables = w2.en.connected.forall {
-                //case OutputField(x:LoopController, "laneValid") => true
-                //case OutputField(x:CounterValid, "out") => true
-                //case _ => false
-              //}
-              //if (allGeneratedLaneEnables) {
-                //dbg(s"Unsafe Route Through $r1 => $w2 => $r2")
-                //return true
-              //}
-            //case _ =>
-          //}
-        //case _ =>
-      //}
-    //}
     return true
   }
 
