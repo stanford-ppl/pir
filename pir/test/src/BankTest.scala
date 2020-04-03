@@ -80,4 +80,12 @@ class BankTest extends UnitTest {
     assert(groups.toSet == Set((0 until 14).toList, (14 until 16).toList))
   }
 
+  "PartitionTest4" should "success" in {
+    val accessGrps = List.tabulate(32) { i => i } :: List.tabulate(32) { i => i } :: Nil
+    val totalBanks = 32
+    val bankPerCU = 16
+    val groups = bp.partitionBanks(groupToMap(accessGrps), totalBanks, bankPerCU)
+    assert(groups.toSet == Set((0 until 16).toList, (16 until 32).toList))
+  }
+
 }

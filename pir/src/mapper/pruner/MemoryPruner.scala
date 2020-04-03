@@ -338,7 +338,7 @@ trait BankPartitioner extends Logging {
   // Partition totalBanks into subgroups such that each group cannot exceed bankPerCU while 
   // 1. minimizing # of groups
   // 2. minimizing # of groups accessed by access bundles
-  def partitionBanks[Access](accessPattern:Map[Access, List[Int]], totalBanks:Int, bankPerCU:Int):List[List[Int]] = {
+  def partitionBanks[Access](accessPattern:Map[Access, List[Int]], totalBanks:Int, bankPerCU:Int):List[List[Int]] = dbgblk(s"partitionBanks($totalBanks,$bankPerCU)"){
     // ListBuffer[List[Int]]: List of staticially analyzed access bundle.
     
     // Map [Access, List[Bank]]: Mapping of access group to list of banks they touch
@@ -351,14 +351,16 @@ trait BankPartitioner extends Logging {
 
     // Bank groups touched by access 
     def groupsOf(access:Access):List[List[Int]] = {
-      accessPattern(access).map { bank => groups.find {_.contains(bank) }.get }
+      accessPattern(access).map { bank => groups.find {_.contains(bank) }.get }.distinct
     }
 
     // Starting with access that touch least # of groups, try to merge groups touched by this access
     // And iteratively doing this for all accesses
-    accessPattern.keys.toList.sortBy { access => groupsOf(access).size }.foreach { aid =>
-      val accessGrps = groupsOf(aid)
-      groups = merge(accessGrps, bankPerCU) ++ groups.filterNot { accessGrps.contains(_) }
+    accessPattern.keys.toList.sortBy { access => groupsOf(access).size }.foreach { access =>
+      val accessGrps = groupsOf(access)
+      val rest = groups.filterNot { accessGrps.contains(_) }
+      val merged = merge(accessGrps, bankPerCU)
+      groups = merged ++ rest
     }
 
     groups = merge(groups, bankPerCU)
