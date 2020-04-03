@@ -50,11 +50,15 @@ class BankTest extends UnitTest {
     assert(res.toSet == Set(g1 ++ g3, g2++g4))
   }
 
+  def groupToMap(accessGrps:List[List[Int]]) = {
+    accessGrps.zipWithIndex.map { _.swap }.toMap
+  }
+
   "PartitionTest1" should "success" in {
     val accessGrps = List.tabulate(16) { i => List(i) }
     val totalBanks = 16
     val bankPerCU = 1
-    val groups =bp.partitionBanks(accessGrps, totalBanks, bankPerCU)
+    val groups =bp.partitionBanks(groupToMap(accessGrps), totalBanks, bankPerCU)
     assert(groups.toSet == accessGrps.toSet)
   }
 
@@ -62,7 +66,7 @@ class BankTest extends UnitTest {
     val accessGrps = List.tabulate(4) { i => (0 until 64 by 4).map { j => j+i }.toList } :+ List(1) :+ List(4)
     val totalBanks = 64
     val bankPerCU = 16
-    val groups =bp.partitionBanks(accessGrps, totalBanks, bankPerCU)
+    val groups =bp.partitionBanks(groupToMap(accessGrps), totalBanks, bankPerCU)
     //groups.foreach { println }
     assert(groups.toSet == List.tabulate(4) { i => (0 until 64 by 4).map { j => j+i }.toList }.toSet)
   }
@@ -71,7 +75,7 @@ class BankTest extends UnitTest {
     val accessGrps = List(List(0), List.tabulate(16) { i => i })
     val totalBanks = 16
     val bankPerCU = 14
-    val groups = bp.partitionBanks(accessGrps, totalBanks, bankPerCU)
+    val groups = bp.partitionBanks(groupToMap(accessGrps), totalBanks, bankPerCU)
     //groups.foreach { println }
     assert(groups.toSet == Set((0 until 14).toList, (14 until 16).toList))
   }

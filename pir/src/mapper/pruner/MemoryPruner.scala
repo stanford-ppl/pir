@@ -75,21 +75,32 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
   }
 
   def getAccessPattern(mem:Memory) = {
-    mem.accesses.map { access =>
-      access.as[FlatBankedAccess].offset.collect[Shuffle]().flatMap { shuffle =>
+    mem.accesses.flatMap { access =>
+      val shuffles = access.as[FlatBankedAccess].offset.collect[Shuffle](logger=Some(this), visitFunc=visitIn)
+      dbg(s"shuffles=${shuffles}")
+      shuffles.foreach { shuffle => 
+        assert(shuffle.name.v == Some("offsetShuffle"), s"getAccessPattern of $access found non offset shuffle ${shuffle}")
+      }
+      val pattern = shuffles.flatMap { shuffle =>
         shuffle.from.T match {
           case Const(c:List[_]) => Some(c.as[List[Int]])
           case Const(c:Int) => Some(List(c))
           case _ => None
         }
       }
-    }.flatten.distinct
+      if (pattern.isEmpty) None 
+      else Some(access -> pattern.flatten.distinct)
+    }.toMap
   }
 
   def splitMemoryContainer(k:CUMap.K, totalBanks:Int, bankPerCU:Int, numCU:Int):Set[GlobalContainer] = {
     val mem = k.collectDown[Memory]().head
-    val accessGrps = getAccessPattern(mem)
-    val parts = partitionBanks(accessGrps, totalBanks, bankPerCU).toList
+    val accessPattern = getAccessPattern(mem)
+    dbg(s"accessPattern")
+    accessPattern.foreach { case (access, pattern) =>
+      dbg(s"${pattern.mkString(",")} ${quoteSrcCtx(access)}")
+    }
+    val parts = partitionBanks(accessPattern, totalBanks, bankPerCU).toList
     assert(parts.size == numCU, s"parts.size=${parts.size} numCU=$numCU")
     dbg(s"parts:")
     parts.foreach { part =>
@@ -327,29 +338,25 @@ trait BankPartitioner extends Logging {
   // Partition totalBanks into subgroups such that each group cannot exceed bankPerCU while 
   // 1. minimizing # of groups
   // 2. minimizing # of groups accessed by access bundles
-  def partitionBanks(accessGroup:List[List[Int]], totalBanks:Int, bankPerCU:Int):List[List[Int]] = {
+  def partitionBanks[Access](accessPattern:Map[Access, List[Int]], totalBanks:Int, bankPerCU:Int):List[List[Int]] = {
     // ListBuffer[List[Int]]: List of staticially analyzed access bundle.
-    dbg(s"accessGroup:")
-    accessGroup.foreach { access =>
-      dbg(s"${access.mkString(",")}")
-    }
     
-    // Map [AccessGroupIDs, List[Bank]]: Mapping of access group to list of banks the touched
+    // Map [Access, List[Bank]]: Mapping of access group to list of banks they touch
     val touchedBy = (0 until totalBanks).groupBy { bank =>
-      accessGroup.zipWithIndex.flatMap { case (banks, accessId) => if (banks.contains(bank)) Some(accessId) else None }
+      accessPattern.flatMap { case (access, pattern) => if (pattern.contains(bank)) Some(access) else None }
     }
     // TODO: use union find to speedup this
     // Initial group assignment
     var groups:List[List[Int]] = (0 until totalBanks).map { i => List(i) }.toList
 
-    // Bank groups touched by access ID
-    def groupsOf(aid:Int):List[List[Int]] = {
-      accessGroup(aid).map { bank => groups.find {_.contains(bank) }.get }
+    // Bank groups touched by access 
+    def groupsOf(access:Access):List[List[Int]] = {
+      accessPattern(access).map { bank => groups.find {_.contains(bank) }.get }
     }
 
     // Starting with access that touch least # of groups, try to merge groups touched by this access
     // And iteratively doing this for all accesses
-    (0 until accessGroup.size).sortBy { aid => groupsOf(aid).size }.foreach { aid =>
+    accessPattern.keys.toList.sortBy { access => groupsOf(access).size }.foreach { aid =>
       val accessGrps = groupsOf(aid)
       groups = merge(accessGrps, bankPerCU) ++ groups.filterNot { accessGrps.contains(_) }
     }
