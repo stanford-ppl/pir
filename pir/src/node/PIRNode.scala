@@ -122,6 +122,7 @@ case class ControlTree(schedule:CtrlSchedule)(implicit env:Env) extends EnvNode[
   val sname = new Metadata[String]("sname")
   val ctrler = new Metadata[Controller]("ctrler")
   val par = new Metadata[Int]("par", default=Some(1))
+  val iter = new Metadata[Value[Long]]("iter")
   val isLoop = new Metadata[Boolean]("isLoop", default=Some(false))
   val isForever = new Metadata[Boolean]("isForever", default=Some(false))
   val srcCtx = new Metadata[String]("srcCtx") {

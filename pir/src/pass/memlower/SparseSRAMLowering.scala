@@ -70,7 +70,7 @@ trait SparseSRAMLowering extends SparseLowering {
           }
           val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
           val req = access.addr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
-          val resp = reads.head.out
+          val resp = reads.headOption.getOrElse(err(s"${quoteSrcCtx(access)} is not used by anyone!")).out
           access -> (req,resp)
         }
       case access:SparseRMW =>
@@ -78,7 +78,7 @@ trait SparseSRAMLowering extends SparseLowering {
           flattenEnable(access) // in wirte ctx
           val accessCtx = stage(Context().streaming(true))
           swapParent(access, accessCtx)
-          if (access.addr.T.getCtrl != ctrl || access.input.T.getCtrl != ctrl) {
+          if (access.addr.T.getCtrl != ctrl || access.input.T.getCtrl != ctrl || access.remoteAddr) {
             val addrCtx = stage(Context().name("addrCtx"))
             bufferInput(access.addr, BufferParam(fromCtx=Some(addrCtx)))
             bufferInput(access.input, BufferParam(fromCtx=Some(addrCtx)))

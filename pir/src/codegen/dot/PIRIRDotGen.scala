@@ -268,6 +268,7 @@ class PIRGlobalDotGen(val fileName:String, noBackEdge:Boolean=false)(implicit de
         case n => n.getClass.getSimpleName
       }
       var l = s"${tp}${n.id}"
+      n.name.v.foreach { name => l += s"\n$name" }
       val mem = n.collectDown[Memory]()
       mem.foreach { mem =>
         mem.name.v.foreach { name => l += s"\n$name" }

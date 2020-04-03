@@ -61,7 +61,7 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
       }
       emitln(s"$name->Push(${nameOf(n.addr.T)}->Read());")
 
-    case n@SparseRMW(op, opOrder) =>
+    case n@SparseRMW(op, opOrder, remoteAddr) =>
       emitln(s"// ${n}")
       val ctrler = getCtrler(n)
       addEscapeVar(n.mem.T)

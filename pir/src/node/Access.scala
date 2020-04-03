@@ -14,8 +14,8 @@ trait Access extends PIRNode {
   val castgroup = Metadata[Seq[Int]]("castgroup")
 
   /* Metadata set by spatial */
-  val isAccumRead = Metadata[Boolean]("isAccumRead", default=false)
-  val isAccumWrite = Metadata[Boolean]("isAccumWrite", default=false)
+  val isAccumAccess = Metadata[Boolean]("isAccumAccess", default=false)
+  val isMemReduce = Metadata[Boolean]("isMemReduce", default=false)
 
   val en = new InputField[List[PIRNode]]("en").tp(Bool)
   val done = new InputField[Option[PIRNode]]("done").tp(Bool).presetVec(1)
@@ -130,7 +130,7 @@ case class SparseRead()(implicit env:Env) extends ReadAccess with SparseAccess
 case class SparseWrite()(implicit env:Env) extends WriteAccess with SparseAccess {
   val ack = OutputField[List[PIRNode]].presetVec(1).tp(Bool)
 }
-case class SparseRMW(op:String, opOrder:String)(implicit env:Env) extends SparseAccess with RMWAccess {
+case class SparseRMW(op:String, opOrder:String, remoteAddr:Boolean)(implicit env:Env) extends SparseAccess with RMWAccess {
   val dataOut = OutputField[List[PIRNode]]
   override def asOutput = Some(dataOut)
   override def compVec(n:IR) = n match {
@@ -219,6 +219,7 @@ case class BufferWrite(isFIFO:Boolean)(implicit env:Env) extends LocalInAccess {
   }
 }
 case class BufferRead(isFIFO:Boolean)(implicit env:Env) extends LocalOutAccess {
+  val retiming = Metadata[Boolean]("retiming", Some(false)) 
   override def compVec(n:IR) = n match {
     case `out` => en.inferVec
     case `en` => 

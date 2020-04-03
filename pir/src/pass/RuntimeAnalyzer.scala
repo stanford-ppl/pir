@@ -218,10 +218,16 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
         val step = n.step.T.getBound.toValue
         val par = n.par
         (max - min) /! (step * par)
-      case n:LoopController if n.stopWhen.T.nonEmpty => Unknown
-      case n:LoopController =>
-        n.cchain.T.map { _.getIter }.reduce { _ * _ }
-      case n:Controller if n.getCtrl.schedule != Fork => Finite(1l)
+      case n:Controller =>
+        n.getCtrl.iter.getOrElseUpdate {
+          n match {
+            case n:LoopController if n.stopWhen.T.nonEmpty => Unknown
+            case n:LoopController => n.cchain.T.map { _.getIter }.reduce { _ * _ }
+            case n:SplitController => Unknown
+            case n:Controller if n.getCtrl.schedule != Fork => Finite(1l)
+            case n => Unknown
+          }
+        }
       case n:FringeDenseLoad =>
         val size = n.size.T.getBound.toValue
         val dataPar = n.data.getVec
@@ -313,19 +319,17 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
   }
 
   def matchRate(a1:LocalAccess, a2:LocalAccess):Boolean = {
-    val matchScale = (compScale(a1), compScale(a2)) match {
-      case (Unknown, _) => false
-      case (_, Unknown) => false
-      case (s1, s2) => s1 == s2
-    }
-    if (matchScale) return true
-    if (a1.getCtrl == a2.getCtrl) {
-      if (a1.done.connected.toSet == a2.done.connected.toSet)  {
-        dbg(s"Done Match Rate! $a1 ${dquote(a1.done.connected)} $a2 ${dquote(a2.done.connected)}")
-        return true
-      }
-    }
-    return false
+    if (a1.isFIFO != a2.isFIFO) return false
+    val lca = leastCommonAncesstor(a1.getCtrl, a2.getCtrl).get
+    val branch1 = a1.getCtrl.ancestorSlice(lca).dropRight(1)
+    val branch2 = a2.getCtrl.ancestorSlice(lca).dropRight(1)
+    dbg(s"branch1=$branch1")
+    dbg(s"branch2=$branch2")
+    val rate1 = branch1.map { _.iter.v.getOrElse(Unknown) }.reduceOption { _ * _ }.getOrElse(Finite(1l))
+    val rate2 = branch2.map { _.iter.v.getOrElse(Unknown) }.reduceOption { _ * _ }.getOrElse(Finite(1l))
+    if (rate1 == Unknown) return false
+    if (rate2 == Unknown) return false
+    return rate1 == rate2
   }
 
 }

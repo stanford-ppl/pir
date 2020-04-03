@@ -124,9 +124,9 @@ trait RewriteUtil extends PIRPass { self: PIRTransformer =>
   RewriteRule[OpDef](s"PipeAccum", config.enablePipeAccum) { 
     case n@OpDef(Mux) =>
       val writes = n.out.neighbors.collect { case write:MemWrite => write }
-      val (accumWrites, nonAccumWrites) = writes.partition { _.isAccumWrite.get }
+      val (accumWrites, nonAccumWrites) = writes.partition { _.isAccumAccess.get }
       testOne(accumWrites).flatMap { accumWrite =>
-        val (accumReads, nonAccumReads) = accumWrite.mem.T.outAccesses.partition  { _.isAccumRead.get }
+        val (accumReads, nonAccumReads) = accumWrite.mem.T.outAccesses.partition  { _.isAccumAccess.get }
         testOne(accumReads).flatMap { accumRead =>
           val accumOps = accumRead.out.accum(
             prefix = { case `n` => true; case _ => false },
@@ -144,7 +144,7 @@ trait RewriteUtil extends PIRPass { self: PIRTransformer =>
                 accumWrite.data.disconnect
               } else {
                 accumWrite.mem.T.isAccum.reset
-                accumWrite.isAccumWrite.reset
+                accumWrite.isAccumAccess.reset
                 assert(nonAccumWrites.isEmpty && nonAccumReads.nonEmpty, s"unexpected accum pattern ${accumRead} ${accumWrite}")
               }
               dbgn(acc)
@@ -448,34 +448,18 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     val matchwidth = r1.out.getVec == r2.out.getVec
     if (!matchwidth) return false
     val w1 = r1.inAccess.as[BufferWrite]
+    dbg(s"checkRouteThrough $w1 => $r1 => $w2 => $r2")
     var matchrate = matchRate(r1, w2) 
     if (r1.isFIFO) {
-      matchrate &&= (matchRate(w2,r2) || matchRate(w1,r1))
+      val r1w1Match = matchRate(w1,r1) || r1.retiming.get
+      val r2w2Match = matchRate(w2,r2) || r2.retiming.get
+      matchrate &&= (r1w1Match || r2w2Match)
     }
     dbg(s"matchrate = $matchrate")
     if (!matchrate) return false
     var matchen = matchInput(r1.en, w2.en)
     dbg(s"matchen = $matchen")
     if (!matchen) return false
-    //if (r1.getCtrl == w2.getCtrl) {
-      //r1.inAccess match {
-        //case w:BufferWrite if config.option[Boolean]("rtelm-unsafe") => 
-          //w.data.T match {
-            //case access:Access =>
-              //val allGeneratedLaneEnables = w2.en.connected.forall {
-                //case OutputField(x:LoopController, "laneValid") => true
-                //case OutputField(x:CounterValid, "out") => true
-                //case _ => false
-              //}
-              //if (allGeneratedLaneEnables) {
-                //dbg(s"Unsafe Route Through $r1 => $w2 => $r2")
-                //return true
-              //}
-            //case _ =>
-          //}
-        //case _ =>
-      //}
-    //}
     return true
   }
 
