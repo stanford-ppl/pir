@@ -13,7 +13,9 @@ trait GenericMemoryLowering extends PIRTraversal with SiblingFirstTraversal with
     case _ => super.visitNode(n)
   }
 
-  // Combine enable signal if more than one exists. Change offset tp -1 if not enabled.
+  val invalidAddress = -1
+
+  // Combine enable signal if more than one exists. Change offset tp invalidAddress if not enabled.
   def flattenEnable(access:Access) = dbgblk(s"flattenEnable($access)"){
     val parent = access.parent.get
     within(parent, parent.getCtrl) {
@@ -38,7 +40,7 @@ trait GenericMemoryLowering extends PIRTraversal with SiblingFirstTraversal with
         case access:SparseAccess => access.addr
       }
       en.foreach { en =>
-        val newAddr = stage(OpDef(Mux).addInput(en, addr.singleConnected.get, allocConst(-1).out).out)
+        val newAddr = stage(OpDef(Mux).addInput(en, addr.singleConnected.get, allocConst(invalidAddress).out).out)
         addr.disconnect
         addr(newAddr)
       }
