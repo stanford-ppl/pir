@@ -180,7 +180,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
         lowerLUTAccess(mem, access)
         val bank = access.bank.connected
         val ofsOut = access.offset.singleConnected.get
-        val ofs = stage(Shuffle(-1,access.id).from(bank).to(allocConst(mem.bankids.get)).base(ofsOut))
+        val ofs = stage(Shuffle(-1,access.id).from(bank).to(allocConst(mem.bankids.get)).base(ofsOut).name("offsetShuffle"))
         bufferInput(ofs.base, BufferParam(fromCtx=Some(addrCtx)))
         bufferInput(ofs.from, BufferParam(fromCtx=Some(addrCtx)))
         val data = access match {
@@ -255,7 +255,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
               }
             }
             val shuffle = within(inCtx, inCtx.getCtrl)  {
-              stage(Shuffle(0,lead.id).from(allocConst(mem.bankids.get)).to(bank).base(newAccess.out))
+              stage(Shuffle(0,lead.id).from(allocConst(mem.bankids.get)).to(bank).base(newAccess.out).name("receiverShuffle"))
             }
             if (config.dupReadAddr) { // Potentially used by memory pruner for capacity splitting
               shuffle.offset(offset)
