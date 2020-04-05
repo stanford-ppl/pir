@@ -9,6 +9,8 @@ import scala.collection.mutable
 
 trait SparseLowering extends GenericMemoryLowering {
 
+  override val invalidAddress = -2
+
   protected val accessReqResp = mutable.Map[Access, (Input[PIRNode], Output[PIRNode])]()
   protected val barrierWrite = mutable.Map[Barrier, mutable.ListBuffer[Access]]()
   protected val barrierRead = mutable.Map[Barrier, mutable.ListBuffer[Access]]()
