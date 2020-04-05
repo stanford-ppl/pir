@@ -26,7 +26,7 @@ trait LockMemoryLowering extends GenericMemoryLowering
     val accesses = lockMems.flatMap { _.accesses.as[List[LockAccess]] }.distinct
     val lockKeys = lockOns.map { _.key.T }.distinct
     val preunrollKey = lockKeys.map { _.progorder.v }.distinct
-    if (preunrollKey.size > 1) err(s"Multiple locked keys ${lockKeys.map { quoteSrcCtx }}")
+    if (preunrollKey.size > 1) err(s"Multiple locked keys ${lockKeys.map { quoteSrcCtx(_,"\n") }}")
 
     // A list of list accesses, each list contains unrolled accesses belong to the same
     // preunrolled access.
@@ -89,11 +89,11 @@ trait LockMemoryLowering extends GenericMemoryLowering
     }
   }
 
-  override def quoteSrcCtx(x:Any):String = x match {
+  override def quoteSrcCtx(x:Any, delim:String="\n"):String = x match {
     case UnrolledAccess(lanes) => quoteSrcCtx(lanes.head)
     case x:InnerAccessRMW => quoteSrcCtx(x.ctrl)
     case InnerAccessGroup(ctrl, group) => quoteSrcCtx(ctrl)
-    case l:List[_] => l.map { quoteSrcCtx }.mkString("\n")
+    case l:List[_] => l.map { quoteSrcCtx(_,delim) }.mkString("\n")
     case x => super.quoteSrcCtx(x)
   }
 

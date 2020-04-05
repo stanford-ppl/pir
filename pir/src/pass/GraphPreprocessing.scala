@@ -57,7 +57,7 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
       scanRead.out.vecMeta.reset
       scanRead.out.presetVec(16)
       val scanCtrl = scanRead.getCtrl
-      val scanner = within(pirTop, scanCtrl, n.srcCtx.v) {
+      val scanner = within(pirTop, scanCtrl, n.srcCtx.get) {
         stage(Scanner().mask(scanRead))
       }
       val cntFIFO = within(pirTop) {
@@ -201,11 +201,10 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
 
   def processControllers(n:N) = {
     n.to[Controller].foreach { n =>
-      n.srcCtx.v.foreach { v => n.ctrl.get.srcCtx := v }
-      n.progorder.v.foreach { v =>
-        n.getCtrl.progorder := v
-      }
-      n.sname.v.foreach { v => n.ctrl.get.sname := v }
+      val ctrl = n.getCtrl
+      ctrl.srcCtx.mirror(n.srcCtx)
+      ctrl.progorder.mirror(n.progorder)
+      ctrl.sname.mirror(n.sname)
       n.descendents.foreach { d =>
         val ctrl = n.ctrl.get
         d.ctrl.reset

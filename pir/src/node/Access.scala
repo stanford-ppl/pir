@@ -101,12 +101,15 @@ case class LockRMW(op:Opcode)(implicit env:Env) extends LockAccess with RMWAcces
   val ack = OutputField[List[PIRNode]].presetVec(1).tp(Bool)
 }
 
-class Barrier(val ctrl:ControlTree, val init:Int) extends prism.graph.IR {
+class Barrier(val ctrl:ControlTree, val init:Int) extends prism.graph.IR { self =>
   val name = new Metadata[String]("name") {
     override def check(v:String) = {}
   }
-  val srcCtx = new Metadata[String]("srcCtx") {
-    override def check(v:String) = {}
+  val srcCtx = new Metadata[List[String]]("srcCtx") {
+    def apply(v:String):self.type = { 
+      value = value.map { _ :+ v }
+      self
+    }
   }
 }
 object Barrier {

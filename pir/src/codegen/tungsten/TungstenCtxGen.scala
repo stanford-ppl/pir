@@ -73,7 +73,7 @@ using   namespace std;
             val constructor = s"""${quote(n)}($constructorArgs)"""
             emitln(s"explicit $constructor;")
             genCtxCpp(n) {
-              emitBlock(s"""${quote(n)}::$constructor:Context(${quote(n).qstr},${quote(n.global.get).qstr},${quoteSrcCtx(n).replace("\n","\\n").qstr})""") {
+              emitBlock(s"""${quote(n)}::$constructor:Context(${quote(n).qstr},${quote(n.global.get).qstr},${quoteSrcCtx(n,"\\n").qstr})""") {
                 ctxExtVars.foreach { case (tp, field) =>
                   emitln(s"$field = _$field;")
                 }

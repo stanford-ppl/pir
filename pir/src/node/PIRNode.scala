@@ -20,9 +20,11 @@ abstract class PIRNode(implicit env:BuildEnvironment)
   val sname = new Metadata[String]("sname") {
     override def check(v:String) = {}
   }
-  val srcCtx = new Metadata[String]("srcCtx") {
-    override def :=(v:String) = { 
-      value = Some(value.map { _ + "\n" + v }.getOrElse(v))
+  val srcCtx = new Metadata[List[String]]("srcCtx", default=Some(Nil)) {
+    override def check(v:List[String]) = {}
+    def apply(v:String):self.type = { 
+      value = value.map { _ :+ v }
+      self
     }
   }
   def setSrcCtx(implicit file:sourcecode.File, line: sourcecode.Line):self.type = srcCtx(getSrcCtx)
@@ -125,9 +127,10 @@ case class ControlTree(schedule:CtrlSchedule)(implicit env:Env) extends EnvNode[
   val iter = new Metadata[Value[Long]]("iter")
   val isLoop = new Metadata[Boolean]("isLoop", default=Some(false))
   val isForever = new Metadata[Boolean]("isForever", default=Some(false))
-  val srcCtx = new Metadata[String]("srcCtx") {
-    override def :=(v:String) = { 
-      value = Some(value.map { _ + "\n" + v }.getOrElse(v))
+  val srcCtx = new Metadata[List[String]]("srcCtx") {
+    def apply(v:String):self.type = { 
+      value = value.map { _ :+ v }
+      self
     }
   }
   val uid = new Metadata[List[Int]]("uid")

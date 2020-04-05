@@ -26,7 +26,7 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
       count.foreach {
         case Finite(count) =>
           maxCount = math.max(maxCount, count)
-          n.getCtrl.srcCtx.v.foreach { ctx =>
+          n.getCtrl.srcCtx.get.headOption.foreach { ctx =>
             maxCountCtx = ctx
           }
         case _ =>
