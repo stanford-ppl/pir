@@ -105,7 +105,7 @@ class Barrier(val ctrl:ControlTree, val init:Int) extends prism.graph.IR { self 
   val name = new Metadata[String]("name") {
     override def check(v:String) = {}
   }
-  val srcCtx = new Metadata[List[String]]("srcCtx") {
+  val srcCtx = new Metadata[List[String]]("srcCtx", default=Some(Nil)) {
     def apply(v:String):self.type = { 
       value = value.map { _ :+ v }
       self

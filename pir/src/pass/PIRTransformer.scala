@@ -104,7 +104,7 @@ with BufferAnalyzer
     withMirrorRule {
       case (from,to,"name",Some(fvalue),Some(tvalue)) => Some(s"$fvalue/$tvalue")
       case (from,to,"sname",Some(fvalue),Some(tvalue)) => Some(s"$fvalue/$tvalue")
-      case (from,to,"srcCtx",Some(fvalue),Some(tvalue)) => Some(s"$fvalue,$tvalue")
+      case (from,to,"srcCtx",Some(fvalue),Some(tvalue)) => Some(fvalue.as[List[_]] ++ tvalue.as[List[_]])
       case (from,to,"order",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to,"progorder",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to,"ctrl",Some(fvalue),Some(tvalue)) => Some(tvalue)
