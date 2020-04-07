@@ -144,7 +144,7 @@ case class LockOnKeys()(implicit env:Env) extends Def {
   tp(Bool)
 }
 
-case class LockAccum(tp:BitType, dims:List[Int], srcCtx:Option[String], name:Option[String], dram:Option[String])
+case class LockAccum(tp:BitType, dims:List[Int], srcCtx:List[String], name:Option[String], dram:Option[String])
 case class LockRMWBlock(
   outerPar:Int,
   //memPar:Int,

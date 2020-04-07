@@ -78,20 +78,20 @@ trait TypeUtil { self:PIRPass =>
     }
   }
 
-  def quoteSrcCtx(n:Any) = n match {
+  def quoteSrcCtx(n:Any, delim:String="\n") = n match {
     case n:PIRNode =>
       var msg = dquote(n)
       n.name.v.foreach { n => msg += s": $n" }
-      msg += " " + n.srcCtx.v.getOrElse("No source context")
+      msg += " " + n.srcCtx.get.mkString(delim)
       n.ctx.map { ctx => msg += s" ($ctx)"}
       msg
     case n:Barrier =>
       var msg = dquote(n)
       n.name.v.foreach { n => msg += s": $n" }
-      msg += " " + n.srcCtx.v.getOrElse("No source context")
+      msg += " " + n.srcCtx.get.mkString(delim)
       msg
     case n:ControlTree =>
-      s"$n[${n.uid.get.mkString(",")}] ${n.srcCtx.v.getOrElse("No source context")}"
+      s"$n[${n.uid.get.mkString(",")}] ${n.srcCtx.get.mkString(delim)}"
     case n => s"$n"
   }
 

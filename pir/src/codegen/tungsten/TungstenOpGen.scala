@@ -106,7 +106,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
           intps = intps :+ Bool
         case _ =>
       }
-      quoteOp(n.op, n.getTp, ins, intps, quoteSrcCtx(n).replace("\n","\\n"))
+      quoteOp(n.op, n.getTp, ins, intps, quoteSrcCtx(n,"\\n"))
     }
 
     case n:PrintIf =>

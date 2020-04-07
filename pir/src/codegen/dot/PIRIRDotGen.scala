@@ -221,8 +221,8 @@ class PIRGlobalDotGen(val fileName:String, noBackEdge:Boolean=false)(implicit de
       case (from@OutputField(fromsrc:GlobalOutput, _), to@InputField(tosrc:GlobalInput, _)) => 
         var tooltip = s"${fromsrc}${fromsrc.externAlias.v.fold("") { a => s"($a)" }}"
         tooltip += s"\n${tosrc}${tosrc.externAlias.v.fold("") { a => s"($a)" }}"
-        tooltip += s"\n${fromsrc.in.neighbors.map(quoteSrcCtx).mkString(",")}"
-        tooltip += s"\n${tosrc.out.neighbors.map(quoteSrcCtx).mkString(",")}"
+        tooltip += s"\n${fromsrc.in.neighbors.map(quoteSrcCtx(_,"\n")).mkString(",")}"
+        tooltip += s"\n${tosrc.out.neighbors.map(quoteSrcCtx(_,"\n")).mkString(",")}"
         fromsrc.count.v.foreach { c => 
           c match {
             case Finite(c) => tooltip += s"\ncount=$c"

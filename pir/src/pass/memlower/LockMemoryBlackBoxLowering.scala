@@ -19,7 +19,7 @@ trait LockMemoryBackBoxLowering extends GenericMemoryLowering { self:LockMemoryL
     within(pirTop, lock.getCtrl) {
       val blockCtx = within(pirTop, lock.getCtrl) { stage(Context().streaming(true)) }
       val lockAccums = lockMems.map { mem => 
-        LockAccum(mem.tp.get, mem.dims.get, mem.srcCtx.v, mem.name.v, if (mem.isDRAM) Some(mem.sname.get) else None)
+        LockAccum(mem.tp.get, mem.dims.get, mem.srcCtx.get, mem.name.v, if (mem.isDRAM) Some(mem.sname.get) else None)
       }
       val accumMap = (lockMems,lockAccums).zipped.toMap
       val block = within(blockCtx, lock.getCtrl) { LockRMWBlock(rmwpar,lockAccums) }
