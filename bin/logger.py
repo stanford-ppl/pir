@@ -278,6 +278,9 @@ class Logger():
         if opts.logdir is None:
             opts.logdir = os.path.join(opts.pir_dir, 'logs/')
 
+        opts.tungsten_dir = opts.pir_dir + "/tungsten"
+        opts.plastiroute_dir = opts.pir_dir + "/plastiroute"
+
         self.show_history()
 
         if opts.show_diff:
@@ -446,6 +449,8 @@ class Logger():
         opts = self.opts
         self.pir_sha,self.pir_time = get_sha(opts.pir_dir)
         self.spatial_sha,_ = get_sha(opts.spatial_dir)
+        self.tungsten_sha,_ = get_sha(opts.tungsten_dir)
+        self.plastiroute_sha,_ = get_sha(opts.plastiroute_dir)
         self.rules = []
 
         for backend in opts.backend:
@@ -709,6 +714,8 @@ class Logger():
         conf["freq"] = 1e9
         conf['spatial_sha'] = self.spatial_sha
         conf['pir_sha'] = self.pir_sha
+        conf['tungsten_sha'] = self.tungsten_sha
+        conf['plastiroute_sha'] = self.plastiroute_sha
         conf['time'] = self.pir_time
         self.appdir = os.path.join(opts.gendir,backend,app)
         self.runproute = os.path.join(self.appdir,"log/runproute.log")
