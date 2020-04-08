@@ -17,7 +17,7 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
     val isFIFO = false
     val fctrl = fctx.ctrl.get
     val tctrl = tctx.ctrl.get
-    dbgblk(s"InsertToken(fctx=$fctx($fctrl), tctx=$tctx($tctrl))") {
+    dbgblk(s"insertToken(fctx=$fctx($fctrl), tctx=$tctx($tctrl))") {
       val (enq, deq) = compEnqDeq(isFIFO=isFIFO, fctx, tctx, None, Nil, isMemReduce=isMemReduce)
       val write = within(fctx, fctrl) {
         allocate[TokenWrite](_.done.isConnectedTo(enq)) {
@@ -71,7 +71,7 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
     }
   }
 
-  def childDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = {
+  def childDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = dbgblk(s"childDone($ctrl, $ctx)"){
     if (ctx.getCtrl.ancestorSlice(ctrl).exists { _.isAsync }) {
       err(s"Trying to get done of $ctrl where $ctx is under async controller ctx.ctrl=${ctx.getCtrl}")
     }

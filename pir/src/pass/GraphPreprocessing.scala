@@ -121,13 +121,6 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
             n.isAccum := true
             prev.isAccumAccess := true
             next.isAccumAccess := true
-            (prev, next) match {
-              case (prev:BankedRead, next:BankedWrite) =>
-                val isMemReduce = prev.bank.T == next.bank.T && prev.offset.T == next.offset.T
-                prev.isMemReduce := isMemReduce
-                next.isMemReduce := isMemReduce
-              case _ =>
-            }
           }
         case _ => 
       }
