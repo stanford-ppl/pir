@@ -56,6 +56,7 @@ class SpadeConfig(compiler:Compiler) extends prism.Config(compiler) {
   register[Int]("dag-vfifo", info="Number of vector fifo in dag")
   register[Int]("dag-sfifo", info="Number of scalar fifo in dag")
   register[Int]("dag-cfifo", info="Number of scalar fifo in dag")
+  register[Int]("mcrank", info="Number of column of MC and DRAM AG on both sides of the fringe")
   register[String]("mem-tech", info="Off-chip memory technology [DDR3, DDR4, HBM]", default="DDR4")
   register[Int]("vc", default=4, info="Number of virtual classes per network")
   register[Boolean]("scheduled", default=false, info="Wether stage is time multiplex or pipelined")

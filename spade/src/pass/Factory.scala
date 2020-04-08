@@ -97,8 +97,8 @@ trait TopFactory extends Factory {
         } else {
           List.tabulate(param.fringeColumn, row) { case (x,y) =>
             (side,x) match {
-              case ("left", 0) => ListBuffer(visitNodeAs[MC](param.mcParam, None))
-              case ("right", 1) => ListBuffer(visitNodeAs[MC](param.mcParam, None))
+              case ("left", i) if i % 2 ==0 => ListBuffer(visitNodeAs[MC](param.mcParam, None))
+              case ("right", i) if i % 2 == 1 => ListBuffer(visitNodeAs[MC](param.mcParam, None))
               case _ => ListBuffer(visitNodeAs[CU](param.dagParam.get, None))
             }
           }
