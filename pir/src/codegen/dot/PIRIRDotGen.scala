@@ -155,7 +155,7 @@ trait PIRIRDotGen extends PIRTraversal with IRDotCodegen { self =>
     tooltip ++= qdef(n)
     n.metadata.values.foreach { metadata =>
       metadata.v.foreach { v =>
-        tooltip ++= s"${metadata.name} = $v\n"
+        tooltip ++= s"\n${metadata.name} = $v"
       }
     }
     tooltip.toString
@@ -217,7 +217,7 @@ class PIRGlobalDotGen(val fileName:String, noBackEdge:Boolean=false)(implicit de
   override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
     if (noBackEdge && backEdges.contains(from->to)) return
     (from, to) match {
-      case (from@OutputField(fromsrc:GlobalOutput, _), to) if fromsrc.isUnder[ArgFringe] /*&& from.connected.size > 5*/ => 
+      case (from@OutputField(fromsrc:GlobalOutput, _), to) if fromsrc.isUnder[ArgFringe] && !config.enableDotArgIn => 
       case (from@OutputField(fromsrc:GlobalOutput, _), to@InputField(tosrc:GlobalInput, _)) => 
         var tooltip = s"${fromsrc}${fromsrc.externAlias.v.fold("") { a => s"($a)" }}"
         tooltip += s"\n${tosrc}${tosrc.externAlias.v.fold("") { a => s"($a)" }}"

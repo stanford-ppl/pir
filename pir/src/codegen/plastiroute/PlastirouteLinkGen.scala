@@ -52,7 +52,7 @@ class PlastirouteLinkGen(implicit compiler: PIR) extends PlastisimUtil with PIRT
       row("out") = quote(n)
       row("ctx") = ctx.id
       row("src") = quote(n.global.get)
-      row("tp") = if (isVecLink(n)) 1 else 2 // 1 for scalar, 2 for vector
+      row("tp") = if (isVecLink(n)) 2 else 1 // 1 for scalar, 2 for vector
       row("count") = n.count.get.getOrElse(1000000) //TODO: use more reasonable heuristic when count is not available
     }
 
