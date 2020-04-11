@@ -17,9 +17,13 @@ class MappingInitializer(implicit compiler:PIR) extends PIRPass with MappingLogg
   }
 
   def reserveResourceForBlackBox(bbs:List[GlobalContainer]) = {
-    val numSpDRAM = bbs.count { bb => bb.descendentTree.exists { _.isInstanceOf[SparseDRAMBlock] } }
-    config.updateOption[Int]("reserve-dag") { _.getOrElse(0) + numSpDRAM }
-    config.updateOption[Int]("reserve-mc") { _.getOrElse(0) + numSpDRAM }
+    val spDramPar = bbs.map { bb => 
+      bb.descendentTree.collectFirst { case block:SparseDRAMBlock =>
+        block.dramPar
+      }.getOrElse(0)
+    }.sum
+    config.updateOption[Int]("reserve-dag") { _.getOrElse(0) + spDramPar }
+    config.updateOption[Int]("reserve-mc") { _.getOrElse(0) + spDramPar }
   }
 
 }
