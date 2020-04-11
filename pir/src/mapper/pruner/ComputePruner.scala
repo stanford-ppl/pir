@@ -51,7 +51,7 @@ class ComputePruner(implicit compiler:PIR) extends CUPruner with ComputePartitio
         info(s"Split $k ${srcCtx} into ${ks.size} CUs $kcost in ${splitTime}ms")
         //breakPoint(s"$k")
         val (rs, cs) = ks.partition { case cu:MemoryContainer => true; case _ => false }
-        newFG(fg, k, cs, vs).map { _ ++ (rs -> spadeTop.cus.toSet) }
+        newFG(fg, k, cs, vs).map { _ ++ (rs -> getAvailableCUs.toSet) }
       case x => super.recover(x)
     }
   }

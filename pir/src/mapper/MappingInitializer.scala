@@ -9,10 +9,17 @@ class MappingInitializer(implicit compiler:PIR) extends PIRPass with MappingLogg
 
   override def runPass = {
 
-    val pnodes = pirTop.collectDown[CUMap.K]().filterNot { _.isInstanceOf[BlackBoxContainer] }
-    val snodes = spadeTop.cus
+    val (bbs,pnodes) = pirTop.collectDown[CUMap.K]().partition { _.isInstanceOf[BlackBoxContainer] }
+    reserveResourceForBlackBox(bbs)
+    val snodes = getAvailableCUs
     val tmap = TopMap(CUMap() ++ (pnodes.toSet -> snodes.toSet))
     compiler.states.topMap = Right(tmap)
+  }
+
+  def reserveResourceForBlackBox(bbs:List[GlobalContainer]) = {
+    val numSpDRAM = bbs.count { bb => bb.descendentTree.exists { _.isInstanceOf[SparseDRAMBlock] } }
+    config.updateOption[Int]("reserve-dag") { _.getOrElse(0) + numSpDRAM }
+    config.updateOption[Int]("reserve-mc") { _.getOrElse(0) + numSpDRAM }
   }
 
 }

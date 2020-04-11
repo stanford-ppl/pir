@@ -32,7 +32,7 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
         val (ms, cs) = split(k, kcost, vcost)
         info(s"Split $k $mem into ${ms.size} Memory CUs and ${cs.size} Compute CUs $kcost")
         //breakPoint(s"$k")
-        Right(fg.mapFreeMap { _ - k ++ ((ms, vs)) ++ ((cs, spadeTop.cus.toSet)) })
+        Right(fg.mapFreeMap { _ - k ++ ((ms, vs)) ++ ((cs, getAvailableCUs.toSet)) })
       case x => super.recover(x)
     }
   }
