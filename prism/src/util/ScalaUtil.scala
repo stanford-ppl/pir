@@ -243,6 +243,7 @@ trait ScalaUtilFunc {
       assert(i % d == 0, s"$i is not divisable by $d")
       i / d
     }
+    def nextPow2 = math.pow(2,math.ceil(math.log(i)/math.log(2))).toInt
   }
 
   implicit class NumOp[N:Numeric](i:N) {
