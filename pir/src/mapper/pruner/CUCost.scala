@@ -96,18 +96,18 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
       case n:ArgFringeParam => ActorCost(2)
       case n:Parameter => ActorCost(1)
 
-    } orElse switch[SplitterCost](x,ct) {
-      case n:GlobalContainer => 
-        val numSplitter = n.children.view.map { child =>
-          child.children.count {
-            case x:Splitter => true 
-            case x:SplitLeader => true 
-            case x:Scanner => true 
-            case x => false
-          }
-        }.reduceOption { _ + _ }.getOrElse(0)
-        SplitterCost(numSplitter)
-      case n:Parameter => SplitterCost(n.to[CUParam].fold(0){_.numSplitter})
+    //} orElse switch[SplitterCost](x,ct) {
+      //case n:GlobalContainer => 
+        //val numSplitter = n.children.view.map { child =>
+          //child.children.count {
+            //case x:Splitter => true 
+            //case x:SplitLeader => true 
+            //case x:Scanner => true 
+            //case x => false
+          //}
+        //}.reduceOption { _ + _ }.getOrElse(0)
+        //SplitterCost(numSplitter)
+      //case n:Parameter => SplitterCost(n.to[CUParam].fold(0){_.numSplitter})
 
     } orElse switch[LockCost](x,ct) {
       case n:GlobalContainer => LockCost(n.collectDown[Lock]().size)
