@@ -24,6 +24,7 @@ class BlackBoxLowering(implicit compiler:PIR) extends PIRTraversal with SiblingF
     swapParent(n, ctx)
     (n.localDeps ++ n.localDepeds).foreach { neighbor =>
       neighbor.to[Access].foreach { access =>
+        access.en.disconnect
         swapParent(access, ctx)
       }
     }
