@@ -26,7 +26,7 @@ trait GlobalMerging extends PIRTransformer with CUCostUtil with  MappingLogger {
     x.getCost[AFGCost] ::
     x.getCost[MCCost] ::
     x.getCost[MergeBufferCost] ::
-    x.getCost[SplitterCost] ::
+    //x.getCost[SplitterCost] ::
     x.getCost[LockCost] ::
     x.getCost[SRAMCost] ::
     x.getCost[InputCost] ::
