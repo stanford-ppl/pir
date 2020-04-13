@@ -101,8 +101,7 @@ def parse_proutesummary(log, conf, opts):
         reader = csv.DictReader(f)
         for row in reader:
             for k in row:
-                if k in conf:
-                    conf[k] = row[k]
+                conf[k] = row[k]
 
 def parseSimState(log, conf, opts):
     if not os.path.exists(log):
