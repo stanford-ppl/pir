@@ -59,15 +59,14 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
         n.cchain.T.foreach { ctr =>
           emitln(s"$n->AddCounter(${ctr});")
         }
+        n.to[LoopController].foreach { n =>
+          n.stopWhen.T.foreach { stop =>
+            emitln(s"$n->SetStop(${nameOf(stop)});")
+          }
+        }
       }
       if (n.en.isConnected) {
         emitln(s"$n->SetEn(${n.en.qref}); // ${n.getCtrl}")
-      }
-
-      genCtxComputeMid {
-        n.stopWhen.T.foreach { stop =>
-          emitln(s"$n->SetStop($stop);")
-        }
       }
 
       visitNode(n)
