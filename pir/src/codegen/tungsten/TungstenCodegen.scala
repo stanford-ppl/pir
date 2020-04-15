@@ -146,6 +146,13 @@ trait TungstenCodegen extends PIRTraversal with StaticTopDownTopologicalTraversa
       case Bool => "bool"
       case Text => "string"
     }
+    def qinitType:String = tp match {
+      case Fix(sign, i, m) => "0"
+      case Flt(m,f) => "0"
+      case Bool => "false"
+      case Text => "".qstr
+      case Void => ""
+    }
   }
 
 }
