@@ -65,6 +65,14 @@ trait ArgParser {
     setOptionRec(args)
   }
 
+  def updateOption[T](key:String)(update:Option[T] => T) = {
+    val orig = optionMap.get(key).getOrElse {
+      bug(s"$key is not registered for update.")
+    }.asInstanceOf[ArgOption[T]]
+    val updated = update(orig.getValue)
+    orig.value = Some(updated)
+  }
+
   def printUsage = {
     optionMap.foreach { case (key, ArgOption(_, default, msg)) =>
       info(s"--$key: $msg ${default.map { default => s"[default=$default]" }.getOrElse("")}")

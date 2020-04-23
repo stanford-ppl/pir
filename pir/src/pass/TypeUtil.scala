@@ -155,6 +155,26 @@ trait TypeUtil { self:PIRPass =>
     backEdges.toSet
   }
 
+  def getAvailableCUs:List[spade.node.Terminal] = {
+    import spade.param._
+    var cus = spadeTop.cus
+    if (spadeParam.isAsic || spadeParam.isInf)
+      return cus
+    var reservePCUs = config.option[Int]("reserve-pcu")
+    var reservePMUs = config.option[Int]("reserve-pmu")
+    var reserveDAGs = config.option[Int]("reserve-dag")
+    var reserveMCs = config.option[Int]("reserve-mc")
+    cus = cus.filterNot { cu =>
+      cu.params match {
+        case Some(param:PCUParam) if reservePCUs > 0 => reservePCUs-=1; true
+        case Some(param:PMUParam) if reservePMUs > 0 => reservePMUs-=1; true
+        case Some(param:DramAGParam) if reserveDAGs > 0 => reserveDAGs-=1; true
+        case Some(param:MCParam) if reserveMCs > 0 => reserveMCs-=1; true
+        case param => false
+      }
+    }
+    cus
+  }
 
 }
 

@@ -55,74 +55,76 @@ trait SparseDRAMLowering extends SparseLowering {
         case (barrier,false) => barrierRead.getOrElseUpdate(barrier, mutable.ListBuffer()) += access
       }
       val ctrl = access.getCtrl
-      val reqresp = access match {
-        case access:SparseRead =>
-          val (readAddr, readData) = block.addReadPort(accessid)
-          val addrCtx = within(pirTop, ctrl, access.srcCtx.get) {
-            stage(Context().name("addrCtx"))
-          }
-          swapParent(access, addrCtx)
-          flattenEnable(access) // in addrCtx
-          readAddr(access.addr.connected)
-          bufferInput(readAddr, BufferParam(fromCtx=Some(addrCtx))).foreach { _.name := "readAddr" }
-          val ins = access.out.connected
-          ins.foreach { in =>
-            swapConnection(in, access.out, readData)
-          }
-          ins.distinct.foreach { in =>
-            bufferInput(in).foreach { read => read.inAccess.name := "readOut" }
-          }
-          val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
-          val req = readAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
-          val resp = reads.head.out
-          access -> (req,resp)
-        case access:SparseWrite =>
-          val (writeAddr, writeData, writeAck) = block.addWritePort(accessid)
-          flattenEnable(access) // in write ctx
-          writeAddr(access.addr.connected)
-          writeData(access.data.connected)
-          bufferInput(writeAddr).foreach { _.name := "writeAddr" }
-          bufferInput(writeData).foreach { _.name := "writeData" }
-          val ackCtx = within(pirTop, ctrl, access.srcCtx.get) {
-            stage(Context().name("ackCtx"))
-          }
-          val accumAck = within(ackCtx, ctrl, access.srcCtx.get) {
-            stage(AccumAck().ack(writeAck))
-          }
-          access.mem.disconnect
-          bufferInput(accumAck.ack).foreach { read => 
-            read.name := "ack"
-            read.inAccess.name := "ack"
-          }
-          val req = writeAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
-          access -> (req,accumAck.out)
-        case access:SparseRMW =>
-          val (rmwAddr, rmwDataIn, rmwDataOut) = block.addRMWPort(accessid, access.op, access.opOrder)
-          flattenEnable(access) // in write ctx
-          rmwAddr(access.addr.connected)
-          rmwDataIn(access.input.connected)
-          bufferInput(rmwAddr).foreach { _.name := "rmwAddr" }
-          bufferInput(rmwDataIn).foreach { _.name := "rmwDataIn" }
-          var ins = access.dataOut.connected
-          if (ins.size == 0) {
-            val accumAck = within(pirTop, access.getCtrl, access.srcCtx.get) {
-              val ctx = stage(Context().name("RMW_ackAccum"))
-              within(ctx) {
-                stage(AccumAck().ack(access.dataOut))
-              }
+      val reqresp = within(access.srcCtx.get) {
+        access match {
+          case access:SparseRead =>
+            val (readAddr, readData) = block.addReadPort(accessid)
+            val addrCtx = within(pirTop, ctrl) {
+              stage(Context().name("addrCtx"))
             }
-            ins = List(accumAck.ack)
-          }
-          ins.foreach { in =>
-            swapConnection(in, access.dataOut, rmwDataOut)
-          }
-          ins.distinct.foreach { in =>
-            bufferInput(in).foreach { read => read.inAccess.name := "rmwDataOut" }
-          }
-          val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
-          val req = rmwAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
-          val resp = reads.head.out
-          access -> (req,resp)
+            swapParent(access, addrCtx)
+            flattenEnable(access) // in addrCtx
+            readAddr(access.addr.connected)
+            bufferInput(readAddr, BufferParam(fromCtx=Some(addrCtx))).foreach { _.name := "readAddr" }
+            val ins = access.out.connected
+            ins.foreach { in =>
+              swapConnection(in, access.out, readData)
+            }
+            ins.distinct.foreach { in =>
+              bufferInput(in).foreach { read => read.inAccess.name := "readOut" }
+            }
+            val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
+            val req = readAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
+            val resp = reads.head.out
+            access -> (req,resp)
+          case access:SparseWrite =>
+            val (writeAddr, writeData, writeAck) = block.addWritePort(accessid)
+            flattenEnable(access) // in write ctx
+            writeAddr(access.addr.connected)
+            writeData(access.data.connected)
+            bufferInput(writeAddr).foreach { _.name := "writeAddr" }
+            bufferInput(writeData).foreach { _.name := "writeData" }
+            val ackCtx = within(pirTop, ctrl) {
+              stage(Context().name("ackCtx"))
+            }
+            val accumAck = within(ackCtx, ctrl) {
+              stage(AccumAck().ack(writeAck))
+            }
+            access.mem.disconnect
+            bufferInput(accumAck.ack).foreach { read => 
+              read.name := "ack"
+              read.inAccess.name := "ack"
+            }
+            val req = writeAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
+            access -> (req,accumAck.out)
+          case access:SparseRMW =>
+            val (rmwAddr, rmwDataIn, rmwDataOut) = block.addRMWPort(accessid, access.op, access.opOrder)
+            flattenEnable(access) // in write ctx
+            rmwAddr(access.addr.connected)
+            rmwDataIn(access.input.connected)
+            bufferInput(rmwAddr).foreach { _.name := "rmwAddr" }
+            bufferInput(rmwDataIn).foreach { _.name := "rmwDataIn" }
+            var ins = access.dataOut.connected
+            if (ins.size == 0) {
+              val accumAck = within(pirTop, access.getCtrl) {
+                val ctx = stage(Context().name("RMW_ackAccum"))
+                within(ctx) {
+                  stage(AccumAck().ack(access.dataOut))
+                }
+              }
+              ins = List(accumAck.ack)
+            }
+            ins.foreach { in =>
+              swapConnection(in, access.dataOut, rmwDataOut)
+            }
+            ins.distinct.foreach { in =>
+              bufferInput(in).foreach { read => read.inAccess.name := "rmwDataOut" }
+            }
+            val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
+            val req = rmwAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
+            val resp = reads.head.out
+            access -> (req,resp)
+        }
       }
       free(access)
       reqresp
@@ -132,10 +134,12 @@ trait SparseDRAMLowering extends SparseLowering {
   def insertTokenToHost(ua:UnrolledAccess[SparseAccess]) = dbgblk(s"insertTokenToHost($ua)"){
     val hostOutCtx = pirTop.argFringe.collectFirst[HostOutController](visitDown _).ctx.get
     ua.lanes.foreach { access =>
-      val resp = accessReqResp(access)._2
-      val tokenRead = insertToken(resp.src.ctx.get, hostOutCtx, dep=Some(resp))
-      within(hostOutCtx, hostOutCtx.getCtrl) {
-        stage(HostRead().input(tokenRead.out))
+      within(access.srcCtx.get) {
+        val resp = accessReqResp(access)._2
+        val tokenRead = insertToken(resp.src.ctx.get, hostOutCtx, dep=Some(resp))
+        within(hostOutCtx, hostOutCtx.getCtrl) {
+          stage(HostRead().input(tokenRead.out))
+        }
       }
     }
   }

@@ -87,10 +87,12 @@ case class FringePattern(
   mcParam:MCParam=MCParam(),
   dagParam:Option[DramAGParam]=Some(DramAGParam()),
   argFringeParam:ArgFringeParam=ArgFringeParam(),
-  shareNode:Boolean=true
+  shareNode:Boolean=true,
+  rank:Int=1, // Number of columns of MCs and AGs on both sides
 ) extends Parameter {
   lazy val topParam = traceOut[TopParam]
-  def fringeColumn = if (shareNode) 1 else if (dagParam.nonEmpty) 2 else 1
+  // Number of columns of nodes assigned to either MC or AG on both sides
+  def fringeColumn = (if (shareNode) 1 else if (dagParam.nonEmpty) 2 else 1) * rank
 }
 
 case class ArgFringeParam(

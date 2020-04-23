@@ -48,8 +48,12 @@ trait TungstenMemGen extends TungstenCtxGen {
       if (n.isFIFO) {
         emitln(s"$name->SetReadEn(${n.en.qref});")
       }
+      genCtxInits {
+        emitln(s"// Initialize $n")
+        emitVec(n) { i => n.getTp.qinitType }
+      }
       emitIf(s"$name->Valid()") {
-        emitVec(n) { i =>
+        emitAssign(n) { i =>
           s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
         }
       }

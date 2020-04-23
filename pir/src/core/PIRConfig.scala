@@ -38,6 +38,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("stat", default=false, info="Printing statistics")
   register("igraph", default=false, info="Enable igraph codegen")
   register("dedicated-dag", default=false, info="Force DRAM AG are only used to map DRAM Address Calculation")
+
   register("module", default=false, info="Generate the app as a module")
 
   register[String]("spatial-home", default=sys.env.get("SPATIAL_HOME"), info="Spatial Home")
@@ -78,6 +79,12 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def asModule = enableCodegen && option[Boolean]("module")
   def spatialHome = getOption[String]("spatial-home")
   def pirHome = getOption[String]("pir-home") orElse spatialHome.map { buildPath(_,"pir") }
+
+
+  register[Int]("reserve-pcu", default=0, info="number of PCUs to reserve in black box")
+  register[Int]("reserve-pmu", default=0, info="number of PMUs to reserve in black box")
+  register[Int]("reserve-dag", default=0, info="number of DRAM AG to reserve in black box")
+  register[Int]("reserve-mc", default=0, info="number of Memory Controller Interface to reserve in black box")
 
   /* ------------------- Routing --------------------  */
   register("routing-algo", default="dor", info="If net=[dynamic] - [dor, planed, proute]. Option ignored for other network. dor - dimention order routing. planed - arbitrary source routing, proute - use plastiroute for place and route. If proute is chosen plastiroute will be launched from pir if $PLASTIROUTE_HOME is set") 
@@ -174,11 +181,13 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("dot", default=false, info="Enable dot codegen")
   register("vdot", default=false, info="Enable verbose dot codegen")
   register("fast", default=false, info="Alias for --vdot=false --rundot=false --save=false")
+  register("dot-argin", default=false, info="Draw argins in the global-level dot graph")
 
   def fast:Boolean = option[Boolean]("fast")
   override def save = !fast & super.save
   //override def debug = !fast & super.debug
   def enableDot:Boolean = enableCodegen && option[Boolean]("dot")
   def enableVerboseDot:Boolean = enableDot && option[Boolean]("vdot") && !fast
+  def enableDotArgIn:Boolean = enableDot && option[Boolean]("dot-argin") && !fast
   override def enableRunDot = super.enableRunDot && !fast
 }

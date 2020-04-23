@@ -18,6 +18,7 @@ trait MemoryNode extends PIRNode {
   val numPart = Metadata[Int]("numPart", default=1) 
   val depth = Metadata[Int]("depth", default=1)
   val isAccum = Metadata[Boolean]("isAccum", default=false)
+  val isMemReduceAccum = Metadata[Boolean]("isMemReduceAccum", default=false)
   val isInnerAccum = Metadata[Boolean]("isInnerAccum", default=false)
   def getBanks = banks.get
   def getDepth = depth.get

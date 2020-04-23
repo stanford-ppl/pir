@@ -51,14 +51,6 @@ def derive_simfreq(conf, opts):
     ans = float(p2pcycle) / sec / 1000
     conf['simfreq'] = '{}kHz'.format(round(ans,2))
 
-def parse_success(conf):
-    for p in ['runp2p', 'runhybrid']:
-        conf[p+'_success'] = \
-            conf[p+'_complete'] and \
-            not conf[p+'_deadlock'] and \
-            conf[p+'_err'] is None
-    return conf['runp2p_success']
-
 def parse_genpir(pirsrc, logpath, conf, opts):
     exception_path = os.path.join(logpath,conf['app'] + '_exception.log')
     if os.path.exists(exception_path):
@@ -101,8 +93,7 @@ def parse_proutesummary(log, conf, opts):
         reader = csv.DictReader(f)
         for row in reader:
             for k in row:
-                if k in conf:
-                    conf[k] = row[k]
+                conf[k] = row[k]
 
 def parseSimState(log, conf, opts):
     if not os.path.exists(log):
@@ -272,11 +263,16 @@ class Logger():
         (opts, args) = parser.parse_known_args(args=args)
         self.opts = opts
 
+        self.simlogs = []
+
         if opts.pir_dir is None:
             opts.pir_dir = os.path.join(opts.spatial_dir, 'pir/')
 
         if opts.logdir is None:
             opts.logdir = os.path.join(opts.pir_dir, 'logs/')
+
+        opts.tungsten_dir = opts.pir_dir + "/tungsten"
+        opts.plastiroute_dir = opts.pir_dir + "/plastiroute"
 
         self.show_history()
 
@@ -446,6 +442,8 @@ class Logger():
         opts = self.opts
         self.pir_sha,self.pir_time = get_sha(opts.pir_dir)
         self.spatial_sha,_ = get_sha(opts.spatial_dir)
+        self.tungsten_sha,_ = get_sha(opts.tungsten_dir)
+        self.plastiroute_sha,_ = get_sha(opts.plastiroute_dir)
         self.rules = []
 
         for backend in opts.backend:
@@ -471,8 +469,8 @@ class Logger():
                     tail(self.gentst)
                     tail(self.runproute)
                     tail(self.maketst)
-                    tail(self.runp2p)
-                    tail(self.runhybrid)
+                    for log in self.simlogs:
+                        tail(log)
                 confs.append(conf)
                 numRun += 1
                 if conf['succeeded']: numSucc += 1
@@ -576,6 +574,32 @@ class Logger():
                         # print('{} {} {} {}'.format(self.getMessage(pconf), pconf['spatial_sha'], 
                             # get(pconf,'pir_sha'), pconf['time']))
 
+    def printtst(self, conf, msg, p):
+        if p not in self.get_simpasses():
+            return
+        color = None
+        if get(conf,p + '_deadlock'):
+            color = RED
+            msg.append(cstr(color, p.replace('run','') + ': DEADLOCK'))
+        elif get(conf,p + '_err') is not None:
+            color = RED
+            msg.append(cstr(color, p.replace('run','') + '') + ": " + get(conf,p + '_err').strip())
+        elif get(conf,p + '_pass') is not None and not get(conf,p + '_pass'):
+            color = RED
+            msg.append(cstr(color, p.replace('run','') + ' PASS:false'))
+        elif not get(conf,p + '_complete'):
+            color = YELLOW
+            msg.append(cstr(color, p.replace('run','') + ''))
+        else:
+            color = GREEN
+            msg.append(cstr(GREEN, p.replace('run','') + ''))
+        if get(conf,p + '_cycle') is not None and color != RED:
+            color = GREEN
+        if get(conf,p + '_cycle') is not None:
+            msg.append('cycle:{}'.format(get(conf,p + '_cycle')))
+        if get(conf,p + '_time') is not None:
+            msg.append('[{}]'.format(get(conf,p + '_time')))
+    
     def getMessage(self, conf, isHistory=False):
         opts = self.opts
         if opts.message=='apponly':
@@ -628,31 +652,7 @@ class Logger():
         if get(conf,'maketst_time') is not None:
             msg.append('[{}]'.format(get(conf,'maketst_time')))
     
-        def printtst(p):
-            color = None
-            if get(conf,p + '_deadlock'):
-                color = RED
-                msg.append(cstr(color, p.replace('run','') + ': DEADLOCK'))
-            elif get(conf,p + '_err') is not None:
-                color = RED
-                msg.append(cstr(color, p.replace('run','') + '') + ": " + get(conf,p + '_err').strip())
-            elif get(conf,p + '_pass') is not None and not get(conf,p + '_pass'):
-                color = RED
-                msg.append(cstr(color, p.replace('run','') + ' PASS:false'))
-            elif not get(conf,p + '_complete'):
-                color = YELLOW
-                msg.append(cstr(color, p.replace('run','') + ''))
-            else:
-                color = GREEN
-                msg.append(cstr(GREEN, p.replace('run','') + ''))
-            if get(conf,p + '_cycle') is not None and color != RED:
-                color = GREEN
-            if get(conf,p + '_cycle') is not None:
-                msg.append('cycle:{}'.format(get(conf,p + '_cycle')))
-            if get(conf,p + '_time') is not None:
-                msg.append('[{}]'.format(get(conf,p + '_time')))
-    
-        printtst('runp2p')
+        self.printtst(conf, msg,'runp2p')
     
         if get(conf,'runproute_err') is not None:
             msg.append(cstr(RED, 'proute') + ": "+ get(conf,'runproute_err').strip())
@@ -663,7 +663,7 @@ class Logger():
         if get(conf,'runproute_time') is not None:
             msg.append('[{}]'.format(get(conf,'runproute_time')))
     
-        printtst('runhybrid')
+        self.printtst(conf, msg,'runhybrid')
 
         # if isHistory:
             # pir_sha = get(conf,'pir_sha')
@@ -709,6 +709,8 @@ class Logger():
         conf["freq"] = 1e9
         conf['spatial_sha'] = self.spatial_sha
         conf['pir_sha'] = self.pir_sha
+        conf['tungsten_sha'] = self.tungsten_sha
+        conf['plastiroute_sha'] = self.plastiroute_sha
         conf['time'] = self.pir_time
         self.appdir = os.path.join(opts.gendir,backend,app)
         self.runproute = os.path.join(self.appdir,"log/runproute.log")
@@ -722,8 +724,8 @@ class Logger():
         self.progreport_alloc = os.path.join(self.appdir,"pir/out/program_alloc.json")
         self.progreport_split = os.path.join(self.appdir,"pir/out/program_split.json")
         self.maketst = os.path.join(self.appdir,"log/maketst.log")
-        self.runp2p = os.path.join(self.appdir,"log/runp2p.log")
-        self.runhybrid = os.path.join(self.appdir,"log/runhybrid.log")
+        self.simlogs= []
+        self.set_simlogs()
         self.p2pstat = os.path.join(self.appdir,"log/p2pstat.log")
         self.simstat = os.path.join(self.appdir,"tungsten/logs/state.json")
         self.pirconf = os.path.join(self.appdir,"pir/out/config.csv")
@@ -735,7 +737,7 @@ class Logger():
             'cycle', 
             'Simulation complete at cycle ',
             lambda lines: int(lines[0].split('Simulation complete at cycle ')[1].split(" ")[0]),
-            logs=[self.runp2p, self.runhybrid]
+            logs=self.simlogs
         )
         parseLog(
             conf,
@@ -743,14 +745,14 @@ class Logger():
             ["[bug]", "error", "Caught exception", "fail", "Exception", "segfault", 
                 "terminated by signal", "Command exited with non-zero status"],
             lambda lines: lines[0],
-            logs=[self.runp2p, self.runhybrid, self.maketst, self.runproute, self.gentst]
+            logs=self.simlogs + [self.maketst, self.runproute, self.gentst]
         )
         parseLog(
             conf,
             'pass', 
             ["PASS: "],
             lambda lines: bool(lines[0].split('PASS: ')[1].split(" (")[0]),
-            logs=[self.runp2p, self.runhybrid]
+            logs=self.simlogs
         )
         parseLog(
             conf,
@@ -758,7 +760,7 @@ class Logger():
             'DEADLOCK',
              lambda lines: True,
             default=False,
-            logs=[self.runp2p, self.runhybrid]
+            logs=self.simlogs
         )
         parseLog(
             conf,
@@ -766,35 +768,35 @@ class Logger():
             'Complete Simulation',
              lambda lines: True,
             default=False,
-            logs=[self.runp2p, self.runhybrid]
+            logs=self.simlogs
         )
         parseLog(
             conf,
             'dram_power', 
             'Average DRAM Power',
             lambda lines: float(lines[0].split(':')[1].split("W")[0]),
-            logs=[self.runp2p, self.runhybrid]
+            logs=self.simlogs
         )
         parseLog(
             conf,
             'rbw', 
             'Average DRAM Read Bandwidth: ',
             lambda lines: float(lines[0].split(':')[1].split("GB/s")[0]),
-            logs=[self.runp2p, self.runhybrid]
+            logs=self.simlogs
         )
         parseLog(
             conf,
             'wbw', 
             'Average DRAM Write Bandwidth: ',
             lambda lines: float(lines[0].split(':')[1].split("GB/s")[0]),
-            logs=[self.runp2p, self.runhybrid]
+            logs=self.simlogs
         )
         parseLog(
             conf,
             'time', 
             ["Runtime:"],
             lambda lines: lines[0].split("Runtime:")[1].strip(),
-            logs=[self.maketst, self.runp2p, self.runhybrid, self.runproute],
+            logs=self.simlogs + [self.maketst, self.runproute],
             prefix=True,
         )
         parseLog(
@@ -881,28 +883,28 @@ class Logger():
         parseLog(
             conf,
             'algo', 
-            'plastiroute',
+            '-a ',
             lambda lines: lines[0].split("-a ")[1].split(" ")[0],
             logs=[self.proutesh],
         )
         parseLog(
             conf,
             'pattern', 
-            'plastiroute',
+            '-T ',
              lambda lines: lines[0].split("-T ")[1].split(" ")[0],
             logs=[self.proutesh],
         )
         parseLog(
             conf,
             'slink', 
-            'plastiroute',
+            '-e ',
              lambda lines: int(lines[0].split("-e ")[1].split(" ")[0]),
             logs=[self.proutesh],
         )
         parseLog(
             conf,
             'vlink', 
-            'plastiroute',
+            '-x ',
              lambda lines: int(lines[0].split("-x ")[1].split(" ")[0]),
             logs=[self.proutesh],
         )
@@ -924,9 +926,28 @@ class Logger():
 
         parseSimState(self.simstat, conf, opts)
         
-        conf['succeeded'] = parse_success(conf)
+        conf['succeeded'] = self.parse_success(conf)
         derive_simfreq(conf, opts)
         return conf
+
+    def set_simlogs(self):
+        self.simlogs.append(os.path.join(self.appdir,"log/runp2p.log"))
+        self.simlogs.append(os.path.join(self.appdir,"log/runhybrid.log"))
+
+    def get_simpasses(self):
+        ps = [log.split("/")[-1].split(".")[0] for log in self.simlogs]
+        return ps
+
+    def parse_success(self,conf):
+        for p in self.get_simpasses():
+            if p+'_complete' not in conf:
+                continue
+            conf[p+'_success'] = \
+                conf[p+'_complete'] and \
+                not conf[p+'_deadlock'] and \
+                conf[p+'_err'] is None
+        return get(conf, 'runp2p_success')
+
 
 def main():
     Logger()

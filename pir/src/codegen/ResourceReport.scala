@@ -48,20 +48,30 @@ class ResourceReport(implicit design:PIR) extends Report with PIRTraversal with 
 
   def reportUsage(x:CUMap) = {
     sinfo(s"Usage: ")
-    val cus = spadeTop.cus
+    val cus = getAvailableCUs
     var groups = cus.groupBy { _.params.get }
     groups = groups.filterNot { case (param:ArgFringeParam, _) => true; case _ => false }
     sinfo("")
     sinfo(s"Target: ${quote(spadeParam.pattern)}")
     groups.foreach { case (param, cus) =>
       val (used, notUsed) = cus.partition { cu => x.usedMap.bmap.contains(cu) }
-      val usage = fstr(pct(used.size, cus.size))
+      val reserved = param match {
+        case parma:PCUParam => config.option[Int]("reserve-pcu")
+        case parma:PMUParam => config.option[Int]("reserve-pmu")
+        case parma:DramAGParam => config.option[Int]("reserve-dag")
+        case parma:MCParam => config.option[Int]("reserve-mc")
+        case parma => 0
+      }
+      val total = cus.size + reserved
+      val totalused = used.size + reserved
+      val usage = fstr(pct(totalused, total))
       val row = newRow
       row(s"Type") = quote(param)
       row(s"Used") = used.size
-      row(s"Total") = cus.size
+      row(s"Reserved") = reserved
+      row(s"Total") = total
       row(s"Usage") = usage
-      sinfo(s"${quote(param)} Usage: (${used.size}/${cus.size}) ${usage} %")
+      sinfo(s"${quote(param)} Usage: (${totalused}/${total}) ${usage} (Reserved: $reserved)")
     }
   }
 

@@ -41,11 +41,11 @@ trait SparseSRAMLowering extends SparseLowering {
           swapParent(access, accessCtx)
           if (access.data.T.getCtrl != ctrl || access.addr.T.getCtrl != ctrl) {
             val addrCtx = stage(Context().name("addrCtx"))
-            bufferInput(access.addr, BufferParam(fromCtx=Some(addrCtx)))
-            bufferInput(access.data, BufferParam(fromCtx=Some(addrCtx)))
+            bufferInput(access.addr, BufferParam(fromCtx=Some(addrCtx))).foreach { _.name := "addr" }
+            bufferInput(access.data, BufferParam(fromCtx=Some(addrCtx))).foreach { _.name := "data" }
           } else {
-            bufferInput(access.addr)
-            bufferInput(access.data)
+            bufferInput(access.addr).foreach { _.name := "addr" }
+            bufferInput(access.data).foreach { _.name := "data" }
           }
           bufferInput(accessCtx)
           val req = access.addr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
@@ -53,7 +53,7 @@ trait SparseSRAMLowering extends SparseLowering {
           val accumAck = within(ackCtx, ctrl) {
             stage(AccumAck().ack(access.ack))
           }
-          bufferInput(accumAck.ack)
+          bufferInput(accumAck.ack).foreach { _.name := "ack" }
           access -> (req,accumAck.out)
         }
       case access:SparseRead =>
@@ -63,7 +63,7 @@ trait SparseSRAMLowering extends SparseLowering {
           flattenEnable(access) // in addrCtx
           val accessCtx = stage(Context().streaming(true))
           swapParent(access, accessCtx)
-          bufferInput(access.addr, BufferParam(fromCtx=Some(addrCtx)))
+          bufferInput(access.addr, BufferParam(fromCtx=Some(addrCtx))).foreach { _.name := "addr" }
           val ins = access.out.connected
           ins.distinct.foreach { in =>
             bufferInput(in).foreach { read => read.inAccess.name := "readOut" }
@@ -80,11 +80,11 @@ trait SparseSRAMLowering extends SparseLowering {
           swapParent(access, accessCtx)
           if (access.addr.T.getCtrl != ctrl || access.input.T.getCtrl != ctrl || access.remoteAddr) {
             val addrCtx = stage(Context().name("addrCtx"))
-            bufferInput(access.addr, BufferParam(fromCtx=Some(addrCtx)))
-            bufferInput(access.input, BufferParam(fromCtx=Some(addrCtx)))
+            bufferInput(access.addr, BufferParam(fromCtx=Some(addrCtx))).foreach { _.name := "addr" }
+            bufferInput(access.input, BufferParam(fromCtx=Some(addrCtx))).foreach { _.name := "input" }
           } else {
-            bufferInput(access.addr)
-            bufferInput(access.input)
+            bufferInput(access.addr).foreach { _.name := "addr" }
+            bufferInput(access.input).foreach { _.name := "input" }
           }
 
           val ins = access.dataOut.connected

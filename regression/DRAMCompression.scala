@@ -14,7 +14,7 @@ import spatial.dsl._
     val a = DRAM[T](N)
     val out = ArgOut[T]
     setMem(a, array)
-    compress(a, ts)
+    compress(a, ts.to[I32])
 
     Accel {
       val accO = Reg[T](0.to[T])
