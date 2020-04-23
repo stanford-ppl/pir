@@ -2,7 +2,7 @@
 
 # Get Started
 
-## Compile app from spatial
+## Compile app from Spatial
 Clone spatial repo and checkout pir branch for latest development
 For place and route and simulation, you need to get access to these repos
 
@@ -33,7 +33,7 @@ the following passes (passname):
 2. Compile PIR (gentst)
 3. Compile generated Cpp simulator (maketst)
 4. Run ideal network simulation (runp2p)
-5. Place and Route (runproute)
+5. Place and route (runproute)
 6. Run hybrid network simulation (runhybrid)
 
 `<app>` can use wildcard matching, for example DotProduct*. Unspecified will run all apps in the project. You can provide multiple -a for a list of apps to run. 
@@ -71,26 +71,23 @@ For more options in `bin/log`, use `bin/log --help`.
 ## Run Passes by Hand
 If you don't want to use bin/test, you can generate each pass by hand.
 
-Generate app from spatial
 ```
+# 1. Generate app from Spatial
 bin/spatial <App> --pir
-```
-
-Run pir
-```
-bin/pir <gendir> [options]  # By default generated directory is in out/<app> unless override by --out=<gendir>
-```
-or equivalently 
-```
 cd <gendir>
+# 2. Compile PIR
 bash run.sh [options]
-```
-
-Run Tungsten
-```
-cd <gendir>/tungsten
-make
-./tungsten <args>
+cd tungsten
+# 3. Compile simulator
+make tungsten
+# 4. Compile for ideal network (can be merged with step 3 with just make ideal)
+make ideal
+# 5. Run simulation for ideal network
+./tungsetn [args]
+# 6. Run place and route and compile for hybrid network
+make proute
+# 7. Run simulation for hybrid network
+./tungsten [args]
 ```
 
 ## PIR Options

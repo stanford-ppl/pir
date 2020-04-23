@@ -10,12 +10,14 @@
 
 - `--debug` PIR flag. Turn on logging in pir. Recommend to turn off in batch jobs.
 
-- `--dot` and `--vdot` PIR flag. Generate dot graph. Recommend to turn off in batch jobs.
+- `--dot` and `--vdot` PIR flag. Generate dot graph for IR visualization. `dot` enables CU level visualization, and `vdot` enable more detailed dot graph, which can be very slow for large graph. Both recommend to turn off in batch jobs with close to 100% CU utilization.
+
+- `--fast` quick flag to choose combination of configures that speedup compilation. 
 
 All PIR flags can be specified when running `bin/test` or within `$HOME/.pirconf`.
 
 ## Logs
-When using bin/test to run spatial app, there will be a summary log for each of the pass described
+When using bin/test to run Spatial app, there will be a summary log for each of the pass described
 in [Quick Start](QUICKSTART.md) in `<gendir>/log`, e.g.
 `spatial/gen/Tst_pirTest/DotProduct_0/log/genpir.log`.  `bin/log` parses these logs to produce a
 summary of useful informations.
@@ -29,7 +31,7 @@ PIR also produces a per PIR pass log file when enable logging with `--debug`, an
 ## Visualization
 
 Both spatial and PIR have visualization of the IRs. Spatial dot graph is enabled by default if
-running with `bin/test -b Tst`. Otherwise it can be turned on with `--dot` when running spatial with
+running with `bin/test -b Tst`. Otherwise it can be turned on with `--dot` when running Spatial with
 `bin/spatial`.
 PIR `--dot` enables the CU-level dot graph and `--vdot` enables
 the context- and IR-level dot graph, which can run really slowly for large apps.
@@ -61,7 +63,7 @@ physical tile on the chip.
 
 The color of a VU denotes the VU type:
 
-- blue: virtual compute unit
+- blue and yellow: virtual compute unit. The unit is yellow if the compute unit doesn't have any operation stage. 
 - cyan: memory controller interface
 - green: virtual memory unit
 - white: host node
