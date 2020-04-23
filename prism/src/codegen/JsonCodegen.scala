@@ -42,8 +42,8 @@ trait JsonCodegen extends Codegen {
   }
 
   override def quote(n:Any):String = n match {
-    case n:String => n.qstr
-    case n => super.quote(n)
+    case _:Float | _:Int | _:Boolean => n.toString
+    case n => n.qstr
   }
 }
 
