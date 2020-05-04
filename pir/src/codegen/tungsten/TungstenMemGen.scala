@@ -142,11 +142,21 @@ trait TungstenMemGen extends TungstenCtxGen {
       n.to[LUT].foreach { lut =>
         val (tp, name) = varOf(lut)
         genTopInit {
-          emitln(s"${lut.qtp} ${name}_init[] = {${lut.inits.get.as[List[_]].mkString(",")}};")
-          emitBlock(s"for (auto* buf: $name.buffers)") {
-            emitBlock(s"for (auto* bank: buf->banks)") {
-              emitln(s"memcpy(bank->data.data(), &${name}_init, sizeof(${name}_init));")
-            }
+          lut.inits.get match {
+            case init:String if init.startsWith("file:") => 
+              emitBlock(s"for (auto* buf: $name.buffers)") {
+                emitBlock(s"for (auto* bank: buf->banks)") {
+                  emitln(s"load_lut_from_file(bank->data.data(), ${quote(lut.dims.get)}, ${init.strip("file:").qstr});")
+                }
+              }
+            case init:List[_] =>
+              emitln(s"${lut.qtp} ${name}_init[] = {${init.mkString(",")}};")
+              emitBlock(s"for (auto* buf: $name.buffers)") {
+                emitBlock(s"for (auto* bank: buf->banks)") {
+                  emitln(s"memcpy(bank->data.data(), &${name}_init, sizeof(${name}_init));")
+                }
+              }
+            case init => err(s"Unexpected init value for lut ${init}")
           }
         }
       }
