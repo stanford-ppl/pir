@@ -42,6 +42,40 @@ class StreamSimple_0 extends StreamSimple()
   }
 }
 
+@spatial class StreamSimple2 extends SpatialTest {
+  type X = Int
+  val N = 4
+
+  def main(args: Array[String]): Unit = {
+    val infile = buildPath(IR.config.genDir, "tungsten", "in.csv")
+    val outfile = buildPath(IR.config.genDir, "tungsten", "out.csv")
+    val stream_in  = StreamIn[Float](FileBus[Float](infile))
+    val stream_out  = StreamOut[Tup2[Float,Bit]](FileEOFBus[Tup2[Float,Bit]](outfile))
+
+    createDirectories(dirName(infile))
+    val inData = Seq.tabulate(N){ i => i}
+    writeCSVNow(inData, infile)
+
+    Accel {
+      val sram = SRAM[Float](8)
+      Stream.Foreach(N by 1) { p =>
+        val inreg = Reg[Float]
+        inreg := stream_in.value
+        Foreach(8 par 1){ i =>
+          val w = Reg[Float]
+          w := Reduce(Reg[Float](0.to[Float]))(1 by 1 par 1){ j =>
+            4.0.to[Float] * inreg.value
+          }{_ + _}
+          sram(i) = max(w + 3.0, 0)
+        }
+        stream_out := Tup2(sram(0), p == 3)
+      }
+
+    }
+    assert(true)
+  }
+}
+
 @spatial class StreamFake extends SpatialTest {
   val N = 10
 
@@ -66,3 +100,5 @@ class StreamSimple_0 extends StreamSimple()
     assert(cksum)
   }
 }
+
+

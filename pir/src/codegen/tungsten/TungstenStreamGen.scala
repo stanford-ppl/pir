@@ -23,7 +23,9 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen with Tungste
           val dlim = if (s != size-1) s"""", ";""" else s"endl;"
           emitln(s"""$file << ${stream.qidx("i")} << $dlim""")
         }
-        emitln(s"last |= ${n.streams.last.qidx("i")};")
+        if (n.lastBit.T.nonEmpty) {
+          emitln(s"last |= ${n.streams.last.qidx("i")};")
+        }
       }
       n.lastBit.T.foreach { last =>
         val ctrler = getCtrler(n)
