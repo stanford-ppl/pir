@@ -39,3 +39,14 @@ Try `cp spatial/pir/bin/repositories ~/.sbt/repositories` and load sbt again.
 This repo uses sbt 1.1.1. sbt 0.13 uses http for the default repositories, which they now moved to https. This fix manually adds https urls for repositories in `~/.sbt/repositories`. 
 Sbt then should download the required sbt version and you can remove the file once the newer version
 of the sbt is downloaded. 
+
+6. Spatial build error
+```
+[error] Symbol 'type spatial.lang.api.StaticAPI_Internal' is missing from the classpath.
+[error] This symbol is required by 'package spatial.lang.package'.
+[error] Make sure that type StaticAPI_Internal is in your classpath and check for conflicting dependencies with `-Ylog-classpath`.
+[error] A full rebuild may help if 'package.class' was compiled against an incompatible version of spatial.lang.api.
+[error] one error found
+[error] (spatial / Compile / compileIncremental) Compilation failed
+```
+Fix: run `sbt clean` in Spatial home and recompile spatial again.
