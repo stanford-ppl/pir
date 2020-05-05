@@ -935,7 +935,8 @@ class Logger():
         self.simlogs.append(os.path.join(self.appdir,"log/runhybrid.log"))
 
     def get_simpasses(self):
-        ps = [log.split("/")[-1].split(".")[0] for log in self.simlogs]
+        # TODO: ps = [log.split("/")[-1].split(".")[0] for log in self.simlogs]
+        ps = ['runp2p', 'runhybrid']
         return ps
 
     def parse_success(self,conf):
