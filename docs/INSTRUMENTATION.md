@@ -115,6 +115,7 @@ simulation. Used to determine deadlock.
 
 You can run `python3 bin/annotate.py` in `<gendir>/tungsten` that will backward annotate some of 
 these module states to the virtual unit dataflow graph in `<gendir>/pir/out/dot/gsim.html`. 
+`--format=cycle` will mark each edge with with a number in `[#]`, where the number indicates number of elements sent on the network link. `--format=pct` will annotate the activation, starve, and stall rate of the link as a percentage of runtime. The default format for the graph is `cycle` if the program deadlocks, and `pct` if the program succeeded. 
 
 ### Performance Debugging
 
