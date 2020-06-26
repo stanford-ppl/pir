@@ -205,14 +205,23 @@ trait GurobiComputePartitioner extends ComputePartitioning with SolverUtil { sel
     if (!exists(python)) {
       err(s"$python doesn't exists. Please do make install in ${pirHome}")
     }
+    val outputFile = buildPath(config.splitDir, "merge.csv")
+    deleteFile(outputFile)
+    var command = s"${buildPath("env","bin","python")} ${buildPath("bin","merge.py")} ${config.splitDir} -t ${config.splitThread}"
+    config.gurobiMIPGap.map { gap =>
+      command += s" -s MIPGap=$gap"
+    }
+    if (config.gurobiRetime) {
+      command += s" -ao retime"
+    }
     shell(
       header="partition", 
-      command=s"${buildPath("env","bin","python")} ${buildPath("bin","merge.py")} ${config.splitDir} -t ${config.splitThread}", 
+      command=command, 
       cwd=pirHome,
       logPath=buildPath(config.splitDir, "partition.log")
     )
     val idmap = nodes.map { node => (node.id, node) }.toMap
-    val partMap = getLines(buildPath(config.splitDir, "merge.csv")).flatMap { line =>
+    val partMap = getLines(outputFile).flatMap { line =>
       val tup = line.split(",")
       val node = tup(0).toInt
       val part = tup(1).toInt

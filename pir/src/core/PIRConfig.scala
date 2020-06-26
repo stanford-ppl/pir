@@ -6,11 +6,15 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("split", default=true, info="Enable splitting")
   register("split-algo", default="dfs", info="Splitting algorithm. [dfs, bfs, gurobi, cvxpy]") 
   register[String]("gurobi-init-algo", info="Warm start algorithm for gurobi. [dfs, bfs]") 
+  register[Float]("gurobi-mipgap", info="Optimality gap for solver. Range from 0 to 1") 
+  register[Boolean]("gurobi-retime", default=false, info="Enable retime objective in gurobi") 
   register("split-forward", default=false, info="Forward splitting traversal direction") 
   register("split-thread", default=1, info="Number of threads for external splitter") 
   register("merge", default=false, info="Enable merging")
   register("merge-algo", default="bfs", info="Merging algorithm. [dfs, bfs, gurobi]")
   register("merge-forward", default=false, info="Forward merging traversal direction") 
+
+  register("prcost", default=true, info="Enforce pipeline register constraint")
 
   // Optimizations
   register("ag-dce", default=true, info="Enable aggressive dead code elimination")
@@ -56,6 +60,8 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def enableBroadcastRead = option[Boolean]("bcread")
   def splitAlgo = option[String]("split-algo")
   def gurobiInitAlgo = getOption[String]("gurobi-init-algo")
+  def gurobiMIPGap = getOption[Float]("gurobi-mipgap")
+  def gurobiRetime = option[Boolean]("gurobi-retime")
   def splitThread = option[Int]("split-thread")
   def splitForward = option[Boolean]("split-forward")
   def enableMerging = option[Boolean]("merge") && enableMapping
@@ -69,6 +75,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def graphDir = buildPath(appDir, "graph")
   def mergeDir = buildPath(appDir, "merge")
   def splitDir = buildPath(appDir, "split")
+  def enforcePRCost = option[Boolean]("prcost")
   def asModule = enableCodegen && option[Boolean]("module")
   def spatialHome = getOption[String]("spatial-home")
   def pirHome = getOption[String]("pir-home") orElse spatialHome.map { buildPath(_,"pir") }

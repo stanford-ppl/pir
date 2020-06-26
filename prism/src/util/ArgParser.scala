@@ -13,6 +13,7 @@ case class ArgOption[T:ClassTag](key:String, default:Option[T], info:String) {
     (implicitly[ClassTag[T]] match {
       case ct if ct == classTag[Int] => values.head.toInt
       case ct if ct == classTag[Long] => values.head.toLong
+      case ct if ct == classTag[Float] => values.head.toFloat
       case ct if ct == classTag[String] => values.head
       case ct if ct == classTag[Boolean] => values.head == "true"
       case ct if ct == classTag[(String,Long)] => 

@@ -10,6 +10,8 @@ import scala.collection.mutable
 
 trait GurobiMerger extends GlobalMerging with PointToPointPlaceAndRoute with SolverUtil { self =>
 
+  private val outputFile = buildPath(config.mergeDir, "merge.csv")
+
   override def mergeGlobals(x:CUMap) = if (config.mergeAlgo=="gurobi") {
     emitSpec(x)
     emitProgram(x)
@@ -18,9 +20,14 @@ trait GurobiMerger extends GlobalMerging with PointToPointPlaceAndRoute with Sol
     if (!exists(python)) {
       err(s"$python doesn't exists. Please do make install in ${pirHome}")
     }
+    deleteFile(outputFile)
+    var command = s"${buildPath(pirHome,"env","bin","python")} ${buildPath("bin","merge.py")} ${config.mergeDir} -t ${config.splitThread}"
+    config.gurobiMIPGap.map { gap =>
+      command += s" -s MIPGap=$gap"
+    }
     shell(
       header="merge", 
-      command=s"${buildPath(pirHome,"env","bin","python")} ${buildPath("bin","merge.py")} ${config.mergeDir} -t ${config.splitThread}", 
+      command=command, 
       cwd=pirHome,
       logPath=buildPath(config.mergeDir, "merge.log")
     )
@@ -30,7 +37,7 @@ trait GurobiMerger extends GlobalMerging with PointToPointPlaceAndRoute with Sol
   private def processMerge(x:CUMap) = {
     val globs = x.freeKeys
     val idmap = globs.map { glob => (glob.id, glob) }.toMap
-    val assignments = getLines(buildPath(config.mergeDir, "merge.csv")).map { line => 
+    val assignments = getLines(outputFile).map { line => 
       val tup = line.split(",")
       val glob = tup(0).toInt
       val newGlob = tup(1).toInt
