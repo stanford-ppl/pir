@@ -609,9 +609,10 @@ class CVXMerger:
     def solve(self, **kwargs):
         objective = self.utilization
         for k, v in tuple(kwargs.items()):
-            if k.startswith("_") and v:
-                print("Using objective:", k[1:])
-                objective += self.objective_components[k[1:]]()
+            if k == 'objective':
+                for obj in v:
+                    print("Using objective:", obj)
+                    objective += self.objective_components[obj]()
                 del kwargs[k]
 
         self.model.setObjective(self.utilization, GRB.MINIMIZE)
@@ -670,12 +671,33 @@ def merge_dummy(nodes, opts):
             writer.writerow([node.node, node.node, node.initTp])
     print("Generate {}".format(opts.merge))
 
+def to_type(value, tp):
+    if type(value) is not str:
+        return value
+    try:
+        v = tp(value)
+    except ValueError:
+        return value
+    except Exception as e:
+        raise e
+    return v
+
+def parse_opt(pair):
+    if '=' in pair:
+        k,v, = pair.split('=')
+        v = to_type(v, int)
+        v = to_type(v, float)
+    else:
+        k = pair
+        v = True
+    return (k,v)
 
 def main():
     parser = argparse.ArgumentParser(description='Graph Partition')
     parser.add_argument('path', help='Path to node.csv graph.csv spec.csv')
     parser.add_argument('-t', '--thread', type=int, default=1, help='Number of threads for solver')
     parser.add_argument("-s", "--solver-opt", type=str, action="append", nargs="*", default=[])
+    parser.add_argument("-ao", "--add-obj", type=str, action="append",  default=[])
     (opts, args) = parser.parse_known_args()
 
     opts.node = os.path.join(opts.path, "node.csv")
@@ -688,7 +710,8 @@ def main():
     opts.delay = os.path.join(opts.path, "delay.csv")
 
     solver_opts = sum(opts.solver_opt, [])
-    formatted = ["_" + opt for opt in solver_opts]
+    # formatted = ["_" + opt for opt in solver_opts]
+    solver_opts = dict([parse_opt(pair) for pair in solver_opts])
 
     with TimeContext("Cost TP parsing"):
         cost_types = {}
@@ -761,7 +784,9 @@ def main():
 
     solver = CVXMerger(nodes=nodes, edges=edges, partition_counts=partition_counts, iis=opts.iis)
     # if model is INF_OR_UNBD, set DualReductions=0
-    solver.solve(Threads=opts.thread, **{opt: True for opt in formatted})
+    # solver.solve(Threads=opts.thread, **{opt: True for opt in formatted})
+    solver_opts['objective'] = opts.add_obj
+    solver.solve(Threads=opts.thread, **solver_opts)
 
     with open(opts.merge, "w") as merge_file:
         writer = csv.writer(merge_file, delimiter=",")
