@@ -17,6 +17,7 @@ class SpatialTest:
         parser.add_argument('-T', '--tee', action='store_true', default=False)
         parser.add_argument('-u', '--publish', action='store_true', default=False)
         parser.add_argument('-n', '--nice', action='store_true', default=False)
+        parser.add_argument('--spatial-home', dest='spatialhome', default=os.getcwd())
         (opts, args) = parser.parse_known_args(args=args)
 
         self.opts = opts
@@ -24,7 +25,7 @@ class SpatialTest:
         create_ivy2()
 
         if opts.publish:
-            cp = subprocess.run("sbt publishAll", shell=True, cwd='pir/')
+            cp = subprocess.run("sbt publishAll", shell=True, cwd=opts.spatialhome + "/pir")
             cp.check_returncode()
 
         # resolve apps to run
@@ -51,7 +52,7 @@ class SpatialTest:
 
         d = get_configs()
         if 'spatial-home' not in d and opts.backend is not None:
-            pirargs.insert(0,f'--spatial-home={os.getcwd()}')
+            pirargs.insert(0,f'--spatial-home={opts.spatialhome}')
 
         # # if on cluster and currently under /home, put gen in the scratch
         # if all(['--gendir' not in arg for arg in args]) and \

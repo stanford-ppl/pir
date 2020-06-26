@@ -34,12 +34,10 @@ def pirArgs(**kws):
         return ' '.join(pa)
     return recurse(func,**kws)
 
-states = [0, None]
+appCtr = {}
 
 def emitApp(f, app, **params):
     trait = app.split("[")[0]
-    global states
-    [appCtr, prevApp] = states
     if 'postfix' in params:
         postfix = '_'+params['postfix']
         del params['postfix']
@@ -52,17 +50,18 @@ def emitApp(f, app, **params):
     if 'runtimeArgs' in params:
         override = 'override def runtimeArgs = "{}"; '.format(params['runtimeArgs'])
         del params['runtimeArgs']
-    if trait+postfix != prevApp:
-        appCtr = 0
+    key = trait+postfix
+    if key not in appCtr:
+        appCtr[key] = 0
     f.write("class {}{}_D{} extends {}({}){{ {} }}\n".format(
         trait, 
         postfix,
-        appCtr,
+        appCtr[key],
         app,
-        ",".join(["{}={}".format(k,params[k]) for k in params]),
+        ",".join([f"{k}={params[k]}" for k in params]),
         override,
     ))
-    states = [appCtr+1, trait+postfix]
+    appCtr[key] +=1
     return
 
 dsefile = None
@@ -77,7 +76,7 @@ import spatial.dsl._
 import forge.tags._
 
 @virtualize
-class Dummy2
+class Dummy3
 """)
         return self.file
     def __exit__(self, type, value, traceback):

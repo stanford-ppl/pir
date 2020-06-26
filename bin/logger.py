@@ -401,8 +401,8 @@ class Logger():
             mask = []
             for app in history["app"]:
                 mask.append(any([fnmatch.fnmatch(app, pat) for pat in opts.app]))
-            history = history[mask]
-
+            if len(mask) > 0:
+                history = history[mask]
 
         if opts.history_depth>0:
             history = history.groupby(["project", "app", "backend"]).apply(lambda x: x.sort_values(["time"]).tail(opts.history_depth))
