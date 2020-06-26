@@ -36,6 +36,11 @@ trait DefaultParamLoader extends Transformer {
           case ("col", x, arg) => getOptOrElse("col", arg)
           case (_, x, arg) => transform(arg)
         }
+      case n:FringePattern =>
+        n.mapFieldWithName {
+          case ("rank", x, arg) => getOptOrElse("mcrank", arg)
+          case (_, x, arg) => transform(arg)
+        }
       case n:NetworkParam =>
         n.mapFieldWithName {
           case ("topology", x, arg) if optIs("net","p2p") => "p2p"

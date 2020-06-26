@@ -11,6 +11,7 @@ with GarbageCollector
 with RewriteUtil
 with BufferAnalyzer
 { self =>
+  protected def inProgramStaging = false
 
   override def finPass = {
     super.finPass
@@ -79,7 +80,7 @@ with BufferAnalyzer
       //}
     }
     //dbgn(n)
-    if (n.srcCtx.isEmpty) {
+    if (!inProgramStaging) {
       n.setSrcCtx
     }
     dbg(s"Stage ${dquote(n)}")
@@ -103,7 +104,7 @@ with BufferAnalyzer
     withMirrorRule {
       case (from,to,"name",Some(fvalue),Some(tvalue)) => Some(s"$fvalue/$tvalue")
       case (from,to,"sname",Some(fvalue),Some(tvalue)) => Some(s"$fvalue/$tvalue")
-      case (from,to,"srcCtx",Some(fvalue),Some(tvalue)) => Some(s"$fvalue,$tvalue")
+      case (from,to,"srcCtx",Some(fvalue),Some(tvalue)) => Some(fvalue.as[List[_]] ++ tvalue.as[List[_]])
       case (from,to,"order",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to,"progorder",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to,"ctrl",Some(fvalue),Some(tvalue)) => Some(tvalue)
@@ -112,6 +113,7 @@ with BufferAnalyzer
       case (from,to,"castgroup",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to,"muxport",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to:BufferRead,"banks",Some(fvalue),Some(tvalue)) => Some(List(to.in.getVec))
+      case (from,to,"retiming",Some(v1:Boolean),Some(v2:Boolean)) => Some(v1 || v2)
     } { mirrorMetas(from,to) }
     mirrorMetas(from.out, to.out)
   }

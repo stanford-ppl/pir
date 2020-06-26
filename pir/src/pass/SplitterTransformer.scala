@@ -29,7 +29,12 @@ class SplitterTransformer(implicit compiler:PIR) extends PIRPass with PIRTransfo
     sc.splitOn(splitter.ctrlOut)
     bufferInput(splitter.addrIn)
     ctx.ins.foreach { in =>
-      bufferInput(in)
+      // If not from splitter, treated as a register
+      if (in.connected.forall { _.src != splitter }) {
+        bufferInput(in, BufferParam(isFIFO=false))
+      } else {
+        bufferInput(in)
+      }
     }
   }
 

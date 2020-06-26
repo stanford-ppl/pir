@@ -30,7 +30,7 @@ class MemoryComputePruner(implicit compiler:PIR) extends CUPruner with MemoryCom
           //breakPoint(s"k=$k")
           e
         } else {
-          Right(fg ++ (k, vs) ++ (ks, spadeTop.cus.toSet))
+          Right(fg ++ (k, vs) ++ (ks, getAvailableCUs.toSet))
         }
       case x => super.recover(x)
     }

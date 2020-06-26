@@ -19,11 +19,12 @@ class BlackBoxLowering(implicit compiler:PIR) extends PIRTraversal with SiblingF
     }
     val ctrl = n.ctrl.get
     val ctx = within(pirTop, ctrl) { 
-      stage(Context()).streaming(true)
+      stage(Context().streaming(true).srcCtx.mirror(n.srcCtx).name.mirror(n.name))
     }
     swapParent(n, ctx)
     (n.localDeps ++ n.localDepeds).foreach { neighbor =>
       neighbor.to[Access].foreach { access =>
+        access.en.disconnect
         swapParent(access, ctx)
       }
     }

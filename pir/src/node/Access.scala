@@ -5,11 +5,16 @@ import spade.param._
 import prism.graph._
 
 trait Access extends PIRNode {
+
+  /* Metadata set by spatial */
   val order = Metadata[Float]("order")
   val port = Metadata[Option[Int]]("port", default=Some(0))
   val muxPort = Metadata[Int]("muxPort")
   val broadcast = Metadata[Seq[Int]]("broadcast")
   val castgroup = Metadata[Seq[Int]]("castgroup")
+
+  /* Metadata set by spatial */
+  val isAccumAccess = Metadata[Boolean]("isAccumAccess", default=false)
 
   val en = new InputField[List[PIRNode]]("en").tp(Bool)
   val done = new InputField[Option[PIRNode]]("done").tp(Bool).presetVec(1)
@@ -23,6 +28,9 @@ trait Access extends PIRNode {
     // memories that gets merged
     this.order := order
     mem(m)
+    this.to[RMWAccess].foreach { rmw =>
+      rmw.memOut(m)
+    }
     this
   }
 }
@@ -48,7 +56,8 @@ trait ReadAccess extends OutAccess {
   }
 }
 trait RMWAccess extends Access {
-  val mem = OutputField[Memory]
+  val mem = InputField[Memory]
+  val memOut = OutputField[Memory]
   val input = InputField[PIRNode]
 }
 // Nodes before lowering
@@ -91,9 +100,15 @@ case class LockRMW(op:Opcode)(implicit env:Env) extends LockAccess with RMWAcces
   val ack = OutputField[List[PIRNode]].presetVec(1).tp(Bool)
 }
 
-class Barrier(val ctrl:ControlTree, val init:Int) extends Serializable {
-  override def toString = {
-    s"Barrier($init,$ctrl,${ctrl.srcCtx.v.getOrElse("No Source Context")})"
+class Barrier(val ctrl:ControlTree, val init:Int) extends prism.graph.IR { self =>
+  val name = new Metadata[String]("name") {
+    override def check(v:String) = {}
+  }
+  val srcCtx = new Metadata[List[String]]("srcCtx", default=Some(Nil)) {
+    def apply(v:String):self.type = { 
+      value = value.map { _ :+ v }
+      self
+    }
   }
 }
 object Barrier {
@@ -117,8 +132,9 @@ case class SparseRead()(implicit env:Env) extends ReadAccess with SparseAccess
 case class SparseWrite()(implicit env:Env) extends WriteAccess with SparseAccess {
   val ack = OutputField[List[PIRNode]].presetVec(1).tp(Bool)
 }
-case class SparseRMW(op:String, opOrder:String)(implicit env:Env) extends SparseAccess with RMWAccess {
+case class SparseRMW(op:String, opOrder:String, remoteAddr:Boolean)(implicit env:Env) extends SparseAccess with RMWAccess {
   val dataOut = OutputField[List[PIRNode]]
+  override def asOutput = Some(dataOut)
   override def compVec(n:IR) = n match {
     case `dataOut` => input.inferVec
     case _ => super.compVec(n)
@@ -139,6 +155,7 @@ case class MemRead()(implicit env:Env) extends ReadAccess {
         case List(i@InputField(cmd:FringeDenseStore, "data" | "valid")) => i.inferVec
         case List(i@InputField(cmd:FringeSparseLoad, "addr")) => i.inferVec
         case List(i@InputField(cmd:FringeSparseStore, "addr" | "data")) => i.inferVec
+        case List(i@InputField(cmd:Scanner, "input")) => i.inferVec
         case _ => broadcast.v.map { _.size }.orElse(Some(mem.banks.get.head))
       }
     case _ => super.compVec(n)
@@ -204,6 +221,7 @@ case class BufferWrite(isFIFO:Boolean)(implicit env:Env) extends LocalInAccess {
   }
 }
 case class BufferRead(isFIFO:Boolean)(implicit env:Env) extends LocalOutAccess {
+  val retiming = Metadata[Boolean]("retiming", Some(false)) 
   override def compVec(n:IR) = n match {
     case `out` => en.inferVec
     case `en` => 

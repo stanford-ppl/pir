@@ -8,6 +8,21 @@ import spade.param._
 import scala.collection.mutable
 
 trait LocalMemoryLowering extends GenericMemoryLowering {
+  private val enCtxs = mutable.Map[ControlTree, Context]()
+
+  private var fifoDepth = 0
+  private var sramParam:SRAMParam = null
+  override def initPass = {
+    super.initPass
+    fifoDepth = assertUnify(spadeParam.traceIn[FIFOParam], "fifoParam") { _.depth }.get
+    sramParam = assertIdentical(spadeParam.traceIn[PMUParam], "PMUParam").get.sramParam
+  }
+
+  override def finPass = {
+    super.finPass
+    enCtxs.clear
+  }
+
   def canLocalize(mem:Memory) = {
     val noBankedAccess = mem.accesses.forall { !_.isInstanceOf[BankedAccess] }
     val singleWriter = mem.inAccesses.size <= 1
@@ -21,16 +36,47 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
     }
     toBuffer
   }
-  private val enCtxs = mutable.Map[ControlTree, Context]()
 
-  override def finPass = {
-    super.finPass
-    enCtxs.clear
+  def isScratchpadFIFO(mem:Memory):Boolean = {
+    if (!mem.isFIFO) return false
+    val writer = testOne(mem.inAccesses).getOrElse(return false)
+    val reader = testOne(mem.outAccesses).getOrElse(return false)
+    if (writer.getVec != reader.getVec) return false
+    mem.depth.get > fifoDepth
   }
 
   override def visitNode(n:N) = n match {
-    case n:Memory if canLocalize(n) => bufferLowering(n)
+    case n:Memory if canLocalize(n) => 
+      if (isScratchpadFIFO(n)) lowerScratchpadFIFO(n) else bufferLowering(n)
     case _ => super.visitNode(n)
+  }
+
+  private def lowerScratchpadFIFO(mem:Memory) = {
+    val reader = mem.outAccesses.head.as[MemRead]
+    val writer = mem.inAccesses.head.as[MemWrite]
+    val sramDepth = sramParam.sizeInWord / reader.getVec
+    within(pirTop, reader.getCtrl) {
+      val glob = stage(MemoryContainer().name.mirror(mem.name).srcCtx.mirror(mem.srcCtx))
+      val delay = within(glob) {
+        val ctx = stage(Context().streaming(true).name.mirror(mem.name).srcCtx.mirror(mem.srcCtx))
+        within(ctx) {
+          stage(ScratchpadDelay(sramDepth)
+            .name.mirror(mem.name)
+            .srcCtx.mirror(mem.srcCtx)
+            .in(writer.data.connected))
+        }
+      }
+      bufferInput(delay.in).foreach { read =>
+        read.inAccess.en(writer.en.connected)
+      }
+      val readEn = reader.en.connected
+      swapOutput(reader.out, delay.out)
+      delay.out.connected.foreach { in =>
+        bufferInput(in).foreach { read =>
+          read.en(readEn)
+        }
+      }
+    }
   }
 
   private def bufferLowering(mem:Memory) = dbgblk(s"bufferLowering($mem)") {

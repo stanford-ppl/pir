@@ -73,7 +73,7 @@ trait ComputePartitioner extends ComputePartitioning
       case k:ComputeContainer =>
         val ctxs:List[Context] = k.collectDown[Context]().flatMap { ctx => split(ctx, vcost) }
         val globals = ctxs.map { ctx =>
-          within(pirTop) {
+          within(pirTop, k.srcCtx.get) {
             val global = stage(ComputeContainer().delay.update(ctx.delay.v))
             ctx.delay.reset
             swapParent(ctx, global)
@@ -91,9 +91,9 @@ trait ComputePartitioner extends ComputePartitioning
         val part = new Partition(scope ++ delays)
         val parts = split(part, vcost)
         dbg(s"partitions=${parts.size}")
-        val ctxs = within(k.global.get, k.ctrl.get) {
+        val ctxs = within(k.global.get, k.ctrl.get, k.srcCtx.get) {
           parts.map { case part@Partition(scope) =>
-            val ctx = stage(Context().delay.update(part.delay))
+            val ctx = stage(Context().delay.update(part.delay).name.mirror(k.name))
             dbg(s"Create $ctx for $part")
             scope.foreach { n => swapParent(n, ctx) }
             ctx

@@ -33,14 +33,56 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
     
     processDebugging(n)
 
+    analyzeAccum(n)
+
     processReduction(n)
 
     n.to[LockMem].foreach { mem =>
       if (mem.isDRAM) addLive(mem)
     }
 
+    processScanCounter(n)
+
     super.visitNode(n)
   } 
+
+  def processScanCounter(n:N) = {
+    n.to[ScanCounter].foreach { n =>
+      // Spatial insert a register in front of the scan counter
+      // Remove this register and replace with a scanner
+      val read = n.mask.T.asInstanceOf[MemRead]
+      val readCtrl = read.getCtrl
+      val writer = assertOne(read.mem.T.inAccesses, s"$n.mask writer").as[MemWrite]
+      val scanRead = writer.data.T.asInstanceOf[OutAccess]
+      scanRead.out.vecMeta.reset
+      scanRead.out.presetVec(16)
+      val scanCtrl = scanRead.getCtrl
+      val scanner = within(pirTop, scanCtrl, n.srcCtx.get) {
+        stage(Scanner().mask(scanRead))
+      }
+      val cntFIFO = within(pirTop) {
+        stage(FIFO().banks(List(1)).name("cntFIFO"))
+      }
+      val cntWrite = within(pirTop, scanCtrl) {
+        stage(MemWrite().setMem(cntFIFO).data(scanner.cnt))
+      }
+      val cntRead = within(pirTop, n.getCtrl) {
+        stage(MemRead().setMem(cntFIFO))
+      }
+      val indexFIFO = within(pirTop) {
+        stage(FIFO().banks(List(1)).name("indexFIFO"))
+      }
+      val indexWrite = within(pirTop, scanCtrl) {
+        stage(MemWrite().setMem(indexFIFO).data(scanner.index))
+      }
+      val indexRead = within(pirTop, n.getCtrl) {
+        stage(MemRead().setMem(indexFIFO))
+      }
+      n.mask.disconnect
+      n.cnt(cntRead.out)
+      n.index(indexRead.out)
+    }
+  }
 
   def processNameType(n:N) = {
     n match {
@@ -64,6 +106,31 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
             }
           }
         }
+      case _ =>
+    }
+  }
+
+  def markAccum(n:Memory) = {
+    if (n.accesses.forall { !_.progorder.v.isEmpty }) {
+      n.accesses.toList.sortBy { _.progorder.get }.sliding(2,1).foreach {
+        case List(prev:ReadAccess, next:WriteAccess) =>
+          val lca = leastCommonAncesstor(prev.getCtrl, next.getCtrl).get
+          val isAccum = lca.ancestorTree.exists { _.isLoop.get }
+          if (isAccum) {
+            dbg(s"setAccum($n) = true")
+            n.isAccum := true
+            prev.isAccumAccess := true
+            next.isAccumAccess := true
+          }
+        case _ => 
+      }
+    }
+  }
+
+  def analyzeAccum(n:N) = {
+    n match {
+      case n:Reg => markAccum(n)
+      case n:SRAM => markAccum(n)
       case _ =>
     }
   }
@@ -127,17 +194,17 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
 
   def processControllers(n:N) = {
     n.to[Controller].foreach { n =>
-      n.srcCtx.v.foreach { v => n.ctrl.get.srcCtx := v }
-      n.progorder.v.foreach { v =>
-        n.getCtrl.progorder := v
-      }
-      n.sname.v.foreach { v => n.ctrl.get.sname := v }
+      val ctrl = n.getCtrl
+      ctrl.srcCtx.mirror(n.srcCtx)
+      ctrl.progorder.mirror(n.progorder)
+      ctrl.sname.mirror(n.sname)
       n.descendents.foreach { d =>
         val ctrl = n.ctrl.get
         d.ctrl.reset
         d.ctrl := ctrl
         dbg(s"Resetting $d.ctrl = $ctrl")
       }
+      n.getIter
     }
     //n.to[LoopController].foreach { n =>
       //n.stopWhen.T.foreach { n =>
@@ -297,7 +364,14 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
         }
       }
       connectLaneValid(access)
+
+      access.mem.T.to[FIFO].foreach { fifo =>
+        if (fifo.retiming.get) {
+          access.en.disconnect
+        }
+      }
     }
+
 
     // Add lane valid as an operand to division to prevent divide by zero when lane is invalid
     n.to[OpDef].foreach { 

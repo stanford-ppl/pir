@@ -44,5 +44,17 @@ trait PIREnv extends Env { self =>
     }
   }
 
+  implicit class SrcCtx(val value:List[String]) extends State[List[String]] {
+    def initNode[N<:Node[N]](n:Node[N], value:List[String]):Unit = {
+      value.foreach { value =>
+        n match {
+          case n:ControlTree => n.srcCtx(value)
+          case n:PIRNode => n.srcCtx(value)
+          case n => 
+        }
+      }
+    }
+  }
+
 }
 

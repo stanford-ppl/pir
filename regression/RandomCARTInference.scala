@@ -13,8 +13,8 @@ import java.io._
 //  We can achieve the same goal by randomly generating some decision trees and run it...
 
 class RandomCARTInference_0 extends RandomCARTInference
-class RandomCARTInference_1 extends RandomCARTInference(nEstimators=8, nFeatures=128, fp=4, nSamplesPerTile=16,maxSplits=128,maxDepth=80)
-class RandomCARTInference_final extends RandomCARTInference(nEstimators=8, nFeatures=128, fp=4, nSamplesPerTile=16,maxSplits=128,maxDepth=80)
+//class RandomCARTInference_1 extends RandomCARTInference(nEstimators=8, nFeatures=128, fp=4, nSamplesPerTile=16,maxSplits=128,maxDepth=80)
+//class RandomCARTInference_final extends RandomCARTInference(nEstimators=8, nFeatures=128, fp=4, nSamplesPerTile=16,maxSplits=128,maxDepth=80)
 
 @spatial abstract class RandomCARTInference(
     nEstimators: scala.Int = 8,

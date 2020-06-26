@@ -40,7 +40,10 @@ class SGD_4 extends SGD(mp1=3, mp2=3)
         x_tile load x(b::b+ts, 0::D par ip)
         val y_err = SRAM[TX](ts)
         Foreach(ts by 1 par mp1) { i => 
-          val y_hat = Reduce(Reg[TX])(D by 1 par ip){ j => x_tile(i,j) * sgdmodel(j).to[TX] }{_+_}
+          val y_hat = Reg[TX]
+          Reduce(y_hat)(D by 1 par ip){ j => 
+            x_tile(i,j) * sgdmodel(j).to[TX] 
+          }{_+_}
           y_err(i) = y_tile(i) - y_hat.value
         }
         MemFold(sgdmodel)(ts by 1 par mp2) { i =>

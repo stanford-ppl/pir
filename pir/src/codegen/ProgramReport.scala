@@ -13,7 +13,10 @@ class ProgramReport(val fileName:String)(implicit design:PIR) extends Report wit
     val globals = pirTop.collectChildren[GlobalContainer]
     emitb {
       reportAlloc(globals)
-      reportOps(globals)
+      //reportOps(globals)
+      emitkb("IR") {
+        traverseTop
+      }
     }
   }
 
@@ -41,6 +44,79 @@ class ProgramReport(val fileName:String)(implicit design:PIR) extends Report wit
     }
   }
 
+  private def emitMetadata(n:PIRNode) = {
+    n.metadata.values.foreach { metadata =>
+      metadata.v.foreach { v =>
+        v match {
+          case v:List[_] =>
+            emitkv(metadata.name, v)
+          case _ =>
+            emitkv(metadata.name, v)
+        }
+      }
+    }
+  }
+
+  override def emitNode(n:N):Unit = n match {
+    case n:GlobalContainer =>
+      emitkb(s"$n"){
+        emitMetadata(n)
+        emitkv("children", n.children)
+      }
+      visitNode(n)
+    case n:Context =>
+      emitkb(s"$n"){
+        emitMetadata(n)
+        val ctrlers = n.collectDown[Controller]()
+        emitkv("parent", n.parent.get)
+        emitkv("ctrlers", ctrlers)
+      }
+      visitNode(n)
+    case n:Controller =>
+      emitkb(s"$n"){
+        emitMetadata(n)
+        emitkv("parent", n.ctx.get)
+      }
+      visitNode(n)
+    case n:GlobalInput =>
+      emitkb(s"$n"){
+        emitMetadata(n)
+        emitkv("parent", n.parent.get)
+        emitkv(s"inputs", List(n.in.T))
+        emitkv(s"outputs", n.out.T)
+      }
+      visitNode(n)
+    case n:GlobalOutput =>
+      emitkb(s"$n"){
+        emitMetadata(n)
+        emitkv("parent", n.parent.get)
+        emitkv(s"outputs", n.out.T)
+      }
+      visitNode(n)
+    case n:LocalInAccess =>
+      emitkb(s"$n"){
+        emitMetadata(n)
+        emitkv("parent", n.ctx.get)
+      }
+      visitNode(n)
+    case n:LocalOutAccess =>
+      emitkb(s"$n"){
+        emitMetadata(n)
+        emitkv("parent", n.ctx.get)
+        emitkv("inputs", List(n.in.T))
+      }
+      visitNode(n)
+    case n:Memory =>
+      emitkb(s"$n"){
+        emitMetadata(n)
+        emitkv("parent", n.parent.get)
+        emitkv("contexts", n.collectPeer[Context]())
+      }
+      visitNode(n)
+    case n =>
+      visitNode(n)
+  }
+
   def getOp(n:OpNode) = n match {
     case n:OpDef => Some(n.op)
     case n:RegAccumOp => Some(n.op)
@@ -60,23 +136,17 @@ class ProgramReport(val fileName:String)(implicit design:PIR) extends Report wit
               case n => (n,n)
             }.map { case (n,op) => 
               val vec = n match {
-                case n@RegAccumOp(_,_) => n.in.T.getVec
+                case n@RegAccumOp(_,_) => n.in.getVec
                 case n@RegAccumFMA(_) => math.max(n.in1.T.getVec, n.in2.T.getVec)
                 case _ => n.getVec
               }
-              s"${vec}|$op|${n.srcCtx.v.getOrElse("")}"
+              s"${vec}|$op|${n.srcCtx.get.headOption.getOrElse("No source context")}"
             }
             emitkv(ctx, ops)
           }
         }
       }
     }
-  }
-
-  override def quote(n:Any):String = n match {
-    case n:PIRNode => super.quote(s"$n")
-    case n:Opcode => super.quote(s"$n")
-    case _ => super.quote(n)
   }
 
 }

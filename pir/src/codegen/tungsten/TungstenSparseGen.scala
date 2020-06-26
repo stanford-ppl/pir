@@ -10,11 +10,17 @@ import scala.collection.mutable
 trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with TungstenMemGen with TungstenBlackBoxGen with Memorization {
 
   override def emitNode(n:N) = n match {
-    case ctx:Context if ctx.streaming.get && (ctx.descendents.exists { case splitter:SplitLeader => true; case _ => false }) => 
+    case ctx:Context if ctx.streaming.get && (ctx.descendents.exists { case scanner:Scanner => true; case splitter:SplitLeader => true; case _ => false }) => 
       withinBB {
         visitNode(n)
       }
       
+    case n:Scanner =>
+      val mask = nameOf(n.mask.T.as[BufferRead]).&
+      val count = nameOf(n.cnt.T.as[BufferWrite].out.singleConnected.get.src).&
+      val index = nameOf(n.index.T.as[BufferWrite].out.singleConnected.get.src).&
+      genTopMember(n, Seq(n.qstr, mask, count, index), end=true)
+
     case n:SplitLeader =>
       val addrIn = nameOf(n.addrIn.T.as[BufferRead]).&
       val ctrlOut = nameOf(assertOne(n.ctrlOut.T, s"$n.out").as[BufferWrite].out.singleConnected.get.src).&
@@ -55,7 +61,7 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
       }
       emitln(s"$name->Push(${nameOf(n.addr.T)}->Read());")
 
-    case n@SparseRMW(op, opOrder) =>
+    case n@SparseRMW(op, opOrder, remoteAddr) =>
       emitln(s"// ${n}")
       val ctrler = getCtrler(n)
       addEscapeVar(n.mem.T)
@@ -73,7 +79,7 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
       val dataOut = n.data.singleConnected.get match {
         case OutputField(data:SparseRead,"out") => nameOf(data)
         case OutputField(data:SparseWrite,"ack") => s"${nameOf(data)}.first"
-        case OutputField(data:SparseRMW,"ack") => s"${nameOf(data)}.first"
+        case OutputField(data:SparseRMW,"dataOut") => s"${nameOf(data)}.first"
       }
       genCtxMember("Broadcast<Token>", s"bc_$data", Seq(dataOut, n.out.T.map { nameOf(_) }.qlist), end=true)
       genCtxInits {
@@ -85,10 +91,20 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
     case n:SparseMem if !n.isDRAM => genTopMember(n, Seq(n.qstr))
 
     case n:SparseDRAMBlock => 
-      genTopFields {
-        emitln(s"${n.qtp}* ${n}_data = (${n.qtp}*) malloc(sizeof(${n.qtp}) * ${n.dims.get.product} + ${spadeParam.burstSizeByte});")
+      val orderList = n.rmwPorts.map { case (a, ports) => n.rmwOps(a)._2 }.to[List]
+      val order = assertOneOrLess(orderList.distinct, s"$n RMW order").getOrElse("order")
+      n.alias.v match {
+        case None =>
+          genTopFields {
+            emitln(s"${n.qtp}* ${n}_data = (${n.qtp}*) malloc(sizeof(${n.qtp}) * ${n.dims.get.product} + ${spadeParam.burstSizeByte});")
+          }
+          genTopMember(n, Seq(n.qstr, order.qstr, "&DRAM", s"${n}_data", s"make_tuple(&net, &statnet, &idealnet)", s"false"))
+        case Some(alias) =>
+          genTopAfterModule {
+            emitln(s"extern void* ${alias.sname.get};")
+          }
+          genTopMember(n, Seq(n.qstr, order.qstr, "&DRAM", s"(${n.qtp}*) ${alias.sname.get}", s"make_tuple(&net, &statnet, &idealnet)", s"false"))
       }
-      genTopMember(n, Seq(n.qstr, "\"order\"", "&DRAM", s"${n}_data", s"make_tuple(&net, &statnet, &idealnet)"))
       genTopInit {
         n.readPorts.foreach { case (a, ports) =>
           emitln(s"""$n.RegisterRead("read${a}_", {${(0 until ports.size).map { i => i }.mkString(",")}});""")
@@ -118,11 +134,12 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
 
   override def varOf(n:PIRNode):(String,String) = n match {
     case n:SplitLeader => (s"SplitLeader", s"${n}")
+    case n:Scanner => (s"ScanHelper", s"${n}")
     case n:SparseRead => (s"${tpOf(n.mem.T)}::SparsePMUPort*", s"${n}_port")
     case n:SparseWrite => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
     case n:SparseRMW => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
     case n:SparseMem if !n.isDRAM => (s"SparsePMU<${n.qtp},$wordPerBank,${spadeParam.vecWidth}>", s"$n")
-    case n:SparseDRAMBlock => (s"ParDRAM<${n.dramPar},${n.qtp}>", s"$n")
+    case n:SparseDRAMBlock => (s"ParDRAM<${n.dramPar},${n.qtp},1>", s"$n")
     case n => super.varOf(n)
   }
 

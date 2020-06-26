@@ -78,15 +78,20 @@ trait TypeUtil { self:PIRPass =>
     }
   }
 
-  def quoteSrcCtx(n:Any) = n match {
+  def quoteSrcCtx(n:Any, delim:String="\n") = n match {
     case n:PIRNode =>
       var msg = dquote(n)
       n.name.v.foreach { n => msg += s": $n" }
-      msg += " " + n.srcCtx.v.getOrElse("No source context")
+      msg += " " + n.srcCtx.get.mkString(delim)
       n.ctx.map { ctx => msg += s" ($ctx)"}
       msg
+    case n:Barrier =>
+      var msg = dquote(n)
+      n.name.v.foreach { n => msg += s": $n" }
+      msg += " " + n.srcCtx.get.mkString(delim)
+      msg
     case n:ControlTree =>
-      s"$n[${n.uid.get.mkString(",")}] ${n.srcCtx.v.getOrElse("No source context")}"
+      s"$n[${n.uid.get.mkString(",")}] ${n.srcCtx.get.mkString(delim)}"
     case n => s"$n"
   }
 
@@ -150,6 +155,26 @@ trait TypeUtil { self:PIRPass =>
     backEdges.toSet
   }
 
+  def getAvailableCUs:List[spade.node.Terminal] = {
+    import spade.param._
+    var cus = spadeTop.cus
+    if (spadeParam.isAsic || spadeParam.isInf)
+      return cus
+    var reservePCUs = config.option[Int]("reserve-pcu")
+    var reservePMUs = config.option[Int]("reserve-pmu")
+    var reserveDAGs = config.option[Int]("reserve-dag")
+    var reserveMCs = config.option[Int]("reserve-mc")
+    cus = cus.filterNot { cu =>
+      cu.params match {
+        case Some(param:PCUParam) if reservePCUs > 0 => reservePCUs-=1; true
+        case Some(param:PMUParam) if reservePMUs > 0 => reservePMUs-=1; true
+        case Some(param:DramAGParam) if reserveDAGs > 0 => reserveDAGs-=1; true
+        case Some(param:MCParam) if reserveMCs > 0 => reserveMCs-=1; true
+        case param => false
+      }
+    }
+    cus
+  }
 
 }
 

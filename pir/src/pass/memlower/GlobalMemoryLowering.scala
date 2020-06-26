@@ -52,7 +52,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
   // Allocate one new Context per controller. This approach might not work if the address
   // calculation of different accesses in the same controller are data dependent on some other
   // memory access, which will create cycle on that context
-  private val addrCtxs = mutable.Map[ControlTree, Context]()
+  private val addrCtxs = mutable.Map[Either[ControlTree, Access], Context]()
   private val mergeCtxs = mutable.Map[Access, Context]()
   private def createMemGlobal(mem:Memory) = dbgblk(s"createMemGlobal($mem)"){
     val memCU = within(pirTop) { MemoryContainer() }
@@ -77,9 +77,10 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     }
     mem.accesses.foreach { access =>
       val ctx = access.ctx.get
+      val key = if (config.shareAddrCtx) Left(access.getCtrl) else Right(access)
       val fromCtx = if (config.mergeDone) {
-        mergeCtxs.get(access) orElse addrCtxs.get(access.getCtrl)
-      } else addrCtxs.get(access.getCtrl)
+        mergeCtxs.get(access) orElse addrCtxs.get(key)
+      } else addrCtxs.get(key)
       bufferInput(ctx, BufferParam(fromCtx=fromCtx))
     }
     addrCtxs.clear
@@ -122,7 +123,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
   }
 
   private def lowerAccess(mem:Memory, memCU:MemoryContainer, access:Access) = dbgblk(s"lowerAccess($mem, $memCU, $access)") {
-    val ctx = within(memCU, access.ctx.get.getCtrl) { stage(Context()) }
+    val ctx = within(memCU, access.ctx.get.getCtrl) { stage(Context().srcCtx.mirror(access.srcCtx)) }
     if (mem.isFIFO) {
       ctx.streaming(false)
     } else {
@@ -158,7 +159,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     val leadAccesses = broadcastMap.values.toList.distinct
     val headAccess = leadAccesses.head
     val mergeCtrl = headAccess.getCtrl
-    val mergeCtx = within(memCU, headAccess.ctx.get.getCtrl) { stage(Context()) }
+    val mergeCtx = within(memCU, headAccess.ctx.get.getCtrl) { stage(Context().srcCtx.mirror(headAccess.srcCtx)) }
     dbg(s"mergeCtrl = $mergeCtrl")
     dbg(s"mergeCtx=$mergeCtx")
     val ctrlMap = leastMatchedPeers(mem.accesses.filterNot{_.port.get.isEmpty}.map { _.getCtrl} ).get
@@ -167,8 +168,9 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
         val addrCtx = access match {
           //case access:BankedWrite => access.ctx.get 
           case access => 
-            addrCtxs.getOrElseUpdate(access.getCtrl, {
-              within(memCU, access.ctx.get.getCtrl) { stage(Context()) }
+            val key = if (config.shareAddrCtx) Left(access.getCtrl) else Right(access)
+            addrCtxs.getOrElseUpdate(key, {
+              within(memCU, access.ctx.get.getCtrl) { stage(Context().name(s"${access}_addrCtx").srcCtx.mirror(access.srcCtx)) }
             })
         }
         dbg(s"addrCtx for $access = $addrCtx")
@@ -178,7 +180,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
         lowerLUTAccess(mem, access)
         val bank = access.bank.connected
         val ofsOut = access.offset.singleConnected.get
-        val ofs = stage(Shuffle(-1,access.id).from(bank).to(allocConst(mem.bankids.get)).base(ofsOut))
+        val ofs = stage(Shuffle(-1,access.id).from(bank).to(allocConst(mem.bankids.get)).base(ofsOut).name("offsetShuffle"))
         bufferInput(ofs.base, BufferParam(fromCtx=Some(addrCtx)))
         bufferInput(ofs.from, BufferParam(fromCtx=Some(addrCtx)))
         val data = access match {
@@ -210,7 +212,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     }
 
     val List((ofs, data)) = red
-    val accessCtx = within(memCU, headAccess.ctx.get.getCtrl) { stage(Context().streaming(true)) }
+    val accessCtx = within(memCU, headAccess.ctx.get.getCtrl) { stage(Context().streaming(true).srcCtx.mirror(headAccess.srcCtx)) }
     val newAccess = within(accessCtx) {
       data.fold[FlatBankedAccess]{
         stage(FlatBankedRead().offset(ofs).mem(mem).mirrorMetas(headAccess))
@@ -224,7 +226,8 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     }
     bufferInput(accessCtx)
 
-    val addrCtx = addrCtxs(headAccess.getCtrl)
+    val key = if (config.shareAddrCtx) Left(headAccess.getCtrl) else Right(headAccess)
+    val addrCtx = addrCtxs(key)
     // Connect access.done
     if (mem.depth.get > 1 && newAccess.port.get.nonEmpty) {
       val ctrlMap = leastMatchedPeers(mem.accesses.filterNot{_.port.get.isEmpty}.map { _.getCtrl} ).get
@@ -252,7 +255,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
               }
             }
             val shuffle = within(inCtx, inCtx.getCtrl)  {
-              stage(Shuffle(0,lead.id).from(allocConst(mem.bankids.get)).to(bank).base(newAccess.out))
+              stage(Shuffle(0,lead.id).from(allocConst(mem.bankids.get)).to(bank).base(newAccess.out).name("receiverShuffle"))
             }
             if (config.dupReadAddr) { // Potentially used by memory pruner for capacity splitting
               shuffle.offset(offset)
@@ -260,7 +263,8 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
             dbg(s"val $shuffle = Shuffle() // bankRead")
             bufferInput(shuffle.base)
             if (!config.dupReadAddr) {
-              bufferInput(shuffle.to, BufferParam(fromCtx=Some(addrCtxs(leadCtrl))))
+              val key = if (config.shareAddrCtx) Left(leadCtrl) else Right(lead)
+              bufferInput(shuffle.to, BufferParam(fromCtx=Some(addrCtxs(key))))
             }
             ins.foreach { in =>
               swapConnection(in, access.out, shuffle.out)
@@ -323,7 +327,17 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
   }
 
   private def insertBarrier(from:Access, to:Access, carried:Boolean,depth:Int) = {
-    val token = insertToken(from.ctx.get, to.ctx.get).depth(depth)
+    val isMemReduce = from.mem.T.isMemReduceAccum.get && to.mem.T.isMemReduceAccum.get
+    if (isMemReduce) {
+      dbg(s"isMemReduce=${isMemReduce} $from $to")
+    }
+    val fromCtx = from.ctx.get
+    val toCtx = to.ctx.get
+    fromCtx.streaming.reset
+    toCtx.streaming.reset
+    val token = insertToken(fromCtx, toCtx,isMemReduce=isMemReduce).depth(depth)
+    fromCtx.streaming(true) // hack to get the correct childDone
+    toCtx.streaming(true)
     if (carried) {
       token.initToken := 1
       token.inits := true

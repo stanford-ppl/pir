@@ -99,12 +99,12 @@ class DSE():
         self.args = args
         self.logdir = logdir 
         self.project = project
+        self.pirArgs = "--fast --debug=false"
+        self.pirArgs += " --net=p2p --row=20 --col=20 --mem-tech=DDR4"
+        self.pirArgs += " --split-thread=4"
+        self.pirArgs += " " + ' '.join(args)
 
     def run_dse(self, opts, args):
-        pirArgs = "--fast --debug=false"
-        pirArgs += " --net=p2p --row=20 --col=20 --mem-tech=DDR4"
-        pirArgs += " --split-thread=4"
-        pirArgs += " " + ' '.join(args)
     
         os.system(f'mkdir -p {self.logdir}/')
         if opts.publish:
@@ -118,7 +118,7 @@ class DSE():
             os.system('rm -r gen/{}'.format(gendir))
         os.environ["_JAVA_OPTIONS"] = "-Xmx10G -Xms1G -Xss1G"
         apps = ' '.join(['-a ' + a for a in apps])
-        os.system(f'bin/test -t {opts.thread} -p {self.project} -b Tst {apps} {pirArgs}')
+        os.system(f'bin/test -t {opts.thread} -p {self.project} -b Tst {apps} {self.pirArgs}')
     
         if opts.save:
             os.system('bin/log gen/{} -p spatialApps -b Tst {}'.format(gendir,apps))

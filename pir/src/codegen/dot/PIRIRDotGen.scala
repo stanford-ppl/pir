@@ -53,7 +53,7 @@ trait PIRIRDotGen extends PIRTraversal with IRDotCodegen { self =>
       .append("count", n.count.v)
       .append("scale", n.scale.v)
       .append("iter", n.iter.v)
-    }.foldAt(n.to[Counter]) { (q, n) =>
+    }.foldAt(n.to[StridedCounter]) { (q, n) =>
       q.append("min", n.min.T)
       .append("max", n.max.T)
       .append("step", n.step.T)
@@ -155,7 +155,7 @@ trait PIRIRDotGen extends PIRTraversal with IRDotCodegen { self =>
     tooltip ++= qdef(n)
     n.metadata.values.foreach { metadata =>
       metadata.v.foreach { v =>
-        tooltip ++= s"${metadata.name} = $v\n"
+        tooltip ++= s"\n${metadata.name} = $v"
       }
     }
     tooltip.toString
@@ -217,12 +217,12 @@ class PIRGlobalDotGen(val fileName:String, noBackEdge:Boolean=false)(implicit de
   override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
     if (noBackEdge && backEdges.contains(from->to)) return
     (from, to) match {
-      case (from@OutputField(fromsrc:GlobalOutput, _), to) if fromsrc.isUnder[ArgFringe] /*&& from.connected.size > 5*/ => 
+      case (from@OutputField(fromsrc:GlobalOutput, _), to) if fromsrc.isUnder[ArgFringe] && !config.enableDotArgIn => 
       case (from@OutputField(fromsrc:GlobalOutput, _), to@InputField(tosrc:GlobalInput, _)) => 
         var tooltip = s"${fromsrc}${fromsrc.externAlias.v.fold("") { a => s"($a)" }}"
         tooltip += s"\n${tosrc}${tosrc.externAlias.v.fold("") { a => s"($a)" }}"
-        tooltip += s"\n${fromsrc.in.neighbors.map(quoteSrcCtx).mkString(",")}"
-        tooltip += s"\n${tosrc.out.neighbors.map(quoteSrcCtx).mkString(",")}"
+        tooltip += s"\n${fromsrc.in.neighbors.map(quoteSrcCtx(_,"\n")).mkString(",")}"
+        tooltip += s"\n${tosrc.out.neighbors.map(quoteSrcCtx(_,"\n")).mkString(",")}"
         fromsrc.count.v.foreach { c => 
           c match {
             case Finite(c) => tooltip += s"\ncount=$c"
@@ -268,6 +268,7 @@ class PIRGlobalDotGen(val fileName:String, noBackEdge:Boolean=false)(implicit de
         case n => n.getClass.getSimpleName
       }
       var l = s"${tp}${n.id}"
+      n.name.v.foreach { name => l += s"\n$name" }
       val mem = n.collectDown[Memory]()
       mem.foreach { mem =>
         mem.name.v.foreach { name => l += s"\n$name" }

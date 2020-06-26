@@ -96,9 +96,18 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
       case n:ArgFringeParam => ActorCost(2)
       case n:Parameter => ActorCost(1)
 
-    } orElse switch[SplitterCost](x,ct) {
-      case n:GlobalContainer => SplitterCost(n.collectDown[Splitter]().size)
-      case n:Parameter => SplitterCost(n.to[CUParam].fold(0){_.numSplitter})
+    //} orElse switch[SplitterCost](x,ct) {
+      //case n:GlobalContainer => 
+        //val numSplitter = n.children.view.map { child =>
+          //child.children.count {
+            //case x:Splitter => true 
+            //case x:SplitLeader => true 
+            //case x:Scanner => true 
+            //case x => false
+          //}
+        //}.reduceOption { _ + _ }.getOrElse(0)
+        //SplitterCost(numSplitter)
+      //case n:Parameter => SplitterCost(n.to[CUParam].fold(0){_.numSplitter})
 
     } orElse switch[LockCost](x,ct) {
       case n:GlobalContainer => LockCost(n.collectDown[Lock]().size)
@@ -107,6 +116,8 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
     } orElse switch[SRAMCost](x,ct) {
       case n:GlobalContainer =>
         n.descendents.collect {
+          case mem:SparseMem => mem.getCost[SRAMCost]
+          case mem:LockMem => mem.getCost[SRAMCost]
           case mem:SRAM => mem.getCost[SRAMCost]
           case mem:LUT => mem.getCost[SRAMCost]
           case mem:RegFile => mem.getCost[SRAMCost]
@@ -119,6 +130,8 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
           case mem:ScratchpadDelay => mem.getCost[SRAMCost]
         }.reduceOption { _ + _ }.getOrElse(SRAMCost(0,0))
       case n:SRAM => SRAMCost(n.nBanks, n.capacity)
+      case n:SparseMem => SRAMCost(n.nBanks, n.capacity)
+      case n:LockMem => SRAMCost(n.nBanks, n.capacity)
       case n:LUT => SRAMCost(n.nBanks, n.capacity)
       case n:RegFile => SRAMCost(n.nBanks, n.capacity)
       case n:Lock => SRAMCost(spadeParam.vecWidth, 100)
@@ -173,10 +186,14 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
     } orElse switch[StageCost](x,ct) {
       case n:OpNode => StageCost(stageCost(n))
       case n:Context => 
-        n.descendents.map {
-          case n:OpNode => StageCost(stageCost(n))
-          case _ => StageCost(0)
-        }.reduceOption { _ + _ }.getOrElse(StageCost())
+        val cost = n.descendents.map {
+          case n:OpNode => stageCost(n)
+          case x:Splitter => 6 // TODO: set to pcu stage depth
+          case x:SplitLeader => 6 // TODO: set to pcu stage depth
+          case x:Scanner => 6 // TODO: set to pcu stage depth
+          case _ => 0
+        }.reduceOption { _ + _ }.getOrElse(0)
+        StageCost(cost)
       case n:GlobalContainer => 
         val ctxs = n.collectDown[Context]()
         ctxs.map { _.getCost[StageCost] }.reduceOption { _ + _ }.getOrElse(StageCost())

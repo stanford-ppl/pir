@@ -1,6 +1,7 @@
 import spatial.dsl._
 import utils.io.files._
 import scala.reflect._
+import spatial.metadata.bounds._
 
 class StreamInfDotProduct_0 extends StreamInfDotProduct[scala.Int,Int]()()
 class StreamInfDotProduct_1 extends StreamInfDotProduct[scala.Int,Int]()(opb=2)

@@ -96,10 +96,8 @@ class StreamInfKmeans2_0 extends StreamInfKmeans2()()
     val outfile = buildPath(IR.config.genDir, "tungsten", "out.csv")
     createDirectories(dirName(infile))
 
-    val inputs = List.tabulate(N) {i => 
-      List.tabulate(field) { j => i }
-    }
-    writeCSVNow2D(inputs, infile)
+    val inputs = List.tabulate(N, field) { (i,j) => i }.flatten
+    writeCSVNow(inputs, infile)
 
     Accel {
       val cLUT = LUT.fromSeq[T](centroids.map { _.map { _.to[T] } })

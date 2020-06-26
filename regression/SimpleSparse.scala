@@ -54,7 +54,7 @@ import spatial.dsl._
 
   def main(args: Array[String]): Unit = {
 
-    val N = 128
+    val N = 1024
     val ts = 32
     val ip = 16
 
@@ -62,15 +62,15 @@ import spatial.dsl._
 
     Accel {
       // Test dense read/write and RMW
-      val s1 = SparseDRAM[T](1)(ts)
-      Reduce(out)(N by ts) { i =>
+      val s1 = SparseDRAM[T](2)(N)
+      Reduce(out)(N by ts par 2) { i =>
         val forwardBarrier = Barrier[Token](0)
         val backwardBarrier = Barrier[Token](init=1) 
         Foreach(ts by 1 par ip) { j =>
-          s1.barrierWrite(j, i+j, Seq(forwardBarrier.push, backwardBarrier.pop))
+          s1.barrierWrite(i+j, i+j, Seq(forwardBarrier.push, backwardBarrier.pop))
         }
         Reduce(Reg[T])(ts by 1 par ip) { j =>
-          s1.barrierRead(j, Seq(forwardBarrier.pop, backwardBarrier.push))
+          s1.barrierRead(i+j, Seq(forwardBarrier.pop, backwardBarrier.push))
         } { _ + _ }
       } { _ + _ }
     }
@@ -86,28 +86,272 @@ import spatial.dsl._
 @spatial class SimpleScan extends SpatialTest {
   override def runtimeArgs: Args = "32"
   type T = Int
-  val N = 16
+  val N = 32
+  val ip = 16
 
   def main(args: Array[String]): Unit = {
 
     val out = ArgOut[T]
 
     Accel {
-      val sram = SRAM[U512](N)
-      Foreach(N by 1) { i =>
-        sram(i) = i.to[U512]
-      }
-      Reduce(out)(N by 1) { i =>
-        val mask = sram(i)
-        Reduce(Reg[T])(Scan(mask)) { j =>
+      Reduce(out)(N by ip) { i =>
+        val sram = SRAM[U32](ip)
+        Foreach(ip by 1) { j =>
+          sram(j) = (i+j).to[U32]
+        }
+        val fifo = FIFO[U32](16)
+        Foreach(ip by 1 par ip) { j =>
+          val mask = sram(j)
+          fifo.enq(mask)
+        }
+        Reduce(Reg[T])(Scan(fifo.deq)) { j =>
           j.to[T]
         } { _ + _ }
       } { _ + _ }
     }
 
-    assert(true)
-    //val cksum = checkGold[T](out, gold)
-    //println("PASS: " + cksum + " (SimpleScan)")
-    //assert(cksum)
+    val gold = scala.collection.immutable.Range(0, N, ip).map { i =>
+      val mask = scala.collection.immutable.Range(0, ip).map{ j => 
+        val bi = (i+j).toBinaryString
+        val pad = "0" * (32 - bi.size) + bi
+        pad.reverse
+      }.reduce { _ + _ }
+      Console.println(mask)
+      val nonZero = mask.count { _ == '1' }
+      val sum = mask.zipWithIndex.map { case (char, k) =>
+        char match {
+          case '1' => 
+            Console.println(k)
+            k 
+          case _ => 0
+        }
+      }.sum
+      Console.println(s"nonZero=$nonZero, partial sum $sum")
+      sum
+    }.sum
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (SimpleScan)")
+    assert(cksum)
+  }
+}
+
+// Spatial Bug: Using scan iterator == 0 in reduce is incorrect!
+@spatial abstract class OuterScan extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  type T = Int
+  val N = 32
+  val ip = 16
+
+  def main(args: Array[String]): Unit = {
+
+    val out = ArgOut[T]
+
+    Accel {
+      Reduce(out)(N by ip) { i =>
+        val sram = SRAM[U32](ip)
+        Foreach(ip by 1) { j =>
+          sram(j) = (i+j).to[U32]
+        }
+        val fifo = FIFO[U32](16)
+        Foreach(ip by 1 par ip) { j =>
+          val mask = sram(j)
+          fifo.enq(mask)
+        }
+        Reduce(Reg[T])(Scan(fifo.deq)) { j =>
+          Reduce(Reg[T])(10 by 1) { _ =>
+            j.to[T]
+          } { _ + _ }
+        } { _ + _ }
+      } { _ + _ }
+    }
+
+    val gold = scala.collection.immutable.Range(0, N, ip).map { i =>
+      val mask = scala.collection.immutable.Range(0, ip).map{ j => 
+        val bi = (i+j).toBinaryString
+        val pad = "0" * (32 - bi.size) + bi
+        pad.reverse
+      }.reduce { _ + _ }
+      Console.println(mask)
+      val nonZero = mask.count { _ == '1' }
+      val sum = mask.zipWithIndex.map { case (char, k) =>
+        val idx = char match {
+          case '1' => k
+          case _ => 0
+        }
+        idx * 10
+      }.sum
+      Console.println(s"nonZero=$nonZero, partial sum $sum")
+      sum
+    }.sum
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (OuterScan)")
+    assert(cksum)
+  }
+}
+
+
+import spatial.metadata.memory.{Barrier => _,_}
+@spatial class SparseDRAMAlias extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+
+  def main(args: Array[String]): Unit = {
+
+    val N = 32
+    val ip = 16
+
+    val dram = DRAM[T](N)
+    //val out = ArgOut[T]
+    setMem(dram, (0 until N) { i => i })
+
+    Accel {
+      // Test dense read/write and RMW
+      val mem = SparseDRAM[T](1)(N)
+      mem.alias = dram
+      val barrier1 = Barrier[Token](0)
+      Foreach(N by 1 par ip) { i =>
+        mem.RMW(i,
+          i.to[T],
+          op = "add",
+          order = "unordered",
+          bs = Seq(barrier1.push))
+      }
+    }
+
+    val gold = (0 until N) { i => i+i }
+
+    val cksum = checkGold[T](dram, gold)
+    println("PASS: " + cksum + " (SparseDRAMAlias)")
+    assert(cksum)
+  }
+}
+
+@spatial class ZeroScan extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  type T = Int
+  val N = 32
+  val ip = 16
+
+  def main(args: Array[String]): Unit = {
+
+    val out = ArgOut[T]
+
+    Accel {
+      val fifo = FIFO[U32](16)
+      Foreach(N by 1) { i =>
+        Foreach(ip by 1 par ip) { j =>
+          val mask = (i % 10).to[U32]
+          fifo.enq(mask)
+        }
+      }
+      Reduce(out)(N by 1) { i =>
+        Reduce(Reg[T])(Scan(fifo.deq)) { j =>
+          j.to[T]
+        } { _ + _ }
+      } { _ + _ }
+    }
+
+    val gold = scala.collection.immutable.Range(0, N).map { i =>
+      val mask = scala.collection.immutable.Range(0, ip).map{ j => 
+        val bi = (i % 10).toBinaryString
+        val pad = "0" * (32 - bi.size) + bi
+        pad.reverse
+      }.reduce { _ + _ }
+      Console.println(mask)
+      val nonZero = mask.count { _ == '1' }
+      val sum = mask.zipWithIndex.map { case (char, k) =>
+        char match {
+          case '1' => 
+            Console.println(k)
+            k 
+          case _ => 0
+        }
+      }.sum
+      Console.println(s"nonZero=$nonZero, partial sum $sum")
+      sum
+    }.sum
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (ZeroScan)")
+    assert(cksum)
+  }
+}
+
+@spatial class SimpleRMW extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+
+  def main(args: Array[String]): Unit = {
+
+    val N = 32
+    val ip = 16
+
+    val dram = DRAM[T](N)
+    val out = ArgOut[T]
+    setMem(dram, (0 until N) { i => i })
+
+    Accel {
+      // Test dense read/write and RMW
+      val mem = SparseDRAM[T](1)(N)
+      mem.alias = dram
+      val fifo = FIFO[T](16)
+      Foreach(N by 1 par ip) { i =>
+        val elem = mem.RMW(i,
+          i.to[T],
+          op = "add",
+          order = "unordered",
+          bs = Seq())
+        fifo.enq(elem)
+      }
+      Reduce(out)(N by 1 par ip) { i =>
+        fifo.deq
+      } { _ + _ }
+    }
+
+    val gold = (0 until N) { i => i+i }.reduce { _ + _ }
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (SimpleRMW)")
+    assert(cksum)
+  }
+}
+
+@spatial class OuterWrite extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+
+  def main(args: Array[String]): Unit = {
+
+    val N = 64
+    val ts = 32
+    val ip = 16
+
+    val dram = DRAM[T](N)
+    val out = ArgOut[T]
+    setMem(dram, (0 until N) { i => i })
+
+    Accel {
+      // Test dense read/write and RMW
+      val sram = SRAM[T](N)
+      Foreach(N by 1) { i =>
+        Foreach(ts by ip) { j =>
+          sram(i) = i
+        }
+      }
+      Reduce(out)(N by 1){ i =>
+        sram(i)
+      } { _ + _ }
+    }
+
+    val gold = (0 until N) { i => i }.reduce { _ + _ }
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (SimpleRMW)")
+    assert(cksum)
   }
 }

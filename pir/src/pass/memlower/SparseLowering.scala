@@ -9,6 +9,8 @@ import scala.collection.mutable
 
 trait SparseLowering extends GenericMemoryLowering {
 
+  override val invalidAddress = -2
+
   protected val accessReqResp = mutable.Map[Access, (Input[PIRNode], Output[PIRNode])]()
   protected val barrierWrite = mutable.Map[Barrier, mutable.ListBuffer[Access]]()
   protected val barrierRead = mutable.Map[Barrier, mutable.ListBuffer[Access]]()
@@ -23,10 +25,23 @@ trait SparseLowering extends GenericMemoryLowering {
   private def barrierInsertion = {
     val barriers = barrierWrite.keys.toSet ++ barrierRead.keys
     barriers.foreach { barrier =>
+      val writes = barrierWrite.getOrElseUpdate(barrier, mutable.ListBuffer.empty)
+      val reads = barrierRead.getOrElseUpdate(barrier,mutable.ListBuffer.empty)
+      if (writes.isEmpty)
+        warn(s"${quoteSrcCtx(barrier)} doesn't have any writer!")
+      else if (reads.isEmpty)
+        warn(s"${quoteSrcCtx(barrier)} doesn't have any reader!")
+      else
+        processBarrier(barrier)
+    }
+  }
+
+  private def processBarrier(barrier:Barrier) = {
+    within(barrier.srcCtx.get) {
       val barrierCtx = within(pirTop, barrier.ctrl) {
-        stage(Context().name("barrier_ctx").streaming(true))
+        stage(Context().name.mirror(barrier.name).streaming(true))
       }
-      val writes = barrierWrite.get(barrier).getOrElse(mutable.ListBuffer.empty)
+      val writes = barrierWrite(barrier)
       val intokens:Iterable[Output[PIRNode]] = writes.map { writer =>
         val resp = accessReqResp(writer)._2
         insertToken(fctx=resp.src.ctx.get, tctx=barrierCtx, dep=Some(resp)).out
@@ -36,7 +51,7 @@ trait SparseLowering extends GenericMemoryLowering {
           stage(Forward().in(out1).dummy(out2)).out
         }
       }
-      val reads = barrierRead.get(barrier).getOrElse(mutable.ListBuffer.empty)
+      val reads = barrierRead(barrier)
       reads.foreach { access =>
         val req = accessReqResp(access)._1
         val reqctx = req.src.ctx.get
@@ -48,8 +63,8 @@ trait SparseLowering extends GenericMemoryLowering {
         }
         swapConnection(req, req.singleConnected.get, forward.out)
       }
-      //breakPoint(s"barrier=$barrier ${writes} ${reads}")
     }
+    //breakPoint(s"barrier=$barrier ${writes} ${reads}")
   }
 
 }

@@ -12,6 +12,7 @@ clean: clean-local
 	make -C plastisim/ clean
 
 clean-local:
+	rm -r lib_managed
 	sbt "; project pir; clean; project spade; clean ; project prism; clean"
 
 distclean: clean

@@ -13,7 +13,7 @@ class HardConstrainPruner(implicit compiler:PIR) extends CUPruner {
     x.getCost[AFGCost] ::
     x.getCost[MCCost] ::
     x.getCost[MergeBufferCost] ::
-    x.getCost[SplitterCost] ::
+    //x.getCost[SplitterCost] ::
     x.getCost[LockCost] ::
     x.getCost[SRAMCost] ::
     x.getCost[LaneCost] ::

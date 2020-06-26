@@ -48,14 +48,18 @@ trait TungstenMemGen extends TungstenCtxGen {
       if (n.isFIFO) {
         emitln(s"$name->SetReadEn(${n.en.qref});")
       }
+      genCtxInits {
+        emitln(s"// Initialize $n")
+        emitVec(n) { i => n.getTp.qinitType }
+      }
       emitIf(s"$name->Valid()") {
-        emitVec(n) { i =>
+        emitAssign(n) { i =>
           s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
         }
       }
       genCtxComputeEnd {
         val cond = if (n.isFIFO) List(n.done.qref, n.en.qany) else List(n.done.qref)
-        emitIf(cond.mkString(" & ")) {
+        emitIf(cond.mkString(" && ")) {
           emitln(s"$name->Pop();")
         }
       }
@@ -111,7 +115,7 @@ trait TungstenMemGen extends TungstenCtxGen {
           }
         }
         val cond = if (n.isFIFO) List(n.done.qref, n.en.qany) else List(n.done.qref)
-        emitIf(cond.mkString(" & ")) {
+        emitIf(cond.mkString(" && ")) {
           emitln(s"Token data = make_token(${n.qref});")
           if (n.en.getVec > 1) {
             emitln(s"set_token_en<${n.en.getVec}>(data, ${n.en.qref});")
@@ -138,11 +142,21 @@ trait TungstenMemGen extends TungstenCtxGen {
       n.to[LUT].foreach { lut =>
         val (tp, name) = varOf(lut)
         genTopInit {
-          emitln(s"${lut.qtp} ${name}_init[] = {${lut.inits.get.as[List[_]].mkString(",")}};")
-          emitBlock(s"for (auto* buf: $name.buffers)") {
-            emitBlock(s"for (auto* bank: buf->banks)") {
-              emitln(s"memcpy(bank->data.data(), &${name}_init, sizeof(${name}_init));")
-            }
+          lut.inits.get match {
+            case init:String if init.startsWith("file:") => 
+              emitBlock(s"for (auto* buf: $name.buffers)") {
+                emitBlock(s"for (auto* bank: buf->banks)") {
+                  emitln(s"load_lut_from_file(bank->data.data(), ${quote(lut.dims.get)}, ${init.strip("file:").qstr});")
+                }
+              }
+            case init:List[_] =>
+              emitln(s"${lut.qtp} ${name}_init[] = {${init.mkString(",")}};")
+              emitBlock(s"for (auto* buf: $name.buffers)") {
+                emitBlock(s"for (auto* bank: buf->banks)") {
+                  emitln(s"memcpy(bank->data.data(), &${name}_init, sizeof(${name}_init));")
+                }
+              }
+            case init => err(s"Unexpected init value for lut ${init}")
           }
         }
       }
@@ -166,7 +180,7 @@ trait TungstenMemGen extends TungstenCtxGen {
       }
       genCtxComputeEnd {
         val cond = List(n.done.qref, n.en.qany)
-        emitIf(cond.mkString(" & ")) {
+        emitIf(cond.mkString(" && ")) {
           emitln(s"$name->Pop();")
         }
       }
@@ -189,7 +203,7 @@ trait TungstenMemGen extends TungstenCtxGen {
           }
         }
         val cond = List(n.done.qref, n.en.qany)
-        emitIf(cond.mkString(" & ")) {
+        emitIf(cond.mkString(" && ")) {
           emitln(s"Token data = make_token(${n.qref});")
           if (n.en.getVec > 1) {
             emitln(s"set_token_en<${n.en.getVec}>(data, ${n.en.qref});")
@@ -267,7 +281,7 @@ trait TungstenMemGen extends TungstenCtxGen {
     }
     emitAssign(en) { i =>
       var ens = en.connected.map { _.qidx(i) }
-      ens.distinct.reduceOption[String]{ _ + " & " + _ }.getOrElse("true")
+      ens.distinct.reduceOption[String]{ _ + " && " + _ }.getOrElse("true")
     }
   }
 
@@ -282,7 +296,7 @@ trait TungstenMemGen extends TungstenCtxGen {
       }
       //n.as[Input[PIRNode]].singleConnected.map { _.qref }.getOrElse("false")
       n.as[Input[PIRNode]].singleConnected.map { 
-        case done@OutputField(read:BufferRead, _) if !isFIFO => read.done.qref + " & " + done.qref
+        case done@OutputField(read:BufferRead, _) if !isFIFO => read.done.qref + " && " + done.qref
         case done => done.qref
       }.getOrElse("false")
     case n@InputField(x:LocalOutAccess, "in") => varOf(x)._2

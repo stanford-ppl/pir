@@ -123,9 +123,11 @@ trait RewriteUtil extends PIRPass { self: PIRTransformer =>
 
   RewriteRule[OpDef](s"PipeAccum", config.enablePipeAccum) { 
     case n@OpDef(Mux) =>
-      val accumWrites = n.out.neighbors.collect { case write:MemWrite if write.mem.T.isAccum => write }
+      val writes = n.out.neighbors.collect { case write:MemWrite => write }
+      val (accumWrites, nonAccumWrites) = writes.partition { _.isAccumAccess.get }
       testOne(accumWrites).flatMap { accumWrite =>
-        testOne(accumWrite.mem.T.outAccesses).flatMap { accumRead =>
+        val (accumReads, nonAccumReads) = accumWrite.mem.T.outAccesses.partition  { _.isAccumAccess.get }
+        testOne(accumReads).flatMap { accumRead =>
           val accumOps = accumRead.out.accum(
             prefix = { case `n` => true; case _ => false },
             depth = 5
@@ -138,7 +140,13 @@ trait RewriteUtil extends PIRPass { self: PIRTransformer =>
               val in = assertOne(ins, s"accum $n.in")
               val acc = stage(RegAccumOp(redOps, accumWrite.mem.T.inits.get)
                 .first(first).in(in).init(init).en(accumWrite.en.connected))
-              accumWrite.data.disconnect
+              if (nonAccumWrites.nonEmpty && nonAccumReads.isEmpty) {
+                accumWrite.data.disconnect
+              } else {
+                accumWrite.mem.T.isAccum.reset
+                accumWrite.isAccumAccess.reset
+                assert(nonAccumWrites.isEmpty && nonAccumReads.nonEmpty, s"unexpected accum pattern ${accumRead} ${accumWrite}")
+              }
               dbgn(acc)
               Some((n.out, acc.out))
             }
@@ -336,6 +344,8 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
       access match {
         case access:InAccess => access.mem.disconnect
         case access:OutAccess => access.out.disconnect
+        case access:SparseRMW => access.mem.disconnect; access.dataOut.disconnect
+        case access:RMWAccess => access.mem.disconnect
       }
       free(access)
       Some(access)
@@ -431,26 +441,34 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   // HACK: For now, don't care whether it's scheduled or not to check
   // rate matching
   
+  // w1 => r1 => w2 => r2
+  def checkRouteThrough(r1:BufferRead, w2:BufferWrite, r2:BufferRead):Boolean = {
+    if (r1.isFIFO != r2.isFIFO) return false
+    if (r2.nonBlocking) return false
+    val matchwidth = r1.out.getVec == r2.out.getVec
+    if (!matchwidth) return false
+    val w1 = r1.inAccess.as[BufferWrite]
+    dbg(s"checkRouteThrough $w1 => $r1 => $w2 => $r2")
+    var matchrate = matchRate(r1, w2) 
+    if (r1.isFIFO) {
+      val r1w1Match = matchRate(w1,r1) || r1.retiming.get
+      val r2w2Match = matchRate(w2,r2) || r2.retiming.get
+      matchrate &&= (r1w1Match || r2w2Match)
+    }
+    dbg(s"matchrate = $matchrate")
+    if (!matchrate) return false
+    var matchen = matchInput(r1.en, w2.en)
+    dbg(s"matchen = $matchen")
+    if (!matchen) return false
+    return true
+  }
+
   TransferRule[BufferRead](config.enableRouteElim) { r2 =>
     val w2 = r2.inAccess.as[BufferWrite]
-    //w2.data.T match {
-      //case r1:BufferRead =>
-        //val w1 = r1.inAccess.as[BufferWrite]
-        //dbg(s"Testing Route through (2) $w1 -> $r1 -> $w2 -> $r2")
-        //dbg(s"isFIFO = ${r1.isFIFO == r2.isFIFO}")
-        //dbg(s"matchRate = ${matchRate(r1, w2)}")
-        //dbg(s"matchEn = ${matchInput(r1.en, w2.en)}")
-        //dbg(s"sameVec = ${r1.out.getVec == r2.out.getVec}")
-      //case _ =>
-    //}
     w2.data.T match {
-      case r1:BufferRead if r1.isFIFO == r2.isFIFO && 
-                            matchRate(r1, w2) & 
-                            matchInput(r1.en, w2.en) & 
-                            !r2.nonBlocking &&
-                            r1.out.getVec == r2.out.getVec =>
+      case r1:BufferRead if checkRouteThrough(r1,w2,r2) =>
         val w1 = r1.inAccess.as[BufferWrite]
-        dbgblk(s"Route through (2) $w1 -> $r1 -> $w2 -> $r2 detected => ") {
+        dbgblk(s"Route through (2) $w1 -> $r1 -> $w2 -> $r2 detected => ${quoteSrcCtx(r1)}") {
           dbg(s" => $w1 -> $r2")
           if (r2.in.getVec != r1.in.getVec) {
             r2.in.vecMeta.reset
@@ -661,7 +679,8 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   override def visitNode(n:N):T = /*dbgblk(s"visitNode:${n}") */{
     super.visitNode(n)
     val res = rewriteRules.foldLeft[Option[_]](None) {
-      case (None, rule) => rule(n).map { case (o1, o2) =>
+      case (None, rule) => 
+        rule(n).map { case (o1, o2) =>
           dbgblk(s"${rule.name}") {
             swapOutput(o1.as, o2.as)
           }

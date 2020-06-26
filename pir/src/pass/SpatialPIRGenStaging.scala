@@ -6,10 +6,20 @@ import prism.graph._
 import prism.util._
 
 class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
+  override protected def inProgramStaging = true
 
   override def runPass = {
     if (compiler.pirenv._states.isEmpty) stageGraph
     setAnnotation(pirTop)
+  }
+
+  private var progorder = 0
+  implicit class PIRNodeHelper[T<:PIRNode](x:T) {
+    def setProgOrder:T = {
+      x.progorder := progorder
+      progorder += 1
+      x
+    }
   }
 
   def stageGraph = {
@@ -85,7 +95,9 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
     x.to[PIRNode].foreach { x => if (x.sname.isEmpty) x.sname(name) }
     x match {
       case n:DRAM => n.sname(name)
-      case n:Counter => analyzeCounterRange(n)
+      case n:StridedCounter => analyzeCounterRange(n)
+      case n:ScanCounter => analyzeCounterRange(n)
+      case n:ForeverCounter => analyzeCounterRange(n)
       case n:LoopController => analyzeLoopRange(n)
       case _ =>
     }
@@ -150,7 +162,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
     }
   }
   def processArgOut(mem:Reg) = {
-    stage(HostRead().input(MemRead().setMem(mem)))
+    stage(HostRead().input(MemRead().setMem(mem).setProgOrder).setProgOrder)
   }
 
   def streamIn(fifos:List[FIFO], bus:Bus) = {
@@ -158,13 +170,13 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
     bus match {
       case DRAMBus =>
       case bus =>
-        within(ControlTree(Streaming)) {
+        val count = assertUnify(fifos, s"$sw.count")(_.count.v).get
+        within(ControlTree(Streaming).iter.update(count)) {
           val sw = stage(FringeStreamWrite(bus))
           name.foreach { name => sw.name(name) }
           val data = fifos.map { fifo =>
             stage(MemWrite().setMem(fifo).presetVec(fifo.banks.get.head).tp.mirror(fifo.tp)).data
           }
-          val count = assertUnify(fifos, s"$sw.count")(_.count.v).get
           count.foreach { c => sw.count(c) }
           fifos.foreach { _.count.reset }
           sw.addStreams(data)
@@ -185,7 +197,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
       case bus =>
         within(ControlTree(Streaming)) {
           val reads = fifos.map { fifo =>
-            stage(MemRead().setMem(fifo).presetVec(fifo.banks.get.head)).out
+            stage(MemRead().setMem(fifo).presetVec(fifo.banks.get.head).setProgOrder).out
           }
           val sr = stage(FringeStreamRead(bus).addStreams(reads))
           name.foreach { name => sr.name(name) }
@@ -195,7 +207,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
               val lastBit = stage(FIFO().addAccess(writer).tp(Bool).banks(List(1)).name(s"${name.getOrElse(sr.toString)}_lastBit"))
               within(pirTop.hostOutCtrl) {
                 val read = stage(MemRead().setMem(lastBit))
-                stage(HostRead().input(read))
+                stage(HostRead().input(read).setProgOrder)
               }
             }
           }
@@ -203,16 +215,32 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
     }
   }
 
-  def analyzeCounterRange(n:Counter) = dbgblk(s"analyzeCounterRange($n)") {
+  def analyzeCounterRange(n:ScanCounter):Unit = dbgblk(s"analyzeCounterRange($n)") {
+    val (constValids, constIters) = (List.tabulate(1) { i => None }, List.tabulate(1) { i => None })
+    dbg(s"$n.constValids=[${constValids.map { _.getOrElse("unknown") }.mkString(",")}]")
+    dbg(s"$n.constIters=[${constIters.map { _.getOrElse("unknown") }.mkString(",")}]")
+    n.constValids := constValids
+    n.constIters := constIters
+  }
+
+  def analyzeCounterRange(n:ForeverCounter):Unit = dbgblk(s"analyzeCounterRange($n)") {
+    val (constValids, constIters) = (List.tabulate(1) { i => Some(true) }, List.tabulate(1) { i => None })
+    dbg(s"$n.constValids=[${constValids.map { _.getOrElse("unknown") }.mkString(",")}]")
+    dbg(s"$n.constIters=[${constIters.map { _.getOrElse("unknown") }.mkString(",")}]")
+    n.constValids := constValids
+    n.constIters := constIters
+  }
+
+  def analyzeCounterRange(n:StridedCounter):Unit = dbgblk(s"analyzeCounterRange($n)") {
     val min = n.min.T
     val step = n.step.T
     val max = n.max.T
     val par = n.par
-    val (constValids, constIters) = (n.isForever, min, step, max) match {
-      case (false, Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) if (max <= min && step > 0) | (max >= min && step < 0) =>
+    val (constValids, constIters) = (min, step, max) match {
+      case (Const(min:Int), Const(step:Int), Const(max:Int)) if (max <= min && step > 0) | (max >= min && step < 0) =>
         dbg(s"Loop will not run.")
         (List.fill(par)(Some(false)), List.fill(par)(Some(min)))
-      case (false, Some(Const(min:Int)), Some(Const(step:Int)), Some(Const(max:Int))) =>
+      case (Const(min:Int), Const(step:Int), Const(max:Int)) =>
         var bound = ((max - min) /! step) % par
         if (bound == 0) {
           bound = par
@@ -225,7 +253,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
           else None
         },
         List.tabulate(par) { i => if (fullyUnrolled) Some(min + step*i) else None })
-      case (false, Some(Const(min:Int)), _, Some(Const(max:Int))) if max > min =>
+      case (Const(min:Int), _, Const(max:Int)) if max > min =>
         dbg(s"None constant loop bounds min=$min, step=$step, max=$max, par=$par")
         (List.tabulate(par) { i => 
           if (i == 0) Some(true) 
@@ -233,8 +261,6 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
           else None
         }, 
         List.tabulate(par) { i => None })
-      case (true, _, _, _) => // forever counter
-        (List.tabulate(par) { i => Some(true) }, List.tabulate(par) { i => None })
       case _ =>
         (List.fill(par) { None }, List.fill(par) { None })
     }
@@ -256,6 +282,15 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
     }
     dbg(s"$n.laneValids=[${laneValids.map { _.getOrElse("unknown") }.mkString(",")}]")
     n.constLaneValids := laneValids
+  }
+
+  override def stage[T<:PIRNode](n:T)(implicit file:sourcecode.File, line: sourcecode.Line):T = {
+    super.stage[T](n).to[PIRNode].map { n =>
+      n.progorder.v.foreach { po =>
+        progorder = po
+      }
+      n
+    }.getOrElse(n).as[T]
   }
 
 }

@@ -17,6 +17,8 @@ trait MemoryNode extends PIRNode {
   // Number of partitions after splitting
   val numPart = Metadata[Int]("numPart", default=1) 
   val depth = Metadata[Int]("depth", default=1)
+  val isAccum = Metadata[Boolean]("isAccum", default=false)
+  val isMemReduceAccum = Metadata[Boolean]("isMemReduceAccum", default=false)
   val isInnerAccum = Metadata[Boolean]("isInnerAccum", default=false)
   def getBanks = banks.get
   def getDepth = depth.get
@@ -53,12 +55,19 @@ abstract class Memory(implicit env:Env) extends MemoryNode with DefNode[PIRNode]
 }
 
 case class Reg()(implicit env:Env) extends Memory
-case class FIFO()(implicit env:Env) extends Memory
+case class FIFO()(implicit env:Env) extends Memory {
+  val retiming = Metadata[Boolean]("retiming", Some(false)) 
+}
 case class SRAM()(implicit env:Env) extends Memory
 case class RegFile()(implicit env:Env) extends Memory
 case class LUT()(implicit env:Env) extends Memory
-case class LockMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory
-case class SparseMem(isDRAM:Boolean=false, dramPar:Int=1)(implicit env:Env) extends Memory
+case class LockMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory {
+  override def nBanks:Int = banks.get.product
+}
+case class SparseMem(isDRAM:Boolean=false, dramPar:Int=1)(implicit env:Env) extends Memory {
+  val alias = Metadata[DRAM]("alias")
+  override def nBanks:Int = banks.get.product
+}
 
 case class Lock()(implicit env:Env) extends BlackBox with DefNode[PIRNode] {
   val lock = InputField[PIRNode]
@@ -93,6 +102,11 @@ case class SplitLeader()(implicit env:Env) extends BlackBox {
     case `ctrlOut` => addrIn.inferVec
     case _ => super.compVec(n)
   }
+}
+case class Scanner()(implicit env:Env) extends BlackBox {
+  val mask = InputField[PIRNode].tp(Fix(false,32,0)).presetVec(16)
+  val cnt = OutputField[PIRNode].tp(Fix(false,32,0)).presetVec(1)
+  val index = OutputField[PIRNode].tp(Fix(true,32,0)).presetVec(1)
 }
 case class MergeBuffer(ways:Int, par:Int)(implicit env:Env) extends BlackBox with Def { self =>
   val inputs = List.tabulate(ways) { i => new InputField[PIRNode](s"in$i") }
@@ -131,7 +145,7 @@ case class LockOnKeys()(implicit env:Env) extends Def {
   tp(Bool)
 }
 
-case class LockAccum(tp:BitType, dims:List[Int], srcCtx:Option[String], name:Option[String], dram:Option[String])
+case class LockAccum(tp:BitType, dims:List[Int], srcCtx:List[String], name:Option[String], dram:Option[String])
 case class LockRMWBlock(
   outerPar:Int,
   //memPar:Int,
@@ -218,10 +232,11 @@ case class SparseDRAMBlock(
 )(implicit env:Env) extends GlobalBlackBox {
 
   val dims = Metadata[List[Int]]("dims", default=List(1))
+  val alias = Metadata[DRAM]("alias")
 
   type ReadPort = (Input[PIRNode], Output[PIRNode])
   type WritePort = (Input[PIRNode], Input[PIRNode], Output[PIRNode])
-  type RMWPort = (Input[PIRNode], Input[PIRNode], Output[PIRNode], String, String)
+  type RMWPort = (Input[PIRNode], Input[PIRNode], Output[PIRNode])
 
   // Mapping between access ID a list of ports for different lanes
   val readPorts = mutable.Map[Int,mutable.ListBuffer[ReadPort]]()
@@ -259,7 +274,7 @@ case class SparseDRAMBlock(
   }
 
   def addRMWPort(accessid:Int, op:String, order:String) = {
-    val list = writePorts.getOrElseUpdate(accessid, mutable.ListBuffer.empty)
+    val list = rmwPorts.getOrElseUpdate(accessid, mutable.ListBuffer.empty)
     rmwOps += accessid -> (op, order)
     val ports = (
       DynamicInputFields[PIRNode](s"rmwAddr"), 
@@ -493,11 +508,9 @@ case class DRAMAddr(dram:DRAM)(implicit env:Env) extends Def {
   out.presetVec(1)
   out.tp(Fix(true,64,0))
 }
-case class Counter(par:Int, isForever:Boolean=false)(implicit env:Env) extends PIRNode {
+
+trait Counter extends PIRNode {
   /*  ------- Fields -------- */
-  val min = InputField[Option[PIRNode]]
-  val step = InputField[Option[PIRNode]]
-  val max = InputField[Option[PIRNode]]
   val out = OutputField[List[PIRNode]]
   val isFirstIter = OutputField[List[PIRNode]]
   override def asOutput = Some(out)
@@ -505,13 +518,27 @@ case class Counter(par:Int, isForever:Boolean=false)(implicit env:Env) extends P
   def iters = this.collectOut[CounterIter]()
   def valids = this.collectOut[CounterValid]()
   def ctrler = this.collectUp[Controller]().head
+  def par:Int
 
   // Lane valids that can be statically derived
   val constValids = new Metadata[List[Option[Boolean]]]("constValids")
   // Lane iters that can be statically derived
   val constIters = new Metadata[List[Option[Int]]]("constIters")
 }
-
+case class StridedCounter(par:Int)(implicit env:Env) extends Counter {
+  val min = InputField[PIRNode]
+  val step = InputField[PIRNode]
+  val max = InputField[PIRNode]
+}
+case class ForeverCounter()(implicit env:Env) extends Counter {
+  val par = 1
+}
+case class ScanCounter()(implicit env:Env) extends Counter {
+  val par = 1
+  val mask = InputField[PIRNode].presetVec(16) // Replaced with count and idx
+  val cnt = InputField[PIRNode].presetVec(1)
+  val index = InputField[PIRNode].presetVec(1)
+}
 case class CounterIter(is:List[Int])(implicit env:Env) extends Def {
   val counter = InputField[Counter]
   out.tp(Fix(true, 32, 0)).presetVec(is.size)
@@ -530,7 +557,7 @@ abstract class Controller(implicit env:Env) extends PIRNode {
   val childDone = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
   val stepped = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
 
-  def isForever = this.collectDown[Counter]().exists { _.isForever }
+  def isForever = this.collectDown[Counter]().exists { _.isInstanceOf[ForeverCounter] }
   def hasBranch = this.ctrl.v.get == Fork || this.to[LoopController].fold(false) { _.stopWhen.isConnected }
   val uen = InputField[List[PIRNode]].tp(Bool).presetVec(1)
   val laneValid = OutputField[List[PIRNode]].tp(Bool)
@@ -570,9 +597,9 @@ case class ControlBlock()(implicit env:Env) extends PIRNode {
 trait MemoryUtil extends CollectorImplicit {
 
   implicit class MemOp[M<:Memory](n:M) {
-    def inAccesses = n.collect[InAccess](visitGlobalIn _)
-    def outAccesses = n.collect[OutAccess](visitGlobalOut _)
-    def accesses:List[Access] = n.collect[Access](visitGlobalIn _) ++ n.collect[Access](visitGlobalOut _)
+    def inAccesses = n.in.neighbors.collect { case a:InAccess => a }.toList
+    def outAccesses = n.out.neighbors.collect { case a:OutAccess => a }.toList
+    def accesses = n.in.neighbors.collect { case a:Access => a }.toList ++ outAccesses
 
     def isFIFO = n match {
       case n:FIFO => true
@@ -589,15 +616,6 @@ trait MemoryUtil extends CollectorImplicit {
       n
     }
 
-    def isAccum:Boolean = {
-      if (n.accesses.exists { _.progorder.v.isEmpty }) return false
-      n.accesses.toList.sortBy { _.progorder.get }.sliding(2,1).exists {
-        case List(prev:ReadAccess, next:WriteAccess) =>
-          val lca = leastCommonAncesstor(prev.getCtrl, next.getCtrl).get
-          lca.ancestorTree.exists { _.isLoop.get }
-        case _ => false
-      }
-    }
   }
 
   implicit class GlobalOp(n:GlobalContainer) {
