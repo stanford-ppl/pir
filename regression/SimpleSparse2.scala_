@@ -1,0 +1,59 @@
+import spatial.dsl._
+
+@spatial class Scan2 extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  type T = Int
+  val N = 32
+  val ip = 16
+
+  def main(args: Array[String]): Unit = {
+
+    val out = ArgOut[T]
+
+    Accel {
+      Reduce(out)(N by ip) { i =>
+        val sramA = SRAM[U32](ip)
+        val sramB = SRAM[U32](ip)
+        Foreach(ip by 1) { j =>
+          sramA(j) = (i+j).to[U32]
+          sramB(j) = (i-j).to[U32]
+        }
+        val fifoA = FIFO[U32](16)
+        val fifoB = FIFO[U32](16)
+        Foreach(ip by 1 par ip) { j =>
+          val maskA = sramA(j)
+          fifoA.enq(mask)
+          val maskB = sramB(j)
+          fifoB.enq(mask)
+        }
+        Reduce(Reg[T])(Scan(fifoA.deq, fifoB.deq) par ip) { a, b =>
+          a.to[T] == b.to[T]
+        } { _ + _ }
+      } { _ + _ }
+    }
+
+    val gold = scala.collection.immutable.Range(0, N, ip).map { i =>
+      val mask = scala.collection.immutable.Range(0, ip).map{ j => 
+        val bi = (i+j).toBinaryString
+        val pad = "0" * (32 - bi.size) + bi
+        pad.reverse
+      }.reduce { _ + _ }
+      Console.println(mask)
+      val nonZero = mask.count { _ == '1' }
+      val sum = mask.zipWithIndex.map { case (char, k) =>
+        char match {
+          case '1' => 
+            Console.println(k)
+            k 
+          case _ => 0
+        }
+      }.sum
+      Console.println(s"nonZero=$nonZero, partial sum $sum")
+      sum
+    }.sum
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (SimpleScan)")
+    assert(cksum)
+  }
+}
