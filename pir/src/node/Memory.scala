@@ -64,7 +64,7 @@ case class LUT()(implicit env:Env) extends Memory
 case class LockMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory {
   override def nBanks:Int = banks.get.product
 }
-case class SparseMem(isDRAM:Boolean=false, dramPar:Int=1)(implicit env:Env) extends Memory {
+case class SparseMem(memType:String="SRAM", dramPar:Int=1)(implicit env:Env) extends Memory {
   val alias = Metadata[DRAM]("alias")
   override def nBanks:Int = banks.get.product
 }
@@ -227,7 +227,7 @@ case class LockRMWBlock(
   def isDRAM = assertUnify(accums, s"$this have both DRAM and SRAm in accums=${accums}") { _.dram.nonEmpty }.get
 }
 // This is not a mirrable node
-case class SparseDRAMBlock(
+class SparseParBlock(
   dramPar:Int, // Number of DramAG
 )(implicit env:Env) extends GlobalBlackBox {
 
@@ -306,6 +306,10 @@ case class SparseDRAMBlock(
 
   // MemPar[NumIn[OuterPar[]]]
 }
+
+case class SparseDRAMBlock(dramPar:Int)(implicit env:Env) extends SparseParBlock(dramPar)(env)
+case class SparseParSRAMBlock(dramPar:Int)(implicit env:Env) extends SparseParBlock(dramPar)(env)
+
 case class Top()(implicit env:Env) extends PIRNode {
   var topCtrl:ControlTree = _
   var hostInCtrl:ControlTree = _

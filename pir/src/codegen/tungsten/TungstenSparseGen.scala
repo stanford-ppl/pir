@@ -88,7 +88,7 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
         }
       }
 
-    case n:SparseMem if !n.isDRAM => genTopMember(n, Seq(n.qstr))
+    case n:SparseMem if n.memType == "SRAM" => genTopMember(n, Seq(n.qstr))
 
     case n:SparseDRAMBlock => 
       val orderList = n.rmwPorts.map { case (a, ports) => n.rmwOps(a)._2 }.to[List]
@@ -138,8 +138,9 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
     case n:SparseRead => (s"${tpOf(n.mem.T)}::SparsePMUPort*", s"${n}_port")
     case n:SparseWrite => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
     case n:SparseRMW => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
-    case n:SparseMem if !n.isDRAM => (s"SparsePMU<${n.qtp},$wordPerBank,${spadeParam.vecWidth}>", s"$n")
+    case n:SparseMem if n.memType == "SRAM" => (s"SparsePMU<${n.qtp},$wordPerBank,${spadeParam.vecWidth}>", s"$n")
     case n:SparseDRAMBlock => (s"ParDRAM<${n.dramPar},${n.qtp},1>", s"$n")
+    case n:SparseParSRAMBlock => (s"ParSRAM<${n.dramPar},${n.qtp},1>", s"$n")
     case n => super.varOf(n)
   }
 

@@ -7,14 +7,14 @@ import prism.graph._
 import spade.param._
 import scala.collection.mutable
 
-trait SparseDRAMLowering extends SparseLowering {
+trait SparseParSRAMLowering extends SparseLowering {
 
   override def visitNode(n:N) = n match {
-    case n@SparseMem("ParDRAM",_) => lowerSparseDRAM(n)
+    case n@SparseMem("ParSRAM",_) => lowerSparseParSRAM(n)
     case _ => super.visitNode(n)
   }
   
-  private def lowerSparseDRAM(n:SparseMem):Unit = dbgblk(s"lower($n)"){
+  private def lowerSparseParSRAM(n:SparseMem):Unit = dbgblk(s"lower($n)"){
     val sortedAccesses:List[UnrolledAccess[SparseAccess]] = n.accesses.groupBy { a => a.progorder.get }.toList.sortBy { _._1 }
       .map { case (po, as) => UnrolledAccess(as.as[List[SparseAccess]].sortBy { _.order.get }) }
 
@@ -22,31 +22,16 @@ trait SparseDRAMLowering extends SparseLowering {
     val block = within(pirTop, ctrl, n.srcCtx.get) {
       val ctx = stage(Context().streaming(true)) 
       within(ctx) {
-        stage(SparseDRAMBlock(n.dramPar))
+        stage(SparseParSRAMBlock(n.dramPar))
       }
     }
     block.mirrorMetas(n)
 
-    val naccess = sortedAccesses.size
-    sortedAccesses.zipWithIndex.foreach { case (ua, i) =>
-      var synchronizeWithHost = false
-      if (i==naccess-1) { // Last access
-        synchronizeWithHost = ua.lanes.head match {
-          case access:SparseRead => false
-          case access:SparseRMW => !access.dataOut.isConnected
-          case access:SparseWrite => true
-        }
-      }
-      accessReqResp ++= lowerAccess(ua, block)
-      if (synchronizeWithHost) {
-        insertTokenToHost(ua)
-      }
-    }
     n.alias.reset
     free(n)
   }
 
-  private def lowerAccess(uaccess:UnrolledAccess[SparseAccess], block:SparseDRAMBlock) = dbgblk(s"lowerAccess($uaccess)"){
+  private def lowerAccess(uaccess:UnrolledAccess[SparseAccess], block:SparseParSRAMBlock) = dbgblk(s"lowerAccess($uaccess)"){
     val par = uaccess.lanes.size
     val accessid = uaccess.lanes.head.id
     uaccess.lanes.map { access =>
@@ -128,19 +113,6 @@ trait SparseDRAMLowering extends SparseLowering {
       }
       free(access)
       reqresp
-    }
-  }
-
-  def insertTokenToHost(ua:UnrolledAccess[SparseAccess]) = dbgblk(s"insertTokenToHost($ua)"){
-    val hostOutCtx = pirTop.argFringe.collectFirst[HostOutController](visitDown _).ctx.get
-    ua.lanes.foreach { access =>
-      within(access.srcCtx.get) {
-        val resp = accessReqResp(access)._2
-        val tokenRead = insertToken(resp.src.ctx.get, hostOutCtx, dep=Some(resp))
-        within(hostOutCtx, hostOutCtx.getCtrl) {
-          stage(HostRead().input(tokenRead.out))
-        }
-      }
     }
   }
 
