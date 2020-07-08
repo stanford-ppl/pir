@@ -104,7 +104,7 @@ import spatial.dsl._
           val mask = sram(j)
           fifo.enq(mask)
         }
-        Reduce(Reg[T])(Scan(fifo.deq)) { j =>
+        Reduce(Reg[T])(Scan(1, fifo.deq)) { case List(j) =>
           j.to[T]
         } { _ + _ }
       } { _ + _ }
@@ -158,7 +158,7 @@ import spatial.dsl._
           val mask = sram(j)
           fifo.enq(mask)
         }
-        Reduce(Reg[T])(Scan(fifo.deq)) { j =>
+        Reduce(Reg[T])(Scan(1,fifo.deq)) { case List(j) =>
           Reduce(Reg[T])(10 by 1) { _ =>
             j.to[T]
           } { _ + _ }
@@ -248,7 +248,7 @@ import spatial.metadata.memory.{Barrier => _,_}
         }
       }
       Reduce(out)(N by 1) { i =>
-        Reduce(Reg[T])(Scan(fifo.deq)) { j =>
+        Reduce(Reg[T])(Scan(1,fifo.deq)) { case List(j) =>
           j.to[T]
         } { _ + _ }
       } { _ + _ }
