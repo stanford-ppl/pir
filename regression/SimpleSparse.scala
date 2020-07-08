@@ -355,3 +355,40 @@ import spatial.metadata.memory.{Barrier => _,_}
     assert(cksum)
   }
 }
+
+@spatial class VecScan extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  type T = Int
+  val N = 32
+  val ip = 16
+
+  def main(args: Array[String]): Unit = {
+
+    val out = ArgOut[T]
+
+    Accel {
+      Reduce(out)(N by ip) { i =>
+        val sram = SRAM[U32](ip)
+        Foreach(ip by 1) { j =>
+          sram(j) = (i+j).to[U32]
+        }
+        val fifo1 = FIFO[U32](16)
+        val fifo2 = FIFO[U32](16)
+        Foreach(ip by 1 par ip) { j =>
+          val mask = sram(j)
+          fifo1.enq(mask)
+          // Error in VecScan if fifo1 and fifo2 are the same fifo. VecScan will pop both fifos even
+          // though they have the same pointer
+          fifo2.enq(mask + 1) 
+        }
+        Reduce(Reg[T])(Scan(16, fifo1.deq, fifo2.deq)) { case List(j,k) =>
+          j.to[T] + k.to[T]
+        } { _ + _ }
+      } { _ + _ }
+    }
+
+    //println("PASS: " + cksum + " (SimpleScan)")
+    println("out: " + getArg(out))
+    assert(true)
+  }
+}
