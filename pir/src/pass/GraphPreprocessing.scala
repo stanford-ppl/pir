@@ -47,40 +47,48 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
   } 
 
   def processScanCounter(n:N) = {
-    n.to[ScanCounter].foreach { n =>
-      // Spatial insert a register in front of the scan counter
-      // Remove this register and replace with a scanner
-      val read = n.mask.T.asInstanceOf[MemRead]
-      val readCtrl = read.getCtrl
-      val writer = assertOne(read.mem.T.inAccesses, s"$n.mask writer").as[MemWrite]
-      val scanRead = writer.data.T.asInstanceOf[OutAccess]
-      scanRead.out.vecMeta.reset
-      scanRead.out.presetVec(16)
-      val scanCtrl = scanRead.getCtrl
-      val scanner = within(pirTop, scanCtrl, n.srcCtx.get) {
-        stage(Scanner().mask(scanRead))
+    // Insert a Scanner for loop controller including scancounters
+    n.to[LoopController].foreach { n =>
+      val ctrs = n.cchain.T
+      if (ctrs.exists { case x:ScanCounter => true; case _ => false }) {
+        val par = ctrs.last.as[ScanCounter].par
+        val scanCtrl = ctrs.head.as[ScanCounter].mask.T.asInstanceOf[MemRead].mem.T.inAccesses.head.as[MemWrite].data.T.getCtrl
+        val scanner = within(pirTop, scanCtrl, n.srcCtx.get) {
+          stage(Scanner(par, ctrs.size))
+        }
+        val cntFIFO = within(pirTop) {
+          stage(FIFO().banks(List(1)).name("cntFIFO"))
+        }
+        val cntWrite = within(pirTop, scanCtrl) {
+          stage(MemWrite().setMem(cntFIFO).data(scanner.cnt))
+        }
+        val cntRead = within(pirTop, n.getCtrl) {
+          stage(MemRead().setMem(cntFIFO))
+        }
+        // Spatial insert a register in front of the scan counter
+        // Remove this register and connect to the scanner
+        (ctrs, scanner.masks, scanner.indices).zipped.foreach { case (ctr, mask, idx) =>
+          val scanCtr = ctr.as[ScanCounter]
+          val read = scanCtr.mask.T.asInstanceOf[MemRead]
+          val writer = assertOne(read.mem.T.inAccesses, s"$n.mask writer").as[MemWrite]
+          val scanRead = writer.data.T.asInstanceOf[OutAccess]
+          scanRead.out.vecMeta.reset
+          scanRead.out.presetVec(16)
+          mask(scanRead)
+          val indexFIFO = within(pirTop) {
+            stage(FIFO().banks(List(par)).name("indexFIFO"))
+          }
+          val indexWrite = within(pirTop, scanCtrl) {
+            stage(MemWrite().setMem(indexFIFO).data(idx)).presetVec(par)
+          }
+          val indexRead = within(pirTop, n.getCtrl) {
+            stage(MemRead().setMem(indexFIFO))
+          }
+          scanCtr.mask.disconnect
+          scanCtr.cnt(cntRead.out)
+          scanCtr.index(indexRead.out)
+        }
       }
-      val cntFIFO = within(pirTop) {
-        stage(FIFO().banks(List(1)).name("cntFIFO"))
-      }
-      val cntWrite = within(pirTop, scanCtrl) {
-        stage(MemWrite().setMem(cntFIFO).data(scanner.cnt))
-      }
-      val cntRead = within(pirTop, n.getCtrl) {
-        stage(MemRead().setMem(cntFIFO))
-      }
-      val indexFIFO = within(pirTop) {
-        stage(FIFO().banks(List(1)).name("indexFIFO"))
-      }
-      val indexWrite = within(pirTop, scanCtrl) {
-        stage(MemWrite().setMem(indexFIFO).data(scanner.index))
-      }
-      val indexRead = within(pirTop, n.getCtrl) {
-        stage(MemRead().setMem(indexFIFO))
-      }
-      n.mask.disconnect
-      n.cnt(cntRead.out)
-      n.index(indexRead.out)
     }
   }
 

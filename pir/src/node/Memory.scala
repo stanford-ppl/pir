@@ -103,10 +103,10 @@ case class SplitLeader()(implicit env:Env) extends BlackBox {
     case _ => super.compVec(n)
   }
 }
-case class Scanner()(implicit env:Env) extends BlackBox {
-  val mask = InputField[PIRNode].tp(Fix(false,32,0)).presetVec(16)
+case class Scanner(par:Int, nstream:Int)(implicit env:Env) extends BlackBox {
+  val masks = List.tabulate(nstream) { i => new InputField[PIRNode](s"mask$i").tp(Fix(false,32,0)).presetVec(16) }
   val cnt = OutputField[PIRNode].tp(Fix(false,32,0)).presetVec(1)
-  val index = OutputField[PIRNode].tp(Fix(true,32,0)).presetVec(1)
+  val indices = List.tabulate(nstream) { i => new OutputField[PIRNode](s"idx$i").tp(Fix(true,32,0)).presetVec(par) }
 }
 case class MergeBuffer(ways:Int, par:Int)(implicit env:Env) extends BlackBox with Def { self =>
   val inputs = List.tabulate(ways) { i => new InputField[PIRNode](s"in$i") }
@@ -537,15 +537,28 @@ case class StridedCounter(par:Int)(implicit env:Env) extends Counter {
 case class ForeverCounter()(implicit env:Env) extends Counter {
   val par = 1
 }
-case class ScanCounter()(implicit env:Env) extends Counter {
-  val par = 1
+case class ScanCounter(par:Int)(implicit env:Env) extends Counter {
   val mask = InputField[PIRNode].presetVec(16) // Replaced with count and idx
   val cnt = InputField[PIRNode].presetVec(1)
-  val index = InputField[PIRNode].presetVec(1)
+  val index = InputField[PIRNode]
+  override def compVec(n:IR) = n match {
+    case `out` => 
+      parent.fold[Option[Int]] { None } { 
+        case parent:LoopController => parent.par.v
+        case parent => None
+      }
+    case _ => super.compVec(n)
+  }
 }
 case class CounterIter(is:List[Int])(implicit env:Env) extends Def {
   val counter = InputField[Counter]
-  out.tp(Fix(true, 32, 0)).presetVec(is.size)
+  out.tp(Fix(true, 32, 0))
+  override def compVec(n:IR) = {
+    counter.T match {
+      case ctr:ScanCounter => counter.singleConnected.get.inferVec
+      case ctr => Some(is.size)
+    }
+  }
 }
 case class CounterValid(is:List[Int])(implicit env:Env) extends Def {
   val counter = InputField[Counter]
