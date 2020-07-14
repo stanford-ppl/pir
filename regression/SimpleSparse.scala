@@ -1,5 +1,36 @@
 import spatial.dsl._
 
+@spatial class TestCoalesce extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+  
+  def main(args: Array[String]): Unit = {
+
+    val N = 128
+
+    val dram = DRAM[I32](N/3)
+
+    Accel {
+      val d = FIFO[I32](16)
+      val v = FIFO[Bit](16)
+
+      Foreach (N by 1 par 1) { i =>
+        d.enq(i)
+        v.enq(i%3 == 0)
+      }
+
+      dram coalesce(0, d, v, N)
+    }
+
+    val gold = (0 until N/3) { i => 3*i }
+
+    val cksum = checkGold[T](dram, gold)
+    println("PASS: " + cksum + " (TestCoalesce)")
+    assert(cksum)
+  }
+}
+
 @spatial class SimpleSparse extends SpatialTest {
   override def runtimeArgs: Args = "32"
   //type T = FixPt[TRUE, _16, _16]
