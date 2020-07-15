@@ -60,7 +60,7 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen with TungstenB
       genTopMember(n, Seq(n.qstr, addr, data, ack, "DRAM".&), end=true)
 
     case n:FringeCoalStore =>
-      val addr = nameOf(n.addr.T.as[BufferRead]).&
+      val addr = nameOf(n.offset.T.as[BufferRead]).&
       val size = nameOf(n.size.T.as[BufferRead]).&
       val data = nameOf(n.data.T.as[BufferRead]).&
       val valid = nameOf(n.valid.T.as[BufferRead]).&

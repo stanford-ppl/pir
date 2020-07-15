@@ -53,10 +53,7 @@ trait DRAMStoreCommand extends DRAMCommand {
 }
 
 trait DRAMCoalCommand extends DRAMStoreCommand {
-  // val data  = InputField[PIRNode]
   val valid = InputField[PIRNode].tp(Bool)
-  val size = InputField[PIRNode]
-  // val ack   = OutputField[PIRNode].tp(Bool).presetVec(1)
 }
 
 case class FringeDenseLoad(dram:DRAM)(implicit env:Env) extends DRAMDenseCommand with DRAMLoadCommand {
@@ -83,11 +80,13 @@ case class FringeSparseStore(dram:DRAM)(implicit env:Env) extends DRAMSparseComm
   ack.presetVec(1)
 }
 
-case class FringeCoalStore(dram:DRAM)(implicit env:Env) extends DRAMSparseCommand with DRAMCoalCommand {
-  data.presetVec(1)
-  size.presetVec(1)
-  valid.presetVec(1)
-  ack.presetVec(1)
+case class FringeCoalStore(dram:DRAM, par:Int)(implicit env:Env) extends DRAMDenseCommand with DRAMCoalCommand {
+  data.presetVec(par)
+  valid.presetVec(par)
+  //override def compVec(n:IR) = n match {
+    //case `data` | `valid` => Some(par.get)
+    //case _ => super.compVec(n)
+  //}
 }
 
 case class DRAM(sid:String) extends prism.graph.IR {
