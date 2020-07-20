@@ -16,10 +16,10 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
       }
       
     case n:Scanner =>
-      val mask = nameOf(n.mask.T.as[BufferRead]).&
+      val masks = n.masks.map { mask => nameOf(mask.T.as[BufferRead]).& }.qlist
       val count = nameOf(n.cnt.T.as[BufferWrite].out.singleConnected.get.src).&
-      val index = nameOf(n.index.T.as[BufferWrite].out.singleConnected.get.src).&
-      genTopMember(n, Seq(n.qstr, mask, count, index), end=true)
+      val indices = n.indices.map { index => nameOf(index.T.as[BufferWrite].out.singleConnected.get.src).& }.qlist
+      genTopMember(n, Seq(n.qstr, masks, count, indices), end=true)
 
     case n:SplitLeader =>
       val addrIn = nameOf(n.addrIn.T.as[BufferRead]).&
@@ -88,7 +88,7 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
         }
       }
 
-    case n:SparseMem if !n.isDRAM => genTopMember(n, Seq(n.qstr))
+    case n:SparseMem if n.memType == "SRAM" => genTopMember(n, Seq(n.qstr))
 
     case n:SparseDRAMBlock => 
       val orderList = n.rmwPorts.map { case (a, ports) => n.rmwOps(a)._2 }.to[List]
@@ -134,12 +134,13 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
 
   override def varOf(n:PIRNode):(String,String) = n match {
     case n:SplitLeader => (s"SplitLeader", s"${n}")
-    case n:Scanner => (s"ScanHelper", s"${n}")
+    case n:Scanner => (s"VecScanHelper<${n.nstream}, ${n.par}>", s"${n}")
     case n:SparseRead => (s"${tpOf(n.mem.T)}::SparsePMUPort*", s"${n}_port")
     case n:SparseWrite => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
     case n:SparseRMW => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
-    case n:SparseMem if !n.isDRAM => (s"SparsePMU<${n.qtp},$wordPerBank,${spadeParam.vecWidth}>", s"$n")
+    case n:SparseMem if n.memType == "SRAM" => (s"SparsePMU<${n.qtp},$wordPerBank,${spadeParam.vecWidth}>", s"$n")
     case n:SparseDRAMBlock => (s"ParDRAM<${n.dramPar},${n.qtp},1>", s"$n")
+    case n:SparseParSRAMBlock => (s"ParSRAM<${n.dramPar},${n.qtp},1>", s"$n")
     case n => super.varOf(n)
   }
 

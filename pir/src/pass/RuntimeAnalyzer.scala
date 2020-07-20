@@ -238,6 +238,7 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
         size /! (n.data.getTp.bytePerWord.get * dataPar)
       case n:FringeSparseLoad => Finite(1l)
       case n:FringeSparseStore => Finite(1l)
+      case n:FringeCoalStore => Finite(1l)
       case n:MergeBuffer => 
         import Value._
         n.bounds.map { _.T.getBound.toValue }.reduce { _ + _ }

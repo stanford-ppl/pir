@@ -102,6 +102,14 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
         emitln(s"in_token_size = ${par * spadeParam.bytePerWord}")
         emitln(s"controller=DRAM")
         emitln(s"burst_size = ${spadeParam.bytePerWord}")
+      case command:FringeCoalStore => 
+        val par = command.data.T.getVec
+        emitln(s"size_trace = ${par * spadeParam.bytePerWord}")
+        emitln(s"offset_trace = ${buildPath(traceRelativePath, s"${command}_addr.trace")}")
+        emitln(s"dram_cmd_tp=dense_store")
+        emitln(s"in_token_size = ${par * spadeParam.bytePerWord}")
+        emitln(s"controller=DRAM")
+        emitln(s"burst_size = ${spadeParam.bytePerWord}")
     }
     emitStartToken(n)
     emitStopToken(n)

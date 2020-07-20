@@ -13,6 +13,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case OutputField(ctrler:Controller, "stepped") => s"$ctrler->Stepped()"
     case OutputField(ctrler:LoopController, "firstIter") => s"$ctrler->FirstIter()"
     case OutputField(ctrler:Controller, "laneValid") => s"laneValid"
+    case InputField(ctr:ScanCounter, "index") => s"${ctr}_index"
     case n => super.quoteRef(n)
   }
 
@@ -98,17 +99,26 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:ScanCounter =>
       genCtxMember(n)
+      emitToVec(n.index) { i => n.index.singleConnected.get.qidx(i) }
       emitln(s"$n->setCount(${n.cnt.T});")
-      emitln(s"$n->setIndex(${n.index.T});")
+      emitln(s"$n->setIndex(${n.index.qref});")
       emitln(s"$n->Eval(); // ${n.getCtrl}")
 
     case n@CounterIter(is) =>
-      val ctr = n.counter.T
-      emitVec(n, is.map { i => s"$ctr->Iters()[$i]" })
+      n.counter.T match {
+        case ctr:ScanCounter =>
+          emitUnVec(n) { s"$ctr->Iters()" }
+        case ctr =>
+          emitVec(n, is.map { i => s"$ctr->Iters()[$i]" })
+      }
 
     case n@CounterValid(is) =>
-      val ctr = n.counter.T
-      emitVec(n, is.map { i => s"$ctr->Valids()[$i]" })
+      n.counter.T match {
+        case ctr:ScanCounter =>
+          emitUnVec(n) { s"$ctr->Valids()" }
+        case ctr =>
+          emitVec(n, is.map { i => s"$ctr->Valids()[$i]" })
+      }
 
     case n => super.emitNode(n)
   }
@@ -133,12 +143,17 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
 
   override def varOf(n:PIRNode):(String, String) = n match {
     case n:SplitController => (s"SplitController",s"$n")
-    case n:LoopController => (s"LoopController",s"$n")
+    case n:LoopController => 
+      if (n.cchain.T.exists{ case ctr:ScanCounter => true; case _ => false }) {
+        (s"ScanController<${n.par.get}>",s"$n") 
+      } else {
+        (s"LoopController",s"$n") 
+      }
     case n:TopController => (s"StepController",s"$n")
     case n:Controller => (s"UnitController",s"$n")
     case n:ForeverCounter => (s"ForeverCounter<1>",s"$n")
     case n:StridedCounter => (s"Counter<${n.par}>",s"$n")
-    case n:ScanCounter => (s"ScanCounter",s"$n")
+    case n:ScanCounter => (s"ScanCounter<${n.parent.get.as[LoopController].par.get}>",s"$n")
     case n => super.varOf(n)
   }
 }

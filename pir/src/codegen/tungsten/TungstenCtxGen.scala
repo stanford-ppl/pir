@@ -196,10 +196,17 @@ using   namespace std;
   def declare(sig:String, init:Option[Any]=None):Unit = {
     assert(!declared.contains(sig), s"$sig has been declared")
     declared += sig
+    val tp = sig.split(" ").head
     genCtxFields {
       init match {
         case Some(init) => emitln(s"$sig = $init;")
-        case None => emitln(s"$sig;")
+        case None => tp match {
+          case "bool" => emitln(s"$sig{false};")
+          case "int" => emitln(s"$sig{0};")
+          case "float" => emitln(s"$sig{0.0f};")
+          case "double" => emitln(s"$sig{0.0};")
+          case default => emitln(s"$sig;")
+        }
       }
     }
   }

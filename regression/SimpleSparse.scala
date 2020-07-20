@@ -1,5 +1,36 @@
 import spatial.dsl._
 
+@spatial class TestCoalesce extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+  
+  def main(args: Array[String]): Unit = {
+
+    val N = 128
+
+    val dram = DRAM[I32](N/3)
+
+    Accel {
+      val d = FIFO[I32](16)
+      val v = FIFO[Bit](16)
+
+      Foreach (N by 1 par 1) { i =>
+        d.enq(i)
+        v.enq(i%3 == 0)
+      }
+
+      dram coalesce(0, d, v, N)
+    }
+
+    val gold = (0 until N/3) { i => 3*i }
+
+    val cksum = checkGold[T](dram, gold)
+    println("PASS: " + cksum + " (TestCoalesce)")
+    assert(cksum)
+  }
+}
+
 @spatial class SimpleSparse extends SpatialTest {
   override def runtimeArgs: Args = "32"
   //type T = FixPt[TRUE, _16, _16]
@@ -104,7 +135,7 @@ import spatial.dsl._
           val mask = sram(j)
           fifo.enq(mask)
         }
-        Reduce(Reg[T])(Scan(fifo.deq)) { j =>
+        Reduce(Reg[T])(Scan(1, fifo.deq)) { case List(j) =>
           j.to[T]
         } { _ + _ }
       } { _ + _ }
@@ -158,7 +189,7 @@ import spatial.dsl._
           val mask = sram(j)
           fifo.enq(mask)
         }
-        Reduce(Reg[T])(Scan(fifo.deq)) { j =>
+        Reduce(Reg[T])(Scan(1,fifo.deq)) { case List(j) =>
           Reduce(Reg[T])(10 by 1) { _ =>
             j.to[T]
           } { _ + _ }
@@ -248,7 +279,7 @@ import spatial.metadata.memory.{Barrier => _,_}
         }
       }
       Reduce(out)(N by 1) { i =>
-        Reduce(Reg[T])(Scan(fifo.deq)) { j =>
+        Reduce(Reg[T])(Scan(1,fifo.deq)) { case List(j) =>
           j.to[T]
         } { _ + _ }
       } { _ + _ }
@@ -353,5 +384,42 @@ import spatial.metadata.memory.{Barrier => _,_}
     val cksum = checkGold[T](out, gold)
     println("PASS: " + cksum + " (SimpleRMW)")
     assert(cksum)
+  }
+}
+
+@spatial class VecScan extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  type T = Int
+  val N = 32
+  val ip = 16
+
+  def main(args: Array[String]): Unit = {
+
+    val out = ArgOut[T]
+
+    Accel {
+      Reduce(out)(N by ip) { i =>
+        val sram = SRAM[U32](ip)
+        Foreach(ip by 1) { j =>
+          sram(j) = (i+j).to[U32]
+        }
+        val fifo1 = FIFO[U32](16)
+        val fifo2 = FIFO[U32](16)
+        Foreach(ip by 1 par ip) { j =>
+          val mask = sram(j)
+          fifo1.enq(mask)
+          // Error in VecScan if fifo1 and fifo2 are the same fifo. VecScan will pop both fifos even
+          // though they have the same pointer
+          fifo2.enq(mask + 1) 
+        }
+        Reduce(Reg[T])(Scan(16, fifo1.deq, fifo2.deq)) { case List(j,k) =>
+          j.to[T] + k.to[T]
+        } { _ + _ }
+      } { _ + _ }
+    }
+
+    //println("PASS: " + cksum + " (SimpleScan)")
+    println("out: " + getArg(out))
+    assert(true)
   }
 }
