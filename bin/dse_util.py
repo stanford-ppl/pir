@@ -102,7 +102,8 @@ class DSE():
         self.pirArgs = "--fast --debug=false"
         self.pirArgs += " --net=p2p --row=20 --col=20 --mem-tech=DDR4"
         self.pirArgs += " --split-thread=4"
-        self.pirArgs += " " + ' '.join(args)
+        if args is not None:
+            self.pirArgs += " " + ' '.join(args)
 
     def run_dse(self, opts, args):
     
