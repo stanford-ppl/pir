@@ -68,15 +68,16 @@ dsefile = None
 class dseopen:
     def __init__(self, filename):
         self.file = open(filename, 'w')
+        self.dummy = filename.replace(".scala","").replace("/","_")
     def __enter__(self):
         global dsefile
         dsefile = self.file
-        self.file.write("""
+        self.file.write(f"""
 import spatial.dsl._
 import forge.tags._
 
 @virtualize
-class Dummy3
+class Dummy_{self.dummy}
 """)
         return self.file
     def __exit__(self, type, value, traceback):
@@ -109,6 +110,10 @@ class DSE():
     
         os.system(f'mkdir -p {self.logdir}/')
         if opts.publish:
+            code = subprocess.call('sbt "; project models; publishLocal; project utils; publishLocal"',
+                    shell=True, cwd="spatial/")
+            if code != 0:
+                exit()
             code = subprocess.call('sbt "; project pir; publishAll"', shell=True, cwd='spatial/pir')
             if code != 0:
                 exit()

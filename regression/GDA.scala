@@ -20,7 +20,7 @@ class GDA_8 extends GDA(op=3, mp1 = 3,mp2 = 3)
   ip:scala.Int = 16
 ) extends SpatialTest { self =>
 
-  type X = Float
+  type X = Int
 
   val margin = 1
 

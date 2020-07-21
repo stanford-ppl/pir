@@ -61,8 +61,9 @@ def parse_genpir(pirsrc, logpath, conf, opts):
         conf['genpir'] = True
         conf['genpir_err'] = None
 
-def parseLog(conf, key, patterns, parseLambda, default=None, logs=[], prefix=False):
-    prefix = prefix or len(logs) > 1
+def parseLog(conf, key, patterns, parseLambda, default=None, logs=[], prefix=None):
+    if prefix is None:
+        prefix = len(logs) > 1
     if type(patterns)!=list:
         patterns = [patterns]
     for log in logs:
