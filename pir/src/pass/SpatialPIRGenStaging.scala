@@ -97,6 +97,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
       case n:DRAM => n.sname(name)
       case n:StridedCounter => analyzeCounterRange(n)
       case n:ScanCounter => analyzeCounterRange(n)
+      case n:DataScanCounter => analyzeCounterRange(n)
       case n:ForeverCounter => analyzeCounterRange(n)
       case n:LoopController => analyzeLoopRange(n)
       case _ =>
@@ -213,6 +214,14 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
           }
         }
     }
+  }
+
+  def analyzeCounterRange(n:DataScanCounter):Unit = dbgblk(s"analyzeCounterRange($n)") {
+    val (constValids, constIters) = (List.tabulate(n.par) { i => None }, List.tabulate(1) { i => None })
+    dbg(s"$n.constValids=[${constValids.map { _.getOrElse("unknown") }.mkString(",")}]")
+    dbg(s"$n.constIters=[${constIters.map { _.getOrElse("unknown") }.mkString(",")}]")
+    n.constValids := constValids
+    n.constIters := constIters
   }
 
   def analyzeCounterRange(n:ScanCounter):Unit = dbgblk(s"analyzeCounterRange($n)") {

@@ -42,9 +42,74 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
     }
 
     processScanCounter(n)
+    processDataScanCounter(n)
 
     super.visitNode(n)
   } 
+
+  def processDataScanCounter(n:N) = {
+    // Insert a Scanner for loop controller including scancounters
+    n.to[LoopController].foreach { n =>
+      val ctrs = n.cchain.T
+      if (ctrs.exists { case x:DataScanCounter => true; case _ => false }) {
+        // val par = ctrs.last.as[ScanCounter].par
+        val scanCtrl = ctrs.head.as[DataScanCounter].mask.T.asInstanceOf[MemRead].mem.T.inAccesses.head.as[MemWrite].data.T.getCtrl
+        val scanner = within(pirTop, scanCtrl, n.srcCtx.get) {
+          stage(DataScanner())
+        }
+        val cntFIFO = within(pirTop) {
+          stage(FIFO().banks(List(1)).name("cntFIFO"))
+        }
+        val cntWrite = within(pirTop, scanCtrl) {
+          stage(MemWrite().setMem(cntFIFO).data(scanner.cnt))
+        }
+        val cntRead = within(pirTop, n.getCtrl) {
+          stage(MemRead().setMem(cntFIFO)).done(n.done)
+        }
+
+        // Assume a fixed number of counters---one for data, one for count
+        assert(ctrs.size == 2, "Counters have size " + ctrs.size)
+        val c0 = ctrs(0).as[DataScanCounter]
+        val c1 = ctrs(1).as[DataScanCounter]
+        assert(!c0.data)
+        assert(c1.data)
+
+        val read = c0.mask.T.asInstanceOf[MemRead]
+        val writer = assertOne(read.mem.T.inAccesses, s"$n.mask writer").as[MemWrite]
+        val scanRead = writer.data.T.asInstanceOf[OutAccess]
+        scanRead.out.vecMeta.reset
+        scanRead.out.presetVec(16)
+        scanner.mask(scanRead)
+
+        val indexFIFO = within(pirTop) {
+          stage(FIFO().banks(List(1)).name("indexFIFO"))
+        }
+        val indexWrite = within(pirTop, scanCtrl) {
+          stage(MemWrite().setMem(indexFIFO).data(scanner.index))
+        }
+        val indexRead = within(pirTop, n.getCtrl) {
+          stage(MemRead().setMem(indexFIFO))
+        }
+        val dataFIFO = within(pirTop) {
+          stage(FIFO().banks(List(1)).name("dataFIFO"))
+        }
+        val dataWrite = within(pirTop, scanCtrl) {
+          stage(MemWrite().setMem(dataFIFO).data(scanner.data))
+        }
+        val dataRead = within(pirTop, n.getCtrl) {
+          stage(MemRead().setMem(dataFIFO))
+        }
+
+        c0.mask.disconnect
+        c0.cnt(cntRead.out)
+        c0.indOrData(indexRead.out)
+        c1.mask.disconnect
+        c1.cnt(cntRead.out)
+        c1.indOrData(dataRead.out)
+        cntRead.done(n.done)
+      }
+    }
+  }
 
   def processScanCounter(n:N) = {
     // Insert a Scanner for loop controller including scancounters

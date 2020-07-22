@@ -182,6 +182,105 @@ import spatial.dsl._
   }
 }
 
+@spatial class ScanABA extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  type T = Int
+  val N = 1024
+  val ip = 16
+
+  def main(args: Array[String]): Unit = {
+
+    val out = ArgOut[T]
+
+    Accel {
+      val sram = SRAM[U32](N)
+      Foreach(N by 1 par ip) { j =>
+        sram(j) = 0.to[U32]
+      }
+      sram(0) = 1.to[U32]
+      val fifo = FIFO[U32](16)
+      Foreach(N by ip par 1) { i =>
+        Foreach(ip by 1 par ip) { j =>
+          val mask = mux(i == ip, 0, sram(j))
+          fifo.enq(mask)
+        }
+      }
+      Reduce(out) (N by ip par 1) { i =>
+        Reduce(Reg[T])(Scan(1, fifo.deq)) { case List(j) =>
+          i*j.to[T]
+        } { _ + _ }
+      } { _ + _ }
+    }
+
+    val gold = scala.collection.immutable.Range(0, N, ip).map { i =>
+      val mask = scala.collection.immutable.Range(0, ip).map{ j => 
+        val bi = (i+j).toBinaryString
+        val pad = "0" * (32 - bi.size) + bi
+        pad.reverse
+      }.reduce { _ + _ }
+      Console.println(mask)
+      val nonZero = mask.count { _ == '1' }
+      val sum = mask.zipWithIndex.map { case (char, k) =>
+        char match {
+          case '1' => 
+            Console.println(k)
+            i match {
+              case `ip` =>
+                0
+              case _ =>
+                i*k
+            }
+          case _ => 0
+        }
+      }.sum
+      Console.println(s"nonZero=$nonZero, partial sum $sum")
+      sum
+    }.sum
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (ScanABA)")
+    assert(cksum)
+  }
+}
+
+@spatial class SimpleDataScan extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  type T = Int
+  val N = 32
+  val ip = 16
+
+  def main(args: Array[String]): Unit = {
+
+    val out = ArgOut[T]
+
+    Accel {
+      Reduce(out)(N by ip) { i =>
+        val sram = SRAM[I32](ip)
+        Foreach(ip by 1) { j =>
+          val x = i+j
+          sram(j) = x*(x%3)
+        }
+        val fifo = FIFO[I32](16)
+        Foreach(ip by 1 par ip) { j =>
+          val mask = sram(j)
+          fifo.enq(mask)
+        }
+        Reduce(Reg[T])(DataScan(fifo.deq)) { case List(idx, data) =>
+          data
+        } { _ + _ }
+      } { _ + _ }
+    }
+
+    val gold = scala.collection.immutable.Range(0, N).map { i =>
+      i*(i%3)
+    }.sum
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (SimpleDataScan)")
+    assert(cksum)
+  }
+}
+
 @spatial class SimpleScan extends SpatialTest {
   override def runtimeArgs: Args = "32"
   type T = Int

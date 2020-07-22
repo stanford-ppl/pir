@@ -97,6 +97,14 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case n:ForeverCounter =>
       genCtxMember(n)
 
+    case n:DataScanCounter =>
+      genCtxMember(n)
+      // emitToVec(n.index) { i => n.index.singleConnected.get.qidx(i) }
+      emitln(s"$n->setCount(${n.cnt.T});")
+      // TODO: may need to generate a separate template
+      emitln(s"$n->setIndex(${n.indOrData.qref});")
+      emitln(s"$n->Eval(); // ${n.getCtrl}")
+
     case n:ScanCounter =>
       genCtxMember(n)
       emitToVec(n.index) { i => n.index.singleConnected.get.qidx(i) }
@@ -108,6 +116,8 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       n.counter.T match {
         case ctr:ScanCounter =>
           emitUnVec(n) { s"$ctr->Iters()" }
+        case ctr:DataScanCounter =>
+          emitUnVec(n) { s"$ctr->Iters()" }
         case ctr =>
           emitVec(n, is.map { i => s"$ctr->Iters()[$i]" })
       }
@@ -115,6 +125,8 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case n@CounterValid(is) =>
       n.counter.T match {
         case ctr:ScanCounter =>
+          emitUnVec(n) { s"$ctr->Valids()" }
+        case ctr:DataScanCounter =>
           emitUnVec(n) { s"$ctr->Valids()" }
         case ctr =>
           emitVec(n, is.map { i => s"$ctr->Valids()[$i]" })
@@ -146,6 +158,8 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case n:LoopController => 
       if (n.cchain.T.exists{ case ctr:ScanCounter => true; case _ => false }) {
         (s"ScanController<${n.par.get}>",s"$n") 
+      } else if (n.cchain.T.exists{ case ctr:DataScanCounter => true; case _ => false }) {
+        (s"ScanController<1>",s"$n") 
       } else {
         (s"LoopController",s"$n") 
       }
@@ -154,6 +168,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case n:ForeverCounter => (s"ForeverCounter<1>",s"$n")
     case n:StridedCounter => (s"Counter<${n.par}>",s"$n")
     case n:ScanCounter => (s"ScanCounter<${n.parent.get.as[LoopController].par.get}>",s"$n")
+    case n:DataScanCounter => (s"ScanCounter<1>",s"$n")
     case n => super.varOf(n)
   }
 }

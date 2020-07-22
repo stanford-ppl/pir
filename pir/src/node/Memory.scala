@@ -103,6 +103,12 @@ case class SplitLeader()(implicit env:Env) extends BlackBox {
     case _ => super.compVec(n)
   }
 }
+case class DataScanner()(implicit env:Env) extends BlackBox {
+  val mask  = InputField[PIRNode].tp(Fix(true,32,0)).presetVec(16)
+  val cnt   = OutputField[PIRNode].tp(Fix(false,32,0)).presetVec(1)
+  val index = OutputField[PIRNode].tp(Fix(true,32,0)).presetVec(1)
+  val data  = OutputField[PIRNode].tp(Fix(true,32,0)).presetVec(1)
+}
 case class Scanner(par:Int, nstream:Int)(implicit env:Env) extends BlackBox {
   val masks = List.tabulate(nstream) { i => new InputField[PIRNode](s"mask$i").tp(Fix(false,32,0)).presetVec(16) }
   val cnt = OutputField[PIRNode].tp(Fix(false,32,0)).presetVec(1)
@@ -536,6 +542,20 @@ case class StridedCounter(par:Int)(implicit env:Env) extends Counter {
 }
 case class ForeverCounter()(implicit env:Env) extends Counter {
   val par = 1
+}
+case class DataScanCounter(data: scala.Boolean)(implicit env:Env) extends Counter {
+  val par = 1
+  val mask = InputField[PIRNode].presetVec(16) // Replaced with count and idx
+  val cnt = InputField[PIRNode].presetVec(1)
+  val indOrData = InputField[PIRNode].presetVec(1)
+  /* override def compVec(n:IR) = n match {
+    case `out` => 
+      parent.fold[Option[Int]] { None } { 
+        case parent:LoopController => parent.par.v
+        case parent => None
+      }
+    case _ => super.compVec(n) 
+  } */
 }
 case class ScanCounter(par:Int)(implicit env:Env) extends Counter {
   val mask = InputField[PIRNode].presetVec(16) // Replaced with count and idx

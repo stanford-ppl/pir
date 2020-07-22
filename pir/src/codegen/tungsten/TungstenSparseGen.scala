@@ -10,10 +10,17 @@ import scala.collection.mutable
 trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with TungstenMemGen with TungstenBlackBoxGen with Memorization {
 
   override def emitNode(n:N) = n match {
-    case ctx:Context if ctx.streaming.get && (ctx.descendents.exists { case scanner:Scanner => true; case splitter:SplitLeader => true; case _ => false }) => 
+    case ctx:Context if ctx.streaming.get && (ctx.descendents.exists { case datascanner:DataScanner => true; case scanner:Scanner => true; case splitter:SplitLeader => true; case _ => false }) => 
       withinBB {
         visitNode(n)
       }
+      
+    case n:DataScanner =>
+      val mask = nameOf(n.mask.T.as[BufferRead]).&
+      val count = nameOf(n.cnt.T.as[BufferWrite].out.singleConnected.get.src).&
+      val index = nameOf(n.index.T.as[BufferWrite].out.singleConnected.get.src).&
+      val data = nameOf(n.data.T.as[BufferWrite].out.singleConnected.get.src).&
+      genTopMember(n, Seq(n.qstr, mask, count, index, data), end=true)
       
     case n:Scanner =>
       val masks = n.masks.map { mask => nameOf(mask.T.as[BufferRead]).& }.qlist
@@ -135,6 +142,7 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
   override def varOf(n:PIRNode):(String,String) = n match {
     case n:SplitLeader => (s"SplitLeader", s"${n}")
     case n:Scanner => (s"VecScanHelper<${n.nstream}, ${n.par}>", s"${n}")
+    case n:DataScanner => (s"DataScanner", s"${n}")
     case n:SparseRead => (s"${tpOf(n.mem.T)}::SparsePMUPort*", s"${n}_port")
     case n:SparseWrite => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
     case n:SparseRMW => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
