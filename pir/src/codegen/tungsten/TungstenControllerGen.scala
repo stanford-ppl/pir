@@ -10,10 +10,12 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
   override def quoteRef(n:Any):String = n match {
     case OutputField(ctrler:Controller, "done") => s"$ctrler->Done()"
     case OutputField(ctrler:Controller, "childDone") => s"$ctrler->ChildDone()"
+    case OutputField(ctrler:Controller, "tileDone") => s"$ctrler->TileDone()"
     case OutputField(ctrler:Controller, "stepped") => s"$ctrler->Stepped()"
     case OutputField(ctrler:LoopController, "firstIter") => s"$ctrler->FirstIter()"
     case OutputField(ctrler:Controller, "laneValid") => s"laneValid"
     case InputField(ctr:ScanCounter, "index") => s"${ctr}_index"
+    case InputField(ctr:ScanCounterDataFollower, "index") => s"${ctr}_index"
     case n => super.quoteRef(n)
   }
 
@@ -108,7 +110,16 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case n:ScanCounter =>
       genCtxMember(n)
       emitToVec(n.index) { i => n.index.singleConnected.get.qidx(i) }
-      emitln(s"$n->setCount(${n.cnt.T});")
+      emitln(s"$n->setTileCount(${n.tileCount.T});")
+      emitln(s"$n->setCount(${n.ctrlWord.T});")
+      emitln(s"$n->setIndex(${n.index.qref});")
+      emitln(s"$n->Eval(); // ${n.getCtrl}")
+
+    case n:ScanCounterDataFollower =>
+      genCtxMember(n)
+      emitToVec(n.index) { i => n.index.singleConnected.get.qidx(i) }
+      emitln(s"$n->setTileCount(${n.tileCount.T});")
+      emitln(s"$n->setCount(${n.ctrlWord.T});")
       emitln(s"$n->setIndex(${n.index.qref});")
       emitln(s"$n->Eval(); // ${n.getCtrl}")
 
@@ -167,8 +178,9 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case n:Controller => (s"UnitController",s"$n")
     case n:ForeverCounter => (s"ForeverCounter<1>",s"$n")
     case n:StridedCounter => (s"Counter<${n.par}>",s"$n")
-    case n:ScanCounter => (s"ScanCounter<${n.parent.get.as[LoopController].par.get}>",s"$n")
-    case n:DataScanCounter => (s"ScanCounter<1>",s"$n")
+    case n:ScanCounter => (s"ScanCounter<${n.parent.get.as[LoopController].par.get},true>",s"$n")
+    case n:ScanCounterDataFollower => (s"ScanCounter<${n.parent.get.as[LoopController].par.get},false>",s"$n")
+    case n:DataScanCounter => (s"ScanCounter<1,true>",s"$n")
     case n => super.varOf(n)
   }
 }

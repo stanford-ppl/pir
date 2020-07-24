@@ -241,7 +241,7 @@ import spatial.dsl._
           val mask = sram(j)
           fifo.enq(mask)
         }
-        Reduce(Reg[T])(Scan(1, fifo.deq)) { case List(j) =>
+        Reduce(Reg[T])(Scan(1, 512, "or", fifo.deq)) { case List(j, xA) =>
           j.to[T]
         } { _ + _ }
       } { _ + _ }
@@ -295,7 +295,7 @@ import spatial.dsl._
           val mask = sram(j)
           fifo.enq(mask)
         }
-        Reduce(Reg[T])(Scan(1,fifo.deq)) { case List(j) =>
+        Reduce(Reg[T])(Scan(1, 512, "or", fifo.deq)) { case List(j, xA) =>
           Reduce(Reg[T])(10 by 1) { _ =>
             j.to[T]
           } { _ + _ }
@@ -385,7 +385,7 @@ import spatial.metadata.memory.{Barrier => _,_}
         }
       }
       Reduce(out)(N by 1) { i =>
-        Reduce(Reg[T])(Scan(1,fifo.deq)) { case List(j) =>
+        Reduce(Reg[T])(Scan(1, 512, "or", fifo.deq)) { case List(j, xA) =>
           j.to[T]
         } { _ + _ }
       } { _ + _ }
@@ -518,7 +518,7 @@ import spatial.metadata.memory.{Barrier => _,_}
           // though they have the same pointer
           fifo2.enq(mask + 1) 
         }
-        Reduce(Reg[T])(Scan(16, fifo1.deq, fifo2.deq)) { case List(j,k) =>
+        Reduce(Reg[T])(Scan(16, 512, "or", fifo1.deq, fifo2.deq)) { case List(j,xA,k,xB) =>
           j.to[T] + k.to[T]
         } { _ + _ }
       } { _ + _ }

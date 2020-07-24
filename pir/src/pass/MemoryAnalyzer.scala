@@ -47,7 +47,10 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
       dbg(s"out=$from.$out")
       dbg(s"ins=${ins.map { in => s"${in.src}.$in"}.mkString(",")}")
       (out, ins) match {
-        case (out,InputField(n:ScanCounter, "cnt")::_) if isFIFO => (childDone(o, octx), done(i, ictx))
+        case (out,InputField(n:ScanCounter, "ctrlWord")::_) if isFIFO => (tileDone(o, octx), done(i, ictx))
+        case (out,InputField(n:DataScanCounter, "ctrlWord")::_) if isFIFO => (tileDone(o, octx), done(i, ictx))
+        case (out,InputField(n:ScanCounter, "tileCount")::_) if isFIFO => (childDone(o, octx), done(i, ictx))
+        case (out,InputField(n:DataScanCounter, "tileCount")::_) if isFIFO => (childDone(o, octx), done(i, ictx))
         case (out,InputField(n:DataScanCounter, "cnt")::_) if isFIFO => (childDone(o, octx), done(i, ictx))
         case (out,ins) if isFIFO => (childDone(o, octx), childDone(i, ictx))
         case (out,Seq(InputField(n:LoopController, "stopWhen"))) if o == i => (childDone(o, octx), childDone(i, ictx))
@@ -70,6 +73,24 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
           (enq,deq)
       }
     }
+  }
+
+  def tileDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = dbgblk(s"childDone($ctrl, $ctx)"){
+    if (ctx.getCtrl.ancestorSlice(ctrl).exists { _.isAsync }) {
+      err(s"Trying to get done of $ctrl where $ctx is under async controller ctx.ctrl=${ctx.getCtrl}")
+    }
+    val ctrler = if (ctx.streaming.get) {
+      within(ctx, ctrl) { 
+        allocate[UnitController]()(stage(UnitController().par(1)))
+      }
+    } else if (!compiler.hasRun[DependencyDuplication]) {
+      // Centralized controller
+      ctrl.ctrler.get
+    } else {
+       //Distributed controller
+      ctx.getCtrler(ctrl)
+    }
+    ctrler.tileDone
   }
 
   def childDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = dbgblk(s"childDone($ctrl, $ctx)"){

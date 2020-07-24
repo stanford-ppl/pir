@@ -111,7 +111,8 @@ case class DataScanner()(implicit env:Env) extends BlackBox {
 }
 case class Scanner(par:Int, nstream:Int)(implicit env:Env) extends BlackBox {
   val masks = List.tabulate(nstream) { i => new InputField[PIRNode](s"mask$i").tp(Fix(false,32,0)).presetVec(16) }
-  val cnt = OutputField[PIRNode].tp(Fix(false,32,0)).presetVec(1)
+  // val tileCount = InputField[PIRNode].tp(Fix(true,32,0)).presetVec(1)
+  val ctrlWord = OutputField[PIRNode].tp(Fix(false,32,0)).presetVec(1)
   val indices = List.tabulate(nstream) { i => new OutputField[PIRNode](s"idx$i").tp(Fix(true,32,0)).presetVec(par) }
 }
 case class MergeBuffer(ways:Int, par:Int)(implicit env:Env) extends BlackBox with Def { self =>
@@ -558,8 +559,25 @@ case class DataScanCounter(data: scala.Boolean)(implicit env:Env) extends Counte
   } */
 }
 case class ScanCounter(par:Int)(implicit env:Env) extends Counter {
-  val mask = InputField[PIRNode].presetVec(16) // Replaced with count and idx
-  val cnt = InputField[PIRNode].presetVec(1)
+  val mask = InputField[PIRNode].presetVec(16) // Replaced with ctrl and idx
+
+  val tileCount = InputField[PIRNode].presetVec(1) 
+  val ctrlWord = InputField[PIRNode].presetVec(1)
+  val index = InputField[PIRNode]
+  override def compVec(n:IR) = n match {
+    case `out` => 
+      parent.fold[Option[Int]] { None } { 
+        case parent:LoopController => parent.par.v
+        case parent => None
+      }
+    case _ => super.compVec(n)
+  }
+}
+case class ScanCounterDataFollower(par:Int)(implicit env:Env) extends Counter {
+  val mask = InputField[PIRNode].presetVec(16) // Replaced with ctrl and idx
+
+  val tileCount = InputField[PIRNode].presetVec(1) 
+  val ctrlWord = InputField[PIRNode].presetVec(1)
   val index = InputField[PIRNode]
   override def compVec(n:IR) = n match {
     case `out` => 
@@ -591,6 +609,7 @@ abstract class Controller(implicit env:Env) extends PIRNode {
   val parentEn = InputField[Option[Controller]].tp(Bool).presetVec(1)
 
   val done = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
+  val tileDone = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
   val childDone = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
   val stepped = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
 

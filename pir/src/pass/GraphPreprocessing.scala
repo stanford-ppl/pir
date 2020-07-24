@@ -116,24 +116,48 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
     n.to[LoopController].foreach { n =>
       val ctrs = n.cchain.T
       if (ctrs.exists { case x:ScanCounter => true; case _ => false }) {
-        val par = ctrs.last.as[ScanCounter].par
+        val par = ctrs.last.as[ScanCounterDataFollower].par
         val scanCtrl = ctrs.head.as[ScanCounter].mask.T.asInstanceOf[MemRead].mem.T.inAccesses.head.as[MemWrite].data.T.getCtrl
         val scanner = within(pirTop, scanCtrl, n.srcCtx.get) {
-          stage(Scanner(par, ctrs.size))
+          stage(Scanner(par, ctrs.size/2))
         }
-        val cntFIFO = within(pirTop) {
-          stage(FIFO().banks(List(1)).name("cntFIFO"))
+        val ctrlFIFO = within(pirTop) {
+          stage(FIFO().banks(List(1)).name("ctrlFIFO"))
         }
-        val cntWrite = within(pirTop, scanCtrl) {
-          stage(MemWrite().setMem(cntFIFO).data(scanner.cnt))
+        val ctrlWrite = within(pirTop, scanCtrl) {
+          stage(MemWrite().setMem(ctrlFIFO).data(scanner.ctrlWord))
         }
-        val cntRead = within(pirTop, n.getCtrl) {
-          stage(MemRead().setMem(cntFIFO))
+        val ctrlRead = within(pirTop, n.getCtrl) {
+          stage(MemRead().setMem(ctrlFIFO))
         }
+        /* val countRead = ctrs.last.as[ScanCounter].tileCount.T.asInstanceOf[MemRead]
+        val countWriter = assertOne(countRead.mem.T.inAccesses, s"$n.count writer").as[MemWrite]
+        val countScanRead = countWriter.data.T.asInstanceOf[OutAccess]
+        countScanRead.out.vecMeta.reset
+        countScanRead.out.presetVec(1)
+        scanner.tileCount(countScanRead) */
+        
+
+        val ctrsIndex = ctrs.filter {
+          n => n match {
+            case n:ScanCounter => true
+            case n:ScanCounterDataFollower => false
+          }
+        }
+        val ctrsData = ctrs.filter {
+          n => n match {
+            case n:ScanCounterDataFollower => true
+            case n:ScanCounter => false
+          }
+        }
+
         // Spatial insert a register in front of the scan counter
         // Remove this register and connect to the scanner
-        (ctrs, scanner.masks, scanner.indices).zipped.foreach { case (ctr, mask, idx) =>
+        // (ctrs, scanner.masks, scanner.indices).zipped.foreach { case (ctr, mask, idx) =>
+        // ((ctrsIndex, ctrsData).zipped, (scanner.masks, scanner.indices).zipped).zipped.foreach { case ((ctr, follow), (mask, idx)) =>
+        (ctrsIndex zip ctrsData zip scanner.masks zip scanner.indices).foreach { case (((ctr, follow), mask), idx) =>
           val scanCtr = ctr.as[ScanCounter]
+          val dataCtr = follow.as[ScanCounterDataFollower]
           val read = scanCtr.mask.T.asInstanceOf[MemRead]
           val writer = assertOne(read.mem.T.inAccesses, s"$n.mask writer").as[MemWrite]
           val scanRead = writer.data.T.asInstanceOf[OutAccess]
@@ -150,8 +174,13 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
             stage(MemRead().setMem(indexFIFO))
           }
           scanCtr.mask.disconnect
-          scanCtr.cnt(cntRead.out)
+          dataCtr.mask.disconnect
+
+          scanCtr.ctrlWord(ctrlRead.out)
           scanCtr.index(indexRead.out)
+
+          dataCtr.ctrlWord(ctrlRead.out)
+          dataCtr.index(indexRead.out)
         }
       }
     }
