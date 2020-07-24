@@ -128,7 +128,7 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
           stage(MemWrite().setMem(ctrlFIFO).data(scanner.ctrlWord))
         }
         val ctrlRead = within(pirTop, n.getCtrl) {
-          stage(MemRead().setMem(ctrlFIFO))
+          stage(MemRead().setMem(ctrlFIFO).done(n.tileDone))
         }
         /* val countRead = ctrs.last.as[ScanCounter].tileCount.T.asInstanceOf[MemRead]
         val countWriter = assertOne(countRead.mem.T.inAccesses, s"$n.count writer").as[MemWrite]
@@ -155,7 +155,7 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
         // Remove this register and connect to the scanner
         // (ctrs, scanner.masks, scanner.indices).zipped.foreach { case (ctr, mask, idx) =>
         // ((ctrsIndex, ctrsData).zipped, (scanner.masks, scanner.indices).zipped).zipped.foreach { case ((ctr, follow), (mask, idx)) =>
-        (ctrsIndex zip ctrsData zip scanner.masks zip scanner.indices).foreach { case (((ctr, follow), mask), idx) =>
+        (ctrsIndex zip ctrsData zip scanner.masks zip scanner.packedCntIdx zip scanner.vecTotals).foreach { case ((((ctr, follow), mask), packCntIdx), vecTotalSet) =>
           val scanCtr = ctr.as[ScanCounter]
           val dataCtr = follow.as[ScanCounterDataFollower]
           val read = scanCtr.mask.T.asInstanceOf[MemRead]
@@ -164,23 +164,34 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
           scanRead.out.vecMeta.reset
           scanRead.out.presetVec(16)
           mask(scanRead)
-          val indexFIFO = within(pirTop) {
-            stage(FIFO().banks(List(par)).name("indexFIFO"))
+          val packCntIdxFIFO = within(pirTop) {
+            stage(FIFO().banks(List(par)).name("packCntIdxFIFO"))
           }
-          val indexWrite = within(pirTop, scanCtrl) {
-            stage(MemWrite().setMem(indexFIFO).data(idx)).presetVec(par)
+          val packCntIdxWrite = within(pirTop, scanCtrl) {
+            stage(MemWrite().setMem(packCntIdxFIFO).data(packCntIdx)).presetVec(par)
           }
-          val indexRead = within(pirTop, n.getCtrl) {
-            stage(MemRead().setMem(indexFIFO))
+          val packCntIdxRead = within(pirTop, n.getCtrl) {
+            stage(MemRead().setMem(packCntIdxFIFO).done(n.tileDone))
           }
+          val vecTotalSetFIFO = within(pirTop) {
+            stage(FIFO().banks(List(par)).name("vecTotalSetFIFO"))
+          }
+          val vecTotalSetWrite = within(pirTop, scanCtrl) {
+            stage(MemWrite().setMem(vecTotalSetFIFO).data(vecTotalSet)).presetVec(1)
+          }
+          val vecTotalSetRead = within(pirTop, n.getCtrl) {
+            stage(MemRead().setMem(vecTotalSetFIFO))
+          }
+
           scanCtr.mask.disconnect
           dataCtr.mask.disconnect
 
           scanCtr.ctrlWord(ctrlRead.out)
-          scanCtr.index(indexRead.out)
+          scanCtr.packCntIdx(packCntIdxRead.out)
 
           dataCtr.ctrlWord(ctrlRead.out)
-          dataCtr.index(indexRead.out)
+          dataCtr.packCntIdx(packCntIdxRead.out)
+          dataCtr.vecTotalSet(vecTotalSetRead.out)
         }
       }
     }

@@ -204,7 +204,7 @@ import spatial.dsl._
           val mask = sram(j)
           fifo.enq(mask)
         }
-        Reduce(Reg[T])(DataScan(fifo.deq)) { case List(idx, data) =>
+        Reduce(Reg[T])(DataScan(16, fifo.deq)) { case List(idx, data) =>
           data
         } { _ + _ }
       } { _ + _ }
@@ -216,6 +216,86 @@ import spatial.dsl._
 
     val cksum = checkGold[T](out, gold)
     println("PASS: " + cksum + " (SimpleDataScan)")
+    assert(cksum)
+  }
+}
+
+@spatial class MultiDataScan extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  type T = Int
+  val N = 32
+  val ip = 16
+
+  def main(args: Array[String]): Unit = {
+
+    val out = ArgOut[T]
+
+    Accel {
+      val fifo = FIFO[I32](16)
+      Foreach (N par ip) { i =>
+        fifo.enq((i)%3)
+      }
+      Reduce(out)(DataScan(N, fifo.deq)) { case List(idx, data) =>
+        idx
+      } { _ + _ }
+    }
+
+    val gold = scala.collection.immutable.Range(0, N).map { i =>
+      val test = i%3
+      test match {
+        case 0 => 0
+        case _ => i
+      }
+    }.sum
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (MultiDataScan)")
+    assert(cksum)
+  }
+}
+
+@spatial class ScanMultiVec extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  type T = Int
+  val N = 32
+  val ip = 16
+
+  def main(args: Array[String]): Unit = {
+
+    val out = ArgOut[T]
+
+    Accel {
+      val fifo = FIFO[U32](16)
+      Foreach(N par ip) { i =>
+        fifo.enq(i.to[U32])
+      }
+      Reduce(out)(Scan(1, N*32, "or", fifo.deq)) { case List(j, xA) =>
+        j.to[T]
+      } { _ + _ }
+    }
+
+    val gold = scala.collection.immutable.Range(0, N, ip).map { i =>
+      val mask = scala.collection.immutable.Range(0, ip).map{ j => 
+        val bi = (i+j).toBinaryString
+        val pad = "0" * (32 - bi.size) + bi
+        pad.reverse
+      }.reduce { _ + _ }
+      Console.println(mask)
+      val nonZero = mask.count { _ == '1' }
+      val sum = mask.zipWithIndex.map { case (char, k) =>
+        char match {
+          case '1' => 
+            Console.println(k+(i*32))
+            k + (i*32)
+          case _ => 0
+        }
+      }.sum
+      Console.println(s"nonZero=$nonZero, partial sum $sum")
+      sum
+    }.sum
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (SimpleScan)")
     assert(cksum)
   }
 }

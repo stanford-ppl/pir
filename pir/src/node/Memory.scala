@@ -109,11 +109,25 @@ case class DataScanner()(implicit env:Env) extends BlackBox {
   val index = OutputField[PIRNode].tp(Fix(true,32,0)).presetVec(1)
   val data  = OutputField[PIRNode].tp(Fix(true,32,0)).presetVec(1)
 }
+// In the new design, to minimize network congestion, the scanner outputs n
+// vector values and n+1 scalar values. Each vector is composed of two packed
+// 16-bit values: the low-order 16 bits are the output index, and the high-
+// order 16 bits are the input bits (or -1, if the input did not participate in
+// generating this output).
+//
+// The first scalar output is the control word, which is the total number of
+// vectors that will be emitted in this cycle. The subsequent scalars are the
+// per-follower totals of set bits in the vector. These are used to track 
+// accurate totals of the prefix sum across vectors.
+
 case class Scanner(par:Int, nstream:Int)(implicit env:Env) extends BlackBox {
   val masks = List.tabulate(nstream) { i => new InputField[PIRNode](s"mask$i").tp(Fix(false,32,0)).presetVec(16) }
   // val tileCount = InputField[PIRNode].tp(Fix(true,32,0)).presetVec(1)
   val ctrlWord = OutputField[PIRNode].tp(Fix(false,32,0)).presetVec(1)
-  val indices = List.tabulate(nstream) { i => new OutputField[PIRNode](s"idx$i").tp(Fix(true,32,0)).presetVec(par) }
+  //val index = OutputField[PIRNode].tp(Fix(true,32,0)).presetVec(1)
+  // val indices = List.tabulate(nstream) { i => new OutputField[PIRNode](s"idx$i").tp(Fix(true,32,0)).presetVec(par) }
+  val packedCntIdx = List.tabulate(nstream) { i => new OutputField[PIRNode](s"packedCntIndex$i").tp(Fix(true,32,0)).presetVec(par) }
+  val vecTotals = List.tabulate(nstream) { i => new OutputField[PIRNode](s"vecTotal$i").tp(Fix(true,32,0)).presetVec(1) }
 }
 case class MergeBuffer(ways:Int, par:Int)(implicit env:Env) extends BlackBox with Def { self =>
   val inputs = List.tabulate(ways) { i => new InputField[PIRNode](s"in$i") }
@@ -548,6 +562,7 @@ case class DataScanCounter(data: scala.Boolean)(implicit env:Env) extends Counte
   val par = 1
   val mask = InputField[PIRNode].presetVec(16) // Replaced with count and idx
   val cnt = InputField[PIRNode].presetVec(1)
+  val tileCount = InputField[PIRNode].presetVec(1) 
   val indOrData = InputField[PIRNode].presetVec(1)
   /* override def compVec(n:IR) = n match {
     case `out` => 
@@ -563,7 +578,9 @@ case class ScanCounter(par:Int)(implicit env:Env) extends Counter {
 
   val tileCount = InputField[PIRNode].presetVec(1) 
   val ctrlWord = InputField[PIRNode].presetVec(1)
-  val index = InputField[PIRNode]
+
+  val packCntIdx = InputField[PIRNode]
+
   override def compVec(n:IR) = n match {
     case `out` => 
       parent.fold[Option[Int]] { None } { 
@@ -578,7 +595,10 @@ case class ScanCounterDataFollower(par:Int)(implicit env:Env) extends Counter {
 
   val tileCount = InputField[PIRNode].presetVec(1) 
   val ctrlWord = InputField[PIRNode].presetVec(1)
-  val index = InputField[PIRNode]
+  val vecTotalSet = InputField[PIRNode].presetVec(1)
+
+  val packCntIdx = InputField[PIRNode]
+
   override def compVec(n:IR) = n match {
     case `out` => 
       parent.fold[Option[Int]] { None } { 

@@ -26,8 +26,9 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
       val masks = n.masks.map { mask => nameOf(mask.T.as[BufferRead]).& }.qlist
       val ctrlWord = nameOf(n.ctrlWord.T.as[BufferWrite].out.singleConnected.get.src).&
       // val tileCount = nameOf(n.tileCount.T.as[BufferRead]).&
-      val indices = n.indices.map { index => nameOf(index.T.as[BufferWrite].out.singleConnected.get.src).& }.qlist
-      genTopMember(n, Seq(n.qstr, masks, ctrlWord, indices), end=true)
+      val packCntIdx = n.packedCntIdx.map { packCntIdx => nameOf(packCntIdx.T.as[BufferWrite].out.singleConnected.get.src).& }.qlist
+      val vecTotals = n.vecTotals.map { vecTotal => nameOf(vecTotal.T.as[BufferWrite].out.singleConnected.get.src).& }.qlist
+      genTopMember(n, Seq(n.qstr, masks, ctrlWord, packCntIdx, vecTotals), end=true)
 
     case n:SplitLeader =>
       val addrIn = nameOf(n.addrIn.T.as[BufferRead]).&

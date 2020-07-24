@@ -251,6 +251,7 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
   def compScale(n:Any):Value[Long] = dbgblk(s"compScale($n)"){
     n match {
       case OutputField(ctrler:Controller, "done") => ctrler.getIter *  compScale(ctrler.childDone)
+      case OutputField(ctrler:Controller, "tileDone") => Unknown
       case OutputField(ctrler:Controller, "childDone" | "stepped") => 
         val children = ctrler.childDone.connected.filter { _.asInstanceOf[Field[_]].name == "parentEn" }.map { _.src.as[Controller] }
         assertUnify(children, s"$ctrler.childDone.scale") { child => compScale(child.done) }.getOrElse(Finite(ctrler.ctx.get.getScheduleFactor))

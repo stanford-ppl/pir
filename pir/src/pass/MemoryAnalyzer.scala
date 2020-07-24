@@ -47,11 +47,12 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
       dbg(s"out=$from.$out")
       dbg(s"ins=${ins.map { in => s"${in.src}.$in"}.mkString(",")}")
       (out, ins) match {
-        case (out,InputField(n:ScanCounter, "ctrlWord")::_) if isFIFO => (tileDone(o, octx), done(i, ictx))
-        case (out,InputField(n:DataScanCounter, "ctrlWord")::_) if isFIFO => (tileDone(o, octx), done(i, ictx))
-        case (out,InputField(n:ScanCounter, "tileCount")::_) if isFIFO => (childDone(o, octx), done(i, ictx))
-        case (out,InputField(n:DataScanCounter, "tileCount")::_) if isFIFO => (childDone(o, octx), done(i, ictx))
-        case (out,InputField(n:DataScanCounter, "cnt")::_) if isFIFO => (childDone(o, octx), done(i, ictx))
+        case (out,InputField(n:ScanCounter, "ctrlWord")::_) if isFIFO => (tileDone(o, octx), tileDone(i, ictx))
+        // case (out,InputField(n:DataScanCounter, "ctrlWord")::_) if isFIFO => (tileDone(o, octx), tileDone(i, ictx))
+        case (out,InputField(n:ScanCounterDataFollower, "vecTotalSet")::_) if isFIFO => (tileDone(o, octx), tileDone(i, ictx))
+        // case (out,InputField(n:ScanCounter, "tileCount")::_) if isFIFO => (childDone(o, octx), childDone(i, ictx))
+        // case (out,InputField(n:DataScanCounter, "tileCount")::_) if isFIFO => (childDone(o, octx), childDone(i, ictx))
+        case (out,InputField(n:DataScanCounter, "cnt")::_) if isFIFO => (tileDone(o, octx), tileDone(i, ictx))
         case (out,ins) if isFIFO => (childDone(o, octx), childDone(i, ictx))
         case (out,Seq(InputField(n:LoopController, "stopWhen"))) if o == i => (childDone(o, octx), childDone(i, ictx))
         case (out,ins) if o == i => 
@@ -75,7 +76,7 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
     }
   }
 
-  def tileDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = dbgblk(s"childDone($ctrl, $ctx)"){
+  def tileDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = dbgblk(s"tileDone($ctrl, $ctx)"){
     if (ctx.getCtrl.ancestorSlice(ctrl).exists { _.isAsync }) {
       err(s"Trying to get done of $ctrl where $ctx is under async controller ctx.ctrl=${ctx.getCtrl}")
     }
