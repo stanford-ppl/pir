@@ -120,7 +120,7 @@ case class DataScanner()(implicit env:Env) extends BlackBox {
 // per-follower totals of set bits in the vector. These are used to track 
 // accurate totals of the prefix sum across vectors.
 
-case class Scanner(par:Int, nstream:Int)(implicit env:Env) extends BlackBox {
+case class Scanner(par:Int, nstream:Int, mode:String)(implicit env:Env) extends BlackBox {
   val masks = List.tabulate(nstream) { i => new InputField[PIRNode](s"mask$i").tp(Fix(false,32,0)).presetVec(16) }
   // val tileCount = InputField[PIRNode].tp(Fix(true,32,0)).presetVec(1)
   val ctrlWord = OutputField[PIRNode].tp(Fix(false,32,0)).presetVec(1)
@@ -573,7 +573,7 @@ case class DataScanCounter(data: scala.Boolean)(implicit env:Env) extends Counte
     case _ => super.compVec(n) 
   } */
 }
-case class ScanCounter(par:Int)(implicit env:Env) extends Counter {
+case class ScanCounter(par:Int, mode:String)(implicit env:Env) extends Counter {
   val mask = InputField[PIRNode].presetVec(16) // Replaced with ctrl and idx
 
   val tileCount = InputField[PIRNode].presetVec(1) 

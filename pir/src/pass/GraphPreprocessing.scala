@@ -119,7 +119,7 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
         val par = ctrs.last.as[ScanCounterDataFollower].par
         val scanCtrl = ctrs.head.as[ScanCounter].mask.T.asInstanceOf[MemRead].mem.T.inAccesses.head.as[MemWrite].data.T.getCtrl
         val scanner = within(pirTop, scanCtrl, n.srcCtx.get) {
-          stage(Scanner(par, ctrs.size/2))
+          stage(Scanner(par, ctrs.size/2, ctrs.head.as[ScanCounter].mode))
         }
         val ctrlFIFO = within(pirTop) {
           stage(FIFO().banks(List(1)).name("ctrlFIFO"))
@@ -174,13 +174,13 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
             stage(MemRead().setMem(packCntIdxFIFO).done(n.tileDone))
           }
           val vecTotalSetFIFO = within(pirTop) {
-            stage(FIFO().banks(List(par)).name("vecTotalSetFIFO"))
+            stage(FIFO().banks(List(1)).name("vecTotalSetFIFO"))
           }
           val vecTotalSetWrite = within(pirTop, scanCtrl) {
-            stage(MemWrite().setMem(vecTotalSetFIFO).data(vecTotalSet)).presetVec(1)
+            stage(MemWrite().setMem(vecTotalSetFIFO).data(vecTotalSet).presetVec(1))
           }
           val vecTotalSetRead = within(pirTop, n.getCtrl) {
-            stage(MemRead().setMem(vecTotalSetFIFO))
+            stage(MemRead().setMem(vecTotalSetFIFO).presetVec(1))
           }
 
           scanCtr.mask.disconnect

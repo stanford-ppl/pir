@@ -254,6 +254,90 @@ import spatial.dsl._
   }
 }
 
+@spatial class ScanTestAND extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  type T = Int
+  val N = 32
+  val ip = 16
+
+  def main(args: Array[String]): Unit = {
+
+    val out = ArgOut[T]
+
+    Accel {
+      val fifoA = FIFO[U32](16)
+      val fifoB = FIFO[U32](16)
+      Foreach(N par ip) { i =>
+        fifoA.enq(i.to[U32])
+        fifoB.enq(0xAAAA.to[U32])
+      }
+      Reduce(out)(Scan(16, N*32, "and", fifoA.deq, fifoB.deq)) { case List(a, iA, b, iB) =>
+        a.to[T]
+      } { _ + _ }
+    }
+
+    val gold = scala.collection.immutable.Range(0, N, ip).map { i =>
+      val mask = scala.collection.immutable.Range(0, ip).map{ j => 
+        val bi = ((i+j)&0xAAAA).toBinaryString
+        val pad = "0" * (32 - bi.size) + bi
+        pad.reverse
+      }.reduce { _ + _ }
+      Console.println(mask)
+      val nonZero = mask.count { _ == '1' }
+      val sum = mask.zipWithIndex.map { case (char, k) =>
+        char match {
+          case '1' => 
+            Console.println(k+(i*32))
+            k + (i*32)
+          case _ => 0
+        }
+      }.sum
+      Console.println(s"nonZero=$nonZero, partial sum $sum")
+      sum
+    }.sum
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (ScanTestAND)")
+    assert(cksum)
+  }
+}
+
+@spatial class ScanMultiVecIdx extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  type T = Int
+  val N = 32
+  val ip = 16
+
+  def main(args: Array[String]): Unit = {
+
+    val out = ArgOut[T]
+
+    Accel {
+      val fifo = FIFO[U32](16)
+      Foreach(N par ip) { i =>
+        fifo.enq(i.to[U32])
+      }
+      Reduce(out)(Scan(1, N*32, "or", fifo.deq)) { case List(j, idx) =>
+        idx.to[T]
+      } { _ + _ }
+    }
+
+    val mask = scala.collection.immutable.Range(0, N).map { i =>
+      val bi = (i).toBinaryString
+      val pad = "0" * (32 - bi.size) + bi
+      pad.reverse
+    }.reduce { _ + _ }
+    Console.println(mask)
+    val nonZero = mask.count { _ == '1' }
+    val gold = nonZero*(nonZero-1)/2
+    Console.println(s"nonZero=$nonZero, sum $gold")
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (ScanMultiVecIdx)")
+    assert(cksum)
+  }
+}
+
 @spatial class ScanMultiVec extends SpatialTest {
   override def runtimeArgs: Args = "32"
   type T = Int
