@@ -630,6 +630,7 @@ abstract class Controller(implicit env:Env) extends PIRNode {
 
   val done = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
   val tileDone = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
+  val subTileDone = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
   val childDone = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
   val stepped = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
 

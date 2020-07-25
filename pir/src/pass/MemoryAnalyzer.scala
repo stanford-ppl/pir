@@ -48,6 +48,7 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
       dbg(s"ins=${ins.map { in => s"${in.src}.$in"}.mkString(",")}")
       (out, ins) match {
         case (out,InputField(n:ScanCounter, "ctrlWord")::_) if isFIFO => (tileDone(o, octx), tileDone(i, ictx))
+        case (out,InputField(n:ScanCounter, "packCntIdx")::_) if isFIFO => (subTileDone(o, octx), subTileDone(i, ictx))
         // case (out,InputField(n:DataScanCounter, "ctrlWord")::_) if isFIFO => (tileDone(o, octx), tileDone(i, ictx))
         case (out,InputField(n:ScanCounterDataFollower, "vecTotalSet")::_) if isFIFO => (tileDone(o, octx), tileDone(i, ictx))
         // case (out,InputField(n:ScanCounter, "tileCount")::_) if isFIFO => (childDone(o, octx), childDone(i, ictx))
@@ -74,6 +75,24 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
           (enq,deq)
       }
     }
+  }
+
+  def subTileDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = dbgblk(s"subTileDone($ctrl, $ctx)"){
+    if (ctx.getCtrl.ancestorSlice(ctrl).exists { _.isAsync }) {
+      err(s"Trying to get done of $ctrl where $ctx is under async controller ctx.ctrl=${ctx.getCtrl}")
+    }
+    val ctrler = if (ctx.streaming.get) {
+      within(ctx, ctrl) { 
+        allocate[UnitController]()(stage(UnitController().par(1)))
+      }
+    } else if (!compiler.hasRun[DependencyDuplication]) {
+      // Centralized controller
+      ctrl.ctrler.get
+    } else {
+       //Distributed controller
+      ctx.getCtrler(ctrl)
+    }
+    ctrler.subTileDone
   }
 
   def tileDone(ctrl:ControlTree, ctx:Context):Output[PIRNode] = dbgblk(s"tileDone($ctrl, $ctx)"){

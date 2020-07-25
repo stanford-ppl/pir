@@ -11,6 +11,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case OutputField(ctrler:Controller, "done") => s"$ctrler->Done()"
     case OutputField(ctrler:Controller, "childDone") => s"$ctrler->ChildDone()"
     case OutputField(ctrler:Controller, "tileDone") => s"$ctrler->TileDone()"
+    case OutputField(ctrler:Controller, "subTileDone") => s"$ctrler->SubTileDone()"
     case OutputField(ctrler:Controller, "stepped") => s"$ctrler->Stepped()"
     case OutputField(ctrler:LoopController, "firstIter") => s"$ctrler->FirstIter()"
     case OutputField(ctrler:Controller, "laneValid") => s"laneValid"

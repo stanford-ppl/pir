@@ -43,8 +43,14 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       }
       val in = n.in.T
       val firstIter = n.first.singleConnected.map { _.qidx("0") }.getOrElse("true")
+      val ctrler= getCtrler(n)
+      /* genCtxComputeReset {
+        emitIf(s"(${ctrler}->Enabled() || ${ctrler}->ForceDisabled()) && ${firstIter}") {
+          emitln(s"$n = $identity;")
+        }
+      } */
       emitIf(s"${firstIter}") {
-        emitln(s"$n = $identity;")
+         emitln(s"$n = $identity;")
       }
       emitIf(s"${n.en.qref}") {
         emitBlock(s"for (int i = 0; i < ${in.getVec}; i++)") {
@@ -65,6 +71,13 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
         emitln(s"${n.qtp} $n = 0;")
       }
       val firstIter = n.first.singleConnected.map { _.qidx("0") }.getOrElse("true")
+      // val ctrler= n.getCtrl.ctrler
+      val ctrler= getCtrler(n)
+      /* genCtxComputeReset {
+        emitIf(s"(${ctrler}->Enabled() || ${ctrler}->ForceDisabled()) && ${firstIter}") {
+          emitln(s"$n = $identity;")
+        }
+      } */
       emitIf(s"${firstIter}") {
         emitln(s"$n = $identity;")
       }

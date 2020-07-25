@@ -94,6 +94,7 @@ using   namespace std;
               emitBlock(s"void ${quote(n)}::Eval()") {
                 getBuffer("computes-begin").foreach { _.flushTo(sw) }
                 val checkIO = n.collectChildren[LocalAccess].filterNot{_.nonBlocking}.nonEmpty
+                getBuffer("computes-reset").foreach { _.flushTo(sw) }
                 getBuffer("computes").foreach { _.flushTo(sw) }
                 getBuffer("computes-mid").foreach { _.flushTo(sw) }
                 emitln(s"EvalControllers();")
@@ -132,6 +133,8 @@ using   namespace std;
   final protected def genCtxComputeBegin(block: => Unit) = enterBuffer("computes-begin") { incLevel(1); block; decLevel(1) }
 
   final protected def genCtxCompute(block: => Unit) = enterBuffer("computes") { incLevel(1); block; decLevel(1) }
+
+  final protected def genCtxComputeReset(block: => Unit) = enterBuffer("computes-reset") { incLevel(1); block; decLevel(1) }
 
   final protected def genCtxComputeMid(block: => Unit) = enterBuffer("computes-mid") { incLevel(1); block; decLevel(1) }
 
