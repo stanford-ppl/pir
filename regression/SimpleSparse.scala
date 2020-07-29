@@ -1,5 +1,46 @@
 import spatial.dsl._
 
+@spatial class SimpleDynStore extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+  
+  def main(args: Array[String]): Unit = {
+
+    val N = 128
+
+    val dram = DRAM[I32](N)
+    setMem(dram, (0 until N) { i => 0.to[I32] })
+
+    Accel {
+      val d = FIFO[I32](16)
+      val l = FIFO[Bit](16)
+
+      Foreach (N by 1 par 16) { i =>
+        d.enq(i)
+      }
+      Foreach (N by 1 par 16) { i =>
+        l.enq(i >= 32)
+      }
+
+      // dram coalesce(0, d, v, N)
+      dram dynstore_vec(0, d, l)
+    }
+
+    val gold = (0 until N) { i => 
+      if (i < 48) {
+        i 
+      } else {
+        0
+      }
+    }
+
+    val cksum = checkGold[T](dram, gold)
+    println("PASS: " + cksum + " (TestCoalesce)")
+    assert(cksum)
+  }
+}
+
 @spatial class TestCoalesce extends SpatialTest {
   override def runtimeArgs: Args = "32"
   //type T = FixPt[TRUE, _16, _16]
@@ -20,7 +61,8 @@ import spatial.dsl._
         v.enq(i%3 == 0)
       }
 
-      dram coalesce(0, d, v, N)
+      // dram coalesce(0, d, v, N)
+      dram coalesce(0, d, v, N) // TESTING ONLY
     }
 
     val gold = (0 until N/3) { i => 3*i }
