@@ -10,6 +10,7 @@ trait Bus extends Serializable {
   }
 }
 case object DRAMBus extends Bus
+case class BlackBoxBus(name:String) extends Bus
 class FileBus(val fileName:String) extends Bus
 object FileBus {
   def apply(fileName:String) = new FileBus(fileName)
@@ -100,6 +101,14 @@ case class FringeDynStore(dram:DRAM, par:Int)(implicit env:Env) extends DRAMDens
     //case `data` | `valid` => Some(par.get)
     //case _ => super.compVec(n)
   //}
+}
+
+case class BVBuild(par: Int, tree: Boolean, shift: Int)(implicit env:Env) extends GlobalBlackBox {
+  val max = InputField[PIRNode].presetVec(1)
+  val len = InputField[PIRNode].presetVec(1)
+  val indices = InputField[PIRNode].presetVec(par)
+  val bv = OutputField[PIRNode].presetVec(16)
+  val last = OutputField[PIRNode].tp(Bool).presetVec(16)
 }
 
 case class DRAM(sid:String) extends prism.graph.IR {

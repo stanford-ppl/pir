@@ -1,5 +1,49 @@
 import spatial.dsl._
 
+@spatial class SimpleBVBuild extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+  
+  def main(args: Array[String]): Unit = {
+
+    val N = 16
+
+    val dram = DRAM[U32](N)
+    setMem(dram, (0 until N) { i => 0.to[U32] })
+
+    Accel {
+      // val len = FIFO[I32](16)
+      val idx = FIFO[I32](16)
+
+      val bv = FIFO[U32](16)
+      val l = FIFO[Bit](16)
+
+      // len.enq(5)
+      Foreach (5 by 1 par 1) { i =>
+        idx.enq(2*i)
+      }
+
+      gen_bitvector(false, 0, N, 5, idx, bv, l)
+
+      dram dynstore_vec(0, bv, l)
+    }
+
+    val gold = (0 until N) { i => 
+      if (i < 48) {
+        i.to[U32]
+      } else {
+        0.to[U32]
+      }.to[U32]
+    }
+
+    val cksum = checkGold[U32](dram, gold)
+    println("PASS: " + cksum + " (TestCoalesce)")
+    assert(cksum)
+  }
+}
+
+
 @spatial class SimpleDynStore extends SpatialTest {
   override def runtimeArgs: Args = "32"
   //type T = FixPt[TRUE, _16, _16]

@@ -192,6 +192,7 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
           case x:SplitLeader => 6 // TODO: set to pcu stage depth
           case x:Scanner => 6 // TODO: set to pcu stage depth
           case x:DataScanner => 6 // TODO: set to pcu stage depth
+          case x:BVBuild => 6 // TODO: set to pcu stage depth
           case _ => 0
         }.reduceOption { _ + _ }.getOrElse(0)
         StageCost(cost)

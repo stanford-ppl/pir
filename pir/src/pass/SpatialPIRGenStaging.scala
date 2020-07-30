@@ -171,6 +171,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
     val name = longestCommonSubstring(fifos.flatMap { _.name.v }).map { _.strip("_") }
     bus match {
       case DRAMBus =>
+      case BlackBoxBus(_) =>
       case bus =>
         val count = assertUnify(fifos, s"$sw.count")(_.count.v).get
         within(ControlTree(Streaming).iter.update(count)) {
@@ -196,6 +197,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
     val name = longestCommonSubstring(fifos.flatMap { _.name.v }).map { _.strip("_") }
     bus match {
       case DRAMBus =>
+      case BlackBoxBus(_) =>
       case bus =>
         within(ControlTree(Streaming)) {
           val reads = fifos.map { fifo =>
