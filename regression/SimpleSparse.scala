@@ -24,21 +24,22 @@ import spatial.dsl._
         idx.enq(2*i)
       }
 
-      gen_bitvector(false, 0, N, 5, idx, bv, l)
+      gen_bitvector(0, N*32, 5, idx, bv)
 
-      dram dynstore_vec(0, bv, l)
+      // dram dynstore_vec(0, bv, l)
+      dram(0::N) store bv
     }
 
     val gold = (0 until N) { i => 
-      if (i < 48) {
-        i.to[U32]
+      if (i == 0) {
+        341.to[U32]
       } else {
         0.to[U32]
       }.to[U32]
     }
 
     val cksum = checkGold[U32](dram, gold)
-    println("PASS: " + cksum + " (TestCoalesce)")
+    println("PASS: " + cksum + " (TestSimpleBV)")
     assert(cksum)
   }
 }

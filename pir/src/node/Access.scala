@@ -159,6 +159,7 @@ case class MemRead()(implicit env:Env) extends ReadAccess {
         case List(i@InputField(cmd:FringeDynStore, "addr" | "data" | "done")) => i.inferVec
         case List(i@InputField(cmd:Scanner, "input")) => i.inferVec
         case List(i@InputField(cmd:DataScanner, "input")) => i.inferVec
+        case List(i@InputField(cmd:BVBuildNoTree, "max" | "len" | "indices")) => i.inferVec
         case _ => broadcast.v.map { _.size }.orElse(Some(mem.banks.get.head))
       }
     case _ => super.compVec(n)
@@ -171,6 +172,7 @@ case class MemWrite()(implicit env:Env) extends WriteAccess { self =>
     case (`self`, Some(OutputField(cmd:FringeSparseLoad, "data"))) => cmd.data.inferVec
     case (`self`, Some(OutputField(cmd:FringeSparseStore, "ack"))) => cmd.ack.inferVec
     case (`self`, Some(OutputField(cmd:FringeCoalStore, "ack"))) => cmd.ack.inferVec
+    case (`self`, Some(OutputField(cmd:BVBuildNoTree, "bv"))) => cmd.bv.inferVec
     case (`self`,_) => 
       broadcast.v.map { _.size }.orElse { 
         if (mem.isConnected) {

@@ -8,6 +8,7 @@ import scala.collection.mutable
 class BlackBoxLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFirstTraversal with PIRTransformer with UnitTraversal with DependencyAnalyzer {
 
   override def visitNode(n:N) = n match {
+    // case n:BVBuildNoTree => super.visitNode(n)
     case n:BlackBox => moveToContext(n)
     case _ => super.visitNode(n)
   }

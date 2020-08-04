@@ -103,6 +103,14 @@ case class SplitLeader()(implicit env:Env) extends BlackBox {
     case _ => super.compVec(n)
   }
 }
+
+case class BVBuildNoTree(par: Int, shift: Int)(implicit env:Env) extends BlackBox {
+  val max = InputField[PIRNode].presetVec(1)
+  val len = InputField[PIRNode].presetVec(1)
+  val indices = InputField[PIRNode].presetVec(par)
+  val bv = OutputField[PIRNode].presetVec(16)
+  //val last = OutputField[PIRNode].tp(Bool).presetVec(16)
+}
 case class DataScanner()(implicit env:Env) extends BlackBox {
   val mask  = InputField[PIRNode].tp(Fix(true,32,0)).presetVec(16)
   val cnt   = OutputField[PIRNode].tp(Fix(false,32,0)).presetVec(1)

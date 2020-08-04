@@ -10,7 +10,7 @@ import scala.collection.mutable
 trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with TungstenMemGen with TungstenBlackBoxGen with Memorization {
 
   override def emitNode(n:N) = n match {
-    case ctx:Context if ctx.streaming.get && (ctx.descendents.exists { case datascanner:DataScanner => true; case scanner:Scanner => true; case splitter:SplitLeader => true; case _ => false }) => 
+    case ctx:Context if ctx.streaming.get && (ctx.descendents.exists { case datascanner:DataScanner => true; case scanner:Scanner => true; case splitter:SplitLeader => true; case bvbuild:BVBuildNoTree => true; case _ => false }) => 
       withinBB {
         visitNode(n)
       }

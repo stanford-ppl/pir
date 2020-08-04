@@ -103,14 +103,6 @@ case class FringeDynStore(dram:DRAM, par:Int)(implicit env:Env) extends DRAMDens
   //}
 }
 
-case class BVBuild(par: Int, tree: Boolean, shift: Int)(implicit env:Env) extends GlobalBlackBox {
-  val max = InputField[PIRNode].presetVec(1)
-  val len = InputField[PIRNode].presetVec(1)
-  val indices = InputField[PIRNode].presetVec(par)
-  val bv = OutputField[PIRNode].presetVec(16)
-  val last = OutputField[PIRNode].tp(Bool).presetVec(16)
-}
-
 case class DRAM(sid:String) extends prism.graph.IR {
   val dims = Metadata[List[Int]]("dims")
   val sname = new Metadata[String]("sname")
