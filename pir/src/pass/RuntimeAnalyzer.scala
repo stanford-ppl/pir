@@ -241,6 +241,7 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
       case n:FringeCoalStore => Finite(1l)
       case n:FringeDynStore => Finite(1l)
       case n:BVBuildNoTree => Finite(1l)
+      case n:BVBuildTree => Finite(1l)
       case n:MergeBuffer => 
         import Value._
         n.bounds.map { _.T.getBound.toValue }.reduce { _ + _ }

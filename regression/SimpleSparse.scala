@@ -7,7 +7,7 @@ import spatial.dsl._
   
   def main(args: Array[String]): Unit = {
 
-    val N = 16
+    val N = 64
 
     val dram = DRAM[U32](N)
     setMem(dram, (0 until N) { i => 0.to[U32] })
@@ -20,18 +20,20 @@ import spatial.dsl._
       val l = FIFO[Bit](16)
 
       // len.enq(5)
-      Foreach (5 by 1 par 1) { i =>
-        idx.enq(2*i)
+      Foreach (10 by 1 par 1) { i =>
+        val base = mux(i >= 5, 1024.to[I32], 0)
+        val off = i % 5
+        idx.enq(base+2*off)
       }
 
-      gen_bitvector(0, N*32, 5, idx, bv)
+      gen_bitvector(0, N*32, 10, idx, bv)
 
       // dram dynstore_vec(0, bv, l)
       dram(0::N) store bv
     }
 
     val gold = (0 until N) { i => 
-      if (i == 0) {
+      if (i == 0 || i == 32) {
         341.to[U32]
       } else {
         0.to[U32]
@@ -44,6 +46,69 @@ import spatial.dsl._
   }
 }
 
+@spatial class SimpleBVBuildTree extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+  
+  def main(args: Array[String]): Unit = {
+
+    val N = 64
+
+    val dram = DRAM[U32](N)
+    setMem(dram, (0 until N) { i => 0.to[U32] })
+    val prevdram = DRAM[I32](N)
+    setMem(prevdram, (0 until N) { i => 0.to[I32] })
+
+    Accel {
+      // val len = FIFO[I32](16)
+      val idx = FIFO[I32](16)
+
+      val bv = FIFO[U32](16)
+      val prev = FIFO[I32](16)
+      val l = FIFO[Bit](16)
+      val lA = FIFO[Bit](16)
+      val lB = FIFO[Bit](16)
+
+      // len.enq(5)
+      Foreach (10 by 1 par 1) { i =>
+        val base = mux(i >= 5, 2048.to[I32], 0)
+        val off = i % 5
+        idx.enq(base+2*off)
+      }
+
+      gen_bitvector_tree(0, 10, idx, bv, prev, l)
+      //Stream (*) {
+        //val x = l.deq
+        //lA.enq(x)
+        //lB.enq(x)
+      //}
+
+      dram dynstore_vec(0, bv, l)
+      prevdram dynstore_vec(0, prev, l)
+    }
+
+    val gold = (0 until N) { i => 
+      if (i == 0 || i == 16) {
+        341.to[U32]
+      } else {
+        0.to[U32]
+      }.to[U32]
+    }
+    val gold2 = (0 until N) { i => 
+      if (i == 16) { 
+        5.to[I32]
+      } else {
+        0.to[I32]
+      }
+    }
+
+    val cksum = checkGold[U32](dram, gold)
+    val cksum2 = checkGold[I32](prevdram, gold2)
+    println("PASS: " + cksum + " (TestSimpleBVTree)")
+    assert(cksum)
+  }
+}
 
 @spatial class SimpleDynStore extends SpatialTest {
   override def runtimeArgs: Args = "32"
