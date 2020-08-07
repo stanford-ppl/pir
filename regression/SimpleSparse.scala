@@ -1,4 +1,5 @@
 import spatial.dsl._
+import spatial.metadata.memory.{Barrier => _,_}
 
 @spatial class SimpleBVBuild extends SpatialTest {
   override def runtimeArgs: Args = "32"
@@ -247,6 +248,41 @@ import spatial.dsl._
 
     val cksum = checkGold[T](dram, gold)
     println("PASS: " + cksum + " (TestCoalesce)")
+    assert(cksum)
+  }
+}
+
+@spatial class SparseAutoBarrierDRAM extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  
+  def main(args: Array[String]): Unit = {
+
+    val N = 4096
+    val ip = 16
+
+    val out = ArgOut[I32]
+    val dram = DRAM[I32](N)
+    setMem(dram, (0 until N) { i => 0.to[I32] })
+
+    Accel {
+      val sp = SparseDRAM[I32](2)(N)
+      sp.alias = dram
+      // val testBar = Barrier[I32oken](0)
+      Reduce(out) (2 by 1 par 2) { ol =>
+        Foreach (N/2 par ip) { i =>
+          sp.barrierWrite(N*(ol+1)/2-i-1, 10, Seq())
+        }
+        Reduce(Reg[I32])(N/2 par ip) { i =>
+          sp.barrierRead(i+(N*ol)/2, Seq())
+        } { _ + _ }
+      } { _ + _ }
+    }
+
+    val gold = N*10
+
+    val cksum = checkGold[I32](out, gold)
+    println("PASS: " + cksum + " (SparseAutoBarrierDRAM)")
     assert(cksum)
   }
 }
@@ -750,7 +786,6 @@ import spatial.dsl._
 }
 
 
-import spatial.metadata.memory.{Barrier => _,_}
 @spatial class SparseDRAMAlias extends SpatialTest {
   override def runtimeArgs: Args = "32"
   //type T = FixPt[TRUE, _16, _16]

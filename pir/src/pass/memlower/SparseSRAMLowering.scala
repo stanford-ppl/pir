@@ -23,19 +23,6 @@ trait SparseSRAMLowering extends SparseLowering {
       case _ => return Some(1)
     }
     Some(1) 
-    /* val carried = dep.progorder.get > deped.progorder.get
-    if (dep.getCtrl == deped.getCtrl) {
-      // HACK to mem reduce. Allow writer and read to operate concurrently because we know they
-      // don't overlap in range
-      if (!carried) None else Some(2)
-    } else {
-      if (carried) None else {
-        val depth = zipMap(deped.port.get, dep.port.get) { case (depedport, depport) =>
-          depedport - depport + 1
-        }.getOrElse(1)
-        Some(depth)
-      }
-    } */
   }
   
   // private val addrCtxs = mutable.Map[Either[ControlTree, Access], Context]()
@@ -49,25 +36,23 @@ trait SparseSRAMLowering extends SparseLowering {
       accessReqResp += lowerSparseAccess(access.as[SparseAccess], memCU)
     }
     consistencyBarrier(n.accesses)(dependsOn){ case (from,to,carried,depth) =>
-      dbg(s"Insert sparse barrier ${from}->${to}")
-      val bar_init = if (carried) 1 else 0
-      // val ctrl = if (carried) leastCommonAncesstor(to.getCtrl, from.getCtrl).get else init_ctrl
-      val ctrl = leastCommonAncesstor(to.getCtrl, from.getCtrl).get 
-      val b = Barrier(ctrl, bar_init).name(s"__auto_bar_${from}_${to}")
-      barrierWrite.getOrElseUpdate(b, mutable.ListBuffer()) += from
-      barrierRead.getOrElseUpdate(b, mutable.ListBuffer()) += to
-      // insertBarrier(from,to,carried,depth)
+      val stallTo = to.asInstanceOf[SparseAccess].barriers.get.map { bar =>
+        bar match {
+          case (barrier,true) => false
+          case (barrier,false) => true
+        }
+      }.reduceOption({_|_}).getOrElse(false)
+      if (stallTo) {
+        dbg(s"Skip sparse barrier ${from}->${to}; user has already inserted a barrier holding back this memory")
+      } else {
+        dbg(s"Insert sparse barrier ${from}->${to}")
+        val bar_init = if (carried) 1 else 0
+        val ctrl = leastCommonAncesstor(to.getCtrl, from.getCtrl).get 
+        val b = Barrier(ctrl, bar_init).name(s"__auto_bar_${from}_${to}")
+        barrierWrite.getOrElseUpdate(b, mutable.ListBuffer()) += from
+        barrierRead.getOrElseUpdate(b, mutable.ListBuffer()) += to
+      }
     }
-    // n.accesses.foreach { access =>
-      // val ctx = access.ctx.get
-      // val key = if (config.shareAddrCtx) Left(access.getCtrl) else Right(access)
-      // val fromCtx = if (config.mergeDone) {
-        // mergeCtxs.get(access) orElse addrCtxs.get(key)
-      // } else addrCtxs.get(key)
-      // bufferInput(ctx, BufferParam(fromCtx=fromCtx))
-    // }
-    // addrCtxs.clear
-    // mergeCtxs.clear
   }
 
   private def lowerSparseAccess(access:SparseAccess, memCU:MemoryContainer) = dbgblk(s"lower($access)"){

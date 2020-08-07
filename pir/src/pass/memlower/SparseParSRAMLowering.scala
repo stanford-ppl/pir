@@ -13,6 +13,17 @@ trait SparseParSRAMLowering extends SparseLowering {
     case n@SparseMem(_, "ParSRAM",_) => lowerSparseParSRAM(n)
     case _ => super.visitNode(n)
   }
+
+  private def dependsOn(deped:Access, dep:Access):Option[Int] = {
+    val lca = leastCommonAncesstor(deped.getCtrl, dep.getCtrl).get
+    dbg(s"\t depedCtrl: ${dquote(deped.getCtrl)} depCtrl: ${dquote(dep.getCtrl)} lca: ${dquote(lca)}")
+    lca.schedule match {
+      case Fork => return None
+      case ForkJoin => return None
+      case _ => return Some(1)
+    }
+    Some(1) 
+  }
   
   private def lowerSparseParSRAM(n:SparseMem):Unit = dbgblk(s"lower($n)"){
     val sortedAccesses:List[UnrolledAccess[SparseAccess]] = n.accesses.groupBy { a => a.progorder.get }.toList.sortBy { _._1 }
@@ -26,6 +37,25 @@ trait SparseParSRAMLowering extends SparseLowering {
       }
     }
     block.mirrorMetas(n)
+
+    consistencyBarrier(n.accesses)(dependsOn){ case (from,to,carried,depth) =>
+      val stallTo = to.asInstanceOf[SparseAccess].barriers.get.map { bar =>
+        bar match {
+          case (barrier,true) => false
+          case (barrier,false) => true
+        }
+      }.reduceOption({_|_}).getOrElse(false)
+      if (stallTo) {
+        dbg(s"Skip sparse barrier ${from}->${to}; user has already inserted a barrier holding back this memory")
+      } else {
+        dbg(s"Insert sparse barrier ${from}->${to}")
+        val bar_init = if (carried) 1 else 0
+        val ctrl = leastCommonAncesstor(to.getCtrl, from.getCtrl).get 
+        val b = Barrier(ctrl, bar_init).name(s"__auto_bar_${from}_${to}")
+        barrierWrite.getOrElseUpdate(b, mutable.ListBuffer()) += from
+        barrierRead.getOrElseUpdate(b, mutable.ListBuffer()) += to
+      }
+    }
 
     n.alias.reset
     free(n)
