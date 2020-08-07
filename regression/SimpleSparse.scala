@@ -251,6 +251,111 @@ import spatial.dsl._
   }
 }
 
+@spatial class SparseAutoBarrier extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+  
+  def main(args: Array[String]): Unit = {
+
+    val N = 4096
+    val ip = 16
+
+    val out = ArgOut[T]
+
+    Accel {
+      val s1 = SparseSRAM[T](N)
+      // val testBar = Barrier[Token](0)
+      Foreach (N par ip) { i =>
+        s1.barrierWrite(N-i-1, 0, Seq())
+      }
+      Foreach (N par ip) { i =>
+        s1.RMW(i, 1, "add", "unordered", Seq())
+      }
+      Reduce(out)(N par ip) { i =>
+        s1.barrierRead(N-i-1, Seq())
+      } { _ + _ }
+    }
+
+    val gold = N
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (SparseAutoBarrier)")
+    assert(cksum)
+  }
+}
+
+@spatial class SparseAutoBarrierRev extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+  
+  def main(args: Array[String]): Unit = {
+
+    val N = 4096
+    val ip = 16
+
+    val out = ArgOut[T]
+
+    Accel {
+      Reduce(out) (3 by 1) { j =>
+        val s1 = SparseSRAM[T](N)
+        // val testBar = Barrier[Token](0)
+        Foreach (N par ip) { i =>
+          s1.barrierWrite(N-i-1, 0, Seq())
+        }
+        Foreach (N par ip) { i =>
+          s1.RMW(i, j, "add", "unordered", Seq())
+        }
+        Reduce(Reg[T])(N par ip) { i =>
+          s1.barrierRead(N-i-1, Seq())
+        } { _ + _ }
+      } { _ + _ }
+    }
+
+    val gold = 3*N
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (SparseAutoBarrierRev)")
+    assert(cksum)
+  }
+}
+
+@spatial class SparseAutoBarrierRevB extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+  
+  def main(args: Array[String]): Unit = {
+
+    val N = 4096
+    val ip = 16
+
+    val out = ArgOut[T]
+
+    Accel {
+      val s1 = SparseSRAM[T](N)
+      Reduce(out) (3 by 1) { j =>
+        Foreach (N par ip) { i =>
+          s1.barrierWrite(N-i-1, 0, Seq())
+        }
+        Foreach (N par ip) { i =>
+          s1.RMW(i, j, "add", "unordered", Seq())
+        }
+        Reduce(Reg[T])(N par ip) { i =>
+          s1.barrierRead(N-i-1, Seq())
+        } { _ + _ }
+      } { _ + _ }
+    }
+
+    val gold = 3*N
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (SparseAutoBarrierRevB)")
+    assert(cksum)
+  }
+}
+
 @spatial class SimpleSparse extends SpatialTest {
   override def runtimeArgs: Args = "32"
   //type T = FixPt[TRUE, _16, _16]

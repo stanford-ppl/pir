@@ -64,7 +64,8 @@ case class LUT()(implicit env:Env) extends Memory
 case class LockMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory {
   override def nBanks:Int = banks.get.product
 }
-case class SparseMem(memType:String="SRAM", dramPar:Int=1)(implicit env:Env) extends Memory {
+// The memory doesn't necessarily need the control tree, but it simplifies the barrier insertion process later
+case class SparseMem(ctrlTree:ControlTree, memType:String="SRAM", dramPar:Int=1)(implicit env:Env) extends Memory {
   val alias = Metadata[DRAM]("alias")
   override def nBanks:Int = banks.get.product
 }

@@ -192,6 +192,26 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
     stage(c)
   }
 
+
+  def insertBarrier(from:Access, to:Access, carried:Boolean,depth:Int) = {
+    val isMemReduce = from.mem.T.isMemReduceAccum.get && to.mem.T.isMemReduceAccum.get
+    if (isMemReduce) {
+      dbg(s"isMemReduce=${isMemReduce} $from $to")
+    }
+    val fromCtx = from.ctx.get
+    val toCtx = to.ctx.get
+    fromCtx.streaming.reset
+    toCtx.streaming.reset
+    val token = insertToken(fromCtx, toCtx,isMemReduce=isMemReduce).depth(depth)
+    fromCtx.streaming(true) // hack to get the correct childDone
+    toCtx.streaming(true)
+    if (carried) {
+      token.initToken := 1
+      token.inits := true
+    }
+    dbg(s"$token.depth = ${token.depth.get}")
+  }
+
   /*
    * W => W (fake dependency) partial updates
    * W => R (true dependency)
@@ -294,6 +314,7 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
     def findPredecessors(ua:UnrolledAccess[A]):(List[(UnrolledAccess[A],Int)],List[(UnrolledAccess[A],Int)]) = {
       val (before, rest) = sorted.span { _ != ua }
       val (_,after) = rest.splitAt(1)
+      dbg(s"${dquote(ua)} before: ${before.map{dquote(_)}.mkString(",")} rest: ${rest.map{dquote(_)}.mkString(",")}")
 
       val forward = before.flatMap { before => dependsOn(ua, before).map { depth => (before, depth) } }
       val carried = after.flatMap { after => 
@@ -325,18 +346,21 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
         getReachable(adjlist,neighbor).map { case (reached, depth2) => reached -> math.max(depth, depth2) }
       }
     }
-    def transitiveReduce(adjlist:AdjList):AdjList = {
+    def transitiveReduce(adjlist:AdjList,forward:Boolean):AdjList = {
       adjlist.map { case (ua, reachable) =>
         val reachedByNeighbors = reachable.flatMap { case (reached, depth) => 
           getReachable(adjlist, reached).map { case (reached, depth2) => reached -> math.max(depth, depth2) }
         }
         ua -> reachable.filterNot { case (reached, depth) => 
-          reachedByNeighbors.exists { case (nreached, ndepth) => nreached == reached && (ndepth <= depth) }
+          // reachedByNeighbors.exists { case (nreached, ndepth) => nreached == reached && (ndepth <= depth) }
+            reachedByNeighbors.exists { case (nreached, ndepth) =>
+                nreached == reached && ((ndepth < depth) || (if (forward) ndepth == depth else nreached.progorder > reached.progorder))
+          }
         }
       }
     }
-    val reducedForward = transitiveReduce(forward)
-    val reducedCarried = transitiveReduce(carried)
+    val reducedForward = transitiveReduce(forward, true)
+    val reducedCarried = transitiveReduce(carried, false)
 
     sorted.foreach { ua =>
       dbg(s"${dquote(ua)} rforward:${reducedForward(ua).map{dquote(_)}.mkString(",")} rcarried: ${reducedCarried(ua).map{dquote(_)}.mkString(",")}")

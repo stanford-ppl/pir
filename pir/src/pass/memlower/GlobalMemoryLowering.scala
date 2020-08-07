@@ -113,7 +113,8 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     map
   }
 
-  private def groupAccess(mem:Memory, accesses:List[Access]):List[Set[Access]] = dbgblk(s"groupAccess($mem)") {
+  // private def groupAccess(mem:Memory, accesses:List[Access]):List[Set[Access]] = dbgblk(s"groupAccess($mem)") {
+  def groupAccess(mem:Memory, accesses:List[Access]):List[Set[Access]] = dbgblk(s"groupAccess($mem)") {
     accesses.groupBy { _.port.v }.flatMap { case (group, accesses) =>
       accesses.groupBy { _.muxPort.v }.map { case (muxPort, accesses) =>
         //resolveBroadcast(accesses).toSet
@@ -326,7 +327,8 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
     }
   }
 
-  private def insertBarrier(from:Access, to:Access, carried:Boolean,depth:Int) = {
+  // private def insertBarrier(from:Access, to:Access, carried:Boolean,depth:Int) = {
+  /*  def insertBarrier(from:Access, to:Access, carried:Boolean,depth:Int) = {
     val isMemReduce = from.mem.T.isMemReduceAccum.get && to.mem.T.isMemReduceAccum.get
     if (isMemReduce) {
       dbg(s"isMemReduce=${isMemReduce} $from $to")
@@ -343,7 +345,7 @@ trait GlobalMemoryLowering extends GenericMemoryLowering {
       token.inits := true
     }
     dbg(s"$token.depth = ${token.depth.get}")
-  }
+  } */
 
   override def dquote(n:Any) = n match {
     case n:Memory => n.name.v.fold { n.toString } { name => s"${n}[$name]" }

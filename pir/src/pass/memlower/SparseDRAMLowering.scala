@@ -10,7 +10,7 @@ import scala.collection.mutable
 trait SparseDRAMLowering extends SparseLowering {
 
   override def visitNode(n:N) = n match {
-    case n@SparseMem("ParDRAM",_) => lowerSparseDRAM(n)
+    case n@SparseMem(_, "ParDRAM",_) => lowerSparseDRAM(n)
     case _ => super.visitNode(n)
   }
   
