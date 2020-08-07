@@ -228,14 +228,14 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
   }
 
   def analyzeCounterRange(n:ScanCounter):Unit = dbgblk(s"analyzeCounterRange($n)") {
-    val (constValids, constIters) = (List.tabulate(n.par) { i => None }, List.tabulate(1) { i => None })
+    val (constValids, constIters) = (List.tabulate(n.truePar) { i => None }, List.tabulate(n.truePar) { i => None })
     dbg(s"$n.constValids=[${constValids.map { _.getOrElse("unknown") }.mkString(",")}]")
     dbg(s"$n.constIters=[${constIters.map { _.getOrElse("unknown") }.mkString(",")}]")
     n.constValids := constValids
     n.constIters := constIters
   }
   def analyzeCounterRange(n:ScanCounterDataFollower):Unit = dbgblk(s"analyzeCounterRange($n)") {
-    val (constValids, constIters) = (List.tabulate(n.par) { i => None }, List.tabulate(1) { i => None })
+    val (constValids, constIters) = (List.tabulate(n.truePar) { i => None }, List.tabulate(n.truePar) { i => None })
     dbg(s"$n.constValids=[${constValids.map { _.getOrElse("unknown") }.mkString(",")}]")
     dbg(s"$n.constIters=[${constIters.map { _.getOrElse("unknown") }.mkString(",")}]")
     n.constValids := constValids

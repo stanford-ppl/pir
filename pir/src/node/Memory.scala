@@ -557,6 +557,7 @@ trait Counter extends PIRNode {
 
   def iters = this.collectOut[CounterIter]()
   def valids = this.collectOut[CounterValid]()
+  def resets = this.collectOut[CounterReset]()
   def ctrler = this.collectUp[Controller]().head
   def par:Int
 
@@ -588,7 +589,7 @@ case class DataScanCounter(data: scala.Boolean)(implicit env:Env) extends Counte
     case _ => super.compVec(n) 
   } */
 }
-case class ScanCounter(par:Int, mode:String)(implicit env:Env) extends Counter {
+case class ScanCounter(par:Int, truePar:Int, mode:String)(implicit env:Env) extends Counter {
   val mask = InputField[PIRNode].presetVec(16) // Replaced with ctrl and idx
 
   val tileCount = InputField[PIRNode].presetVec(1) 
@@ -605,7 +606,7 @@ case class ScanCounter(par:Int, mode:String)(implicit env:Env) extends Counter {
     case _ => super.compVec(n)
   }
 }
-case class ScanCounterDataFollower(par:Int)(implicit env:Env) extends Counter {
+case class ScanCounterDataFollower(par:Int, truePar:Int)(implicit env:Env) extends Counter {
   val mask = InputField[PIRNode].presetVec(16) // Replaced with ctrl and idx
 
   val tileCount = InputField[PIRNode].presetVec(1) 
@@ -632,6 +633,10 @@ case class CounterIter(is:List[Int])(implicit env:Env) extends Def {
       case ctr => Some(is.size)
     }
   }
+}
+case class CounterReset(is:List[Int])(implicit env:Env) extends Def {
+  val counter = InputField[Counter]
+  out.tp(Bool).presetVec(is.size)
 }
 case class CounterValid(is:List[Int])(implicit env:Env) extends Def {
   val counter = InputField[Counter]

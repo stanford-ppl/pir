@@ -693,10 +693,10 @@ import spatial.metadata.memory.{Barrier => _,_}
     val out = ArgOut[T]
 
     Accel {
-      val fifo = FIFO[U32](16)
+      val fifo = FIFO[U32](4096)
       Foreach(N by 1) { i =>
         Foreach(ip by 1 par ip) { j =>
-          val mask = (i % 10).to[U32]
+          val mask = (i+j % 10).to[U32]
           fifo.enq(mask)
         }
       }
@@ -709,7 +709,7 @@ import spatial.metadata.memory.{Barrier => _,_}
 
     val gold = scala.collection.immutable.Range(0, N).map { i =>
       val mask = scala.collection.immutable.Range(0, ip).map{ j => 
-        val bi = (i % 10).toBinaryString
+        val bi = (i+j % 10).toBinaryString
         val pad = "0" * (32 - bi.size) + bi
         pad.reverse
       }.reduce { _ + _ }

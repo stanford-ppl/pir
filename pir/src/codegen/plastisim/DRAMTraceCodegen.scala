@@ -63,6 +63,7 @@ class DRAMTraceCodegen(implicit compiler:PIR) extends ProgramOrderTraversal with
           val nodes = node.accum({ 
             case x:CounterIter => true
             case x:CounterValid => true
+            case x:CounterReset => true
             case x:GlobalContainer => true
             case x => false
           }, visitGlobalIn _)
@@ -117,6 +118,7 @@ class DRAMTraceCodegen(implicit compiler:PIR) extends ProgramOrderTraversal with
     case n@Const(v) => 
       emitln(s"val $n = $v")
     case n:CounterValid =>
+    case n:CounterReset =>
     case n@CounterIter(List(i))=>
       n.counter.T match {
         case ctr:StridedCounter =>

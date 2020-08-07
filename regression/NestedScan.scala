@@ -38,7 +38,7 @@ import spatial.dsl._
   }
 }
 
- /*@spatial class NestedDataScan extends SpatialTest {
+@spatial class NestedDataScan extends SpatialTest {
   override def runtimeArgs: Args = "32"
   type T = Int
   val N = 64
@@ -69,11 +69,10 @@ import spatial.dsl._
       } { _ + _ }
     }
 
-    val gold = 2000
+    val gold = 2100
 
     val cksum = checkGold[T](out, gold)
     println("PASS: " + cksum + " (NestedDataScan)")
     assert(cksum)
   }
 }
-  */

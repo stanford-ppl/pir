@@ -27,6 +27,7 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
       case dep:LocalOutAccess => true
       case dep:CounterIter => true
       case dep:CounterValid => true
+      case dep:CounterReset => true
       case dep:Controller => true
       case dep => false
     }
