@@ -24,6 +24,7 @@ case class LaneCost(quantity:Int=1) extends MaxCost[LaneCost]
 case class OpCost(set:Set[Opcode]=Set.empty) extends SetCost[Opcode,OpCost]
 case class ActorCost(quantity:Int=0) extends QuantityCost[ActorCost]
 case class PRCost(quantity:Int=0) extends MaxCost[PRCost]
+case class PCUCost(quantity:Int=0) extends MaxCost[PCUCost]
 
 trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
   implicit class AnyCostOp(x:Any) {
@@ -183,6 +184,21 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
       case n:CUParam => OutputCost(n.numSout, n.numVout)
       case n:Parameter => OutputCost(100,100)
 
+    } orElse switch[PCUCost](x,ct) {
+      case n:Context => 
+        val cost = n.descendents.map {
+          case x:Splitter => 6 // TEST
+          case x:SplitLeader => 6 
+          case x:Scanner => 6 
+          case x:DataScanner => 6 
+          case x:BVBuildNoTree => 6 
+          case x:BVBuildTree => 6 
+          case _ => 0
+        }.reduceOption { _ + _ }.getOrElse(0)
+        PCUCost(cost)
+      case n:CUParam => PCUCost(n.numPCU)
+      case n:Parameter => PCUCost(0)
+      case _ => PCUCost(0)
     } orElse switch[StageCost](x,ct) {
       case n:OpNode => StageCost(stageCost(n))
       case n:Context => 

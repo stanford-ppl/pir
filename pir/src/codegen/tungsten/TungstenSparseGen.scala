@@ -26,7 +26,8 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
       val masks = n.masks.map { mask => nameOf(mask.T.as[BufferRead]).& }.qlist
       val ctrlWord = nameOf(n.ctrlWord.T.as[BufferWrite].out.singleConnected.get.src).&
       // val tileCount = nameOf(n.tileCount.T.as[BufferRead]).&
-      val packCntIdx = n.packedCntIdx.map { packCntIdx => nameOf(packCntIdx.T.as[BufferWrite].out.singleConnected.get.src).& }.qlist
+      // val packCntIdx = n.packedCntIdx.map { packCntIdx => nameOf(packCntIdx.T.as[BufferWrite].out.singleConnected.get.src).& }.qlist
+      val packCntIdx = nameOf(n.packedCntIdx.T.as[BufferWrite].out.singleConnected.get.src).&
       val vecTotals = n.vecTotals.map { vecTotal => nameOf(vecTotal.T.as[BufferWrite].out.singleConnected.get.src).& }.qlist
       genTopMember(n, Seq(n.qstr, n.mode.qstr, masks, ctrlWord, packCntIdx, vecTotals), end=true)
 
@@ -99,6 +100,29 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
 
     case n:SparseMem if n.memType == "SRAM" => genTopMember(n, Seq(n.qstr))
 
+    case n:SparseParSRAMBlock => 
+      val orderList = n.rmwPorts.map { case (a, ports) => n.rmwOps(a)._2 }.to[List]
+      val order = assertOneOrLess(orderList.distinct, s"$n RMW order").getOrElse("order")
+      n.alias.v match {
+        case None =>
+          genTopMember(n, Seq(n.qstr, order.qstr, "NULL", s"NULL", s"make_tuple(&net, &statnet, &idealnet)", s"false"))
+        case Some(alias) =>
+          assert(false)
+      }
+      genTopInit {
+        n.readPorts.foreach { case (a, ports) =>
+          emitln(s"""$n.RegisterRead("read${a}_", {${(0 until ports.size).map { i => i }.mkString(",")}});""")
+        }
+        n.writePorts.foreach { case (a, ports) =>
+          emitln(s"""$n.RegisterWrite("write${a}_", {${(0 until ports.size).map { i => i }.mkString(",")}});""")
+        }
+        n.rmwPorts.foreach { case (a, ports) =>
+          val (op, order) = n.rmwOps(a)
+          //emitln(s"""$n.RegisterRMW("rmw${a}_", "$op", "$order", {${(0 until ports.size).map { i => i }.mkString(",")}});""")
+          emitln(s"""$n.RegisterRMW("rmw${a}_", "$op", {${(0 until ports.size).map { i => i }.mkString(",")}});""")
+        }
+      }
+
     case n:SparseDRAMBlock => 
       val orderList = n.rmwPorts.map { case (a, ports) => n.rmwOps(a)._2 }.to[List]
       val order = assertOneOrLess(orderList.distinct, s"$n RMW order").getOrElse("order")
@@ -149,8 +173,8 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
     case n:SparseWrite => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
     case n:SparseRMW => (s"pair<${tpOf(n.mem.T)}::SparsePMUPort*,${tpOf(n.mem.T)}::SparsePMUPort*>", s"${n}_ports")
     case n:SparseMem if n.memType == "SRAM" => (s"SparsePMU<${n.qtp},$wordPerBank,${spadeParam.vecWidth}>", s"$n")
-    case n:SparseDRAMBlock => (s"ParDRAM<${n.dramPar},${n.qtp},1>", s"$n")
-    case n:SparseParSRAMBlock => (s"ParSRAM<${n.dramPar},${n.qtp},1>", s"$n")
+    case n:SparseDRAMBlock => (s"ParDRAM<true,${n.dramPar},${n.qtp},1>", s"$n")
+    case n:SparseParSRAMBlock => (s"ParDRAM<false,${n.dramPar},${n.qtp},1>", s"$n")
     case n => super.varOf(n)
   }
 

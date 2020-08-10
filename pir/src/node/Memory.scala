@@ -142,7 +142,8 @@ case class Scanner(par:Int, nstream:Int, mode:String)(implicit env:Env) extends 
   val ctrlWord = OutputField[PIRNode].tp(Fix(false,32,0)).presetVec(1)
   //val index = OutputField[PIRNode].tp(Fix(true,32,0)).presetVec(1)
   // val indices = List.tabulate(nstream) { i => new OutputField[PIRNode](s"idx$i").tp(Fix(true,32,0)).presetVec(par) }
-  val packedCntIdx = List.tabulate(nstream) { i => new OutputField[PIRNode](s"packedCntIndex$i").tp(Fix(true,32,0)).presetVec(par) }
+  // val packedCntIdx = List.tabulate(nstream) { i => new OutputField[PIRNode](s"packedCntIndex$i").tp(Fix(true,32,0)).presetVec(par) }
+  val packedCntIdx = OutputField[PIRNode].tp(Fix(true,32,0)).presetVec(par)
   val vecTotals = List.tabulate(nstream) { i => new OutputField[PIRNode](s"vecTotal$i").tp(Fix(true,32,0)).presetVec(1) }
 }
 case class MergeBuffer(ways:Int, par:Int)(implicit env:Env) extends BlackBox with Def { self =>
@@ -590,7 +591,7 @@ case class DataScanCounter(data: scala.Boolean)(implicit env:Env) extends Counte
     case _ => super.compVec(n) 
   } */
 }
-case class ScanCounter(par:Int, truePar:Int, mode:String)(implicit env:Env) extends Counter {
+case class ScanCounter(par:Int, truePar:Int, mode:String, index:Int, prefSum:Boolean)(implicit env:Env) extends Counter {
   val mask = InputField[PIRNode].presetVec(16) // Replaced with ctrl and idx
 
   val tileCount = InputField[PIRNode].presetVec(1) 
@@ -607,7 +608,7 @@ case class ScanCounter(par:Int, truePar:Int, mode:String)(implicit env:Env) exte
     case _ => super.compVec(n)
   }
 }
-case class ScanCounterDataFollower(par:Int, truePar:Int)(implicit env:Env) extends Counter {
+case class ScanCounterDataFollower(par:Int, truePar:Int, index:Int)(implicit env:Env) extends Counter {
   val mask = InputField[PIRNode].presetVec(16) // Replaced with ctrl and idx
 
   val tileCount = InputField[PIRNode].presetVec(1) 

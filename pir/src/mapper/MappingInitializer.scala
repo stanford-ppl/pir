@@ -41,6 +41,16 @@ class MappingInitializer(implicit compiler:PIR) extends PIRPass with MappingLogg
     config.updateOption[Int]("reserve-mc") { _.getOrElse(0) + spDramPar }
     dbg(s"reserve-dag: ${config.option[Int]("reserve-dag")}")
     dbg(s"reserve-mc: ${config.option[Int]("reserve-mc")}")
+    val spParSRAMPar = bbs.map { bb => 
+      bb.descendentTree.collectFirst { case block:SparseParSRAMBlock =>
+        block.dramPar.nextPow2
+      }.getOrElse(0)
+    }.sum
+    dbg(s"SpParRAM par total = ${spParSRAMPar}")
+    config.updateOption[Int]("reserve-dag") { _.getOrElse(0) + spParSRAMPar }
+    config.updateOption[Int]("reserve-pcu") { _.getOrElse(0) + spParSRAMPar }
+    dbg(s"reserve-dag: ${config.option[Int]("reserve-dag")}")
+    dbg(s"reserve-pcu: ${config.option[Int]("reserve-pcu")}")
   }
 
 }

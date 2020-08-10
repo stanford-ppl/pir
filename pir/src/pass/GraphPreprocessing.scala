@@ -151,11 +151,21 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
           }
         }
 
+        val packCntIdxFIFO = within(pirTop) {
+          stage(FIFO().banks(List(par)).name("packCntIdxFIFO"))
+        }
+        val packCntIdxWrite = within(pirTop, scanCtrl) {
+          stage(MemWrite().setMem(packCntIdxFIFO).data(scanner.packedCntIdx)).presetVec(par)
+        }
+        val packCntIdxRead = within(pirTop, n.getCtrl) {
+          stage(MemRead().setMem(packCntIdxFIFO).done(n.tileDone))
+        }
+
         // Spatial insert a register in front of the scan counter
         // Remove this register and connect to the scanner
         // (ctrs, scanner.masks, scanner.indices).zipped.foreach { case (ctr, mask, idx) =>
         // ((ctrsIndex, ctrsData).zipped, (scanner.masks, scanner.indices).zipped).zipped.foreach { case ((ctr, follow), (mask, idx)) =>
-        (ctrsIndex zip ctrsData zip scanner.masks zip scanner.packedCntIdx zip scanner.vecTotals).foreach { case ((((ctr, follow), mask), packCntIdx), vecTotalSet) =>
+        (ctrsIndex zip ctrsData zip scanner.masks zip scanner.vecTotals).foreach { case (((ctr, follow), mask), vecTotalSet) =>
           val scanCtr = ctr.as[ScanCounter]
           val dataCtr = follow.as[ScanCounterDataFollower]
           val read = scanCtr.mask.T.asInstanceOf[MemRead]
@@ -164,15 +174,6 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
           scanRead.out.vecMeta.reset
           scanRead.out.presetVec(16)
           mask(scanRead)
-          val packCntIdxFIFO = within(pirTop) {
-            stage(FIFO().banks(List(par)).name("packCntIdxFIFO"))
-          }
-          val packCntIdxWrite = within(pirTop, scanCtrl) {
-            stage(MemWrite().setMem(packCntIdxFIFO).data(packCntIdx)).presetVec(par)
-          }
-          val packCntIdxRead = within(pirTop, n.getCtrl) {
-            stage(MemRead().setMem(packCntIdxFIFO).done(n.tileDone))
-          }
           val vecTotalSetFIFO = within(pirTop) {
             stage(FIFO().banks(List(1)).name("vecTotalSetFIFO"))
           }

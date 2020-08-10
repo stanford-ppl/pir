@@ -57,6 +57,9 @@ trait SparseParSRAMLowering extends SparseLowering {
       }
     }
 
+    sortedAccesses.foreach { ua =>
+      accessReqResp ++= lowerAccess(ua, block)
+    }
     n.alias.reset
     free(n)
   }

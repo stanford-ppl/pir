@@ -138,6 +138,7 @@ sealed trait CUParam extends Parameter {
   val sramParam:SRAMParam
   val fifoParams:List[FIFOParam]
   val numCounters:Int
+  val numPCU:Int
   val numStage:Int
   val ops:Set[Opcode]
   val numReg:Int
@@ -165,6 +166,7 @@ case class DramAGParam(
   ),
   numCounters:Int=16,
   numStage:Int=15,
+  numPCU:Int=0,
   ops:Set[Opcode]=noFltOps,
   numReg:Int=16,
   numSin:Int=4,
@@ -189,6 +191,7 @@ case class PCUParam(
   numCounters:Int=16,
   numStage:Int=6,
   ops:Set[Opcode]=allOps,
+  numPCU:Int=1,
   numReg:Int=16,
   numSin:Int=6,
   numSout:Int=4,
@@ -208,6 +211,7 @@ case class PMUParam(
     FIFOParam("word",count=8,depth=4),
     FIFOParam("vec",count=4,depth=4)
   ),
+  numPCU:Int=0,
   numCounters:Int=16,
   numStage:Int=6,
   ops:Set[Opcode]=noFltOps,

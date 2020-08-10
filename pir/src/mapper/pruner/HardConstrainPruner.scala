@@ -18,6 +18,7 @@ class HardConstrainPruner(implicit compiler:PIR) extends CUPruner {
     x.getCost[SRAMCost] ::
     x.getCost[LaneCost] ::
     x.getCost[OpCost] ::
+    x.getCost[PCUCost] ::
     Nil
   }
 

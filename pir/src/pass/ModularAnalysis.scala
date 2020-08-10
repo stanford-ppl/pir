@@ -59,6 +59,10 @@ trait LockRMABlockAliaser extends ExternIOAliaser {
     val (aid, lane) = b.portMap(io.as)
     s"${aid}_$lane"
   }
+  private def agID(b:SparseParSRAMBlock, io:Edge[PIRNode,_,_]) = {
+    val (aid, lane) = b.portMap(io.as)
+    s"${aid}_$lane"
+  }
 
   override def getAlias(io:Edge[PIRNode,_,_]) = io match {
     case InputField(l:LockRMWBlock, "lockAddr") => s"$l/splitter_in_c${l.laneMap(io)}"
@@ -72,6 +76,15 @@ trait LockRMABlockAliaser extends ExternIOAliaser {
     case InputField(l:LockRMWBlock, "unlockWriteAddr") => s"$l/pmu_addr_init_a${accumName(l,io)}_p${l.laneMap(io)}"
     case InputField(l:LockRMWBlock, "unlockWriteData") => s"$l/pmu_data_init_a${accumName(l,io)}_p${l.laneMap(io)}"
     case OutputField(l:LockRMWBlock, "unlockWriteAck") => s"$l/pmu_ack_init_a${accumName(l,io)}_p${l.laneMap(io)}"
+
+    case InputField(b:SparseParSRAMBlock, "readAddr") => s"$b/read${agID(b,io)}_addr/out0"
+    case OutputField(b:SparseParSRAMBlock, "readData") => s"$b/read${agID(b,io)}_data_out/in"
+    case InputField(b:SparseParSRAMBlock, "writeAddr") => s"$b/write${agID(b,io)}_addr/out0"
+    case InputField(b:SparseParSRAMBlock, "writeData") => s"$b/write${agID(b,io)}_data_in/out0"
+    case OutputField(b:SparseParSRAMBlock, "writeAck") => s"$b/write${agID(b,io)}_data_out/in"
+    case InputField(b:SparseParSRAMBlock, "rmwAddr") => s"$b/rmw${agID(b,io)}_addr/out0"
+    case InputField(b:SparseParSRAMBlock, "rmwDataIn") => s"$b/rmw${agID(b,io)}_data_in/out0"
+    case OutputField(b:SparseParSRAMBlock, "rmwDataOut") => s"$b/rmw${agID(b,io)}_data_out/in"
 
     case InputField(b:SparseDRAMBlock, "readAddr") => s"$b/read${agID(b,io)}_addr/out0"
     case OutputField(b:SparseDRAMBlock, "readData") => s"$b/read${agID(b,io)}_data_out/in"

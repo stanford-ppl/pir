@@ -197,13 +197,18 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case n:Controller => (s"UnitController",s"$n")
     case n:ForeverCounter => (s"ForeverCounter<1>",s"$n")
     case n:StridedCounter => (s"Counter<${n.par}>",s"$n")
-    case n:ScanCounter => (s"ScanCounter<${n.parent.get.as[LoopController].par.get},true,512>",s"$n")
-    case n:ScanCounterDataFollower => (s"ScanCounter<${n.parent.get.as[LoopController].par.get},false,512>",s"$n")
+    case n:ScanCounter => 
+      if (n.prefSum) {
+        (s"ScanCounter<${n.parent.get.as[LoopController].par.get},2,512,${n.index}>",s"$n")
+      } else {
+        (s"ScanCounter<${n.parent.get.as[LoopController].par.get},1,512,${n.index}>",s"$n")
+      }
+    case n:ScanCounterDataFollower => (s"ScanCounter<${n.parent.get.as[LoopController].par.get},0,512,${n.index}>",s"$n")
     case n:DataScanCounter => 
       if (n.data) {
-        (s"ScanCounter<1,false,16>",s"$n")
+        (s"ScanCounter<1,0,16,0>",s"$n")
       } else {
-        (s"ScanCounter<1,true,16>",s"$n")
+        (s"ScanCounter<1,1,16,0>",s"$n")
       }
     case n => super.varOf(n)
   }

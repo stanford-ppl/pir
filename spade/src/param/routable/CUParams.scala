@@ -18,11 +18,13 @@ trait CUParam extends Parameter {
   val vectorFifoParam:FIFOParam
   val numCtrs:Int
   val simdParam:Option[SIMDParam]
+  val numPCU:Int
 
   // -----   Derived parameters
   var cu:CU = _
 }
 case class PCUParam (
+  numPCU:Int=1,
   numControlFifos:Int=4,
   numScalarFifos:Int=6,
   numVectorFifos:Int=option[Int]("vfifo"),
@@ -43,6 +45,7 @@ case class PCUParam (
   val sramParam:SRAMParam = SRAMParam(0,0)
 }
 case class SCUParam (
+  numPCU:Int=0,
   numControlFifos:Int=4,
   numScalarFifos:Int=6,
   numVectorFifos:Int=0,
@@ -63,6 +66,7 @@ case class SCUParam (
   val sramParam:SRAMParam = SRAMParam(0,0)
 }
 case class PMUParam (
+  numPCU:Int=0,
   numControlFifos:Int=4,
   numScalarFifos:Int=6,
   numVectorFifos:Int=option[Int]("vfifo"),
@@ -83,6 +87,7 @@ case class PMUParam (
   val numSrams:Int = 1 
 }
 case class SramAGParam (
+  numPCU:Int=0,
   numControlFifos:Int=4,
   numScalarFifos:Int=6,
   numVectorFifos:Int=option[Int]("vfifo"),
@@ -103,6 +108,7 @@ case class SramAGParam (
   val sramParam:SRAMParam = SRAMParam(0,0)
 }
 case class DramAGParam (
+  numPCU:Int=0,
   numControlFifos:Int=3,
   numScalarFifos:Int=4,
   numVectorFifos:Int=0,
