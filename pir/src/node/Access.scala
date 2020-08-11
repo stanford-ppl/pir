@@ -146,6 +146,7 @@ case class SparseRMW(op:String, opOrder:String, remoteAddr:Boolean)(implicit env
 }
 
 case class MemRead()(implicit env:Env) extends ReadAccess {
+  val toScanController = Metadata[Boolean]("toScanController", default=false)
   override def compVec(n:IR) = (n, mem.T) match {
     case (`out`, mem:Reg) => Some(mem.banks.get.head)
     case (`out`, mem:FIFO) => 
@@ -161,6 +162,7 @@ case class MemRead()(implicit env:Env) extends ReadAccess {
         case List(i@InputField(cmd:DataScanner, "input")) => i.inferVec
         case List(i@InputField(cmd:BVBuildNoTree, "max" | "len" | "indices")) => i.inferVec
         case List(i@InputField(cmd:BVBuildTree, "len" | "indices")) => i.inferVec
+        case List(i@InputField(cmd:BVBuildTreeLen, "len" | "indices")) => i.inferVec
         case _ => broadcast.v.map { _.size }.orElse(Some(mem.banks.get.head))
       }
     case _ => super.compVec(n)
@@ -175,8 +177,9 @@ case class MemWrite()(implicit env:Env) extends WriteAccess { self =>
     case (`self`, Some(OutputField(cmd:FringeCoalStore, "ack"))) => cmd.ack.inferVec
     case (`self`, Some(OutputField(cmd:BVBuildNoTree, "bv"))) => cmd.bv.inferVec
     case (`self`, Some(OutputField(cmd:BVBuildTree, "bv"))) => cmd.bv.inferVec
-    case (`self`, Some(OutputField(cmd:BVBuildTree, "last"))) => cmd.last.inferVec
+    // case (`self`, Some(OutputField(cmd:BVBuildTree, "last"))) => cmd.last.inferVec
     case (`self`, Some(OutputField(cmd:BVBuildTree, "prevSet"))) => cmd.prevSet.inferVec
+    case (`self`, Some(OutputField(cmd:BVBuildTreeLen, "gen_len"))) => cmd.gen_len.inferVec
     case (`self`,_) => 
       broadcast.v.map { _.size }.orElse { 
         if (mem.isConnected) {
@@ -211,6 +214,7 @@ trait LocalInAccess extends LocalAccess
 trait LocalOutAccess extends LocalAccess with MemoryNode {
   val in = InputField[PIRNode]
   val initToken = Metadata[Int]("initToken", default=0)
+  val toScanController = Metadata[Boolean]("toScanController", default=false)
   override def compType(n:IR) = n match {
     case `out` => in.inferTp
     case _ => super.compType(n)

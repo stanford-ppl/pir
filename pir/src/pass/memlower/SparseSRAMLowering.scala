@@ -35,23 +35,28 @@ trait SparseSRAMLowering extends SparseLowering {
     n.accesses.foreach { access =>
       accessReqResp += lowerSparseAccess(access.as[SparseAccess], memCU)
     }
-    consistencyBarrier(n.accesses)(dependsOn){ case (from,to,carried,depth) =>
-      val stallTo = to.asInstanceOf[SparseAccess].barriers.get.map { bar =>
-        bar match {
-          case (barrier,true) => false
-          case (barrier,false) => true
+    if (n.autoBar.get) {
+      dbg(s"Perform automatic barrier insertion for $n")
+      consistencyBarrier(n.accesses)(dependsOn){ case (from,to,carried,depth) =>
+        val stallTo = to.asInstanceOf[SparseAccess].barriers.get.map { bar =>
+          bar match {
+            case (barrier,true) => true // false
+            case (barrier,false) => true
+          }
+        }.reduceOption({_|_}).getOrElse(false)
+        if (stallTo) {
+          dbg(s"Skip sparse barrier ${from}->${to}; user has already inserted a barrier holding back this memory")
+        } else {
+          dbg(s"Insert sparse barrier ${from}->${to}")
+          val bar_init = if (carried) 1 else 0
+          val ctrl = leastCommonAncesstor(to.getCtrl, from.getCtrl).get 
+          val b = Barrier(ctrl, bar_init).name(s"__auto_bar_${from}_${to}")
+          barrierWrite.getOrElseUpdate(b, mutable.ListBuffer()) += from
+          barrierRead.getOrElseUpdate(b, mutable.ListBuffer()) += to
         }
-      }.reduceOption({_|_}).getOrElse(false)
-      if (stallTo) {
-        dbg(s"Skip sparse barrier ${from}->${to}; user has already inserted a barrier holding back this memory")
-      } else {
-        dbg(s"Insert sparse barrier ${from}->${to}")
-        val bar_init = if (carried) 1 else 0
-        val ctrl = leastCommonAncesstor(to.getCtrl, from.getCtrl).get 
-        val b = Barrier(ctrl, bar_init).name(s"__auto_bar_${from}_${to}")
-        barrierWrite.getOrElseUpdate(b, mutable.ListBuffer()) += from
-        barrierRead.getOrElseUpdate(b, mutable.ListBuffer()) += to
       }
+    } else {
+      dbg(s"Skip automatic barrier insertion for $n")
     }
   }
 

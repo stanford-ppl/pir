@@ -193,6 +193,7 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
           case x:DataScanner => 6 
           case x:BVBuildNoTree => 6 
           case x:BVBuildTree => 6 
+          case x:BVBuildTreeLen => 6 
           case _ => 0
         }.reduceOption { _ + _ }.getOrElse(0)
         PCUCost(cost)

@@ -42,7 +42,11 @@ trait TungstenMemGen extends TungstenCtxGen {
           }
         }
         val ctrler = getCtrler(n)
-        emitln(s"${ctrler}->AddInput(${nameOf(n)});")
+        if (n.toScanController.get) {
+          emitln(s"${ctrler}->AddInput(${nameOf(n)}, true);")
+        } else {
+          emitln(s"${ctrler}->AddInput(${nameOf(n)}, false);")
+        }
       }
       emitEn(n.en)
       if (n.isFIFO) {

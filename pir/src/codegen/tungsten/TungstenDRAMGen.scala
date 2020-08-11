@@ -87,8 +87,15 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen with TungstenB
       val indices = nameOf(n.indices.T.as[BufferRead]).&
       val bv = nameOf(n.bv.T.as[BufferWrite].gout.get).&
       val prevSet = nameOf(n.prevSet.T.as[BufferWrite].gout.get).&
-      val last = nameOf(n.last.T.as[BufferWrite].gout.get).&
-      genTopMember(n, Seq(len, indices, n.qstr, bv, prevSet, last), end=true)
+      // val last = nameOf(n.last.T.as[BufferWrite].gout.get).&
+      // genTopMember(n, Seq(len, indices, n.qstr, bv, prevSet, last), end=true)
+      genTopMember(n, Seq(len, indices, n.qstr, bv, prevSet), end=true)
+
+    case n:BVBuildTreeLen =>
+      val len = nameOf(n.len.T.as[BufferRead]).&
+      val indices = nameOf(n.indices.T.as[BufferRead]).&
+      val gen_len = nameOf(n.gen_len.T.as[BufferWrite].gout.get).&
+      genTopMember(n, Seq(len, indices, n.qstr, gen_len), end=true)
 
     case n => super.emitNode(n)
   }
@@ -106,6 +113,7 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen with TungstenB
     case n:FringeDynStore => (s"DynStoreAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
     case n:BVBuildNoTree => (s"BitVecBuild<${n.shift},false>", s"${n}")
     case n:BVBuildTree => (s"BitVecBuild<${n.shift},true>", s"${n}")
+    case n:BVBuildTreeLen => (s"BitVecBuild<${n.shift},true>", s"${n}")
     case n => super.varOf(n)
   }
 

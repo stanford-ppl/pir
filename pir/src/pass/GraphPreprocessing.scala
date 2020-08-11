@@ -128,7 +128,7 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
           stage(MemWrite().setMem(ctrlFIFO).data(scanner.ctrlWord))
         }
         val ctrlRead = within(pirTop, n.getCtrl) {
-          stage(MemRead().setMem(ctrlFIFO).done(n.tileDone))
+          stage(MemRead().setMem(ctrlFIFO).done(n.tileDone).toScanController(true))
         }
         /* val countRead = ctrs.last.as[ScanCounter].tileCount.T.asInstanceOf[MemRead]
         val countWriter = assertOne(countRead.mem.T.inAccesses, s"$n.count writer").as[MemWrite]
@@ -158,7 +158,7 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
           stage(MemWrite().setMem(packCntIdxFIFO).data(scanner.packedCntIdx)).presetVec(par)
         }
         val packCntIdxRead = within(pirTop, n.getCtrl) {
-          stage(MemRead().setMem(packCntIdxFIFO).done(n.tileDone))
+          stage(MemRead().setMem(packCntIdxFIFO).done(n.tileDone).toScanController(true))
         }
 
         // Spatial insert a register in front of the scan counter
@@ -181,7 +181,7 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
             stage(MemWrite().setMem(vecTotalSetFIFO).data(vecTotalSet).presetVec(1))
           }
           val vecTotalSetRead = within(pirTop, n.getCtrl) {
-            stage(MemRead().setMem(vecTotalSetFIFO).presetVec(1))
+            stage(MemRead().setMem(vecTotalSetFIFO).presetVec(1).toScanController(true))
           }
 
           scanCtr.mask.disconnect

@@ -70,6 +70,7 @@ import spatial.metadata.memory.{Barrier => _,_}
       val l = FIFO[Bit](16)
       val lA = FIFO[Bit](16)
       val lB = FIFO[Bit](16)
+      val gen_len = FIFO[I32](16)
 
       // len.enq(5)
       Foreach (10 by 1 par 1) { i =>
@@ -78,15 +79,18 @@ import spatial.metadata.memory.{Barrier => _,_}
         idx.enq(base+2*off)
       }
 
-      gen_bitvector_tree(0, 10, idx, bv, prev, l)
+      gen_bitvector_tree(0, 10, idx, bv, prev)
+      gen_bitvector_tree_len(0, 10, idx, gen_len)
       //Stream (*) {
         //val x = l.deq
         //lA.enq(x)
         //lB.enq(x)
       //}
 
-      dram dynstore_vec(0, bv, l)
-      prevdram dynstore_vec(0, prev, l)
+      dram(0::gen_len.deq*16) store bv
+      prevdram(0::gen_len.deq*16) store prev
+      // dram dynstore_vec(0, bv, l, storedA)
+      // prevdram dynstore_vec(0, prev, l, storedB)
     }
 
     val gold = (0 until N) { i => 
@@ -110,7 +114,7 @@ import spatial.metadata.memory.{Barrier => _,_}
     assert(cksum)
   }
 }
-
+/*
 @spatial class SimpleDynStore extends SpatialTest {
   override def runtimeArgs: Args = "32"
   //type T = FixPt[TRUE, _16, _16]
@@ -126,6 +130,7 @@ import spatial.metadata.memory.{Barrier => _,_}
     Accel {
       val d = FIFO[I32](16)
       val l = FIFO[Bit](16)
+      val s = FIFO[Int](16)
 
       Foreach (N by 1 par 16) { i =>
         d.enq(i)
@@ -135,7 +140,7 @@ import spatial.metadata.memory.{Barrier => _,_}
       }
 
       // dram coalesce(0, d, v, N)
-      dram dynstore_vec(0, d, l)
+      dram dynstore_vec(0, d, l, s)
     }
 
     val gold = (0 until N) { i => 
@@ -150,7 +155,7 @@ import spatial.metadata.memory.{Barrier => _,_}
     println("PASS: " + cksum + " (TestCoalesce)")
     assert(cksum)
   }
-}
+} */
 
 @spatial class TestCoalesce extends SpatialTest {
   override def runtimeArgs: Args = "32"
@@ -454,7 +459,7 @@ import spatial.metadata.memory.{Barrier => _,_}
 
     Accel {
       // Test dense read/write and RMW
-      val s1 = SparseSRAM[T](2, N)
+      val s1 = SparseParSRAM[T](2, N)
       Reduce(out)(N by ts par 2) { i =>
         val forwardBarrier = Barrier[Token](0)
         val backwardBarrier = Barrier[Token](init=1) 

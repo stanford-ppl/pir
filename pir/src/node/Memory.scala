@@ -67,6 +67,7 @@ case class LockMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory {
 // The memory doesn't necessarily need the control tree, but it simplifies the barrier insertion process later
 case class SparseMem(ctrlTree:ControlTree, memType:String="SRAM", dramPar:Int=1)(implicit env:Env) extends Memory {
   val alias = Metadata[DRAM]("alias")
+  val autoBar = Metadata[Boolean]("autoBar", default = true)
   override def nBanks:Int = banks.get.product
 }
 
@@ -117,7 +118,12 @@ case class BVBuildTree(par: Int, shift: Int)(implicit env:Env) extends BlackBox 
   val indices = InputField[PIRNode].presetVec(par)
   val bv = OutputField[PIRNode].presetVec(16)
   val prevSet = OutputField[PIRNode].presetVec(16)
-  val last = OutputField[PIRNode].tp(Bool).presetVec(16)
+  // val last = OutputField[PIRNode].tp(Bool).presetVec(16)
+}
+case class BVBuildTreeLen(par: Int, shift: Int)(implicit env:Env) extends BlackBox {
+  val len = InputField[PIRNode].presetVec(1)
+  val indices = InputField[PIRNode].presetVec(par)
+  val gen_len = OutputField[PIRNode].presetVec(1)
 }
 case class DataScanner()(implicit env:Env) extends BlackBox {
   val mask  = InputField[PIRNode].tp(Fix(true,32,0)).presetVec(16)
