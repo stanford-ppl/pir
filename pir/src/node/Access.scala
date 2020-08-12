@@ -145,7 +145,13 @@ case class SparseRMW(op:String, opOrder:String, remoteAddr:Boolean, key:Int)(imp
   }
 }
 
-case class SparseRMWData(key:Int)(implicit env:Env) extends ReadAccess with SparseAccess
+case class SparseRMWData(key:Int)(implicit env:Env) extends ReadAccess with SparseAccess {
+  val forceVec = Metadata[Int]("forceVec", default=16)
+  override def compVec(n:IR) = n match {
+    case `out` => Some(forceVec.get)
+    case _ => super.compVec(n)
+  }
+}
 
 case class MemRead()(implicit env:Env) extends ReadAccess {
   val toScanController = Metadata[Boolean]("toScanController", default=false)
