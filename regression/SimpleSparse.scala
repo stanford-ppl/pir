@@ -516,6 +516,46 @@ import spatial.metadata.memory.{Barrier => _,_}
   }
 }
 
+@spatial class SparseDRAM_SepRMW extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+
+  def main(args: Array[String]): Unit = {
+
+    val N = 1024
+    val ts = 32
+    val ip = 16
+
+    val out = ArgOut[T]
+
+    Accel {
+      // Test dense read/write and RMW
+      val s1 = SparseDRAM[T](2)(N)
+      Reduce(out)(N by ts par 2) { i =>
+        val forwardBarrier = Barrier[Token](0)
+        val backwardBarrier = Barrier[Token](init=1) 
+        Foreach(ts by 1 par ip) { j =>
+          s1.barrierWrite(i+j, i+j, Seq(forwardBarrier.push, backwardBarrier.pop))
+        }
+        Foreach (ts by 1 par ip) { j =>
+          s1.RMW(i+j, 0, "read", "unordered", Seq(forwardBarrier.pop), 1)
+        }
+
+        Reduce(Reg[T])(ts by 1 par ip) { j =>
+          s1.RMWData(j, Seq(backwardBarrier.push), 1)
+        } { _ + _ }
+      } { _ + _ }
+    }
+
+    val gold = List.tabulate(N) { i => i }.sum
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (SparseDRAM_SepRMW)")
+    assert(cksum)
+  }
+}
+
 @spatial class SimpleDataScan extends SpatialTest {
   override def runtimeArgs: Args = "32"
   type T = Int

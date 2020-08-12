@@ -91,7 +91,7 @@ trait SparseSRAMLowering extends SparseLowering {
             stage(AccumAck().ack(access.ack))
           }
           bufferInput(accumAck.ack).foreach { _.name := "ack" }
-          access -> (req,accumAck.out)
+          access -> (Some(req),Some(accumAck.out))
         }
       case access:SparseRead =>
         within(memCU, ctrl, access.srcCtx.get) {
@@ -108,7 +108,7 @@ trait SparseSRAMLowering extends SparseLowering {
           val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
           val req = access.addr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
           val resp = reads.headOption.getOrElse(err(s"${quoteSrcCtx(access)} is not used by anyone!")).out
-          access -> (req,resp)
+          access -> (Some(req),Some(resp))
         }
       case access:SparseRMW =>
         within(memCU, ctrl, access.srcCtx.get) {
@@ -138,7 +138,7 @@ trait SparseSRAMLowering extends SparseLowering {
             accumAck.out
           }
           val req = access.addr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
-          access -> (req,resp)
+          access -> (Some(req),Some(resp))
         }
     }
   }

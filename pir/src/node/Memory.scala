@@ -317,6 +317,10 @@ class SparseParBlock(
     ports
   }
 
+  def fakeRMWRead(accessid:Int, lane:Int) = {
+    rmwPorts(accessid)(lane)._3
+  }
+
   def addRMWPort(accessid:Int, op:String, order:String) = {
     val list = rmwPorts.getOrElseUpdate(accessid, mutable.ListBuffer.empty)
     rmwOps += accessid -> (op, order)

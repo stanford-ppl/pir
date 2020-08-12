@@ -46,13 +46,14 @@ trait SparseDRAMLowering extends SparseLowering {
     if (n.autoBar.get) {
       dbg(s"Perform automatic barrier insertion for $n")
       consistencyBarrier(n.accesses)(dependsOn){ case (from,to,carried,depth) =>
+
         val stallTo = to.asInstanceOf[SparseAccess].barriers.get.map { bar =>
           bar match {
             case (barrier,true) => true // false
             case (barrier,false) => true
           }
         }.reduceOption({_|_}).getOrElse(false)
-        if (stallTo) {
+        if (stallTo || from.isInstanceOf[SparseRMWData] || to.isInstanceOf[SparseRMWData]) {
           dbg(s"Skip sparse barrier ${from}->${to}; user has already inserted a barrier holding back this memory")
         } else {
           dbg(s"Insert sparse barrier ${from}->${to}")
@@ -73,11 +74,20 @@ trait SparseDRAMLowering extends SparseLowering {
       if (i==naccess-1) { // Last access
         synchronizeWithHost = ua.lanes.head match {
           case access:SparseRead => false
-          case access:SparseRMW => !access.dataOut.isConnected
+          case access:SparseRMW => (!access.dataOut.isConnected && access.key < 0)
           case access:SparseWrite => true
+          case access:SparseRMWData => false
         }
       }
       accessReqResp ++= lowerAccess(ua, block)
+      /*lowerAccess(ua, block).foreach {
+        acc =>
+          acc match {
+            case Some(x)  => accessReqResp += x
+            case None => 
+        }
+      } */
+      // accessReqResp ++= lowerAccess(ua, block)
       if (synchronizeWithHost) {
         insertTokenToHost(ua)
       }
@@ -90,7 +100,7 @@ trait SparseDRAMLowering extends SparseLowering {
   private def lowerAccess(uaccess:UnrolledAccess[SparseAccess], block:SparseDRAMBlock) = dbgblk(s"lowerAccess($uaccess)"){
     val par = uaccess.lanes.size
     val accessid = uaccess.lanes.head.id
-    uaccess.lanes.map { access =>
+    uaccess.lanes.zipWithIndex.map { case (access, idx) =>
       access.barriers.get.foreach { 
         case (barrier,true) => barrierWrite.getOrElseUpdate(barrier, mutable.ListBuffer()) += access
         case (barrier,false) => barrierRead.getOrElseUpdate(barrier, mutable.ListBuffer()) += access
@@ -117,7 +127,7 @@ trait SparseDRAMLowering extends SparseLowering {
             val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
             val req = readAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
             val resp = reads.head.out
-            access -> (req,resp)
+            access -> (Some(req),Some(resp))
           case access:SparseWrite =>
             val (writeAddr, writeData, writeAck) = block.addWritePort(accessid)
             flattenEnable(access) // in write ctx
@@ -137,7 +147,8 @@ trait SparseDRAMLowering extends SparseLowering {
               read.inAccess.name := "ack"
             }
             val req = writeAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
-            access -> (req,accumAck.out)
+            // Some(access -> (req,accumAck.out))
+            access -> (Some(req),Some(accumAck.out))
           case access:SparseRMW =>
             val (rmwAddr, rmwDataIn, rmwDataOut) = block.addRMWPort(accessid, access.op, access.opOrder)
             flattenEnable(access) // in write ctx
@@ -145,26 +156,48 @@ trait SparseDRAMLowering extends SparseLowering {
             rmwDataIn(access.input.connected)
             bufferInput(rmwAddr).foreach { _.name := "rmwAddr" }
             bufferInput(rmwDataIn).foreach { _.name := "rmwDataIn" }
-            var ins = access.dataOut.connected
-            if (ins.size == 0) {
-              val accumAck = within(pirTop, access.getCtrl) {
-                val ctx = stage(Context().name("RMW_ackAccum"))
-                within(ctx) {
-                  stage(AccumAck().ack(access.dataOut))
+            if (access.key < 0) {
+              var ins = access.dataOut.connected
+              if (ins.size == 0) {
+                val accumAck = within(pirTop, access.getCtrl) {
+                  val ctx = stage(Context().name("RMW_ackAccum"))
+                  within(ctx) {
+                    stage(AccumAck().ack(access.dataOut))
+                  }
                 }
+                ins = List(accumAck.ack)
               }
-              ins = List(accumAck.ack)
+              ins.foreach { in =>
+                swapConnection(in, access.dataOut, rmwDataOut)
+              }
+              ins.distinct.foreach { in =>
+                bufferInput(in).foreach { read => read.inAccess.name := "rmwDataOut" }
+              }
+              val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
+              val req = rmwAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
+              val resp = reads.head.out
+              // Some(access -> (req,resp))
+              access -> (Some(req),Some(resp))
+            } else {
+              rmwKeyIDMap += access.key -> (accessid)
+              val req = rmwAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
+              access -> (Some(req),None)
             }
+          case access:SparseRMWData =>
+            access.addr.disconnect
+            val accessid_match = rmwKeyIDMap(access.key)
+            val rmwDataOut = block.fakeRMWRead(accessid_match, idx)
+            val ins = access.out.connected
+            assert(ins.size > 0)
             ins.foreach { in =>
-              swapConnection(in, access.dataOut, rmwDataOut)
+              swapConnection(in, access.out, rmwDataOut)
             }
             ins.distinct.foreach { in =>
               bufferInput(in).foreach { read => read.inAccess.name := "rmwDataOut" }
             }
             val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
-            val req = rmwAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
             val resp = reads.head.out
-            access -> (req,resp)
+            access -> (None,Some(resp))
         }
       }
       free(access)
@@ -176,7 +209,7 @@ trait SparseDRAMLowering extends SparseLowering {
     val hostOutCtx = pirTop.argFringe.collectFirst[HostOutController](visitDown _).ctx.get
     ua.lanes.foreach { access =>
       within(access.srcCtx.get) {
-        val resp = accessReqResp(access)._2
+        val resp = accessReqResp(access)._2.get
         val tokenRead = insertToken(resp.src.ctx.get, hostOutCtx, dep=Some(resp))
         within(hostOutCtx, hostOutCtx.getCtrl) {
           stage(HostRead().input(tokenRead.out))

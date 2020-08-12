@@ -99,7 +99,7 @@ trait SparseParSRAMLowering extends SparseLowering {
             val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
             val req = readAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
             val resp = reads.head.out
-            access -> (req,resp)
+            access -> (Some(req),Some(resp))
           case access:SparseWrite =>
             val (writeAddr, writeData, writeAck) = block.addWritePort(accessid)
             flattenEnable(access) // in write ctx
@@ -119,7 +119,7 @@ trait SparseParSRAMLowering extends SparseLowering {
               read.inAccess.name := "ack"
             }
             val req = writeAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
-            access -> (req,accumAck.out)
+            access -> (Some(req),Some(accumAck.out))
           case access:SparseRMW =>
             val (rmwAddr, rmwDataIn, rmwDataOut) = block.addRMWPort(accessid, access.op, access.opOrder)
             flattenEnable(access) // in write ctx
@@ -146,7 +146,7 @@ trait SparseParSRAMLowering extends SparseLowering {
             val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
             val req = rmwAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
             val resp = reads.head.out
-            access -> (req,resp)
+            access -> (Some(req),Some(resp))
         }
       }
       free(access)

@@ -345,6 +345,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
         case access:InAccess => access.mem.disconnect
         case access:OutAccess => access.out.disconnect
         case access:SparseRMW => access.mem.disconnect; access.dataOut.disconnect
+        case access:SparseRMWData => access.mem.disconnect
         case access:RMWAccess => access.mem.disconnect
       }
       free(access)

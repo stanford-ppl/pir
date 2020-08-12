@@ -11,12 +11,14 @@ trait SparseLowering extends GenericMemoryLowering {
 
   override val invalidAddress = -2
 
-  protected val accessReqResp = mutable.Map[Access, (Input[PIRNode], Output[PIRNode])]()
+  protected val rmwKeyIDMap = mutable.Map[scala.Int, scala.Int]()
+  protected val accessReqResp = mutable.Map[Access, (Option[Input[PIRNode]], Option[Output[PIRNode]])]()
   protected val barrierWrite = mutable.Map[Barrier, mutable.ListBuffer[Access]]()
   protected val barrierRead = mutable.Map[Barrier, mutable.ListBuffer[Access]]()
 
   override def finPass = {
     barrierInsertion
+    rmwKeyIDMap.clear
     accessReqResp.clear
     barrierWrite.clear
     barrierRead.clear
@@ -43,7 +45,7 @@ trait SparseLowering extends GenericMemoryLowering {
       }
       val writes = barrierWrite(barrier)
       val intokens:Iterable[Output[PIRNode]] = writes.map { writer =>
-        val resp = accessReqResp(writer)._2
+        val resp = accessReqResp(writer)._2.get
         insertToken(fctx=resp.src.ctx.get, tctx=barrierCtx, dep=Some(resp)).out
       }
       val merged = within(barrierCtx, barrier.ctrl) {
@@ -53,7 +55,7 @@ trait SparseLowering extends GenericMemoryLowering {
       }
       val reads = barrierRead(barrier)
       reads.foreach { access =>
-        val req = accessReqResp(access)._1
+        val req = accessReqResp(access)._1.get
         val reqctx = req.src.ctx.get
         val token = insertToken(fctx=barrierCtx, tctx=reqctx, dep=Some(merged))
         token.initToken := barrier.init
