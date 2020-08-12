@@ -42,7 +42,6 @@ trait SparseDRAMLowering extends SparseLowering {
     block.mirrorMetas(n)
     dbg(s"accesses=${n.accesses}")
 
-
     if (n.autoBar.get) {
       dbg(s"Perform automatic barrier insertion for $n")
       consistencyBarrier(n.accesses)(dependsOn){ case (from,to,carried,depth) =>
@@ -147,7 +146,6 @@ trait SparseDRAMLowering extends SparseLowering {
               read.inAccess.name := "ack"
             }
             val req = writeAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
-            // Some(access -> (req,accumAck.out))
             access -> (Some(req),Some(accumAck.out))
           case access:SparseRMW =>
             val (rmwAddr, rmwDataIn, rmwDataOut) = block.addRMWPort(accessid, access.op, access.opOrder)
@@ -176,7 +174,6 @@ trait SparseDRAMLowering extends SparseLowering {
               val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
               val req = rmwAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
               val resp = reads.head.out
-              // Some(access -> (req,resp))
               access -> (Some(req),Some(resp))
             } else {
               rmwKeyIDMap += access.key -> (accessid)
