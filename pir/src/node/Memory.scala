@@ -68,6 +68,7 @@ case class LockMem(isDRAM:Boolean=false)(implicit env:Env) extends Memory {
 case class SparseMem(ctrlTree:ControlTree, memType:String="SRAM", dramPar:Int=1)(implicit env:Env) extends Memory {
   val alias = Metadata[DRAM]("alias")
   val autoBar = Metadata[Boolean]("autoBar", default = true)
+  val swizzle = Metadata[Boolean]("swizzle", default = true)
   override def nBanks:Int = banks.get.product
 }
 
@@ -277,6 +278,7 @@ class SparseParBlock(
 
   val dims = Metadata[List[Int]]("dims", default=List(1))
   val alias = Metadata[DRAM]("alias")
+  val swizzle = Metadata[Boolean]("swizzle", default = false)
 
   type ReadPort = (Input[PIRNode], Output[PIRNode])
   type WritePort = (Input[PIRNode], Input[PIRNode], Output[PIRNode])

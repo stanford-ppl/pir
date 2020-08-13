@@ -459,7 +459,7 @@ import spatial.metadata.memory.{Barrier => _,_}
 
     Accel {
       // Test dense read/write and RMW
-      val s1 = SparseParSRAM[T](2, N)
+      val s1 = SparseParSRAM[T](2)(N, false)
       Reduce(out)(N by ts par 2) { i =>
         val forwardBarrier = Barrier[Token](0)
         val backwardBarrier = Barrier[Token](init=1) 
@@ -531,7 +531,7 @@ import spatial.metadata.memory.{Barrier => _,_}
 
     Accel {
       // Test dense read/write and RMW
-      val s1 = SparseParSRAM[T](2, N)
+      val s1 = SparseParSRAM[T](2)(N, false)
       Reduce(out)(N by ts par 2) { i =>
         val forwardBarrier = Barrier[Token](0)
         val backwardBarrier = Barrier[Token](init=1) 

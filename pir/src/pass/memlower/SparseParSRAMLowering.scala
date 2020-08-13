@@ -35,7 +35,7 @@ trait SparseParSRAMLowering extends SparseLowering {
     val block = within(pirTop, ctrl, n.srcCtx.get) {
       val ctx = stage(Context().streaming(true)) 
       within(ctx) {
-        stage(SparseParSRAMBlock(n.dramPar))
+        stage(SparseParSRAMBlock(n.dramPar).swizzle(n.swizzle.get))
       }
     }
     dbg(s"accesses=${n.accesses}")

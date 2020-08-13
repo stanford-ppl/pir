@@ -71,7 +71,7 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
       }
       emitln(s"$name->Push(${nameOf(n.addr.T)}->Read());")
 
-    case n@SparseRMW(op, opOrder, remoteAddr) =>
+    case n@SparseRMW(op, opOrder, remoteAddr, key) =>
       emitln(s"// ${n}")
       val ctrler = getCtrler(n)
       addEscapeVar(n.mem.T)
@@ -105,7 +105,11 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
       val order = assertOneOrLess(orderList.distinct, s"$n RMW order").getOrElse("order")
       n.alias.v match {
         case None =>
-          genTopMember(n, Seq(n.qstr, order.qstr, "NULL", s"NULL", s"make_tuple(&net, &statnet, &idealnet)", s"false"))
+          if (n.swizzle.get) {
+            genTopMember(n, Seq(n.qstr, order.qstr, "NULL", s"NULL", s"make_tuple(&net, &statnet, &idealnet)", s"false", s"true"))
+          } else {
+            genTopMember(n, Seq(n.qstr, order.qstr, "NULL", s"NULL", s"make_tuple(&net, &statnet, &idealnet)", s"false", s"false"))
+          }
         case Some(alias) =>
           assert(false)
       }
