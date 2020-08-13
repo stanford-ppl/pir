@@ -75,7 +75,7 @@ trait SparseDRAMLowering extends SparseLowering {
           case access:SparseRead => false
           case access:SparseRMW => (!access.dataOut.isConnected && access.key < 0)
           case access:SparseWrite => true
-          case access:SparseRMWData => false
+          case access:SparseRMWData => !access.dataOut.isConnected
         }
       }
       accessReqResp ++= lowerAccess(ua, block)
@@ -186,12 +186,21 @@ trait SparseDRAMLowering extends SparseLowering {
             dbg(s"Lower SparseRMWData addr.vec: ${access.addr.inferVec.get}")
             val accessid_match = rmwKeyIDMap(access.key)
             val rmwDataOut = block.fakeRMWRead(accessid_match, idx)
-            access.out.vecMeta.reset
-            access.out.presetVec(access.addr.inferVec.get)
-            val ins = access.out.connected
-            assert(ins.size > 0)
+            access.dataOut.vecMeta.reset
+            access.dataOut.presetVec(access.addr.inferVec.get)
+            var ins = access.dataOut.connected
+            // assert(ins.size > 0)
+            if (ins.size == 0) {
+              val accumAck = within(pirTop, access.getCtrl) {
+                val ctx = stage(Context().name("RMWData_ackAccum"))
+                within(ctx) {
+                  stage(AccumAck().ack(access.dataOut))
+                }
+              }
+              ins = List(accumAck.ack)
+            }
             ins.foreach { in =>
-              swapConnection(in, access.out, rmwDataOut)
+              swapConnection(in, access.dataOut, rmwDataOut)
             }
             ins.distinct.foreach { in =>
               bufferInput(in).foreach { read => read.inAccess.name := "rmwDataOut"; read.vecMeta.reset; read.presetVec(access.addr.inferVec.get) }
@@ -199,7 +208,8 @@ trait SparseDRAMLowering extends SparseLowering {
             val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
             val resp = reads.head.out
             access.addr.disconnect
-            dbg(s"Lower SparseRMWData out vec: ${access.out.inferVec.get}")
+            access.input.disconnect
+            dbg(s"Lower SparseRMWData out vec: ${access.dataOut.inferVec.get}")
             access -> (None,Some(resp))
         }
       }

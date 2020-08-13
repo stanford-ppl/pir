@@ -543,7 +543,7 @@ import spatial.metadata.memory.{Barrier => _,_}
         }
 
         Reduce(Reg[T])(ts by 1 par ip) { j =>
-          s1.RMWData(j, Seq(backwardBarrier.push), 1)
+          s1.RMWData(j, j, Seq(backwardBarrier.push), 1)
         } { _ + _ }
       } { _ + _ }
     }
@@ -583,7 +583,7 @@ import spatial.metadata.memory.{Barrier => _,_}
         }
 
         Reduce(Reg[T])(ts by 1 par ip) { j =>
-          s1.RMWData(j, Seq(backwardBarrier.push), 1)
+          s1.RMWData(j, j, Seq(backwardBarrier.push), 1)
         } { _ + _ }
       } { _ + _ }
     }
@@ -902,6 +902,49 @@ import spatial.metadata.memory.{Barrier => _,_}
 
     val cksum = checkGold[T](out, gold)
     println("PASS: " + cksum + " (OuterScan)")
+    assert(cksum)
+  }
+}
+
+@spatial class SparseDRAMAlias_SepRMW extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+
+  def main(args: Array[String]): Unit = {
+
+    val N = 32
+    val ip = 16
+
+    val dram = DRAM[T](N)
+    //val out = ArgOut[T]
+    setMem(dram, (0 until N) { i => i })
+
+    Accel {
+      // Test dense read/write and RMW
+      val mem = SparseDRAM[T](1)(N)
+      mem.alias = dram
+      Foreach(N by 1 par ip) { i =>
+        mem.RMW(i,
+          i.to[T],
+          op = "add",
+          order = "unordered",
+          bs = Seq(),
+          key = 1)
+      }
+
+      Foreach(N by 1 par ip) { i =>
+        mem.RMWData(i,
+          i.to[T],
+          bs = Seq(),
+          key = 1)
+      }
+    }
+
+    val gold = (0 until N) { i => i+i }
+
+    val cksum = checkGold[T](dram, gold)
+    println("PASS: " + cksum + " (SparseDRAMAlias)")
     assert(cksum)
   }
 }

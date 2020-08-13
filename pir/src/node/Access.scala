@@ -145,10 +145,13 @@ case class SparseRMW(op:String, opOrder:String, remoteAddr:Boolean, key:Int)(imp
   }
 }
 
-case class SparseRMWData(key:Int)(implicit env:Env) extends ReadAccess with SparseAccess {
+case class SparseRMWData(key:Int)(implicit env:Env) extends SparseAccess with RMWAccess {
+  input.disconnect
+  val dataOut = OutputField[List[PIRNode]]
+  override def asOutput = Some(dataOut)
   val forceVec = Metadata[Int]("forceVec", default=16)
   override def compVec(n:IR) = n match {
-    case `out` => Some(forceVec.get)
+    case `dataOut` => Some(forceVec.get)
     case _ => super.compVec(n)
   }
 }
