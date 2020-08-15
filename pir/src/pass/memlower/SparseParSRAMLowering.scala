@@ -162,17 +162,21 @@ trait SparseParSRAMLowering extends SparseLowering {
             // TODO: fixme
             // access.forceVec(access.addr.inferVec.get)
             dbg(s"Lower SparseRMWData addr.vec: ${access.addr.inferVec.get}")
+            flattenEnable(access)
             val accessid_match = rmwKeyIDMap(access.key)
             val rmwDataOut = block.fakeRMWRead(accessid_match, idx)
             access.dataOut.vecMeta.reset
             access.dataOut.presetVec(access.addr.inferVec.get)
+            rmwDataOut.vecMeta.reset
+            rmwDataOut.presetVec(access.addr.inferVec.get)
             val ins = access.dataOut.connected
             assert(ins.size > 0)
             ins.foreach { in =>
               swapConnection(in, access.dataOut, rmwDataOut)
             }
             ins.distinct.foreach { in =>
-              bufferInput(in).foreach { read => read.inAccess.name := "rmwDataOut"; read.out.vecMeta.reset; read.presetVec(access.addr.inferVec.get) }
+              // bufferInput(in).foreach { read => read.inAccess.name := "rmwDataOut"; read.out.vecMeta.reset; read.presetVec(access.addr.inferVec.get) }
+              bufferInput(in).foreach { read => read.inAccess.name := "rmwDataOut"; read.out.vecMeta.reset; read.out.presetVec(access.addr.inferVec.get); read.en.disconnect; read.inAccess.en.disconnect }
             }
             val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
             val resp = reads.head.out

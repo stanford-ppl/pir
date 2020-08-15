@@ -46,7 +46,7 @@ trait SparseLowering extends GenericMemoryLowering {
       val writes = barrierWrite(barrier)
       val intokens:Iterable[Output[PIRNode]] = writes.map { writer =>
         val resp = accessReqResp(writer)._2.get
-        insertToken(fctx=resp.src.ctx.get, tctx=barrierCtx, dep=Some(resp)).out
+        insertToken(fctx=resp.src.ctx.get, tctx=barrierCtx, dep=Some(resp)).depth(barrier.depth).out
       }
       val merged = within(barrierCtx, barrier.ctrl) {
         intokens.reduce[Output[PIRNode]]{ case (out1, out2) =>

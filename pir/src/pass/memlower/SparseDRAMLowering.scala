@@ -58,7 +58,7 @@ trait SparseDRAMLowering extends SparseLowering {
           dbg(s"Insert sparse barrier ${from}->${to}")
           val bar_init = if (carried) 1 else 0
           val ctrl = leastCommonAncesstor(to.getCtrl, from.getCtrl).get 
-          val b = Barrier(ctrl, bar_init).name(s"__auto_bar_${from}_${to}")
+          val b = Barrier(ctrl, bar_init, 16).name(s"__auto_bar_${from}_${to}")
           barrierWrite.getOrElseUpdate(b, mutable.ListBuffer()) += from
           barrierRead.getOrElseUpdate(b, mutable.ListBuffer()) += to
         }
@@ -149,7 +149,7 @@ trait SparseDRAMLowering extends SparseLowering {
             access -> (Some(req),Some(accumAck.out))
           case access:SparseRMW =>
             val (rmwAddr, rmwDataIn, rmwDataOut) = block.addRMWPort(accessid, access.op, access.opOrder)
-            flattenEnable(access) // in write ctx
+            // flattenEnable(access) // in write ctx
             rmwAddr(access.addr.connected)
             rmwDataIn(access.input.connected)
             bufferInput(rmwAddr).foreach { _.name := "rmwAddr" }

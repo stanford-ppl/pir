@@ -95,7 +95,7 @@ using namespace std;
 
     emitln(s"""#include "$topHeader"""")
     emitln(s"""using namespace std;""")
-    emitBSln("void RunAccel()")
+    emitBSln("void RunAccel(const vector<string>& pre, const vector<string>& post)")
     if (!noPlaceAndRoute) {
       val pattern = spadeParam.pattern.as[GridPattern]
       val row = pattern.row
@@ -160,7 +160,9 @@ using namespace std;
     getBuffer("extern-end").foreach { _.flushTo(sw) }
     emitln(s"""Module DUT({$dutArgs}, "DUT");""")
     emitln(s"""REPL repl(&DUT, std::cout);""")
+    emitln(s"""for (auto c : pre) repl.Command(c);""")
     emitln(s"""repl.Command("source script");""")
+    emitln(s"""for (auto c : post) repl.Command(c);""")
     emitln(s"""delete top;""")
     emitBEln
     emitln(s"""#endif /* __DUT_H__ */""")
