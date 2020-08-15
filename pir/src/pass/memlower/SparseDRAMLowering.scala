@@ -183,11 +183,18 @@ trait SparseDRAMLowering extends SparseLowering {
           case access:SparseRMWData =>
             // TODO: fixme
             // access.forceVec(access.addr.inferVec.get)
-            dbg(s"Lower SparseRMWData addr.vec: ${access.addr.inferVec.get}")
+            dbg(s"Lower SparseRMWData addr.vec: ${access.addr.inferVec.get}  input.vec: ${access.input.inferVec.get}")
+            flattenEnable(access)
             val accessid_match = rmwKeyIDMap(access.key)
             val rmwDataOut = block.fakeRMWRead(accessid_match, idx)
             access.dataOut.vecMeta.reset
             access.dataOut.presetVec(access.addr.inferVec.get)
+            rmwDataOut.vecMeta.reset
+            rmwDataOut.presetVec(access.addr.inferVec.get)
+            // access.en.vecMeta.reset
+            // access.en.presetVec(access.addr.inferVec.get)
+            // access.en.vecMeta.reset
+            // access.en.presetVec(access.addr.inferVec.get)
             var ins = access.dataOut.connected
             // assert(ins.size > 0)
             if (ins.size == 0) {
@@ -203,7 +210,8 @@ trait SparseDRAMLowering extends SparseLowering {
               swapConnection(in, access.dataOut, rmwDataOut)
             }
             ins.distinct.foreach { in =>
-              bufferInput(in).foreach { read => read.inAccess.name := "rmwDataOut"; read.vecMeta.reset; read.presetVec(access.addr.inferVec.get) }
+              // bufferInput(in).foreach { read => read.inAccess.name := "rmwDataOut"; read.out.vecMeta.reset; read.out.presetVec(access.addr.inferVec.get); read.en.vecMeta.reset; read.en.presetVec(access.addr.inferVec.get) }
+              bufferInput(in).foreach { read => read.inAccess.name := "rmwDataOut"; read.out.vecMeta.reset; read.out.presetVec(access.addr.inferVec.get); read.en.disconnect; read.inAccess.en.disconnect }
             }
             val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
             val resp = reads.head.out

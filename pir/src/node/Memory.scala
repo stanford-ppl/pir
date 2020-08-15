@@ -344,7 +344,8 @@ class SparseParBlock(
       readPorts(aid)(lane)._1.inferVec
     case n@OutputField(_,"rmwDataOut") => 
       val (aid, lane) = portMap(n.as)
-      rmwPorts(aid)(lane)._2.inferVec
+      // rmwPorts(aid)(lane)._2.inferVec
+      rmwPorts(aid)(lane)._1.inferVec
     case _ => super.compVec(n)
   }
 
@@ -603,7 +604,7 @@ case class DataScanCounter(data: scala.Boolean)(implicit env:Env) extends Counte
     case _ => super.compVec(n) 
   } */
 }
-case class ScanCounter(par:Int, truePar:Int, mode:String, index:Int, prefSum:Boolean)(implicit env:Env) extends Counter {
+case class ScanCounter(par:Int, truePar:Int, mode:String, index:Int, prefSum:Boolean, reduce:Boolean)(implicit env:Env) extends Counter {
   val mask = InputField[PIRNode].presetVec(16) // Replaced with ctrl and idx
 
   val tileCount = InputField[PIRNode].presetVec(1) 
@@ -612,15 +613,15 @@ case class ScanCounter(par:Int, truePar:Int, mode:String, index:Int, prefSum:Boo
   val packCntIdx = InputField[PIRNode]
 
   override def compVec(n:IR) = n match {
-    case `out` => 
-      parent.fold[Option[Int]] { None } { 
-        case parent:LoopController => parent.par.v
-        case parent => None
-      }
+    case `out` => Some(truePar)
+      //parent.fold[Option[Int]] { None } { 
+        //case parent:LoopController => parent.par.v
+        //case parent => None
+      //}
     case _ => super.compVec(n)
   }
 }
-case class ScanCounterDataFollower(par:Int, truePar:Int, index:Int)(implicit env:Env) extends Counter {
+case class ScanCounterDataFollower(par:Int, truePar:Int, index:Int, reduce:Boolean)(implicit env:Env) extends Counter {
   val mask = InputField[PIRNode].presetVec(16) // Replaced with ctrl and idx
 
   val tileCount = InputField[PIRNode].presetVec(1) 

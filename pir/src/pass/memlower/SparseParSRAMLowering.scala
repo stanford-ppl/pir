@@ -172,7 +172,7 @@ trait SparseParSRAMLowering extends SparseLowering {
               swapConnection(in, access.dataOut, rmwDataOut)
             }
             ins.distinct.foreach { in =>
-              bufferInput(in).foreach { read => read.inAccess.name := "rmwDataOut"; read.vecMeta.reset; read.presetVec(access.addr.inferVec.get) }
+              bufferInput(in).foreach { read => read.inAccess.name := "rmwDataOut"; read.out.vecMeta.reset; read.presetVec(access.addr.inferVec.get) }
             }
             val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
             val resp = reads.head.out

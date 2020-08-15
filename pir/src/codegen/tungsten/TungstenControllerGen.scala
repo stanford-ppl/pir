@@ -186,8 +186,10 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
   override def varOf(n:PIRNode):(String, String) = n match {
     case n:SplitController => (s"SplitController",s"$n")
     case n:LoopController => 
-      if (n.cchain.T.exists{ case ctr:ScanCounter => true; case _ => false }) {
-        (s"ScanController<${n.par.get}>",s"$n") 
+      if (n.cchain.T.exists{ case ctr:ScanCounter => ctr.reduce; case _ => false }) {
+        (s"ScanController<${n.par.get}, true>",s"$n") 
+      } else if (n.cchain.T.exists{ case ctr:ScanCounter => true; case _ => false }) {
+        (s"ScanController<${n.par.get}, false>",s"$n") 
       } else if (n.cchain.T.exists{ case ctr:DataScanCounter => true; case _ => false }) {
         (s"ScanController<1>",s"$n") 
       } else {
