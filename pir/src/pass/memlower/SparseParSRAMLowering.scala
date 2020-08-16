@@ -170,7 +170,7 @@ trait SparseParSRAMLowering extends SparseLowering {
             rmwDataOut.vecMeta.reset
             rmwDataOut.presetVec(access.addr.inferVec.get)
             val ins = access.dataOut.connected
-            assert(ins.size > 0)
+            // assert(ins.size > 0)
             ins.foreach { in =>
               swapConnection(in, access.dataOut, rmwDataOut)
             }
