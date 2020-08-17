@@ -149,7 +149,7 @@ trait SparseDRAMLowering extends SparseLowering {
             access -> (Some(req),Some(accumAck.out))
           case access:SparseRMW =>
             val (rmwAddr, rmwDataIn, rmwDataOut) = block.addRMWPort(accessid, access.op, access.opOrder)
-            // flattenEnable(access) // in write ctx
+            flattenEnable(access) // in write ctx
             rmwAddr(access.addr.connected)
             rmwDataIn(access.input.connected)
             bufferInput(rmwAddr).foreach { _.name := "rmwAddr" }

@@ -191,7 +191,8 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
       } else if (n.cchain.T.exists{ case ctr:ScanCounter => true; case _ => false }) {
         (s"ScanController<${n.par.get}, false>",s"$n") 
       } else if (n.cchain.T.exists{ case ctr:DataScanCounter => true; case _ => false }) {
-        (s"ScanController<1>",s"$n") 
+        // (s"ScanController<1, true>",s"$n") 
+        (s"ScanController<1, false>",s"$n") 
       } else {
         (s"LoopController",s"$n") 
       }

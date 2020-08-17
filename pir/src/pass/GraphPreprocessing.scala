@@ -64,7 +64,7 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
           stage(MemWrite().setMem(cntFIFO).data(scanner.cnt))
         }
         val cntRead = within(pirTop, n.getCtrl) {
-          stage(MemRead().setMem(cntFIFO)).done(n.done)
+          stage(MemRead().setMem(cntFIFO).toScanController(true)).done(n.done)
         }
 
         // Assume a fixed number of counters---one for data, one for count
@@ -88,7 +88,7 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
           stage(MemWrite().setMem(indexFIFO).data(scanner.index))
         }
         val indexRead = within(pirTop, n.getCtrl) {
-          stage(MemRead().setMem(indexFIFO))
+          stage(MemRead().setMem(indexFIFO).toScanController(true))
         }
         val dataFIFO = within(pirTop) {
           stage(FIFO().banks(List(1)).name("dataFIFO"))
@@ -97,7 +97,7 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
           stage(MemWrite().setMem(dataFIFO).data(scanner.data))
         }
         val dataRead = within(pirTop, n.getCtrl) {
-          stage(MemRead().setMem(dataFIFO))
+          stage(MemRead().setMem(dataFIFO).toScanController(true))
         }
 
         c0.mask.disconnect
