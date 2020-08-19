@@ -169,8 +169,17 @@ trait SparseParSRAMLowering extends SparseLowering {
             access.dataOut.presetVec(access.addr.inferVec.get)
             rmwDataOut.vecMeta.reset
             rmwDataOut.presetVec(access.addr.inferVec.get)
-            val ins = access.dataOut.connected
+            var ins = access.dataOut.connected
             // assert(ins.size > 0)
+            if (ins.size == 0) {
+              val accumAck = within(pirTop, access.getCtrl) {
+                val ctx = stage(Context().name("RMWData_ackAccum"))
+                within(ctx) {
+                  stage(AccumAck().ack(access.dataOut))
+                }
+              }
+              ins = List(accumAck.ack)
+            }
             ins.foreach { in =>
               swapConnection(in, access.dataOut, rmwDataOut)
             }

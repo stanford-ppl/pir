@@ -315,13 +315,17 @@ trait TungstenMemGen extends TungstenCtxGen {
     case n:BufferRead if isRateMatchingFIFO(n) =>
       (s"RateMatchingTokenFIFO<${n.qtp}, ${fifoDepth*math.max(n.in.getVec, n.out.getVec)}, ${n.in.getVec}, ${n.out.getVec}>", s"fifo_$n") 
     case n:BufferRead =>
-      (s"FIFO<Token, ${fifoDepth}>", s"fifo_$n")
+      if (n.in.getVec == 16) {
+        (s"FIFO<Token, ${fifoDepth}>", s"fifo_$n")
+      } else {
+        (s"FIFO<Token, ${fifoDepth*4}>", s"fifo_$n")
+      }
     case n:TokenRead =>
       (s"FIFO<Token, ${n.getDepth}>", s"fifo_$n")
     case n:LocalInAccess =>
       (s"ValReadyPipeline<Token>", s"pipe_$n")
     case n:FIFO =>
-      (s"FIFO<Token, ${n.depth.get}>", s"$n")
+        (s"FIFO<Token, ${n.depth.get}>", s"$n")
     case n:SRAM =>
       (s"NBufferSRAM<${n.getDepth}, ${n.qtp}, ${n.bankSize}, ${n.nBanks}>", s"$n")
     case n:LUT =>

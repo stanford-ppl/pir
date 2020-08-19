@@ -31,6 +31,7 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
     toBuffer &= noBankedAccess
     toBuffer &= singleWriter //&& singleFIFOReader
     toBuffer &= !mem.nonBlocking.get
+    // toBuffer |= mem.isFIFO && mem.retiming.get //RETIMING FIX
     if (mem.isFIFO && !singleWriter) {
       todo(s"Do not support multiple writers to FIFO on Plasticine yet ${quoteSrcCtx(mem)}")
     }
