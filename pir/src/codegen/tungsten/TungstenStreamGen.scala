@@ -29,11 +29,11 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen with Tungste
       }
       n.lastBit.T.foreach { last =>
         val ctrler = getCtrler(n)
-        val ctrlerEn = s"$ctrler->Enabled()"
+        val ctrlerEn = s"$ctrler.Enabled()"
         last.as[BufferWrite].out.T.foreach { send =>
           addEscapeVar(send)
           genCtxInits {
-            emitln(s"$ctrler->AddOutput(${nameOf(send)});");
+            emitln(s"$ctrler.AddOutput(${nameOf(send)});");
           }
           emitIf(s"last & $ctrlerEn") {
             emitln(s"""${nameOf(send)}->Push(make_token(true));""")
@@ -78,11 +78,11 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen with Tungste
         n.streams.foreach { stream =>
           emitUnVec(stream.T)(s"${stream.T}_vec")
           val ctrler = getCtrler(n)
-          val ctrlerEn = s"$ctrler->Enabled()"
+          val ctrlerEn = s"$ctrler.Enabled()"
           stream.T.as[BufferWrite].out.T.foreach { send =>
             addEscapeVar(send)
             genCtxInits {
-              emitln(s"$ctrler->AddOutput(${nameOf(send)});");
+              emitln(s"$ctrler.AddOutput(${nameOf(send)});");
             }
             emitIf(s"validToken & $ctrlerEn") {
               emitln(s"""${nameOf(send)}->Push(make_token(${stream.T}));""")

@@ -41,6 +41,7 @@ trait TungstenCtxGen extends TungstenTopGen {
         declared.clear
         members.clear
         getBuffer("fields").foreach { _.reset }
+        getBuffer("pre-inits").foreach { _.reset }
         getBuffer("inits").foreach { _.reset }
         getBuffer("computes").foreach { _.reset }
         getBuffer("computes-begin").foreach { _.reset }
@@ -74,10 +75,16 @@ using   namespace std;
             val constructor = s"""${quote(n)}($constructorArgs)"""
             emitln(s"explicit $constructor;")
             genCtxCpp(n) {
-              emitBlock(s"""${quote(n)}::$constructor:Context(${quote(n).qstr},${quote(n.global.get).qstr},${quoteSrcCtx(n,"\\n").qstr})""") {
-                ctxExtVars.foreach { case (tp, field) =>
-                  emitln(s"$field = _$field;")
-                }
+              // emitBlock(s"""${quote(n)}::$constructor :\nContext(${quote(n).qstr},${quote(n.global.get).qstr},${quoteSrcCtx(n,"\\n").qstr})""") {
+              emitln(s"""${quote(n)}::$constructor :\nContext(${quote(n).qstr},${quote(n.global.get).qstr},${quoteSrcCtx(n,"\\n").qstr})""") 
+              ctxExtVars.foreach { case (tp, field) =>
+                emitln(s", $field(_$field)")
+              }
+              getBuffer("pre-inits").foreach { _.flushTo(sw) }
+              emitBlock(s"") {
+                // ctxExtVars.foreach { case (tp, field) =>
+                  // emitln(s"$field = _$field;")
+                // }
                 getBuffer("inits").foreach { _.flushTo(sw) }
               }
             }
@@ -85,7 +92,7 @@ using   namespace std;
             genCtxCpp(n) {
               emitBlock(s"void ${quote(n)}::Clock()") {
                 sortedMembers.foreach { m => 
-                  emitln(s"$m->Clock();")
+                  emitln(s"$m.Clock();")
                 }
               }
             }
@@ -102,7 +109,7 @@ using   namespace std;
                 getBuffer("computes-end").foreach { _.flushTo(sw) }
                 sortedMembers.foreach { m =>
                   if (!m.contains("Controller") && !m.contains("Counter")) {
-                    emitln(s"$m->Eval();")
+                    emitln(s"$m.Eval();")
                   }
                 }
               }
@@ -127,6 +134,8 @@ using   namespace std;
   val ctxExtVars = mutable.ListBuffer[(String, String)]()
 
   final protected def genCtxFields(block: => Unit) = enterBuffer("fields"){ incLevel(1); block; decLevel(1) }
+
+  final protected def genCtxPreInits(block: => Unit) = enterBuffer("pre-inits") { incLevel(1); block; decLevel(1) }
 
   final protected def genCtxInits(block: => Unit) = enterBuffer("inits") { incLevel(1); block; decLevel(1) }
 
@@ -169,8 +178,15 @@ using   namespace std;
       if (end) {
         emitln(s"$tp* $name;")
       } else {
+        emitln(s"$tp $name;")
+        //val fullargs = name.qstr +: args
+        //emitln(s"""$tp* $name = new $tp(${fullargs.mkString(",")});""")
+      }
+    }
+    genCtxPreInits {
+      if (!end) {
         val fullargs = name.qstr +: args
-        emitln(s"""$tp* $name = new $tp(${fullargs.mkString(",")});""")
+        emitln(s", $name(${fullargs.mkString(",")})")
       }
     }
     genCtxInits {
@@ -179,7 +195,7 @@ using   namespace std;
         val fullargs = name.qstr +: args
         emitln(s"$name = new $tp(${fullargs.mkString(",")});")
       }
-      emitln(s"AddChild($name, false);");
+      emitln(s"AddChild(&$name, false);");
     }
   }
 

@@ -43,9 +43,9 @@ trait TungstenMemGen extends TungstenCtxGen {
         }
         val ctrler = getCtrler(n)
         if (n.toScanController.get) {
-          emitln(s"${ctrler}->AddInput(${nameOf(n)}, true);")
+          emitln(s"${ctrler}.AddInput(${nameOf(n)}, true);")
         } else {
-          emitln(s"${ctrler}->AddInput(${nameOf(n)}, false);")
+          emitln(s"${ctrler}.AddInput(${nameOf(n)}, false);")
         }
       }
       emitEn(n.en)
@@ -73,7 +73,7 @@ trait TungstenMemGen extends TungstenCtxGen {
       n.out.T.foreach { send =>
         addEscapeVar(send)
         genCtxInits {
-          emitln(s"${ctrler}->AddOutput(${nameOf(send)});")
+          emitln(s"${ctrler}.AddOutput(${nameOf(send)});")
         }
       }
       genCtxInits {
@@ -101,14 +101,14 @@ trait TungstenMemGen extends TungstenCtxGen {
             case ctrler => getCtrler(n)
           }
           ctrler.foreach { ctrler =>
-            if (withPipe) emitln(s"${ctrler}->AddOutput(${nameOf(send)}, $name);")
-            else emitln(s"${ctrler}->AddOutput(${nameOf(send)});")
+            if (withPipe) emitln(s"${ctrler}.AddOutput(${nameOf(send)}, &$name);")
+            else emitln(s"${ctrler}.AddOutput(${nameOf(send)});")
           }
         }
       }
       declare(n)
       genCtxComputeEnd { // Data of write can be controller.done. So must evaluate data after controller is evaluated
-        val ctrlerEn = s"$ctrler->Enabled()"
+        val ctrlerEn = s"$ctrler.Enabled()"
         emitIf(s"$ctrlerEn") {
           emitEn(n.en)
           emitAssign(n) { i => 
@@ -129,7 +129,7 @@ trait TungstenMemGen extends TungstenCtxGen {
           if (n.isSplit.get) {
             emitln(s"data.done_vec = ${n.done.T.get.as[Controller].childDone.qref};")
           }
-          if (withPipe) emitln(s"$name->Push(data);")
+          if (withPipe) emitln(s"$name.Push(data);")
           else n.out.T.foreach { send =>
             emitln(s"${nameOf(send)}->Push(data);")
           }
@@ -195,11 +195,11 @@ trait TungstenMemGen extends TungstenCtxGen {
       addEscapeVar(mem)
       val ctrler = getCtrler(n)
       genCtxInits {
-        emitln(s"${ctrler}->AddOutput(${name});")
+        emitln(s"${ctrler}.AddOutput(${name});")
       }
       declare(n)
       genCtxComputeEnd {
-        val ctrlerEn = s"$ctrler->Enabled()"
+        val ctrlerEn = s"$ctrler.Enabled()"
         emitIf(s"$ctrlerEn") {
           emitEn(n.en)
           emitAssign(n) { i => 
@@ -224,7 +224,7 @@ trait TungstenMemGen extends TungstenCtxGen {
       emitln(s"""${n.mem.T}->SetupRead(${n.id},make_token(${n.offset.qref}));""")
       genCtxComputeEnd {
         val ctrler = getCtrler(n)
-        val ctrlerEn = s"$ctrler->Enabled()"
+        val ctrlerEn = s"$ctrler.Enabled()"
         emitIf(ctrlerEn) {
           emitln(s"""${n.mem.T}->SetDone(${n.id}, ${n.done.qref});""")
         }
@@ -236,7 +236,7 @@ trait TungstenMemGen extends TungstenCtxGen {
       emitln(s"""${n.mem.T}->Write(${n.id}, make_token(${n.data.qref}), make_token(${n.offset.qref}));""")
       genCtxComputeEnd {
         val ctrler = getCtrler(n)
-        val ctrlerEn = s"$ctrler->Enabled()"
+        val ctrlerEn = s"$ctrler.Enabled()"
         emitIf(ctrlerEn) {
           emitln(s"""${n.mem.T}->SetDone(${n.id}, ${n.done.qref});""")
         }
@@ -248,7 +248,7 @@ trait TungstenMemGen extends TungstenCtxGen {
       emitln(s"""auto $n = ${n.mem.T}->Read("$n");""")
       genCtxComputeEnd {
         val ctrler = getCtrler(n)
-        val ctrlerEn = s"$ctrler->Enabled()"
+        val ctrlerEn = s"$ctrler.Enabled()"
         emitIf(ctrlerEn) {
           emitln(s"""${n.mem.T}->SetDone(${n.id}, ${n.done.qref});""")
         }
@@ -261,7 +261,7 @@ trait TungstenMemGen extends TungstenCtxGen {
       emitln(s"""if (${n.en.qref}) ${n.mem.T}->Write(${n.id}, ${n.data.T});""")
       genCtxComputeEnd {
         val ctrler = getCtrler(n)
-        val ctrlerEn = s"$ctrler->Enabled()"
+        val ctrlerEn = s"$ctrler.Enabled()"
         emitIf(ctrlerEn) {
           emitln(s"""${n.mem.T}->SetDone(${n.id}, ${n.done.qref});""")
         }

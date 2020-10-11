@@ -415,7 +415,7 @@ import spatial.metadata.memory.{Barrier => _,_}
   
   def main(args: Array[String]): Unit = {
 
-    val N = 128
+    val N = 65536
     val ts = 32
     val ip = 16
 
@@ -1055,17 +1055,18 @@ import spatial.metadata.memory.{Barrier => _,_}
       // Test dense read/write and RMW
       val mem = SparseDRAM[T](1)(N)
       mem.alias = dram
-      val fifo = FIFO[T](16)
+      // val fifo = FIFO[T](16).retiming
       Foreach(N by 1 par ip) { i =>
         val elem = mem.RMW(i,
           i.to[T],
           op = "add",
           order = "unordered",
-          bs = Seq())
-        fifo.enq(elem)
+          bs = Seq(), 1)
+        // fifo.enq(elem)
       }
       Reduce(out)(N by 1 par ip) { i =>
-        fifo.deq
+        // fifo.deq
+        mem.RMWData(i, 0, Seq(), 1)
       } { _ + _ }
     }
 

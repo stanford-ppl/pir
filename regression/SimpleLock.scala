@@ -1,5 +1,5 @@
 import spatial.dsl._
-
+/* 
 class SimpleLock_0 extends SimpleLock
 class SimpleLock_1 extends SimpleLock(P=16)
 
@@ -131,4 +131,4 @@ class SimpleLock_1 extends SimpleLock(P=16)
     val cksum = approxEql(result, gold,0)
     assert(cksum)
   }
-}
+}*/

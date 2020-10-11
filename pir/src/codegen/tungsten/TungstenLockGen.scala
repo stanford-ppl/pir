@@ -80,8 +80,8 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
       declareInit(tp, name, init=None);
       genCtxInits {
         emitln(s"$name = ${nameOf(n.mem.T)}->GetWritePorts(${n.id});")
-        emitln(s"${ctrler}->AddOutput(${name}.first);") // (addr input, done output) 
-        emitln(s"${ctrler}->AddOutput(${name}.second);") // (data input)
+        emitln(s"${ctrler}.AddOutput(${name}.first);") // (addr input, done output) 
+        emitln(s"${ctrler}.AddOutput(${name}.second);") // (data input)
       }
       emitln(s"$name.first->Push(${nameOf(n.addr.T)}->Read());")
       emitln(s"$name.second->Push(${nameOf(n.data.T)}->Read());")
@@ -103,7 +103,7 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
       declareInit(tp, name, init=None);
       genCtxInits {
         emitln(s"$name = ${nameOf(n.mem.T)}->GetReadPort(${n.id});")
-        emitln(s"${ctrler}->AddOutput(${name});") // (addr input, data output)
+        emitln(s"${ctrler}.AddOutput(${name});") // (addr input, data output)
       }
       emitln(s"$name->Push(${nameOf(n.addr.T)}->Read());")
 
@@ -120,8 +120,8 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
       }
       genCtxInits {
         emitln(s"""$name = ${nameOf(n.mem.T)}->GetRMWPorts("$rmwOp","",${n.id});""")
-        emitln(s"${ctrler}->AddOutput(${name}.first);") // (addr input, ack)
-        emitln(s"${ctrler}->AddOutput(${name}.second);") // (data)
+        emitln(s"${ctrler}.AddOutput(${name}.first);") // (addr input, ack)
+        emitln(s"${ctrler}.AddOutput(${name}.second);") // (data)
       }
       emitln(s"$name.first->Push(${nameOf(n.addr.T)}->Read());")
       emitln(s"$name.second->Push(${nameOf(n.input.T)}->Read());")
@@ -132,7 +132,8 @@ trait TungstenLockGen extends TungstenCodegen with TungstenCtxGen with TungstenM
         case OutputField(data:LockWrite,"ack") => s"${nameOf(data)}.first"
         case OutputField(data:LockRMW,"ack") => s"${nameOf(data)}.first"
       }
-      genCtxMember("Broadcast<Token>", s"bc_$data", Seq(dataOut, n.out.T.map { nameOf(_) }.qlist), end=true)
+      // genCtxMember("Broadcast<Token>", s"bc_$data", Seq(dataOut, n.out.T.map { nameOf(_) }.qlist), end=true)
+      genCtxMember("Broadcast<Token>", s"bc_$data", Seq(dataOut, n.out.T.map { nameOf(_) }.qlist), end=false)
       genCtxInits {
         n.out.T.foreach { send =>
           addEscapeVar(send)

@@ -42,10 +42,13 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
       addEscapeVar(n.mem.T)
       val (tp, name) = varOf(n)
       declareInit(tp, name, init=None);
+      //genCtxPreInits {
+        //emitln(s", $name(${nameOf(n.mem.T)}->GetWritePorts(${n.id}))")
+      //}
       genCtxInits {
         emitln(s"$name = ${nameOf(n.mem.T)}->GetWritePorts(${n.id});")
-        emitln(s"${ctrler}->AddOutput(${name}.first);") // (addr input, done output) 
-        emitln(s"${ctrler}->AddOutput(${name}.second);") // (data input)
+        emitln(s"${ctrler}.AddOutput(${name}.first);") // (addr input, done output) 
+        emitln(s"${ctrler}.AddOutput(${name}.second);") // (data input)
       }
       emitln(s"$name.first->Push(${nameOf(n.addr.T)}->Read());")
       emitln(s"$name.second->Push(${nameOf(n.data.T)}->Read());")
@@ -65,9 +68,12 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
       addEscapeVar(n.mem.T)
       val (tp, name) = varOf(n)
       declareInit(tp, name, init=None);
+      //genCtxPreInits {
+        //emitln(s", $name(${nameOf(n.mem.T)}->GetReadPort(${n.id}))")
+      //}
       genCtxInits {
         emitln(s"$name = ${nameOf(n.mem.T)}->GetReadPort(${n.id});")
-        emitln(s"${ctrler}->AddOutput(${name});") // (addr input, data output)
+        emitln(s"${ctrler}.AddOutput(${name});") // (addr input, data output)
       }
       emitln(s"$name->Push(${nameOf(n.addr.T)}->Read());")
 
@@ -77,10 +83,13 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
       addEscapeVar(n.mem.T)
       val (tp, name) = varOf(n)
       declareInit(tp, name, init=None);
+      //genCtxPreInits {
+        //emitln(s""", $name(${nameOf(n.mem.T)}->GetRMWPorts("$op","$opOrder",${n.id}))""")
+      //}
       genCtxInits {
         emitln(s"""$name = ${nameOf(n.mem.T)}->GetRMWPorts("$op","$opOrder",${n.id});""")
-        emitln(s"${ctrler}->AddOutput(${name}.first);") // (addr input, ack)
-        emitln(s"${ctrler}->AddOutput(${name}.second);") // (data)
+        emitln(s"${ctrler}.AddOutput(${name}.first);") // (addr input, ack)
+        emitln(s"${ctrler}.AddOutput(${name}.second);") // (data)
       }
       emitln(s"$name.first->Push(${nameOf(n.addr.T)}->Read());")
       emitln(s"$name.second->Push(${nameOf(n.input.T)}->Read());")
@@ -91,11 +100,15 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
         case OutputField(data:SparseWrite,"ack") => s"${nameOf(data)}.first"
         case OutputField(data:SparseRMW,"dataOut") => s"${nameOf(data)}.first"
       }
-      genCtxMember("Broadcast<Token>", s"bc_$data", Seq(dataOut, n.out.T.map { nameOf(_) }.qlist), end=true)
+      // genCtxMember("Broadcast<Token>", s"bc_$data", Seq(dataOut, n.out.T.map { nameOf(_) }.qlist), end=true)
+      // genCtxMember("Broadcast<Token>", s"bc_$data", Seq(dataOut, n.out.T.map { "_"+nameOf(_) }.qlist), end=false)
+      genCtxMember("Broadcast<Token>", s"bc_$data", Seq(), end=false)
       genCtxInits {
         n.out.T.foreach { send =>
           addEscapeVar(send)
         }
+        emitln(s"bc_$data.SetIn($dataOut);")
+        emitln(s"bc_$data.AddTo(${n.out.T.map { nameOf(_) }.qlist});")
       }
 
     case n:SparseMem if n.memType == "SRAM" => genTopMember(n, Seq(n.qstr))
@@ -133,7 +146,7 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
       n.alias.v match {
         case None =>
           genTopFields {
-            emitln(s"${n.qtp}* ${n}_data = (${n.qtp}*) malloc(sizeof(${n.qtp}) * ${n.dims.get.product} + ${spadeParam.burstSizeByte});")
+            emitln(s"${n.qtp}* ${n}_data = (${n.qtp}*) calloc(sizeof(${n.qtp}) * ${n.dims.get.product}, ${spadeParam.burstSizeByte});")
           }
           genTopMember(n, Seq(n.qstr, order.qstr, "&DRAM", s"${n}_data", s"make_tuple(&net, &statnet, &idealnet)", s"false"))
         case Some(alias) =>
