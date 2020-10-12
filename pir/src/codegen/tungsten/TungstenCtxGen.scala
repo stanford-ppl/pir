@@ -68,10 +68,10 @@ using   namespace std;
             emitln(s"public:")
             getBuffer("fields").foreach { _.flushTo(sw) }
             ctxExtVars.foreach { case (tp, field) => 
-              emitln(s"$tp* $field;")
+              emitln(s"$tp& $field;")
             }
             emitln(s"public:")
-            val constructorArgs = ctxExtVars.map { case (tp, field) => s"$tp* _$field" }.mkString(",")
+            val constructorArgs = ctxExtVars.map { case (tp, field) => s"$tp& _$field" }.mkString(",")
             val constructor = s"""${quote(n)}($constructorArgs)"""
             emitln(s"explicit $constructor;")
             genCtxCpp(n) {
@@ -120,7 +120,8 @@ using   namespace std;
         genTop {
           emitln(s"""#include "${quote(n)}.h"""")
         }
-        genTopMember(n, ctxExtVars.map { _._2 }.map { _.& }, end=true)
+        // genTopMember(n, ctxExtVars.map { _._2 }.map { _.& }, end=true)
+        genTopMember(n, ctxExtVars.map { _._2 }, end=true)
       }
 
     case n => super.emitNode(n)

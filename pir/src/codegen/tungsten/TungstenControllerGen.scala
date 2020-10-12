@@ -65,7 +65,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
         }
         n.to[LoopController].foreach { n =>
           n.stopWhen.T.foreach { stop =>
-            emitln(s"$n.SetStop(${nameOf(stop)});")
+            emitln(s"$n.SetStop(&${nameOf(stop)});")
           }
         }
       }

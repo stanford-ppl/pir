@@ -26,6 +26,7 @@ trait TungstenMemGen extends TungstenCtxGen {
   override def emitNode(n:N) = n match {
     case n:LocalOutAccess =>
       val (tp, name) = varOf(n)
+      declareInit("bool", s"${name}_loaded", Some("false"))
       genTopMember(n, Seq(n.qstr))
       addEscapeVar(n)
       genCtxInits {
@@ -38,33 +39,37 @@ trait TungstenMemGen extends TungstenCtxGen {
             s"(${n.qtp}) $initVal"
           }
           (0 until n.initToken.get).foreach { i =>
-            emitln(s"$name->Init(make_token($init));")
+            emitln(s"$name.Init(make_token($init));")
           }
         }
         val ctrler = getCtrler(n)
         if (n.toScanController.get) {
-          emitln(s"${ctrler}.AddInput(${nameOf(n)}, true);")
+          emitln(s"${ctrler}.AddInput(&${nameOf(n)}, true);")
         } else {
-          emitln(s"${ctrler}.AddInput(${nameOf(n)}, false);")
+          emitln(s"${ctrler}.AddInput(&${nameOf(n)}, false);")
         }
       }
       emitEn(n.en)
       if (n.isFIFO) {
-        emitln(s"$name->SetReadEn(${n.en.qref});")
+        emitln(s"$name.SetReadEn(${n.en.qref});")
       }
       genCtxInits {
         emitln(s"// Initialize $n")
         emitVec(n) { i => n.getTp.qinitType }
       }
-      emitIf(s"$name->Valid()") {
+      val loadConds = if (n.isFIFO) List(s"!${name}_loaded", n.en.qany, s"${name}.Valid()") else List(s"!${name}_loaded", s"${name}.Valid()") 
+      // emitIf(s"!${name}_loaded && $name.Valid()") {
+      emitIf(loadConds.mkString(" && ")) {
+        emitln(s"${name}_loaded = true;")
         emitAssign(n) { i =>
-          s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
+          s"toT<${n.qtp}>($name.Read(), ${i.getOrElse(0)})" 
         }
       }
       genCtxComputeEnd {
         val cond = if (n.isFIFO) List(n.done.qref, n.en.qany) else List(n.done.qref)
         emitIf(cond.mkString(" && ")) {
-          emitln(s"$name->Pop();")
+          emitln(s"${name}_loaded = false;")
+          emitln(s"$name.Pop();")
         }
       }
 
@@ -73,11 +78,11 @@ trait TungstenMemGen extends TungstenCtxGen {
       n.out.T.foreach { send =>
         addEscapeVar(send)
         genCtxInits {
-          emitln(s"${ctrler}.AddOutput(${nameOf(send)});")
+          emitln(s"${ctrler}.AddOutput(&${nameOf(send)});")
         }
       }
       genCtxInits {
-        emitln(s"""${data.mem.T}->SetSends(${data.id}, ${n.out.T.map { nameOf(_) }.qlist});""")
+        emitln(s"""${data.mem.T}.SetSends(${data.id}, ${n.out.T.map { nameOf(_).& }.qlist});""")
       }
 
     case n:LocalInAccess =>
@@ -101,8 +106,8 @@ trait TungstenMemGen extends TungstenCtxGen {
             case ctrler => getCtrler(n)
           }
           ctrler.foreach { ctrler =>
-            if (withPipe) emitln(s"${ctrler}.AddOutput(${nameOf(send)}, &$name);")
-            else emitln(s"${ctrler}.AddOutput(${nameOf(send)});")
+            if (withPipe) emitln(s"${ctrler}.AddOutput(&${nameOf(send)}, &$name);")
+            else emitln(s"${ctrler}.AddOutput(&${nameOf(send)});")
           }
         }
       }
@@ -131,7 +136,7 @@ trait TungstenMemGen extends TungstenCtxGen {
           }
           if (withPipe) emitln(s"$name.Push(data);")
           else n.out.T.foreach { send =>
-            emitln(s"${nameOf(send)}->Push(data);")
+            emitln(s"${nameOf(send)}.Push(data);")
           }
         }
       }
@@ -169,23 +174,26 @@ trait TungstenMemGen extends TungstenCtxGen {
       val mem = n.mem.T
       addEscapeVar(mem)
       val (tp, name) = varOf(mem)
+      declareInit("bool", s"${name}_loaded", Some("false"))
       val ctrler = getCtrler(n)
       genCtxInits {
-        emitln(s"${ctrler}->AddInput(${name});")
+        emitln(s"${ctrler}->AddInput(&${name});")
       }
       emitEn(n.en)
       if (n.en.isConnected) {
-        emitln(s"$name->SetReadEn(${n.en.qref});")
+        emitln(s"$name.SetReadEn(${n.en.qref});")
       }
-      emitIf(s"$name->Valid()") {
+      emitIf(s"!${name}_loaded && $name.Valid() && ${n.en.qany}") {
+        emitln(s"${name}_loaded = true;")
         emitVec(n) { i =>
-          s"toT<${n.qtp}>($name->Read(), ${i.getOrElse(0)})" 
+          s"toT<${n.qtp}>($name.Read(), ${i.getOrElse(0)})" 
         }
       }
       genCtxComputeEnd {
         val cond = List(n.done.qref, n.en.qany)
         emitIf(cond.mkString(" && ")) {
-          emitln(s"$name->Pop();")
+          emitln(s"${name}_loaded = false;")
+          emitln(s"$name.Pop();")
         }
       }
 
@@ -195,7 +203,7 @@ trait TungstenMemGen extends TungstenCtxGen {
       addEscapeVar(mem)
       val ctrler = getCtrler(n)
       genCtxInits {
-        emitln(s"${ctrler}.AddOutput(${name});")
+        emitln(s"${ctrler}.AddOutput(&${name});")
       }
       declare(n)
       genCtxComputeEnd {
@@ -214,43 +222,43 @@ trait TungstenMemGen extends TungstenCtxGen {
           } else {
             emitln(s"set_token_en(data, ${n.en.qref});")
           }
-          emitln(s"${name}->Push(data);")
+          emitln(s"${name}.Push(data);")
         }
       }
 
     case n:FlatBankedRead =>
       emitln(s"// ${n}")
       addEscapeVar(n.mem.T)
-      emitln(s"""${n.mem.T}->SetupRead(${n.id},make_token(${n.offset.qref}));""")
+      emitln(s"""${n.mem.T}.SetupRead(${n.id},make_token(${n.offset.qref}));""")
       genCtxComputeEnd {
         val ctrler = getCtrler(n)
         val ctrlerEn = s"$ctrler.Enabled()"
         emitIf(ctrlerEn) {
-          emitln(s"""${n.mem.T}->SetDone(${n.id}, ${n.done.qref});""")
+          emitln(s"""${n.mem.T}.SetDone(${n.id}, ${n.done.qref});""")
         }
       }
 
     case n:FlatBankedWrite =>
       emitln(s"// ${n}")
       addEscapeVar(n.mem.T)
-      emitln(s"""${n.mem.T}->Write(${n.id}, make_token(${n.data.qref}), make_token(${n.offset.qref}));""")
+      emitln(s"""${n.mem.T}.Write(${n.id}, make_token(${n.data.qref}), make_token(${n.offset.qref}));""")
       genCtxComputeEnd {
         val ctrler = getCtrler(n)
         val ctrlerEn = s"$ctrler.Enabled()"
         emitIf(ctrlerEn) {
-          emitln(s"""${n.mem.T}->SetDone(${n.id}, ${n.done.qref});""")
+          emitln(s"""${n.mem.T}.SetDone(${n.id}, ${n.done.qref});""")
         }
       }
 
     case n:MemRead =>
       emitln(s"// ${n}")
       addEscapeVar(n.mem.T)
-      emitln(s"""auto $n = ${n.mem.T}->Read("$n");""")
+      emitln(s"""auto $n = ${n.mem.T}.Read("$n");""")
       genCtxComputeEnd {
         val ctrler = getCtrler(n)
         val ctrlerEn = s"$ctrler.Enabled()"
         emitIf(ctrlerEn) {
-          emitln(s"""${n.mem.T}->SetDone(${n.id}, ${n.done.qref});""")
+          emitln(s"""${n.mem.T}.SetDone(${n.id}, ${n.done.qref});""")
         }
       }
 
@@ -258,12 +266,12 @@ trait TungstenMemGen extends TungstenCtxGen {
       emitln(s"// ${n}")
       addEscapeVar(n.mem.T)
       emitEn(n.en)
-      emitln(s"""if (${n.en.qref}) ${n.mem.T}->Write(${n.id}, ${n.data.T});""")
+      emitln(s"""if (${n.en.qref}) ${n.mem.T}.Write(${n.id}, ${n.data.T});""")
       genCtxComputeEnd {
         val ctrler = getCtrler(n)
         val ctrlerEn = s"$ctrler.Enabled()"
         emitIf(ctrlerEn) {
-          emitln(s"""${n.mem.T}->SetDone(${n.id}, ${n.done.qref});""")
+          emitln(s"""${n.mem.T}.SetDone(${n.id}, ${n.done.qref});""")
         }
       }
 

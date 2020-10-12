@@ -46,12 +46,12 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
         //emitln(s", $name(${nameOf(n.mem.T)}->GetWritePorts(${n.id}))")
       //}
       genCtxInits {
-        emitln(s"$name = ${nameOf(n.mem.T)}->GetWritePorts(${n.id});")
+        emitln(s"$name = ${nameOf(n.mem.T)}.GetWritePorts(${n.id});")
         emitln(s"${ctrler}.AddOutput(${name}.first);") // (addr input, done output) 
         emitln(s"${ctrler}.AddOutput(${name}.second);") // (data input)
       }
-      emitln(s"$name.first->Push(${nameOf(n.addr.T)}->Read());")
-      emitln(s"$name.second->Push(${nameOf(n.data.T)}->Read());")
+      emitln(s"$name.first->Push(${nameOf(n.addr.T)}.Read());")
+      emitln(s"$name.second->Push(${nameOf(n.data.T)}.Read());")
       genCtxComputeEnd {
         if (!n.ack.isConnected) {
           // If ack is not used, i.e. write is not the last access that need to release lock, than
@@ -72,10 +72,10 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
         //emitln(s", $name(${nameOf(n.mem.T)}->GetReadPort(${n.id}))")
       //}
       genCtxInits {
-        emitln(s"$name = ${nameOf(n.mem.T)}->GetReadPort(${n.id});")
+        emitln(s"$name = ${nameOf(n.mem.T)}.GetReadPort(${n.id});")
         emitln(s"${ctrler}.AddOutput(${name});") // (addr input, data output)
       }
-      emitln(s"$name->Push(${nameOf(n.addr.T)}->Read());")
+      emitln(s"$name->Push(${nameOf(n.addr.T)}.Read());")
 
     case n@SparseRMW(op, opOrder, remoteAddr, key) =>
       emitln(s"// ${n}")
@@ -87,12 +87,12 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
         //emitln(s""", $name(${nameOf(n.mem.T)}->GetRMWPorts("$op","$opOrder",${n.id}))""")
       //}
       genCtxInits {
-        emitln(s"""$name = ${nameOf(n.mem.T)}->GetRMWPorts("$op","$opOrder",${n.id});""")
+        emitln(s"""$name = ${nameOf(n.mem.T)}.GetRMWPorts("$op","$opOrder",${n.id});""")
         emitln(s"${ctrler}.AddOutput(${name}.first);") // (addr input, ack)
         emitln(s"${ctrler}.AddOutput(${name}.second);") // (data)
       }
-      emitln(s"$name.first->Push(${nameOf(n.addr.T)}->Read());")
-      emitln(s"$name.second->Push(${nameOf(n.input.T)}->Read());")
+      emitln(s"$name.first->Push(${nameOf(n.addr.T)}.Read());")
+      emitln(s"$name.second->Push(${nameOf(n.input.T)}.Read());")
 
     case WithData(n:BufferWrite, data:SparseAccess) => // SparseRead.out or SparseWrite.ack
       val dataOut = n.data.singleConnected.get match {
@@ -108,7 +108,7 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
           addEscapeVar(send)
         }
         emitln(s"bc_$data.SetIn($dataOut);")
-        emitln(s"bc_$data.AddTo(${n.out.T.map { nameOf(_) }.qlist});")
+        emitln(s"bc_$data.AddTo(${n.out.T.map { nameOf(_).& }.qlist});")
       }
 
     case n:SparseMem if n.memType == "SRAM" => genTopMember(n, Seq(n.qstr))

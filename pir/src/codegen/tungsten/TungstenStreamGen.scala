@@ -33,10 +33,10 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen with Tungste
         last.as[BufferWrite].out.T.foreach { send =>
           addEscapeVar(send)
           genCtxInits {
-            emitln(s"$ctrler.AddOutput(${nameOf(send)});");
+            emitln(s"$ctrler.AddOutput(&${nameOf(send)});");
           }
           emitIf(s"last & $ctrlerEn") {
-            emitln(s"""${nameOf(send)}->Push(make_token(true));""")
+            emitln(s"""${nameOf(send)}.Push(make_token(true));""")
             emitln(s"$file.close();")
           }
         }
@@ -82,10 +82,10 @@ trait TungstenStreamGen extends TungstenCodegen with TungstenCtxGen with Tungste
           stream.T.as[BufferWrite].out.T.foreach { send =>
             addEscapeVar(send)
             genCtxInits {
-              emitln(s"$ctrler.AddOutput(${nameOf(send)});");
+              emitln(s"$ctrler.AddOutput(&${nameOf(send)});");
             }
             emitIf(s"validToken & $ctrlerEn") {
-              emitln(s"""${nameOf(send)}->Push(make_token(${stream.T}));""")
+              emitln(s"""${nameOf(send)}.Push(make_token(${stream.T}));""")
             }
           }
         }
