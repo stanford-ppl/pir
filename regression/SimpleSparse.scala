@@ -798,7 +798,9 @@ import spatial.metadata.memory.{Barrier => _,_}
   }
 }
 
-@spatial class SimpleScan extends SpatialTest {
+@spatial abstract class SimpleScan(
+  par:scala.Int = 1
+) extends SpatialTest {
   override def runtimeArgs: Args = "32"
   type T = Int
   val N = 32
@@ -819,7 +821,7 @@ import spatial.metadata.memory.{Barrier => _,_}
           val mask = sram(j)
           fifo.enq(mask)
         }
-        Reduce(Reg[T])(Scan(1, 512, "or", fifo.deq)) { case List(j, xA) =>
+        Reduce(Reg[T])(Scan(par, 512, "or", fifo.deq)) { case List(j, xA) =>
           j.to[T]
         } { _ + _ }
       } { _ + _ }
@@ -851,8 +853,15 @@ import spatial.metadata.memory.{Barrier => _,_}
   }
 }
 
+class SimpleScan_1 extends SimpleScan(par=1)
+class SimpleScan_2 extends SimpleScan(par=2)
+class SimpleScan_4 extends SimpleScan(par=4)
+class SimpleScan_16 extends SimpleScan(par=16)
+
 // Spatial Bug: Using scan iterator == 0 in reduce is incorrect!
-@spatial abstract class OuterScan extends SpatialTest {
+@spatial abstract class OuterScan(
+  par:scala.Int = 1
+) extends SpatialTest {
   override def runtimeArgs: Args = "32"
   type T = Int
   val N = 32
@@ -873,9 +882,9 @@ import spatial.metadata.memory.{Barrier => _,_}
           val mask = sram(j)
           fifo.enq(mask)
         }
-        Reduce(Reg[T])(Scan(1, 512, "or", fifo.deq)) { case List(j, xA) =>
-          Reduce(Reg[T])(10 by 1) { _ =>
-            j.to[T]
+        Reduce(Reg[T])(Scan(par, 512, "or", fifo.deq)) { case List(j, xA) =>
+          Reduce(Reg[T])(16 by 1 par 16) { x =>
+            x + j.to[T]
           } { _ + _ }
         } { _ + _ }
       } { _ + _ }
@@ -891,10 +900,10 @@ import spatial.metadata.memory.{Barrier => _,_}
       val nonZero = mask.count { _ == '1' }
       val sum = mask.zipWithIndex.map { case (char, k) =>
         val idx = char match {
-          case '1' => k
+          case '1' => k*16 + (15*8)
           case _ => 0
         }
-        idx * 10
+        idx 
       }.sum
       Console.println(s"nonZero=$nonZero, partial sum $sum")
       sum
@@ -905,6 +914,10 @@ import spatial.metadata.memory.{Barrier => _,_}
     assert(cksum)
   }
 }
+
+class OuterScan_1 extends OuterScan(par=1)
+class OuterScan_2 extends OuterScan(par=2)
+class OuterScan_4 extends OuterScan(par=4)
 
 @spatial class SparseDRAMAlias_SepRMW extends SpatialTest {
   override def runtimeArgs: Args = "32"
@@ -1057,7 +1070,8 @@ import spatial.metadata.memory.{Barrier => _,_}
       mem.alias = dram
       // val fifo = FIFO[T](16).retiming
       Foreach(N by 1 par ip) { i =>
-        val elem = mem.RMW(i,
+        // val elem = mem.RMW(i,
+        mem.RMW(i,
           i.to[T],
           op = "add",
           order = "unordered",

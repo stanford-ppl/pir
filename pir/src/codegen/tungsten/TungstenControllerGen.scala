@@ -129,9 +129,11 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case n@CounterIter(is) =>
       n.counter.T match {
         case ctr:ScanCounter =>
-          emitUnVec(n) { s"$ctr.Iters()" }
+          // emitUnVec(n) { s"$ctr.Iters()" }
+          emitVec(n, is.map { i => s"$ctr.Iters()[$i]" })
         case ctr:ScanCounterDataFollower =>
-          emitUnVec(n) { s"$ctr.Iters()" }
+          // emitUnVec(n) { s"$ctr.Iters()" }
+          emitVec(n, is.map { i => s"$ctr.Iters()[$i]" })
         case ctr:DataScanCounter =>
           emitUnVec(n) { s"$ctr.Iters()" }
         case ctr =>

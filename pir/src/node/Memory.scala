@@ -613,11 +613,12 @@ case class ScanCounter(par:Int, truePar:Int, mode:String, index:Int, prefSum:Boo
   val packCntIdx = InputField[PIRNode]
 
   override def compVec(n:IR) = n match {
-    case `out` => Some(truePar)
-      //parent.fold[Option[Int]] { None } { 
-        //case parent:LoopController => parent.par.v
-        //case parent => None
-      //}
+    // case `out` => Some(truePar)
+    case `out` => 
+      parent.fold[Option[Int]] { None } { 
+        case parent:LoopController => parent.par.v
+        case parent => None
+      }
     case _ => super.compVec(n)
   }
 }
@@ -644,7 +645,7 @@ case class CounterIter(is:List[Int])(implicit env:Env) extends Def {
   out.tp(Fix(true, 32, 0))
   override def compVec(n:IR) = {
     counter.T match {
-      case ctr:ScanCounter => counter.singleConnected.get.inferVec
+      // case ctr:ScanCounter => counter.singleConnected.get.inferVec
       case ctr => Some(is.size)
     }
   }
