@@ -7,19 +7,6 @@ import prism.graph.implicits._
 import scala.collection.mutable
 
 class RMWSplitter(implicit compiler:PIR) extends PIRTraversal with BFSBottomUpTopologicalTraversal with UnitTraversal with PIRTransformer {
-  // Start by visiting every RMW access
-  // Stage a new output context
-  // Trace the outputs, and send them to the new context
-
-  //def getDeps(n:N):List[N] = {
-    // dbg(s"depeds = ${n.depeds.map { deped => (deped, isLive(deped)) }}")
-    // depFunc(n)
-  //}
-  //
-  //override def visitOut(n:N):List[N] = n match {
-  //}
-  // def traverseNodes(ns: => List[pir.node.PIRNode],zero: Unit): Unit = {
-  // }
   
   val forward:Boolean = true
   val ctxMap = mutable.Map[ControlTree, Context]() 
@@ -50,8 +37,6 @@ class RMWSplitter(implicit compiler:PIR) extends PIRTraversal with BFSBottomUpTo
             val ctx = within(parent, ctrl) { 
               ctxMap.getOrElseUpdate(ctrl, stage(Context().srcCtx.update(ctrl.srcCtx.v)))
             }
-            // val belowParent = n.ancestorSlice(parent).dropRight(1).last
-            // dbg(s"$n parent=$parent, ctx=$ctx belowParent=$belowParent")
             dbg(s"$n parent=$parent, ctx=$ctx")
             swapParent(n, ctx)
           }
