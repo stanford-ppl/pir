@@ -14,6 +14,7 @@ trait PIRApp extends PIR with Logging {
   lazy val pirgenStaging = new SpatialPIRGenStaging()
   lazy val deadCodeEliminator = new DeadCodeElimination()
   lazy val rewriter = new RewriteTransformer()
+  lazy val rmwSplitter = new RMWSplitter()
   lazy val memLowering = new MemoryLowering()
   lazy val dramBarrierInsertion = new DRAMBarrierInsertion()
   lazy val contextAnalyzer = new ContextAnalyzer()
@@ -81,6 +82,7 @@ trait PIRApp extends PIR with Logging {
     addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx3.dot")) ==>
     addPass(targetInitializer) ==>
     addPass(new ParamHtmlIRPrinter(s"param.html", pirenv.spadeParam)) ==>
+    addPass(rmwSplitter) ==>
     addPass(memLowering).dependsOn(targetInitializer) ==>
     addPass(dramBarrierInsertion) ==>
     addPass(enableVerboseDot, new PIRTopDotGen(s"top4.dot")) ==>

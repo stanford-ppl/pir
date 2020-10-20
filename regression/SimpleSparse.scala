@@ -1071,16 +1071,21 @@ class OuterScan_4 extends OuterScan(par=4)
       // val fifo = FIFO[T](16).retiming
       Foreach(N by 1 par ip) { i =>
         // val elem = mem.RMW(i,
-        mem.RMW(i,
+        /*mem.RMW(i,
           i.to[T],
           op = "add",
           order = "unordered",
-          bs = Seq(), 1)
+          bs = Seq(), 1)*/
         // fifo.enq(elem)
       }
       Reduce(out)(N by 1 par ip) { i =>
         // fifo.deq
-        mem.RMWData(i, 0, Seq(), 1)
+        //mem.RMWData(i, 0, Seq(), 1)
+        mem.RMW(i,
+          i.to[T],
+          op = "add",
+          order = "unordered",
+          bs = Seq())
       } { _ + _ }
     }
 
