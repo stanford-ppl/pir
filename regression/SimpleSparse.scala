@@ -539,11 +539,12 @@ import spatial.metadata.memory.{Barrier => _,_}
           s1.barrierWrite(i+j, i+j, Seq(forwardBarrier.push, backwardBarrier.pop))
         }
         Foreach (ts by 1 par ip) { j =>
-          s1.RMW(i+j, 0, "read", "unordered", Seq(forwardBarrier.pop), 1)
+          // s1.RMW(i+j, 0, "read", "unordered", Seq(forwardBarrier.pop), 1)
         }
 
         Reduce(Reg[T])(ts by 1 par ip) { j =>
-          s1.RMWData(j, j, Seq(backwardBarrier.push), 1)
+          // s1.RMWData(j, j, Seq(backwardBarrier.push), 1)
+          s1.RMW(i+j, 0, "read", "unordered", Seq(forwardBarrier.pop))
         } { _ + _ }
       } { _ + _ }
     }
@@ -579,11 +580,12 @@ import spatial.metadata.memory.{Barrier => _,_}
           s1.barrierWrite(i+j, i+j, Seq(forwardBarrier.push, backwardBarrier.pop))
         }
         Foreach (ts by 1 par ip) { j =>
-          s1.RMW(i+j, 0, "read", "unordered", Seq(forwardBarrier.pop), 1)
+          // s1.RMW(i+j, 0, "read", "unordered", Seq(forwardBarrier.pop), 1)
         }
 
         Reduce(Reg[T])(ts by 1 par ip) { j =>
-          s1.RMWData(j, j, Seq(backwardBarrier.push), 1)
+          // s1.RMWData(j, j, Seq(backwardBarrier.push), 1)
+          s1.RMW(i+j, 0, "read", "unordered", Seq(forwardBarrier.pop))
         } { _ + _ }
       } { _ + _ }
     }
@@ -938,19 +940,12 @@ class OuterScan_4 extends OuterScan(par=4)
       val mem = SparseDRAM[T](1)(N)
       mem.alias = dram
       Foreach(N by 1 par ip) { i =>
-        mem.RMW(i,
-          i.to[T],
-          op = "add",
-          order = "unordered",
-          bs = Seq(),
-          key = 1)
+        // mem.RMW(i, i.to[T], op = "add", order = "unordered", bs = Seq(), key = 1)
       }
 
       Foreach(N by 1 par ip) { i =>
-        mem.RMWData(i,
-          i.to[T],
-          bs = Seq(),
-          key = 1)
+        // mem.RMWData(i, i.to[T], bs = Seq(), key = 1)
+        mem.RMW(i, i.to[T], op = "add", order = "unordered", bs = Seq())
       }
     }
 

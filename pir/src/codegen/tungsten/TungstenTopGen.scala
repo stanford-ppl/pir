@@ -106,7 +106,7 @@ using namespace std;
     }
     // genTopMember("StaticNetwork<4, 1>", "statnet", Seq("statnet".qstr), end=false, extern=true, escape=true)
     genTopMember("StaticNetwork2", "statnet", Seq("statnet".qstr, "1", "2"), end=false, extern=true, escape=true)
-    genTopMember("IdealNetwork<2>", "idealnet", Seq("idealnet".qstr), end=false, extern=true, escape=true)
+    genTopMember("IdealNetwork", "idealnet", Seq("idealnet".qstr), end=false, extern=true, escape=true)
     genTopMember("NetworkLinkManager", "netman", Seq("netman".qstr), end=false, extern=true, escape=true)
     genTopCpp {
       emitln(s"""#include "$topHeader"""")
