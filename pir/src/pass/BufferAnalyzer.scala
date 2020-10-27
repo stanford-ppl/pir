@@ -72,6 +72,10 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     }
   }
 
+  def bufferOutputMulti(out:Output[PIRNode])(implicit file:sourcecode.File, line: sourcecode.Line) = {
+    insertBuffers(out, out.connected.distinct)
+  }
+
   private def visitInEdges(n:Node[PIRNode]):List[Input[PIRNode]] = n match {
     case n:BufferRead => List(n.in)
     case n:BufferWrite => List(n.data)
@@ -82,6 +86,62 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
 
   def canReach(in:Input[PIRNode], out:Output[PIRNode]) = {
     in.canReach(out, visitEdges=visitInEdges _)
+  }
+
+  protected def insertBuffers(
+    depOut:Output[PIRNode], 
+    depedIns:List[Input[PIRNode]], 
+    param:BufferParam = BufferParam(),
+  )(implicit file:sourcecode.File, line: sourcecode.Line) = {
+    val dep = depOut.src
+    val anyEscape = depedIns.exists { deped =>
+      escape(depOut, deped, deped.src.ctx.get)
+    }
+    if (anyEscape) {
+      val depCtx = param.fromCtx.getOrElse { dep.ctx.get }
+      val read = dbgblk(s"insertBuffer(depOut=${dquote(depOut)}, depedIns=$depedIns)") {
+        val (enq, deq) = compEnqDeq(isFIFO=param.isFIFO, depCtx, depedIns.head.src.ctx.get, Some(depOut), depedIns)
+        val bank = depOut.inferVec
+        val depCtxCtrl = depCtx.getCtrl
+        val depCtrl = param.depCtrl.map { depCtrl =>
+          assert(depCtxCtrl.isDescendentOf(depCtrl) || depCtxCtrl == depCtrl, s"$depCtrl is not relate to $depCtxCtrl")
+          depCtrl
+        }.getOrElse(depCtxCtrl)
+        val write = within(depCtx, depCtrl) {
+          allocate[BufferWrite] { write => 
+            write.isFIFO==param.isFIFO &&
+            canReach(write.data,depOut) &&
+            canReach(write.done,enq) &&
+            !write.en.isConnected //TODO: buffer function should also allow enable as input
+          } {
+            stage(BufferWrite(isFIFO=param.isFIFO).data(depOut).done(enq))
+          }
+        }
+        depedIns.foreach { depedIn =>
+          val depedCtx = depedIn.src.ctx.get
+          val globalbb = depedIn.src.isInstanceOf[GlobalBlackBox]
+          val (enq, deq) = compEnqDeq(isFIFO=param.isFIFO, depCtx, depedCtx, Some(depOut), depedIns)
+          val depedCtxCtrl = depedCtx.getCtrl
+          val depedCtrl = param.depedCtrl.map { depedCtrl =>
+            assert(depedCtxCtrl.isDescendentOf(depedCtrl) || depedCtxCtrl == depedCtrl, s"$depedCtrl is not relate to $depedCtxCtrl")
+            depedCtrl
+          }.getOrElse(depedCtxCtrl)
+          val read = within(depedCtx, depedCtrl) {
+            allocate[BufferRead] { read => 
+              !globalbb && 
+              read.isFIFO==param.isFIFO &&
+              canReach(read.in,write.out) &&
+              canReach(read.done,deq) &&
+              !read.en.isConnected 
+            } {
+              stage(BufferRead(isFIFO=param.isFIFO).in(write.out).done(deq))
+            }
+          }
+          bank.foreach { bank => read.banks(List(bank)) }
+          swapConnection(depedIn, depOut, read.out)
+        }
+      }
+    } 
   }
 
   protected def insertBuffer(

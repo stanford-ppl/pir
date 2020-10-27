@@ -106,7 +106,6 @@ class ScanLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFirst
             val scanCtr = ctr.as[ScanCounter]
             val dataCtr = follow.as[ScanCounterDataFollower]
 
-
             // Setup mask relative to a reference counter
             val scanBR = scanCtr.mask.T.as[BufferRead]
             val scanBW = scanBR.inAccess.as[BufferWrite]
@@ -115,7 +114,16 @@ class ScanLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFirst
 
             // val br = refCtr.mask.T.as[BufferRead]
             //val bw = scanBR.inAccess.as[BufferWrite]
-            mask(scanBW.data.connected)
+            dbg(s"ScanBR: ${scanBR}")
+            dbg(s"ScanBW: ${scanBW}")
+            dbg(s"ScanBW.data.connected: ${scanBW.data.connected}")
+            val outField = scanBW.data.connected.head
+            dbg(s"outField.src: ${outField.src}")
+            val scanBWReal = outField.src.as[BufferRead].inAccess.as[BufferWrite]
+            dbg(s"scanBWReal: ${scanBWReal}")
+            dbg(s"scanBWReal.data.connected: ${scanBWReal.data.connected}")
+
+            mask(scanBWReal.data.connected)
             bufferInput(mask)
 
             scanCtr.mask.disconnect
@@ -124,18 +132,23 @@ class ScanLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFirst
             free(dataBR)
 
             scanCtr.ctrlWord(scanner.ctrlWord)
-            scanCtr.packCntIdx(scanner.packedCntIdx)
-
-            bufferInput(scanCtr.ctrlWord)
-            bufferInput(scanCtr.packCntIdx)
-
-
             dataCtr.ctrlWord(scanner.ctrlWord)
-            dataCtr.packCntIdx(scanner.packedCntIdx)
-            dataCtr.vecTotalSet(vecTotalSet)
+            // dataCtr.ctrlWord(scanner.ctrlWord.as[BufferWrite])
+            bufferOutputMulti(scanner.ctrlWord)
 
-            bufferInput(dataCtr.ctrlWord)
-            bufferInput(dataCtr.packCntIdx)
+
+            scanCtr.packCntIdx(scanner.packedCntIdx)
+            dataCtr.packCntIdx(scanner.packedCntIdx)
+            bufferOutputMulti(scanner.packedCntIdx)
+
+            // bufferInput(scanCtr.ctrlWord)
+            // bufferInput(scanCtr.packCntIdx)
+
+
+            // bufferInput(dataCtr.ctrlWord)
+            // bufferInput(dataCtr.packCntIdx)
+            
+            dataCtr.vecTotalSet(vecTotalSet)
             bufferInput(dataCtr.vecTotalSet)
 
           }
