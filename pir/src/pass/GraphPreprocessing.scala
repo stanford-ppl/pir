@@ -41,8 +41,8 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
       if (mem.isDRAM) addLive(mem)
     }
 
-    processScanCounter(n)
-    processDataScanCounter(n)
+    // processScanCounter(n)
+    // processDataScanCounter(n)
 
     super.visitNode(n)
   } 

@@ -15,6 +15,8 @@ trait PIRApp extends PIR with Logging {
   lazy val deadCodeEliminator = new DeadCodeElimination()
   lazy val rewriter = new RewriteTransformer()
   lazy val rmwSplitter = new RMWSplitter()
+  lazy val scanDup = new ScanLongOpSplitter()
+  lazy val scanLowering = new ScanLowering()
   lazy val memLowering = new MemoryLowering()
   lazy val dramBarrierInsertion = new DRAMBarrierInsertion()
   lazy val contextAnalyzer = new ContextAnalyzer()
@@ -83,11 +85,14 @@ trait PIRApp extends PIR with Logging {
     addPass(targetInitializer) ==>
     addPass(new ParamHtmlIRPrinter(s"param.html", pirenv.spadeParam)) ==>
     addPass(rmwSplitter) ==>
+    // addPass(scanDup) ==>
+    //addPass() ==>
     addPass(memLowering).dependsOn(targetInitializer) ==>
     addPass(dramBarrierInsertion) ==>
     addPass(enableVerboseDot, new PIRTopDotGen(s"top4.dot")) ==>
     addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx4.dot")) ==>
     addPass(depDuplications).dependsOn(memLowering) ==>
+    addPass(scanLowering) ==>
     addPass(enableVerboseDot, new PIRTopDotGen(s"top5.dot")) ==>
     addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx5.dot")) ==>
     addPass(rewriter) ==>
