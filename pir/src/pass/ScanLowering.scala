@@ -83,18 +83,21 @@ class ScanLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFirst
             n.ctrl(locScanCtrl)
             n.done.disconnect
             n.done(tileDone(locScanCtrl, refCtr.ctx.get)) 
+            n.toScanController(true)
           }
           bufferOutputMulti(scanner.index).foreach { n =>
             n.ctrl.reset
             n.ctrl(locScanCtrl)
             n.done.disconnect
             n.done(subTileDone(locScanCtrl, refCtr.ctx.get)) 
+            n.toScanController(true)
           }
           bufferOutputMulti(scanner.data).foreach { n =>
             n.ctrl.reset
             n.ctrl(locScanCtrl)
             n.done.disconnect
             n.done(subTileDone(locScanCtrl, refCtr.ctx.get)) 
+            n.toScanController(true)
           }
         }
       }
@@ -161,6 +164,7 @@ class ScanLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFirst
               n.ctrl(locScanCtrl)
               n.done.disconnect
               n.done(tileDone(locScanCtrl, refCtr.ctx.get)) 
+              n.toScanController(true)
             }
           }
           bufferOutputMulti(scanner.ctrlWord, param=BufferParam(isFIFO=false)).foreach { n =>
@@ -168,12 +172,14 @@ class ScanLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFirst
             n.ctrl(locScanCtrl)
             n.done.disconnect
             n.done(tileDone(locScanCtrl, refCtr.ctx.get)) 
+            n.toScanController(true)
           }
           bufferOutputMulti(scanner.packedCntIdx, param=BufferParam(isFIFO=false)).foreach { n =>
             n.ctrl.reset
             n.ctrl(locScanCtrl)
             n.done.disconnect
             n.done(subTileDone(locScanCtrl, refCtr.ctx.get)) 
+            n.toScanController(true)
           }
         }
       }

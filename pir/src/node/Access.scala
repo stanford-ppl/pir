@@ -247,6 +247,7 @@ case class BufferWrite(isFIFO:Boolean)(implicit env:Env) extends LocalInAccess {
   }
 }
 case class BufferRead(isFIFO:Boolean)(implicit env:Env) extends LocalOutAccess {
+  // val toScanController = Metadata[Boolean]("toScanController", default=false)
   val retiming = Metadata[Boolean]("retiming", Some(false)) 
   override def compVec(n:IR) = n match {
     case `out` => en.inferVec
