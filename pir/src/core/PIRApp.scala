@@ -102,7 +102,7 @@ trait PIRApp extends PIR with Logging {
     addPass(globalInsertion) ==>
     saveSession(buildPath(config.outDir,"pir1.ckpt")) ==>
     addPass(enableMapping,new ProgramReport("program_alloc.json")) ==>
-    // addPass(enableDot, new PIRGlobalDotGen(s"global7.dot")) ==>
+    addPass(enableDot, new PIRGlobalDotGen(s"global7.dot")) ==>
     addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx7.dot")) ==>
     addPass(enableVerboseDot, new PIRTopDotGen(s"top7.dot")) ==>
     addPass(sanityCheck) ==>
@@ -111,17 +111,17 @@ trait PIRApp extends PIR with Logging {
     addPass(enableMapping, hardPruner) ==>
     addPass(enableMapping, memoryPruner) ==>
     addPass(rewriter) ==> // Remove unused shuffle
-    // addPass(enableDot, new PIRGlobalDotGen(s"global8.dot")) ==>
+    addPass(enableDot, new PIRGlobalDotGen(s"global8.dot")) ==>
     addPass(enableMapping, memoryComputePruner) ==>
-    // addPass(enableDot, new PIRGlobalDotGen(s"global9.dot")) ==>
+    addPass(enableDot, new PIRGlobalDotGen(s"global9.dot")) ==>
     addPass(enableMapping, mergeBufferPruner) ==>
     addPass(enableMapping, hardPruner) ==> // prune on newly created CUs by memoryComputePruner
     addPass(enableMapping, computePruner) ==>
-    // addPass(enableDot, new PIRGlobalDotGen(s"global10.dot")) ==>
+    addPass(enableDot, new PIRGlobalDotGen(s"global10.dot")) ==>
     addPass(enableMapping, hardPruner) ==>
     addPass(enableMapping,new ProgramReport("program_split.json")) ==>
     addPass(enableMerging, globalMerger) ==>
-    // addPass(enableDot, new PIRGlobalDotGen(s"global11.dot")) ==>
+    addPass(enableDot, new PIRGlobalDotGen(s"global11.dot")) ==>
     addPass(enableMapping, dagPruner) ==>
     addPass(enableMapping, matchPruner) ==>
     addPass(ctrlBlockInsert) ==>

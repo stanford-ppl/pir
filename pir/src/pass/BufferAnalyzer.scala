@@ -72,8 +72,8 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     }
   }
 
-  def bufferOutputMulti(out:Output[PIRNode])(implicit file:sourcecode.File, line: sourcecode.Line) = {
-    insertBuffers(out, out.connected.distinct)
+  def bufferOutputMulti(out:Output[PIRNode], forceCtrl:Option[LoopController], param:BufferParam=BufferParam())(implicit file:sourcecode.File, line: sourcecode.Line):List[BufferRead] = {
+    insertBuffers(out, out.connected.distinct, param)
   }
 
   private def visitInEdges(n:Node[PIRNode]):List[Input[PIRNode]] = n match {
@@ -92,14 +92,14 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     depOut:Output[PIRNode], 
     depedIns:List[Input[PIRNode]], 
     param:BufferParam = BufferParam(),
-  )(implicit file:sourcecode.File, line: sourcecode.Line) = {
+  )(implicit file:sourcecode.File, line: sourcecode.Line):List[BufferRead] = {
     val dep = depOut.src
     val anyEscape = depedIns.exists { deped =>
       escape(depOut, deped, deped.src.ctx.get)
     }
     if (anyEscape) {
       val depCtx = param.fromCtx.getOrElse { dep.ctx.get }
-      val read = dbgblk(s"insertBuffer(depOut=${dquote(depOut)}, depedIns=$depedIns)") {
+      val reads = dbgblk(s"insertBuffer(depOut=${dquote(depOut)}, depedIns=$depedIns)") {
         val (enq, deq) = compEnqDeq(isFIFO=param.isFIFO, depCtx, depedIns.head.src.ctx.get, Some(depOut), depedIns)
         val bank = depOut.inferVec
         val depCtxCtrl = depCtx.getCtrl
@@ -117,7 +117,7 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
             stage(BufferWrite(isFIFO=param.isFIFO).data(depOut).done(enq))
           }
         }
-        depedIns.foreach { depedIn =>
+        val reads = depedIns.flatMap { depedIn =>
           val depedCtx = depedIn.src.ctx.get
           val globalbb = depedIn.src.isInstanceOf[GlobalBlackBox]
           val (enq, deq) = compEnqDeq(isFIFO=param.isFIFO, depCtx, depedCtx, Some(depOut), depedIns)
@@ -139,9 +139,12 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
           }
           bank.foreach { bank => read.banks(List(bank)) }
           swapConnection(depedIn, depOut, read.out)
+          Some(read)
         }
+        reads
       }
-    } 
+      reads
+    }  else List()
   }
 
   protected def insertBuffer(

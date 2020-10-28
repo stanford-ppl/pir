@@ -47,14 +47,24 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
       dbg(s"out=$from.$out")
       dbg(s"ins=${ins.map { in => s"${in.src}.$in"}.mkString(",")}")
       (out, ins) match {
-        case (out,InputField(n:ScanCounter, "ctrlWord")::_) if isFIFO => (tileDone(o, octx), tileDone(i, ictx))
+        /*case (out,InputField(n:ScanCounter, "ctrlWord")::_) if isFIFO => (tileDone(o, octx), tileDone(i, ictx))
         case (out,InputField(n:ScanCounter, "packCntIdx")::_) if isFIFO => (subTileDone(o, octx), subTileDone(i, ictx))
         // case (out,InputField(n:DataScanCounter, "ctrlWord")::_) if isFIFO => (tileDone(o, octx), tileDone(i, ictx))
         case (out,InputField(n:ScanCounterDataFollower, "vecTotalSet")::_) if isFIFO => (tileDone(o, octx), tileDone(i, ictx))
         // case (out,InputField(n:ScanCounter, "tileCount")::_) if isFIFO => (childDone(o, octx), childDone(i, ictx))
         // case (out,InputField(n:DataScanCounter, "tileCount")::_) if isFIFO => (childDone(o, octx), childDone(i, ictx))
         case (out,InputField(n:DataScanCounter, "cnt")::_) if isFIFO => (tileDone(o, octx), tileDone(i, ictx))
-        case (out,InputField(n:DataScanCounter, "indOrData")::_) if isFIFO => (subTileDone(o, octx), subTileDone(i, ictx))
+        case (out,InputField(n:DataScanCounter, "indOrData")::_) if isFIFO => (subTileDone(o, octx), subTileDone(i, ictx))*/
+
+        case (out,InputField(n:ScanCounter, "ctrlWord")::_) => (tileDone(o, octx), tileDone(i, ictx))
+        case (out,InputField(n:ScanCounter, "packCntIdx")::_) => (subTileDone(o, octx), subTileDone(i, ictx))
+        // case (out,InputField(n:DataScanCounter, "ctrlWord")::_) => (tileDone(o, octx), tileDone(i, ictx))
+        case (out,InputField(n:ScanCounterDataFollower, "vecTotalSet")::_) => (tileDone(o, octx), tileDone(i, ictx))
+        // case (out,InputField(n:ScanCounter, "tileCount")::_) => (childDone(o, octx), childDone(i, ictx))
+        // case (out,InputField(n:DataScanCounter, "tileCount")::_) => (childDone(o, octx), childDone(i, ictx))
+        case (out,InputField(n:DataScanCounter, "cnt")::_) => (tileDone(o, octx), tileDone(i, ictx))
+        case (out,InputField(n:DataScanCounter, "indOrData")::_) => (subTileDone(o, octx), subTileDone(i, ictx))
+
         case (out,ins) if isFIFO => (childDone(o, octx), childDone(i, ictx))
         case (out,Seq(InputField(n:LoopController, "stopWhen"))) if o == i => (childDone(o, octx), childDone(i, ictx))
         case (out,ins) if o == i => 
