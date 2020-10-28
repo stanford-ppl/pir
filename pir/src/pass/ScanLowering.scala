@@ -29,6 +29,7 @@ class ScanLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFirst
       if (ctrs.exists { case x:DataScanCounter => true; case _ => false }) {
         val refCtr = ctrs.head.as[DataScanCounter]
         val scanCtrl = refCtr.mask.T.asInstanceOf[BufferRead].inAccess.as[BufferWrite].data.T.getCtrl
+        val locScanCtrl = refCtr.getCtrl
         within(pirTop, scanCtrl) {
           val scannerCtx = stage(Context().streaming(true))
           val scanner = within(scannerCtx) { stage(DataScanner()) }
@@ -77,9 +78,24 @@ class ScanLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFirst
           c1.cnt(scanner.cnt)
           c1.indOrData(scanner.data)
 
-          bufferOutputMulti(scanner.cnt, None)
-          bufferOutputMulti(scanner.index, None)
-          bufferOutputMulti(scanner.data, None)
+          bufferOutputMulti(scanner.cnt).foreach { n =>
+            n.ctrl.reset
+            n.ctrl(locScanCtrl)
+            n.done.disconnect
+            n.done(tileDone(locScanCtrl, refCtr.ctx.get)) 
+          }
+          bufferOutputMulti(scanner.index).foreach { n =>
+            n.ctrl.reset
+            n.ctrl(locScanCtrl)
+            n.done.disconnect
+            n.done(subTileDone(locScanCtrl, refCtr.ctx.get)) 
+          }
+          bufferOutputMulti(scanner.data).foreach { n =>
+            n.ctrl.reset
+            n.ctrl(locScanCtrl)
+            n.done.disconnect
+            n.done(subTileDone(locScanCtrl, refCtr.ctx.get)) 
+          }
         }
       }
     }
@@ -147,13 +163,13 @@ class ScanLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFirst
               n.done(tileDone(locScanCtrl, refCtr.ctx.get)) 
             }
           }
-          bufferOutputMulti(scanner.ctrlWord, None, param=BufferParam(isFIFO=false)).foreach { n =>
+          bufferOutputMulti(scanner.ctrlWord, param=BufferParam(isFIFO=false)).foreach { n =>
             n.ctrl.reset
             n.ctrl(locScanCtrl)
             n.done.disconnect
             n.done(tileDone(locScanCtrl, refCtr.ctx.get)) 
           }
-          bufferOutputMulti(scanner.packedCntIdx, None, param=BufferParam(isFIFO=false)).foreach { n =>
+          bufferOutputMulti(scanner.packedCntIdx, param=BufferParam(isFIFO=false)).foreach { n =>
             n.ctrl.reset
             n.ctrl(locScanCtrl)
             n.done.disconnect

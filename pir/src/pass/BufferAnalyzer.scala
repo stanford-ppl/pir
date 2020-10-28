@@ -72,7 +72,7 @@ trait BufferAnalyzer extends MemoryAnalyzer { self:PIRTransformer =>
     }
   }
 
-  def bufferOutputMulti(out:Output[PIRNode], forceCtrl:Option[LoopController], param:BufferParam=BufferParam())(implicit file:sourcecode.File, line: sourcecode.Line):List[BufferRead] = {
+  def bufferOutputMulti(out:Output[PIRNode], param:BufferParam=BufferParam())(implicit file:sourcecode.File, line: sourcecode.Line):List[BufferRead] = {
     insertBuffers(out, out.connected.distinct, param)
   }
 
