@@ -685,7 +685,7 @@ import spatial.metadata.memory.{Barrier => _,_}
       val fifoB = FIFO[U32](16)
       Foreach(N par ip) { i =>
         fifoA.enq(i.to[U32])
-        fifoB.enq(0xAAAA.to[U32])
+        fifoB.enq(((~i)&i).to[U32] | 0xAAAA.to[U32])
       }
       Reduce(out)(Scan(16, N*32, "and", fifoA.deq, fifoB.deq)) { case List(a, iA, b, iB) =>
         a.to[T]
