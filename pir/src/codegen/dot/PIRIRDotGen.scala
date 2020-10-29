@@ -227,6 +227,7 @@ class PIRGlobalDotGen(val fileName:String, noBackEdge:Boolean=false)(implicit de
           c match {
             case Finite(c) => tooltip += s"\ncount=$c"
             case Infinite => tooltip += s"\ncount=$c"
+            case Symbol(c,syms) => tooltip += s"\ncount=[$c,$syms]"
             case Unknown =>
           }
         }

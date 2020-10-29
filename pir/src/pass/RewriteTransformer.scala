@@ -461,9 +461,9 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
     var matchen = matchInput(r1.en, w2.en)
     dbg(s"matchen = $matchen")
     if (!matchen) return false
-    val toScan = r2.toScanController.get
-    dbg(s"toScan = $toScan")
-    if (!toScan) return false
+    //val toScan = r2.toScanController.get
+    //dbg(s"toScan = $toScan")
+    //if (!toScan) return false
     return true
   }
 

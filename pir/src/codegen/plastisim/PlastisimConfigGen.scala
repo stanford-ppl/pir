@@ -123,6 +123,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
     emitStopToken(n)
     n.count.get match {
       case Unknown => emitln(s"# count not exists")
+      case Symbol(_,_) => emitln(s"# count not exists")
       case Finite(c) => emitln(s"count = $c")
       case Infinite => emitln(s"count = $infCount # count is nfinite")
     }
@@ -159,6 +160,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
     if (n.reads.isEmpty) {
       n.count.get match {
         case Unknown => err(s"count of $n with no inputs unknown")
+        case Symbol(_,_) => err(s"count of $n with no inputs unknown")
         case Finite(c) => emitln(s"start_at_tokens = $c")
         case Infinite => emitln(s"start_at_tokens = $infCount")
       }
@@ -226,6 +228,7 @@ class PlastisimConfigGen(implicit compiler: PIR) extends PlastisimCodegen with P
       }
       n.count.get match {
         case Unknown => emitln(s"# count not exists")
+        case Symbol(_,_) => emitln(s"# count not exists")
         case Finite(c) => emitln(s"count = $c")
         case Infinite => emitln(s"count = $infCount # count is infinite")
       }

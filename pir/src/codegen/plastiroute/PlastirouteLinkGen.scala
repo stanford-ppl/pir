@@ -4,6 +4,7 @@ package codegen
 import pir.node._
 import pir.pass._
 import prism.graph._
+import prism.util._
 import prism.codegen._
 
 class PlastirouteLinkGen(implicit compiler: PIR) extends PlastisimUtil with PIRTraversal with ChildFirstTraversal with UnitTraversal { self =>
@@ -49,11 +50,24 @@ class PlastirouteLinkGen(implicit compiler: PIR) extends PlastisimUtil with PIRT
     if (!n.isExtern.get) {
       val row = outputFile.newRow
       val ctx = n.in.T.ctx.get
+      val countval = if (n.count.get.isInstanceOf[Symbol[_]]) {
+        val sym = n.count.get.asInstanceOf[Symbol[Long]]
+        val integral = sym.value
+        val num_loops = sym.names.map{ case (s, i) => 
+          assert(i > 0)
+          i 
+        }.reduce{ _ + _ }
+        dbg(s"Integral component: $integral")
+        dbg(s"Loop count: $num_loops")
+        integral*num_loops*1000
+      } else {
+        n.count.get.getOrElse(1000000) //TODO: use more reasonable heuristic when count is not available
+      }
       row("out") = quote(n)
       row("ctx") = ctx.id
       row("src") = quote(n.global.get)
       row("tp") = if (isVecLink(n)) 2 else 1 // 1 for scalar, 2 for vector
-      row("count") = n.count.get.getOrElse(1000000) //TODO: use more reasonable heuristic when count is not available
+      row("count") = countval
     }
 
     n.out.T.view.foreach { case gin =>

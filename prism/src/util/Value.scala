@@ -20,21 +20,31 @@ object Value {
 
   implicit class ValueNumOp[A:Numeric](t:Value[A]) {
     val num = implicitly[Numeric[A]]
-    def + (v:Value[A]):Value[A] = t.zipMap(v) { (t,v) => num.plus(t,v) }
+    def + (v:Value[A]):Value[A] = {
+      v match {
+        case Symbol(_,_) => bug(s"Add Symbol!")
+        case _ => t.zipMap(v)({ (t,v) => num.plus(t,v) },{ (a, b) => a ++ b })
+      }
+    }
 
     def - (v:Value[A]) = { 
       v match {
         case Infinite => bug(s"Subtract by Infinite")
-        case v => t.zipMap(v) { (t,v) => num.minus(t,v) }
+        case Symbol(_,_) => bug(s"Subtract by Symbol!")
+        case v => t.zipMap(v)({ (t,v) => num.minus(t,v) },{ (a, b) => a ++ b })
       }
     }
 
-    def * (v:Value[A]):Value[A] = t.zipMap(v) { (t,v) => num.times(t,v) }
+    def * (v:Value[A]):Value[A] = t.zipMap(v)({ (t,v) => num.times(t,v) },{ 
+      (a,b) => a ++ b.map{case (k,v) => k -> (v + a.getOrElse(k,0))}
+    })
 
     def /! (v:Value[A]):Value[A] = {
       v match {
         case Infinite => Unknown
-        case v => t.zipMap(v) { (t,v) => t /! v }
+        case v => t.zipMap(v)({ (t,v) => t /! v },{ 
+          (a,b) => a ++ b.map{case (k,v) => k -> (-v + a.getOrElse(k,0))}
+        })
       }
     }
 
@@ -60,7 +70,7 @@ sealed abstract class Value[+A] extends Product with Serializable {
 
   def isKnown: Boolean
   def unknown: Boolean = !isKnown
-  def isFinite: Boolean = this.isInstanceOf[Finite[_]]
+  def isFinite: Boolean = this.isInstanceOf[Finite[_]] || this.isInstanceOf[Symbol[_]]
 
   /** Returns true if the value is $none, false otherwise.
    */
@@ -229,13 +239,24 @@ sealed abstract class Value[+A] extends Product with Serializable {
     case (_,Unknown) => None
     case (t,v) => Some(t,v)
   }
+  
+  def tryKillSymbol[A](v:Symbol[A]) : Value[A] = {
+    if (v.names.forall { case (n, c) => c == 0 })
+      Finite(v.value)
+    else
+      v
+  }
 
-  def zipMap[B, C](v:Value[B])(f:(A,B) => C):Value[C] = (this, v) match {
+
+  def zipMap[B, C](v:Value[B])(f:(A,B) => C, fB:(Map[String,Int],Map[String,Int]) => Map[String,Int]):Value[C] = (this, v) match {
     case (Unknown, _) => Unknown
     case (_, Unknown) => Unknown
     case (Infinite, _) => Infinite
     case (_, Infinite) => Infinite
     case (Finite(t), Finite(v)) => Finite(f(t, v))
+    case (Finite(t),    Symbol(v,lB)) => tryKillSymbol(Symbol(f(t, v), fB(Map[String,Int](), lB)))
+    case (Symbol(t,lA), Finite(v))    => tryKillSymbol(Symbol(f(t, v), fB(lA,     Map[String,Int]())))
+    case (Symbol(t,lA), Symbol(v,lB)) => tryKillSymbol(Symbol(f(t, v), fB(lA,     lB)))
     case (_,_) => Unknown
   }
 
@@ -259,4 +280,8 @@ case object Infinite extends Value[Nothing] {
   def isKnown = true
   def get = throw new NoSuchElementException("Unknown.get")
 }
-
+case class Symbol[+A](value:A, names: Map[String,Int]) extends Value[A] {
+  def isEmpty = false
+  def isKnown = true
+  def get = throw new NoSuchElementException("Symbol.get")
+}

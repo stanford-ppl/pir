@@ -196,6 +196,9 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
       }
     }
     countStack.pop
+    //if (cnt.exists { _.isInstanceOf[Symbol[_]] })
+      //Some(Infinite)
+    //else
     cnt
   }
 
@@ -218,14 +221,29 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
         val step = n.step.T.getBound.toValue
         val par = n.par
         (max - min) /! (step * par)
+      case n:ScanCounter => Symbol(1l, Map(s"SCAN_${n.progorder.get}" -> 1))
+      case n:ScanCounterDataFollower => Finite(1l)
+      case n:DataScanCounter => Symbol(1l, Map(s"DATASCAN_${n.progorder.get}" -> 1))
+      // case n:DataScanCounter => Finite(1l)
       case n:Controller =>
+        n.getCtrl.iter.reset //TODO: remove this
         n.getCtrl.iter.getOrElseUpdate {
           n match {
-            case n:LoopController if n.stopWhen.T.nonEmpty => Unknown
-            case n:LoopController => n.cchain.T.map { _.getIter }.reduce { _ * _ }
+            case n:LoopController if n.stopWhen.T.nonEmpty =>  {
+              dbg(s"Unknown (stopWhen)")
+              Unknown
+            }
+            case n:LoopController => n.cchain.T.map { c => 
+              val it = c.getIter
+              dbg(s"ctr: $c it: $it")
+              it
+            }.reduce { _ * _ }
             case n:SplitController => Unknown
             case n:Controller if n.getCtrl.schedule != Fork => Finite(1l)
-            case n => Unknown
+            case n => {
+              dbg(s"Unknown controller")
+              Unknown
+            }
           }
         }
       case n:FringeDenseLoad =>
@@ -246,7 +264,10 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
       case n:MergeBuffer => 
         import Value._
         n.bounds.map { _.T.getBound.toValue }.reduce { _ + _ }
-      case n => Unknown
+      case n => {
+        dbg(s"Unknown (random node)")
+        Unknown
+      }
     }
   }
 
@@ -330,10 +351,13 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
     val lca = leastCommonAncesstor(a1.getCtrl, a2.getCtrl).get
     val branch1 = a1.getCtrl.ancestorSlice(lca).dropRight(1)
     val branch2 = a2.getCtrl.ancestorSlice(lca).dropRight(1)
+    dbg(s"lca=$lca")
     dbg(s"branch1=$branch1")
     dbg(s"branch2=$branch2")
     val rate1 = branch1.map { _.iter.v.getOrElse(Unknown) }.reduceOption { _ * _ }.getOrElse(Finite(1l))
     val rate2 = branch2.map { _.iter.v.getOrElse(Unknown) }.reduceOption { _ * _ }.getOrElse(Finite(1l))
+    dbg(s"rate1=$rate1")
+    dbg(s"rate2=$rate2")
     if (rate1 == Unknown) return false
     if (rate2 == Unknown) return false
     return rate1 == rate2
