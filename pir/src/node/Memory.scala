@@ -340,12 +340,14 @@ class SparseParBlock(
 
   override def compVec(n:IR) = n match {
     case n@OutputField(_,"readData") =>  
-      val (aid, lane) = portMap(n.as)
-      readPorts(aid)(lane)._1.inferVec
+      //val (aid, lane) = portMap(n.as)
+      //readPorts(aid)(lane)._1.inferVec
+      Some(16)
     case n@OutputField(_,"rmwDataOut") => 
-      val (aid, lane) = portMap(n.as)
+      //val (aid, lane) = portMap(n.as)
       // rmwPorts(aid)(lane)._2.inferVec
-      rmwPorts(aid)(lane)._1.inferVec
+      //rmwPorts(aid)(lane)._1.inferVec
+      Some(16)
     case _ => super.compVec(n)
   }
 

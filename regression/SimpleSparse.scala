@@ -516,6 +516,43 @@ import spatial.metadata.memory.{Barrier => _,_}
   }
 }
 
+@spatial class SparseDRAM_Write extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+
+  def main(args: Array[String]): Unit = {
+
+    val N = 1024
+    val ts = 32
+    val ip = 16
+
+    val out = DRAM[T](2*N)
+
+    Accel {
+      // Test dense read/write and RMW
+      val s1 = SparseDRAM[T](1)(N, false)
+      s1.alias = out
+      Foreach (N by 1 par 16) { i =>
+        s1.barrierWrite(i, i, Seq())
+      }
+      Foreach (N by 1 par 16) { i =>
+        s1.barrierWrite(N+i, i, Seq())
+      } 
+    }
+
+    //val res = getMem(out)
+    //val gold = Array.tabulate(N) { i => i }
+    val cksum = List.tabulate(N) { i =>
+      abs(i - i)
+    }.reduce{_+_} == 0
+      //res.zip(gold).map{ (r,g) => abs(r-g) }.reduce{ _+_ } == 0
+
+    println("PASS: " + cksum + " (SparseDRAM_Write)")
+    assert(cksum)
+  }
+}
+
 @spatial class SparseParSRAM_SepRMW extends SpatialTest {
   override def runtimeArgs: Args = "32"
   //type T = FixPt[TRUE, _16, _16]
@@ -545,6 +582,51 @@ import spatial.metadata.memory.{Barrier => _,_}
         Reduce(Reg[T])(ts by 1 par ip) { j =>
           // s1.RMWData(j, j, Seq(backwardBarrier.push), 1)
           s1.RMW(i+j, 0, "read", "unordered", Seq(forwardBarrier.pop))
+        } { _ + _ }
+      } { _ + _ }
+    }
+
+    val gold = List.tabulate(N) { i => i }.sum
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (SparseParSRAM_SepRMW)")
+    assert(cksum)
+  }
+}
+
+@spatial class SparseDRAM_SepRMW_TestRetime extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+
+  def main(args: Array[String]): Unit = {
+
+    val N = 1024
+    val ts = 32
+    val ip = 16
+
+
+    val out = ArgOut[T]
+
+    Accel {
+      // Test dense read/write and RMW
+      val s1 = SparseDRAM[T](2)(N, false)
+      val testFIFO = FIFO[Int](4096)
+      val aFIFO = FIFO[Int](4096)
+      Foreach  (N by ts par 1) { i =>
+        Foreach(ts by 1 par ip) { j =>
+          val ret = s1.RMW(i+j, i+j, "write", "unordered", Seq())
+          aFIFO.enq(ret)
+        }
+      }
+      Foreach(*) { _ =>
+        Foreach (ip par ip) { _ =>
+          testFIFO.enq(s1.RMW(aFIFO.deq, 0, "read", "unordered", Seq()))
+        }
+      }
+      Reduce(out)(N by ts par 1) { i =>
+        Reduce(Reg[T])(ts by 1 par ip) { j =>
+          testFIFO.deq
         } { _ + _ }
       } { _ + _ }
     }

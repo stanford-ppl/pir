@@ -48,6 +48,14 @@ trait PIRIRDotGen extends PIRTraversal with IRDotCodegen { self =>
       .append("name", n.name.v)
       .append("externAlias", n.externAlias.v)
       .append(n.ctrl.v.map { c => c.sname.v.fold(s"$c") { n => s"$c[$n]"} })
+      .append(n.bbCtrl.v.map { c => 
+        c match {
+          case c if n.controlShadowed.get =>
+            c.sname.v.fold(s"$c") { n => s"BB: $c[$n]"} 
+          case _ =>
+            ""
+        }
+      })
       .append(quoteTp(n))
       .append("delay", n.delay.v)
       .append("count", n.count.v)

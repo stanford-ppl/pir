@@ -10,7 +10,7 @@ import scala.collection.mutable
 trait SparseParSRAMLowering extends SparseLowering {
 
   override def visitNode(n:N) = n match {
-    case n@SparseMem(_, "ParSRAM",_) => lowerSparseParSRAM(n)
+    // case n@SparseMem(_, "ParSRAM",_) => lowerSparseParSRAM(n)
     case _ => super.visitNode(n)
   }
 
@@ -26,6 +26,7 @@ trait SparseParSRAMLowering extends SparseLowering {
   }
   
   private def lowerSparseParSRAM(n:SparseMem):Unit = dbgblk(s"lower($n)"){
+    assert(false) // TODO: remove file
     dbg(s"accesses=${n.accesses}")
     val sortedAccesses:List[UnrolledAccess[SparseAccess]] = n.accesses.groupBy { a => a.progorder.get }.toList.sortBy { _._1 }
       .map { case (po, as) => UnrolledAccess(as.as[List[SparseAccess]].sortBy { _.order.get }) }

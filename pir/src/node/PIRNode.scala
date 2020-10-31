@@ -32,6 +32,9 @@ abstract class PIRNode(implicit env:BuildEnvironment)
       srcCtx(getSrcCtx).name(name)
   }
 
+  val controlShadowed = new Metadata[Boolean]("controlShadowed", default=Some(false))
+  val bbCtrl = new Metadata[ControlTree]("bbCtrl", default=None)
+
   val ctrl = new Metadata[ControlTree]("ctrl") {
     override def apply(value:ControlTree, reset:Boolean=false) = self match {
       case self:GlobalContainer => getSelf

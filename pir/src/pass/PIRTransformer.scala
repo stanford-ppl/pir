@@ -111,7 +111,9 @@ with BufferAnalyzer
       case (from,to,"dims",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to,"depth",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to,"castgroup",Some(fvalue),Some(tvalue)) => Some(tvalue)
+      case (from,to,"controlShadowed",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to,"muxport",Some(fvalue),Some(tvalue)) => Some(tvalue)
+      case (from,to,"isExtern",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to:BufferRead,"banks",Some(fvalue),Some(tvalue)) => Some(List(to.in.getVec))
       case (from,to,"retiming",Some(v1:Boolean),Some(v2:Boolean)) => Some(v1 || v2)
     } { mirrorMetas(from,to) }

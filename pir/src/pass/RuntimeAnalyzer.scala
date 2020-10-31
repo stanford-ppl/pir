@@ -346,18 +346,29 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
     in1.connected.forall { matchOutput(_,out) }
   }
 
+  def getCtrlPrioBB(a:LocalAccess):ControlTree = {
+    if (a.controlShadowed.get)
+      a.bbCtrl.get
+    else
+      a.ctrl.get
+
+    //val bbCtrl = a.bbCtrl.get
+    //bbCtrl.getOrElse(a.ctrl.get)
+  }
+
   def matchRate(a1:LocalAccess, a2:LocalAccess):Boolean = {
     if (a1.isFIFO != a2.isFIFO) return false
-    val lca = leastCommonAncesstor(a1.getCtrl, a2.getCtrl).get
-    val branch1 = a1.getCtrl.ancestorSlice(lca).dropRight(1)
-    val branch2 = a2.getCtrl.ancestorSlice(lca).dropRight(1)
+    val lca = leastCommonAncesstor(getCtrlPrioBB(a1), getCtrlPrioBB(a2)).get
+    val branch1 = getCtrlPrioBB(a1).ancestorSlice(lca).dropRight(1)
+    val branch2 = getCtrlPrioBB(a2).ancestorSlice(lca).dropRight(1)
+    dbg(s"a1=$a1; a2=$a2")
+    dbg(s"ctrl1=${a1.getCtrl}; ctrl2=${a2.getCtrl}")
+    dbg(s"ctrl1_BB=${getCtrlPrioBB(a1)}; ctrl2_BB=${getCtrlPrioBB(a2)}")
     dbg(s"lca=$lca")
-    dbg(s"branch1=$branch1")
-    dbg(s"branch2=$branch2")
+    dbg(s"branch1=$branch1; branch2=$branch2")
     val rate1 = branch1.map { _.iter.v.getOrElse(Unknown) }.reduceOption { _ * _ }.getOrElse(Finite(1l))
     val rate2 = branch2.map { _.iter.v.getOrElse(Unknown) }.reduceOption { _ * _ }.getOrElse(Finite(1l))
-    dbg(s"rate1=$rate1")
-    dbg(s"rate2=$rate2")
+    dbg(s"rate1=$rate1; rate2=$rate2")
     if (rate1 == Unknown) return false
     if (rate2 == Unknown) return false
     return rate1 == rate2
