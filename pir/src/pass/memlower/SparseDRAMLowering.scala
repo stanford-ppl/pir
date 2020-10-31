@@ -90,14 +90,6 @@ trait SparseDRAMLowering extends SparseLowering {
         }
       }
       accessReqResp ++= lowerAccess(ua, block, container)
-      /*lowerAccess(ua, block).foreach {
-        acc =>
-          acc match {
-            case Some(x)  => accessReqResp += x
-            case None => 
-        }
-      } */
-      // accessReqResp ++= lowerAccess(ua, block)
       if (synchronizeWithHost) {
         assert(isDRAM)
         insertTokenToHost(ua)
@@ -123,12 +115,6 @@ trait SparseDRAMLowering extends SparseLowering {
         a.controlShadowed(true)
         a.bbCtrl(ctrl)
       }
-      //val remoteCtx = within(bb, ctrl, access.srcCtx.get) {
-        //stage(Context().name("remoteCtx"))
-      //}
-      //dbg(s"remoteCtx: ${remoteCtx}")
-      //dbg(s"remoteCtx.ctrl: ${remoteCtx.ctrl.get}")
-      //swapParent(access, remoteCtx)
       val reqresp = within(access.srcCtx.get) {
         access match {
           case access:SparseRead =>
@@ -136,17 +122,11 @@ trait SparseDRAMLowering extends SparseLowering {
             val addrCtx = within(pirTop, ctrl) {
               stage(Context().name("addrCtx"))
             }
-            //val remoteCtx = within(pirTop, ctrl) {
-              //stage(Context().name("remoteCtx"))
-            //}
             swapParent(access, addrCtx)
             flattenEnable(access) // in addrCtx
             readAddr(access.addr.connected)
             bufferInput(readAddr, BufferParam(fromCtx=Some(addrCtx))).foreach { acc => 
-              //swapParent(acc, remoteCtx)
-              //acc.ctrl.reset
-              //acc.ctrl(ctrl)
-              shadow(acc, ctrl)
+              //shadow(acc, ctrl)
               acc.name := "readAddr"
             }
             val ins = access.out.connected
@@ -155,11 +135,7 @@ trait SparseDRAMLowering extends SparseLowering {
             }
             ins.distinct.foreach { in =>
               bufferInput(in).foreach { read => 
-                //swapParent(read.inAccess, remoteCtx)
-                //read.inAccess.ctrl.reset
-                //read.inAccess.ctrl(ctrl)
-                //read.inAccess.bbCtrl(Some(ctrl))
-                shadow(read.inAccess, ctrl)
+                //shadow(read.inAccess, ctrl)
                 read.inAccess.name := "readOut" 
               }
             }
@@ -170,15 +146,13 @@ trait SparseDRAMLowering extends SparseLowering {
           case access:SparseWrite =>
             val (writeAddr, writeData, writeAck) = block.addWritePort(accessid)
             flattenEnable(access) // in write ctx
-            writeAddr(access.addr.connected)// .ctx := (remoteCtx)
-            writeData(access.data.connected)// .ctx := (remoteCtx)
-            //bufferInput(writeAddr).foreach { acc => acc.ctrl.reset; swapParent(acc, remoteCtx); acc.name := "writeAddr" }
-            //bufferInput(writeData).foreach { acc => acc.ctrl.reset; swapParent(acc, remoteCtx); acc.name := "writeData" }
-            bufferInput(writeAddr).foreach { acc => shadow(acc, ctrl); acc.name := "writeAddr" }
-            bufferInput(writeData).foreach { acc => shadow(acc, ctrl); acc.name := "writeData" }
-            // writeAck.bbCtrl(ctrl)
+            writeAddr(access.addr.connected)
+            writeData(access.data.connected)
+            //bufferInput(writeAddr).foreach { acc => shadow(acc, ctrl); acc.name := "writeAddr" }
+            //bufferInput(writeData).foreach { acc => shadow(acc, ctrl); acc.name := "writeData" }
+            bufferInput(writeAddr).foreach { acc => acc.name := "writeAddr" }
+            bufferInput(writeData).foreach { acc => acc.name := "writeData" }
             val ackCtx = within(pirTop, ctrl) {
-            // val ackCtx = within(bb, ctrl) {
               stage(Context().name("ackCtx"))
             }
             val accumAck = within(ackCtx, ctrl) {
@@ -186,8 +160,6 @@ trait SparseDRAMLowering extends SparseLowering {
             }
             access.mem.disconnect
             bufferInput(accumAck.ack).foreach { read => 
-              //read.inAccess.ctrl.reset
-              //swapParent(read.inAccess, remoteCtx)
               read.name := "ack"
               read.inAccess.name := "ack"
             }
@@ -197,21 +169,15 @@ trait SparseDRAMLowering extends SparseLowering {
           case access:SparseRMW =>
             val (rmwAddr, rmwDataIn, rmwDataOut) = block.addRMWPort(accessid, access.op, access.opOrder)
             // Comment out the following line for SpGEMM
-            // flattenEnable(access) // in write ctx
+            flattenEnable(access) // in write ctx
             rmwAddr(access.addr.connected)
             rmwDataIn(access.input.connected)
             bufferInput(rmwAddr).foreach { in =>
-              //in.ctrl.reset
-              //in.ctrl(ctrl)
-              //in.bbCtrl(Some(ctrl))
-              shadow(in, ctrl)
+              //shadow(in, ctrl)
               in.name := "rmwAddr"
             }
             bufferInput(rmwDataIn).foreach { in =>
-              //in.ctrl.reset
-              //in.ctrl(ctrl)
-              //in.bbCtrl(Some(ctrl))
-              shadow(in, ctrl)
+              //shadow(in, ctrl)
               in.name := "rmwDataIn"
             }
             if (access.key < 0) {
@@ -230,18 +196,10 @@ trait SparseDRAMLowering extends SparseLowering {
               }
               ins.distinct.foreach { in =>
                 bufferInput(in).foreach { read => 
-                  //read.inAccess.ctrl.reset
-                  //read.inAccess.ctrl(ctrl)
-                  // read.inAccess.bbCtrl(Some(ctrl))
                   shadow(read.inAccess, ctrl)
                   read.inAccess.name := "rmwDataOut"
                 }
               }
-              // Testing some new features for better routethrough elimination
-              // rmwAddr.as[BufferRead].ctrl(uaccess.ctrl)
-              // rmwDataIn.as[BufferRead].ctrl(uaccess.ctrl)
-              // rmwDataOut.as[BufferWrite].ctrl(uaccess.ctrl)
-              // End test
               val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
               val req = rmwAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
               val resp = reads.head.out
@@ -252,8 +210,6 @@ trait SparseDRAMLowering extends SparseLowering {
               access -> (Some(req),None)
             }
           case access:SparseRMWData =>
-            // TODO: fixme
-            // access.forceVec(access.addr.inferVec.get)
             dbg(s"Lower SparseRMWData addr.vec: ${access.addr.inferVec.get}  input.vec: ${access.input.inferVec.get}")
             flattenEnable(access)
             val accessid_match = rmwKeyIDMap(access.key)
@@ -262,12 +218,7 @@ trait SparseDRAMLowering extends SparseLowering {
             access.dataOut.presetVec(access.addr.inferVec.get)
             rmwDataOut.vecMeta.reset
             rmwDataOut.presetVec(access.addr.inferVec.get)
-            // access.en.vecMeta.reset
-            // access.en.presetVec(access.addr.inferVec.get)
-            // access.en.vecMeta.reset
-            // access.en.presetVec(access.addr.inferVec.get)
             var ins = access.dataOut.connected
-            // assert(ins.size > 0)
             if (ins.size == 0) {
               val accumAck = within(pirTop, access.getCtrl) {
                 val ctx = stage(Context().name("RMWData_ackAccum"))
@@ -281,7 +232,6 @@ trait SparseDRAMLowering extends SparseLowering {
               swapConnection(in, access.dataOut, rmwDataOut)
             }
             ins.distinct.foreach { in =>
-              // bufferInput(in).foreach { read => read.inAccess.name := "rmwDataOut"; read.out.vecMeta.reset; read.out.presetVec(access.addr.inferVec.get); read.en.vecMeta.reset; read.en.presetVec(access.addr.inferVec.get) }
               bufferInput(in).foreach { read => read.inAccess.name := "rmwDataOut"; read.out.vecMeta.reset; read.out.presetVec(access.addr.inferVec.get); read.en.disconnect; read.inAccess.en.disconnect }
             }
             val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
@@ -293,7 +243,6 @@ trait SparseDRAMLowering extends SparseLowering {
         }
       }
       free(access)
-      // dbg(s"remoteCtx.ctrl: ${remoteCtx.ctrl.get}")
       reqresp
     }
   }
