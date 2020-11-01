@@ -220,6 +220,43 @@ import spatial.metadata.memory.{Barrier => _,_}
   }
 }
 
+@spatial class TestStreamLoadVec extends SpatialTest {
+  override def runtimeArgs: Args = "32"
+  //type T = FixPt[TRUE, _16, _16]
+  type T = Int
+  
+  def main(args: Array[String]): Unit = {
+
+    val N = 128
+
+    val dram = DRAM[I32](2*N)
+    val out = ArgOut[I32]
+
+    Accel {
+      val d = FIFO[I32](16)
+      val s = FIFO[I32](16)
+
+      Foreach (N by 1 par 16) { i =>
+        s.enq(i)
+      }
+
+      dram(N::2*N) store s
+
+      dram stream_load_vec(N, N, d)
+
+      Reduce(out) (N by 1 par 16) { i =>
+        d.deq
+      } { _ + _ }
+    }
+
+    val gold = (0 until N) { i => i }.reduce{_+_}
+
+    val cksum = checkGold[T](out, gold)
+    println("PASS: " + cksum + " (TestCoalesce)")
+    assert(cksum)
+  }
+}
+
 @spatial class TestCoalesceComputed extends SpatialTest {
   override def runtimeArgs: Args = "32"
   //type T = FixPt[TRUE, _16, _16]
@@ -495,7 +532,7 @@ import spatial.metadata.memory.{Barrier => _,_}
 
     Accel {
       // Test dense read/write and RMW
-      val s1 = SparseDRAM[T](2)(N)
+      val s1 = SparseDRAMSeq[T](2)(N)
       Reduce(out)(N by ts par 2) { i =>
         val forwardBarrier = Barrier[Token](0)
         val backwardBarrier = Barrier[Token](init=1) 
@@ -900,7 +937,7 @@ import spatial.metadata.memory.{Barrier => _,_}
         Foreach(ip by 1) { j =>
           sram(j) = (i+j).to[U32]
         }
-        val fifo = FIFO[U32](16)
+        val fifo = FIFO[U32](4096)
         Foreach(ip by 1 par ip) { j =>
           val mask = sram(j)
           fifo.enq(mask)

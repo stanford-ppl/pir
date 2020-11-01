@@ -43,7 +43,7 @@ trait SparseDRAMLowering extends SparseLowering {
         // val ctx = stage(BlackBoxContainer())
         within(ctx) {
           if (isDRAM)
-            stage(SparseDRAMBlock(n.dramPar))
+            stage(SparseDRAMBlock(n.dramPar).seqLoad(n.seqLoad.get))
           else
             stage(SparseParSRAMBlock(n.dramPar).swizzle(n.swizzle.get))
         }

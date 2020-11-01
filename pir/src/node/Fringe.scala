@@ -103,6 +103,10 @@ case class FringeDynStore(dram:DRAM, par:Int)(implicit env:Env) extends DRAMDens
   //}
 }
 
+case class FringeStreamLoad(dram:DRAM, par:Int)(implicit env:Env) extends DRAMDenseCommand with DRAMLoadCommand {
+  data.presetVec(par)
+}
+
 case class DRAM(sid:String) extends prism.graph.IR {
   val dims = Metadata[List[Int]]("dims")
   val sname = new Metadata[String]("sname")

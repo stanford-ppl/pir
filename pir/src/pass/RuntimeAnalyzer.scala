@@ -258,6 +258,7 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
       case n:FringeSparseStore => Finite(1l)
       case n:FringeCoalStore => Finite(1l)
       case n:FringeDynStore => Finite(1l)
+      case n:FringeStreamLoad => Finite(1l)
       case n:BVBuildNoTree => Finite(1l)
       case n:BVBuildTree => Finite(1l)
       case n:BVBuildTreeLen => Finite(1l)

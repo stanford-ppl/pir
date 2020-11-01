@@ -39,9 +39,14 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
   }
 
   def isScratchpadFIFO(mem:Memory):Boolean = {
+    dbg(s"Test scractchpad FIFO: $mem")
+    dbg(s"inAccesses: ${mem.inAccesses}")
+    dbg(s"outAccesses: ${mem.outAccesses}")
     if (!mem.isFIFO) return false
     val writer = testOne(mem.inAccesses).getOrElse(return false)
     val reader = testOne(mem.outAccesses).getOrElse(return false)
+    dbg(s"writerVec: ${writer.getVec}")
+    dbg(s"readerVec: ${reader.getVec}")
     if (writer.getVec != reader.getVec) return false
     mem.depth.get > fifoDepth
   }

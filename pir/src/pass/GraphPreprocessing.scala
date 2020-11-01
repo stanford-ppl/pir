@@ -41,6 +41,7 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
       if (mem.isDRAM) addLive(mem)
     }
 
+    scanCounterMask(n)
     // processScanCounter(n)
     // processDataScanCounter(n)
 
@@ -107,6 +108,22 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
         c1.cnt(cntRead.out)
         c1.indOrData(dataRead.out)
         cntRead.done(n.done)
+      }
+    }
+  }
+
+  def scanCounterMask(n:N) = {
+    n.to[LoopController].foreach { n =>
+      val ctrs = n.cchain.T
+      if (ctrs.exists { case x:ScanCounter => true; case x:DataScanCounter => true; case _ => false }) {
+        val mask = if (ctrs.head.isInstanceOf[ScanCounter])
+          ctrs.head.as[ScanCounter].mask
+        else
+          ctrs.head.as[DataScanCounter].mask
+        // Traverse from the mask input, to the MemRead, to the inserted register, to the memWrite, to the MemRead that actually reads the FIFO
+        val refRead = mask.T.asInstanceOf[MemRead].mem.T.inAccesses.head.as[MemWrite].data.T.as[MemRead]
+        refRead.out.vecMeta.reset
+        refRead.out.presetVec(16)
       }
     }
   }

@@ -174,7 +174,7 @@ trait GlobalRetimer extends PIRTransformer with CUCostUtil {
     // node
     val opdelay = math.min(depDelay + retimeDepth, depedDelay - 1)
     val d = within(out.src.getCtrl) { 
-      if (retimeDepth == fifoDepth) {
+      if (retimeDepth <= fifoDepth) {
         stage(Delay(retimeDepth).in(out).delay(opdelay))
       } else {
         stage(ScratchpadDelay(retimeDepth).in(out).delay(opdelay))

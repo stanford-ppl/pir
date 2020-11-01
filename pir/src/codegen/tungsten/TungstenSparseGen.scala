@@ -156,6 +156,8 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
           genTopMember(n, Seq(n.qstr, order.qstr, "&DRAM", s"(${n.qtp}*) ${alias.sname.get}", s"make_tuple(&net, &statnet, &idealnet)", s"false"))
       }
       genTopInit {
+        if (n.seqLoad.get)
+          emitln(s"""$n.SetSeq(true);""")
         n.readPorts.foreach { case (a, ports) =>
           emitln(s"""$n.RegisterRead("read${a}_", {${(0 until ports.size).map { i => i }.mkString(",")}});""")
         }

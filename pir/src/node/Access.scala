@@ -170,6 +170,7 @@ case class MemRead()(implicit env:Env) extends ReadAccess {
         case List(i@InputField(cmd:FringeSparseStore, "addr" | "data")) => i.inferVec
         case List(i@InputField(cmd:FringeCoalStore, "addr" | "data" | "valid" | "len")) => i.inferVec
         case List(i@InputField(cmd:FringeDynStore, "addr" | "data" | "done")) => i.inferVec
+        case List(i@InputField(cmd:FringeStreamLoad, "addr" | "data")) => i.inferVec
         case List(i@InputField(cmd:Scanner, "input")) => i.inferVec
         case List(i@InputField(cmd:DataScanner, "input")) => i.inferVec
         case List(i@InputField(cmd:BVBuildNoTree, "max" | "len" | "indices")) => i.inferVec

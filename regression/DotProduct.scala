@@ -11,9 +11,9 @@ class DotProduct_6 extends DotProduct(op=1, ip=5)
 class DotProduct_7 extends DotProduct(op=3, ip=5)
 
 @spatial abstract class DotProduct(
-  N:scala.Int = 1024,
+  N:scala.Int = 65536,
   op:scala.Int = 1,
-  ts:scala.Int = 32,
+  ts:scala.Int = 16384,
   ip:scala.Int = 16
 ) extends SpatialTest {
   type X = Int
