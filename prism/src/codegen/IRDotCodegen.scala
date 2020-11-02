@@ -63,8 +63,8 @@ trait IRDotCodegen extends DotCodegen with ChildFirstTraversal {
     emitSubGraph(n, setAttrs(n)) { block }
   }
 
-  def emitSingleNode(n:N):Unit = {
-    emitNode(n,setAttrs(n))
+  def emitSingleNode(n:N, sub:String = ""):Unit = {
+    emitNode(n,setAttrs(n),sub)
     nodes += n
   }
 
@@ -85,14 +85,14 @@ trait IRDotCodegen extends DotCodegen with ChildFirstTraversal {
     (n+:(n.descendents.filter { d => !nodes.contains(d) })).foreach { d =>
       d.localIns.foreach { in =>
         in.connected.foreach { out => 
-          if (!out.src.isDescendentOf(n)) emitEdge(out, in, DotAttr.empty)
+          if (!out.src.isDescendentOf(n)) emitEdge(out, in, DotAttr.empty, "", "")
         }
       }
     }
   }
 
-  def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
-    emitEdgeMatched(from.src, to.src, attr) 
+  def emitEdge(from:EN[N], to:EN[N], attr:DotAttr, f_sub:String, t_sub:String):Unit = {
+    emitEdgeMatched(from.src, to.src, attr, f_sub, t_sub) 
   }
 
   def lift(n:N) = {
@@ -103,15 +103,15 @@ trait IRDotCodegen extends DotCodegen with ChildFirstTraversal {
     }
   }
 
-  def emitEdgeMatched(from:N, to:N, attr:DotAttr):Unit = {
+  def emitEdgeMatched(from:N, to:N, attr:DotAttr, f_sub:String, t_sub:String):Unit = {
     (lift(from), lift(to)) match {
-      case (Some(from), Some(to)) => emitEdge(from, to, attr)
+      case (Some(from), Some(to)) => emitEdge(from, to, attr, f_sub, t_sub)
       case _ =>
     }
   }
 
-  def emitEdge(from:N, to:N, attr:DotAttr):Unit = {
-    super.emitEdge(from, to, attr) // String, String
+  def emitEdge(from:N, to:N, attr:DotAttr, f_sub:String, t_sub:String):Unit = {
+    super.emitEdge(from, to, attr, f_sub, t_sub) // String, String
   }
 
 }

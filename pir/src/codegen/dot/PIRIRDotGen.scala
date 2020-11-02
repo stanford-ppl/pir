@@ -128,13 +128,13 @@ trait PIRIRDotGen extends PIRTraversal with IRDotCodegen { self =>
     case n => super.color(attr, n)
   }
 
-  override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
+  override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr, f_sub:String, t_sub:String):Unit = {
     val newAttr = from.src match {
       case from:GlobalOutput if from.out.vecMeta.v.nonEmpty & isVecLink(from) => attr.setEdge.style(bold)
       case from:GlobalOutput if from.out.vecMeta.v.nonEmpty & isCtrlLink(from) => attr.setEdge.style(dashed)
       case _ =>  attr.setEdge
     }
-    super.emitEdge(from, to, newAttr)
+    super.emitEdge(from, to, newAttr, f_sub, t_sub)
   }
 
   lazy val htmlGen = new PIRHtmlIRPrinter(fileName.replace(".dot", "_IR.html")) {
@@ -172,10 +172,10 @@ trait PIRIRDotGen extends PIRTraversal with IRDotCodegen { self =>
 }
 
 class PIRTopDotGen(val fileName:String)(implicit design:PIR) extends PIRIRDotGen {
-  override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
+  override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr, f_sub:String, t_sub:String):Unit = {
     (from, to) match {
       case (OutputField(from:GlobalOutput, _), InputField(to:GlobalInput,_)) =>
-      case (from, to) => super.emitEdge(from, to, attr)
+      case (from, to) => super.emitEdge(from, to, attr, f_sub, t_sub)
     }
   }
 
@@ -222,8 +222,40 @@ class PIRGlobalDotGen(val fileName:String, noBackEdge:Boolean=false)(implicit de
     //case n:Top => super.color(attr,n)
   //}
   
-  override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr):Unit = {
+  override def emitEdge(from:EN[N], to:EN[N], attr:DotAttr, f_sub_in:String, t_sub_in:String):Unit = {
     if (noBackEdge && backEdges.contains(from->to)) return
+
+    // TODO: specialize these to avoid false matches
+    val f_sub_new = from match {
+      case from@OutputField(fromsrc:GlobalOutput, _) if fromsrc.isExtern.get => {
+        val from = fromsrc.in.T
+        val from_ctx = from.collectUp[Context]().head.collectDown[SparseParBlock]().head
+        val from_bb = from.as[BufferWrite].data.connected.head
+        val (id,lane) = from_ctx.portMap(from_bb)
+
+        // s"_EXTERN_${from}_${from_ctx}_${from_bb}_${id}_${lane}"
+        s"_${id}_${lane}"
+      }
+      case _ => ""
+    }
+    val f_sub = s"${f_sub_new}${f_sub_in}"
+
+    val t_sub_new = to match {
+      case to@InputField(tosrc:GlobalInput, _) if tosrc.isExtern.get => {
+        val to = tosrc.out.T.head
+        val to_ctx = to.collectUp[Context]().head.collectDown[SparseParBlock]().head
+        val to_bb = to.as[BufferRead].out.connected.head
+        val (id,lane) = to_ctx.portMap(to_bb)
+
+        // s"_EXTERN_${from}_${from_ctx}_${from_bb}_${id}_${lane}"
+        s"_${id}_${lane}"
+      }
+      case _ => ""
+    }
+    val t_sub = s"${t_sub_new}${t_sub_in}"
+
+
+
     (from, to) match {
       case (from@OutputField(fromsrc:GlobalOutput, _), to) if fromsrc.isUnder[ArgFringe] && !config.enableDotArgIn => 
       case (from@OutputField(fromsrc:GlobalOutput, _), to@InputField(tosrc:GlobalInput, _)) => 
@@ -245,8 +277,8 @@ class PIRGlobalDotGen(val fileName:String, noBackEdge:Boolean=false)(implicit de
         if (fromsrc.in.T.isSplit.get) {
           edgeAttr.color("orangered1")
         }
-        super.emitEdge(from,to,edgeAttr)
-      case (from,to) => super.emitEdge(from,to,attr.setEdge.attr("label",from.src.id))
+        super.emitEdge(from,to,edgeAttr, f_sub, t_sub)
+      case (from,to) => super.emitEdge(from,to,attr.setEdge.attr("label",from.src.id), f_sub, t_sub)
     }
   }
 
@@ -300,6 +332,26 @@ class PIRGlobalDotGen(val fileName:String, noBackEdge:Boolean=false)(implicit de
 
   override def emitNode(n:N) = n match {
     case n:Top => visitNode(n)
+    case n:BlackBoxContainer if n.collectDown[SparseParBlock]().length != 0 => {
+      assert(n.collectDown[SparseParBlock]().length == 1)
+      val b = n.collectDown[SparseParBlock]().head
+      b.readPorts.foreach { case (a, ports) =>
+        (0 until ports.size).foreach { p =>
+          emitSingleNode(n, s"_${a}_${p}")
+        }
+      }
+      b.writePorts.foreach { case (a, ports) =>
+        (0 until ports.size).foreach { p =>
+          emitSingleNode(n, s"_${a}_${p}")
+        }
+      }
+      b.rmwPorts.foreach { case (a, ports) =>
+        (0 until ports.size).foreach { p =>
+          emitSingleNode(n, s"_${a}_${p}")
+        }
+      }
+      // emitSingleNode(n)
+    }
     case n:GlobalContainer => emitSingleNode(n)
     case n => super.emitNode(n)
   }

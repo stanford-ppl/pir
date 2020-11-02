@@ -14,14 +14,14 @@ trait DotCodegen extends Codegen {
   //def q(s:Any) = regex.replaceAllIn(s.toString, "")
   def q(s:Any) = s.toString
 
-  def emitNode(n:Any, attr:DotAttr) = {
+  def emitNode(n:Any, attr:DotAttr, sub:String = "") = {
     val attrMap = attr.node
     attrMap.amap.transform { case ("label", v) => q(v); case (k,v) => v }
-    emitln(s"""${q(n)} ${attrMap.list};""")
+    emitln(s"""${q(n)}${sub} ${attrMap.list};""")
   }
   def emitNode(n:Any, label:String):Unit = emitNode(n, DotAttr().label(label))
 
-  def emitEdge(from:Any, to:Any, attr:DotAttr):Unit = {
+  def emitEdge(from:Any, to:Any, attr:DotAttr, f_sub:String, t_sub:String):Unit = {
     val attrMap = attr.edge
 
     var fstr = q(from)
@@ -32,10 +32,10 @@ trait DotCodegen extends Codegen {
     attrMap.strip("tfield").foreach { field => fstr += s":$field" }
     attrMap.strip("td").foreach { field => fstr += s":$field" }
 
-    emitln(s"""${q(fstr)} -> ${q(tstr)} ${if (attrMap.amap.size!=0) attrMap.list else ""}""")
+    emitln(s"""${q(fstr)}${f_sub} -> ${q(tstr)}${t_sub} ${if (attrMap.amap.size!=0) attrMap.list else ""}""")
   }
 
-  def emitEdge(from:Any, to:Any):Unit = emitEdge(from, to, DotAttr.empty)
+  def emitEdge(from:Any, to:Any):Unit = emitEdge(from, to, DotAttr.empty, "", "")
 
   def emitSubGraph(n:Any, label:Any)(block: =>Any):Unit = {
 		emitSubGraph(n, DotAttr().setGraph.label(label.toString))(block)
