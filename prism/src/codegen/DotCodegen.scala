@@ -16,7 +16,7 @@ trait DotCodegen extends Codegen {
 
   def emitNode(n:Any, attr:DotAttr, sub:String = "") = {
     val attrMap = attr.node
-    attrMap.amap.transform { case ("label", v) => q(v); case (k,v) => v }
+    attrMap.amap.transform { case ("label", v) => s"${q(v)}${sub}"; case (k,v) => v }
     emitln(s"""${q(n)}${sub} ${attrMap.list};""")
   }
   def emitNode(n:Any, label:String):Unit = emitNode(n, DotAttr().label(label))
