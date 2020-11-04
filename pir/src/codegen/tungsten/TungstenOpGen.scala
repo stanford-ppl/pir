@@ -53,7 +53,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
          emitln(s"$n = $identity;")
       }
       emitIf(s"${n.en.qref}") {
-        emitBlock(s"for (int i = 0; i < ${in.getVec}; i++)") {
+        emitBlock(s"for (int i = 0; i < ${getCtrler(n).laneValid.getVec}; i++)") {
           val laneValid = getCtrler(n).laneValid.qidx(Some("i"))
           emitIf(laneValid) {
             val initOrInput = n.init.singleConnected match {

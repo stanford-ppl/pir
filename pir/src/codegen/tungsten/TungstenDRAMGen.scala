@@ -117,7 +117,7 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen with TungstenB
     case n:FringeSparseStore => (s"SparseStoreAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
     case n:FringeCoalStore => (s"CoalStoreAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
     case n:FringeDynStore => (s"DynStoreAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
-    case n:FringeStreamLoad => (s"StreamLoadAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
+    case n:FringeStreamLoad => (s"StreamLoadAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}, ${n.comp}>", s"${n}")
     case n:BVBuildNoTree => (s"BitVecBuild<${n.shift},false>", s"${n}")
     case n:BVBuildTree => (s"BitVecBuild<${n.shift},true>", s"${n}")
     case n:BVBuildTreeLen => (s"BitVecBuild<${n.shift},true>", s"${n}")

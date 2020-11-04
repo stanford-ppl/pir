@@ -130,6 +130,7 @@ case class FIFOParam(
   granularity:String,
   count:Int,
   depth:Int=16
+  // depth:Int=32
 ) extends Parameter {
   lazy val cuParam = traceOut[CUParam]
 }
