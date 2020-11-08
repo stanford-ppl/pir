@@ -63,11 +63,17 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
         assert(c1.data)
         val read = c0.mask.T.asInstanceOf[MemRead]
         val writer = assertOne(read.mem.T.inAccesses, s"$n.mask writer").as[MemWrite]
-        val scanRead = writer.data.T.asInstanceOf[OutAccess]
+        val scanRead = writer.data.T.asInstanceOf[MemRead]
         scanRead.out.vecMeta.reset
         scanRead.out.presetVec(16)
+        scanRead.toScanController(true)
+        scanRead.ctrl.reset
+        scanRead.ctrl(c0.getCtrl)
+        // scanRead.done(n.tileDone)
         //
-        read.toScanController(true)
+        //ctrs.head.as[DataScanCounter].mask.T.asInstanceOf[MemRead].mem.T.depth(1)
+        //
+        // read.toScanController(true)
         read.vecMeta.reset
         read.presetVec(16)
         read.out.vecMeta.reset
@@ -76,11 +82,11 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
         read.ctrl(c0.getCtrl)
         writer.vecMeta.reset
         writer.presetVec(16)
-        //c0.mask.disconnect
-        //c1.mask.disconnect
-        //c0.mask(scanRead)
+        c0.mask.disconnect
+        c1.mask.disconnect
+        c0.mask(scanRead)
           //c0.mask.T.toScanController(true)
-        //c1.mask(scanRead)
+        c1.mask(scanRead)
           //c1.mask.T.toScanController(true)
       }
     }

@@ -156,6 +156,8 @@ class RuntimeAnalyzer(implicit compiler:PIR) extends ContextTraversal with BFSTr
           inferByInput ||= ctrlers.isEmpty
           if (inferByInput) countByReads(n)
           else countByController(n)
+        //case n:BufferRead if n.out.T.head.as[BufferWrite].out.T.head.out.T.isInstanceOf[DataScanCounter] =>
+          //Some(Unknown)
         case n:BufferRead if n.nonBlocking =>
           n.in.T.getCount
           Some(Infinite)

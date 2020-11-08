@@ -63,6 +63,7 @@ trait MemoryAnalyzer extends PIRPass { self:PIRTransformer =>
         // case (out,InputField(n:ScanCounter, "tileCount")::_) => (childDone(o, octx), childDone(i, ictx))
         // case (out,InputField(n:DataScanCounter, "tileCount")::_) => (childDone(o, octx), childDone(i, ictx))
         case (out,InputField(n:DataScanCounter, "cnt")::_) => (tileDone(o, octx), tileDone(i, ictx))
+        case (out,InputField(n:DataScanCounter, "mask")::_) => (childDone(o, octx), tileDone(i, ictx))
         case (out,InputField(n:DataScanCounter, "indOrData")::_) => (subTileDone(o, octx), subTileDone(i, ictx))
 
         case (out,ins) if isFIFO => (childDone(o, octx), childDone(i, ictx))
