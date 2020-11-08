@@ -103,10 +103,12 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case n:DataScanCounter =>
       genCtxMember(n)
       // emitToVec(n.index) { i => n.index.singleConnected.get.qidx(i) }
-      emitln(s"$n.setCount(${n.cnt.T});")
-      emitln(s"$n.setTileCount(${n.tileCount.T});")
+      // emitln(s"$n.setCount(${n.cnt.T});")
+      // emitln(s"$n.setTileCount(${n.tileCount.T});")
       // TODO: may need to generate a separate template
-      emitln(s"$n.setIndex(${n.indOrData.qref});")
+      // emitln(s"$n.setIndex(${n.indOrData.qref});")
+      emitln(s"$n.setMask(${n.mask.T});")
+      emitln(s"$n.setSize(${n.tileCount.T});")
       emitln(s"$n.Eval(); // ${n.getCtrl}")
 
     case n:ScanCounter =>
@@ -211,9 +213,9 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case n:ScanCounterDataFollower => (s"ScanCounter<${n.parent.get.as[LoopController].par.get},0,512,${n.index}>",s"$n")
     case n:DataScanCounter => 
       if (n.data) {
-        (s"ScanCounter<1,0,16,0>",s"$n")
+        (s"DataScanCounterDirect<1,0,16>",s"$n")
       } else {
-        (s"ScanCounter<1,1,16,0>",s"$n")
+        (s"DataScanCounterDirect<1,1,16>",s"$n")
       }
     case n => super.varOf(n)
   }

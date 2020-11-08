@@ -223,7 +223,8 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
         (max - min) /! (step * par)
       case n:ScanCounter => Symbol(1l, Map(s"SCAN_${n.progorder.get}" -> 1))
       case n:ScanCounterDataFollower => Finite(1l)
-      case n:DataScanCounter => Symbol(1l, Map(s"DATASCAN_${n.progorder.get}" -> 1))
+      // case n:DataScanCounter => Symbol(1l, Map(s"DATASCAN_${n.progorder.get}" -> 1))
+      case n:DataScanCounter => Unknown
       // case n:DataScanCounter => Finite(1l)
       case n:Controller =>
         n.getCtrl.iter.reset //TODO: remove this

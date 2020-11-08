@@ -35,68 +35,72 @@ trait SparseDRAMLowering extends SparseLowering {
     dbg(s"srcCtx: ${n.srcCtx.get}")
 
     var container : BlackBoxContainer = BlackBoxContainer()
-    val ctrl = leastCommonAncesstor(n.accesses.map { _.getCtrl }).get
-    val block = within(pirTop, ctrl, n.srcCtx.get) {
-      container = stage(BlackBoxContainer())
-      within(container) {
-        val ctx = stage(Context().streaming(true)) 
-        // val ctx = stage(BlackBoxContainer())
-        within(ctx) {
-          if (isDRAM)
-            stage(SparseDRAMBlock(n.dramPar).seqLoad(n.seqLoad.get))
-          else
-            stage(SparseParSRAMBlock(n.dramPar).swizzle(n.swizzle.get))
-        }
-      }
-    }
-    dbg(s"accesses=${n.accesses}")
-    block.mirrorMetas(n)
-    dbg(s"accesses=${n.accesses}")
-
-    if (n.autoBar.get) {
-      dbg(s"Perform automatic barrier insertion for $n")
-      consistencyBarrier(n.accesses)(dependsOn){ case (from,to,carried,depth) =>
-
-        val stallTo = to.asInstanceOf[SparseAccess].barriers.get.map { bar =>
-          bar match {
-            case (barrier,true) => true // false
-            case (barrier,false) => true
+    if (n.accesses.length != 0) {
+      val ctrl = leastCommonAncesstor(n.accesses.map { _.getCtrl }).get
+      val block = within(pirTop, ctrl, n.srcCtx.get) {
+        container = stage(BlackBoxContainer())
+        within(container) {
+          val ctx = stage(Context().streaming(true)) 
+          // val ctx = stage(BlackBoxContainer())
+          within(ctx) {
+            if (isDRAM)
+              stage(SparseDRAMBlock(n.dramPar).seqLoad(n.seqLoad.get))
+            else
+              stage(SparseParSRAMBlock(n.dramPar).swizzle(n.swizzle.get))
           }
-        }.reduceOption({_|_}).getOrElse(false)
-        if (stallTo || from.isInstanceOf[SparseRMWData] || to.isInstanceOf[SparseRMWData]) {
-          dbg(s"Skip sparse barrier ${from}->${to}; user has already inserted a barrier holding back this memory")
-        } else {
-          dbg(s"Insert sparse barrier ${from}->${to}")
-          val bar_init = if (carried) 1 else 0
-          val ctrl = leastCommonAncesstor(to.getCtrl, from.getCtrl).get 
-          val b = Barrier(ctrl, bar_init, 16).name(s"__auto_bar_${from}_${to}")
-          barrierWrite.getOrElseUpdate(b, mutable.ListBuffer()) += from
-          barrierRead.getOrElseUpdate(b, mutable.ListBuffer()) += to
         }
       }
-    } else {
-      dbg(s"Skip automatic barrier insertion for $n")
-    }
+      dbg(s"accesses=${n.accesses}")
+      block.mirrorMetas(n)
+      dbg(s"accesses=${n.accesses}")
 
-    val naccess = sortedAccesses.size
-    sortedAccesses.zipWithIndex.foreach { case (ua, i) =>
-      var synchronizeWithHost = false
-      if (isDRAM && i==naccess-1) { // Last access
-        synchronizeWithHost = ua.lanes.head match {
-          case access:SparseRead => false
-          case access:SparseRMW => (!access.dataOut.isConnected && access.key < 0)
-          case access:SparseWrite => true
-          case access:SparseRMWData => !access.dataOut.isConnected
+      if (n.autoBar.get) {
+        dbg(s"Perform automatic barrier insertion for $n")
+        consistencyBarrier(n.accesses)(dependsOn){ case (from,to,carried,depth) =>
+
+          val stallTo = to.asInstanceOf[SparseAccess].barriers.get.map { bar =>
+            bar match {
+              case (barrier,true) => true // false
+              case (barrier,false) => true
+            }
+          }.reduceOption({_|_}).getOrElse(false)
+          if (stallTo || from.isInstanceOf[SparseRMWData] || to.isInstanceOf[SparseRMWData]) {
+            dbg(s"Skip sparse barrier ${from}->${to}; user has already inserted a barrier holding back this memory")
+          } else {
+            dbg(s"Insert sparse barrier ${from}->${to}")
+            val bar_init = if (carried) 1 else 0
+            val ctrl = leastCommonAncesstor(to.getCtrl, from.getCtrl).get 
+            val b = Barrier(ctrl, bar_init, 16).name(s"__auto_bar_${from}_${to}")
+            barrierWrite.getOrElseUpdate(b, mutable.ListBuffer()) += from
+            barrierRead.getOrElseUpdate(b, mutable.ListBuffer()) += to
+          }
+        }
+      } else {
+        dbg(s"Skip automatic barrier insertion for $n")
+      }
+
+      val naccess = sortedAccesses.size
+      sortedAccesses.zipWithIndex.foreach { case (ua, i) =>
+        var synchronizeWithHost = false
+        if (isDRAM && i==naccess-1) { // Last access
+          synchronizeWithHost = ua.lanes.head match {
+            case access:SparseRead => false
+            case access:SparseRMW => (!access.dataOut.isConnected && access.key < 0)
+            case access:SparseWrite => true
+            case access:SparseRMWData => !access.dataOut.isConnected
+          }
+        }
+        accessReqResp ++= lowerAccess(ua, block, container)
+        if (synchronizeWithHost) {
+          assert(isDRAM)
+          insertTokenToHost(ua)
         }
       }
-      accessReqResp ++= lowerAccess(ua, block, container)
-      if (synchronizeWithHost) {
-        assert(isDRAM)
-        insertTokenToHost(ua)
-      }
+      dbg(s"accesses=${n.accesses}")
+      n.alias.reset
+    } else {
+      dbg(s"no accesses for ${n}")
     }
-    dbg(s"accesses=${n.accesses}")
-    n.alias.reset
     free(n)
   }
 

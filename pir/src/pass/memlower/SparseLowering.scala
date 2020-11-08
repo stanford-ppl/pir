@@ -39,6 +39,7 @@ trait SparseLowering extends GenericMemoryLowering {
   }
 
   private def processBarrier(barrier:Barrier) = {
+    dbg(s"Process barrier: ${barrier} depth: ${barrier.depth} init: ${barrier.init}")
     within(barrier.srcCtx.get) {
       val barrierCtx = within(pirTop, barrier.ctrl) {
         stage(Context().name.mirror(barrier.name).streaming(true))
@@ -57,7 +58,7 @@ trait SparseLowering extends GenericMemoryLowering {
       reads.foreach { access =>
         val req = accessReqResp(access)._1.get
         val reqctx = req.src.ctx.get
-        val token = insertToken(fctx=barrierCtx, tctx=reqctx, dep=Some(merged))
+        val token = insertToken(fctx=barrierCtx, tctx=reqctx, dep=Some(merged)).depth(barrier.depth)
         token.initToken := barrier.init
         token.inits := true
         val forward = within(reqctx, req.src.getCtrl) {

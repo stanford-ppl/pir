@@ -17,10 +17,61 @@ class ScanLowering(implicit compiler:PIR) extends PIRTraversal with SiblingFirst
 
   override def visitNode(n:N) = {
     processScanCounter(n)
-    processDataScanCounter(n)
+    // processDataScanCounter(n)
+    // processDataScanCounterNew(n)
 
     super.visitNode(n)
-  } 
+  }
+  
+  def processDataScanCounterNew(n:N) = {
+    // Insert a Scanner for loop controller including scancounters
+    n.to[LoopController].foreach { n =>
+      val ctrs = n.cchain.T
+      if (ctrs.exists { case x:DataScanCounter => true; case _ => false }) {
+        val refCtr = ctrs.head.as[DataScanCounter]
+        val scanCtrl = refCtr.mask.T.asInstanceOf[BufferRead].inAccess.as[BufferWrite].data.T.getCtrl
+        assert(ctrs.size == 2, "Counters have size " + ctrs.size)
+        val c0 = ctrs(0).as[DataScanCounter]
+        val c1 = ctrs(1).as[DataScanCounter]
+        assert(!c0.data)
+        assert(c1.data)
+
+        // Setup mask relative to a reference counter
+        val scanBR = c0.mask.T.as[BufferRead]
+        val scanBW = scanBR.inAccess.as[BufferWrite]
+        val dataBR = c1.mask.T.as[BufferRead]
+        val dataBW = dataBR.inAccess.as[BufferWrite]
+
+        // val br = refCtr.mask.T.as[BufferRead]
+        //val bw = scanBR.inAccess.as[BufferWrite]
+        dbg(s"ScanBR: ${scanBR}")
+        dbg(s"ScanBW: ${scanBW}")
+        dbg(s"ScanBW.data.connected: ${scanBW.data.connected}")
+        val outField = scanBW.data.connected.head
+        dbg(s"outField.src: ${outField.src}")
+        val scanBWReal = outField.src.as[BufferRead].inAccess.as[BufferWrite]
+        dbg(s"scanBWReal: ${scanBWReal}")
+        dbg(s"scanBWReal.data.connected: ${scanBWReal.data.connected}")
+        // scanBWReal.data.connected.foreach{_.toScanController(true)}
+
+        c0.mask.disconnect
+        c1.mask.disconnect
+        // c0.tileCount.T.toScanController(true)
+        // c1.tileCount.T.toScanController(true)
+        // c0.mask(scanBWReal.data.connected)
+        c0.mask(scanBR)
+          c0.mask.T.asInstanceOf[BufferRead].toScanController(true)
+        c1.mask(scanBR)//.foreach{_.toScanController(true)}
+          c1.mask.T.asInstanceOf[BufferRead].toScanController(true)
+        c0.mask.T.vecMeta.reset
+        c1.mask.T.vecMeta.reset
+        c0.mask.T.presetVec(16)
+        c1.mask.T.presetVec(16)
+        bufferInput(c0.mask)
+        bufferInput(c1.mask)
+      }
+    }
+  }
 
   def processDataScanCounter(n:N) = {
     // Insert a Scanner for loop controller including scancounters
