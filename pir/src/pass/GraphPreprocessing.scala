@@ -73,7 +73,7 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
         //
         //ctrs.head.as[DataScanCounter].mask.T.asInstanceOf[MemRead].mem.T.depth(1)
         //
-        // read.toScanController(true)
+        read.toScanController(true)
         read.vecMeta.reset
         read.presetVec(16)
         read.out.vecMeta.reset
