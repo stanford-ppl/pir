@@ -4,6 +4,9 @@ package node
 import spade.param._
 import prism.graph._
 import scala.collection.mutable
+import scala.math
+
+
 
 trait MemoryNode extends PIRNode {
   /*  ------- Metadata -------- */
@@ -342,14 +345,14 @@ class SparseParBlock(
 
   override def compVec(n:IR) = n match {
     case n@OutputField(_,"readData") =>  
-      //val (aid, lane) = portMap(n.as)
-      //readPorts(aid)(lane)._1.inferVec
-      Some(16)
+      val (aid, lane) = portMap(n.as)
+      readPorts(aid)(lane)._1.inferVec
+      //Some(16)
     case n@OutputField(_,"rmwDataOut") => 
-      //val (aid, lane) = portMap(n.as)
-      // rmwPorts(aid)(lane)._2.inferVec
-      //rmwPorts(aid)(lane)._1.inferVec
-      Some(16)
+      val (aid, lane) = portMap(n.as)
+      Some(Math.max(rmwPorts(aid)(lane)._1.inferVec.get, rmwPorts(aid)(lane)._2.inferVec.get))
+      //rmwPorts(aid)(lane)._1.inferVec)
+      //Some(16)
     case _ => super.compVec(n)
   }
 

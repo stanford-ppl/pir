@@ -122,6 +122,8 @@ trait SparseDRAMLowering extends SparseLowering {
       val reqresp = within(access.srcCtx.get) {
         access match {
           case access:SparseRead =>
+            dbg(s"Lower sparse read access: ${access}")
+            dbg(s"Access vec: ${access.getVec}")
             val (readAddr, readData) = block.addReadPort(accessid)
             val addrCtx = within(pirTop, ctrl) {
               stage(Context().name("addrCtx"))
