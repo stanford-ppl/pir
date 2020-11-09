@@ -2,16 +2,16 @@ import spatial.dsl._
 import spatial.lib.ML._
 
 class SRAMSplit_0 extends SRAMSplit
-class SRAMSplit_1 extends SRAMSplit(ip=16, op=1, N=4*64*1024)
-class SRAMSplit_2 extends SRAMSplit(ip=16, op=3, N=4*64*1024)
-class SRAMSplit_3 extends SRAMSplit(ip=16, mp=2, op=3, N=8*64*1024)
-class SRAMSplit_4 extends SRAMSplit(ip=16, mp=2, op=3, N=8*64*1024) {
+class SRAMSplit_1 extends SRAMSplit(ip=16, op=1, N=4*1024)
+class SRAMSplit_2 extends SRAMSplit(ip=16, op=3, N=4*1024)
+class SRAMSplit_3 extends SRAMSplit(ip=16, mp=2, op=3, N=8*1024)
+class SRAMSplit_4 extends SRAMSplit(ip=16, mp=2, op=3, N=8*1024) {
   override def pirArgs = super.pirArgs + " --bcread"
 }
 class SRAMSplit_5 extends SRAMSplit(ip=16, op=1, N=1024)
 
 @spatial abstract class SRAMSplit(
-  N:scala.Int = 4*64*1024,
+  N:scala.Int = 4*1024,
   ts:scala.Int = 64,
   op:scala.Int = 1,
   mp:scala.Int = 1,
@@ -41,7 +41,7 @@ class SRAMSplit_5 extends SRAMSplit(ip=16, op=1, N=1024)
       }{_+_}
     }
 
-    val gold = (0 until N) { i => i }.reduce{_+_}
+    val gold = (0 until N) { i => i*ip }.reduce{_+_}
 
     val cksum = checkGold(out, gold)
     println("PASS: " + cksum + " (SRAMSplit)")
