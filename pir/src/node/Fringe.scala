@@ -103,7 +103,7 @@ case class FringeDynStore(dram:DRAM, par:Int)(implicit env:Env) extends DRAMDens
   //}
 }
 
-case class FringeStreamLoad(dram:DRAM, par:Int, comp:Boolean)(implicit env:Env) extends DRAMDenseCommand with DRAMLoadCommand {
+case class FringeStreamLoad(dram:DRAM, par:Int, comp:Boolean, pad:Int)(implicit env:Env) extends DRAMDenseCommand with DRAMLoadCommand {
   data.presetVec(par)
 }
 

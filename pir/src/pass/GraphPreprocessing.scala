@@ -41,8 +41,8 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
       if (mem.isDRAM) addLive(mem)
     }
 
-    scanCounterMask(n)
-    // processScanCounter(n)
+    // scanCounterMask(n)
+    processScanCounter(n)
     // processDataScanCounter(n)
     processDataScanCounterNew(n)
 
@@ -177,83 +177,115 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
     n.to[LoopController].foreach { n =>
       val ctrs = n.cchain.T
       if (ctrs.exists { case x:ScanCounter => true; case _ => false }) {
-        val par = ctrs.head.as[ScanCounter].par
-        val scanCtrl = ctrs.head.as[ScanCounter].mask.T.asInstanceOf[MemRead].mem.T.inAccesses.head.as[MemWrite].data.T.getCtrl
-        val scanner = within(pirTop, scanCtrl, n.srcCtx.get) {
-          stage(Scanner(par, ctrs.size/2, ctrs.head.as[ScanCounter].mode))
-        }
-        val ctrlFIFO = within(pirTop) {
-          stage(FIFO().banks(List(1)).name("ctrlFIFO"))
-        }
-        val ctrlWrite = within(pirTop, scanCtrl) {
-          stage(MemWrite().setMem(ctrlFIFO).data(scanner.ctrlWord))
-        }
-        val ctrlRead = within(pirTop, n.getCtrl) {
-          stage(MemRead().setMem(ctrlFIFO).done(n.tileDone).toScanController(true))
-        }
-        /* val countRead = ctrs.last.as[ScanCounter].tileCount.T.asInstanceOf[MemRead]
-        val countWriter = assertOne(countRead.mem.T.inAccesses, s"$n.count writer").as[MemWrite]
-        val countScanRead = countWriter.data.T.asInstanceOf[OutAccess]
-        countScanRead.out.vecMeta.reset
-        countScanRead.out.presetVec(1)
-        scanner.tileCount(countScanRead) */
-        
-
-        val ctrsIndex = ctrs.filter {
-          n => n match {
-            case n:ScanCounter => true
-            case n:ScanCounterDataFollower => false
+        if (ctrs.length != 2 || ctrs.head.as[ScanCounter].par > 1) {
+          val par = ctrs.head.as[ScanCounter].par
+          val scanCtrl = ctrs.head.as[ScanCounter].mask.T.asInstanceOf[MemRead].mem.T.inAccesses.head.as[MemWrite].data.T.getCtrl
+          val scanner = within(pirTop, scanCtrl, n.srcCtx.get) {
+            stage(Scanner(par, ctrs.size/2, ctrs.head.as[ScanCounter].mode))
           }
-        }
-        val ctrsData = ctrs.filter {
-          n => n match {
-            case n:ScanCounterDataFollower => true
-            case n:ScanCounter => false
+          val ctrlFIFO = within(pirTop) {
+            stage(FIFO().banks(List(1)).name("ctrlFIFO"))
           }
-        }
+          val ctrlWrite = within(pirTop, scanCtrl) {
+            stage(MemWrite().setMem(ctrlFIFO).data(scanner.ctrlWord))
+          }
+          val ctrlRead = within(pirTop, n.getCtrl) {
+            stage(MemRead().setMem(ctrlFIFO).done(n.tileDone).toScanController(true))
+          }
+          /* val countRead = ctrs.last.as[ScanCounter].tileCount.T.asInstanceOf[MemRead]
+          val countWriter = assertOne(countRead.mem.T.inAccesses, s"$n.count writer").as[MemWrite]
+          val countScanRead = countWriter.data.T.asInstanceOf[OutAccess]
+          countScanRead.out.vecMeta.reset
+          countScanRead.out.presetVec(1)
+          scanner.tileCount(countScanRead) */
+          
 
-        val packCntIdxFIFO = within(pirTop) {
-          stage(FIFO().banks(List(par)).name("packCntIdxFIFO"))
-        }
-        val packCntIdxWrite = within(pirTop, scanCtrl) {
-          stage(MemWrite().setMem(packCntIdxFIFO).data(scanner.packedCntIdx)).presetVec(par)
-        }
-        val packCntIdxRead = within(pirTop, n.getCtrl) {
-          stage(MemRead().setMem(packCntIdxFIFO).done(n.tileDone).toScanController(true))
-        }
+          val ctrsIndex = ctrs.filter {
+            n => n match {
+              case n:ScanCounter => true
+              case n:ScanCounterDataFollower => false
+            }
+          }
+          val ctrsData = ctrs.filter {
+            n => n match {
+              case n:ScanCounterDataFollower => true
+              case n:ScanCounter => false
+            }
+          }
 
-        // Spatial insert a register in front of the scan counter
-        // Remove this register and connect to the scanner
-        // (ctrs, scanner.masks, scanner.indices).zipped.foreach { case (ctr, mask, idx) =>
-        // ((ctrsIndex, ctrsData).zipped, (scanner.masks, scanner.indices).zipped).zipped.foreach { case ((ctr, follow), (mask, idx)) =>
-        (ctrsIndex zip ctrsData zip scanner.masks zip scanner.vecTotals).foreach { case (((ctr, follow), mask), vecTotalSet) =>
-          val scanCtr = ctr.as[ScanCounter]
-          val dataCtr = follow.as[ScanCounterDataFollower]
-          val read = scanCtr.mask.T.asInstanceOf[MemRead]
+          val packCntIdxFIFO = within(pirTop) {
+            stage(FIFO().banks(List(par)).name("packCntIdxFIFO"))
+          }
+          val packCntIdxWrite = within(pirTop, scanCtrl) {
+            stage(MemWrite().setMem(packCntIdxFIFO).data(scanner.packedCntIdx)).presetVec(par)
+          }
+          val packCntIdxRead = within(pirTop, n.getCtrl) {
+            stage(MemRead().setMem(packCntIdxFIFO).done(n.tileDone).toScanController(true))
+          }
+
+          // Spatial insert a register in front of the scan counter
+          // Remove this register and connect to the scanner
+          // (ctrs, scanner.masks, scanner.indices).zipped.foreach { case (ctr, mask, idx) =>
+          // ((ctrsIndex, ctrsData).zipped, (scanner.masks, scanner.indices).zipped).zipped.foreach { case ((ctr, follow), (mask, idx)) =>
+          (ctrsIndex zip ctrsData zip scanner.masks zip scanner.vecTotals).foreach { case (((ctr, follow), mask), vecTotalSet) =>
+            val scanCtr = ctr.as[ScanCounter]
+            val dataCtr = follow.as[ScanCounterDataFollower]
+            scanCtr.scanLowered.reset
+            dataCtr.scanLowered.reset
+            scanCtr.scanLowered(true)
+            dataCtr.scanLowered(true)
+            val read = scanCtr.mask.T.asInstanceOf[MemRead]
+            val writer = assertOne(read.mem.T.inAccesses, s"$n.mask writer").as[MemWrite]
+            val scanRead = writer.data.T.asInstanceOf[OutAccess]
+            scanRead.out.vecMeta.reset
+            scanRead.out.presetVec(16)
+            mask(scanRead)
+            val vecTotalSetFIFO = within(pirTop) {
+              stage(FIFO().banks(List(1)).name("vecTotalSetFIFO"))
+            }
+            val vecTotalSetWrite = within(pirTop, scanCtrl) {
+              stage(MemWrite().setMem(vecTotalSetFIFO).data(vecTotalSet).presetVec(1))
+            }
+            val vecTotalSetRead = within(pirTop, n.getCtrl) {
+              stage(MemRead().setMem(vecTotalSetFIFO).presetVec(1).toScanController(true))
+            }
+
+            scanCtr.mask.disconnect
+            dataCtr.mask.disconnect
+
+            scanCtr.ctrlWord(ctrlRead.out)
+            scanCtr.packCntIdx(packCntIdxRead.out)
+
+            dataCtr.ctrlWord(ctrlRead.out)
+            dataCtr.packCntIdx(packCntIdxRead.out)
+            dataCtr.vecTotalSet(vecTotalSetRead.out)
+          }
+        } else {
+          val scanCtrl = ctrs.head.as[ScanCounter].mask.T.asInstanceOf[MemRead].mem.T.inAccesses.head.as[MemWrite].data.T.getCtrl
+          assert(ctrs.size == 2, "Counters have size " + ctrs.size)
+          val c0 = ctrs(0).as[ScanCounter]
+          val c1 = ctrs(1).as[ScanCounterDataFollower]
+          val read = c0.mask.T.asInstanceOf[MemRead]
           val writer = assertOne(read.mem.T.inAccesses, s"$n.mask writer").as[MemWrite]
-          val scanRead = writer.data.T.asInstanceOf[OutAccess]
+          val scanRead = writer.data.T.asInstanceOf[MemRead]
           scanRead.out.vecMeta.reset
           scanRead.out.presetVec(16)
-          mask(scanRead)
-          val vecTotalSetFIFO = within(pirTop) {
-            stage(FIFO().banks(List(1)).name("vecTotalSetFIFO"))
-          }
-          val vecTotalSetWrite = within(pirTop, scanCtrl) {
-            stage(MemWrite().setMem(vecTotalSetFIFO).data(vecTotalSet).presetVec(1))
-          }
-          val vecTotalSetRead = within(pirTop, n.getCtrl) {
-            stage(MemRead().setMem(vecTotalSetFIFO).presetVec(1).toScanController(true))
-          }
-
-          scanCtr.mask.disconnect
-          dataCtr.mask.disconnect
-
-          scanCtr.ctrlWord(ctrlRead.out)
-          scanCtr.packCntIdx(packCntIdxRead.out)
-
-          dataCtr.ctrlWord(ctrlRead.out)
-          dataCtr.packCntIdx(packCntIdxRead.out)
-          dataCtr.vecTotalSet(vecTotalSetRead.out)
+          scanRead.toScanController(true)
+          scanRead.ctrl.reset
+          scanRead.ctrl(c0.getCtrl)
+          read.toScanController(true)
+          read.vecMeta.reset
+          read.presetVec(16)
+          read.out.vecMeta.reset
+          read.out.presetVec(16)
+          read.ctrl.reset
+          read.ctrl(c0.getCtrl)
+          writer.vecMeta.reset
+          writer.presetVec(16)
+          c0.mask.disconnect
+          c1.mask.disconnect
+          c0.mask(scanRead)
+          c1.mask(scanRead)
         }
       }
     }

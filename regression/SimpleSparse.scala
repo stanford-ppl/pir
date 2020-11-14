@@ -1249,7 +1249,9 @@ class OuterScan_4 extends OuterScan(par=4)
   }
 }
 
-@spatial class VecScan extends SpatialTest {
+@spatial abstract class VecScan(
+  par:scala.Int = 16
+) extends SpatialTest {
   override def runtimeArgs: Args = "32"
   type T = Int
   val N = 32
@@ -1274,7 +1276,7 @@ class OuterScan_4 extends OuterScan(par=4)
           // though they have the same pointer
           fifo2.enq(mask + 1) 
         }
-        Reduce(Reg[T])(Scan(16, 512, "or", fifo1.deq, fifo2.deq)) { case List(j,xA,k,xB) =>
+        Reduce(Reg[T])(Scan(par, 512, "or", fifo1.deq, fifo2.deq)) { case List(j,xA,k,xB) =>
           j.to[T] + k.to[T]
         } { _ + _ }
       } { _ + _ }
@@ -1285,3 +1287,8 @@ class OuterScan_4 extends OuterScan(par=4)
     assert(true)
   }
 }
+
+class VecScan_1 extends VecScan(par=1)
+class VecScan_2 extends VecScan(par=2)
+class VecScan_4 extends VecScan(par=4)
+class VecScan_16 extends VecScan(par=16)

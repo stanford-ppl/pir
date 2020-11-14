@@ -13,6 +13,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case OutputField(ctrler:Controller, "tileDone") => s"$ctrler.TileDone()"
     case OutputField(ctrler:Controller, "subTileDone") => s"$ctrler.SubTileDone()"
     case OutputField(ctrler:Controller, "stepped") => s"$ctrler.Stepped()"
+    case OutputField(ctrler:Controller, "levelsDone") => s"$ctrler.LevelsDone()"
     case OutputField(ctrler:LoopController, "firstIter") => s"$ctrler.FirstIter()"
     case OutputField(ctrler:Controller, "laneValid") => s"laneValid"
     case InputField(ctr:ScanCounter, "packCntIdx") => s"${ctr}_packCntIdx"
@@ -102,13 +103,27 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:DataScanCounter =>
       genCtxMember(n)
-      // emitToVec(n.index) { i => n.index.singleConnected.get.qidx(i) }
-      // emitln(s"$n.setCount(${n.cnt.T});")
-      // emitln(s"$n.setTileCount(${n.tileCount.T});")
-      // TODO: may need to generate a separate template
-      // emitln(s"$n.setIndex(${n.indOrData.qref});")
       emitln(s"$n.setMask(${n.mask.T});")
       emitln(s"$n.setSize(${n.tileCount.T});")
+      emitln(s"$n.Eval(); // ${n.getCtrl}")
+
+    case n:ScanCounter if !n.scanLowered.get =>
+      genCtxMember(n)
+      //emitToVec(n.packCntIdx) { i => n.packCntIdx.singleConnected.get.qidx(i) }
+      emitln(s"$n.setMaskFromPack(${n.mask.T});")
+      emitln(s"$n.setSize(${n.tileCount.T});")
+      //emitln(s"$n.setCount(${n.ctrlWord.T});")
+      //emitln(s"$n.setPackCntIdx(${n.packCntIdx.qref});")
+      emitln(s"$n.Eval(); // ${n.getCtrl}")
+
+    case n:ScanCounterDataFollower if !n.scanLowered.get =>
+      genCtxMember(n)
+      //emitToVec(n.packCntIdx) { i => n.packCntIdx.singleConnected.get.qidx(i) }
+      emitln(s"$n.setMaskFromPack(${n.mask.T});")
+      emitln(s"$n.setSize(${n.tileCount.T});")
+      //emitln(s"$n.setCount(${n.ctrlWord.T});")
+      //emitln(s"$n.setPrefCount(${n.vecTotalSet.T});")
+      //emitln(s"$n.setPackCntIdx(${n.packCntIdx.qref});")
       emitln(s"$n.Eval(); // ${n.getCtrl}")
 
     case n:ScanCounter =>
@@ -204,6 +219,15 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case n:Controller => (s"UnitController",s"$n")
     case n:ForeverCounter => (s"ForeverCounter<1>",s"$n")
     case n:StridedCounter => (s"Counter<${n.par}>",s"$n")
+    case n:ScanCounter if !n.scanLowered.get => 
+      if (n.prefSum) {
+        assert(false);
+        (s"DataScanCounterDirect<${n.parent.get.as[LoopController].par.get},3,512>",s"$n")
+      } else {
+        (s"DataScanCounterDirect<${n.parent.get.as[LoopController].par.get},1,512>",s"$n")
+      }
+    case n:ScanCounterDataFollower if !n.scanLowered.get => 
+      (s"DataScanCounterDirect<${n.parent.get.as[LoopController].par.get},2,512>",s"$n")
     case n:ScanCounter => 
       if (n.prefSum) {
         (s"ScanCounter<${n.parent.get.as[LoopController].par.get},2,512,${n.index}>",s"$n")

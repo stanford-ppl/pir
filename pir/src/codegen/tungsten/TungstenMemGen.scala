@@ -133,7 +133,11 @@ trait TungstenMemGen extends TungstenCtxGen {
           }
           if (n.isSplit.get) {
             emitln(s"data.done_vec = ${n.done.T.get.as[Controller].childDone.qref};")
+          } else {
+            // emitln(s"data.done_vec = ${n.done.T.get.getCtrl.ctrler.as[Controller].levelsDone.qref}+1;")
+            emitln(s"data.done_vec = ${ctrler.levelsDone.qref}+1;")
           }
+          // emitln(s"data.done_vec = ${n.done.T.get.as[Controller].childDone.qref} ? data.done_vec : 0;")
           if (withPipe) emitln(s"$name.Push(data);")
           else n.out.T.foreach { send =>
             emitln(s"${nameOf(send)}.Push(data);")
@@ -141,7 +145,7 @@ trait TungstenMemGen extends TungstenCtxGen {
         }
       }
 
-    case n:FIFO =>
+              case n:FIFO =>
       genTopMember(n, Seq(n.qstr))
 
     case n:Memory =>
@@ -323,7 +327,12 @@ trait TungstenMemGen extends TungstenCtxGen {
     case n:BufferRead if isRateMatchingFIFO(n) =>
       (s"RateMatchingTokenFIFO<${n.qtp}, ${fifoDepth*math.max(n.in.getVec, n.out.getVec)}, ${n.in.getVec}, ${n.out.getVec}>", s"fifo_$n") 
     case n:BufferRead =>
-      if (n.in.getVec > 1 && n.tp != Bool) {
+      //val boolVec = n.tp match {
+        //case Some(Bool) => true
+        //case _ => false
+      //}
+      // if (n.in.getVec > 1 && n.tp.getOrElse(Fix(false,32,0)) != Bool) {
+      if (n.in.getVec > 1 && n.getTp != Bool) {
         (s"FIFO<Token, ${fifoDepth}>", s"fifo_$n")
       } else {
         (s"FIFO<Token, ${fifoDepth*4}>", s"fifo_$n")

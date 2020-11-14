@@ -618,6 +618,7 @@ case class ScanCounter(par:Int, truePar:Int, mode:String, index:Int, prefSum:Boo
   val ctrlWord = InputField[PIRNode].presetVec(1)
 
   val packCntIdx = InputField[PIRNode]
+  val scanLowered= Metadata[Boolean]("scanLowered", default=false)
 
   override def compVec(n:IR) = n match {
     // case `out` => Some(truePar)
@@ -637,6 +638,7 @@ case class ScanCounterDataFollower(par:Int, truePar:Int, index:Int, reduce:Boole
   val vecTotalSet = InputField[PIRNode].presetVec(1)
 
   val packCntIdx = InputField[PIRNode]
+  val scanLowered= Metadata[Boolean]("scanLowered", default=false)
 
   override def compVec(n:IR) = n match {
     case `out` => 
@@ -676,6 +678,7 @@ abstract class Controller(implicit env:Env) extends PIRNode {
   val subTileDone = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
   val childDone = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
   val stepped = OutputField[List[PIRNode]].tp(Bool).presetVec(1)
+  val levelsDone= OutputField[List[PIRNode]].tp(Fix(false,32,0)).presetVec(1)
 
   def isForever = this.collectDown[Counter]().exists { _.isInstanceOf[ForeverCounter] }
   def hasBranch = this.ctrl.v.get == Fork || this.to[LoopController].fold(false) { _.stopWhen.isConnected }
