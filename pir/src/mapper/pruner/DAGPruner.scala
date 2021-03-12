@@ -41,8 +41,12 @@ class DAGPruner(implicit compiler:PIR) extends CUPruner {
         fringe.collectDown[DRAMCommand]().foreach { 
           case command:DRAMDenseCommand =>
             dags ++= trace(command.offset) ++ trace(command.size)
+            dbg(s"Dense command: $command offset ${command.offset}:${trace(command.offset)} size ${command.size}:${trace(command.size)}")
           case command:DRAMSparseCommand =>
             dags ++= trace(command.addr)
+            dbg(s"Sparse command: $command")
+          case command =>
+            dbg(s"Other command: $command")
         }
       }
       dbg(s"Find DAGs: $dags")
@@ -51,7 +55,12 @@ class DAGPruner(implicit compiler:PIR) extends CUPruner {
   }
 
   def trace(input:Input[PIRNode]):Iterable[GlobalContainer] = {
-    input.neighbors.flatMap { _.collect[GlobalOutput](visitGlobalIn _).map{ _.global.get } }
+    // dbg(s"\tTrace: $input")
+    // dbg(s"\tNeighbors: ${input.neighbors}")
+    // dbg(s"\tInput: ${input.neighbors.map { _.as[BufferRead].inAccess.as[BufferWrite] }}")
+    // dbg(s"\tGlobals: ${input.neighbors.map { _.as[BufferRead].inAccess.as[BufferWrite].global.get }}")
+    // input.neighbors.flatMap { _.collect[GlobalOutput](visitGlobalIn _).map{ _.global.get } }
+    input.neighbors.map { _.as[BufferRead].inAccess.as[BufferWrite].global.get }
   }
 
 }

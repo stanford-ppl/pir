@@ -119,7 +119,8 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen with TungstenB
     case n:FringeDynStore => (s"DynStoreAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
     case n:FringeStreamLoad => (s"StreamLoadAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}, ${n.comp}, ${n.pad}>", s"${n}")
     case n:BVBuildNoTree => (s"BitVecBuild<${n.shift},false>", s"${n}")
-    case n:BVBuildTree => (s"BitVecBuild<${n.shift},true>", s"${n}")
+    // TODO: replace `8' here with a user-settable parameter
+    case n:BVBuildTree => (s"BitVecBuild<${n.shift},true,8>", s"${n}")
     case n:BVBuildTreeLen => (s"BitVecBuild<${n.shift},true>", s"${n}")
     case n => super.varOf(n)
   }
