@@ -16,6 +16,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
     case OutputField(ctrler:Controller, "levelsDone") => s"$ctrler.LevelsDone()"
     case OutputField(ctrler:LoopController, "firstIter") => s"$ctrler.FirstIter()"
     case OutputField(ctrler:Controller, "laneValid") => s"laneValid"
+    // case OutputField(ctrler:Controller, "laneValid") => s"$ctrler.LaneValids()"
     case InputField(ctr:ScanCounter, "packCntIdx") => s"${ctr}_packCntIdx"
     case InputField(ctr:ScanCounterDataFollower, "packCntIdx") => s"${ctr}_packCntIdx"
     case n => super.quoteRef(n)

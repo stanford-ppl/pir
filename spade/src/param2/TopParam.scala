@@ -224,7 +224,7 @@ case class PMUParam(
   numVout:Int=8,
   numSplitter:Int=0,
   numLock:Int=1,
-  numCtx:Int = 4,
+  numCtx:Int = 6,
   numMergeBuffer:Int=0,
   mergeBufferWays:Int=0,
 ) extends CUParam

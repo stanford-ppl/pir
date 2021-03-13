@@ -21,7 +21,7 @@ import spatial.metadata.memory.{Barrier => _,_}
       val l = FIFO[Bit](16)
 
       // len.enq(5)
-      Foreach (10 by 1 par 1) { i =>
+      Foreach (10 by 1 par 16) { i =>
         val base = mux(i >= 5, 1024.to[I32], 0)
         val off = i % 5
         idx.enq(base+2*off)
@@ -73,7 +73,7 @@ import spatial.metadata.memory.{Barrier => _,_}
       val gen_len = FIFO[I32](16)
 
       // len.enq(5)
-      Foreach (10 by 1 par 1) { i =>
+      Foreach (10 by 1 par 16) { i =>
         val base = mux(i >= 5, 2048.to[I32], 0)
         val off = i % 5
         idx.enq(base+2*off)

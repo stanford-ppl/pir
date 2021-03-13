@@ -418,6 +418,7 @@ case class GlobalOutput()(implicit env:Env) extends GlobalIO {
 
 case class Context()(implicit env:Env) extends PIRNode {
   val streaming = new Metadata[Boolean]("streaming", default=Some(false))
+  val followToken = InputField[List[PIRNode]].tp(Bool).presetVec(1)
   val active = new Metadata[Long]("active")
   val state = new Metadata[String]("state")
 }
@@ -696,8 +697,18 @@ abstract class Controller(implicit env:Env) extends PIRNode {
 
 case class HostInController()(implicit env:Env) extends Controller
 case class HostOutController()(implicit env:Env) extends Controller
-case class UnitController()(implicit env:Env) extends Controller
+case class UnitController()(implicit env:Env) extends Controller {
+  val follow = Metadata[Boolean]("follow", default=false)
+}
+
 case class TopController()(implicit env:Env) extends Controller
+
+// A controller that reads the output of a PIR node, with the done_vec embedded Token metadata, and replicates
+// the node's done state.
+//
+//case class FollowController()(implicit env:Env) extends Controller {
+  //val followToken = InputField[List[PIRNode]].tp(Bool).presetVec(1)
+//}
 case class LoopController()(implicit env:Env) extends Controller {
   /*  ------- Fields -------- */
   val cchain = new ChildField[Counter, List[Counter]]("cchain")

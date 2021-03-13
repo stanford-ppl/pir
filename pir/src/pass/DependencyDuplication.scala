@@ -10,6 +10,7 @@ class DependencyDuplication(implicit compiler:PIR) extends DependencyAnalyzer wi
     val ctxs = pirTop.collectDown[Context]()
     dupDeps(ctxs)
     ctxs.foreach { insertControlBlock }
+    ctxs.foreach { ctx => check(ctx) }
   }
 
 }
@@ -118,6 +119,14 @@ trait DependencyAnalyzer extends PIRTransformer {
 
   def insertControlBlock(ctx:Context) = {
     val ctrlers = ctx.collectDown[Controller]().sortBy { _.getCtrl.ancestors.size }
+    if (ctx.followToken.connected.length != 0) {
+      assert(ctx.followToken.connected.length == 1)
+      dbg(s"$ctx has followToken connected!")
+      ctrlers.map { ctrl =>
+        dbg(s"\tCtrler: $ctrl")
+      }
+      ctx.followToken.disconnect
+    }
     if (ctrlers.size > 0) {
       val cb = within(ctx, ctx.getCtrl) {
         ControlBlock().ctrlers(ctrlers)
@@ -129,7 +138,6 @@ trait DependencyAnalyzer extends PIRTransformer {
   def dupDeps(ctxs:List[Context], from:Option[Context]=None):Unit = {
     val mappings = ctxs.map { ctx => (ctx, mirrorDeps(ctx, from)) }
     mappings.foreach { case (ctx, mapping) => swapDeps(ctx, mapping) }
-    ctxs.foreach { ctx => check(ctx) }
   }
 
 }
