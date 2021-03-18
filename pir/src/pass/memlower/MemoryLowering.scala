@@ -25,7 +25,7 @@ trait GenericMemoryLowering extends PIRTraversal with SiblingFirstTraversal with
         var red:List[Output[PIRNode]] = ens.toList
         while (red.size > 1) {
           red = red.sliding(2,2).map{ 
-            case List(en1, en2) => stage(OpDef(And).addInput(en1,en2)).out
+            case List(en1, en2) => stage(OpDef(And).addInput(en1,en2).noCost(true)).out
             case List(en1) => en1
           }.toList
         }
@@ -40,7 +40,7 @@ trait GenericMemoryLowering extends PIRTraversal with SiblingFirstTraversal with
         case access:SparseAccess => access.addr
       }
       en.foreach { en =>
-        val newAddr = stage(OpDef(Mux).addInput(en, addr.singleConnected.get, allocConst(invalidAddress).out).out)
+        val newAddr = stage(OpDef(Mux).noCost(true).addInput(en, addr.singleConnected.get, allocConst(invalidAddress).out).out)
         addr.disconnect
         addr(newAddr)
       }

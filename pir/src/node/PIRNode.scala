@@ -20,6 +20,7 @@ abstract class PIRNode(implicit env:BuildEnvironment)
   val sname = new Metadata[String]("sname") {
     override def check(v:String) = {}
   }
+  val noCost = Metadata[Boolean]("noCost", default=false)
   val srcCtx = new Metadata[List[String]]("srcCtx", default=Some(Nil)) {
     override def check(v:List[String]) = {}
     def apply(v:String):self.type = { 

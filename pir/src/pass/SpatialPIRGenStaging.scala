@@ -299,7 +299,7 @@ class SpatialPIRGenStaging(implicit compiler:PIRApp) extends PIRTransformer {
             zipMap(valid, ctr.constValids.get(i)) { _ && _ }
           }
         }
-    }
+    } // .map { _ => None } // Testing elimination of constant lane valids
     dbg(s"$n.laneValids=[${laneValids.map { _.getOrElse("unknown") }.mkString(",")}]")
     n.constLaneValids := laneValids
   }

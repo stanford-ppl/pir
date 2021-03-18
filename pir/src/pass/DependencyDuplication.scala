@@ -9,6 +9,7 @@ class DependencyDuplication(implicit compiler:PIR) extends DependencyAnalyzer wi
   override def runPass = {
     val ctxs = pirTop.collectDown[Context]()
     dupDeps(ctxs)
+    // ctxs.foreach { counterValidsToControllers }
     ctxs.foreach { insertControlBlock }
     ctxs.foreach { ctx => check(ctx) }
   }
@@ -132,6 +133,43 @@ trait DependencyAnalyzer extends PIRTransformer {
         ControlBlock().ctrlers(ctrlers)
       }
       dbg(s"add $cb in $ctx")
+    }
+  }
+
+  def counterValidsToControllers(ctx:Context) = {
+    val counters = ctx.collectDown[Counter]()
+    dbg(s"Valids to Controllers: $ctx")
+    counters.filter { _.isInstanceOf[StridedCounter] }.map { ctr =>
+      val ctrler = ctr.ctrler
+      val valids = ctr.valids
+      def indices = valids.flatMap { valid =>
+        if (valid.out.connected.size != 0 && valid.is.size == 1) {
+          Some(valid.is.head)
+        } else {
+          None
+        }
+      }
+      if (indices.size != 0 && indices.forall(_ == indices.head)) {
+        val idx = indices.head
+        dbg(s"\tCounter: $ctr controller: $ctrler idx: $idx")
+        valids.map { valid =>
+          dbg(s"\t\tValid: $valid (${valid.is}) -> (${valid.out.connected})")
+          within(ctx, ctrler) {
+            val trueVal = stage(Const(true))
+            // valid.out.disconnect
+            // TODO: swap this to ctrlr.laneValid
+            swapOutput(valid.out, trueVal.out)
+            dbg(s"\t\tBecomes: ${trueVal} -> (${trueVal.out.connected})")
+          }
+        }
+        ctr.valIter(idx)
+        indices.map { i => assert(i == idx) }
+      } else {
+        dbg(s"\tCounter: $ctr controller: $ctrler NO MATCH")
+        valids.map { valid =>
+          dbg(s"\t\tValid: $valid (${valid.is}) -> (${valid.out.connected})")
+        }
+      }
     }
   }
 

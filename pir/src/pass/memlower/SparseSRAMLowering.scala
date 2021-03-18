@@ -95,29 +95,29 @@ trait SparseSRAMLowering extends SparseLowering {
     accumAck
   }*/
   private def insertAck(ack:Output[PIRNode], ctrl:ControlTree):AccumAck = {
-     val tree = ControlTree(Sequenced)
-     tree.setParent(ctrl)
-     val accumAck = within (tree) {
-       val ackCtx = stage(Context().name("ackCtx")) // .followToken(ack)
+     // val tree = ControlTree(Sequenced)
+     // tree.setParent(ctrl)
+     // val accumAck = within (tree) {
+     val accumAck = {
+       val ackCtx = stage(Context().name("ackCtx").follow(true)) // .followToken(ack)
        dbg(s"Stage ack context: $ackCtx")
        ackCtx.collectDown[Controller]().sortBy { _.getCtrl.ancestors.size }.map { ctrler =>
          dbg(s"\tController: $ctrler")
        }
        // val followCtrler = stage(createCtrl(Sequenced) { FollowController().followToken(ack) })
-       dbg(s"Tree: $tree tree parent: ${tree.parent.get}")
+       // dbg(s"Tree: $tree tree parent: ${tree.parent.get}")
        // beginState(tree)
        within (ackCtx) {
-         // val ctrler = stage(FollowController()) //.followToken(ack)
-         val ctrler = stage(UnitController()).par(ack.inferVec.getOrElse(1)).follow(true) //.followToken(ack)
-         ctrler.laneValid.disconnect
-         // bufferInput(ctrler.followToken).foreach { _.name := "ack" }
-         tree.ctrler(ctrler)
-         tree.parent.foreach { parent =>
-           parent.ctrler.v.foreach { pctrler =>
-             ctrler.parentEn(pctrler.childDone)
-           }
-         }
-         stage(AccumAck().ack(ack))
+         // val ctrler = stage(UnitController()).par(ack.inferVec.getOrElse(1)).follow(true) //.followToken(ack)
+         // tree.ctrler(ctrler)
+         // tree.parent.foreach { parent =>
+           // parent.ctrler.v.foreach { pctrler =>
+             // ctrler.parentEn(pctrler.childDone)
+           // }
+         // }
+         val a = stage(AccumAck().ack(ack))
+         // ctrler.laneValid.disconnect
+         a
        }
        // endState[Ctrl]
        // a
@@ -164,12 +164,12 @@ trait SparseSRAMLowering extends SparseLowering {
           // bufferInput(accessCtx)
           val req = access.addr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
           // TODO: refactor me
-          val ackCtx = stage(Context().name("ackCtx"))
+          /* val ackCtx = stage(Context().name("ackCtx"))
           val accumAck = within(ackCtx, ctrl) {
             stage(AccumAck().ack(access.ack))
           }
-          bufferInput(accumAck.ack).foreach { _.name := "ack" }
-          // val accumAck = insertAck(access.ack, ctrl) // TODO: put this in 
+          bufferInput(accumAck.ack).foreach { _.name := "ack" } */
+          val accumAck = insertAck(access.ack, ctrl) // TODO: put this in 
           // END refactor
           access -> (Some(req),Some(accumAck.out))
         }

@@ -2,6 +2,8 @@ import spatial.dsl._
 
 class UnalignReduce_0 extends UnalignReduce(op=3, ip=5)
 class UnalignReduce_1 extends UnalignReduce(op=3)
+class UnalignReduce_2 extends UnalignReduce(op=1, ip=5)
+class UnalignReduce_3 extends UnalignReduce(op=4, ip=5)
 
 @spatial abstract class UnalignReduce(
   N:scala.Int = 64,

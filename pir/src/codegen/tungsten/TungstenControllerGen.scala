@@ -94,6 +94,9 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
 
     case n:StridedCounter =>
       genCtxMember(n)
+      if (n.valIter.get >= 0) {
+        emitln(s"$n.SetIdx(${n.valIter.get});")
+      }
       emitln(s"$n.setMin(${n.min.T});")
       emitln(s"$n.setStep(${n.step.T});")
       emitln(s"$n.setMax(${n.max.T});")

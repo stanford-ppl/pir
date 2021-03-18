@@ -419,6 +419,7 @@ case class GlobalOutput()(implicit env:Env) extends GlobalIO {
 case class Context()(implicit env:Env) extends PIRNode {
   val streaming = new Metadata[Boolean]("streaming", default=Some(false))
   val followToken = InputField[List[PIRNode]].tp(Bool).presetVec(1)
+  val follow = Metadata[Boolean]("follow", default=Some(false))
   val active = new Metadata[Long]("active")
   val state = new Metadata[String]("state")
 }
@@ -573,6 +574,7 @@ case class DRAMAddr(dram:DRAM)(implicit env:Env) extends Def {
 }
 
 trait Counter extends PIRNode {
+  val valIter = Metadata[Int]("valIter", default = -1)
   /*  ------- Fields -------- */
   val out = OutputField[List[PIRNode]]
   val isFirstIter = OutputField[List[PIRNode]]

@@ -33,6 +33,7 @@ trait PIRApp extends PIR with Logging {
   lazy val sanityCheck = new SanityCheck()
   lazy val modAnalyzer = new ModularAnalysis()
   lazy val debugTransformer = new DebugTransformer()
+  lazy val ackControllerRemoval = new AckControllerRemoval()
   lazy val ctrlBlockInsert = new ControlBlockInsertion()
 
   /* Mapping */
@@ -124,6 +125,7 @@ trait PIRApp extends PIR with Logging {
     addPass(enableVerboseDot, new PIRGlobalDotGen(s"global11.dot")) ==>
     addPass(enableMapping, dagPruner) ==>
     addPass(enableMapping, matchPruner) ==>
+    addPass(ackControllerRemoval) ==>
     addPass(ctrlBlockInsert) ==>
     addPass(sanityCheck) ==>
     addPass(modAnalyzer) ==>

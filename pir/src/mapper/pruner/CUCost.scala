@@ -71,7 +71,14 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
     else n.getVec > 1
   }
 
-  def stageCost(op:OpNode) = 1
+  def stageCost(op:OpNode) = {
+    if (op.noCost.get) {
+      dbg(s"Node: $op free!")
+      0 
+    } else {
+      1
+    }
+  }
 
   protected def compCost(x:Any, ct:ClassTag[_]):Cost[_] = dbgblk(s"getCost($x,${ct.toString.split("\\.").last})") {
     switch[AFGCost](x,ct) {
