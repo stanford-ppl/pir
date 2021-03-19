@@ -79,6 +79,20 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
 
       emitLaneValid(n)
 
+    case n:FollowController =>
+      dbg(s"Gen $n")
+      genCtxMember(n)
+      genCtxInits {
+        emitln(s"AddCtrler(&$n);");
+      }
+      if (n.en.isConnected) {
+        emitln(s"$n.SetEn(${n.en.qref}); // ${n.getCtrl}")
+      }
+
+      visitNode(n)
+
+      emitLaneValid(n)
+
     case n:Controller =>
       genCtxMember(n)
       genCtxInits {
@@ -208,6 +222,7 @@ trait TungstenControllerGen extends TungstenCodegen with TungstenCtxGen {
 
   override def varOf(n:PIRNode):(String, String) = n match {
     case n:SplitController => (s"SplitController",s"$n")
+    case n:FollowController => (s"FollowController",s"$n")
     case n:LoopController => 
       if (n.cchain.T.exists{ case ctr:ScanCounter => ctr.reduce; case _ => false }) {
         (s"ScanController<${n.par.get}, true>",s"$n") 

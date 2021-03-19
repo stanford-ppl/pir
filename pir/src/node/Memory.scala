@@ -708,9 +708,9 @@ case class TopController()(implicit env:Env) extends Controller
 // A controller that reads the output of a PIR node, with the done_vec embedded Token metadata, and replicates
 // the node's done state.
 //
-//case class FollowController()(implicit env:Env) extends Controller {
-  //val followToken = InputField[List[PIRNode]].tp(Bool).presetVec(1)
-//}
+case class FollowController()(implicit env:Env) extends Controller {
+  val followToken = InputField[PIRNode].tp(Bool).presetVec(1)
+}
 case class LoopController()(implicit env:Env) extends Controller {
   /*  ------- Fields -------- */
   val cchain = new ChildField[Counter, List[Counter]]("cchain")

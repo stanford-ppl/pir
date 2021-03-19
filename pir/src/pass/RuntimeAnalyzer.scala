@@ -228,6 +228,8 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
       // case n:DataScanCounter => Symbol(1l, Map(s"DATASCAN_${n.progorder.get}" -> 1))
       case n:DataScanCounter => Unknown
       // case n:DataScanCounter => Finite(1l)
+      case n:FollowController =>
+        Unknown
       case n:Controller =>
         n.getCtrl.iter.reset //TODO: remove this
         n.getCtrl.iter.getOrElseUpdate {

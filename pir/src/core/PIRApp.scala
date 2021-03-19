@@ -13,6 +13,7 @@ trait PIRApp extends PIR with Logging {
 
   lazy val pirgenStaging = new SpatialPIRGenStaging()
   lazy val deadCodeEliminator = new DeadCodeElimination()
+  lazy val ackDeadCodeEliminator = new DeadCodeElimination()
   lazy val rewriter = new RewriteTransformer()
   lazy val rmwSplitter = new RMWSplitter()
   lazy val scanDup = new ScanLongOpSplitter()
@@ -107,6 +108,9 @@ trait PIRApp extends PIR with Logging {
     addPass(enableVerboseDot, new PIRCtxDotGen(s"ctx7.dot")) ==>
     addPass(enableVerboseDot, new PIRTopDotGen(s"top7.dot")) ==>
     addPass(sanityCheck) ==>
+    addPass(ackControllerRemoval) ==>
+    addPass(ackDeadCodeEliminator) ==>
+    addPass(enableVerboseDot, new PIRTopDotGen(s"ackRemoved.dot")) ==>
     // ------- Mapping  --------
     addPass(enableMapping, mappingInitializer) ==>
     addPass(enableMapping, hardPruner) ==>
@@ -125,7 +129,6 @@ trait PIRApp extends PIR with Logging {
     addPass(enableVerboseDot, new PIRGlobalDotGen(s"global11.dot")) ==>
     addPass(enableMapping, dagPruner) ==>
     addPass(enableMapping, matchPruner) ==>
-    addPass(ackControllerRemoval) ==>
     addPass(ctrlBlockInsert) ==>
     addPass(sanityCheck) ==>
     addPass(modAnalyzer) ==>
@@ -145,7 +148,7 @@ trait PIRApp extends PIR with Logging {
     // Igraph
     addPass(enableIgraph, igraphGen).dependsOn(runtimeAnalyzer)
     // Plastiroute
-    addPass(genProute, prouteLinkGen).dependsOn(runtimeAnalyzer)
+    addPass(genProute, prouteLinkGen).dependsOn(ackDeadCodeEliminator)
     addPass(genProute, prouteNodeGen).dependsOn(placerAndRouter, runtimeAnalyzer) ==>
     addPass(genTungsten, tungstenPIRGen).dependsOn(placerAndRouter) ==>
     addPass(genProute, prouteRunner)

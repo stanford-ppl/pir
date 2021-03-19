@@ -19,7 +19,10 @@ trait GarbageCollector { self:PIRTransformer =>
   }
 
   // Visit until a live node
-  private def prefix(n:PIRNode) = mustLive(n)
+  private def prefix(n:PIRNode) = {
+    dbg(s"Check live: $n (${mustLive(n)})")
+    mustLive(n)
+  }
 
   private def visitIn(n:PIRNode):List[PIRNode] = n match {
     case n@UnderControlBlock(cb) if depDupHasRun => visitGlobalIn(cb)
@@ -53,12 +56,15 @@ trait GarbageCollector { self:PIRTransformer =>
 
   def free(nodes:Iterable[PIRNode], assertDead:Iterable[PIRNode]=Nil):List[PIRNode] = dbgblk(s"free(${nodes.map{dquote(_)}})"){
     depDupHasRun = self.as[PIRPass].compiler.hasRunAll[DependencyDuplication]
+    dbg(s"depDupHasRun:${depDupHasRun}")
     dramBarrierInsertionHasRun = self.as[PIRPass].compiler.hasRunAll[DRAMBarrierInsertion]
     val ns = nodes.flatMap { n => 
       if (mustDead(n)) Some((n, -1))
       else None
     }.toList
+    dbg(s"ns:${ns}")
     var dead = ns.flatMap { _._1.descendents }
+    dbg(s"dead:${dead}")
     collector.prefix = prefix
     collector.vf = visitFunc
     collector.accumulate = accumulate
@@ -71,7 +77,8 @@ trait GarbageCollector { self:PIRTransformer =>
       if (!dead.contains(n)) {
         val liveOut = visitOut(n)
         val mustLive = n.descendentTree.filter { isLive(_) == Some(true) }
-        bug(s"assert dead ${n} still alive! out=${liveOut} mustLive=${mustLive}")
+        // bug(s"assert dead ${n} still alive! out=${liveOut} mustLive=${mustLive}")
+        dbg(s"assert dead ${n} still alive! out=${liveOut} mustLive=${mustLive}")
       }
     }
     removeNodes(dead)
@@ -83,11 +90,19 @@ trait GarbageCollector { self:PIRTransformer =>
   }
 
   private def mustDead(n:PIRNode):Boolean = {
-    if (mustLive(n)) return false
-    if (collector.isVisited((n,-1))) return true
+    dbg(s"\tDescendents: ${n.descendentTree}")
+    if (mustLive(n)) { 
+      dbg(s"\tmustLive: $n")
+      return false
+    }
+    if (collector.isVisited((n,-1))) {
+      dbg(s"\tcollectorVisited: $n")
+      return true
+    }
     val noLiveOut = visitOut(n).forall { x =>
       collector.isVisited((x,-1))
     }
+    dbg(s"\tnoLiveOut: ${noLiveOut}")
     noLiveOut
   }
 
