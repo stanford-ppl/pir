@@ -59,28 +59,6 @@ trait SparseSRAMLowering extends SparseLowering {
       dbg(s"Skip automatic barrier insertion for $n")
     }
   }
-  private def insertAck(access:SparseAccess, ack:Output[PIRNode], ctrl:ControlTree):AccumAck = {
-    // access.stuffCycles(true)
-    access.localIns.map { _.connected.map { arg =>
-      if (arg.src.isInstanceOf[BufferRead]) {
-        dbg(s"Access: $access arg: $arg src: ${arg.src}")
-        arg.src.as[BufferRead].inAccess.as[BufferWrite].stuffCycles(true)
-      }
-    } }
-    val accumAck = {
-      val ackCtx = stage(Context().name("ackCtx").follow(true)) 
-      dbg(s"Stage ack context: $ackCtx")
-      ackCtx.collectDown[Controller]().sortBy { _.getCtrl.ancestors.size }.map { ctrler =>
-        dbg(s"\tController: $ctrler")
-      }
-      within (ackCtx) {
-        stage(AccumAck().ack(ack))
-      }
-    }
-    dbg(s"accumAck: $accumAck")
-    bufferInput(accumAck.ack).foreach { _.name := "ack" }
-    accumAck
-  }
 
   private def lowerSparseAccess(access:SparseAccess, memCU:MemoryContainer) = dbgblk(s"lower($access)"){
     access.barriers.get.foreach { 

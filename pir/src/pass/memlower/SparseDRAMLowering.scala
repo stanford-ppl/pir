@@ -158,7 +158,7 @@ trait SparseDRAMLowering extends SparseLowering {
             //bufferInput(writeData).foreach { acc => shadow(acc, ctrl); acc.name := "writeData" }
             bufferInput(writeAddr).foreach { acc => acc.name := "writeAddr" }
             bufferInput(writeData).foreach { acc => acc.name := "writeData" }
-            val ackCtx = within(pirTop, ctrl) {
+            /* val ackCtx = within(pirTop, ctrl) {
               stage(Context().name("ackCtx"))
             }
             val accumAck = within(ackCtx, ctrl) {
@@ -168,7 +168,12 @@ trait SparseDRAMLowering extends SparseLowering {
             bufferInput(accumAck.ack).foreach { read => 
               read.name := "ack"
               read.inAccess.name := "ack"
+            }*/
+            val accumAck = within(pirTop) {
+              insertAck(access, writeAck, ctrl)
             }
+            markDRAMSenderStuff(writeAddr)
+            markDRAMSenderStuff(writeData)
             shadow(writeAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite], ctrl)
             val req = writeAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
             access -> (Some(req),Some(accumAck.out))
@@ -189,16 +194,22 @@ trait SparseDRAMLowering extends SparseLowering {
             if (access.key < 0) {
               var ins = access.dataOut.connected
               if (ins.size == 0) {
-                val accumAck = within(pirTop, access.getCtrl) {
+                val accumAck = within(pirTop) {
+                  insertAck(access, rmwDataOut, ctrl)
+                }
+                markDRAMSenderStuff(rmwAddr)
+                markDRAMSenderStuff(rmwDataIn)
+                /* val accumAck = within(pirTop, access.getCtrl) {
                   val ctx = stage(Context().name("RMW_ackAccum"))
                   within(ctx) {
                     stage(AccumAck().ack(access.dataOut))
                   }
-                }
+                }*/
                 ins = List(accumAck.ack)
-              }
-              ins.foreach { in =>
-                swapConnection(in, access.dataOut, rmwDataOut)
+              } else {
+                ins.foreach { in =>
+                  swapConnection(in, access.dataOut, rmwDataOut)
+                }
               }
               ins.distinct.foreach { in =>
                 bufferInput(in).foreach { read => 

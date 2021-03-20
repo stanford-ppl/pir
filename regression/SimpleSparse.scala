@@ -592,7 +592,7 @@ import spatial.metadata.memory.{Barrier => _,_}
   }
 }
 
-@spatial class SparseParSRAM_SepRMW extends SpatialTest {
+@spatial class SparseParSRAM_RMW extends SpatialTest {
   override def runtimeArgs: Args = "32"
   //type T = FixPt[TRUE, _16, _16]
   type T = Int
@@ -614,12 +614,7 @@ import spatial.metadata.memory.{Barrier => _,_}
         Foreach(ts by 1 par ip) { j =>
           s1.barrierWrite(i+j, i+j, Seq(forwardBarrier.push, backwardBarrier.pop))
         }
-        Foreach (ts by 1 par ip) { j =>
-          // s1.RMW(i+j, 0, "read", "unordered", Seq(forwardBarrier.pop), 1)
-        }
-
         Reduce(Reg[T])(ts by 1 par ip) { j =>
-          // s1.RMWData(j, j, Seq(backwardBarrier.push), 1)
           s1.RMW(i+j, 0, "read", "unordered", Seq(forwardBarrier.pop))
         } { _ + _ }
       } { _ + _ }
@@ -628,7 +623,7 @@ import spatial.metadata.memory.{Barrier => _,_}
     val gold = List.tabulate(N) { i => i }.sum
 
     val cksum = checkGold[T](out, gold)
-    println("PASS: " + cksum + " (SparseParSRAM_SepRMW)")
+    println("PASS: " + cksum + " (SparseParSRAM_RMW)")
     assert(cksum)
   }
 }

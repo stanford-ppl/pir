@@ -113,7 +113,7 @@ trait SparseParSRAMLowering extends SparseLowering {
             writeData(access.data.connected)
             bufferInput(writeAddr).foreach { _.name := "writeAddr" }
             bufferInput(writeData).foreach { _.name := "writeData" }
-            val ackCtx = within(pirTop, ctrl) {
+            /* val ackCtx = within(pirTop, ctrl) {
               stage(Context().name("ackCtx"))
             }
             val accumAck = within(ackCtx, ctrl) {
@@ -123,7 +123,9 @@ trait SparseParSRAMLowering extends SparseLowering {
             bufferInput(accumAck.ack).foreach { read => 
               read.name := "ack"
               read.inAccess.name := "ack"
-            }
+            }*/
+            access.mem.disconnect
+            val accumAck = insertAck(access, writeAck, ctrl)
             val req = writeAddr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
             access -> (Some(req),Some(accumAck.out))
           case access:SparseRMW =>
