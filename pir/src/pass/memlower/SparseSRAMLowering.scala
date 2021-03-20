@@ -59,76 +59,28 @@ trait SparseSRAMLowering extends SparseLowering {
       dbg(s"Skip automatic barrier insertion for $n")
     }
   }
-
-  /* private def insertAck(ack:Output[PIRNode], ctrl:ControlTree):AccumAck = {
-    // TODO: copy ctrl tree into a follower tree
-    // val accumAck = within(ackCtx, ctrl) {
-    val accumAck = within(ctrl) {
-      // val followCtrler = stage(createCtrl(Sequenced) { FollowController().followToken(ack) })
-      // val tree = stage(ControlTree(Sequenced))
-      val tree = ControlTree(Sequenced)
-      dbg(s"Tree: $tree tree parent: ${tree.parent.get}")
-      // tree.parent(ctrl.v)
-      // beginState(tree)
-      within (tree) {
-        val ackCtx = stage(Context().name("ackCtx")) // .followToken(ack)
-        dbg(s"Stage ack context: $ackCtx")
-        val ctrler = stage(FollowController()).followToken(ack)
-        tree.ctrler(ctrler)
-        tree.parent.foreach { parent =>
-          parent.ctrler.v.foreach { pctrler =>
-            ctrler.parentEn(pctrler.childDone)
-          }
-        }
-        val a = stage(AccumAck().ack(ack))
-        dbg(s"\tAccumAck: $a .ack: $a.ack}")
-        bufferInput(a.ack).foreach { _.name := "ack" }
-        ackCtx.streaming(false)
-        ackCtx.collectDown[Controller]().sortBy { _.getCtrl.ancestors.size }.map { ctrler =>
-          dbg(s"\tController: $ctrler")
-        }
-        a
+  private def insertAck(access:SparseAccess, ack:Output[PIRNode], ctrl:ControlTree):AccumAck = {
+    // access.stuffCycles(true)
+    access.localIns.map { _.connected.map { arg =>
+      if (arg.src.isInstanceOf[BufferRead]) {
+        dbg(s"Access: $access arg: $arg src: ${arg.src}")
+        arg.src.as[BufferRead].inAccess.as[BufferWrite].stuffCycles(true)
+      }
+    } }
+    val accumAck = {
+      val ackCtx = stage(Context().name("ackCtx").follow(true)) 
+      dbg(s"Stage ack context: $ackCtx")
+      ackCtx.collectDown[Controller]().sortBy { _.getCtrl.ancestors.size }.map { ctrler =>
+        dbg(s"\tController: $ctrler")
+      }
+      within (ackCtx) {
+        stage(AccumAck().ack(ack))
       }
     }
-    // accumAck.controlShadowed(true)
-    // accumAck.bbCtrl(ctrl)
+    dbg(s"accumAck: $accumAck")
+    bufferInput(accumAck.ack).foreach { _.name := "ack" }
     accumAck
-  }*/
-  private def insertAck(ack:Output[PIRNode], ctrl:ControlTree):AccumAck = {
-     // val tree = ControlTree(Sequenced)
-     // tree.setParent(ctrl)
-     // val accumAck = within (tree) {
-     val accumAck = {
-       val ackCtx = stage(Context().name("ackCtx").follow(true)) // .followToken(ack)
-       dbg(s"Stage ack context: $ackCtx")
-       ackCtx.collectDown[Controller]().sortBy { _.getCtrl.ancestors.size }.map { ctrler =>
-         dbg(s"\tController: $ctrler")
-       }
-       // val followCtrler = stage(createCtrl(Sequenced) { FollowController().followToken(ack) })
-       // dbg(s"Tree: $tree tree parent: ${tree.parent.get}")
-       // beginState(tree)
-       within (ackCtx) {
-         // val ctrler = stage(UnitController()).par(ack.inferVec.getOrElse(1)).follow(true) //.followToken(ack)
-         // tree.ctrler(ctrler)
-         // tree.parent.foreach { parent =>
-           // parent.ctrler.v.foreach { pctrler =>
-             // ctrler.parentEn(pctrler.childDone)
-           // }
-         // }
-         val a = stage(AccumAck().ack(ack))
-         // ctrler.laneValid.disconnect
-         a
-       }
-       // endState[Ctrl]
-       // a
-     }
-     dbg(s"accumAck: $accumAck")
-     bufferInput(accumAck.ack).foreach { _.name := "ack" }
-     // accumAck.controlShadowed(true)
-     // accumAck.bbCtrl(ctrl)
-     // ackCtx.streaming(false)
-     accumAck
-   }
+  }
 
   private def lowerSparseAccess(access:SparseAccess, memCU:MemoryContainer) = dbgblk(s"lower($access)"){
     access.barriers.get.foreach { 
@@ -145,32 +97,14 @@ trait SparseSRAMLowering extends SparseLowering {
         within(memCU, ctrl,access.srcCtx.get) {
           dbg(s"ctrl: ${ctrl} data.T.getCtrl: ${access.data.T.getCtrl} addr.T.getCtrl: ${access.addr.T.getCtrl}")
           val addrCtx = stage(Context().name("addrCtx"))
-          // flattenEnable(access) // in write ctx
-          swapParent(access, addrCtx) // TESTING
-          flattenEnable(access) // TESTING, in addrCtx
-          // flattenEnable(access) // in write ctx
+          swapParent(access, addrCtx) 
+          flattenEnable(access) 
           val accessCtx = stage(Context().streaming(true))
           swapParent(access, accessCtx)
           bufferInput(access.addr, BufferParam(fromCtx=Some(addrCtx))).foreach { _.name := "addr" }
           bufferInput(access.data, BufferParam(fromCtx=Some(addrCtx))).foreach { _.name := "data" }
-          /* if (access.data.T.getCtrl != ctrl || access.addr.T.getCtrl != ctrl) {
-            val addrCtx = stage(Context().name("addrCtx"))
-            bufferInput(access.addr, BufferParam(fromCtx=Some(addrCtx))).foreach { _.name := "addr" }
-            bufferInput(access.data, BufferParam(fromCtx=Some(addrCtx))).foreach { _.name := "data" }
-          } else {
-            bufferInput(access.addr).foreach { _.name := "addr" }
-            bufferInput(access.data).foreach { _.name := "data" }
-          }*/
-          // bufferInput(accessCtx)
           val req = access.addr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
-          // TODO: refactor me
-          /* val ackCtx = stage(Context().name("ackCtx"))
-          val accumAck = within(ackCtx, ctrl) {
-            stage(AccumAck().ack(access.ack))
-          }
-          bufferInput(accumAck.ack).foreach { _.name := "ack" } */
-          val accumAck = insertAck(access.ack, ctrl) // TODO: put this in 
-          // END refactor
+          val accumAck = insertAck(access, access.ack, ctrl) 
           access -> (Some(req),Some(accumAck.out))
         }
       case access:SparseRead =>
@@ -212,11 +146,12 @@ trait SparseSRAMLowering extends SparseLowering {
           val resp = reads.headOption.map { _.out }.getOrElse {
             val ackCtx = stage(Context().name("ackCtx"))
             // TODO: refactor me
-            val accumAck = within(ackCtx, ctrl) {
+            /* val accumAck = within(ackCtx, ctrl) {
               stage(AccumAck().ack(access.dataOut))
             }
             bufferInput(accumAck.ack)
-            accumAck.out
+            accumAck.out*/
+            insertAck(access, access.dataOut, ctrl).out
           }
           val req = access.addr.singleConnected.get.src.as[BufferRead].inAccess.as[BufferWrite].data
           access -> (Some(req),Some(resp))

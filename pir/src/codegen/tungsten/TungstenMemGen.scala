@@ -143,6 +143,18 @@ trait TungstenMemGen extends TungstenCtxGen {
             emitln(s"${nameOf(send)}.Push(data);")
           }
         }
+        if (n.stuffCycles.get) {
+          emitIf(s"$ctrler.StuffCycle()") {
+            // TODO: add stuffCycle here
+            emitln(s"// Stuff cycles ($n)")
+            emitln(s"Token dummy = make_stuff_token();")
+            emitln(s"dummy.done_vec = ${ctrler.levelsDone.qref}+1;")
+            if (withPipe) emitln(s"$name.Push(dummy);")
+            else n.out.T.foreach { send =>
+              emitln(s"${nameOf(send)}.Push(dummy);")
+            }
+          }
+        }
       }
 
               case n:FIFO =>

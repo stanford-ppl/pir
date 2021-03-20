@@ -123,6 +123,10 @@ trait SparseAccess extends Access {
   // a list of (ControlTree, init, isWrite)
   val barriers = Metadata[List[(Barrier, Boolean)]]("barriers", default=Nil)
 
+  // Should this access's writers send tokens at the end of every controller,
+  // even if it's a scan controller and force-disabled?
+  // val stuffCycles = Metadata[Boolean]("stuffCycles", default=false)
+
   override def compVec(n:IR) = n match {
     case out:Output[_] => Some(this.getCtrl.par.get)
     case _ => super.compVec(n)
@@ -223,7 +227,9 @@ trait LocalAccess extends PIRNode with Def {
 
   val isSplit = Metadata[Boolean]("isSplit", default=false)
 }
-trait LocalInAccess extends LocalAccess 
+trait LocalInAccess extends LocalAccess {
+  val stuffCycles = Metadata[Boolean]("stuffCycles", default=false)
+}
 trait LocalOutAccess extends LocalAccess with MemoryNode {
   val in = InputField[PIRNode]
   val initToken = Metadata[Int]("initToken", default=0)

@@ -63,8 +63,10 @@ class AckControllerRemoval(implicit compiler:PIR) extends PIRTransformer { self 
       newCtrl.par(ctrl.par.get)
     // }
     // val newCtrl = within(ctrl.ctx.get) { stage(FollowController().followToken(follow)) }
-    assert(ctrl.tileDone.connected.isEmpty)
-    assert(ctrl.subTileDone.connected.isEmpty)
+    // assert(ctrl.tileDone.connected.isEmpty)
+    // assert(ctrl.subTileDone.connected.isEmpty)
+    ctrl.tileDone.disconnect
+    ctrl.subTileDone.disconnect
     assert(ctrl.levelsDone.connected.isEmpty)
     assert(ctrl.laneValid.connected.isEmpty)
     // swapOutput(ctrl.done, newCtrl.done)
