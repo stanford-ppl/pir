@@ -38,7 +38,7 @@ trait SparseDRAMLowering extends SparseLowering {
     if (n.accesses.length != 0) {
       val ctrl = leastCommonAncesstor(n.accesses.map { _.getCtrl }).get
       val block = within(pirTop, ctrl, n.srcCtx.get) {
-        container = stage(BlackBoxContainer())
+        container = stage(BlackBoxContainer().isParBlock(true))
         within(container) {
           val ctx = stage(Context().streaming(true)) 
           // val ctx = stage(BlackBoxContainer())
@@ -134,6 +134,7 @@ trait SparseDRAMLowering extends SparseLowering {
             bufferInput(readAddr, BufferParam(fromCtx=Some(addrCtx))).foreach { acc => 
               //shadow(acc, ctrl)
               acc.name := "readAddr"
+              //acc.toParBlock(true)
             }
             val ins = access.out.connected
             ins.foreach { in =>
@@ -143,6 +144,7 @@ trait SparseDRAMLowering extends SparseLowering {
               bufferInput(in).foreach { read => 
                 //shadow(read.inAccess, ctrl)
                 read.inAccess.name := "readOut" 
+                //read.inAccess.toParBlock(true)
               }
             }
             val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
@@ -156,8 +158,8 @@ trait SparseDRAMLowering extends SparseLowering {
             writeData(access.data.connected)
             //bufferInput(writeAddr).foreach { acc => shadow(acc, ctrl); acc.name := "writeAddr" }
             //bufferInput(writeData).foreach { acc => shadow(acc, ctrl); acc.name := "writeData" }
-            bufferInput(writeAddr).foreach { acc => acc.name := "writeAddr" }
-            bufferInput(writeData).foreach { acc => acc.name := "writeData" }
+            bufferInput(writeAddr).foreach { acc => acc.name := "writeAddr"}
+            bufferInput(writeData).foreach { acc => acc.name := "writeData"}
             /* val ackCtx = within(pirTop, ctrl) {
               stage(Context().name("ackCtx"))
             }
@@ -186,10 +188,12 @@ trait SparseDRAMLowering extends SparseLowering {
             bufferInput(rmwAddr).foreach { in =>
               //shadow(in, ctrl)
               in.name := "rmwAddr"
+              //in.toParBlock(true)
             }
             bufferInput(rmwDataIn).foreach { in =>
               //shadow(in, ctrl)
               in.name := "rmwDataIn"
+              //in.toParBlock(true)
             }
             if (access.op(0) == '+' && access.dataOut.connected.size != 0) {
               rmwDataOut.presetVec(16)
@@ -220,6 +224,7 @@ trait SparseDRAMLowering extends SparseLowering {
                 bufferInput(in).foreach { read => 
                   shadow(read.inAccess, ctrl)
                   read.inAccess.name := "rmwDataOut"
+                  //read.inAccess.toParBlock(true)
                 }
               }
               val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
@@ -254,7 +259,14 @@ trait SparseDRAMLowering extends SparseLowering {
               swapConnection(in, access.dataOut, rmwDataOut)
             }
             ins.distinct.foreach { in =>
-              bufferInput(in).foreach { read => read.inAccess.name := "rmwDataOut"; read.out.vecMeta.reset; read.out.presetVec(access.addr.inferVec.get); read.en.disconnect; read.inAccess.en.disconnect }
+              bufferInput(in).foreach { read => 
+                read.inAccess.name := "rmwDataOut"; 
+                //read.inAccess.toParBlock(true)
+                read.out.vecMeta.reset; 
+                read.out.presetVec(access.addr.inferVec.get); 
+                read.en.disconnect; 
+                read.inAccess.en.disconnect 
+              }
             }
             val reads = ins.flatMap { in => in.neighbors.collect { case x:BufferRead => x } }
             val resp = reads.head.out

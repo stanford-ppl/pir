@@ -110,7 +110,7 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
       case n:MemoryContainer => ActorCost(n.collectChildren[Context].filterNot { _.streaming.get }.size)
       case n:GlobalContainer => ActorCost(n.collectChildren[Context].size)
       case n:CUParam => ActorCost(n.numCtx)
-      case n:ArgFringeParam => ActorCost(2)
+      case n:ArgFringeParam => ActorCost(8)
       case n:Parameter => ActorCost(1)
 
     //} orElse switch[SplitterCost](x,ct) {

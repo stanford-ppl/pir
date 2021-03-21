@@ -226,6 +226,7 @@ trait LocalAccess extends PIRNode with Def {
   val done = InputField[Option[PIRNode]].tp(Bool).presetVec(1) // if not connected, default false
 
   val isSplit = Metadata[Boolean]("isSplit", default=false)
+  // val toParBlock = Metadata[Boolean]("toParBlock", default=false)
 }
 trait LocalInAccess extends LocalAccess {
   val stuffCycles = Metadata[Boolean]("stuffCycles", default=false)
