@@ -140,7 +140,7 @@ case class SparseRMW(op:String, opOrder:String, remoteAddr:Boolean, key:Int)(imp
   val dataOut = OutputField[List[PIRNode]]
   override def asOutput = Some(dataOut)
   override def compVec(n:IR) = n match {
-    case `dataOut` => input.inferVec
+    case `dataOut` => Some(Math.max(input.inferVec.get, addr.inferVec.get))
     case _ => super.compVec(n)
   }
   override def compType(n:IR) = n match {
