@@ -191,9 +191,14 @@ trait SparseDRAMLowering extends SparseLowering {
               //shadow(in, ctrl)
               in.name := "rmwDataIn"
             }
+            if (access.op(0) == '+' && access.dataOut.connected.size != 0) {
+              rmwDataOut.presetVec(16)
+            }
+            
             if (access.key < 0) {
               var ins = access.dataOut.connected
               if (ins.size == 0) {
+                rmwDataOut.presetVec(1).tp(Bool)
                 val accumAck = within(pirTop) {
                   insertAck(access, rmwDataOut, ctrl)
                 }

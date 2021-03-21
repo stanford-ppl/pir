@@ -113,7 +113,8 @@ with BufferAnalyzer
       case (from,to,"castgroup",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to,"controlShadowed",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to,"toScanController",Some(fvalue),Some(tvalue)) => Some(tvalue)
-      // case (from,to,"broadcast",Some(fvalue),Some(tvalue)) => Some(tvalue) //TESTING
+      case (from,to,"broadcast",Some(fvalue),Some(tvalue)) => Some(tvalue) //TESTING
+      case (from,to,"port",Some(fvalue),Some(tvalue)) => Some(tvalue) //TESTING
       case (from,to,"muxport",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to,"isExtern",Some(fvalue),Some(tvalue)) => Some(tvalue)
       case (from,to:BufferRead,"banks",Some(fvalue),Some(tvalue)) => Some(List(to.in.getVec))

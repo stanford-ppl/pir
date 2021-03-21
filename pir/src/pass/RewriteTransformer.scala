@@ -444,28 +444,46 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
   
   // w1 => r1 => w2 => r2
   def checkRouteThrough(r1:BufferRead, w2:BufferWrite, r2:BufferRead):Boolean = {
-    if (r1.isFIFO != r2.isFIFO) return false
-    if (r2.nonBlocking) return false
-    val matchwidth = r1.out.getVec == r2.out.getVec
-    if (!matchwidth) return false
     val w1 = r1.inAccess.as[BufferWrite]
     dbg(s"checkRouteThrough $w1 => $r1 => $w2 => $r2")
-    var matchrate = matchRate(r1, w2) 
+    if ((r1.isFIFO != r2.isFIFO) && !r1.retiming.get) {
+      dbg(s"\tFIFO mismatch: ${r1.isFIFO} -> ${r2.isFIFO}")
+      return false
+    }
+    if (r2.nonBlocking) {
+      dbg(s"\tR2 is nonBlocking")
+      return false
+    }
+    val matchwidth = r1.out.getVec == r2.out.getVec
+    if (!matchwidth) {
+      dbg(s"\tWidth mismatch: ${r1.out.getVec} -> ${r2.out.getVec}")
+      return false
+    }
+    val matchInfinite = r1.retiming.get || r2.retiming.get
+    var matchrate = matchRate(r1, w2, matchInfinite) 
     if (r1.isFIFO) {
-      val r1w1Match = matchRate(w1,r1) || r1.retiming.get
-      val r2w2Match = matchRate(w2,r2) || r2.retiming.get
+      val r1w1Match = matchRate(w1,r1, matchInfinite) || r1.retiming.get
+      val r2w2Match = matchRate(w2,r2, matchInfinite) || r2.retiming.get
       matchrate &&= (r1w1Match || r2w2Match)
     }
     dbg(s"matchrate = $matchrate")
     if (!matchrate) return false
-    var matchen = matchInput(r1.en, w2.en)
+    var matchen = matchInput(r1.en, w2.en) || r1.retiming.get || r2.retiming.get
     dbg(s"matchen = $matchen")
     if (!matchen) return false
-    //val toScan = r2.toScanController.get
-    //dbg(s"toScan = $toScan")
-    //if (!toScan) return false
     return true
   }
+
+  /* TransferRule[BufferRead](config.enableRouteElimUnsafe) { r2 =>
+    val w2 = r2.inAccess.as[BufferWrite]
+    w2.data.T match {
+      case r1:BufferRead if ((r1.retiming.get || r2.retiming.get) 
+        && (r1.out.getVec == r2.out.getVec)) =>
+        Some(r2)
+      case _ =>
+        None
+    }
+  }*/
 
   TransferRule[BufferRead](config.enableRouteElim) { r2 =>
     val w2 = r2.inAccess.as[BufferWrite]
@@ -510,7 +528,9 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
           }
           Some(r2)
         }
-      case _ => None
+      case _ => 
+        // dbg(s"Cannot examine $r2 -> $w2 for routeThrough (r: ${w2.data.T})")
+        None
     }
   }
 

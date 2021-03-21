@@ -362,8 +362,8 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
     //bbCtrl.getOrElse(a.ctrl.get)
   }
 
-  def matchRate(a1:LocalAccess, a2:LocalAccess):Boolean = {
-    if (a1.isFIFO != a2.isFIFO) return false
+  def matchRate(a1:LocalAccess, a2:LocalAccess, aggressive:Boolean=false):Boolean = {
+    if ((a1.isFIFO != a2.isFIFO) && !aggressive) return false
     val lca = leastCommonAncesstor(getCtrlPrioBB(a1), getCtrlPrioBB(a2)).get
     val branch1 = getCtrlPrioBB(a1).ancestorSlice(lca).dropRight(1)
     val branch2 = getCtrlPrioBB(a2).ancestorSlice(lca).dropRight(1)
@@ -375,6 +375,8 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
     val rate1 = branch1.map { _.iter.v.getOrElse(Unknown) }.reduceOption { _ * _ }.getOrElse(Finite(1l))
     val rate2 = branch2.map { _.iter.v.getOrElse(Unknown) }.reduceOption { _ * _ }.getOrElse(Finite(1l))
     dbg(s"rate1=$rate1; rate2=$rate2")
+    if (aggressive && (rate1 == Infinite || rate2 == Infinite))
+      return true
     if (rate1 == Unknown) return false
     if (rate2 == Unknown) return false
     return rate1 == rate2

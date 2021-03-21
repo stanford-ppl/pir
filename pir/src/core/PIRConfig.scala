@@ -74,6 +74,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def mergeForward = option[Boolean]("merge-forward")
   def deadicatedDAG = option[Boolean]("dedicated-dag")
   def enableRouteElim = option[Boolean]("rtelm")
+  def enableRouteElimUnsafe = option[Boolean]("rtelm-unsafe")
   def aggressive_dce = option[Boolean]("ag-dce")
   def printStat = option[Boolean]("stat")
   def enableIgraph = option[Boolean]("igraph")

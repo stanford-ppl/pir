@@ -144,8 +144,7 @@ trait TungstenMemGen extends TungstenCtxGen {
           }
         }
         if (n.stuffCycles.get) {
-          emitIf(s"$ctrler.StuffCycle()") {
-            // TODO: add stuffCycle here
+          emitIf(s"$ctrler.StuffCycle() && !(${cond.mkString(" && ")})") {
             emitln(s"// Stuff cycles ($n)")
             emitln(s"Token dummy = make_stuff_token();")
             emitln(s"dummy.done_vec = ${ctrler.levelsDone.qref}+1;")

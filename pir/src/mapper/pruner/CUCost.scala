@@ -62,7 +62,13 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
     }
   }
 
-  private def getCost(x:Any, ct:ClassTag[_]) = memorize("getCost", (x, ct)) { case (x, ct) => compCost(x, ct) }
+  private def getCost(x:Any, ct:ClassTag[_]) = {
+    if (x.isInstanceOf[OpNode] && x.asInstanceOf[OpNode].noCost.get) {
+      StageCost(0)
+    } else {
+      memorize("getCost", (x, ct)) { case (x, ct) => compCost(x, ct) }
+    }
+  }
 
   protected def switch[C<:Cost[_]:ClassTag](x:Any, ct:ClassTag[_])(cfunc:PartialFunction[Any, C]) = if (ct == classTag[C] && cfunc.isDefinedAt(x)) Some(cfunc(x)) else None
 
@@ -74,6 +80,9 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
   def stageCost(op:OpNode) = {
     if (op.noCost.get) {
       dbg(s"Node: $op free!")
+      0 
+    } else if (op.isInstanceOf[Shuffle]) {
+      dbg(s"Node: $op free! (SHUFFLE)")
       0 
     } else {
       1
