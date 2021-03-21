@@ -363,6 +363,7 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
   }
 
   def matchRate(a1:LocalAccess, a2:LocalAccess, aggressive:Boolean=false):Boolean = {
+    dbg(s"matchRate(aggressive=$aggressive)")
     if ((a1.isFIFO != a2.isFIFO) && !aggressive) return false
     val lca = leastCommonAncesstor(getCtrlPrioBB(a1), getCtrlPrioBB(a2)).get
     val branch1 = getCtrlPrioBB(a1).ancestorSlice(lca).dropRight(1)

@@ -177,7 +177,7 @@ class GraphPreprocessing(implicit compiler:PIR) extends PIRTraversal with Siblin
     n.to[LoopController].foreach { n =>
       val ctrs = n.cchain.T
       if (ctrs.exists { case x:ScanCounter => true; case _ => false }) {
-        if (ctrs.length != 2 || ctrs.head.as[ScanCounter].par > 1) {
+        if (ctrs.length != 2 && ctrs.head.as[ScanCounter].par > 1) {
           val par = ctrs.head.as[ScanCounter].par
           val scanCtrl = ctrs.head.as[ScanCounter].mask.T.asInstanceOf[MemRead].mem.T.inAccesses.head.as[MemWrite].data.T.getCtrl
           val scanner = within(pirTop, scanCtrl, n.srcCtx.get) {

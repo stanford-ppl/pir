@@ -81,9 +81,9 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
     if (op.noCost.get) {
       dbg(s"Node: $op free!")
       0 
-    } else if (op.isInstanceOf[Shuffle]) {
-      dbg(s"Node: $op free! (SHUFFLE)")
-      0 
+    //} else if (op.isInstanceOf[Shuffle]) {
+      //dbg(s"Node: $op free! (SHUFFLE)")
+      //0 
     } else {
       1
     }

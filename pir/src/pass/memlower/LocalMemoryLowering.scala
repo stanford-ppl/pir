@@ -74,6 +74,7 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
       }
       bufferInput(delay.in).foreach { read =>
         read.inAccess.en(writer.en.connected)
+        read.retiming(mem.as[FIFO].retiming.get)
       }
       val readEn = reader.en.connected
       swapOutput(reader.out, delay.out)
