@@ -85,6 +85,14 @@ case class FringeSparseStore(dram:DRAM)(implicit env:Env) extends DRAMSparseComm
   ack.presetVec(1)
 }
 
+case class FringeStreamStore(dram:DRAM, par:Int)(implicit env:Env) extends DRAMDenseCommand with DRAMStoreCommand {
+  data.presetVec(par)
+  //override def compVec(n:IR) = n match {
+    //case `data` | `valid` => Some(par.get)
+    //case _ => super.compVec(n)
+  //}
+}
+
 case class FringeCoalStore(dram:DRAM, par:Int)(implicit env:Env) extends DRAMDenseCommand with DRAMCoalCommand {
   data.presetVec(par)
   valid.presetVec(par)

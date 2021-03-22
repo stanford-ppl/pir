@@ -345,6 +345,8 @@ trait TungstenMemGen extends TungstenCtxGen {
       // if (n.in.getVec > 1 && n.tp.getOrElse(Fix(false,32,0)) != Bool) {
       if (n.in.getVec > 1 && n.getTp != Bool) {
         (s"FIFO<Token, ${fifoDepth}>", s"fifo_$n")
+      } else if (n.deepScalar.get) {
+        (s"FIFO<Token, ${fifoDepth*16}>", s"fifo_$n")
       } else {
         (s"FIFO<Token, ${fifoDepth*4}>", s"fifo_$n")
       }

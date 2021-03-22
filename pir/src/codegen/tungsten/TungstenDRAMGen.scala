@@ -59,6 +59,13 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen with TungstenB
       val ack = nameOf(n.ack.T.as[BufferWrite].gout.get).&
       genTopMember(n, Seq(n.qstr, addr, data, ack, "DRAM".&), end=true)
 
+    case n:FringeStreamStore =>
+      val addr = nameOf(n.offset.T.as[BufferRead]).&
+      val size = nameOf(n.size.T.as[BufferRead]).&
+      val data = nameOf(n.data.T.as[BufferRead]).&
+      val ack = nameOf(n.ack.T.as[BufferWrite].gout.get).&
+      genTopMember(n, Seq(n.qstr, addr, size, data, "NULL", ack, "DRAM".&), end=true)
+
     case n:FringeCoalStore =>
       val addr = nameOf(n.offset.T.as[BufferRead]).&
       val size = nameOf(n.size.T.as[BufferRead]).&
@@ -115,6 +122,7 @@ trait TungstenDRAMGen extends TungstenCodegen with TungstenCtxGen with TungstenB
     case n:FringeDenseStore => (s"DenseStoreAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
     case n:FringeSparseLoad => (s"SparseLoadAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
     case n:FringeSparseStore => (s"SparseStoreAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
+    case n:FringeStreamStore => (s"CoalStoreAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
     case n:FringeCoalStore => (s"CoalStoreAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
     case n:FringeDynStore => (s"DynStoreAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}>", s"${n}")
     case n:FringeStreamLoad => (s"StreamLoadAG<${n.data.getVec}, ${spadeParam.burstSizeByte}, ${n.data.qtp}, ${n.comp}, ${n.pad}>", s"${n}")

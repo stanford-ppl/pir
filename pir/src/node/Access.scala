@@ -173,6 +173,7 @@ case class MemRead()(implicit env:Env) extends ReadAccess {
         case List(i@InputField(cmd:FringeSparseLoad, "addr")) => i.inferVec
         case List(i@InputField(cmd:FringeSparseStore, "addr" | "data")) => i.inferVec
         case List(i@InputField(cmd:FringeCoalStore, "addr" | "data" | "valid" | "len")) => i.inferVec
+        case List(i@InputField(cmd:FringeStreamStore, "addr" | "data" | "len")) => i.inferVec
         case List(i@InputField(cmd:FringeDynStore, "addr" | "data" | "done")) => i.inferVec
         case List(i@InputField(cmd:FringeStreamLoad, "addr" | "data")) => i.inferVec
         case List(i@InputField(cmd:Scanner, "input")) => i.inferVec
@@ -192,6 +193,7 @@ case class MemWrite()(implicit env:Env) extends WriteAccess { self =>
     case (`self`, Some(OutputField(cmd:FringeSparseLoad, "data"))) => cmd.data.inferVec
     case (`self`, Some(OutputField(cmd:FringeSparseStore, "ack"))) => cmd.ack.inferVec
     case (`self`, Some(OutputField(cmd:FringeCoalStore, "ack"))) => cmd.ack.inferVec
+    case (`self`, Some(OutputField(cmd:FringeStreamStore, "ack"))) => cmd.ack.inferVec
     case (`self`, Some(OutputField(cmd:BVBuildNoTree, "bv"))) => cmd.bv.inferVec
     case (`self`, Some(OutputField(cmd:BVBuildTree, "bv"))) => cmd.bv.inferVec
     // case (`self`, Some(OutputField(cmd:BVBuildTree, "last"))) => cmd.last.inferVec
@@ -257,6 +259,7 @@ case class BufferWrite(isFIFO:Boolean)(implicit env:Env) extends LocalInAccess {
 case class BufferRead(isFIFO:Boolean)(implicit env:Env) extends LocalOutAccess {
   // val toScanController = Metadata[Boolean]("toScanController", default=false)
   val retiming = Metadata[Boolean]("retiming", Some(false)) 
+  val deepScalar = Metadata[Boolean]("deep", false) 
   override def compVec(n:IR) = n match {
     case `out` => en.inferVec
     case `en` => 

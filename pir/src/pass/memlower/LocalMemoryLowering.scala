@@ -48,7 +48,11 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
     dbg(s"writerVec: ${writer.getVec}")
     dbg(s"readerVec: ${reader.getVec}")
     if (writer.getVec != reader.getVec) return false
-    mem.depth.get > fifoDepth
+    if (writer.getVec == 1) {
+      mem.depth.get > fifoDepth*16
+    } else {
+      mem.depth.get > fifoDepth
+    }
   }
 
   override def visitNode(n:N) = n match {
@@ -143,6 +147,9 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
             read.out.presetVec(outAccess.out.inferVec.get)
             read.banks.reset
             read.banks(List(outAccess.out.inferVec.get))
+            if (mem.depth.get > fifoDepth) {
+              read.deepScalar(true)
+            }
             stage(read)
           }
         }

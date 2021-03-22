@@ -65,6 +65,8 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
   private def getCost(x:Any, ct:ClassTag[_]) = {
     if (x.isInstanceOf[OpNode] && x.asInstanceOf[OpNode].noCost.get) {
       StageCost(0)
+    //} else if (x.isInstanceOf[OpNode] && x.as[OpNode].op match FixToFix) {
+      //StageCost(0)
     } else {
       memorize("getCost", (x, ct)) { case (x, ct) => compCost(x, ct) }
     }
@@ -74,6 +76,8 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
 
   def isVec(n:prism.graph.IR) = {
     if (n.getTp == Bool) n.getVec > spadeParam.wordWidth
+    else if (n.isInstanceOf[BufferRead] && n.as[BufferRead].deepScalar.get)
+      true
     else n.getVec > 1
   }
 
@@ -84,6 +88,11 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
     //} else if (op.isInstanceOf[Shuffle]) {
       //dbg(s"Node: $op free! (SHUFFLE)")
       //0 
+    } else if (op.isInstanceOf[OpDef]) {
+      op.as[OpDef].op match { 
+        case FixToFix => 0
+        case _ => 1
+      }
     } else {
       1
     }
@@ -107,10 +116,10 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
         MergeBufferCost(cuParam.fold(0){_.numMergeBuffer}, cuParam.fold(0) {_.mergeBufferWays})
 
     } orElse switch[ActorCost](x,ct) {
-      case n:MemoryContainer => ActorCost(n.collectChildren[Context].filterNot { _.streaming.get }.size)
+      case n:MemoryContainer => ActorCost(n.collectChildren[Context].filterNot { ctx => ctx.streaming.get || ctx.follow.get}.size)
       case n:GlobalContainer => ActorCost(n.collectChildren[Context].size)
       case n:CUParam => ActorCost(n.numCtx)
-      case n:ArgFringeParam => ActorCost(8)
+      case n:ArgFringeParam => ActorCost(64)
       case n:Parameter => ActorCost(1)
 
     //} orElse switch[SplitterCost](x,ct) {

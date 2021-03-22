@@ -36,12 +36,20 @@ trait InputMerger extends GlobalMerging with CSVPrinter with PartitionCost { sel
           val inpart = List(glob, adj)
           val part = new Partition(inpart)
           val kcost = getCosts(part)
-          val nextvs = map.freeValuesOf(adj)
+          val nextvs = map.freeValuesOf(adj) ++ map.freeValuesOf(glob)
+          dbg(s"nextvs=$nextvs")
           val vs = inpart.flatMap { k => map.freeValuesOf(k).filter(nextvs.contains) }.distinct
+          dbg(s"vs=$vs")
           val canFit = if (vs.nonEmpty) {
             val vcost = getCosts(vs.groupBy { _.param }.maxBy { _._2.size }._1)
+            // val vcost = getCosts(map.mappedValue(glob))
+            dbg(s"vcost=$vcost")
             fit(kcost, vcost)
-          } else false
+          // } else if (glob.isInstanceOf[ArgFringe]) {
+            // true 
+          } else {
+            false
+          }
           val outsNotBothToPar = !(writesParBlock(adj) && globWritesPar)
           dbg(s"kcost=$kcost")
           dbg(s"fit=$canFit outsToPar=$outsNotBothToPar root=$glob next=$adj $vs=${vs.map{_.param}.distinct}")
