@@ -207,6 +207,7 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
         OutputCost(souts.size, vouts.size)
           .scheduledBy(x.collectDown[OpNode]().size)
       case n:CUParam => OutputCost(n.numSout, n.numVout)
+      case n:ArgFringeParam => OutputCost(100, 0)
       case n:Parameter => OutputCost(100,100)
 
     } orElse switch[PCUCost](x,ct) {
@@ -257,6 +258,7 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
         }.getOrElse(1)
         LaneCost(lane)
       case n:CUParam => LaneCost(n.numLane)
+      case n:ArgFringeParam => LaneCost(n.vecWidth)
       case n:Parameter => LaneCost(1)
 
     } orElse switch[OpCost](x,ct) {

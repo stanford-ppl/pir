@@ -12,6 +12,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("split-thread", default=1, info="Number of threads for external splitter") 
   register("merge", default=false, info="Enable merging")
   register("merge-algo", default="bfs", info="Merging algorithm. [dfs, bfs, gurobi]")
+  register("merge-argout", default=true, info="Merge nodes with the argout node.")
   register("merge-forward", default=false, info="Forward merging traversal direction") 
 
   register("prcost", default=true, info="Enforce pipeline register constraint")
@@ -71,6 +72,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def splitForward = option[Boolean]("split-forward")
   def enableMerging = option[Boolean]("merge") && enableMapping
   def mergeAlgo = option[String]("merge-algo")
+  def mergeArgout = option[Boolean]("merge-argout")
   def mergeForward = option[Boolean]("merge-forward")
   def deadicatedDAG = option[Boolean]("dedicated-dag")
   def enableRouteElim = option[Boolean]("rtelm")

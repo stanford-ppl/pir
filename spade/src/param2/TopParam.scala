@@ -99,7 +99,8 @@ case class ArgFringeParam(
   numArgIns:Int=20,
   numArgOuts:Int=10,
   numTokenIns:Int=10,
-  numTokenOuts:Int=10
+  numTokenOuts:Int=10,
+  vecWidth:Int=16
 ) extends Parameter
 
 case class NetworkParam(

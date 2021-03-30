@@ -29,30 +29,68 @@ trait InputMerger extends GlobalMerging with CSVPrinter with PartitionCost { sel
         dbg(s"buf.in.T: ${buf.in.T}")
         dbg(s"buf.in.T.global: ${buf.in.T.global}")
       }*/
-      val adj = glob.collectDown[LocalOutAccess]().map{ _.in.T.global.get }.filter{ _ != glob }.filterNot{isBB}.distinct.as[List[GlobalContainer]]
+      val adj = glob.collectDown[LocalOutAccess]().map{ _.in.T.global.get }.filter{ _ != glob }.filterNot{isBB}.distinct.as[List[GlobalContainer]].filterNot {_.isInstanceOf[ArgFringe] }
+      // If we're merging into the ArgFringe, do not merge anything
+      val adj_filt_argout = if (glob.isInstanceOf[ArgFringe]) {
+        dbg(s"ArgFringe")
+        if (config.mergeArgout == true) {
+          dbg(s"Limit outputs!")
+          adj.filterNot { 
+            _.collectDown[LocalInAccess]().exists { 
+              _.out.T.exists { 
+                _.global.get != glob
+              }
+            }
+          }.filterNot {
+            _.collectDown[LocalOutAccess]().exists {
+              _.getTp != Bool
+            }
+          }
+        } else {
+          dbg(s"prevent merge!")
+          List()
+        }
+      } else {
+        adj
+      }
+      dbg(s"Raw adjacency: $adj")
+      dbg(s"Filtered adjacency: $adj_filt_argout")
       val globWritesPar = writesParBlock(glob)
-      val adj_fit = adj.filter { adj =>
-        dbgblk(s"adj: $adj") {
-          val inpart = List(glob, adj)
+      val adj_fit = adj_filt_argout.filter { adj_node =>
+        dbgblk(s"adj: $adj_node") {
+          val inpart = List(glob, adj_node)
           val part = new Partition(inpart)
           val kcost = getCosts(part)
-          val nextvs = map.freeValuesOf(adj) ++ map.freeValuesOf(glob)
+          val nextvs = map.freeValuesOf(adj_node) ++ map.freeValuesOf(glob)
           dbg(s"nextvs=$nextvs")
           val vs = inpart.flatMap { k => map.freeValuesOf(k).filter(nextvs.contains) }.distinct
           dbg(s"vs=$vs")
           val canFit = if (vs.nonEmpty) {
-            val vcost = getCosts(vs.groupBy { _.param }.maxBy { _._2.size }._1)
-            // val vcost = getCosts(map.mappedValue(glob))
-            dbg(s"vcost=$vcost")
-            fit(kcost, vcost)
+            vs.groupBy { _.param }.exists { case (paramType, instances) =>
+              val vcost = getCosts(paramType)
+              // val vcost = getCosts(map.mappedValue(glob))
+              dbg(s"vcost($paramType)=$vcost")
+              fit(kcost, vcost)
+
+            }
+              /* val xA = vs.groupBy { _.param }
+              dbg(s"\t$xA")
+              val xB = xA.maxBy { _._2.size }
+              dbg(s"\t$xB")
+              val xC = xB._1
+              dbg(s"\t$xC")
+              val vcost = getCosts(xC)
+              // val vcost = getCosts(map.mappedValue(glob))
+              dbg(s"vcost=$vcost")
+              fit(kcost, vcost)*/
           // } else if (glob.isInstanceOf[ArgFringe]) {
             // true 
           } else {
             false
           }
-          val outsNotBothToPar = !(writesParBlock(adj) && globWritesPar)
+          val outsNotBothToPar = !(writesParBlock(adj_node) && globWritesPar)
           dbg(s"kcost=$kcost")
-          dbg(s"fit=$canFit outsToPar=$outsNotBothToPar root=$glob next=$adj $vs=${vs.map{_.param}.distinct}")
+          dbg(s"fit=$canFit outsToPar=$outsNotBothToPar root=$glob next=$adj_node $vs=${vs.map{_.param}.distinct}")
           canFit && outsNotBothToPar
         }
       }
