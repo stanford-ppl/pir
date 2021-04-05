@@ -35,16 +35,24 @@ trait InputMerger extends GlobalMerging with CSVPrinter with PartitionCost { sel
         dbg(s"ArgFringe")
         if (config.mergeArgout == true) {
           dbg(s"Limit outputs!")
-          adj.filterNot { 
-            _.collectDown[LocalInAccess]().exists { 
-              _.out.T.exists { 
-                _.global.get != glob
+          adj.filterNot { adjNode =>
+            adjNode.collectDown[LocalInAccess]().exists { outAcc =>
+              outAcc.out.T.exists { inAcc =>
+                if (inAcc.global.get != glob) {
+                  dbg(s"Node $adjNode fail for $outAcc -> $inAcc!")
+                }
+                inAcc.global.get != glob
               }
             }
-          }.filterNot {
-            _.collectDown[LocalOutAccess]().exists {
-              _.getTp != Bool
-            }
+          /* }.filterNot { adjNode =>
+            adjNode.collectDown[LocalOutAccess]().exists { inAcc =>
+              if (inAcc.getTp != Bool && inAcc.in.T.global.get != glob) {
+                dbg(s"Node $adjNode fail for $inAcc (tp=${inAcc.getTp}, glob=${inAcc.in.T.global.get})!")
+                true
+              } else {
+                false
+              }
+            }*/
           }
         } else {
           dbg(s"prevent merge!")
