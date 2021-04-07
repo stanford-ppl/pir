@@ -144,7 +144,7 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
             1
           }
           //emitln(s"""$n.RegisterRMW("rmw${a}_", "$op", "$order", {${(0 until ports.size).map { i => i }.mkString(",")}});""")
-          emitln(s"""$n.RegisterRMW("rmw${a}_", "$op", {${(0 until ports.size).map { i => i }.mkString(",")}, $vec});""")
+          emitln(s"""$n.RegisterRMW("rmw${a}_", "$op", {${(0 until ports.size).map { i => i }.mkString(",")}}, $vec);""")
         }
       }
 
