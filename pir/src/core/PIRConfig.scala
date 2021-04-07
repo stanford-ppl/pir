@@ -14,6 +14,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   register("merge-algo", default="bfs", info="Merging algorithm. [dfs, bfs, gurobi]")
   register("merge-argout", default=true, info="Merge nodes with the argout node.")
   register("merge-forward", default=false, info="Forward merging traversal direction") 
+  register("merge-sort", default=false, info="Sort containers by size before merging") 
 
   register("prcost", default=true, info="Enforce pipeline register constraint")
   register("rtanal", default=true, info="Enable runtime analysis") 
@@ -74,6 +75,7 @@ class PIRConfig(compiler:Compiler) extends spade.SpadeConfig(compiler) {
   def mergeAlgo = option[String]("merge-algo")
   def mergeArgout = option[Boolean]("merge-argout")
   def mergeForward = option[Boolean]("merge-forward")
+  def mergeSort = option[Boolean]("merge-sort")
   def deadicatedDAG = option[Boolean]("dedicated-dag")
   def enableRouteElim = option[Boolean]("rtelm")
   def enableRouteElimUnsafe = option[Boolean]("rtelm-unsafe")

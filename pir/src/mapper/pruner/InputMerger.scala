@@ -12,7 +12,12 @@ trait InputMerger extends GlobalMerging with CSVPrinter with PartitionCost { sel
 
   override def mergeGlobals(x:CUMap) = if (config.mergeAlgo=="input") {
     dbg(s"Running the input merger!")
-    val globs = pirTop.children.filterNot { isBB(_) }
+    val globs = if (config.mergeSort) {
+      pirTop.children.filterNot { isBB(_) }.sortBy { -_.getCost[StageCost].quantity }
+    } else {
+      pirTop.children.filterNot { isBB(_) }
+    }
+    dbg(s"globs: $globs!")
     tryMerge(globs.as[List[GlobalContainer]], x)
     //globs.filterNot { isBB(_) }.foldLeft(x) { case(map, glob) =>
     //}

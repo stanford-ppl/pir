@@ -128,15 +128,23 @@ trait TungstenSparseGen extends TungstenCodegen with TungstenCtxGen with Tungste
       }
       genTopInit {
         n.readPorts.foreach { case (a, ports) =>
-          emitln(s"""$n.RegisterRead("read${a}_", {${(0 until ports.size).map { i => i }.mkString(",")}});""")
+          val vec = if (ports.head._2.getVec == 1) { 1 } else { 2 }
+          emitln(s"""$n.RegisterRead("read${a}_", {${(0 until ports.size).map { i => i }.mkString(",")}}, $vec);""")
         }
         n.writePorts.foreach { case (a, ports) =>
           emitln(s"""$n.RegisterWrite("write${a}_", {${(0 until ports.size).map { i => i }.mkString(",")}});""")
         }
         n.rmwPorts.foreach { case (a, ports) =>
           val (op, order) = n.rmwOps(a)
+          val vec = if (ports.head._3.getVec > 1) { 
+            2 
+          } else if (ports.head._3.getTp == Bool) {
+            0
+          } else {
+            1
+          }
           //emitln(s"""$n.RegisterRMW("rmw${a}_", "$op", "$order", {${(0 until ports.size).map { i => i }.mkString(",")}});""")
-          emitln(s"""$n.RegisterRMW("rmw${a}_", "$op", {${(0 until ports.size).map { i => i }.mkString(",")}});""")
+          emitln(s"""$n.RegisterRMW("rmw${a}_", "$op", {${(0 until ports.size).map { i => i }.mkString(",")}, $vec});""")
         }
       }
 

@@ -148,7 +148,7 @@ trait TungstenMemGen extends TungstenCtxGen {
             emitln(s"// Stuff cycles ($n)")
             emitln(s"Token dummy = make_stuff_token();")
             emitln(s"dummy.done_vec = ${ctrler.levelsDone.qref}+1;")
-            if (withPipe) emitln(s"$name.Push(dummy);")
+            if (withPipe) emitln(s"$name.Push(dummy, true);")
             else n.out.T.foreach { send =>
               emitln(s"${nameOf(send)}.Push(dummy);")
             }
