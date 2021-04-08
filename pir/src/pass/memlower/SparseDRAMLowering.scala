@@ -182,7 +182,10 @@ trait SparseDRAMLowering extends SparseLowering {
           case access:SparseRMW =>
             val (rmwAddr, rmwDataIn, rmwDataOut) = block.addRMWPort(accessid, access.op, access.opOrder)
             // Comment out the following line for SpGEMM
-            flattenEnable(access) // in write ctx
+            dbg(s"Access.en.connected ${access.en.connected}")
+            if (access.en.connected.size > 0) {
+              flattenEnable(access) // in write ctx
+            }
             rmwAddr(access.addr.connected)
             rmwDataIn(access.input.connected)
             bufferInput(rmwAddr).foreach { in =>
@@ -247,6 +250,9 @@ trait SparseDRAMLowering extends SparseLowering {
             rmwDataOut.presetVec(access.addr.inferVec.get)
             var ins = access.dataOut.connected
             if (ins.size == 0) {
+              if (rmwDataOut.presetVecMeta.isEmpty) {
+                rmwDataOut.presetVec(1).tp(Bool)
+              }
               val accumAck = within(pirTop, access.getCtrl) {
                 val ctx = stage(Context().name("RMWData_ackAccum"))
                 within(ctx) {

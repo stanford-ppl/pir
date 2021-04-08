@@ -992,7 +992,7 @@ import spatial.metadata.memory.{Barrier => _,_}
           val mask = sram(j)
           fifo.enq(mask)
         }
-        Reduce(Reg[T])(Scan(par, 512, "or", fifo.deq)) { case List(j, xA) =>
+        Reduce(Reg[T])(ScanRed(par, 512, "or", fifo.deq)) { case List(j, xA) =>
           j.to[T]
         } { _ + _ }
       } { _ + _ }
