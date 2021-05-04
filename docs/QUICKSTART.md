@@ -12,7 +12,7 @@ https://github.com/acrucker/tungsten.git
 ```
 git clone https://github.com/stanford-ppl/spatial.git
 cd spatial
-git checkout acrucker    # << Don't miss the double dashes!
+git checkout acrucker
 make pir
 ```
 
