@@ -1,80 +1,68 @@
 import spatial.dsl._
-import virtualized._
+import utils.io.files
 import scala.util.Sorting.quickSort
 
 object SimHash extends SpatialApp {
 
-  @virtualize
-  def main() {
+  type T = Float
+  val K = 5
+  val L = 3
+  val ratio = 3
+  
+  def mersenne_hash(i:Int, j:Int, k:Int, l:Int) : Int = {
+    val MERSENNE_1 = 127
+    val MERSENNE_2 = 8191
+    val MERSENNE_3 = 131071
+    val MERSENNE_4 = 524287
+    (i * MERSENNE_1) + (j * MERSENNE_2) + (k * MERSENNE_3) + (l * MERSENNE_4)
+  }
 
-    // initialization
-    // only perform once
+  def d_simhash[T:Num](input: SRAM2[T]): SRAM2[Int] = {
+    val results = SRAM[Int](input.rows, L)
+    
+    // for every vector in input
+    Foreach(0 until input.rows by 1) { i =>
+      // for every hash table
+      Foreach(0 until L by 1) { l =>
+        // for every hash function
+        val active = Reduce(Reg[Int])(0 until K by 1) {k =>
+          val sum = Reduce(Reg[T])(0 until input.cols by 1) { j =>
+            val rand = mersenne_hash(i, j, k, l)
+            mux(rand % ratio == 0, mux(rand % 2 == 0, input(i, j), -input(i, j)), 0)
+          }{_+_}
+          mux(sum.value < 0, 1.to[Int], 0.to[Int])
+        }{_|_}
 
-    val dimension = ArgIn[Int]
-    setArg(dimension, args(0).to[Int])
-
-    // BUG: cannot pass more than one command line argument
-    val numHashes = ArgIn[Int]
-    // setArg(numHashes, args(1).to[Int])
-    setArg(numHashes, 8.to[Int])
-
-    val ratio = ArgIn[Float]
-    // setArg(ratio, args(2).to[Float])
-    setArg(ratio, 0.3.to[Float])
-
-    val r = scala.util.Random
-
-    // BUG: all values are the same, the code block inside is only running once
-    val randBits = (0::numHashes, 0::dimension){(i, j) => 
-      if (r.nextFloat() > ratio)
-        0
-      else if (r.nextInt(2) > 0)
-        1
-      else
-        -1
-    }
-    val dramRandBits = DRAM[Int](numHashes, dimension)
-    setMem(dramRandBits, randBits)
-
-    // end initialization
-
-    val dramResults = DRAM[Int](numHashes)
-
-    val vector = loadCSV1D[Float](sys.env("SPATIAL_HOME") + "/test-data/sim_hash/test_input.csv", "\n")
-
-    val dramVector = DRAM[Float](dimension)
-    setMem(dramVector, vector)
-
-    val tileSize = 64
-
-    Accel {
-      Foreach(numHashes by 1){i =>
-        val sum = Reg[Float]
-        val res = RegFile[Int](1)
-
-        sum := Reduce(Reg[Float](0))(dimension by tileSize par 2){tile =>
-            val numel = min(tileSize.to[Int], dimension - tile)
-            val rBits = SRAM[Int](tileSize)
-            val input = SRAM[Float](tileSize)
-
-            rBits load dramRandBits(i, tile :: tile + numel)
-            input load dramVector(tile :: tile + numel)
-
-            Reduce(Reg[Float](0))(numel by 1 par 4){j => rBits(j).to[Float] * input(j)}{_+_}
-        }{_+_}
-
-        if (sum < 0)
-          res(0) = 1
-        else
-          res(0) = 0
-
-        dramResults(i) store res
+        results(i, l) = active
       }
     }
+    
+    results
+  }
 
-    val results = getMem(dramResults)
-    writeCSV2D[Int](randBits, sys.env("SPATIAL_HOME") + "/test-data/sim_hash/test_rand_bits.csv", ",")
-    writeCSV1D[Int](results, sys.env("SPATIAL_HOME") + "/test-data/sim_hash/test_output.csv", "\n")
+  def main() : Unit = {
+    
+    val dim_0 = 100
+    val dim_1 = 50
+
+    val vector = loadCSV2D[T](sys.env("SPATIAL_HOME") + "/test-data/sim_hash/test_input.csv", "\n")
+
+    val dramVector = DRAM[T](dim_0, dim_1)
+    setMem(dramVector, vector)
+
+    val dramResult = DRAM[Int](dim_0, L)
+
+    Accel {
+      val sramVector = SRAM[T](100, 50)
+      sramVector load dramVector
+
+      val sramResult = d_simhash(sramVector)
+
+      dramResult store sramResult
+    }
+
+    val results = getMatrix(dramResult)
+    writeCSV2D[Int](results, sys.env("SPATIAL_HOME") + "/test-data/sim_hash/test_rand_bits.csv", ",")
 
   }
 } 
