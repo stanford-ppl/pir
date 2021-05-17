@@ -1,14 +1,13 @@
 import spatial.dsl._
 import utils.io.files
-import scala.util.Sorting.quickSort
 
-object SimHash extends SpatialApp {
 
+@spatial object SimHash extends SpatialApp {
   type T = Float
   val K = 5
   val L = 3
   val ratio = 3
-  
+
   def mersenne_hash(i:Int, j:Int, k:Int, l:Int) : Int = {
     val MERSENNE_1 = 127
     val MERSENNE_2 = 8191
@@ -19,7 +18,6 @@ object SimHash extends SpatialApp {
 
   def d_simhash[T:Num](input: SRAM2[T]): SRAM2[Int] = {
     val results = SRAM[Int](input.rows, L)
-    
     // for every vector in input
     Foreach(0 until input.rows by 1) { i =>
       // for every hash table
@@ -32,37 +30,26 @@ object SimHash extends SpatialApp {
           }{_+_}
           mux(sum.value < 0, 1.to[Int], 0.to[Int])
         }{_|_}
-
         results(i, l) = active
       }
     }
-    
     results
   }
 
-  def main() : Unit = {
-    
+  def main(args: Array[String]) : Unit = {
     val dim_0 = 100
     val dim_1 = 50
-
     val vector = loadCSV2D[T](sys.env("SPATIAL_HOME") + "/test-data/sim_hash/test_input.csv", "\n")
-
     val dramVector = DRAM[T](dim_0, dim_1)
     setMem(dramVector, vector)
-
     val dramResult = DRAM[Int](dim_0, L)
-
     Accel {
       val sramVector = SRAM[T](100, 50)
       sramVector load dramVector
-
       val sramResult = d_simhash(sramVector)
-
       dramResult store sramResult
     }
-
     val results = getMatrix(dramResult)
     writeCSV2D[Int](results, sys.env("SPATIAL_HOME") + "/test-data/sim_hash/test_rand_bits.csv", ",")
-
   }
 } 
