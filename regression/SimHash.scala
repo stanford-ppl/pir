@@ -27,7 +27,7 @@ import utils.io.files
           // for every element in a vector
           val sum = Reduce(Reg[T])(0 until input.cols by 1) { j =>
             val rand = mersenne_hash(i, j, k, l)
-            mux(rand % ratio == 0, mux(rand % 2 == 0, input(i, j), -input(i, j)), 0)
+            mux((rand >> 2) % ratio == 0, mux(rand % 2 == 0, input(i, j), -input(i, j)), 0)
           }{_+_}
           mux(sum.value < 0, 1.to[Int] << k.to[I16], 0.to[Int])
         }{_|_}
