@@ -1,10 +1,12 @@
 import random
 import csv
-import os 
+import os
+from functools import reduce
 
 DATA_DIR = os.environ['SPATIAL_HOME'] + '/test-data/sim_hash'
 INPUT_FILE = DATA_DIR + '/test_input.csv'
-OUTPUT_FILE = DATA_DIR + '/test_rand_bits.csv'
+OUTPUT_FILE = DATA_DIR + '/test_output.csv'
+
 
 def mersenne_hash(i, j, k, l):
     MERSENNE_PRIME_1 = 127
@@ -36,19 +38,25 @@ def simhash(input, K, L, ratio, random_hash):
                         else:
                             s -= input[i][j]
 
-                hash_codes.append(1 if s < 0 else 0)
-            result[i].append(1 if sum(hash_codes) else 0)
+                hash_codes.append((1 if s < 0 else 0) << k)
+            result[i].append(reduce(lambda a, b: a | b, hash_codes))
 
     return result
 
-if __name__ == '__main__':
-    input = [[random.random() * 100 - 50 for _ in range(50)] for _ in range(100)]
 
+def write_csv(data, file):
+    with open(file, 'w+') as f:
+        csvWriter = csv.writer(f,delimiter=',')
+        csvWriter.writerows(data)
+
+
+if __name__ == '__main__':
     if not os.path.exists(DATA_DIR):
         os.makedirs(DATA_DIR)
 
-    with open(INPUT_FILE, 'w+') as f:
-        csvWriter = csv.writer(f,delimiter=',')
-        csvWriter.writerows(input)
+    input = [[random.random() * 100 - 50 for _ in range(50)] for _ in range(100)]
+    write_csv(input, INPUT_FILE)
 
-    # print(simhash(input, K=5, L=3, ratio=3, random_hash=mersenne_hash))
+    output = simhash(input, K=5, L=3, ratio=3, random_hash=mersenne_hash)
+    write_csv(output, OUTPUT_FILE)
+

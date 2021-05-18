@@ -2,7 +2,7 @@ import spatial.dsl._
 import utils.io.files
 
 
-@spatial object SimHash extends SpatialApp {
+@spatial object SimHash extends SpatialTest {
   type T = Float
   val K = 5
   val L = 3
@@ -24,11 +24,12 @@ import utils.io.files
       Foreach(0 until L by 1) { l =>
         // for every hash function
         val active = Reduce(Reg[Int])(0 until K by 1) {k =>
+          // for every element in a vector
           val sum = Reduce(Reg[T])(0 until input.cols by 1) { j =>
             val rand = mersenne_hash(i, j, k, l)
             mux(rand % ratio == 0, mux(rand % 2 == 0, input(i, j), -input(i, j)), 0)
           }{_+_}
-          mux(sum.value < 0, 1.to[Int], 0.to[Int])
+          mux(sum.value < 0, 1.to[Int] << k.to[argon.lang.Fix[argon.lang.types.TRUE,argon.lang.types._16,argon.lang.types._0]], 0.to[Int])
         }{_|_}
         results(i, l) = active
       }
@@ -49,7 +50,11 @@ import utils.io.files
       val sramResult = d_simhash(sramVector)
       dramResult store sramResult
     }
-    val results = getMatrix(dramResult)
-    writeCSV2D[Int](results, sys.env("SPATIAL_HOME") + "/test-data/sim_hash/test_rand_bits.csv", ",")
+
+    val out = getMatrix(dramResult)
+    val gold = loadCSV2D[Int](sys.env("SPATIAL_HOME") + "/test-data/sim_hash/test_output.csv", ",")
+
+    assert(out == gold, "SimHash failed, results do not match")
+    println("PASSED: SimHash")
   }
 } 
