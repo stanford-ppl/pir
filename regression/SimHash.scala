@@ -1,12 +1,13 @@
 import spatial.dsl._
 import utils.io.files
 
+class SimHash_0 extends SimHash
 
-@spatial object SimHash extends SpatialTest {
+@spatial abstract class SimHash (K:scala.Int = 5) extends SpatialTest {
   type T = Float
-  val K = 5
-  val L = 3
+  val L = 16
   val ratio = 3
+  val ip = 16
 
   def mersenne_hash(i:Int, j:Int, k:Int, l:Int) : Int = {
     val MERSENNE_1 = 127
@@ -38,17 +39,24 @@ import utils.io.files
   }
 
   def main(args: Array[String]) : Unit = {
-    val dim_0 = 100
-    val dim_1 = 50
+    val dim_0 = 128
+    val dim_1 = 64
     val vector = loadCSV2D[T](sys.env("SPATIAL_HOME") + "/test-data/sim_hash/test_input.csv", "\n")
     val dramVector = DRAM[T](dim_0, dim_1)
     setMem(dramVector, vector)
     val dramResult = DRAM[Int](dim_0, L)
     Accel {
-      val sramVector = SRAM[T](100, 50)
-      sramVector load dramVector
+      val sramVector = SRAM[T](dim_0, dim_1)
+      // sramVector load dramVector(0::dim_0, 0::dim_1 par 16)
+      Foreach (dim_0 by 1) { i =>
+        val tmp = SRAM[T](dim_1)
+        tmp load dramVector(i, 0::dim_1 par ip)
+        Foreach (dim_1 par ip) { j =>
+          sramVector(i, j) = tmp(j)
+        }
+      }
       val sramResult = d_simhash(sramVector)
-      dramResult store sramResult
+      dramResult(0::dim_0, 0::L par ip) store sramResult
     }
 
     val out = getMatrix(dramResult)

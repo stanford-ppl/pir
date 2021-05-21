@@ -89,6 +89,7 @@ trait Ops extends Enumeration {
   val FixXor       = new FixOp with Op2 { override def eval(ins:List[Any]) = m(ins) { case Literal(a:Int)::Literal(b:Int)::Nil => Literal(a ^ b) } }
   val FixSLA       = new FixOp with Op2 { override def eval(ins:List[Any]) = m(ins) { case Literal(a:Int)::Literal(b:Int)::Nil => Literal(a << b) } }
   val FixSRA       = new FixOp with Op2 { override def eval(ins:List[Any]) = m(ins) { case Literal(a:Int)::Literal(b:Int)::Nil => Literal(a >> b) } }
+  val FixDivSRA    = new FixOp with Op2 { override def eval(ins:List[Any]) = m(ins) { case Literal(a:Int)::Literal(b:Int)::Nil => Literal(a >> b) } }
   val FixSRU       = new FixOp with Op2 { override def eval(ins:List[Any]) = m(ins) { case Literal(a:Int)::Literal(b:Int)::Nil => Literal(a >> b) } } // TODO
   val SatAdd       = new FixOp with Op2 { override def eval(ins:List[Any]) = m(ins) { case Num2(n,a,b) => Literal(n.plus(a.as,b.as)) } }
   val SatSub       = new FixOp with Op2 { override def eval(ins:List[Any]) = m(ins) { case Num2(n,a,b) => Literal(n.minus(a.as,b.as)) } }

@@ -170,6 +170,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       case FixSRA if ntp.isFraction => s"$a / pow(2,$b)"
       case FixSLA                   => s"$a << $b"
       case FixSRA                   => s"$a >> $b"
+      case FixDivSRA                => s"$a >> $b"
       case FixSRU                   => s"(${ta.qtp}) ((${ta.toUnsigned.qtp}) $a >> $b)"
       case SatAdd                   => s"$a + $b"
       case SatSub                   => s"$a - $b"
