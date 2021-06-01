@@ -3,11 +3,8 @@ import utils.io.files
 
 class SimHash_0 extends SimHash
 
-@spatial class SimHash(K:scala.Int = 5) extends SpatialTest {
+@spatial class SimHash(K:scala.Int = 5, L:scala.Int = 3, ratio:scala.Int = 3) extends SpatialTest {
   type T = Float
-  // val K = 5
-  val L = 3
-  val ratio = 3
 
   def mersenne_hash(i:Int, j:Int, k:Int, l:Int) : Int = {
     val MERSENNE_1 = 127
