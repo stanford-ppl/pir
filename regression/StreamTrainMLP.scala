@@ -1,3 +1,4 @@
+/*
 import spatial.dsl._
 import spatial.lib.ML._
 import utils.io.files._
@@ -137,3 +138,4 @@ class StreamTrainMLP_1 extends StreamTrainMLP[Float](numBatch=16, iters=4)()
     assert(cksum)
   }
 }
+*/
