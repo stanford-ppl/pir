@@ -24,9 +24,9 @@ class SLIDE_0 extends SLIDE
     row_l1:scala.Int = 64,
     row_l2:scala.Int = 262144,
   
-    bucket:scala.Int = 16,
+    bucket:scala.Int = 64,
     
-    input_max:scala.Int = 100,
+    input_max:scala.Int = 20,
     label_max:scala.Int = 7
 ) extends SpatialTest with AppUtil {
 
