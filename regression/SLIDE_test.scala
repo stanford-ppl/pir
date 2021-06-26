@@ -1,10 +1,10 @@
 import spatial.dsl._
 import utils.io.files._
 
-class SLIDE_0 extends SLIDE
+class SLIDE_test_0 extends SLIDE_test
 
-@spatial abstract class SLIDE(
-    numBatch:scala.Int = 29,
+@spatial abstract class SLIDE_test(
+    numBatch:scala.Int = 30,
     epoch:scala.Int = 2,
   
     lr:scala.Float = 1e-3f,
@@ -152,8 +152,8 @@ class SLIDE_0 extends SLIDE
         val d_w_l2 = DRAM[T](L2 * L1)
         val d_b_l1 = DRAM[T](L1)
         val d_b_l2 = DRAM[T](L2)
-        val t1 = loadCSV1D[T]("/home/kosho/IO/load/d_w1.csv")
-        val t2 = loadCSV1D[T]("/home/kosho/IO/load/d_w2.csv")
+        val t1 = loadCSV1D[T]("/home/kosho/IO/load_test/d_w1.csv")
+        val t2 = loadCSV1D[T]("/home/kosho/IO/load_test/d_w2.csv")
         setMem(d_w_l1, t1)
         setMem(d_w_l2, t2)
         setMem(d_b_l1, (0::L1) { i => 0.to[T] })
@@ -163,9 +163,9 @@ class SLIDE_0 extends SLIDE
         val input = DRAM[Int](numBatch * input_max)
         val input_size = DRAM[Int](numBatch)
         val input_value = DRAM[T](numBatch * input_max)
-        val t3 = loadCSV1D[Int]("/home/kosho/IO/load/input.csv")
-        val t4 = loadCSV1D[Int]("/home/kosho/IO/load/input_size.csv")
-        val t5 = loadCSV1D[T]("/home/kosho/IO/load/input_value.csv")
+        val t3 = loadCSV1D[Int]("/home/kosho/IO/load_test/input.csv")
+        val t4 = loadCSV1D[Int]("/home/kosho/IO/load_test/input_size.csv")
+        val t5 = loadCSV1D[T]("/home/kosho/IO/load_test/input_value.csv")
         setMem(input, t3)
         setMem(input_size, t4)
         setMem(input_value, t5)
@@ -173,24 +173,24 @@ class SLIDE_0 extends SLIDE
 	
         val label = DRAM[Int](numBatch * label_max)
         val label_size = DRAM[Int](numBatch)
-        val t6 = loadCSV1D[Int]("/home/kosho/IO/load/label.csv")
-        val t7 = loadCSV1D[Int]("/home/kosho/IO/load/label_size.csv")
+        val t6 = loadCSV1D[Int]("/home/kosho/IO/load_test/label.csv")
+        val t7 = loadCSV1D[Int]("/home/kosho/IO/load_test/label_size.csv")
         setMem(label, t6)
         setMem(label_size, t7)
 
 
         val d_table_l1 = DRAM[Int](L_l1 * row_l1 * bucket)
         val d_table_l2 = DRAM[Int](L_l2 * row_l2 * bucket)
-        val t8 = loadCSV1D[Int]("/home/kosho/IO/load/table_l1.csv")
-        val t9 = loadCSV1D[Int]("/home/kosho/IO/load/table_l2.csv")
+        val t8 = loadCSV1D[Int]("/home/kosho/IO/load_test/table_l1.csv")
+        val t9 = loadCSV1D[Int]("/home/kosho/IO/load_test/table_l2.csv")
         setMem(d_table_l1, t8)
         setMem(d_table_l2, t9)
 	
     
         val d_cnt_l1 = DRAM[Int](L_l1 * row_l1)
         val d_cnt_l2 = DRAM[Int](L_l2 * row_l2)
-        val t10 = loadCSV1D[Int]("/home/kosho/IO/load/cnt_l1.csv")
-        val t11 = loadCSV1D[Int]("/home/kosho/IO/load/cnt_l2.csv")
+        val t10 = loadCSV1D[Int]("/home/kosho/IO/load_test/cnt_l1.csv")
+        val t11 = loadCSV1D[Int]("/home/kosho/IO/load_test/cnt_l2.csv")
         setMem(d_cnt_l1, t10)
         setMem(d_cnt_l2, t11)
         
