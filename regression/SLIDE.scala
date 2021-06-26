@@ -4,7 +4,7 @@ import utils.io.files._
 class SLIDE_0 extends SLIDE
 
 @spatial abstract class SLIDE(
-    numBatch:scala.Int = 100,
+    numBatch:scala.Int = 10,
     epoch:scala.Int = 2,
   
     lr:scala.Float = 1e-3f,
@@ -58,7 +58,7 @@ class SLIDE_0 extends SLIDE
         results
     }
   
-    def forward(input: SRAM1[T], active_in: SRAM1[Int], counter_in: Int, active_len_in: Int, pre_layer_size: Int, K: Int, L: Int, row: Int, x: Int, d_cnt: DRAM1[Int], d_table: DRAM1[Int], d_w: DRAM1[T], d_b: DRAM1[T]) = {
+    def forward(input: SRAM1[T], active_in: SRAM1[Int], counter_in: Int, active_len_in: Int, pre_layer_size: Int, curr_layer_size: Int, K: Int, L: Int, row: Int, x: Int, d_cnt: DRAM1[Int], d_table: DRAM1[Int], d_w: DRAM1[T], d_b: DRAM1[T]) = {
         val hashcode = simhash(true, input, active_in, counter_in, K, L)
         val active_len_out = bucket
         val active_out = SRAM[Int](active_len_out)
@@ -69,8 +69,7 @@ class SLIDE_0 extends SLIDE
         
         active_out load d_table(num * row * bucket + hashcode(num) * bucket::num * row * bucket + hashcode(num) * bucket + bucket)
         
-        val counter_out = size(0)
-        
+        val counter_out = mux(size(0) == 0, 1, size(0))
         
 
         val w = SRAM[T](active_len_out, active_len_in).buffer
@@ -275,8 +274,8 @@ class SLIDE_0 extends SLIDE
 
            
                     // forward
-                    val (h_l1, active_l1, counter_l1, active_len_l1, w_l1, b_l1, idx_l1) = forward(s_trainX, active_field, counter_field, active_len_field, field, K_l1, L_l1, row_l1, x, d_cnt_l1, d_table_l1, d_w_l1, d_b_l1)
-                    val (h_l2, active_l2, counter_l2, active_len_l2, w_l2, b_l2, idx_l2) = forward(h_l1, active_l1, counter_l1, active_len_l1, L1, K_l2, L_l2, row_l2, x, d_cnt_l2, d_table_l2, d_w_l2, d_b_l2)
+                    val (h_l1, active_l1, counter_l1, active_len_l1, w_l1, b_l1, idx_l1) = forward(s_trainX, active_field, counter_field, active_len_field, field, L1, K_l1, L_l1, row_l1, x, d_cnt_l1, d_table_l1, d_w_l1, d_b_l1)
+                    val (h_l2, active_l2, counter_l2, active_len_l2, w_l2, b_l2, idx_l2) = forward(h_l1, active_l1, counter_l1, active_len_l1, L1, L2, K_l2, L_l2, row_l2, x, d_cnt_l2, d_table_l2, d_w_l2, d_b_l2)
 
 
                     // loss
