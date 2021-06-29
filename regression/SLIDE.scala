@@ -1,7 +1,8 @@
 import spatial.dsl._
 import utils.io.files._
+import spatial.metadata.memory.{Barrier => _,_}
 
-class SLIDE_0 extends SLIDE(
+class SLIDE_small_params(pf:scala.Int) extends SLIDE(
     numBatch = 100,
     epoch = 2, 
     field = 12, 
@@ -13,8 +14,17 @@ class SLIDE_0 extends SLIDE(
     L_l2 = 5,
     row_l1 = 4,
     row_l2 = 64,
-    data = "/home/kosho/IO/load_small"
+    data = "/home/kosho/IO/load_small",
+    pipeFactor=pf
 )
+
+// class SLIDE_small_params(pf:scala.Int) extends SLIDE_small(batchMax=1000, numBatch=100, epoch=2, field=12, L1=6,L2=20, K_l1=2, K_l2=6, L_l1=2, L_l2=5, data="/home/kosho/IO/load_small", pipeFactor=pf)
+class SLIDE_pipe_1 extends SLIDE_small_params(0)
+class SLIDE_pipe_1 extends SLIDE_small_params(1)
+class SLIDE_pipe_2 extends SLIDE_small_params(2)
+class SLIDE_pipe_5 extends SLIDE_small_params(5)
+class SLIDE_pipe_10 extends SLIDE_small_params(10)
+class SLIDE_pipe_100 extends SLIDE_small_params(100)
 
 class SLIDE_1 extends SLIDE(
     numBatch = 29,
@@ -71,10 +81,12 @@ class SLIDE_2 extends SLIDE(
     
     input_max:scala.Int = 20,
     label_max:scala.Int = 7,
+    pipeFactor:scala.Int = 1,
     data:java.lang.String = ""
 ) extends SpatialTest with AppUtil {
 
     type T = Float
+    val ip = 16
   
     def mersenne_hash(j:Int, k:Int, l:Int) = {
         val MERSENNE_2 = 8191
@@ -89,7 +101,7 @@ class SLIDE_2 extends SLIDE(
     
         Foreach(0 until L by 1) { l => // every table
             val value = Reduce(Reg[Int])(0 until K by 1) {k => // every hash function
-                val sum = Reduce(Reg[T])(0 until max by 1) { j => // sum across all inputs
+                val sum = Reduce(Reg[T])(0 until max by 1 par ip) { j => // sum across all inputs
                     val rand = if (sparse) mersenne_hash(active(j), k, l) else mersenne_hash(j, k, l)
                     mux((rand >> 2) % ratio == 0, mux(rand % 2 == 0, input(j), -input(j)), 0)
                 }{_+_}
@@ -122,7 +134,7 @@ class SLIDE_2 extends SLIDE(
 
         val idx = FIFO[Int](active_len_out * active_len_in)
         Foreach(0 until counter_out by 1) { i =>
-            Foreach(0 until counter_in by 1) { j =>
+            Foreach(0 until counter_in by 1 par ip) { j =>
                 idx.enq(active_out(i) * pre_layer_size + active_in(j))
             }
         }
@@ -130,7 +142,7 @@ class SLIDE_2 extends SLIDE(
        
         fifo gather d_w(idx, counter_out * counter_in)
         Foreach(0 until counter_out by 1) { i =>
-            Foreach(0 until counter_in by 1) { j =>
+            Foreach(0 until counter_in by 1 par ip) { j =>
                 w(i, j) = fifo.deq()
             }
         }
@@ -141,7 +153,7 @@ class SLIDE_2 extends SLIDE(
         val h_out = SRAM[T](active_len_out)
 
         Foreach(0 until counter_out by 1) { i =>
-            val sum = Reduce(Reg[T])(0 until counter_in by 1) { j =>
+            val sum = Reduce(Reg[T])(0 until counter_in by 1 par ip) { j =>
                 w(i, j) * input(j)
             }{_+_}
          
@@ -154,7 +166,7 @@ class SLIDE_2 extends SLIDE(
     def backprop(active_len_in: Int, counter_in: Int, counter_out: Int, lr: Float, w: SRAM2[T], b: SRAM1[T], err_out: SRAM1[T], h_in: SRAM1[T], h_out: SRAM1[T]) = {
         val err_in = SRAM[T](active_len_in)
         Foreach(0 until counter_in by 1) { j =>
-            val sum = Reduce(Reg[T])(0 until counter_out by 1) { i =>
+            val sum = Reduce(Reg[T])(0 until counter_out by 1 par ip) { i =>
                 w(i, j) * err_out(i) * mux(h_out(i) >= 0, 1.to[T], 0)
             }{_+_}
          
@@ -162,12 +174,12 @@ class SLIDE_2 extends SLIDE(
         }
        
         Foreach(0 until counter_out by 1) { i =>
-            Foreach(0 until counter_in by 1) { j =>
+            Foreach(0 until counter_in by 1 par ip) { j =>
                 w(i, j) = w(i, j) - lr * err_out(i) * h_in(j) * mux(h_out(i) >= 0, 1.to[T], 0)
             }
         }
        
-        Foreach(0 until counter_out by 1) { i =>
+        Foreach(0 until counter_out by 1 par ip) { i =>
             b(i) = b(i) - lr * err_out(i) * mux(h_out(i) >= 0, 1.to[T], 0)
         }
         
@@ -178,7 +190,7 @@ class SLIDE_2 extends SLIDE(
     def writeback(active_len_in: Int, active_len_out: Int, counter_in: Int, counter_out: Int, idx: FIFO[Int], active_out: SRAM1[Int], w: SRAM2[T], b: SRAM1[T], d_w: DRAM1[T], d_b: DRAM1[T]) = {
         val fifo = FIFO[T](active_len_out * active_len_in)
         Foreach(0 until counter_out by 1) { i =>
-            Foreach(0 until counter_in by 1) { j =>
+            Foreach(0 until counter_in by 1 par ip) { j =>
                 fifo.enq(w(i, j))
             }
         }
@@ -196,8 +208,12 @@ class SLIDE_2 extends SLIDE(
         val d_w_l2 = DRAM[T](L2 * L1)
         val d_b_l1 = DRAM[T](L1)
         val d_b_l2 = DRAM[T](L2)
-        val t1 = loadCSV1D[T](data + "/d_w1.csv")
-        val t2 = loadCSV1D[T](data + "/d_w2.csv")
+        d_w_l1.parAllowed = pipeFactor
+        d_w_l2.parAllowed = pipeFactor
+        d_b_l1.parAllowed = pipeFactor
+        d_b_l2.parAllowed = pipeFactor
+        val t1 = loadCSV1D[T](data+"/d_w1.csv")
+        val t2 = loadCSV1D[T](data+"/d_w2.csv")
         setMem(d_w_l1, t1)
         setMem(d_w_l2, t2)
         setMem(d_b_l1, (0::L1) { i => 0.to[T] })

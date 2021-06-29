@@ -30,7 +30,10 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
   def process(dram:DRAM, ctxs:List[(Context, DRAMCommand)]) = dbgblk(s"process(${dram} (${dram.sid})"){
     val accesses = ctxs.map { _._2 }
     val sorted = consistencyBarrier(accesses)(dependsOn) { case (from,to,carried,depth) =>
-      insertToken(from.ctx.get, from, to.ctx.get, to, !carried, depth)
+      val barInit = if (carried && depth == 1) dram.parAllowed.get else 1
+      val barDepth = if (carried && depth == 1) dram.parAllowed.get else depth
+      dbg(s"barDepth ${barDepth} barInit ${barInit} dram.parAllowed ${dram.parAllowed.get} carried ${carried}")
+      insertToken(from.ctx.get, from, to.ctx.get, to, !carried, barDepth, barInit)
     }
     sorted.reverseIterator.find { ua =>
       ua.lanes.head.isInstanceOf[DRAMStoreCommand]
@@ -48,7 +51,8 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
     toCtx:Context, 
     toCmd:DRAMCommand,
     forward:Boolean,
-    depth:Int
+    depth:Int,
+    initVals:Int
   ):Unit = {
     dbgblk(s"insertToken($fromCmd, $toCmd)"){
       dbg(s"from=${quoteSrcCtx(fromCtx.getCtrl)} to=${quoteSrcCtx(toCtx.getCtrl)}")
@@ -80,7 +84,7 @@ class DRAMBarrierInsertion(implicit compiler:PIR) extends PIRPass with PIRTransf
       }
       //breakPoint(s"insertToken($fromCmd, $toCmd, $fromCtx, $toCtx)")
       if (!forward) {
-        tokenRead.initToken := 1
+        tokenRead.initToken := initVals
         tokenRead.inits(true)
       }
     }

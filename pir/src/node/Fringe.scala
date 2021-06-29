@@ -120,6 +120,7 @@ case class DRAM(sid:String) extends prism.graph.IR {
   val sname = new Metadata[String]("sname")
   val tp = new Metadata[BitType]("tp")
   val compressed = new Metadata[Boolean]("compressed", default=Some(false))
+  val parAllowed = new Metadata[Int]("parAllowed", default=Some(1))
 }
 
 trait StreamCommand extends FringeCommand {
