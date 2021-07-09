@@ -1,34 +1,25 @@
 import spatial.dsl._
 import utils.io.files._
-import spatial.metadata.memory.{Barrier => _,_}
 
-class SLIDE_small_params(pf:scala.Int) extends SLIDE(
-    numBatch = 100,
-    epoch = 2, 
-    field = 12, 
-    L1 = 6,
-    L2 = 20,
-    K_l1 = 2, 
-    K_l2 = 6, 
+class SLIDE_small extends SLIDE(
+    numBatch = 10,
+    epoch = 1, 
+    field = 100, 
+    L1 = 32,
+    L2 = 64,
+    K_l1 = 4, 
+    K_l2 = 5, 
     L_l1 = 2, 
     L_l2 = 5,
-    row_l1 = 4,
-    row_l2 = 64,
-    data = "/home/kosho/IO/load_small",
-    pipeFactor=pf
+    row_l1 = 16,
+    row_l2 = 32,
+    bucket = 16,
+    data = "/home/kosho/IO/load_small"
 )
 
-// class SLIDE_small_params(pf:scala.Int) extends SLIDE_small(batchMax=1000, numBatch=100, epoch=2, field=12, L1=6,L2=20, K_l1=2, K_l2=6, L_l1=2, L_l2=5, data="/home/kosho/IO/load_small", pipeFactor=pf)
-class SLIDE_pipe_1 extends SLIDE_small_params(0)
-class SLIDE_pipe_1 extends SLIDE_small_params(1)
-class SLIDE_pipe_2 extends SLIDE_small_params(2)
-class SLIDE_pipe_5 extends SLIDE_small_params(5)
-class SLIDE_pipe_10 extends SLIDE_small_params(10)
-class SLIDE_pipe_100 extends SLIDE_small_params(100)
-
-class SLIDE_1 extends SLIDE(
-    numBatch = 29,
-    epoch = 2, 
+class SLIDE_large extends SLIDE(
+    numBatch = 20,
+    epoch = 1, 
     field = 135909, 
     L1 = 128,
     L2 = 670091,
@@ -38,55 +29,34 @@ class SLIDE_1 extends SLIDE(
     L_l2 = 50,
     row_l1 = 64,
     row_l2 = 262144,
-    data = "/home/kosho/IO/load"
-)
-
-class SLIDE_2 extends SLIDE(
-    numBatch = 30,
-    epoch = 2, 
-    field = 135909, 
-    L1 = 128,
-    L2 = 670091,
-    K_l1 = 6, 
-    K_l2 = 18, 
-    L_l1 = 20, 
-    L_l2 = 50,
-    row_l1 = 64,
-    row_l2 = 262144,
-    data = "/home/kosho/IO/load_test"
+    bucket = 64,
+    data = "/home/kosho/IO/load_large"
 )
 
 @spatial abstract class SLIDE(
     numBatch:scala.Int = 100,
     epoch:scala.Int = 2,
-  
-    lr:scala.Float = 1e-3f,
-  
     field:scala.Int = 12,
     L1:scala.Int = 6,
     L2:scala.Int = 20,
-  
     K_l1:scala.Int = 2,
     K_l2:scala.Int = 6,
-  
     L_l1:scala.Int = 2,
     L_l2:scala.Int = 5,
-  
-    ratio:scala.Int = 3,
-  
     row_l1:scala.Int = 4,
     row_l2:scala.Int = 64,
-  
     bucket:scala.Int = 64,
+    data:java.lang.String = "",
     
+    ratio:scala.Int = 3,
+    lr:scala.Float = 1e-3f,
     input_max:scala.Int = 20,
     label_max:scala.Int = 7,
-    pipeFactor:scala.Int = 1,
-    data:java.lang.String = ""
+    ip:scala.Int = 16
+    
 ) extends SpatialTest with AppUtil {
 
     type T = Float
-    val ip = 16
   
     def mersenne_hash(j:Int, k:Int, l:Int) = {
         val MERSENNE_2 = 8191
@@ -125,7 +95,7 @@ class SLIDE_2 extends SLIDE(
         
         active_out load d_table(num * row * bucket + hashcode(num) * bucket::num * row * bucket + hashcode(num) * bucket + bucket)
         
-        val counter_out = mux(size(0) == 0, 1, size(0))
+        val counter_out = size(0)
         
 
         val w = SRAM[T](active_len_out, active_len_in).buffer
@@ -208,12 +178,8 @@ class SLIDE_2 extends SLIDE(
         val d_w_l2 = DRAM[T](L2 * L1)
         val d_b_l1 = DRAM[T](L1)
         val d_b_l2 = DRAM[T](L2)
-        d_w_l1.parAllowed = pipeFactor
-        d_w_l2.parAllowed = pipeFactor
-        d_b_l1.parAllowed = pipeFactor
-        d_b_l2.parAllowed = pipeFactor
-        val t1 = loadCSV1D[T](data+"/d_w1.csv")
-        val t2 = loadCSV1D[T](data+"/d_w2.csv")
+        val t1 = loadCSV1D[T](data + "/d_w1.csv")
+        val t2 = loadCSV1D[T](data + "/d_w2.csv")
         setMem(d_w_l1, t1)
         setMem(d_w_l2, t2)
         setMem(d_b_l1, (0::L1) { i => 0.to[T] })
@@ -347,7 +313,7 @@ class SLIDE_2 extends SLIDE(
                     val s_label_size = tmp2(0)
 		   
                     val err_l2 = SRAM[T](active_len_l2).buffer
-                    Foreach(0 until counter_l2 by 1) { i =>
+                    Foreach(0 until counter_l2 by 1 par ip) { i =>
                         err_l2(i) = h_l2(i)
                     }
                     
