@@ -16,7 +16,7 @@ git checkout acrucker
 make pir
 ```
 
-`make pir` initializes and compiles all submodlues, which can takes some time for the first time. It will print bunch of stuff and make sure there's no error before proceeding. 
+`make pir` initializes and compiles all submodules, which can takes some time for the first time. It will print bunch of stuff and make sure there's no error before proceeding. 
 
 ## Run test end-to-end
 If your app extends `SpatialTest` instead of SpatialApp, you can run all following passes with the script `bin/test`. 
