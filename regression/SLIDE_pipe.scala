@@ -1,4 +1,3 @@
-/*
 import spatial.dsl._
 import utils.io.files._
 import spatial.metadata.memory.{Barrier => _,_}
@@ -336,5 +335,3 @@ class SLIDE_pipe_10 extends SLIDE_pipe(
         assert(true)
     }
 }
-
-*/
