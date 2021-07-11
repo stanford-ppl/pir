@@ -1,7 +1,26 @@
+/*
 import spatial.dsl._
 import utils.io.files._
+import spatial.metadata.memory.{Barrier => _,_}
 
-@spatial class SLIDE_small(
+class SLIDE_pipe_1 extends SLIDE_pipe(
+    pipeFactor = 1
+)
+
+class SLIDE_pipe_2 extends SLIDE_pipe(
+    pipeFactor = 2
+)
+
+class SLIDE_pipe_5 extends SLIDE_pipe(
+    pipeFactor = 5
+)
+
+class SLIDE_pipe_10 extends SLIDE_pipe(
+    pipeFactor = 10
+)
+
+
+@spatial abstract class SLIDE_pipe(
     numBatch:scala.Int = 10,
     epoch:scala.Int = 1,
     field:scala.Int = 100,
@@ -20,7 +39,8 @@ import utils.io.files._
     lr:scala.Float = 1e-3f,
     input_max:scala.Int = 20,
     label_max:scala.Int = 7,
-    ip:scala.Int = 16
+    ip:scala.Int = 16,
+    pipeFactor:scala.Int = 1
     
 ) extends SpatialTest with AppUtil {
 
@@ -146,6 +166,10 @@ import utils.io.files._
         val d_w_l2 = DRAM[T](L2 * L1)
         val d_b_l1 = DRAM[T](L1)
         val d_b_l2 = DRAM[T](L2)
+        d_w_l1.parAllowed = pipeFactor
+        d_w_l2.parAllowed = pipeFactor
+        d_b_l1.parAllowed = pipeFactor
+        d_b_l2.parAllowed = pipeFactor
         val t1 = loadCSV1D[T](data + "/d_w1.csv")
         val t2 = loadCSV1D[T](data + "/d_w2.csv")
         setMem(d_w_l1, t1)
@@ -312,3 +336,5 @@ import utils.io.files._
         assert(true)
     }
 }
+
+*/
