@@ -8,35 +8,32 @@ class SimHash_0 extends SimHash
 
     val ip = 16
 
+    val sha256_rand_bits = loadCSV2D[Int](sys.env("SPATIAL_HOME") + "/test-data/sim_hash/sha256_rand.csv", ",")
+
     def mersenne_hash(i:Int, j:Int) : Int = {
         val MERSENNE_1 = 131071
         val MERSENNE_2 = 524287
         (i * MERSENNE_1) + (j * MERSENNE_2)
     }
 
-    // def fnv_hash(i:Int, j:Int) : Int = {
-    //     var FNV_PRIME = Reg[Int](0x1000193)
-    //     var OFFSET_BASIS = Reg[Int](0x811C9DC5)
+    def fnv1a_calc(hash: Int, data: Int, iter: Int) : Int = {
+        if (iter == 0) {
+            return hash
+        }
 
-    //     var tmp = SRAM[Int](4)
-    //     tmp(0) = i & 0xff
-    //     tmp(1) = (i & 0xff00) >> 8
-    //     tmp(2) = j & 0xff
-    //     tmp(3) = (j & 0xff00) >> 8
+        val FNV_PRIME = 0x1000193
+        val new_hash = (hash ^ (data & 0xff)) * FNV_PRIME
+        fnv1a_calc(new_hash, data >> 8, iter - 1)
+    }
 
-    //     var hash = Reg[Int](OFFSET_BASIS)
+    def fnv1a_hash(i:Int, j:Int) : Int = {
+        val OFFSET_BASIS = 0x811C9DC5
+        val data = (i & 0xffff) | (j << 16)
+        fnv1a_calc(OFFSET_BASIS, data, 4)
+    }
 
-    //     Foreach(0 until 4 by 1) {k=>
-    //         hash = hash ^ tmp(k)
-    //         hash = hash * FNV_PRIME
-    //     }
-
-    //     hash
-    // }
-
-    def sha256_hash(i:Int, j:Int) {
-        val rand_bits = loadCSV2D[T](sys.env("SPATIAL_HOME") + "/test-data/sim_hash/sha256_rand.csv", ",")
-        rand_bits(i, j)
+    def sha256_hash(i:Int, j:Int) : Int = {
+        sha256_rand_bits(i, j)
     }
 
     def simhash[T:Num](sparse: Boolean, input: SRAM1[T], active: SRAM1[Int], max: Int, K: Int, L: Int) = {
