@@ -61,3 +61,7 @@ spatialc
 rerun
 
 gen*
+
+
+!regression/gold/random_hash/*.cpp
+!regression/gold/random_hash/*.h

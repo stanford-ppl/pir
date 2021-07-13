@@ -28,7 +28,7 @@ class SimHash_0 extends SimHash
 
     def fnv1a_hash(i:Int, j:Int) : Int = {
         val OFFSET_BASIS = 0x811C9DC5
-        val data = (i & 0xffff) | (j << 16)
+        val data = i | (j << 16)
         fnv1a_calc(OFFSET_BASIS, data, 4)
     }
 
