@@ -44,29 +44,22 @@ class SLIDE_pipe_10 extends SLIDE_pipe(
 ) extends SpatialTest with AppUtil {
 
     type T = Float
-
-    def fnv1a_calc(hash: Int, data: Int, iter: Int) : Int = {
-        val FNV_PRIME = 0x1000193
-        if (iter > 0) {
-            fnv1a_calc((hash ^ (data & 0xff)) * FNV_PRIME, data >> 8, iter - 1)
-        } else {
-            hash
-        }
+  
+    def mersenne_hash(j:Int, k:Int, l:Int) = {
+        val MERSENNE_2 = 8191
+        val MERSENNE_3 = 131071
+        val MERSENNE_4 = 524287
+    
+        (j * MERSENNE_2) + (k * MERSENNE_3) + (l * MERSENNE_4)
     }
-
-    def fnv1a_hash(i:Int, j:Int) : Int = {
-        val OFFSET_BASIS = 0x811C9DC5
-        val data = i | (j << 16)
-        fnv1a_calc(OFFSET_BASIS, data, 4)
-    }
-
+    
     def simhash[T:Num](sparse: Boolean, input: SRAM1[T], active: SRAM1[Int], max: Int, K: Int, L: Int) = {
         val results = SRAM[Int](L)
-
+    
         Foreach(0 until L by 1) { l => // every table
             val value = Reduce(Reg[Int])(0 until K by 1) {k => // every hash function
                 val sum = Reduce(Reg[T])(0 until max by 1 par ip) { j => // sum across all inputs
-                    val rand = if (sparse) fnv1a_hash(K*l+k, active(j)) else fnv1a_hash(K*l+k, j)
+                    val rand = if (sparse) mersenne_hash(active(j), k, l) else mersenne_hash(j, k, l)
                     mux((rand >> 2) % ratio == 0, mux(rand % 2 == 0, input(j), -input(j)), 0)
                 }{_+_}
                 mux(sum.value < 0, 1.to[Int] << k.to[I16], 0)
@@ -76,7 +69,7 @@ class SLIDE_pipe_10 extends SLIDE_pipe(
         }
         
         results
-    } 
+    }
   
     def forward(input: SRAM1[T], active_in: SRAM1[Int], counter_in: Int, active_len_in: Int, pre_layer_size: Int, curr_layer_size: Int, K: Int, L: Int, row: Int, x: Int, d_cnt: DRAM1[Int], d_table: DRAM1[Int], d_w: DRAM1[T], d_b: DRAM1[T]) = {
         val hashcode = simhash(true, input, active_in, counter_in, K, L)
