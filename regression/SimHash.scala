@@ -7,8 +7,16 @@ class SimHash_0 extends SimHash
     type T = Float
 
     val ip = 16
+    val dim = 100
 
-    val sha256_rand_bits = loadCSV2D[Int](sys.env("SPATIAL_HOME") + "/test-data/sim_hash/sha256_rand.csv", ",")
+    val sha256_rand_bits = loadCSV2D[Int](sys.env("SPATIAL_HOME") + "/test-data/sim_hash/sha256.csv", ",")
+    val dram_sha256 = DRAM[Int](K*L, dim)
+
+    // def sha256_hash(i:Int, j:Int) : Int = {
+    //     val hash = SRAM[Int](1, 1)
+    //     hash load dram_sha256(i::i+1, j::j+1)
+    //     hash(0, 0)
+    // }
 
     def mersenne_hash(i:Int, j:Int) : Int = {
         val MERSENNE_1 = 131071
@@ -17,13 +25,12 @@ class SimHash_0 extends SimHash
     }
 
     def fnv1a_calc(hash: Int, data: Int, iter: Int) : Int = {
-        if (iter == 0) {
-            return hash
-        }
-
         val FNV_PRIME = 0x1000193
-        val new_hash = (hash ^ (data & 0xff)) * FNV_PRIME
-        fnv1a_calc(new_hash, data >> 8, iter - 1)
+        if (iter > 0) {
+            fnv1a_calc((hash ^ (data & 0xff)) * FNV_PRIME, data >> 8, iter - 1)
+        } else {
+            hash
+        }
     }
 
     def fnv1a_hash(i:Int, j:Int) : Int = {
@@ -32,17 +39,13 @@ class SimHash_0 extends SimHash
         fnv1a_calc(OFFSET_BASIS, data, 4)
     }
 
-    def sha256_hash(i:Int, j:Int) : Int = {
-        sha256_rand_bits(i, j)
-    }
-
     def simhash[T:Num](sparse: Boolean, input: SRAM1[T], active: SRAM1[Int], max: Int, K: Int, L: Int) = {
         val results = SRAM[Int](L)
 
         Foreach(0 until L by 1) { l => // every table
             val value = Reduce(Reg[Int])(0 until K by 1) {k => // every hash function
                 val sum = Reduce(Reg[T])(0 until max by 1 par ip) { j => // sum across all inputs
-                    val rand = if (sparse) mersenne_hash(K*l+k, active(j)) else mersenne_hash(K*l+k, j)
+                    val rand = if (sparse) fnv1a_hash(K*l+k, active(j)) else fnv1a_hash(K*l+k, j)
                     mux((rand >> 2) % ratio == 0, mux(rand % 2 == 0, input(j), -input(j)), 0)
                 }{_+_}
                 mux(sum.value < 0, 1.to[Int] << k.to[I16], 0)
@@ -55,17 +58,16 @@ class SimHash_0 extends SimHash
     }
 
     def main(args: Array[String]) : Unit = {
-        val dim = 50
         val vector = loadCSV1D[T](sys.env("SPATIAL_HOME") + "/test-data/sim_hash/gold_input.csv", ",")
         writeCSV1D(vector, sys.env("SPATIAL_HOME") + "/test-data/sim_hash/spatial_input.csv", ",")
         val dramVector = DRAM[T](dim)
         setMem(dramVector, vector)
         val dramResult = DRAM[Int](L)
         Accel {
-            val sramVector = SRAM[T](50)
+            val sramVector = SRAM[T](100)
             val active = SRAM[Int](0)
             sramVector load dramVector
-            val sramResult = simhash(false, sramVector, active, 50, K, L)
+            val sramResult = simhash(false, sramVector, active, dim, K, L)
             dramResult store sramResult
         }
 
