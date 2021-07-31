@@ -2,36 +2,66 @@ import spatial.dsl._
 import utils.io.files._
 import spatial.metadata.memory.{Barrier => _,_}
 
-class SLIDE_dense_pipe_1 extends SLIDE_dense_pipe(
-    pipeFactor = 1
+class SLIDE_dense_1_1 extends SLIDE_dense(
+    pipeFactor = 1,
+    op = 1
 )
 
-class SLIDE_dense_pipe_2 extends SLIDE_dense_pipe(
-    pipeFactor = 2
+class SLIDE_dense_1_2 extends SLIDE_dense(
+    pipeFactor = 1,
+    op = 2
 )
 
-class SLIDE_dense_pipe_5 extends SLIDE_dense_pipe(
-    pipeFactor = 5
+class SLIDE_dense_1_4 extends SLIDE_dense(
+    pipeFactor = 1,
+    op = 4
 )
 
-class SLIDE_dense_pipe_10 extends SLIDE_dense_pipe(
-    pipeFactor = 10
+class SLIDE_dense_2_1 extends SLIDE_dense(
+    pipeFactor = 2,
+    op = 1
 )
 
-@spatial abstract class SLIDE_dense_pipe(
-    numBatch:scala.Int = 10,
+class SLIDE_dense_2_2 extends SLIDE_dense(
+    pipeFactor = 2,
+    op = 2
+)
+
+class SLIDE_dense_2_4 extends SLIDE_dense(
+    pipeFactor = 2,
+    op = 4
+)
+
+class SLIDE_dense_4_1 extends SLIDE_dense(
+    pipeFactor = 4,
+    op = 1
+)
+
+class SLIDE_dense_4_2 extends SLIDE_dense(
+    pipeFactor = 4,
+    op = 2
+)
+
+class SLIDE_dense_4_4 extends SLIDE_dense(
+    pipeFactor = 4,
+    op = 4
+)
+
+@spatial abstract class SLIDE_dense(
+    numBatch:scala.Int = 128,
     epoch:scala.Int = 1,
-    field:scala.Int = 20,
-    L1:scala.Int = 32,
-    L2:scala.Int = 64,
-    data:java.lang.String = "/home/kosho/IO/load_dense_small",
+    field:scala.Int = 16988,
+    L1:scala.Int = 16,
+    L2:scala.Int = 83761,
+    data:java.lang.String = "/home/kosho/IO/load_dense",
+    pipeFactor:scala.Int = 1,
+    op:scala.Int = 1,
     
     ratio:scala.Int = 3,
     lr:scala.Float = 1e-3f,
-    input_max:scala.Int = 20,
+    input_max:scala.Int = 16988,
     label_max:scala.Int = 7,
-    ip:scala.Int = 16,
-    pipeFactor:scala.Int = 1
+    ip:scala.Int = 16
     
 ) extends SpatialTest with AppUtil {
 
@@ -113,7 +143,6 @@ class SLIDE_dense_pipe_10 extends SLIDE_dense_pipe(
         val input_value = DRAM[T](numBatch * input_max)
         val t5 = loadCSV1D[T](data + "/input_value.csv")
         setMem(input_value, t5)
-        setMem(input_value, (0::numBatch * input_max) { i => 2.5f.to[T] })
         
 	
         val label = DRAM[Int](numBatch * label_max)
@@ -127,7 +156,7 @@ class SLIDE_dense_pipe_10 extends SLIDE_dense_pipe(
         Accel{
 	   
             Foreach (0 until epoch by 1) { _ =>
-                Foreach (0 until numBatch by 1) { x =>
+                Foreach (0 until numBatch by 1 par op) { x =>
 		   
 		   
 
