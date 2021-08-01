@@ -373,8 +373,10 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
     dbg(s"ctrl1_BB=${getCtrlPrioBB(a1)}; ctrl2_BB=${getCtrlPrioBB(a2)}")
     dbg(s"lca=$lca")
     dbg(s"branch1=$branch1; branch2=$branch2")
-    val rate1 = branch1.map { _.iter.v.getOrElse(Unknown) }.reduceOption { _ * _ }.getOrElse(Finite(1l))
-    val rate2 = branch2.map { _.iter.v.getOrElse(Unknown) }.reduceOption { _ * _ }.getOrElse(Finite(1l))
+    // val rate1 = branch1.map { _.iter.v.getOrElse(Unknown) }.reduceOption { _ * _ }.getOrElse(Finite(1l))
+    // val rate2 = branch2.map { _.iter.v.getOrElse(Unknown) }.reduceOption { _ * _ }.getOrElse(Finite(1l))
+    val rate1 = branch1.map { _.iter.v.getOrElse(Unknown) }.reduceOption { _ * _ }.getOrElse(Unknown)
+    val rate2 = branch2.map { _.iter.v.getOrElse(Unknown) }.reduceOption { _ * _ }.getOrElse(Unknown)
     dbg(s"rate1=$rate1; rate2=$rate2")
     if (aggressive && (rate1 == Infinite || rate2 == Infinite))
       return true
