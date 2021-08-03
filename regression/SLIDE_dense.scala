@@ -50,16 +50,16 @@ class SLIDE_dense_4_4 extends SLIDE_dense(
 @spatial abstract class SLIDE_dense(
     numBatch:scala.Int = 128,
     epoch:scala.Int = 1,
-    field:scala.Int = 16988,
+    field:scala.Int = 20,
     L1:scala.Int = 16,
-    L2:scala.Int = 83761,
+    L2:scala.Int = 128,
     data:java.lang.String = "/home/kosho/IO/load_dense",
     pipeFactor:scala.Int = 1,
     op:scala.Int = 1,
     
     ratio:scala.Int = 3,
     lr:scala.Float = 1e-3f,
-    input_max:scala.Int = 16988,
+    input_max:scala.Int = 20,
     label_max:scala.Int = 7,
     ip:scala.Int = 16
     
@@ -141,16 +141,14 @@ class SLIDE_dense_4_4 extends SLIDE_dense(
     
 
         val input_value = DRAM[T](numBatch * input_max)
-        val t5 = loadCSV1D[T](data + "/input_value.csv")
-        setMem(input_value, t5)
+        setMem(input_value, (0::numBatch * input_max) { i => 1.1f.to[T] })
+        
         
 	
         val label = DRAM[Int](numBatch * label_max)
         val label_size = DRAM[Int](numBatch)
-        val t6 = loadCSV1D[Int](data + "/label.csv")
-        val t7 = loadCSV1D[Int](data + "/label_size.csv")
-        setMem(label, t6)
-        setMem(label_size, t7)
+        setMem(label, (0::numBatch * label_max) { i => (i % label_max).to[Int] })
+        setMem(label_size, (0::numBatch) { i => label_max.to[Int] })
 
     
         Accel{

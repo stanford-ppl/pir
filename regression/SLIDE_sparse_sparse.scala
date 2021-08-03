@@ -1,3 +1,4 @@
+/*
 import spatial.dsl._
 import utils.io.files._
 import spatial.metadata.memory.{Barrier => _,_}
@@ -50,7 +51,7 @@ class SLIDE_sparse_4_4 extends SLIDE_sparse(
 @spatial abstract class SLIDE_sparse(
     numBatch:scala.Int = 128,
     epoch:scala.Int = 1,
-    field:scala.Int = 20,
+    field:scala.Int = 100,
     L1:scala.Int = 16,
     L2:scala.Int = 128,
     K_l2:scala.Int = 5,
@@ -63,7 +64,7 @@ class SLIDE_sparse_4_4 extends SLIDE_sparse(
     
     ratio:scala.Int = 3,
     lr:scala.Float = 1e-3f,
-    input_max:scala.Int = 4,
+    input_max:scala.Int = 20,
     label_max:scala.Int = 7,
     ip:scala.Int = 16
     
@@ -79,13 +80,13 @@ class SLIDE_sparse_4_4 extends SLIDE_sparse(
         (j * MERSENNE_2) + (k * MERSENNE_3) + (l * MERSENNE_4)
     }
     
-    def simhash[T:Num](input: SRAM1[T], max: Int, K: Int, L: Int) = {
+    def simhash[T:Num](sparse: Boolean, input: SRAM1[T], active: SRAM1[Int], max: Int, K: Int, L: Int) = {
         val results = SRAM[Int](L)
     
         Foreach(0 until L by 1) { l => // every table
             val value = Reduce(Reg[Int])(0 until K by 1) {k => // every hash function
                 val sum = Reduce(Reg[T])(0 until max by 1 par ip) { j => // sum across all inputs
-                    val rand = mersenne_hash(j, k, l)
+                    val rand = if (sparse) mersenne_hash(active(j), k, l) else mersenne_hash(j, k, l)
                     mux((rand >> 2) % ratio == 0, mux(rand % 2 == 0, input(j), -input(j)), 0)
                 }{_+_}
                 mux(sum.value < 0, 1.to[Int] << k.to[I16], 0)
@@ -97,8 +98,8 @@ class SLIDE_sparse_4_4 extends SLIDE_sparse(
         results
     }
   
-    def forward(input: SRAM1[T], dense_layer_size: Int, K: Int, L: Int, row: Int, x: Int, d_cnt: DRAM1[Int], d_table: DRAM1[Int], d_w: DRAM1[T], d_b: DRAM1[T]) = {
-        val hashcode = simhash(input, dense_layer_size, K, L)
+    def forward(input: SRAM1[T], active_in: SRAM1[Int], counter_in: Int, active_len_in: Int, pre_layer_size: Int, curr_layer_size: Int, K: Int, L: Int, row: Int, x: Int, d_cnt: DRAM1[Int], d_table: DRAM1[Int], d_w: DRAM1[T], d_b: DRAM1[T]) = {
+        val hashcode = simhash(true, input, active_in, counter_in, K, L)
         val active_len_out = bucket
         val active_out = SRAM[Int](active_len_out)
         
@@ -111,36 +112,44 @@ class SLIDE_sparse_4_4 extends SLIDE_sparse(
         val counter_out = size(0)
         
 
-        val w = SRAM[T](active_len_out, dense_layer_size).buffer
-        val fifo = FIFO[T](dense_layer_size)
+        val w = SRAM[T](active_len_out, active_len_in).buffer
+        val fifo = FIFO[T](active_len_out * active_len_in)
+
+
+        val idx = FIFO[Int](active_len_out * active_len_in)
         Foreach(0 until counter_out by 1) { i =>
-            fifo load d_w(active_out(i) * dense_layer_size::(active_out(i) + 1) + dense_layer_size)
-            
-            Foreach(0 until dense_layer_size by 1 par ip) { j =>
+            Foreach(0 until counter_in by 1 par ip) { j =>
+                idx.enq(active_out(i) * pre_layer_size + active_in(j))
+            }
+        }
+       
+       
+        fifo gather d_w(idx, counter_out * counter_in)
+        Foreach(0 until counter_out by 1) { i =>
+            Foreach(0 until counter_in by 1 par ip) { j =>
                 w(i, j) = fifo.deq()
             }
         }
-        
-
+       
         val b = SRAM[T](active_len_out).buffer
         b gather d_b(active_out, counter_out)
         
         val h_out = SRAM[T](active_len_out)
 
         Foreach(0 until counter_out by 1) { i =>
-            val sum = Reduce(Reg[T])(0 until dense_layer_size by 1 par ip) { j =>
+            val sum = Reduce(Reg[T])(0 until counter_in by 1 par ip) { j =>
                 w(i, j) * input(j)
             }{_+_}
          
             h_out(i) = mux(sum + b(i) >= 0, sum + b(i), 0) // relu
         }
         
-        (h_out, active_out, counter_out, active_len_out, w, b)
+        (h_out, active_out, counter_out, active_len_out, w, b, idx)
     }
     
-    def backprop(dense_layer_size: Int, counter_out: Int, lr: Float, w: SRAM2[T], b: SRAM1[T], err_out: SRAM1[T], h_in: SRAM1[T], h_out: SRAM1[T]) = {
-        val err_in = SRAM[T](dense_layer_size)
-        Foreach(0 until dense_layer_size by 1) { j =>
+    def backprop(active_len_in: Int, counter_in: Int, counter_out: Int, lr: Float, w: SRAM2[T], b: SRAM1[T], err_out: SRAM1[T], h_in: SRAM1[T], h_out: SRAM1[T]) = {
+        val err_in = SRAM[T](active_len_in)
+        Foreach(0 until counter_in by 1) { j =>
             val sum = Reduce(Reg[T])(0 until counter_out by 1 par ip) { i =>
                 w(i, j) * err_out(i) * mux(h_out(i) >= 0, 1.to[T], 0)
             }{_+_}
@@ -149,7 +158,7 @@ class SLIDE_sparse_4_4 extends SLIDE_sparse(
         }
        
         Foreach(0 until counter_out by 1) { i =>
-            Foreach(0 until dense_layer_size by 1 par ip) { j =>
+            Foreach(0 until counter_in by 1 par ip) { j =>
                 w(i, j) = w(i, j) - lr * err_out(i) * h_in(j) * mux(h_out(i) >= 0, 1.to[T], 0)
             }
         }
@@ -162,17 +171,14 @@ class SLIDE_sparse_4_4 extends SLIDE_sparse(
     }
     
     
-    def writeback(dense_layer_size: Int, counter_out: Int, active_out: SRAM1[Int], w: SRAM2[T], b: SRAM1[T], d_w: DRAM1[T], d_b: DRAM1[T]) = {
-    
-        val fifo = FIFO[T](dense_layer_size)
-    
+    def writeback(active_len_in: Int, active_len_out: Int, counter_in: Int, counter_out: Int, idx: FIFO[Int], active_out: SRAM1[Int], w: SRAM2[T], b: SRAM1[T], d_w: DRAM1[T], d_b: DRAM1[T]) = {
+        val fifo = FIFO[T](active_len_out * active_len_in)
         Foreach(0 until counter_out by 1) { i =>
-            Foreach(0 until dense_layer_size by 1 par ip) { j =>
+            Foreach(0 until counter_in by 1 par ip) { j =>
                 fifo.enq(w(i, j))
             }
-            
-            d_w(active_out(i) * dense_layer_size::(active_out(i) + 1) * dense_layer_size) store fifo
         }
+        d_w(idx, counter_out * counter_in) scatter fifo
        
         d_b(active_out, counter_out) scatter b
     }
@@ -217,20 +223,82 @@ class SLIDE_sparse_4_4 extends SLIDE_sparse(
         setMem(label_size, t7)
 
 
-
+        val d_table_l1 = DRAM[Int](L_l1 * row_l1 * bucket)
         val d_table_l2 = DRAM[Int](L_l2 * row_l2 * bucket)
+        val t8 = loadCSV1D[Int](data + "/table_l1.csv")
         val t9 = loadCSV1D[Int](data + "/table_l2.csv")
+        setMem(d_table_l1, t8)
         setMem(d_table_l2, t9)
 	
     
-    
+        val d_cnt_l1 = DRAM[Int](L_l1 * row_l1)
         val d_cnt_l2 = DRAM[Int](L_l2 * row_l2)
+        val t10 = loadCSV1D[Int](data + "/cnt_l1.csv")
         val t11 = loadCSV1D[Int](data + "/cnt_l2.csv")
+        setMem(d_cnt_l1, t10)
         setMem(d_cnt_l2, t11)
         
 
     
-        Accel{ 	   
+        Accel{ 
+            // val table_l1 = SRAM[Int](L_l1 * row_l1 * bucket)
+            // val table_l2 = SRAM[Int](L_l2 * row_l2 * bucket)
+        
+            // val cnt_l1 = SRAM[Int](L_l1 * row_l1)
+            // val cnt_l2 = SRAM[Int](L_l2 * row_l2)
+            
+            
+            // table_l1 load d_table_l1
+            // table_l2 load d_table_l2
+            
+            // cnt_l1 load d_cnt_l1
+            // cnt_l2 load d_cnt_l2
+           
+           
+            // Foreach(0 until L_l1 by 1) { i =>
+                // Foreach(0 until row_l1 by 1) { j =>
+                    // cnt_l1(i, j) = 0
+                // }
+            // }
+	   
+            // Foreach(0 until L_l2 by 1) { i =>
+                // Foreach(0 until row_l2 by 1) { j =>
+                    // cnt_l2(i, j) = 0
+                // }
+            // }
+       
+
+            // Foreach(0 until L1 by 1) { i =>
+                // val tmp = SRAM[T](field)
+                // tmp load d_w1(i * field::(i + 1) * field)
+          
+                // val hashcode = d_simhash(tmp, K_l1, L_l1)
+             
+                // Foreach(0 until L_l1 by 1) { j =>
+                    // if (cnt_l1(j, hashcode(j)) < bucket) {
+                        // table_l1(j, hashcode(j), cnt_l1(j, hashcode(j))) = i     
+                        // cnt_l1(j, hashcode(j)) = cnt_l1(j, hashcode(j)) + 1
+                    // }
+                // }
+            // }
+	   
+	   
+            // Foreach(0 until L2 by 1) { i =>
+                // val tmp = SRAM[T](L1)
+                // tmp load d_w2(i * L1::(i + 1) * L1)
+          
+                // val hashcode = d_simhash(tmp, K_l2, L_l2)
+             
+                // Foreach(0 until L_l2 by 1) { j =>
+                    // if (cnt_l2(j, hashcode(j)) < bucket) {
+                        // table_l2(j, hashcode(j), cnt_l2(j, hashcode(j))) = i     
+                        // cnt_l2(j, hashcode(j)) = cnt_l2(j, hashcode(j)) + 1
+                    // }
+                // }
+            // }
+       
+
+	   
             Foreach (0 until epoch by 1) { _ =>
                 Foreach (0 until numBatch by 1 par op) { x =>
 		   
@@ -250,48 +318,8 @@ class SLIDE_sparse_4_4 extends SLIDE_sparse(
 
            
                     // forward
-                    val w_l1 = SRAM[T](active_len_field, L1).buffer
-                    val fifo = FIFO[T](L1)
-                    Foreach(0 until counter_field by 1) { i =>
-                        fifo load d_w_l1(active_field(i) * L1::(active_field(i) + 1) * L1)
-                        
-                        Foreach(0 until dense_layer_size by 1 par ip) { j =>
-                            w_l1(i, j) = fifo.deq()
-                        }
-                    }
-
-
-                    val b_l1 = SRAM[T](L1).buffer
-                    b_l1 load d_b_l1
-                    
-                                        
-                    val h_l1 = SRAM[T](L1)
-                    Foreach(0 until L1 by 1) { i =>
-                        val sum = Reduce(Reg[T])(0 until counter_field by 1 par ip) { j =>
-                            w(j, i) * input(j)
-                        }{_+_}
-                     
-                        h_l1(i) = mux(sum + b_l1(i) >= 0, sum + b_l1(i), 0) // relu
-                    }
-        
-        
-        
-        
-                    val (h_l2, active_l2, counter_l2, active_len_l2, w_l2, b_l2) = forward(h_l1, L1, K_l2, L_l2, row_l2, x, d_cnt_l2, d_table_l2, d_w_l2, d_b_l2)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+                    val (h_l1, active_l1, counter_l1, active_len_l1, w_l1, b_l1, idx_l1) = forward(s_trainX, active_field, counter_field, active_len_field, field, L1, K_l1, L_l1, row_l1, x, d_cnt_l1, d_table_l1, d_w_l1, d_b_l1)
+                    val (h_l2, active_l2, counter_l2, active_len_l2, w_l2, b_l2, idx_l2) = forward(h_l1, active_l1, counter_l1, active_len_l1, L1, L2, K_l2, L_l2, row_l2, x, d_cnt_l2, d_table_l2, d_w_l2, d_b_l2)
 
 
                     // loss
@@ -314,39 +342,15 @@ class SLIDE_sparse_4_4 extends SLIDE_sparse(
                             }
                         }
                     }
-                    
-                    
-                    
-                    
-                    
-                    
-                    
 
                     // backprop
-                    val err_l1 = backprop(L1, counter_l2, lr, w_l2, b_l2, err_l2, h_l1, h_l2)
-                    
-                    
-                    
-                    
-                    
-                    
-                    
+                    val err_l1 = backprop(active_len_l1, counter_l1, counter_l2, lr, w_l2, b_l2, err_l2, h_l1, h_l2)
+                    val err_field = backprop(active_len_field, counter_field, counter_l1, lr, w_l1, b_l1, err_l1, s_trainX, h_l1)
                       
                     
                     // writeback to DRAM
-                    writeback(L1, counter_l2, active_l2, w_l2, b_l2, d_w_l2, d_b_l2)
-                    
-                    
-                    val fifo = FIFO[T](L1)    
-                    Foreach(0 until counter_out by 1) { i =>
-                        Foreach(0 until L1 by 1 par ip) { j =>
-                            fifo.enq(w(i, j))
-                        }
-                        
-                        d_w(active_out(i) * L1::(active_out(i) + 1) * L1) store fifo
-                    }
-
-                    d_b_l1 store b_l1
+                    writeback(active_len_l1, active_len_l2, counter_l1, counter_l2, idx_l2, active_l2, w_l2, b_l2, d_w_l2, d_b_l2)
+                    writeback(active_len_field, active_len_l1, counter_field, counter_l1, idx_l1, active_l1, w_l1, b_l1, d_w_l1, d_b_l1)
              
                 }
             }
@@ -358,3 +362,4 @@ class SLIDE_sparse_4_4 extends SLIDE_sparse(
         assert(true)
     }
 }
+*/
