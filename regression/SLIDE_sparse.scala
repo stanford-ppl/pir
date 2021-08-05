@@ -42,7 +42,7 @@ class SLIDE_sparse_4_2 extends SLIDE_sparse(
     op = 2
 )
 
-class SLIDE_sparse_4_4 extends SLIDE_sparse(
+class SLIDE_sparse_4_4 extends SLIDE_sparse( // row=20, col=20
     pipeFactor = 4,
     op = 4
 )
@@ -251,12 +251,12 @@ class SLIDE_sparse_4_4 extends SLIDE_sparse(
            
                     // forward
                     val w_l1 = SRAM[T](active_len_field, L1).buffer
-                    val fifo = FIFO[T](L1)
+                    val fifo1 = FIFO[T](L1)
                     Foreach(0 until counter_field by 1) { i =>
-                        fifo load d_w_l1(active_field(i) * L1::(active_field(i) + 1) * L1)
+                        fifo1 load d_w_l1(active_field(i) * L1::(active_field(i) + 1) * L1)
                         
-                        Foreach(0 until dense_layer_size by 1 par ip) { j =>
-                            w_l1(i, j) = fifo.deq()
+                        Foreach(0 until L1 by 1 par ip) { j =>
+                            w_l1(i, j) = fifo1.deq()
                         }
                     }
 
@@ -268,7 +268,7 @@ class SLIDE_sparse_4_4 extends SLIDE_sparse(
                     val h_l1 = SRAM[T](L1)
                     Foreach(0 until L1 by 1) { i =>
                         val sum = Reduce(Reg[T])(0 until counter_field by 1 par ip) { j =>
-                            w(j, i) * input(j)
+                            w_l1(j, i) * s_trainX(j)
                         }{_+_}
                      
                         h_l1(i) = mux(sum + b_l1(i) >= 0, sum + b_l1(i), 0) // relu
@@ -325,6 +325,37 @@ class SLIDE_sparse_4_4 extends SLIDE_sparse(
                     // backprop
                     val err_l1 = backprop(L1, counter_l2, lr, w_l2, b_l2, err_l2, h_l1, h_l2)
                     
+                    val err_field = SRAM[T](active_len_field)
+                    Foreach(0 until counter_field by 1) { i =>
+                        val sum = Reduce(Reg[T])(0 until L1 by 1 par ip) { j =>
+                            w_l2(i, j) * err_l1(j) * mux(h_l1(i) >= 0, 1.to[T], 0)
+                        }{_+_}
+                     
+                        err_field(i) = sum
+                    }
+                   
+                    Foreach(0 until counter_field by 1) { i =>
+                        Foreach(0 until L1 by 1 par ip) { j =>
+                            w_l2(i, j) = w_l2(i, j) - lr * err_l1(j) * s_trainX(i) * mux(h_l1(j) >= 0, 1.to[T], 0)
+                        }
+                    }
+                   
+                    Foreach(0 until L1 by 1 par ip) { i =>
+                        b_l2(i) = b_l2(i) - lr * err_l1(i) * mux(h_l1(i) >= 0, 1.to[T], 0)
+                    }
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
                     
                     
                     
@@ -337,13 +368,13 @@ class SLIDE_sparse_4_4 extends SLIDE_sparse(
                     writeback(L1, counter_l2, active_l2, w_l2, b_l2, d_w_l2, d_b_l2)
                     
                     
-                    val fifo = FIFO[T](L1)    
-                    Foreach(0 until counter_out by 1) { i =>
+                    val fifo2 = FIFO[T](L1)    
+                    Foreach(0 until counter_field by 1) { i =>
                         Foreach(0 until L1 by 1 par ip) { j =>
-                            fifo.enq(w(i, j))
+                            fifo2.enq(w_l1(i, j))
                         }
                         
-                        d_w(active_out(i) * L1::(active_out(i) + 1) * L1) store fifo
+                        d_w_l1(active_field(i) * L1::(active_field(i) + 1) * L1) store fifo2
                     }
 
                     d_b_l1 store b_l1
