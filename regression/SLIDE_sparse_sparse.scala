@@ -1,70 +1,72 @@
-/*
 import spatial.dsl._
 import utils.io.files._
 import spatial.metadata.memory.{Barrier => _,_}
 
-class SLIDE_sparse_1_1 extends SLIDE_sparse(
+class SLIDE_sparse_sparse_1_1 extends SLIDE_sparse_sparse(
     pipeFactor = 1,
     op = 1
 )
 
-class SLIDE_sparse_1_2 extends SLIDE_sparse(
+class SLIDE_sparse_sparse_1_2 extends SLIDE_sparse_sparse(
     pipeFactor = 1,
     op = 2
 )
 
-class SLIDE_sparse_1_4 extends SLIDE_sparse(
+class SLIDE_sparse_sparse_1_4 extends SLIDE_sparse_sparse(
     pipeFactor = 1,
     op = 4
 )
 
-class SLIDE_sparse_2_1 extends SLIDE_sparse(
+class SLIDE_sparse_sparse_2_1 extends SLIDE_sparse_sparse(
     pipeFactor = 2,
     op = 1
 )
 
-class SLIDE_sparse_2_2 extends SLIDE_sparse(
+class SLIDE_sparse_sparse_2_2 extends SLIDE_sparse_sparse(
     pipeFactor = 2,
     op = 2
 )
 
-class SLIDE_sparse_2_4 extends SLIDE_sparse(
+class SLIDE_sparse_sparse_2_4 extends SLIDE_sparse_sparse(
     pipeFactor = 2,
     op = 4
 )
 
-class SLIDE_sparse_4_1 extends SLIDE_sparse(
+class SLIDE_sparse_sparse_4_1 extends SLIDE_sparse_sparse(
     pipeFactor = 4,
     op = 1
 )
 
-class SLIDE_sparse_4_2 extends SLIDE_sparse(
+class SLIDE_sparse_sparse_4_2 extends SLIDE_sparse_sparse(
     pipeFactor = 4,
     op = 2
 )
 
-class SLIDE_sparse_4_4 extends SLIDE_sparse(
+class SLIDE_sparse_sparse_4_4 extends SLIDE_sparse_sparse(
     pipeFactor = 4,
     op = 4
 )
 
-@spatial abstract class SLIDE_sparse(
+@spatial abstract class SLIDE_sparse_sparse(
     numBatch:scala.Int = 128,
     epoch:scala.Int = 1,
-    field:scala.Int = 100,
+    field:scala.Int = 20,
     L1:scala.Int = 16,
     L2:scala.Int = 128,
+    K_l1:scala.Int = 2,
+    L_l1:scala.Int = 2,
     K_l2:scala.Int = 5,
     L_l2:scala.Int = 5,
+    row_l1:scala.Int = 4,
     row_l2:scala.Int = 32,
     bucket:scala.Int = 16,
-    data:java.lang.String = "/home/kosho/IO/load_sparse",
+    data:java.lang.String = "/home/kosho/IO/load_sparse_sparse",
     pipeFactor:scala.Int = 1,
     op:scala.Int = 1,
     
     ratio:scala.Int = 3,
     lr:scala.Float = 1e-3f,
-    input_max:scala.Int = 20,
+    input_max:scala.Int = 4,
     label_max:scala.Int = 7,
     ip:scala.Int = 16
     
@@ -362,4 +364,3 @@ class SLIDE_sparse_4_4 extends SLIDE_sparse(
         assert(true)
     }
 }
-*/
