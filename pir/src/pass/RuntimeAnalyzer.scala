@@ -379,8 +379,8 @@ trait RuntimeUtil extends TypeUtil { self:PIRPass =>
     val rate2 = branch2.map { _.iter.v.getOrElse(Unknown) }.reduceOption { _ * _ }.getOrElse(Unknown)
     dbg(s"rate1=$rate1; rate2=$rate2")
     // TODO: why is this needed?
-    // if (getCtrlPrioBB(a1) == getCtrlPrioBB(a2) && (rate1 == Unknown) && (rate2 == Unknown))
-      // return true
+    if (config.enableRouteElimUnsafe && getCtrlPrioBB(a1) == getCtrlPrioBB(a2) && (rate1 == Unknown) && (rate2 == Unknown))
+      return true
     if (aggressive && (rate1 == Infinite || rate2 == Infinite))
       return true
     if (rate1 == Unknown) return false
