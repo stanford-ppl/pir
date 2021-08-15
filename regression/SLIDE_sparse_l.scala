@@ -51,7 +51,7 @@ class SLIDE_sparse_l_4_4 extends SLIDE_sparse_l(
     numBatch:scala.Int = 128,
     epoch:scala.Int = 1,
     field:scala.Int = 1000,
-    L1:scala.Int = 128,
+    L1:scala.Int = 64,
     L2:scala.Int = 6000,
     K_l2:scala.Int = 7,
     L_l2:scala.Int = 7,
