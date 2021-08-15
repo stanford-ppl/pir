@@ -377,12 +377,12 @@ class SLIDE_sparse_l_4_4 extends SLIDE_sparse_l(
                     
                     // writeback l1            
                     Foreach(0 until counter_field by 1) { i =>
-                        val fifo = FIFO[T](L1)
+                        val fifo2 = FIFO[T](L1)
                         Foreach(0 until L1 by 1 par ip) { j =>
-                            fifo.enq(w_l1(i, j))
+                            fifo2.enq(w_l1(i, j))
                         }
                         
-                        d_w_l1(active_field(i) * L1::(active_field(i) + 1) * L1 par ip) store fifo
+                        d_w_l1(active_field(i) * L1::(active_field(i) + 1) * L1 par ip) store fifo2
                     }
 
                     d_b_l1 store b_l1
