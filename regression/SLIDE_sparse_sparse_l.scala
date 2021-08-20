@@ -51,13 +51,13 @@ class SLIDE_sparse_sparse_l_4_4 extends SLIDE_sparse_sparse_l(
     numBatch:scala.Int = 128,
     epoch:scala.Int = 1,
     field:scala.Int = 1000,
-    L1:scala.Int = 64,
+    L1:scala.Int = 16,
     L2:scala.Int = 6000,
-    K_l1:scala.Int = 4,
-    L_l1:scala.Int = 4,
+    K_l1:scala.Int = 2,
+    L_l1:scala.Int = 2,
     K_l2:scala.Int = 7,
     L_l2:scala.Int = 7,
-    row_l1:scala.Int = 16,
+    row_l1:scala.Int = 4,
     row_l2:scala.Int = 128,
     bucket:scala.Int = 64,
     data:java.lang.String = "/home/kosho/IO/load_sparse_sparse_l",
@@ -66,7 +66,7 @@ class SLIDE_sparse_sparse_l_4_4 extends SLIDE_sparse_sparse_l(
     
     ratio:scala.Int = 3,
     lr:scala.Float = 1e-3f,
-    input_max:scala.Int = 20,
+    input_max:scala.Int = 10,
     label_max:scala.Int = 7,
     ip:scala.Int = 16
     

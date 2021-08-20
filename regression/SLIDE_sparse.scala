@@ -2,6 +2,13 @@ import spatial.dsl._
 import utils.io.files._
 import spatial.metadata.memory.{Barrier => _,_}
 
+
+class test extends SLIDE_sparse(
+    pipeFactor = 1,
+    op = 1,
+    L1 = 32
+)
+
 class SLIDE_sparse_1_1 extends SLIDE_sparse(
     pipeFactor = 1,
     op = 1
@@ -51,7 +58,7 @@ class SLIDE_sparse_4_4 extends SLIDE_sparse(
     numBatch:scala.Int = 128,
     epoch:scala.Int = 1,
     field:scala.Int = 20,
-    L1:scala.Int = 16,
+    L1:scala.Int = 32,
     L2:scala.Int = 128,
     K_l2:scala.Int = 5,
     L_l2:scala.Int = 5,

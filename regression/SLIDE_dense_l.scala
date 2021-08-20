@@ -50,16 +50,16 @@ class SLIDE_dense_l_4_4 extends SLIDE_dense_l(
 @spatial abstract class SLIDE_dense_l(
     numBatch:scala.Int = 128,
     epoch:scala.Int = 1,
-    field:scala.Int = 20,
+    field:scala.Int = 100,
     L1:scala.Int = 16,
-    L2:scala.Int = 128,
+    L2:scala.Int = 600,
     data:java.lang.String = "/home/kosho/IO/load_dense_l",
     pipeFactor:scala.Int = 1,
     op:scala.Int = 1,
     
     ratio:scala.Int = 3,
     lr:scala.Float = 1e-3f,
-    input_max:scala.Int = 20,
+    input_max:scala.Int = 100,
     label_max:scala.Int = 7,
     ip:scala.Int = 16
     
@@ -70,7 +70,7 @@ class SLIDE_dense_l_4_4 extends SLIDE_dense_l(
     def forward(input: SRAM1[T], pre_layer_size: Int, curr_layer_size: Int, d_w: DRAM1[T], d_b: DRAM1[T]) = {
         
         val w = SRAM[T](curr_layer_size * pre_layer_size).buffer
-        w load d_w
+        w load d_w(0::curr_layer_size * pre_layer_size par ip)
         
         val b = SRAM[T](curr_layer_size).buffer
         b load d_b
