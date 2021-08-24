@@ -2,6 +2,73 @@ import spatial.dsl._
 import utils.io.files._
 import spatial.metadata.memory.{Barrier => _,_}
 
+class test extends SLIDE_sparse_l(
+    numBatch = 128,
+    epoch = 1,
+    field = 8000,
+    L1 = 16,
+    L2 = 48000,
+    K_l2 = 10,
+    L_l2 = 10,
+    row_l2 = 1024,
+    bucket = 64,
+    data = "/home/kosho/IO/test",
+    pipeFactor = 1,
+    op = 1,
+    
+    ratio = 3,
+    lr = 1e-3f,
+    input_max = 10,
+    label_max = 7,
+    ip = 16
+)
+
+
+class test2 extends SLIDE_sparse_l(
+    numBatch = 128,
+    epoch = 1,
+    field = 1000,
+    L1 = 64,
+    L2 = 6000,
+    K_l2 = 7,
+    L_l2 = 7,
+    row_l2 = 128,
+    bucket = 64,
+    data = "/home/kosho/IO/test2",
+    pipeFactor = 1,
+    op = 1,
+    
+    ratio = 3,
+    lr = 1e-3f,
+    input_max = 10,
+    label_max = 7,
+    ip = 16
+)
+
+
+class test3 extends SLIDE_sparse_l(
+    numBatch = 128,
+    epoch = 1,
+    field = 1000,
+    L1 = 128,
+    L2 = 6000,
+    K_l2 = 7,
+    L_l2 = 7,
+    row_l2 = 128,
+    bucket = 64,
+    data = "/home/kosho/IO/test3",
+    pipeFactor = 1,
+    op = 1,
+    
+    ratio = 3,
+    lr = 1e-3f,
+    input_max = 10,
+    label_max = 7,
+    ip = 16
+)
+
+
+
 class SLIDE_sparse_l_1_1 extends SLIDE_sparse_l(
     pipeFactor = 1,
     op = 1
@@ -67,6 +134,7 @@ class SLIDE_sparse_l_4_4 extends SLIDE_sparse_l(
     label_max:scala.Int = 7,
     ip:scala.Int = 16
     
+    
 ) extends SpatialTest with AppUtil {
 
     type T = Float
@@ -110,16 +178,16 @@ class SLIDE_sparse_l_4_4 extends SLIDE_sparse_l(
         
         active_out load d_table(num * row * bucket + hashcode(num) * bucket::num * row * bucket + hashcode(num) * bucket + bucket)
         
-        val counter_out = mux(size(0) == 0, 1, size(0))
+        val counter_out = size(0)
         
 
         val w = SRAM[T](active_len_out, dense_layer_size).buffer  
         Foreach(0 until counter_out by 1) { i =>
-            val fifo = FIFO[T](dense_layer_size)
-            fifo load d_w(active_out(i) * dense_layer_size::(active_out(i) + 1) * dense_layer_size par ip)
+            val tmp = SRAM[T](dense_layer_size)
+            tmp load d_w(active_out(i) * dense_layer_size::(active_out(i) + 1) * dense_layer_size par ip)
             
             Foreach(0 until dense_layer_size by 1 par ip) { j =>
-                w(i, j) = fifo.deq()
+                w(i, j) = tmp(j)
             }
         }
         
@@ -168,13 +236,13 @@ class SLIDE_sparse_l_4_4 extends SLIDE_sparse_l(
     
         Foreach(0 until counter_out by 1) { i =>
             
-            val fifo = FIFO[T](dense_layer_size)
+            val tmp = SRAM[T](dense_layer_size)
         
             Foreach(0 until dense_layer_size by 1 par ip) { j =>
-                fifo.enq(w(i, j))
+                tmp(j) = w(i, j);
             }
             
-            d_w(active_out(i) * dense_layer_size::(active_out(i) + 1) * dense_layer_size par ip) store fifo
+            d_w(active_out(i) * dense_layer_size::(active_out(i) + 1) * dense_layer_size par ip) store tmp
         }
        
         d_b(active_out, counter_out) scatter b
@@ -256,11 +324,11 @@ class SLIDE_sparse_l_4_4 extends SLIDE_sparse_l(
                     val w_l1 = SRAM[T](active_len_field, L1).buffer
                     
                     Foreach(0 until counter_field by 1) { i =>
-                        val fifo = FIFO[T](L1)
-                        fifo load d_w_l1(active_field(i) * L1::(active_field(i) + 1) * L1 par ip)
+                        val tmp = SRAM[T](L1)
+                        tmp load d_w_l1(active_field(i) * L1::(active_field(i) + 1) * L1 par ip)
                         
                         Foreach(0 until L1 by 1 par ip) { j =>
-                            w_l1(i, j) = fifo.deq()
+                            w_l1(i, j) = tmp(j)
                         }
                     }
 
@@ -377,18 +445,15 @@ class SLIDE_sparse_l_4_4 extends SLIDE_sparse_l(
                     
                     // writeback l1            
                     Foreach(0 until counter_field by 1) { i =>
-                        val fifo2 = FIFO[T](L1)
+                        val tmp = SRAM[T](L1)
                         Foreach(0 until L1 by 1 par ip) { j =>
-                            fifo2.enq(w_l1(i, j))
+                            tmp(j) = w_l1(i, j)
                         }
                         
-                        d_w_l1(active_field(i) * L1::(active_field(i) + 1) * L1 par ip) store fifo2
+                        d_w_l1(active_field(i) * L1::(active_field(i) + 1) * L1 par ip) store tmp
                     }
 
                     d_b_l1 store b_l1
-                    
-                    
-                    
              
                 }
             }
