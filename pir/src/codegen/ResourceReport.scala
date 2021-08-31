@@ -16,7 +16,8 @@ trait Report extends PIRPass with prism.codegen.Codegen {
   override def quote(x:Any) = x match {
     case x:ArgFringeParam => s"ArgFringe"
     case x:PCUParam => s"PCU"
-    case x:PMUParam => s"PMU"
+    case x:PMUParam => s"PMU" 
+    case x:SpMUParam => s"SpMU" 
     case x:DramAGParam => s"DAG"
     case x:MCParam => s"MC"
     case x:Checkerboard => s"${x.row} x ${x.col} checkerboard"

@@ -15,7 +15,7 @@ case class MCCost(prefix:Boolean=false) extends PrefixCost[MCCost]
 case class MergeBufferCost(quantity:Int=0, ways:Int=0) extends QuantityCost[MergeBufferCost]
 case class SplitterCost(quantity:Int=0) extends QuantityCost[SplitterCost]
 case class LockCost(quantity:Int=0) extends QuantityCost[LockCost]
-case class SRAMCost(bank:Int=0, size:Int=0) extends QuantityCost[SRAMCost]
+case class SRAMCost(bank:Int=0, size:Int=0, isSparse:Int=0) extends QuantityCost[SRAMCost]
 case class FIFOCost(sfifo:Int=0, vfifo:Int=0) extends QuantityCost[FIFOCost]
 case class InputCost(sin:Int=0, vin:Int=0) extends QuantityCost[InputCost]
 case class OutputCost(sout:Int=0, vout:Int=0) extends QuantityCost[OutputCost]
@@ -155,15 +155,15 @@ trait CUCostUtil extends PIRPass with CostUtil with Memorization { self =>
           case mem:Lock => mem.getCost[SRAMCost]
           case mem:ScratchpadDelay => mem.getCost[SRAMCost]
         }.reduceOption { _ + _ }.getOrElse(SRAMCost(0,0))
-      case n:SRAM => SRAMCost(n.nBanks, n.capacity)
-      case n:SparseMem => SRAMCost(n.nBanks, n.capacity)
-      case n:LockMem => SRAMCost(n.nBanks, n.capacity)
-      case n:LUT => SRAMCost(n.nBanks, n.capacity)
-      case n:RegFile => SRAMCost(n.nBanks, n.capacity)
-      case n:Lock => SRAMCost(spadeParam.vecWidth, 100)
-      case n:ScratchpadDelay => SRAMCost(n.in.getVec, n.cycle * n.in.getVec)
+      case n:SRAM => SRAMCost(n.nBanks, n.capacity, 0)
+      case n:SparseMem => SRAMCost(n.nBanks, n.capacity, 1)
+      case n:LockMem => SRAMCost(n.nBanks, n.capacity, 1)
+      case n:LUT => SRAMCost(n.nBanks, n.capacity, 0)
+      case n:RegFile => SRAMCost(n.nBanks, n.capacity, 0)
+      case n:Lock => SRAMCost(spadeParam.vecWidth, 100, 0)
+      case n:ScratchpadDelay => SRAMCost(n.in.getVec, n.cycle * n.in.getVec, 0)
       case n:CUParam => n.sramParam.getCost[SRAMCost]
-      case n:SRAMParam => SRAMCost(n.bank, n.sizeInWord)
+      case n:SRAMParam => SRAMCost(n.bank, n.sizeInWord, n.isSparse)
       case n => SRAMCost(0,0)
 
     } orElse switch[FIFOCost](x,ct) {

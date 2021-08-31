@@ -69,6 +69,16 @@ trait DefaultParamLoader extends Transformer {
           case ("numReg", x, arg) => getOptOrElse("pmu-pr", arg)
           case (_, x, arg) => transform(arg)
         }
+      case n:SpMUParam =>
+        n.mapFieldWithName {
+          case ("numStage", x, arg) => getOptOrElse("pmu-stage", arg)
+          case ("numVin", x, arg) => getOptOrElse("pmu-vin", arg)
+          case ("numVout", x, arg) => getOptOrElse("pmu-vout", arg)
+          case ("numSin", x, arg) => getOptOrElse("pmu-sin", arg)
+          case ("numSout", x, arg) => getOptOrElse("pmu-sout", arg)
+          case ("numReg", x, arg) => getOptOrElse("pmu-pr", arg)
+          case (_, x, arg) => transform(arg)
+        }
       case n:DramAGParam =>
         n.mapFieldWithName {
           case ("numStage", x, arg) => getOptOrElse("dag-stage", arg)
@@ -89,6 +99,7 @@ trait DefaultParamLoader extends Transformer {
     n.cuParam match {
       case _:PCUParam => "pcu"
       case _:PMUParam => "pmu"
+      case _:SpMUParam => "pmu"
       case _:DramAGParam => "dag"
     }
   }

@@ -323,6 +323,7 @@ trait Transformer extends Logging { self =>
       case (a,b) => (transform(a), transform(b))
       case (a,b,c) => (transform(a), transform(b), transform(c))
       case (a,b,c,d) => (transform(a), transform(b), transform(c), transform(d))
+      case (a,b,c,d,e) => (transform(a), transform(b), transform(c), transform(d), transform(e))
       case x:Node[n] with Product => new ProductOp[n with Product](x.as).mapFields { case (x, arg) => transform(arg) }
       case x => x
     }).asInstanceOf[T]

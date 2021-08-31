@@ -24,8 +24,12 @@ class MemoryPruner(implicit compiler:PIR) extends CUPruner with BankPartitioner 
       case Left(f@InvalidFactorGraph(fg:CUMap, k:CUMap.K)) =>
         val kcost = getCosts(k)
         val vs = fg.freeValuesOf(k)
-        dbg(s"Recover $k ${quoteSrcCtx(k)}")
-        val vcost = assertOne(vs.map { getCosts(_) }, s"MemoryCost")
+        dbg(s"Recover $k ${quoteSrcCtx(k)} vs: ${vs}")
+        // val vcost = assertOne(vs.map { getCosts(_) }, s"MemoryCost")
+        val vcost = vs.map { v => (getCosts(v), v.params.get) }.maxBy { 
+          case (List(SRAMCost(bk, sz, sparse), StageCost(sc), InputCost(sin, vin), OutputCost(sout,vout)), param) => 
+            (param.isInstanceOf[PMUParam], bk, sz, sparse, sc, vin, vout, sin, sout)
+        }._1
         dbg(s"kcost=$kcost")
         dbg(s"vcost=$vcost")
         val mem = quoteSrcCtx(k.collectDown[Memory]().head)
