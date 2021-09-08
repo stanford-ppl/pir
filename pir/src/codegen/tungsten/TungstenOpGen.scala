@@ -172,6 +172,7 @@ trait TungstenOpGen extends TungstenCodegen with TungstenCtxGen {
       case FixSRA                   => s"$a >> $b"
       case FixDivSRA                => s"$a >> $b"
       case FixSRU                   => s"(${ta.qtp}) ((${ta.toUnsigned.qtp}) $a >> $b)"
+      case FixMulH                  => s"fixmulh($a,$b)"
       case SatAdd                   => s"$a + $b"
       case SatSub                   => s"$a - $b"
       case SatMul                   => s"$a * $b"
