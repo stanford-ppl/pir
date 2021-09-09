@@ -104,14 +104,14 @@ class SLIDE_SS_64_16_4 extends SLIDE_SS(
     L2:scala.Int = 600,  
     K_l1:scala.Int = 1,
     L_l1:scala.Int = 1,    
-    K_l2:scala.Int = 3,
-    L_l2:scala.Int = 3,    
+    K_l2:scala.Int = 4,
+    L_l2:scala.Int = 4,    
     row_l1:scala.Int = 2,
-    row_l2:scala.Int = 8,
-    bucket:scala.Int = 80,
+    row_l2:scala.Int = 16,
+    bucket:scala.Int = 64,
     ratio:scala.Int = 3,
     lr:scala.Float = 1e-3f,
-    input_max:scala.Int = 75,
+    input_max:scala.Int = 5,
     ip:scala.Int = 16,
     op2:scala.Int = 1,
 
@@ -122,7 +122,7 @@ class SLIDE_SS_64_16_4 extends SLIDE_SS(
     
 ) extends SpatialTest with AppUtil {
 
-    type T = Float
+     type T = Float
   
     def mersenne_hash(j:Int, k:Int, l:Int) = {
         val MERSENNE_2 = 8191
@@ -164,24 +164,17 @@ class SLIDE_SS_64_16_4 extends SLIDE_SS(
         val counter_out = size(0)
         
 
-        val w = SRAM[T](active_len_out, active_len_in).buffer
-        val fifo = FIFO[T](active_len_out * active_len_in)
-
-
+        val w = SRAM[T](active_len_out * active_len_in).buffer
         val idx = FIFO[Int](active_len_out * active_len_in)
+        
         Foreach(0 until counter_out by 1) { i =>
             Foreach(0 until counter_in by 1 par ip) { j =>
                 idx.enq(active_out(i) * pre_layer_size + active_in(j))
             }
         }
        
-       
-        fifo gather d_w(idx, counter_out * counter_in)
-        Foreach(0 until counter_out by 1) { i =>
-            Foreach(0 until counter_in by 1 par ip) { j =>
-                w(i, j) = fifo.deq()
-            }
-        }
+        w gather d_w(idx, counter_out * counter_in)
+        
        
         val b = SRAM[T](active_len_out).buffer
         b gather d_b(active_out par ip, counter_out)
@@ -190,7 +183,7 @@ class SLIDE_SS_64_16_4 extends SLIDE_SS(
 
         Foreach(0 until counter_out by 1 par op2) { i =>
             val sum = Reduce(Reg[T])(0 until counter_in by 1 par ip) { j =>
-                w(i, j) * input(j)
+                w(i * counter_in + j) * input(j)
             }{_+_}
          
             h_out(i) = mux(sum + b(i) >= 0, sum + b(i), 0) // relu
@@ -199,7 +192,7 @@ class SLIDE_SS_64_16_4 extends SLIDE_SS(
         (h_out, active_out, counter_out, active_len_out, w, b, idx)
     }
     
-    def backprop(active_len_out: Int, active_len_in: Int, counter_in: Int, counter_out: Int, lr: Float, w: SRAM2[T], b: SRAM1[T], err_out: SRAM1[T], h_in: SRAM1[T], h_out: SRAM1[T]) = {
+    def backprop(active_len_out: Int, active_len_in: Int, counter_in: Int, counter_out: Int, lr: Float, w: SRAM1[T], b: SRAM1[T], err_out: SRAM1[T], h_in: SRAM1[T], h_out: SRAM1[T]) = {
         
         val err_in = SRAM[T](active_len_in)
         val err_in_tmp = SRAM[T](active_len_out, active_len_in)
@@ -209,10 +202,10 @@ class SLIDE_SS_64_16_4 extends SLIDE_SS(
             val h_out_tmp = h_out(i)
             
             Foreach(0 until counter_in by 1 par ip) { j =>
-                val w_tmp = w(i, j)
+                val w_tmp = w(i * counter_in + j)
                 
                 err_in_tmp(i, j) = w_tmp * err_out_tmp * mux(h_out_tmp >= 0, 1.to[T], 0)
-                w(i, j) = w_tmp - lr * err_out_tmp * h_in(j) * mux(h_out_tmp >= 0, 1.to[T], 0)
+                w(i * counter_in + j) = w_tmp - lr * err_out_tmp * h_in(j) * mux(h_out_tmp >= 0, 1.to[T], 0)
             }
             
             b(i) = b(i) - lr * err_out(i) * mux(h_out(i) >= 0, 1.to[T], 0)
@@ -230,14 +223,9 @@ class SLIDE_SS_64_16_4 extends SLIDE_SS(
     }
     
     
-    def writeback(active_len_in: Int, active_len_out: Int, counter_in: Int, counter_out: Int, idx: FIFO[Int], active_out: SRAM1[Int], w: SRAM2[T], b: SRAM1[T], d_w: DRAM1[T], d_b: DRAM1[T]) = {
-        val fifo = FIFO[T](active_len_out * active_len_in)
-        Foreach(0 until counter_out by 1) { i =>
-            Foreach(0 until counter_in by 1 par ip) { j =>
-                fifo.enq(w(i, j))
-            }
-        }
-        d_w(idx, counter_out * counter_in) scatter fifo
+    def writeback(active_len_in: Int, active_len_out: Int, counter_in: Int, counter_out: Int, idx: FIFO[Int], active_out: SRAM1[Int], w: SRAM1[T], b: SRAM1[T], d_w: DRAM1[T], d_b: DRAM1[T]) = {
+    
+        d_w(idx, counter_out * counter_in) scatter w
        
         d_b(active_out par ip, counter_out) scatter b
     }
