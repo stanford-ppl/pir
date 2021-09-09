@@ -165,15 +165,15 @@ class SLIDE_SS_64_16_4 extends SLIDE_SS(
         
 
         val w = SRAM[T](active_len_out * active_len_in).buffer
-        val idx = FIFO[Int](active_len_out * active_len_in)
+        val idx = SRAM[Int](active_len_out * active_len_in)
         
         Foreach(0 until counter_out by 1) { i =>
             Foreach(0 until counter_in by 1 par ip) { j =>
-                idx.enq(active_out(i) * pre_layer_size + active_in(j))
+                idx(i * counter_in + j) = active_out(i) * pre_layer_size + active_in(j)
             }
         }
        
-        w gather d_w(idx, counter_out * counter_in)
+        w gather d_w(idx par ip, counter_out * counter_in)
         
        
         val b = SRAM[T](active_len_out).buffer
@@ -223,9 +223,9 @@ class SLIDE_SS_64_16_4 extends SLIDE_SS(
     }
     
     
-    def writeback(active_len_in: Int, active_len_out: Int, counter_in: Int, counter_out: Int, idx: FIFO[Int], active_out: SRAM1[Int], w: SRAM1[T], b: SRAM1[T], d_w: DRAM1[T], d_b: DRAM1[T]) = {
+    def writeback(active_len_in: Int, active_len_out: Int, counter_in: Int, counter_out: Int, idx: SRAM1[Int], active_out: SRAM1[Int], w: SRAM1[T], b: SRAM1[T], d_w: DRAM1[T], d_b: DRAM1[T]) = {
     
-        d_w(idx, counter_out * counter_in) scatter w
+        d_w(idx par ip, counter_out * counter_in) scatter w
        
         d_b(active_out par ip, counter_out) scatter b
     }
