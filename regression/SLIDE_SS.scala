@@ -164,7 +164,7 @@ class SLIDE_SS_64_16_4 extends SLIDE_SS(
         val counter_out = size(0)
         
 
-        val w = SRAM[T](active_len_out * active_len_in).buffer
+        val w = SRAM[T](active_len_out * active_len_in)
         val idx = SRAM[Int](active_len_out * active_len_in)
         
         Foreach(0 until counter_out by 1) { i =>
@@ -176,7 +176,7 @@ class SLIDE_SS_64_16_4 extends SLIDE_SS(
         w gather d_w(idx par ip, counter_out * counter_in)
         
        
-        val b = SRAM[T](active_len_out).buffer
+        val b = SRAM[T](active_len_out)
         b gather d_b(active_out par ip, counter_out)
         
         val h_out = SRAM[T](active_len_out)
@@ -193,6 +193,9 @@ class SLIDE_SS_64_16_4 extends SLIDE_SS(
     }
     
     def backprop(active_len_out: Int, active_len_in: Int, counter_in: Int, counter_out: Int, lr: Float, w: SRAM1[T], b: SRAM1[T], err_out: SRAM1[T], h_in: SRAM1[T], h_out: SRAM1[T]) = {
+    
+        val w_new = SRAM[T](active_len_out * active_len_in)
+        val b_new = SRAM[T](active_len_out)
         
         val err_in = SRAM[T](active_len_in)
         val err_in_tmp = SRAM[T](active_len_out, active_len_in)
@@ -204,11 +207,11 @@ class SLIDE_SS_64_16_4 extends SLIDE_SS(
             Foreach(0 until counter_in by 1 par ip) { j =>
                 val w_tmp = w(i * counter_in + j)
                 
+                w_new(i * counter_in + j) = w_tmp - lr * err_out_tmp * h_in(j) * mux(h_out_tmp >= 0, 1.to[T], 0)
                 err_in_tmp(i, j) = w_tmp * err_out_tmp * mux(h_out_tmp >= 0, 1.to[T], 0)
-                w(i * counter_in + j) = w_tmp - lr * err_out_tmp * h_in(j) * mux(h_out_tmp >= 0, 1.to[T], 0)
             }
             
-            b(i) = b(i) - lr * err_out(i) * mux(h_out(i) >= 0, 1.to[T], 0)
+            b_new(i) = b(i) - lr * err_out(i) * mux(h_out(i) >= 0, 1.to[T], 0)
         }
         
         Foreach(0 until counter_in by 1 par op2) { j =>
@@ -219,7 +222,7 @@ class SLIDE_SS_64_16_4 extends SLIDE_SS(
             err_in(j) = sum
         }
         
-        err_in
+        (err_in, w_new, b_new)
     }
     
     
@@ -306,13 +309,13 @@ class SLIDE_SS_64_16_4 extends SLIDE_SS(
                     
 
                     // backprop
-                    val err_l1 = backprop(active_len_l2, active_len_l1, counter_l1, counter_l2, lr, w_l2, b_l2, err_l2, h_l1, h_l2)
-                    val err_field = backprop(active_len_l1, active_len_field, counter_field, counter_l1, lr, w_l1, b_l1, err_l1, s_trainX, h_l1)
+                    val (err_l1, w_l2_new, b_l2_new) = backprop(active_len_l2, active_len_l1, counter_l1, counter_l2, lr, w_l2, b_l2, err_l2, h_l1, h_l2)
+                    val (err_field, w_l1_new, b_l1_new) = backprop(active_len_l1, active_len_field, counter_field, counter_l1, lr, w_l1, b_l1, err_l1, s_trainX, h_l1)
                       
                     
                     // writeback to DRAM
-                    writeback(active_len_l1, active_len_l2, counter_l1, counter_l2, idx_l2, active_l2, w_l2, b_l2, d_w_l2, d_b_l2)
-                    writeback(active_len_field, active_len_l1, counter_field, counter_l1, idx_l1, active_l1, w_l1, b_l1, d_w_l1, d_b_l1)
+                    writeback(active_len_l1, active_len_l2, counter_l1, counter_l2, idx_l2, active_l2, w_l2_new, b_l2_new, d_w_l2, d_b_l2)
+                    writeback(active_len_field, active_len_l1, counter_field, counter_l1, idx_l1, active_l1, w_l1_new, b_l1_new, d_w_l1, d_b_l1)
              
                 }
             }
