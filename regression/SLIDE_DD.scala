@@ -101,8 +101,8 @@ class SLIDE_DD_64_16_4 extends SLIDE_DD(
 @spatial abstract class SLIDE_DD(
     numBatch:scala.Int = 128,
     epoch:scala.Int = 1,
-    field:scala.Int = 100,    
-    L2:scala.Int = 600,
+    field:scala.Int = 1000,    
+    L2:scala.Int = 3000,
     ratio:scala.Int = 3,
     lr:scala.Float = 1e-3f,
     ip:scala.Int = 16,

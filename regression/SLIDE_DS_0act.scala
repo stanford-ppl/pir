@@ -103,7 +103,7 @@ class SLIDE_DS_0act_64_16_4 extends SLIDE_DS_0act(
     row_l2:scala.Int = 16,
     bucket:scala.Int = 64,
     ratio:scala.Int = 3,
-    lr:scala.Float = 1e-3f,
+    lr:scala.Float = 1e-4f,
     input_max:scala.Int = 5,
     ip:scala.Int = 16,
     op2:scala.Int = 1,
@@ -274,6 +274,9 @@ class SLIDE_DS_0act_64_16_4 extends SLIDE_DS_0act(
         val d_cnt_l2 = DRAM[Int](L_l2 * row_l2)
         val t6 = loadCSV1D[Int](data + "/cnt_l2.csv")
         setMem(d_cnt_l2, t6)
+        
+        val d_mask = DRAM[Int](numBatch * L1)
+        val d_h_l1 = DRAM[T](numBatch * L1)
 
     
         Accel{ 	   
@@ -317,6 +320,18 @@ class SLIDE_DS_0act_64_16_4 extends SLIDE_DS_0act(
                      
                         h_l1(i) = mux(sum + b_l1(i) > 0, sum + b_l1(i), 0) // relu
                     }
+                    
+                    
+                    
+                    
+                    val mask = SRAM[Int](L1)
+                    Foreach (0 until L1 par ip) { i =>
+                        mask(i) = mux(h_l1(i) > 0, 1, 0)
+                    }
+                    d_mask(x * L1::(x + 1) * L1 par ip) store mask
+                    d_h_l1(x * L1::(x + 1) * L1 par ip) store h_l1
+        
+        
         
         
         
@@ -412,6 +427,13 @@ class SLIDE_DS_0act_64_16_4 extends SLIDE_DS_0act(
         
 
         }
+        
+        
+        val xx1 = getMem(d_mask)
+        val xx2 = getMem(d_h_l1)
+        
+        writeCSV1D(xx1, "/home/kosho/IO/test/d_mask.csv", delim="\n")
+        writeCSV1D(xx2, "/home/kosho/IO/test/d_h_l1.csv", delim="\n")
 
         
         assert(true)
