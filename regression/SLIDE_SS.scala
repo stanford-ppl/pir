@@ -5,6 +5,7 @@ import spatial.metadata.memory.{Barrier => _,_}
 class SLIDE_SS_16_1_1 extends SLIDE_SS(
     data = "/home/kosho/IO/SS_16",
     L1 = 16,
+    bucket_l1 = 8,
     pipeFactor = 1,
     op = 1
 )
@@ -12,6 +13,7 @@ class SLIDE_SS_16_1_1 extends SLIDE_SS(
 class SLIDE_SS_16_16_1 extends SLIDE_SS(
     data = "/home/kosho/IO/SS_16",
     L1 = 16,
+    bucket_l1 = 8,
     pipeFactor = 16,
     op = 1
 )
@@ -19,6 +21,7 @@ class SLIDE_SS_16_16_1 extends SLIDE_SS(
 class SLIDE_SS_16_1_4 extends SLIDE_SS(
     data = "/home/kosho/IO/SS_16",
     L1 = 16,
+    bucket_l1 = 8,
     pipeFactor = 1,
     op = 4
 )
@@ -26,6 +29,7 @@ class SLIDE_SS_16_1_4 extends SLIDE_SS(
 class SLIDE_SS_16_16_4 extends SLIDE_SS(
     data = "/home/kosho/IO/SS_16",
     L1 = 16,
+    bucket_l1 = 8,
     pipeFactor = 16,
     op = 4
 )
@@ -37,6 +41,7 @@ class SLIDE_SS_16_16_4 extends SLIDE_SS(
 class SLIDE_SS_32_1_1 extends SLIDE_SS(
     data = "/home/kosho/IO/SS_32",
     L1 = 32,
+    bucket_l1 = 16,
     pipeFactor = 1,
     op = 1
 )
@@ -44,6 +49,7 @@ class SLIDE_SS_32_1_1 extends SLIDE_SS(
 class SLIDE_SS_32_16_1 extends SLIDE_SS(
     data = "/home/kosho/IO/SS_32",
     L1 = 32,
+    bucket_l1 = 16,
     pipeFactor = 16,
     op = 1
 )
@@ -51,6 +57,7 @@ class SLIDE_SS_32_16_1 extends SLIDE_SS(
 class SLIDE_SS_32_1_4 extends SLIDE_SS(
     data = "/home/kosho/IO/SS_32",
     L1 = 32,
+    bucket_l1 = 16,
     pipeFactor = 1,
     op = 4
 )
@@ -58,60 +65,27 @@ class SLIDE_SS_32_1_4 extends SLIDE_SS(
 class SLIDE_SS_32_16_4 extends SLIDE_SS(
     data = "/home/kosho/IO/SS_32",
     L1 = 32,
+    bucket_l1 = 16,
     pipeFactor = 16,
     op = 4
 )
-
-
-
-
-
-
-
-class SLIDE_SS_64_1_1 extends SLIDE_SS(
-    data = "/home/kosho/IO/SS_64",
-    L1 = 64,
-    pipeFactor = 1,
-    op = 1
-)
-
-class SLIDE_SS_64_16_1 extends SLIDE_SS(
-    data = "/home/kosho/IO/SS_64",
-    L1 = 64,
-    pipeFactor = 16,
-    op = 1
-)
-
-class SLIDE_SS_64_1_4 extends SLIDE_SS(
-    data = "/home/kosho/IO/SS_64",
-    L1 = 64,
-    pipeFactor = 1,
-    op = 4
-)
-
-class SLIDE_SS_64_16_4 extends SLIDE_SS(
-    data = "/home/kosho/IO/SS_64",
-    L1 = 64,
-    pipeFactor = 16,
-    op = 4
-)
-
 
 @spatial abstract class SLIDE_SS(
     numBatch:scala.Int = 128,
     epoch:scala.Int = 1,
-    field:scala.Int = 100,
-    L2:scala.Int = 600,  
+    field:scala.Int = 1000,
+    L2:scala.Int = 800,  
     K_l1:scala.Int = 1,
     L_l1:scala.Int = 1,    
-    K_l2:scala.Int = 4,
-    L_l2:scala.Int = 4,    
+    K_l2:scala.Int = 3,
+    L_l2:scala.Int = 3,    
     row_l1:scala.Int = 2,
-    row_l2:scala.Int = 16,
-    bucket:scala.Int = 64,
+    row_l2:scala.Int = 8,
+    bucket_l1:scala.Int = 8,
+    bucket_l2:scala.Int = 100,
     ratio:scala.Int = 3,
     lr:scala.Float = 1e-3f,
-    input_max:scala.Int = 5,
+    input_max:scala.Int = 75,
     ip:scala.Int = 16,
     op2:scala.Int = 1,
 
@@ -150,7 +124,7 @@ class SLIDE_SS_64_16_4 extends SLIDE_SS(
         results
     }
   
-    def forward(input: SRAM1[T], active_in: SRAM1[Int], counter_in: Int, active_len_in: Int, pre_layer_size: Int, curr_layer_size: Int, K: Int, L: Int, row: Int, x: Int, d_cnt: DRAM1[Int], d_table: DRAM1[Int], d_w: DRAM1[T], d_b: DRAM1[T]) = {
+    def forward(input: SRAM1[T], active_in: SRAM1[Int], counter_in: Int, active_len_in: Int, pre_layer_size: Int, curr_layer_size: Int, K: Int, L: Int, row: Int, x: Int, d_cnt: DRAM1[Int], d_table: DRAM1[Int], d_w: DRAM1[T], d_b: DRAM1[T], bucket: Int) = {
         val hashcode = simhash(true, input, active_in, counter_in, K, L)
         val active_len_out = bucket
         val active_out = SRAM[Int](active_len_out)
@@ -262,8 +236,8 @@ class SLIDE_SS_64_16_4 extends SLIDE_SS(
         setMem(input_value, t4)
         
 
-        val d_table_l1 = DRAM[Int](L_l1 * row_l1 * bucket)
-        val d_table_l2 = DRAM[Int](L_l2 * row_l2 * bucket)
+        val d_table_l1 = DRAM[Int](L_l1 * row_l1 * bucket_l1)
+        val d_table_l2 = DRAM[Int](L_l2 * row_l2 * bucket_l2)
         val t5 = loadCSV1D[Int](data + "/table_l1.csv")
         val t6 = loadCSV1D[Int](data + "/table_l2.csv")
         setMem(d_table_l1, t5)
@@ -298,8 +272,8 @@ class SLIDE_SS_64_16_4 extends SLIDE_SS(
 
            
                     // forward
-                    val (h_l1, active_l1, counter_l1, active_len_l1, w_l1, b_l1, idx_l1) = forward(s_trainX, active_field, counter_field, active_len_field, field, L1, K_l1, L_l1, row_l1, x, d_cnt_l1, d_table_l1, d_w_l1, d_b_l1)
-                    val (h_l2, active_l2, counter_l2, active_len_l2, w_l2, b_l2, idx_l2) = forward(h_l1, active_l1, counter_l1, active_len_l1, L1, L2, K_l2, L_l2, row_l2, x, d_cnt_l2, d_table_l2, d_w_l2, d_b_l2)
+                    val (h_l1, active_l1, counter_l1, active_len_l1, w_l1, b_l1, idx_l1) = forward(s_trainX, active_field, counter_field, active_len_field, field, L1, K_l1, L_l1, row_l1, x, d_cnt_l1, d_table_l1, d_w_l1, d_b_l1, bucket_l1)
+                    val (h_l2, active_l2, counter_l2, active_len_l2, w_l2, b_l2, idx_l2) = forward(h_l1, active_l1, counter_l1, active_len_l1, L1, L2, K_l2, L_l2, row_l2, x, d_cnt_l2, d_table_l2, d_w_l2, d_b_l2, bucket_l2)
 
 
                     val err_l2 = SRAM[T](active_len_l2)

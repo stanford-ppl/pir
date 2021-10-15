@@ -60,51 +60,18 @@ class SLIDE_DS_32_16_4 extends SLIDE_DS(
     op = 4
 )
 
-
-
-
-class SLIDE_DS_64_1_1 extends SLIDE_DS(
-    data = "/home/kosho/IO/DS_64",
-    L1 = 64,
-    pipeFactor = 1,
-    op = 1
-)
-
-class SLIDE_DS_64_16_1 extends SLIDE_DS(
-    data = "/home/kosho/IO/DS_64",
-    L1 = 64,
-    pipeFactor = 16,
-    op = 1
-)
-
-class SLIDE_DS_64_1_4 extends SLIDE_DS(
-    data = "/home/kosho/IO/DS_64",
-    L1 = 64,
-    pipeFactor = 1,
-    op = 4
-)
-
-class SLIDE_DS_64_16_4 extends SLIDE_DS(
-    data = "/home/kosho/IO/DS_64",
-    L1 = 64,
-    pipeFactor = 16,
-    op = 4
-)
-
-
-
 @spatial abstract class SLIDE_DS(
     numBatch:scala.Int = 128,
     epoch:scala.Int = 1,
-    field:scala.Int = 100,
-    L2:scala.Int = 600,
-    K_l2:scala.Int = 4,
-    L_l2:scala.Int = 4,
-    row_l2:scala.Int = 16,
-    bucket:scala.Int = 64,
+    field:scala.Int = 1000,
+    L2:scala.Int = 8000,
+    K_l2:scala.Int = 3,
+    L_l2:scala.Int = 3,
+    row_l2:scala.Int = 8,
+    bucket:scala.Int = 1000,
     ratio:scala.Int = 3,
     lr:scala.Float = 1e-3f,
-    input_max:scala.Int = 5,
+    input_max:scala.Int = 75,
     ip:scala.Int = 16,
     op2:scala.Int = 1,
     

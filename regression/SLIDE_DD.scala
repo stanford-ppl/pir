@@ -62,47 +62,11 @@ class SLIDE_DD_32_16_4 extends SLIDE_DD(
     op = 4
 )
 
-
-
-
-
-
-
-class SLIDE_DD_64_1_1 extends SLIDE_DD(
-    data = "/home/kosho/IO/DD_64",
-    L1 = 64,
-    pipeFactor = 1,
-    op = 1
-)
-
-class SLIDE_DD_64_16_1 extends SLIDE_DD(
-    data = "/home/kosho/IO/DD_64",
-    L1 = 64,
-    pipeFactor = 16,
-    op = 1
-)
-
-class SLIDE_DD_64_1_4 extends SLIDE_DD(
-    data = "/home/kosho/IO/DD_64",
-    L1 = 64,
-    pipeFactor = 1,
-    op = 4
-)
-
-class SLIDE_DD_64_16_4 extends SLIDE_DD(
-    data = "/home/kosho/IO/DD_64",
-    L1 = 64,
-    pipeFactor = 16,
-    op = 4
-)
-
-
-
 @spatial abstract class SLIDE_DD(
     numBatch:scala.Int = 128,
     epoch:scala.Int = 1,
-    field:scala.Int = 1000,    
-    L2:scala.Int = 3000,
+    field:scala.Int = 75,    
+    L2:scala.Int = 1000,
     ratio:scala.Int = 3,
     lr:scala.Float = 1e-3f,
     ip:scala.Int = 16,
