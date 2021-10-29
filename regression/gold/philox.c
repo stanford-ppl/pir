@@ -57,23 +57,52 @@ uint32_t philox(uint32_t ctr[4], const uint32_t key[2], unsigned *selector) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc != 7) {
-        printf("not enough arguments\n");
+    // if (argc != 7) {
+    //     printf("not enough arguments\n");
+    //     return 1;
+    // }
+    // uint32_t key[2];
+    // uint32_t ctr[4];
+    // key[0] = strtoul(argv[1], NULL, 10);
+    // key[1] = strtoul(argv[2], NULL, 10);
+    // ctr[0] = strtoul(argv[3], NULL, 10);
+    // ctr[1] = strtoul(argv[4], NULL, 10);
+    // ctr[2] = strtoul(argv[5], NULL, 10);
+    // ctr[3] = strtoul(argv[6], NULL, 10);
+    // unsigned selector = 0;
+
+    // for (unsigned i = 0; i < 10; ++i) {
+    //     printf("%u\n", philox(ctr, key, &selector));
+    // }
+
+    if (argc != 2) {
+        printf("not enough arguments");
         return 1;
     }
-    uint32_t key[2];
-    uint32_t ctr[4];
-    key[0] = strtoul(argv[1], NULL, 10);
-    key[1] = strtoul(argv[2], NULL, 10);
-    ctr[0] = strtoul(argv[3], NULL, 10);
-    ctr[1] = strtoul(argv[4], NULL, 10);
-    ctr[2] = strtoul(argv[5], NULL, 10);
-    ctr[3] = strtoul(argv[6], NULL, 10);
+
+    size_t len = strtoull(argv[1], NULL, 10);
+
+    printf("length = %lu\n", len);
+
+    uint32_t key[2] = {0, 0};
+    uint32_t ctr[4] = {0, 0, 0, 0};
     unsigned selector = 0;
 
-    for (unsigned i = 0; i < 10; ++i) {
-        printf("%u\n", philox(ctr, key, &selector));
+    const char* spatial_home = getenv("SPATIAL_HOME");
+    const char* path = "/test-data/philox_test/rand.csv";
+    size_t str_len = strlen(spatial_home) + strlen(path) + 1;
+    char *file_path = malloc(str_len);
+    file_path[str_len-1] = 0;
+    memcpy(file_path, spatial_home, strlen(spatial_home));
+    memcpy(file_path+strlen(spatial_home), path, strlen(path));
+
+    FILE *out = fopen(file_path, "w");
+    for (size_t i = 0; i < len; ++i) {
+        fprintf(out, "%u\n", philox(ctr, key, &selector));
     }
+    fclose(out);
+
+    free(file_path);
 
     return 0;
 }
