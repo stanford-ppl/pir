@@ -64,11 +64,11 @@ class Philox_0 extends Philox
             val rand_s = SRAM[UInt32](tileSize)
 
             val ctr_s = SRAM[UInt32](4)
+
+            // use registers or live variables
             val key_s = SRAM[UInt32](2)
             ctr_s load ctr_d(0::4)
             key_s load key_d(0::2)
-
-            val selector = Reg[Int](0)
 
             Foreach(len by tileSize par 1){tile =>
                 // val actualTileSize = min(tileSize, len - tile)
@@ -76,7 +76,8 @@ class Philox_0 extends Philox
                 Foreach(tileSize by 1 par 1){i =>
                     // make a copy of current counter and key
                     // TODO: better way to do this?
-                    val _ctr = SRAM[UInt32](4).buffer
+                    val offset:UInt32 = tile.to[UInt32] + i.to[UInt32]
+                    val _ctr = SRAM[UInt32](4).buffer  // this becomes 4xtileSize vecortizable elements
                     val _key = SRAM[UInt32](2).buffer
                     Foreach(4 by 1 par 4){j =>
                         _ctr(j) = ctr_s(j)
@@ -86,10 +87,13 @@ class Philox_0 extends Philox
                     }
 
                     // naive increment that assumes (_ctr(0) + (i + tile)) never overflows
-                    _ctr(0) = _ctr(0) + (i.to[UInt32] + tile.to[UInt32])
+                    // iterates in a way that avoids complicated overflow logic
+                    _ctr(0) = _ctr(0) + offset
 
                     // Rounds of philox sbox and pbox
+                    // TODO: maybe swap this with the loop above, (no recursion)
                     Foreach(num_rounds by 1 par 1){ k =>
+                        // TODO: turn this into a recursive funciton
                         // TODO: buffer hazard? Implement with Fold or Reduce?
                         val (hi_0, lo_0) = mul_32(_ctr(0), multiplier_0)
                         val (hi_1, lo_1) = mul_32(_ctr(2), multiplier_1)
@@ -97,12 +101,13 @@ class Philox_0 extends Philox
                         _ctr(1) = lo_1
                         _ctr(2) = hi_0 ^ _key(1) ^ _ctr(3)
                         _ctr(3) = lo_0
-                        _key(0) = _key(0) + weyl_const_0
+                        _key(0) = _key(0) + weyl_const_0  // multiplication, eliminates the need to store this in memory
                         _key(1) = _key(1) + weyl_const_1
                     }
 
-                    rand_s(i) = _ctr(selector)
-                    selector := (selector + 1) & 3
+                    // use (offset % 4) as selector
+                    // TODO: build a four way mux with the last 2 bits of i
+                    rand_s(i) = _ctr((offset & 3.to[UInt32]).to[Int])
                 }
                 // rand_d(tile::tile+actualTileSize par 1) store rand_s
                 rand_d(tile::tile+tileSize par 1) store rand_s
