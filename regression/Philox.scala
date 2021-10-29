@@ -39,6 +39,10 @@ class Philox_0 extends Philox
         (top, bot)
     }
 
+    // def incr_n(ctr: Array[UInt32], n: UInt32): Array[UInt32] = {
+
+    // }
+
     def philox(ctr: Array[UInt32], key: Array[UInt32]): Array[UInt32] = {
         val multiplier_0 = ArgIn[UInt32]
         val multiplier_1 = ArgIn[UInt32]
@@ -59,7 +63,7 @@ class Philox_0 extends Philox
         Accel {
             val rand_s = SRAM[UInt32](tileSize)
 
-            val ctr_s = SRAM[UInt32](4).buffer
+            val ctr_s = SRAM[UInt32](4)
             val key_s = SRAM[UInt32](2)
             ctr_s load ctr_d(0::4)
             key_s load key_d(0::2)
@@ -81,6 +85,9 @@ class Philox_0 extends Philox
                         _key(j) = key_s(j)
                     }
 
+                    // naive increment that assumes (_ctr(0) + (i + tile)) never overflows
+                    _ctr(0) = _ctr(0) + (i.to[UInt32] + tile.to[UInt32])
+
                     // Rounds of philox sbox and pbox
                     Foreach(num_rounds by 1 par 1){ k =>
                         // TODO: buffer hazard? Implement with Fold or Reduce?
@@ -96,14 +103,6 @@ class Philox_0 extends Philox
 
                     rand_s(i) = _ctr(selector)
                     selector := (selector + 1) & 3
-
-                    // TODO: this looks horrendous
-                    // introduces bug "Setup Write SRAM twice in the same cycle."
-                    // this also requires that ctr_s be declared as a buffer
-                    ctr_s(0) = ctr_s(0) + 1
-                    ctr_s(1) = mux(ctr_s(0) == 0, ctr_s(1) + 1, ctr_s(1))
-                    ctr_s(2) = mux((ctr_s(0) == 0) & (ctr_s(1) == 0), ctr_s(2) + 1, ctr_s(2))
-                    ctr_s(3) = mux((ctr_s(0) == 0) & (ctr_s(1) == 0) & (ctr_s(2) == 0), ctr_s(3) + 1, ctr_s(3))
                 }
                 // rand_d(tile::tile+actualTileSize par 1) store rand_s
                 rand_d(tile::tile+tileSize par 1) store rand_s
