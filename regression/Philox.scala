@@ -59,7 +59,7 @@ class Philox_0 extends Philox
         Accel {
             val rand_s = SRAM[UInt32](tileSize)
 
-            val ctr_s = SRAM[UInt32](4)
+            val ctr_s = SRAM[UInt32](4).buffer
             val key_s = SRAM[UInt32](2)
             ctr_s load ctr_d(0::4)
             key_s load key_d(0::2)
@@ -71,6 +71,7 @@ class Philox_0 extends Philox
                 // Foreach(actualTileSize by 1 par 1){i =>
                 Foreach(tileSize by 1 par 1){i =>
                     // make a copy of current counter and key
+                    // TODO: better way to do this?
                     val _ctr = SRAM[UInt32](4).buffer
                     val _key = SRAM[UInt32](2).buffer
                     Foreach(4 by 1 par 4){j =>
@@ -95,6 +96,14 @@ class Philox_0 extends Philox
 
                     rand_s(i) = _ctr(selector)
                     selector := (selector + 1) & 3
+
+                    // TODO: this looks horrendous
+                    // introduces bug "Setup Write SRAM twice in the same cycle."
+                    // this also requires that ctr_s be declared as a buffer
+                    ctr_s(0) = ctr_s(0) + 1
+                    ctr_s(1) = mux(ctr_s(0) == 0, ctr_s(1) + 1, ctr_s(1))
+                    ctr_s(2) = mux((ctr_s(0) == 0) & (ctr_s(1) == 0), ctr_s(2) + 1, ctr_s(2))
+                    ctr_s(3) = mux((ctr_s(0) == 0) & (ctr_s(1) == 0) & (ctr_s(2) == 0), ctr_s(3) + 1, ctr_s(3))
                 }
                 // rand_d(tile::tile+actualTileSize par 1) store rand_s
                 rand_d(tile::tile+tileSize par 1) store rand_s
