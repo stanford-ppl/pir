@@ -7,6 +7,9 @@ class Philox_0 extends Philox
     tileSize:scala.Int = 32
 ) extends SpatialTest { self =>
 
+    val op:scala.Int = 1
+    val ip:scala.Int = 1
+
     val num_rounds:scala.Int = 7
     val mult_0:UInt32 = 0xD2511F53
     val mult_1:UInt32 = 0xCD9E8D57
@@ -39,20 +42,7 @@ class Philox_0 extends Philox
         (top, bot)
     }
 
-    // def incr_n(ctr: Array[UInt32], n: UInt32): Array[UInt32] = {
-
-    // }
-
     def philox(ctr: Array[UInt32], key: Array[UInt32]): Array[UInt32] = {
-        val multiplier_0 = ArgIn[UInt32]
-        val multiplier_1 = ArgIn[UInt32]
-        val weyl_const_0 = ArgIn[UInt32]
-        val weyl_const_1 = ArgIn[UInt32]
-        setArg(multiplier_0, mult_0)
-        setArg(multiplier_1, mult_1)
-        setArg(weyl_const_0, weyl_0)
-        setArg(weyl_const_1, weyl_1)
-
         val rand_d = DRAM[UInt32](len)
 
         val ctr_d = DRAM[UInt32](4)
@@ -63,51 +53,44 @@ class Philox_0 extends Philox
         Accel {
             val rand_s = SRAM[UInt32](tileSize)
 
+            // cache initial counter and key in SRAM
             val ctr_s = SRAM[UInt32](4)
-
-            // use registers or live variables
             val key_s = SRAM[UInt32](2)
             ctr_s load ctr_d(0::4)
             key_s load key_d(0::2)
 
-            Foreach(len by tileSize par 1){tile =>
+            Foreach(len by tileSize par op){tile =>
                 // val actualTileSize = min(tileSize, len - tile)
                 // Foreach(actualTileSize by 1 par 1){i =>
-                Foreach(tileSize by 1 par 1){i =>
-                    // make a copy of current counter and key
-                    // TODO: better way to do this?
+                val ctr_0 = SRAM[UInt32](tileSize)
+                val ctr_1 = SRAM[UInt32](tileSize)
+                val ctr_2 = SRAM[UInt32](tileSize)
+                val ctr_3 = SRAM[UInt32](tileSize)
+                Sequential.Foreach(num_rounds by 1){r =>
+                    Foreach(tileSize by 1 par ip){i =>
+                        val offset:UInt32 = tile.to[UInt32] + i.to[UInt32]
+
+                        val (hi_0, lo_0) = mul_32(ctr_0(i), mult_0)
+                        val (hi_1, lo_1) = mul_32(ctr_2(i), mult_1)
+
+                        // naive increment that assumes (_ctr(0) + (i + tile)) never overflows
+                        // TODO: iterates in a way that avoids complicated overflow logic
+                        val key_0:UInt32 = key_s(0) + (weyl_0 * r.to[UInt32])
+                        val key_1:UInt32 = key_s(1) + (weyl_1 * r.to[UInt32])
+                        ctr_0(i) = mux(r == 0, ctr_s(0) + offset, hi_1 ^ key_0 ^ ctr_1(i))
+                        ctr_1(i) = mux(r == 0, ctr_s(1),          lo_1)
+                        ctr_2(i) = mux(r == 0, ctr_s(2),          hi_0 ^ key_1 ^ ctr_3(i))
+                        ctr_3(i) = mux(r == 0, ctr_s(3),          lo_0)
+                    }
+                }
+                Foreach(tileSize by 1 par ip){i =>
+                    // TODO: This is kind of an awkward way to implement such a simple mechanism
                     val offset:UInt32 = tile.to[UInt32] + i.to[UInt32]
-                    val _ctr = SRAM[UInt32](4).buffer  // this becomes 4xtileSize vecortizable elements
-                    val _key = SRAM[UInt32](2).buffer
-                    Foreach(4 by 1 par 4){j =>
-                        _ctr(j) = ctr_s(j)
-                    }
-                    Foreach(2 by 1 par 2){j =>
-                        _key(j) = key_s(j)
-                    }
-
-                    // naive increment that assumes (_ctr(0) + (i + tile)) never overflows
-                    // iterates in a way that avoids complicated overflow logic
-                    _ctr(0) = _ctr(0) + offset
-
-                    // Rounds of philox sbox and pbox
-                    // TODO: maybe swap this with the loop above, (no recursion)
-                    Foreach(num_rounds by 1 par 1){ k =>
-                        // TODO: turn this into a recursive funciton
-                        // TODO: buffer hazard? Implement with Fold or Reduce?
-                        val (hi_0, lo_0) = mul_32(_ctr(0), multiplier_0)
-                        val (hi_1, lo_1) = mul_32(_ctr(2), multiplier_1)
-                        _ctr(0) = hi_1 ^ _key(0) ^ _ctr(1)
-                        _ctr(1) = lo_1
-                        _ctr(2) = hi_0 ^ _key(1) ^ _ctr(3)
-                        _ctr(3) = lo_0
-                        _key(0) = _key(0) + weyl_const_0  // multiplication, eliminates the need to store this in memory
-                        _key(1) = _key(1) + weyl_const_1
-                    }
-
-                    // use (offset % 4) as selector
-                    // TODO: build a four way mux with the last 2 bits of i
-                    rand_s(i) = _ctr((offset & 3.to[UInt32]).to[Int])
+                    val selector_0:UInt32 = offset & 1.to[UInt32]
+                    val selector_1:UInt32 = offset & 2.to[UInt32]
+                    rand_s(i) = mux(selector_0 == 0,
+                                    mux(selector_1 == 0, ctr_0(i), ctr_2(i)),
+                                    mux(selector_1 == 0, ctr_1(i), ctr_3(i)))
                 }
                 // rand_d(tile::tile+actualTileSize par 1) store rand_s
                 rand_d(tile::tile+tileSize par 1) store rand_s
