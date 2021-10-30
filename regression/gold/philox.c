@@ -57,24 +57,6 @@ uint32_t philox(uint32_t ctr[4], const uint32_t key[2], unsigned *selector) {
 }
 
 int main(int argc, char *argv[]) {
-    // if (argc != 7) {
-    //     printf("not enough arguments\n");
-    //     return 1;
-    // }
-    // uint32_t key[2];
-    // uint32_t ctr[4];
-    // key[0] = strtoul(argv[1], NULL, 10);
-    // key[1] = strtoul(argv[2], NULL, 10);
-    // ctr[0] = strtoul(argv[3], NULL, 10);
-    // ctr[1] = strtoul(argv[4], NULL, 10);
-    // ctr[2] = strtoul(argv[5], NULL, 10);
-    // ctr[3] = strtoul(argv[6], NULL, 10);
-    // unsigned selector = 0;
-
-    // for (unsigned i = 0; i < 10; ++i) {
-    //     printf("%u\n", philox(ctr, key, &selector));
-    // }
-
     if (argc != 2) {
         printf("not enough arguments");
         return 1;

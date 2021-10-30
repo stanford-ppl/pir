@@ -8,7 +8,7 @@ class Philox_0 extends Philox
 ) extends SpatialTest { self =>
 
     val op:scala.Int = 1
-    val ip:scala.Int = 1
+    val ip:scala.Int = 16
 
     val num_rounds:scala.Int = 7
     val mult_0:UInt32 = 0xD2511F53
@@ -40,6 +40,7 @@ class Philox_0 extends Philox
         val top:UInt32 = bd + ad_hi + bc_hi + carry1 + carry2
 
         (top, bot)
+        // (mulh(x, y), x * y)
     }
 
     def philox(ctr_0: UInt32,
@@ -61,7 +62,7 @@ class Philox_0 extends Philox
                 val _ctr_3 = SRAM[UInt32](tileSize).buffer
 
                 // initialize value of counters
-                Foreach(tileSize by 1 par ip){i =>
+                Foreach(tileSize by 1 par 1){i =>
                     // naive increment that assumes (ctr(0) + (i + tile)) never overflows
                     // TODO: iterates in a way that avoids complicated overflow logic
                     val offset:UInt32 = tile.to[UInt32] + i.to[UInt32]
@@ -117,8 +118,8 @@ class Philox_0 extends Philox
 
     def main(args: Array[String]): Unit = {
         val gold = loadCSV1D[UInt32](sys.env("SPATIAL_HOME") + "/test-data/philox_test/rand.csv", "\n")
-
         val rands = philox(0, 0, 0, 0, 0, 0)
+
         writeCSV1D(rands, sys.env("SPATIAL_HOME") + "/test-data/philox_test/rand_out.csv", "\n")
         assert(rands == gold)
     }
