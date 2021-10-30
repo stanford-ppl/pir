@@ -42,42 +42,37 @@ class Philox_0 extends Philox
         (top, bot)
     }
 
-    def philox(ctr: Array[UInt32], key: Array[UInt32]): Array[UInt32] = {
-        val rand_d = DRAM[UInt32](len)
+    def philox(ctr_0: UInt32,
+               ctr_1: UInt32,
+               ctr_2: UInt32,
+               ctr_3: UInt32,
+               key_0: UInt32,
+               key_1: UInt32): Array[UInt32] = {
 
-        val ctr_d = DRAM[UInt32](4)
-        val key_d = DRAM[UInt32](2)
-        setMem(ctr_d, ctr)
-        setMem(key_d, key)
+        val rand_d = DRAM[UInt32](len)
 
         Accel {
             val rand_s = SRAM[UInt32](tileSize)
 
-            // cache initial counter and key in SRAM
-            val ctr_s = SRAM[UInt32](4)
-            val key_s = SRAM[UInt32](2)
-            ctr_s load ctr_d(0::4)
-            key_s load key_d(0::2)
-
             Foreach(len by tileSize par op){tile =>
-                val ctr_0 = SRAM[UInt32](tileSize).buffer
-                val ctr_1 = SRAM[UInt32](tileSize).buffer
-                val ctr_2 = SRAM[UInt32](tileSize).buffer
-                val ctr_3 = SRAM[UInt32](tileSize).buffer
+                val _ctr_0 = SRAM[UInt32](tileSize).buffer
+                val _ctr_1 = SRAM[UInt32](tileSize).buffer
+                val _ctr_2 = SRAM[UInt32](tileSize).buffer
+                val _ctr_3 = SRAM[UInt32](tileSize).buffer
 
                 // initialize value of counters
                 Foreach(tileSize by 1 par ip){i =>
                     // naive increment that assumes (ctr(0) + (i + tile)) never overflows
                     // TODO: iterates in a way that avoids complicated overflow logic
                     val offset:UInt32 = tile.to[UInt32] + i.to[UInt32]
-                    ctr_0(i) = ctr_s(0) + offset
-                    ctr_1(i) = ctr_s(1)
-                    ctr_2(i) = ctr_s(2)
-                    ctr_3(i) = ctr_s(3)
+                    _ctr_0(i) = ctr_0 + offset
+                    _ctr_1(i) = ctr_1
+                    _ctr_2(i) = ctr_2
+                    _ctr_3(i) = ctr_3
                 }
 
                 // val actualTileSize = min(tileSize, len - tile)
-                // Foreach(actualTileSize by 1 par 1){i =>
+                // Foreach(actualTileSize by 1 par ip){i =>
 
                 // Philox rounds of computation
                 Sequential.Foreach(num_rounds by 1){r =>
@@ -85,17 +80,17 @@ class Philox_0 extends Philox
                         val offset:UInt32 = tile.to[UInt32] + i.to[UInt32]
 
                         // key update according to weyl sequence
-                        val key_0:UInt32 = key_s(0) + (weyl_0 * r.to[UInt32])
-                        val key_1:UInt32 = key_s(1) + (weyl_1 * r.to[UInt32])
+                        val _key_0:UInt32 = key_0 + (weyl_0 * r.to[UInt32])
+                        val _key_1:UInt32 = key_1 + (weyl_1 * r.to[UInt32])
 
                         // philox sbox and pbox
-                        val (hi_0, lo_0) = mul_32(ctr_0(i), mult_0)
-                        val (hi_1, lo_1) = mul_32(ctr_2(i), mult_1)
+                        val (hi_0, lo_0) = mul_32(_ctr_0(i), mult_0)
+                        val (hi_1, lo_1) = mul_32(_ctr_2(i), mult_1)
 
-                        ctr_0(i) = hi_1 ^ key_0 ^ ctr_1(i)
-                        ctr_1(i) = lo_1
-                        ctr_2(i) = hi_0 ^ key_1 ^ ctr_3(i)
-                        ctr_3(i) = lo_0
+                        _ctr_0(i) = hi_1 ^ _key_0 ^ _ctr_1(i)
+                        _ctr_1(i) = lo_1
+                        _ctr_2(i) = hi_0 ^ _key_1 ^ _ctr_3(i)
+                        _ctr_3(i) = lo_0
                     }
                 }
 
@@ -103,17 +98,17 @@ class Philox_0 extends Philox
                 Foreach(tileSize by 1 par ip){i =>
                     // TODO: This is kind of an awkward way to implement such a simple mechanism
 
-                    // rand_s(i) = ctr_[offset % 4](i)
+                    // set the ith rand to be ctr[offset % 4]
                     val offset:UInt32 = tile.to[UInt32] + i.to[UInt32]
                     val selector_0:UInt32 = offset & 1.to[UInt32]
                     val selector_1:UInt32 = offset & 2.to[UInt32]
                     rand_s(i) = mux(selector_0 == 0,
-                                    mux(selector_1 == 0, ctr_0(i), ctr_2(i)),
-                                    mux(selector_1 == 0, ctr_1(i), ctr_3(i)))
+                                    mux(selector_1 == 0, _ctr_0(i), _ctr_2(i)),
+                                    mux(selector_1 == 0, _ctr_1(i), _ctr_3(i)))
                 }
 
-                // rand_d(tile::tile+actualTileSize par 1) store rand_s
-                rand_d(tile::tile+tileSize par 1) store rand_s
+                // rand_d(tile::tile+actualTileSize par ip) store rand_s
+                rand_d(tile::tile+tileSize par ip) store rand_s
             }
         }
 
@@ -123,10 +118,7 @@ class Philox_0 extends Philox
     def main(args: Array[String]): Unit = {
         val gold = loadCSV1D[UInt32](sys.env("SPATIAL_HOME") + "/test-data/philox_test/rand.csv", "\n")
 
-        val ctr = Array.fill[UInt32](4)(0)
-        val key = Array.fill[UInt32](2)(0)
-
-        val rands = philox(ctr, key)
+        val rands = philox(0, 0, 0, 0, 0, 0)
         writeCSV1D(rands, sys.env("SPATIAL_HOME") + "/test-data/philox_test/rand_out.csv", "\n")
         assert(rands == gold)
     }
