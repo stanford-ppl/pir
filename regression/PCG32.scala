@@ -4,17 +4,13 @@ class PCG32_0 extends PCG32
 
 @spatial abstract class PCG32(
     len:scala.Int = 128,
-    tileSize:scala.Int = 32
+    tileSize:scala.Int = 40
 ) extends SpatialTest { self =>
 
     val mult_lo:UInt32 = 0x4C957F2D
     val mult_hi:UInt32 = 0x5851F42D
     val incr_lo:UInt32  = 0xF767814F
     val incr_hi:UInt32  = 0x14057B7E
-//     static const uint32_t mult_lo = 0x4C957F2D;
-// static const uint32_t mult_hi = 0x5851F42D;
-// static const uint32_t incr_lo = 0xF767814F;
-// static const uint32_t incr_hi = 0x14057B7E;
 
     def mul_32(x: UInt32, y: UInt32): (UInt32, UInt32) = {
         val a:UInt32 = x & 0xFFFF
@@ -76,15 +72,11 @@ class PCG32_0 extends PCG32
             val (_init_hi, _init_lo) = add_64(seed_lo, seed_hi, increment_lo, increment_hi)
             val state_lo = Reg[UInt32](0)
             val state_hi = Reg[UInt32](0)
-            // state_lo := _init_lo
-            // state_hi := _init_hi
 
             val sram = SRAM[UInt32](tileSize)
-            Foreach(len by tileSize par 1){tile =>
-                // val actualTileSize = min(tileSize, len - tile)
-                // Foreach(actualTileSize by 1 par 1){i =>
-                Foreach(tileSize by 1 par 1){i =>
-                    // val tmp = List.fill(13) { SRAM[UInt32](1, 1) }
+            Sequential.Foreach(len by tileSize){tile =>
+                val actualTileSize = min(tileSize, len - tile)
+                Sequential.Foreach(actualTileSize by 1){i =>
                     val _s_lo = mux(i+tile == 0, _init_lo, state_lo)
                     val _s_hi = mux(i+tile == 0, _init_hi, state_hi)
 
@@ -108,24 +100,8 @@ class PCG32_0 extends PCG32
 
                     sram(i) = rand
 
-                    // tmp(0)(0, 0) = _s_lo
-                    // tmp(1)(0, 0) = _s_hi
-                    // tmp(2)(0, 0) = mul_hi
-                    // tmp(3)(0, 0) = mul_lo
-                    // tmp(4)(0, 0) = x_hi
-                    // tmp(5)(0, 0) = x_lo
-                    // tmp(6)(0, 0) = count.to[UInt32]
-                    // tmp(7)(0, 0) = x_sh_hi
-                    // tmp(8)(0, 0) = x_sh_lo
-                    // tmp(9)(0, 0) = x_xsh_hi
-                    // tmp(10)(0, 0) = x_xsh_lo
-                    // tmp(11)(0, 0) = x_keep
-                    // tmp(12)(0, 0) = rand
-
-                    // List.tabulate(13) { j => resDram(tile+i::tile+i+1, j::j+1) store tmp(j) }
                 }
-                // resDram(tile::tile+actualTileSize par 1) store sram
-                resDram(tile::tile+tileSize par 1) store sram
+                resDram(tile::tile+actualTileSize par 1) store sram
             }
         }
 
@@ -137,7 +113,6 @@ class PCG32_0 extends PCG32
         val rands = pcg32(0, 1234)
         writeCSV1D(rands, sys.env("SPATIAL_HOME") + "/test-data/pcg_test/rand_out.csv", "\n")
         assert(rands == gold)
-        // assert(true)
     }
 
 }
