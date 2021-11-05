@@ -1,5 +1,5 @@
 import spatial.dsl._
-
+// --merge=false pir (bin/test)
 class Philox_0 extends Philox
 
 @spatial abstract class Philox(
@@ -17,30 +17,7 @@ class Philox_0 extends Philox
     val weyl_1:UInt32 = 0xBB67AE85
 
     def mul_32(x: UInt32, y: UInt32): (UInt32, UInt32) = {
-        val a:UInt32 = x & 0xFFFF
-        val b:UInt32 = x >> 16
-        val c:UInt32 = y & 0xFFFF
-        val d:UInt32 = y >> 16
-
-        val ac:UInt32 = a * c
-        val ad:UInt32 = a * d
-        val bc:UInt32 = b * c
-        val bd:UInt32 = b * d
-
-        val ad_hi:UInt32 = ad >> 16
-        val ad_lo:UInt32 = ad << 16
-        val bc_hi:UInt32 = bc >> 16
-        val bc_lo:UInt32 = bc << 16
-
-        val acad:UInt32 = ac + ad_lo
-        val carry1:UInt32 = mux(acad < ac, 1.to[UInt32], 0.to[UInt32])
-        val bot:UInt32 = acad + bc_lo
-        val carry2:UInt32 = mux(bot < acad, 1.to[UInt32], 0.to[UInt32])
-
-        val top:UInt32 = bd + ad_hi + bc_hi + carry1 + carry2
-
-        (top, bot)
-        // (mulh(x, y), x * y)
+        (mulh(x, y), x * y)
     }
 
     def philox(ctr_0: UInt32,
@@ -57,12 +34,12 @@ class Philox_0 extends Philox
             Foreach(len by tileSize par op){tile =>
                 val actualTileSize = min(tileSize, len - tile)
 
-                val rand_s = SRAM[UInt32](tileSize)
-
                 val _ctr_0 = SRAM[UInt32](tileSize).buffer
                 val _ctr_1 = SRAM[UInt32](tileSize).buffer
                 val _ctr_2 = SRAM[UInt32](tileSize).buffer
                 val _ctr_3 = SRAM[UInt32](tileSize).buffer
+
+                val rand_out_fifo = FIFO[UInt32](16)
 
                 Sequential.Foreach(num_rounds by 1){r =>
                     Foreach(actualTileSize by 1 par ip){i =>
@@ -72,30 +49,30 @@ class Philox_0 extends Philox
                         val _key_1:UInt32 = key_1 + (weyl_1 * r.to[UInt32])
 
                         // philox sbox and pbox
-                        val (hi_0, lo_0) = mul_32(mux(r != 0, _ctr_0(i), ctr_0 + offset), mult_0)
-                        val (hi_1, lo_1) = mul_32(mux(r != 0, _ctr_2(i), ctr_2), mult_1)
+                        val (hi_0, lo_0) = mul_32(mux(r == 0, ctr_0 + offset, _ctr_0(i)), mult_0)
+                        val (hi_1, lo_1) = mul_32(mux(r == 0, ctr_2, _ctr_2(i)), mult_1)
 
-                        _ctr_0(i) = hi_1 ^ _key_0 ^ mux(r != 0, _ctr_1(i), ctr_1)
-                        _ctr_1(i) = lo_1
-                        _ctr_2(i) = hi_0 ^ _key_1 ^ mux(r != 0, _ctr_3(i), ctr_3)
-                        _ctr_3(i) = lo_0
+                        val _ctr_0_next = hi_1 ^ _key_0 ^ mux(r == 0, ctr_1, _ctr_1(i))
+                        val _ctr_1_next = lo_1
+                        val _ctr_2_next = hi_0 ^ _key_1 ^ mux(r == 0, ctr_3, _ctr_3(i))
+                        val _ctr_3_next = lo_0
+
+                        _ctr_0(i) = _ctr_0_next
+                        _ctr_1(i) = _ctr_1_next
+                        _ctr_2(i) = _ctr_2_next
+                        _ctr_3(i) = _ctr_3_next
+
+                        // set the ith rand to be ctr[offset % 4]
+                        val selector_0:UInt32 = offset & 1.to[UInt32]
+                        val selector_1:UInt32 = offset & 2.to[UInt32]
+                        val rand_num = mux(selector_0 == 0,
+                                           mux(selector_1 == 0, _ctr_0_next, _ctr_2_next),
+                                           mux(selector_1 == 0, _ctr_1_next, _ctr_3_next))
+                        rand_out_fifo.enq(rand_num, r == num_rounds - 1)
                     }
                 }
 
-                // Selector function
-                Foreach(actualTileSize by 1 par ip){i =>
-                    // TODO: This is kind of an awkward way to implement such a simple mechanism
-
-                    // set the ith rand to be ctr[offset % 4]
-                    val offset:UInt32 = tile.to[UInt32] + i.to[UInt32]
-                    val selector_0:UInt32 = offset & 1.to[UInt32]
-                    val selector_1:UInt32 = offset & 2.to[UInt32]
-                    rand_s(i) = mux(selector_0 == 0,
-                                    mux(selector_1 == 0, _ctr_0(i), _ctr_2(i)),
-                                    mux(selector_1 == 0, _ctr_1(i), _ctr_3(i)))
-                }
-
-                rand_d(tile::tile+actualTileSize par ip) store rand_s
+                rand_d(tile::tile+actualTileSize par ip) store rand_out_fifo
             }
         }
 
