@@ -3,7 +3,7 @@ import spatial.dsl._
 class Philox_0 extends Philox
 
 @spatial abstract class Philox(
-    len:scala.Int = 25000,
+    len:scala.Int = 32768,
     tileSize:scala.Int = 8192
 ) extends SpatialTest { self =>
 
@@ -32,17 +32,16 @@ class Philox_0 extends Philox
         Accel {
             // Write meta loop for 2^32 blocks, so overflow is easy to handle
             Foreach(len by tileSize par op){tile =>
-                val actualTileSize = min(tileSize, len - tile)
 
-                val _ctr_0 = SRAM[UInt32](tileSize).buffer
-                val _ctr_1 = SRAM[UInt32](tileSize).buffer
-                val _ctr_2 = SRAM[UInt32](tileSize).buffer
-                val _ctr_3 = SRAM[UInt32](tileSize).buffer
+                val _ctr_0 = SRAM[UInt32](tileSize)
+                val _ctr_1 = SRAM[UInt32](tileSize)
+                val _ctr_2 = SRAM[UInt32](tileSize)
+                val _ctr_3 = SRAM[UInt32](tileSize)
 
                 val rand_out_fifo = FIFO[UInt32](16)
 
-                Sequential.Foreach(num_rounds by 1){r =>
-                    Foreach(actualTileSize by 1 par ip){i =>
+                Foreach(num_rounds by 1 par 1){r =>
+                    Foreach(tileSize by 1 par ip){i => 
                         val offset:UInt32 = tile.to[UInt32] + i.to[UInt32]
 
                         val _key_0:UInt32 = key_0 + (weyl_0 * r.to[UInt32])
@@ -72,7 +71,7 @@ class Philox_0 extends Philox
                     }
                 }
 
-                rand_d(tile::tile+actualTileSize par ip) store rand_out_fifo
+                rand_d(tile::tile+tileSize par ip) store rand_out_fifo
             }
         }
 
