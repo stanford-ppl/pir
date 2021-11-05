@@ -53,6 +53,7 @@ class Philox_0 extends Philox
         val rand_d = DRAM[UInt32](len)
 
         Accel {
+            // Write meta loop for 2^32 blocks, so overflow is easy to handle
             Foreach(len by tileSize par op){tile =>
                 val actualTileSize = min(tileSize, len - tile)
 
@@ -63,39 +64,20 @@ class Philox_0 extends Philox
                 val _ctr_2 = SRAM[UInt32](tileSize).buffer
                 val _ctr_3 = SRAM[UInt32](tileSize).buffer
 
-                // initialize value of counters
-                Foreach(actualTileSize by 1 par 1){i =>
-                    // naive increment that assumes (ctr(0) + (i + tile)) never overflows
-                    // TODO: iterates in a way that avoids complicated overflow logic
-                    // NOTE: the input len is a 32-bit number, so when _ctr_0 overflows,
-                    //       it simply wraps around back to the beginning, but it won't reach
-                    //       the end of a period yet because len is capped at 2^32.
-                    //       so not incrementing _ctr_1 won't harm the randomness.
-                    //       effectively, _ctr_1, 2, and 3 are merely there as additional constant seed values
-                    val offset:UInt32 = tile.to[UInt32] + i.to[UInt32]
-
-                    _ctr_0(i) = ctr_0 + offset
-                    _ctr_1(i) = ctr_1
-                    _ctr_2(i) = ctr_2
-                    _ctr_3(i) = ctr_3
-                }
-
-                // Philox rounds of computation
                 Sequential.Foreach(num_rounds by 1){r =>
                     Foreach(actualTileSize by 1 par ip){i =>
                         val offset:UInt32 = tile.to[UInt32] + i.to[UInt32]
 
-                        // key update according to weyl sequence
                         val _key_0:UInt32 = key_0 + (weyl_0 * r.to[UInt32])
                         val _key_1:UInt32 = key_1 + (weyl_1 * r.to[UInt32])
 
                         // philox sbox and pbox
-                        val (hi_0, lo_0) = mul_32(_ctr_0(i), mult_0)
-                        val (hi_1, lo_1) = mul_32(_ctr_2(i), mult_1)
+                        val (hi_0, lo_0) = mul_32(mux(r != 0, _ctr_0(i), ctr_0 + offset), mult_0)
+                        val (hi_1, lo_1) = mul_32(mux(r != 0, _ctr_2(i), ctr_2), mult_1)
 
-                        _ctr_0(i) = hi_1 ^ _key_0 ^ _ctr_1(i)
+                        _ctr_0(i) = hi_1 ^ _key_0 ^ mux(r != 0, _ctr_1(i), ctr_1)
                         _ctr_1(i) = lo_1
-                        _ctr_2(i) = hi_0 ^ _key_1 ^ _ctr_3(i)
+                        _ctr_2(i) = hi_0 ^ _key_1 ^ mux(r != 0, _ctr_3(i), ctr_3)
                         _ctr_3(i) = lo_0
                     }
                 }
