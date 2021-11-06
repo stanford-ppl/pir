@@ -61,3 +61,6 @@ spatialc
 rerun
 
 gen*
+
+pir/regression/gold/philox
+pir/regression/gold/squares
