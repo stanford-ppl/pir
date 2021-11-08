@@ -1,4 +1,8 @@
+import argon._
+import spatial.metadata.memory._
+
 import spatial.dsl._
+
 // --merge=false pir (bin/test)
 class Philox_0 extends Philox
 
@@ -37,6 +41,11 @@ class Philox_0 extends Philox
                 val _ctr_1 = SRAM[UInt32](tileSize)
                 val _ctr_2 = SRAM[UInt32](tileSize)
                 val _ctr_3 = SRAM[UInt32](tileSize)
+
+                _ctr_0.asInstanceOf[Sym[_]].setMemReduceAccum
+                _ctr_1.asInstanceOf[Sym[_]].setMemReduceAccum
+                _ctr_2.asInstanceOf[Sym[_]].setMemReduceAccum
+                _ctr_3.asInstanceOf[Sym[_]].setMemReduceAccum
 
                 val rand_out_fifo = FIFO[UInt32](16)
 
