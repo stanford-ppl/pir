@@ -21,7 +21,7 @@ import spatial.dsl._
           val mask = mux(j == 0 || j == 32, 0xA.to[U32], 0.to[U32])
           fifo.enq(mask)
         }
-        Reduce(Reg[T])(Scan(1, N, "or", fifo.deq)) { case List(j, xA) =>
+        Reduce(Reg[T])(Scan(1, N*32, "or", fifo.deq)) { case List(j, xA) =>
           val n_it = itCount(j)
           Reduce(Reg[T])(n_it by 1 par 1) { i =>
             1.to[Int]

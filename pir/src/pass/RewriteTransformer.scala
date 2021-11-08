@@ -460,7 +460,7 @@ class RewriteTransformer(implicit compiler:PIR) extends PIRTraversal with PIRTra
       return false
     }
     val matchInfinite = r1.retiming.get || r2.retiming.get
-    var matchrate = matchRate(r1, w2, matchInfinite) 
+    var matchrate = matchRate(r1, w2, matchInfinite) || r1.retiming.get || r2.retiming.get
     if (r1.isFIFO) {
       val r1w1Match = matchRate(w1,r1, matchInfinite) || r1.retiming.get
       val r2w2Match = matchRate(w2,r2, matchInfinite) || r2.retiming.get

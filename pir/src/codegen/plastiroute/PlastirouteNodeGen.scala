@@ -25,7 +25,10 @@ class PlastirouteNodeGen(implicit compiler: PIR) extends PlastisimCodegen with C
     row("tp") = (cuS.params.get match {
       case param:ArgFringeParam => 0
       case param:MCParam => 1
+      // case param:PMUParam => if (param.isSparse != 0) 5 else 2
       case param:PMUParam => 2
+      case param:SpMUParam => 5
+      // case param:PMUParam if param.isSparse == 0 => 2
       case param:DramAGParam => 3
       case param:PCUParam => 4
     })

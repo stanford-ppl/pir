@@ -63,6 +63,7 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
 
   private def lowerScratchpadFIFO(mem:Memory) = {
     val reader = mem.outAccesses.head.as[MemRead]
+    val toscan = reader.toScanController.get 
     val writer = mem.inAccesses.head.as[MemWrite]
     val sramDepth = sramParam.sizeInWord / reader.getVec
     within(pirTop, reader.getCtrl) {
@@ -85,7 +86,15 @@ trait LocalMemoryLowering extends GenericMemoryLowering {
       delay.out.connected.foreach { in =>
         bufferInput(in).foreach { read =>
           read.en(readEn)
+          dbg(s"Read: ${in}")
         }
+        dbg(s"ToScan: ${toscan}")
+        dbg(s"In: ${in}")
+        dbg(s"In.T: ${in.connected.head}")
+        dbg(s"In.T.parent: ${in.connected.head.src}")
+        // dbg(s"In.T.MemRead: ${in.connected.head.T.asInstanceOf[MemRead]}")
+        in.connected.head.src.asInstanceOf[BufferRead].toScanController(toscan)
+        // in.toScanController(reader.toScanController.get)
       }
     }
   }

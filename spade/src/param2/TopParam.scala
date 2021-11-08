@@ -53,11 +53,13 @@ case class Checkerboard(
   col:Int=8,
   cu1:CUParam=PCUParam(),
   cu2:CUParam=PMUParam(),
+  cu3:CUParam=SpMUParam(),
   fringePattern:FringePattern=FringePattern(),
   networkParams:List[NetworkParam]=List(NetworkParam("bit"), NetworkParam("word"), NetworkParam("vec", numVC=4))
 ) extends GridPattern {
   def cuAt(i:Int, j:Int) = {
-    if ((i+j) % 2 == 0) cu1 else cu2
+    if ((i+j) % 2 == 0) cu1 else if ((i+j)%4 == 1) cu3 else cu2
+    // if ((i+j) % 2 == 0) cu1 else cu3
   }
 }
 
@@ -121,6 +123,7 @@ case class BundleParam() extends Parameter {
 
 case class SRAMParam (
   bank:Int = 16,
+  isSparse:Int = 0,
   capacity:Int= 256 * 1024 // in Byte
 ) extends Parameter {
   lazy val topParam = traceOut[TopParam]
@@ -218,7 +221,30 @@ case class PMUParam(
   numStage:Int=6,
   ops:Set[Opcode]=noFltOps,
   numReg:Int=16,
-  sramParam:SRAMParam=SRAMParam(bank=16),
+  sramParam:SRAMParam=SRAMParam(bank=16, isSparse=0),
+  numSin:Int=16,
+  numSout:Int=8,
+  numVin:Int=8,
+  numVout:Int=8,
+  numSplitter:Int=0,
+  numLock:Int=1,
+  numCtx:Int = 6,
+  numMergeBuffer:Int=0,
+  mergeBufferWays:Int=0,
+) extends CUParam
+
+case class SpMUParam(
+  fifoParams:List[FIFOParam]=List(
+    FIFOParam("bit",count=16,depth=1000),
+    FIFOParam("word",count=8,depth=4),
+    FIFOParam("vec",count=4,depth=4)
+  ),
+  numPCU:Int=0,
+  numCounters:Int=16,
+  numStage:Int=6,
+  ops:Set[Opcode]=noFltOps,
+  numReg:Int=16,
+  sramParam:SRAMParam=SRAMParam(bank=16, isSparse=1),
   numSin:Int=16,
   numSout:Int=8,
   numVin:Int=8,

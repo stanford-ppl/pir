@@ -459,6 +459,7 @@ case class AccumAck()(implicit env:Env) extends Def {
 }
 trait DelayOp extends Def {
   val cycle:Int
+  // val toScanController = Metadata[Boolean]("toScanController", default=false)
   val in = InputField[PIRNode]
   override def compVec(n:IR) = n match {
     case `out` => in.inferVec
