@@ -50,7 +50,7 @@ class Philox_0 extends Philox
                 val rand_out_fifo = FIFO[UInt32](16)
 
                 Foreach(num_rounds by 1 par 1){r =>
-                    Foreach(tileSize by 1 par ip){i => 
+                    Pipe.Foreach(tileSize by 1 par ip){i => 
                         val offset:UInt32 = tile.to[UInt32] + i.to[UInt32]
 
                         val _key_0:UInt32 = key_0 + (weyl_0 * r.to[UInt32])
