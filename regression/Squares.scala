@@ -1,12 +1,15 @@
 import spatial.dsl._
 class Squares_0 extends Squares
+class Squares_2 extends Squares(op=2)
+class Squares_4 extends Squares(op=4)
+class Squares_8 extends Squares(op=8)
 
 @spatial abstract class Squares(
     len:scala.Int = 131072,
+    op:scala.Int = 1,
     tileSize:scala.Int = 8192
 ) extends SpatialTest { self =>
 
-    val op:scala.Int = 4
     val ip:scala.Int = 16
 
     def mul_32(x: UInt32, y: UInt32): (UInt32, UInt32) = {
