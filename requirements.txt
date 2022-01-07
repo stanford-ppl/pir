@@ -1,6 +1,6 @@
 backcall==0.1.0
 cachetools==3.1.1
-cvxopt==1.2.3
+cvxopt==1.2.7
 cvxpy==1.0.25
 decorator==4.4.0
 dill==0.3.1.1
