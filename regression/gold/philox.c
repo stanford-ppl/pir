@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define NUM_ROUNDS 1
+#define NUM_ROUNDS 7
 #define MULT_0 0xD2511F53
 #define MULT_1 0xCD9E8D57
 #define WEYL_0 0x9E3779B9
@@ -23,7 +23,6 @@ void single_round(uint32_t ctr[4], const uint32_t key[2]) {
     ctr[1] = lo1;
     ctr[2] = hi0 ^ key[1] ^ ctr[3];
     ctr[3] = lo0;
-    printf("hi_1: %u, lo_1: %u, _key_1: %u\n", hi1, lo1, key[1]);
 }
 
 void philox_compute(const uint32_t ctr[4], const uint32_t key[2], uint32_t out[4]) {

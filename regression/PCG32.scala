@@ -3,8 +3,8 @@ import spatial.dsl._
 class PCG32_0 extends PCG32
 
 @spatial abstract class PCG32(
-    len:scala.Int = 128,
-    tileSize:scala.Int = 40
+    len:scala.Int = 32768,
+    tileSize:scala.Int = 8192
 ) extends SpatialTest { self =>
 
     val mult_lo:UInt32 = 0x4C957F2D
@@ -13,29 +13,7 @@ class PCG32_0 extends PCG32
     val incr_hi:UInt32  = 0x14057B7E
 
     def mul_32(x: UInt32, y: UInt32): (UInt32, UInt32) = {
-        val a:UInt32 = x & 0xFFFF
-        val b:UInt32 = x >> 16
-        val c:UInt32 = y & 0xFFFF
-        val d:UInt32 = y >> 16
-
-        val ac:UInt32 = a * c
-        val ad:UInt32 = a * d
-        val bc:UInt32 = b * c
-        val bd:UInt32 = b * d
-
-        val ad_hi:UInt32 = ad >> 16
-        val ad_lo:UInt32 = ad << 16
-        val bc_hi:UInt32 = bc >> 16
-        val bc_lo:UInt32 = bc << 16
-
-        val acad:UInt32 = ac + ad_lo
-        val carry1:UInt32 = mux(acad < ac, 1.to[UInt32], 0.to[UInt32])
-        val bot:UInt32 = acad + bc_lo
-        val carry2:UInt32 = mux(bot < acad, 1.to[UInt32], 0.to[UInt32])
-
-        val top:UInt32 = bd + ad_hi + bc_hi + carry1 + carry2
-
-        (top, bot)
+        (mulh(x,y), x*y)
     }
 
     def mul_64(a: UInt32, b: UInt32, c: UInt32, d: UInt32): (UInt32, UInt32) = {
@@ -75,8 +53,8 @@ class PCG32_0 extends PCG32
 
             val sram = SRAM[UInt32](tileSize)
             Sequential.Foreach(len by tileSize){tile =>
-                val actualTileSize = min(tileSize, len - tile)
-                Sequential.Foreach(actualTileSize by 1){i =>
+                // val actualTileSize = min(tileSize, len - tile)
+                Sequential.Foreach(tileSize by 1){i =>
                     val _s_lo = mux(i+tile == 0, _init_lo, state_lo)
                     val _s_hi = mux(i+tile == 0, _init_hi, state_hi)
 
@@ -101,7 +79,7 @@ class PCG32_0 extends PCG32
                     sram(i) = rand
 
                 }
-                resDram(tile::tile+actualTileSize par 1) store sram
+                resDram(tile::tile+tileSize par 1) store sram
             }
         }
 
