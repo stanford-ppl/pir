@@ -3,7 +3,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define NUM_ROUNDS 7
+#define NUM_ROUNDS 1
 #define MULT_0 0xD2511F53
 #define MULT_1 0xCD9E8D57
 #define WEYL_0 0x9E3779B9
