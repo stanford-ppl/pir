@@ -43,6 +43,8 @@ class Philox_8 extends Philox(op=8)
         (_ctr_0_next, _ctr_1_next, _ctr_2_next, _ctr_3_next)
     }
 
+    // hybird between fully spatial and fully temporal
+    // support arbirary num_rounds, might not be divisible
     def philox_compute(key_0: UInt32,
                      key_1: UInt32,
                      r:     scala.Int,
@@ -63,7 +65,7 @@ class Philox_8 extends Philox(op=8)
 @spatial abstract class Philox(
     len:scala.Int = 131072,
     tileSize:scala.Int = 8192,
-    num_rounds:scala.Int = 1,
+    num_rounds:scala.Int = 7,
     op:scala.Int = 1
 ) extends SpatialTest { self =>
 
