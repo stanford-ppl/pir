@@ -52,24 +52,24 @@ class Pixelfly_16_2 extends Pixelfly(
             
             
             // Foreach(0 until V by 1) { v =>
-            for (i <- 1 to 3)
+            for (v <- 1 to V) {
                 s = s_list(v)
                 s_over_2 = s_over_2_list(v)
                 N_over_s = N_over_s_list(v)
 				
                 Foreach(0 until N_over_s by 1) { c =>
-					Foreach(0 until 2 by 1) { tv =>
-						Foreach(0 until s_over_2 by 1) { d => 
-							Foreach(0 until B by 1) { bv =>
-								val sum = Reduce(Reg[T])(0 until 2 by 1, 0 until B by 1) { (th, bh) =>
-									w_sram(c*2*s_over_2*B*2*B + tv*s_over_2*B*2*B + d*B*2*B + bv*2*B + th*B + bh) * in_sram(c*s*B + th*s_over_2*B + d*B + bh)
-								}{_+_}
-								out_sram(c*s*B + tv*s_over_2*B + d*B + bv) = out_sram(c*s*B + tv*s_over_2*B + d*B + bv) + sum
-							}
-						}
-					}                    
-				}
-			}
+                    Foreach(0 until 2 by 1) { tv =>
+                        Foreach(0 until s_over_2 by 1) { d => 
+                            Foreach(0 until B by 1) { bv =>
+                                val sum = Reduce(Reg[T])(0 until 2 by 1, 0 until B by 1) { (th, bh) =>
+                                    w_sram(c*2*s_over_2*B*2*B + tv*s_over_2*B*2*B + d*B*2*B + bv*2*B + th*B + bh) * in_sram(c*s*B + th*s_over_2*B + d*B + bh)
+                                }{_+_}
+                                out_sram(c*s*B + tv*s_over_2*B + d*B + bv) = out_sram(c*s*B + tv*s_over_2*B + d*B + bv) + sum
+                            }
+                        }
+                    }                    
+                }
+            }
             
             out(0::N*B par ip) store out_sram
         }
