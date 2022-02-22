@@ -29,11 +29,10 @@ class Pixelfly_16_2 extends Pixelfly(
     ip: scala.Int = 16
     
 ) extends SpatialTest with MetaProgramming with AppUtil {
-
-    type T = Float
-	
-    def main(args: Array[String]): Unit = {
     
+    type T = Float
+    
+    def main(args: Array[String]): Unit = {
         val w = DRAM[T](V*N*B*2*B)
         setMem(w, loadCSV1D[T](data + "/w.csv"))
         
@@ -51,13 +50,14 @@ class Pixelfly_16_2 extends Pixelfly(
             w_sram load w(0::V*N*B*2*B par ip)
             in_sram load in(0::N*B par ip)
             
-
-			Foreach(0 until V by 1) { v =>
-				s = s_list(v)
-				s_over_2 = s_over_2_list(v)
-				N_over_s = N_over_s_list(v)
+            
+            // Foreach(0 until V by 1) { v =>
+            for (i <- 1 to 3)
+                s = s_list(v)
+                s_over_2 = s_over_2_list(v)
+                N_over_s = N_over_s_list(v)
 				
-				Foreach(0 until N_over_s by 1) { c =>
+                Foreach(0 until N_over_s by 1) { c =>
 					Foreach(0 until 2 by 1) { tv =>
 						Foreach(0 until s_over_2 by 1) { d => 
 							Foreach(0 until B by 1) { bv =>
@@ -70,12 +70,10 @@ class Pixelfly_16_2 extends Pixelfly(
 					}                    
 				}
 			}
-			
-			
-			
+            
             out(0::N*B par ip) store out_sram
         }
-
+        
         writeCSV1D(getMem(out), data + "/out.csv")
         
         assert(true)
