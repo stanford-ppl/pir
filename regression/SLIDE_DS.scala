@@ -2,27 +2,6 @@ import spatial.dsl._
 import utils.io.files._
 import spatial.metadata.memory.{Barrier => _,_}
 
-class SLIDE_DS_16_1_1 extends SLIDE_DS(
-    data = "/home/kosho/IO/DS_16",
-    L1 = 16,
-    pipeFactor = 1,
-    op = 1
-)
-
-class SLIDE_DS_16_16_1 extends SLIDE_DS(
-    data = "/home/kosho/IO/DS_16",
-    L1 = 16,
-    pipeFactor = 16,
-    op = 1
-)
-
-class SLIDE_DS_16_1_4 extends SLIDE_DS(
-    data = "/home/kosho/IO/DS_16",
-    L1 = 16,
-    pipeFactor = 1,
-    op = 4
-)
-
 class SLIDE_DS_16_16_4 extends SLIDE_DS(
     data = "/home/kosho/IO/DS_16",
     L1 = 16,
@@ -30,55 +9,25 @@ class SLIDE_DS_16_16_4 extends SLIDE_DS(
     op = 4
 )
 
-
-
-class SLIDE_DS_32_1_1 extends SLIDE_DS(
-    data = "/home/kosho/IO/DS_32",
-    L1 = 32,
-    pipeFactor = 1,
-    op = 1
-)
-
-class SLIDE_DS_32_16_1 extends SLIDE_DS(
-    data = "/home/kosho/IO/DS_32",
-    L1 = 32,
-    pipeFactor = 16,
-    op = 1
-)
-
-class SLIDE_DS_32_1_4 extends SLIDE_DS(
-    data = "/home/kosho/IO/DS_32",
-    L1 = 32,
-    pipeFactor = 1,
-    op = 4
-)
-
-class SLIDE_DS_32_16_4 extends SLIDE_DS(
-    data = "/home/kosho/IO/DS_32",
-    L1 = 32,
-    pipeFactor = 16,
-    op = 4
-)
-
 @spatial abstract class SLIDE_DS(
     numBatch:scala.Int = 128,
     epoch:scala.Int = 1,
-    field:scala.Int = 1000,
-    L2:scala.Int = 8000,
+    field:scala.Int = 5, // total
+    L2:scala.Int = 10240, // total
     K_l2:scala.Int = 3,
     L_l2:scala.Int = 3,
     row_l2:scala.Int = 8,
-    bucket:scala.Int = 1000,
+    bucket:scala.Int = 1280, // actual
     ratio:scala.Int = 3,
     lr:scala.Float = 1e-3f,
-    input_max:scala.Int = 75,
-    ip:scala.Int = 16,
-    op2:scala.Int = 1,
+    input_max:scala.Int = 5, // actual
     
     data:java.lang.String = "/home/kosho/IO/DS_16",
     L1:scala.Int = 16,
-    pipeFactor:scala.Int = 1,
-    op:scala.Int = 1
+    pipeFactor:scala.Int = 16,
+    op:scala.Int = 4,
+    ip:scala.Int = 16,
+    op2:scala.Int = 1
     
 ) extends SpatialTest with AppUtil {
 
