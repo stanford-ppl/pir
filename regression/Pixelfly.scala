@@ -78,10 +78,10 @@ class Pixelfly_16_2 extends Pixelfly(
             
           
             
-            out(0::N*B par ip) store out_sram
+            // out(0::N*B par ip) store out_sram
         }
         
-        writeCSV1D(getMem(out), data + "/out.csv")
+        // writeCSV1D(getMem(out), data + "/out.csv")
         
         assert(true)
     }
