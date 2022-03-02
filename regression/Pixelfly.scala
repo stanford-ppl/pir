@@ -53,81 +53,77 @@ class Pixelfly_1024_4_128 extends Pixelfly( // Pixelfly_N_B_batch
         
         val out = DRAM[T](batch*N*B)
         
+        val err_in = DRAM[T](batch*N*B)
+        
         Accel {
-            val w_sram = SRAM[T](V*N*B*2*B)    
-            w_sram load w(0::V*N*B*2*B par ip)
+            val w_sram = (0 to V-1) map {i => SRAM[T](N*B*2*B)} // unrolled on V
             
-            
-            val tmp_w_sram = (0 to V-1) map {i => SRAM[T](V*N*B*2*B)}
-            
-            
-            Foreach(0 until V*N*B*2*B by 1 par ip) { i =>
-                val tmp = w_sram(i)
-                for (v <- 0 to V-1) {
-                    tmp_w_sram(v)(i) = tmp
-                }
+            for (v <- 0 to V-1) {    
+                w_sram(v) load w(v*N*B*2*B::(v+1)*N*B*2*B par ip)
             }
-            
             
             
             Foreach(0 until batch by 1) { ba =>
             
                 val in_sram = SRAM[T](N*B)
-                val out_sram = SRAM[T](N*B)
-            
-                
                 in_sram load in(ba*N*B::(ba+1)*N*B par ip) 
                 
-                val tmp_out_sram = (0 to V-1) map {i => SRAM[T](N*B)} 
                 
+                val tmp_out_sram = (0 to V-1) map {i => SRAM[T](N*B)} 
                 for (v <- 0 to V-1) {
                     val s = s_list(v)
                     val s_over_2 = s_over_2_list(v)
                     val N_over_s = N_over_s_list(v)
                     
-                    val v_spatial = v.to[Int]
-                    
-                    
-                    
                     Foreach(0 until N_over_s by 1, 0 until 2 by 1, 0 until s_over_2 by 1, 0 until B by 1) { case Seq(c, tv, d, bv) =>
                         val sum = Reduce(Reg[T])(0 until 2 by 1 par 2, 0 until B by 1 par B) { (th, bh) =>
-                            tmp_w_sram(v)(v_spatial*N*2*B*B + c*2*s*B*B + tv*s*B*B + d*B*2*B + bv*2*B + th*B + bh) * in_sram(c*s*B + th*s_over_2*B + d*B + bh)
+                            w_sram(v)(c*2*s*B*B + tv*s*B*B + d*B*2*B + bv*2*B + th*B + bh) * in_sram(c*s*B + th*s_over_2*B + d*B + bh)
                         }{_+_}
                         tmp_out_sram(v)(c*s*B + tv*s_over_2*B + d*B + bv) = sum                 
                     }
                 } 
                 
+                val out_sram = SRAM[T](N*B)
                 Foreach(0 until N*B by 1) { i =>
                     out_sram(i) = tmp_out_sram map {a => a(i)} reduceTree{_+_} 
-                } 
+                }
+
+
+                
+                
+                val tmp_err_in_sram = (0 to V-1) map {i => SRAM[T](N*B)} 
+                for (v <- 0 to V-1) {
+                    val s = s_list(v)
+                    val s_over_2 = s_over_2_list(v)
+                    val N_over_s = N_over_s_list(v)
                     
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
-                    
+                    Foreach(0 until N_over_s by 1, 0 until 2 by 1, 0 until s_over_2 by 1, 0 until B by 1) { case Seq(c, th, d, bh) =>
+                        val sum = Reduce(Reg[T])(0 until 2 by 1 par 2, 0 until B by 1 par B) { (tv, bv) =>
+                            w_sram(v)(c*2*s*B*B + tv*s*B*B + d*B*2*B + bv*2*B + th*B + bh) * out_sram(c*s*B + tv*s_over_2*B + d*B + bv)
+                        }{_+_}
+                        tmp_err_in_sram(v)(c*s*B + th*s_over_2*B + d*B + bh) = sum                 
+                    }
+                }
+                
+                val err_in_sram = SRAM[T](N*B)
+                Foreach(0 until N*B by 1) { i =>
+                    err_in_sram(i) = tmp_err_in_sram map {a => a(i)} reduceTree{_+_} 
+                }
+
+
+
+
+
+                
                 
                 out(ba*N*B::(ba+1)*N*B par ip) store out_sram  
+                err_in(ba*N*B::(ba+1)*N*B par ip) store err_in_sram  
             }
                  
         }
         
         writeCSV1D(getMem(out), data+"/out.csv", delim="\n")
+        writeCSV1D(getMem(err_in), data+"/err_in.csv", delim="\n")
         
         assert(true)
     }
