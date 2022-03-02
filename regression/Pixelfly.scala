@@ -21,7 +21,7 @@ class Pixelfly_1024_4_128 extends Pixelfly( // Pixelfly_N_B_batch
     N = 1024,
     B = 4,
     V = 10,
-    data = "/home/kosho/data/1024_10_128",
+    data = "/home/kosho/data/1024_4_128",
     s_list = List(1024, 512, 256, 128, 64, 32, 16, 8, 4, 2),
     s_over_2_list = List(512, 256, 128, 64, 32, 16, 8, 4, 2, 1),
     N_over_s_list = List(1, 2, 4, 8, 16, 32, 64, 128, 256, 512),
@@ -60,11 +60,14 @@ class Pixelfly_1024_4_128 extends Pixelfly( // Pixelfly_N_B_batch
             
             val tmp_w_sram = (0 to V-1) map {i => SRAM[T](V*N*B*2*B)}
             
-            for (v <- 0 to V-1) {
-                Foreach(0 until V*N*B*2*B by 1 par ip) { i =>
-                    tmp_w_sram(v)(i) = w_sram(i)
+            
+            Foreach(0 until V*N*B*2*B by 1 par ip) { i =>
+                val tmp = w_sram(i)
+                for (v <- 0 to V-1) {
+                    tmp_w_sram(v)(i) = tmp
                 }
             }
+            
             
             
             Foreach(0 until batch by 1) { ba =>
@@ -96,7 +99,28 @@ class Pixelfly_1024_4_128 extends Pixelfly( // Pixelfly_N_B_batch
                 
                 Foreach(0 until N*B by 1) { i =>
                     out_sram(i) = tmp_out_sram map {a => a(i)} reduceTree{_+_} 
-                }           
+                } 
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
+                    
                 
                 out(ba*N*B::(ba+1)*N*B par ip) store out_sram  
             }
