@@ -67,11 +67,11 @@ class Pixelfly_1024_4_128 extends Pixelfly( // Pixelfly_N_B_batch
             
             Foreach(0 until batch by 1) { ba =>
             
-                val in_sram = SRAM[T](N*B)
+                val in_sram = SRAM[T](N*B).buffer
                 in_sram load in(ba*N*B::(ba+1)*N*B par ip) 
                 
                 
-                val tmp_out_sram = (0 to V-1) map {i => SRAM[T](N*B)} 
+                val tmp_out_sram = (0 to V-1) map {i => SRAM[T](N*B).buffer} 
                 for (v <- 0 to V-1) {
                     val s = s_list(v)
                     val s_over_2 = s_over_2_list(v)
@@ -85,7 +85,7 @@ class Pixelfly_1024_4_128 extends Pixelfly( // Pixelfly_N_B_batch
                     }
                 } 
                 
-                val out_sram = SRAM[T](N*B)
+                val out_sram = SRAM[T](N*B).buffer
                 Foreach(0 until N*B by 1) { i =>
                     out_sram(i) = tmp_out_sram map {a => a(i)} reduceTree{_+_} 
                 }
@@ -97,7 +97,7 @@ class Pixelfly_1024_4_128 extends Pixelfly( // Pixelfly_N_B_batch
                 
 
 
-                val tmp_err_in_sram = (0 to V-1) map {i => SRAM[T](N*B)} 
+                val tmp_err_in_sram = (0 to V-1) map {i => SRAM[T](N*B).buffer} 
                 val w_new_sram = (0 to V-1) map {i => SRAM[T](N*B*2*B).buffer}
                 val w_transpose = (0 to V-1) map {i => SRAM[T](N*B*2*B).buffer}
                 
@@ -132,7 +132,7 @@ class Pixelfly_1024_4_128 extends Pixelfly( // Pixelfly_N_B_batch
                 
                 
                 
-                val err_in_sram = SRAM[T](N*B)
+                val err_in_sram = SRAM[T](N*B).buffer
                 Foreach(0 until N*B by 1) { i =>
                     err_in_sram(i) = tmp_err_in_sram map {a => a(i)} reduceTree{_+_} 
                 }
