@@ -46,45 +46,40 @@ class Pixelfly_1024_4_128 extends Pixelfly( // Pixelfly_N_B_batch
     type T = Float
     
     def main(args: Array[String]): Unit = {
+        val w = DRAM[T](V*N*B*2*B)
+        setMem(w, loadCSV1D[T](data+"/w.csv"))
         
-        // val w_dram = (0 to V-1) map { i =>
-            // DRAM[T](N/2, 2, B, 2, B) 
-            // setMem(w_dram(i), loadCSV1D[T](data+s"/w_$i.csv"))
-        // }
-        
-        
-        
-        
-        
-        val in = DRAM[T](batch, N, B)
+        val in = DRAM[T](batch*N*B)
         setMem(in, loadCSV1D[T](data+"/in.csv"))
         
-        val out = DRAM[T](batch, N, B)
+        val out = DRAM[T](batch*N*B)
         
-        val err_in = DRAM[T](batch, N, B)
-        
-        
-        // val w_modified = (0 to V-1) map { i =>
-            // DRAM[T](N/2, 2, B, 2, B)
-        // }
-        
-        
+        val err_in = DRAM[T](batch*N*B)
+        val w_modified = DRAM[T](V*N*B*2*B)
         
         Accel {
-            // val w_sram = (0 to V-1) map {i => SRAM[T](N/2, 2, B, 2, B).buffer}
+            val w_sram = (0 to V-1) map {i => SRAM[T](N*B*2*B).buffer} // unrolled on V
             
-            // for (v <- 0 to V-1) {    
-                // w_sram(v) load w(v, N*B*2*B::N*B*2*B par ip)
-            // }
+            for (v <- 0 to V-1) {    
+                w_sram(v) load w(v*N*B*2*B::(v+1)*N*B*2*B par ip)
+            }
             
             
             Foreach(0 until batch) { ba =>
             
-                val in_sram = SRAM[T](N, B).buffer
-                in_sram load in(ba::(ba+1), 0::N, 0::B par ip) 
+                val in_sram = SRAM[T](N*B).buffer
+                in_sram load in(ba*N*B::(ba+1)*N*B par ip) 
                 
                 
-                val tmp_out_sram = (0 to V-1) map {i => SRAM[T](N, B).buffer} 
+                val out_sram = SRAM[T](N*B).buffer  
+                val tmp_out_sram = (0 to V-1) map {i => SRAM[T](N*B).buffer} 
+                
+                val tmp_err_in_sram = (0 to V-1) map {i => SRAM[T](N*B).buffer} 
+                val err_in_sram = SRAM[T](N*B).buffer
+                
+                val w_new_sram = (0 to V-1) map {i => SRAM[T](N*B*2*B).buffer}
+                
+                
                 for (v <- 0 to V-1) {
                     val s = s_list(v)
                     val s_over_2 = s_over_2_list(v)
@@ -92,48 +87,48 @@ class Pixelfly_1024_4_128 extends Pixelfly( // Pixelfly_N_B_batch
                     
                     Foreach(0 until N_over_s, 0 until 2, 0 until s_over_2, 0 until B) { case Seq(c, tv, d, bv) =>
                         val sum = Reduce(Reg[T])(0 until 2 par 2, 0 until B par B) { (th, bh) =>
-                            w_sram(v)(c*2*s*B*B + tv*s*B*B + d*B*2*B + bv*2*B + th*B + bh) * in_sram(c*s + th*s_over_2 + d, bh)
+                            w_sram(v)(c*2*s*B*B + tv*s*B*B + d*B*2*B + bv*2*B + th*B + bh) * in_sram(c*s*B + th*s_over_2*B + d*B + bh)
                         }{_+_}
-                        tmp_out_sram(v)(c*s + tv*s_over_2 + d, bv) = sum                 
+                        tmp_out_sram(v)(c*s*B + tv*s_over_2*B + d*B + bv) = sum                 
                     }
                 } 
                 
-                val out_sram = SRAM[T](N, B).buffer
-                Foreach(0 until N, 0 until B) { (i, j) =>
-                    out_sram(i, j) = tmp_out_sram map {a => a(i, j)} reduceTree{_+_}
+                
+                Foreach(0 until N*B) { i =>
+                    out_sram(i) = tmp_out_sram map {a => a(i)} reduceTree{_+_} 
                 }
 
 
-                
-                
-                
-                
 
 
-                val tmp_err_in_sram = (0 to V-1) map {i => SRAM[T](N, B).buffer} 
-                val w_new_sram = (0 to V-1) map {i => SRAM[T](N*B*2*B).buffer}
                 
                 for (v <- 0 to V-1) {
                     val s = s_list(v)
                     val s_over_2 = s_over_2_list(v)
                     val N_over_s = N_over_s_list(v)
-
-                    Foreach(0 until N_over_s, 0 until 2, 0 until s_over_2, 0 until B par B, 0 until 2 par 2, 0 until B par B) { case Seq(c, tv, d, bv, th, bh) =>
-                        val read_w = w_sram(v)(c*2*s*B*B + tv*s*B*B + d*B*2*B + bv*2*B + th*B + bh)
-                        val read_out = out_sram(c*s + tv*s_over_2 + d, bv)
-                        val read_in = in_sram(c*s + th*s_over_2 + d, bh)
-                        
-                        w_new_sram(v)(c*2*s*B*B + tv*s*B*B + d*B*2*B + bv*2*B + th*B + bh) = read_w - lr * read_in * read_out
-                    }
                     
                     Foreach(0 until N_over_s, 0 until 2, 0 until s_over_2, 0 until B) { case Seq(c, th, d, bh) =>
                         val sum = Reduce(Reg[T])(0 until 2 par 2, 0 until B par B) { (tv, bv) =>
-                            w_sram(v)(c*2*s*B*B + th*s*B*B + d*B*2*B + bh*2*B + tv*B + bv) * out_sram(c*s + tv*s_over_2 + d, bv) 
+                            w_sram(v)(c*2*s*B*B + tv*s*B*B + d*B*2*B + bv*2*B + th*B + bh) * out_sram(c*s*B + tv*s_over_2*B + d*B + bv) 
                         }{_+_}
-                        tmp_err_in_sram(v)(c*s + th*s_over_2 + d, bh) = sum                 
+                        tmp_err_in_sram(v)(c*s*B + th*s_over_2*B + d*B + bh) = sum                 
                     }
                     
                     
+                    
+                    Foreach(0 until N_over_s, 0 until 2, 0 until s_over_2, 0 until B par B, 0 until 2 par 2, 0 until B par B) { case Seq(c, tv, d, bv, th, bh) =>
+                        val read_w = w_sram(v)(c*2*s*B*B + tv*s*B*B + d*B*2*B + bv*2*B + th*B + bh)
+                        val read_out = out_sram(c*s*B + tv*s_over_2*B + d*B + bv)
+                        val read_in = in_sram(c*s*B + th*s_over_2*B + d*B + bh)
+                        
+                        w_new_sram(v)(c*2*s*B*B + tv*s*B*B + d*B*2*B + bv*2*B + th*B + bh) = read_w - lr * read_in * read_out
+                    }    
+                    
+                }
+                
+                
+                
+                for (v <- 0 to V-1) {
                     Foreach(0 until N*B*2*B par ip) { i =>
                         w_sram(v)(i) = w_new_sram(v)(i)
                     }
@@ -142,14 +137,13 @@ class Pixelfly_1024_4_128 extends Pixelfly( // Pixelfly_N_B_batch
                 
                 
                 
-                val err_in_sram = SRAM[T](N, B).buffer
-                Foreach(0 until N, 0 until B) { (i, j) =>
-                    err_in_sram(i, j) = tmp_err_in_sram map {a => a(i, j)} reduceTree{_+_} 
+                Foreach(0 until N*B) { i =>
+                    err_in_sram(i) = tmp_err_in_sram map {a => a(i)} reduceTree{_+_} 
                 }
                 
                 
-                out(ba::(ba+1), 0::N, 0::B par ip) store out_sram  
-                err_in(ba::(ba+1), 0::N, 0::B par ip) store err_in_sram
+                out(ba*N*B::(ba+1)*N*B par ip) store out_sram  
+                err_in(ba*N*B::(ba+1)*N*B par ip) store err_in_sram
                     
             }
             
