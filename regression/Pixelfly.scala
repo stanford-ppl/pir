@@ -14,7 +14,7 @@ class Pixelfly_16_2_128 extends Pixelfly( // Pixelfly_N_B_batch
     s_list = List(16, 8, 4, 2),
     s_over_2_list = List(8, 4, 2, 1),
     N_over_s_list = List(1, 2, 4, 8),
-    batch = 128
+    batch = 1280
 )
 
 class Pixelfly_16_4_128 extends Pixelfly( // Pixelfly_N_B_batch
@@ -25,7 +25,7 @@ class Pixelfly_16_4_128 extends Pixelfly( // Pixelfly_N_B_batch
     s_list = List(16, 8, 4, 2),
     s_over_2_list = List(8, 4, 2, 1),
     N_over_s_list = List(1, 2, 4, 8),
-    batch = 128
+    batch = 1280
 )
 
 class Pixelfly_32_2_128 extends Pixelfly( // Pixelfly_N_B_batch
@@ -36,7 +36,7 @@ class Pixelfly_32_2_128 extends Pixelfly( // Pixelfly_N_B_batch
     s_list = List(32, 16, 8, 4, 2),
     s_over_2_list = List(16, 8, 4, 2, 1),
     N_over_s_list = List(1, 2, 4, 8, 16),
-    batch = 128
+    batch = 1280
 )
 
 class Pixelfly_32_4_128 extends Pixelfly( // Pixelfly_N_B_batch
@@ -47,7 +47,7 @@ class Pixelfly_32_4_128 extends Pixelfly( // Pixelfly_N_B_batch
     s_list = List(32, 16, 8, 4, 2),
     s_over_2_list = List(16, 8, 4, 2, 1),
     N_over_s_list = List(1, 2, 4, 8, 16),
-    batch = 128
+    batch = 1280
 )
 
 @spatial abstract class Pixelfly(
@@ -70,7 +70,7 @@ class Pixelfly_32_4_128 extends Pixelfly( // Pixelfly_N_B_batch
     def main(args: Array[String]): Unit = {
         val w = (0 to V-1) map {v => DRAM[T](N_over_s_list(v), s_over_2_list(v), 2, B, 2, B)}
         for (v <- 0 to V-1) {
-            setMem(w(v), loadCSV1D[T](data+"/w_"+v.toString+".csv"))
+            setMem(w(v), loadCSV1D[T](data+"/w.csv"))
         }
         
         val in = DRAM[T](batch, N*B)
@@ -84,7 +84,7 @@ class Pixelfly_32_4_128 extends Pixelfly( // Pixelfly_N_B_batch
             val w_sram = (0 to V-1) map {v => SRAM[T](N_over_s_list(v), s_over_2_list(v), 2, B, 2, B).buffer.hierarchical}
             
             for (v <- 0 to V-1) {
-                w_sram(v) load w(v)(0::N_over_s_list(v), 0::s_over_2_list(v), 0::2, 0::B, 0::2 par 2, 0::B par B)
+                w_sram(v) load w(v)(0::N_over_s_list(v), 0::s_over_2_list(v), 0::2, 0::B, 0::2, 0::B par B)
             }
             
             
