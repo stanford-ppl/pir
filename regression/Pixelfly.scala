@@ -6,44 +6,44 @@ import spatial.lib.metaprogramming._
 import java.io._
 import utils.io.files._
 
-class Pixelfly_16_2_128 extends Pixelfly( // Pixelfly_N_B_batch
+class Pixelfly_16_2_1280 extends Pixelfly( // Pixelfly_N_B_batch
     N = 16,
     B = 2,
-    V = 4,
-    data = "/home/kosho/data/16_2_128_test",
+    V = 1,
+    data = "/home/kosho/data/16_2_1280",
     s_list = List(16, 8, 4, 2),
     s_over_2_list = List(8, 4, 2, 1),
     N_over_s_list = List(1, 2, 4, 8),
     batch = 1280
 )
 
-class Pixelfly_16_4_128 extends Pixelfly( // Pixelfly_N_B_batch
+class Pixelfly_16_4_1280 extends Pixelfly( // Pixelfly_N_B_batch
     N = 16,
     B = 4,
-    V = 4,
-    data = "/home/kosho/data/16_4_128_test",
+    V = 1,
+    data = "/home/kosho/data/16_4_1280",
     s_list = List(16, 8, 4, 2),
     s_over_2_list = List(8, 4, 2, 1),
     N_over_s_list = List(1, 2, 4, 8),
     batch = 1280
 )
 
-class Pixelfly_32_2_128 extends Pixelfly( // Pixelfly_N_B_batch
+class Pixelfly_32_2_1280 extends Pixelfly( // Pixelfly_N_B_batch
     N = 32,
     B = 2,
-    V = 5,
-    data = "/home/kosho/data/32_2_128_test",
+    V = 1,
+    data = "/home/kosho/data/32_2_1280",
     s_list = List(32, 16, 8, 4, 2),
     s_over_2_list = List(16, 8, 4, 2, 1),
     N_over_s_list = List(1, 2, 4, 8, 16),
     batch = 1280
 )
 
-class Pixelfly_32_4_128 extends Pixelfly( // Pixelfly_N_B_batch
+class Pixelfly_32_4_1280 extends Pixelfly( // Pixelfly_N_B_batch
     N = 32,
     B = 4,
-    V = 5,
-    data = "/home/kosho/data/32_4_128_test",
+    V = 1,
+    data = "/home/kosho/data/32_4_1280",
     s_list = List(32, 16, 8, 4, 2),
     s_over_2_list = List(16, 8, 4, 2, 1),
     N_over_s_list = List(1, 2, 4, 8, 16),
@@ -116,9 +116,9 @@ class Pixelfly_32_4_128 extends Pixelfly( // Pixelfly_N_B_batch
                     
                     Foreach(0 until N_over_s, 0 until s_over_2, 0 until 2, 0 until B) { case Seq(c, d, tv, bv) =>
                         val sum = Reduce(Reg[T])(0 until 2 par 2, 0 until B par B) { (th, bh) =>
-                            w_sram(v)(c, d, tv, bv, th, bh) * in_sram(c*s*B + d*2*B + th*B + bh) // 10 CU, 6 CU
-                        }{_+_} // 14 CU
-                        tmp_out_sram(v)(c*s*B + d*2*B + tv*B + bv) = sum // 3 CU     
+                            w_sram(v)(c, d, tv, bv, th, bh) * in_sram(c*s*B + d*2*B + th*B + bh)
+                        }{_+_}
+                        tmp_out_sram(v)(c*s*B + d*2*B + tv*B + bv) = sum   
                     }                    
                 }
                 

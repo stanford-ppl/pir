@@ -6,52 +6,52 @@ import spatial.lib.metaprogramming._
 import java.io._
 import utils.io.files._
 
-class Pixelfly_test_16_2_128 extends Pixelfly_test( // Pixelfly_N_B_batch
+class Pixelfly_test_16_2_1280 extends Pixelfly_test( // Pixelfly_N_B_batch
     N = 16,
     B = 2,
-    V = 4,
-    data = "/home/kosho/data/16_2_128_test",
+    V = 1,
+    data = "/home/kosho/data/16_2_1280",
     s_list = List(16, 8, 4, 2),
     s_over_2_list = List(8, 4, 2, 1),
     n_times_b = 32,
     two_times_b = 4,
-    batch = 128
+    batch = 1280
 )
 
-class Pixelfly_test_16_4_128 extends Pixelfly_test( // Pixelfly_N_B_batch
+class Pixelfly_test_16_4_1280 extends Pixelfly_test( // Pixelfly_N_B_batch
     N = 16,
     B = 4,
-    V = 4,
-    data = "/home/kosho/data/16_4_128_test",
+    V = 1,
+    data = "/home/kosho/data/16_4_1280",
     s_list = List(16, 8, 4, 2),
     s_over_2_list = List(8, 4, 2, 1),
     n_times_b = 64,
     two_times_b = 8,
-    batch = 128
+    batch = 1280
 )
 
-class Pixelfly_test_32_2_128 extends Pixelfly_test( // Pixelfly_N_B_batch
+class Pixelfly_test_32_2_1280 extends Pixelfly_test( // Pixelfly_N_B_batch
     N = 32,
     B = 2,
-    V = 5,
-    data = "/home/kosho/data/32_2_128_test",
+    V = 1,
+    data = "/home/kosho/data/32_2_1280",
     s_list = List(32, 16, 8, 4, 2),
     s_over_2_list = List(16, 8, 4, 2, 1),
     n_times_b = 64,
     two_times_b = 4,
-    batch = 128
+    batch = 1280
 )
 
-class Pixelfly_test_32_4_128 extends Pixelfly_test( // Pixelfly_N_B_batch
+class Pixelfly_test_32_4_1280 extends Pixelfly_test( // Pixelfly_N_B_batch
     N = 32,
     B = 4,
-    V = 5,
-    data = "/home/kosho/data/32_4_128_test",
+    V = 1,
+    data = "/home/kosho/data/32_4_1280",
     s_list = List(32, 16, 8, 4, 2),
     s_over_2_list = List(16, 8, 4, 2, 1),
     n_times_b = 128,
     two_times_b = 8,
-    batch = 128
+    batch = 1280
 )
 
 @spatial abstract class Pixelfly_test(
@@ -119,14 +119,14 @@ class Pixelfly_test_32_4_128 extends Pixelfly_test( // Pixelfly_N_B_batch
                         val block_i = i / B
                         val offset_i = i % B
                         
-                        val sum = Reduce(Reg[T])(0 until two_times_b par two_times_b) { j =>
+                        val sum = Reduce(Reg[T])(0 until two_times_b) { j =>
                             val block_j = j / B
                             val offset_j = j % B
                             val dense_to_sparse = (block_i % s_over_2 + s_over_2 * block_j + s * (block_i / s)) * B + offset_j
                             
-                            w_sram(v)(i*two_times_b + j) * in_sram(dense_to_sparse) // 10 CU, 6 CU
-                        }{_+_} // 14 CU
-                        tmp_out_sram(v)(i) = sum // 3 CU             
+                            w_sram(v)(i*two_times_b + j) * in_sram(dense_to_sparse)
+                        }{_+_}
+                        tmp_out_sram(v)(i) = sum
                     }                    
                 }
 
@@ -145,7 +145,7 @@ class Pixelfly_test_32_4_128 extends Pixelfly_test( // Pixelfly_N_B_batch
                         val block_i = i / B
                         val offset_i = i % B
                         
-                        val sum = Reduce(Reg[T])(0 until two_times_b par two_times_b) { j =>
+                        val sum = Reduce(Reg[T])(0 until two_times_b) { j =>
                             val block_j = j / B
                             val offset_j = j % B
                             val dense_to_sparse = (block_i % s_over_2 + s_over_2 * block_j + s * (block_i / s)) * B + offset_j
@@ -155,7 +155,7 @@ class Pixelfly_test_32_4_128 extends Pixelfly_test( // Pixelfly_N_B_batch
                         tmp_err_in_sram(v)(i) = sum // 3 CU
                     
 
-                        Foreach(0 until two_times_b par two_times_b) { j =>
+                        Foreach(0 until two_times_b) { j =>
                             val block_j = j / B
                             val offset_j = j % B
                             val dense_to_sparse = (block_i % s_over_2 + s_over_2 * block_j + s * (block_i / s)) * B + offset_j
