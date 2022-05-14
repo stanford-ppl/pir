@@ -88,7 +88,7 @@ class Pixelfly_32_4_1280 extends Pixelfly( // Pixelfly_N_B_batch
             }
             
             
-            Foreach(0 until batch) { ba =>
+            Pipe.Foreach(0 until batch) { ba =>
             
                 val in_sram = SRAM[T](N*B).buffer // 14 MU
                 in_sram load in(ba, 0::N*B par ip) // 16 CU
@@ -116,10 +116,10 @@ class Pixelfly_32_4_1280 extends Pixelfly( // Pixelfly_N_B_batch
                     
                     Foreach(0 until N_over_s, 0 until s_over_2, 0 until 2, 0 until B) { case Seq(c, d, tv, bv) =>
                         val sum = Reduce(Reg[T])(0 until 2 par 2, 0 until B par B) { (th, bh) =>
-                            w_sram(v)(c, d, tv, bv, th, bh) * in_sram(c*s*B + d*2*B + th*B + bh)
+                            w_sram(v)(c, d, tv, bv, th, bh) * in_sram(c*s*B + d*B + th*s_over_2*B + bh)
                         }{_+_}
-                        tmp_out_sram(v)(c*s*B + d*2*B + tv*B + bv) = sum   
-                    }                    
+                        tmp_out_sram(v)(c*s*B + d*B + tv*s_over_2*B + bv) = sum
+                    }
                 }
                 
                 
@@ -138,8 +138,8 @@ class Pixelfly_32_4_1280 extends Pixelfly( // Pixelfly_N_B_batch
                     
                     Foreach(0 until N_over_s, 0 until s_over_2, 0 until 2, 0 until B, 0 until 2 par 2, 0 until B par B) { case Seq(c, d, tv, bv, th, bh) => // 21 CU
                         val read_w = w_sram(v)(c, d, tv, bv, th, bh) // 10 CU
-                        val read_in = in_sram(c*s*B + d*2*B + th*B + bh) // 6 CU
-                        val read_out = out_sram(c*s*B + d*2*B + tv*B + bv) // 5 CU
+                        val read_in = in_sram(c*s*B + d*B + th*s_over_2*B + bh) // 6 CU
+                        val read_out = out_sram(c*s*B + d*B + tv*s_over_2*B + bv) // 5 CU
                         
                         w_tmp_sram(v)(c, d, th, bh, tv, bv) = read_w * read_out // 10 CU     
                         w_new_sram(v)(c, d, tv, bv, th, bh) = read_w - lr * read_in * read_out // 10 CU
@@ -157,7 +157,7 @@ class Pixelfly_32_4_1280 extends Pixelfly( // Pixelfly_N_B_batch
                         val sum = Reduce(Reg[T])(0 until 2 par 2, 0 until B par B) { (tv, bv) =>
                             w_tmp_sram(v)(c, d, th, bh, tv, bv) // 13 CU
                         }{_+_} // 10 CU
-                        tmp_err_in_sram(v)(c*s*B + d*2*B + th*B + bh) = sum // 3 CU               
+                        tmp_err_in_sram(v)(c*s*B + d*B + th*s_over_2*B + bh) = sum // 3 CU               
                     }
                 }
                 

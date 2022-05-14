@@ -91,7 +91,7 @@ class Pixelfly_test_32_4_1280 extends Pixelfly_test( // Pixelfly_N_B_batch
             }
             
             
-            Foreach(0 until batch) { ba =>
+            Pipe.Foreach(0 until batch) { ba =>
             
                 val in_sram = SRAM[T](N*B).buffer // 14 MU
                 in_sram load in(ba, 0::N*B par ip) // 16 CU 
