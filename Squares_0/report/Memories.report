@@ -1,0 +1,173 @@
+---------------------------
+Estimated Total Memories: 
+---------------------------
+---------------------------
+
+
+
+---------------------------------------------------------------------
+Name: x223
+Type: StreamIn[Bit]
+Src:  Squares.scala:73:52
+Src:                  rand_d(tile::tile+tileSize par ip) store rand_s
+---------------------------------------------------------------------
+Symbol:     x223 = StreamInNew(BurstAckBus)
+Instances: 1
+
+
+Instance Summary: 
+  #0: Banked
+     Resource: SRAM
+     Depth:    1
+     Padding:  List(0)
+     Accum:    None
+     Banks:    1 <Flat>
+       Dims {0}: Cyclic: N=1, B=1, alpha=<1>, P=<1> (1 solutions, 0 checks)
+     Ports: 
+         0 [Type:WR]:
+         0 [Type:RD]:
+           - Mux Port #0: 
+             x246 = StreamInBankedRead(x223,ArrayBuffer(Set())) {}
+             rand_d(tile::tile+tileSize par ip) store rand_s (Squares.scala:73:52)
+               Directly Banked: false
+               Port: <offset: 0, castgroup: (0), broadcast: (0)>
+
+
+
+
+Control Tree: 
+x248: UnitPipe (-1) [Level: InnerControl, Loop: Single, Schedule: Sequenced]
+  x246: StreamInBankedRead
+---------------------------------------------------------------------
+
+
+
+
+---------------------------------------------------------------------
+Name: x222
+Type: StreamOut[Tup2[Fix[FALSE,_32,_0],Bit]]
+Src:  Squares.scala:73:52
+Src:                  rand_d(tile::tile+tileSize par ip) store rand_s
+---------------------------------------------------------------------
+Symbol:     x222 = StreamOutNew(BurstFullDataBus())
+Instances: 1
+
+
+Instance Summary: 
+  #0: Banked
+     Resource: SRAM
+     Depth:    1
+     Padding:  List(15)
+     Accum:    None
+     Banks:    16 <Hierarchical>
+       Dims {0}: Cyclic: N=16, B=1, alpha=<1>, P=<16> (16 solutions, 120 checks)
+     Ports: 
+         0 [Type:WR]:
+           - Mux Port #0: 
+             x243 = StreamOutBankedWrite(x222,ArrayBuffer(x242),ArrayBuffer(Set(b235))) {}
+             rand_d(tile::tile+tileSize par ip) store rand_s (Squares.scala:73:52)
+               Directly Banked: false
+               Port: <offset: -1, castgroup: (0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15), broadcast: (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)>
+
+         0 [Type:RD]:
+
+
+
+Control Tree: 
+x244: UnrolledForeach (-1) [Level: InnerControl, Loop: Looped, Schedule: Pipelined]
+  x243: StreamOutBankedWrite
+---------------------------------------------------------------------
+
+
+
+
+---------------------------------------------------------------------
+Name: x221
+Type: StreamOut[BurstCmd]
+Src:  Squares.scala:73:52
+Src:                  rand_d(tile::tile+tileSize par ip) store rand_s
+---------------------------------------------------------------------
+Symbol:     x221 = StreamOutNew(BurstCmdBus)
+Instances: 1
+
+
+Instance Summary: 
+  #0: Banked
+     Resource: SRAM
+     Depth:    1
+     Padding:  List(0)
+     Accum:    None
+     Banks:    1 <Flat>
+       Dims {0}: Cyclic: N=1, B=1, alpha=<1>, P=<1> (1 solutions, 0 checks)
+     Ports: 
+         0 [Type:WR]:
+           - Mux Port #0: 
+             x230 = StreamOutBankedWrite(x221,ArrayBuffer(x228),ArrayBuffer(Set(x229))) {}
+             rand_d(tile::tile+tileSize par ip) store rand_s (Squares.scala:73:52)
+               Directly Banked: false
+               Port: <offset: 0, castgroup: (0), broadcast: (0)>
+
+         0 [Type:RD]:
+
+
+
+Control Tree: 
+x231: UnitPipe (-1) [Level: InnerControl, Loop: Single, Schedule: Sequenced]
+  x230: StreamOutBankedWrite
+---------------------------------------------------------------------
+
+
+
+
+---------------------------------------------------------------------
+Name: rand_s_0 (x150)
+Type: SRAM1[Fix[FALSE,_32,_0]]
+Src:  Squares.scala:40:42
+Src:                  val rand_s = SRAM[UInt32](tileSize)
+---------------------------------------------------------------------
+Symbol:     x150 = SRAMNew(List(Const(8192)),SRAM1[Fix[FALSE,_32,_0]])
+Instances: 1
+
+
+Instance Summary: 
+  #0: Banked
+     Resource: SRAM
+     Depth:    2
+     Padding:  List(0)
+     Accum:    None
+     Banks:    16 <Hierarchical>
+       Dims {0}: Cyclic: N=16, B=1, alpha=<1>, P=<16> (150 solutions, 120 checks)
+     Ports: 
+         0 [Type:WR]:
+           - Mux Port #0: 
+             x219 = SRAMBankedWrite(x150,Vector(x214),Vector(List(x215)),Vector(x216),Vector(Set(b154, b149))) {}
+             rand_s(i) = x_7_hi (Squares.scala:69:31)
+               Directly Banked: false
+               Port: <offset: -1, castgroup: (0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15), broadcast: (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)>
+
+         0 [Type:RD]:
+         1 [Type:WR]:
+         1 [Type:RD]:
+           - Mux Port #0: 
+             x240 = SRAMBankedRead(x150,Vector(List(x236)),Vector(x237),Vector(Set(b235)),Vec[Fix[FALSE,_32,_0]]) {}
+             rand_d(tile::tile+tileSize par ip) store rand_s (Squares.scala:73:52)
+               Directly Banked: false
+               Port: <offset: -1, castgroup: (0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15), broadcast: (0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0)>
+
+         M [Type:WR]:
+         M [Type:RD]:
+
+
+
+Control Tree: 
+x250: UnrolledForeach (-1) [Level: OuterControl, Loop: Looped, Schedule: Pipelined]
+  x220: UnrolledForeach (-1) [Level: InnerControl, Loop: Looped, Schedule: Pipelined]
+    x219: SRAMBankedWrite
+  x249: UnitPipe (-1) [Level: OuterControl, Loop: Single, Schedule: Streaming]
+    x244: UnrolledForeach (-1) [Level: InnerControl, Loop: Looped, Schedule: Pipelined]
+      x240: SRAMBankedRead
+---------------------------------------------------------------------
+
+
+
+

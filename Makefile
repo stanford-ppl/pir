@@ -38,8 +38,8 @@ proute:
 	cd plastiroute && make CC=gcc Cpp=g++ CXX=g++ 
 
 tungsten:
-	# git submodule update --init tungsten
-	# cd tungsten && make Cpp=g++ CXX=g++ 
+	git submodule update --init tungsten
+	cd tungsten && make Cpp=g++ CXX=g++ 
 
 pull:
 	cd plastisim && git pull && git submodule update --init

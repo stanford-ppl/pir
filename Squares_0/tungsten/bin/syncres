@@ -1,0 +1,32 @@
+#!/usr/bin/python
+
+import argparse
+import os
+from shutil import copyfile
+
+parser = argparse.ArgumentParser(description='Sync generated resource with resource dir')
+parser.add_argument('-p', '--push', default=False, action='store_true', 
+    help='Push generated files to resource')
+parser.add_argument('-g', '--get', default=False, action='store_true', 
+    help='get resource to generated directory')
+parser.add_argument('-d', '--diff', default=False, action='store_true', 
+    help='diff files in resource and generated directory')
+(opts, args) = parser.parse_known_args()
+
+with open("TUNGSTEN_HOME", "r") as f:
+    tsthome = f.readline().strip()
+
+resHome = tsthome + "/plasticine/resources"
+for root, dirs, files in os.walk(resHome):
+    for f in files:
+        genPath = root.replace(resHome,".") + "/" + f
+        resPath = root + "/" + f
+        if opts.push:
+            copyfile(genPath, resPath)
+            print("cp {} {}".format(genPath,resPath))
+        if opts.get:
+            copyfile(resPath, genPath)
+            print("cp {} {}".format(resPath, genPath))
+        if opts.diff:
+            print("diff {} {}".format(resPath, genPath))
+            os.system("diff {} {}".format(resPath, genPath))

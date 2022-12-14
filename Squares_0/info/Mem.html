@@ -1,0 +1,265 @@
+<h3 id=x145><a href=IR.html#x145>x145</a> = DRAMHostNew(dims=[131072],zero=0)</h3>
+<a href=Top.html>dot<br></a>
+<text><strong>Name</strong>: rand_d<br></text>
+<text><strong>SrcCtx</strong>: Squares.scala:34:34<br></text>
+<text><strong>Type</strong>: DRAM1[Fix[FALSE,_32,_0]]<br></text>
+<text><strong>Aliases</strong>: 0033: x8<br></text>
+<text><strong>Consumers</strong>: [<a href=IR.html#x226>x226</a>, <a href=IR.html#x229>x229</a>, <a href=IR.html#x245>x245</a>, <a href=IR.html#x252>x252</a>]<br></text>
+<text><strong>ReadUses</strong>: []<br></text>
+<text><strong>DeepAliases</strong>: []<br></text>
+<text><strong>BroadcastAddress</strong>: false<br></text>
+<text><strong>ShallowAliases</strong>: [<a href=IR.html#x145>x145</a>]<br></text>
+<text><strong>Effects</strong>: Mutable<br></text>
+<h3 id=x150><a href=IR.html#x150>x150</a> = SRAMNew(dims=[8192],evidence$1=SRAM1[Fix[FALSE,_32,_0]])</h3>
+<a href=x250.html>dot<br></a>
+<text><strong>Name</strong>: rand_s_0<br></text>
+<text><strong>SrcCtx</strong>: Squares.scala:40:42<br></text>
+<text><strong>Type</strong>: SRAM1[Fix[FALSE,_32,_0]]<br></text>
+<text><strong>Aliases</strong>: 0033: x12<br></text>
+<text><strong>DefiningBlk</strong>: Blk(s=Some(<a href=IR.html#x250>x250</a>), block=0)<br></text>
+<text><strong>OriginalSym</strong>: <a href=IR.html#x12>x12</a><br></text>
+<text><strong>Consumers</strong>: [<a href=IR.html#x219>x219</a>, <a href=IR.html#x240>x240</a>, <a href=IR.html#x250>x250</a>]<br></text>
+<text><strong>ReadUses</strong>: []<br></text>
+<text><strong>Duplicates</strong><br></text>
+<ul style=list-style-type:disc>
+<li>
+<text><strong>banking</strong><br></text>
+<ul style=list-style-type:none>
+<li>Dims {0}: Cyclic: N=16, B=1, alpha=<1>, P=<16> (150 solutions, 120 checks)</li>
+</ul>
+<text><strong>depth</strong>: 2<br></text>
+<text><strong>padding</strong>: [0]<br></text>
+<text><strong>accType</strong>: None()<br></text>
+</li>
+</ul>
+<text><strong>Writers</strong>: [<a href=IR.html#x219>x219</a>]<br></text>
+<text><strong>DeepAliases</strong>: []<br></text>
+<text><strong>ParentCtrl</strong>: Ctrl(s=Some(<a href=IR.html#x250>x250</a>), stage=-1)<br></text>
+<text><strong>Readers</strong>: [<a href=IR.html#x240>x240</a>]<br></text>
+<text><strong>ProgramOrder</strong>: 3<br></text>
+<text><strong>ScopeCtrl</strong>: Scope(s=Some(<a href=IR.html#x250>x250</a>), stage=0, block=0)<br></text>
+<text><strong>Padding</strong>: [0]<br></text>
+<text><strong>BroadcastAddress</strong>: false<br></text>
+<text><strong>ShallowAliases</strong>: [<a href=IR.html#x150>x150</a>]<br></text>
+<text><strong>Effects</strong>: Mutable<br></text>
+<table border=3 cellpadding=10 cellspacing=10>
+<tbody>
+<tr>
+<th>writers(1)</th>
+<td>
+<h3 id=x219><a href=IR.html#x219>x219</a> = SRAMBankedWrite(mem=<a href=IR.html#x150>x150</a>,data=[<a href=IR.html#x214>x214</a>],bank=[[<a href=IR.html#x215>x215</a>]],ofs=[<a href=IR.html#x216>x216</a>],enss=[[<a href=IR.html#b154>b154</a>, <a href=IR.html#b149>b149</a>]])</h3>
+<a href=x220.html>dot<br></a>
+<text><strong>SrcCtx</strong>: Squares.scala:69:31<br></text>
+<text><strong>Type</strong>: Void<br></text>
+<text><strong>DefiningBlk</strong>: Blk(s=Some(<a href=IR.html#x220>x220</a>), block=0)<br></text>
+<text><strong>Consumers</strong>: [<a href=IR.html#x220>x220</a>]<br></text>
+<text><strong>ReadUses</strong>: []<br></text>
+<text><strong>DeepAliases</strong>: []<br></text>
+<text><strong>ParentCtrl</strong>: Ctrl(s=Some(<a href=IR.html#x220>x220</a>), stage=-1)<br></text>
+<text><strong>SegmentMapping</strong>: {0:0}<br></text>
+<text><strong>ProgramOrder</strong>: 67<br></text>
+<text><strong>ScopeCtrl</strong>: Scope(s=Some(<a href=IR.html#x220>x220</a>), stage=0, block=0)<br></text>
+<text><strong>ShallowAliases</strong>: [<a href=IR.html#x219>x219</a>]<br></text>
+<text><strong>Effects</strong>: (reads={x150}, writes={x150})<br></text>
+<text><strong>Dispatch</strong>: {[]:[0]}<br></text>
+<text><strong>Ports</strong>: {0:{[]:Port(bufferPort=Some(0),muxPort=0,muxOfs=-1,castgroup=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],broadcast=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])}}<br></text>
+<text><strong>GroupId</strong>: {[]:[0]}<br></text>
+</td>
+</tr>
+</tbody>
+</table>
+<table border=3 cellpadding=10 cellspacing=10>
+<tbody>
+<tr>
+<th>readers(1)</th>
+<td>
+<h3 id=x240><a href=IR.html#x240>x240</a> = SRAMBankedRead(mem=<a href=IR.html#x150>x150</a>,bank=[[<a href=IR.html#x236>x236</a>]],ofs=[<a href=IR.html#x237>x237</a>],enss=[[<a href=IR.html#b235>b235</a>]],evidence$4=Vec[Fix[FALSE,_32,_0]])</h3>
+<a href=x244.html>dot<br></a>
+<text><strong>SrcCtx</strong>: Squares.scala:73:52<br></text>
+<text><strong>Type</strong>: Vec[Fix[FALSE,_32,_0]]<br></text>
+<text><strong>DefiningBlk</strong>: Blk(s=Some(<a href=IR.html#x244>x244</a>), block=0)<br></text>
+<text><strong>Consumers</strong>: [<a href=IR.html#x241>x241</a>, <a href=IR.html#x244>x244</a>]<br></text>
+<text><strong>ReadUses</strong>: [<a href=IR.html#x240>x240</a>]<br></text>
+<text><strong>DeepAliases</strong>: []<br></text>
+<text><strong>ParentCtrl</strong>: Ctrl(s=Some(<a href=IR.html#x244>x244</a>), stage=-1)<br></text>
+<text><strong>SegmentMapping</strong>: {0:0}<br></text>
+<text><strong>ProgramOrder</strong>: 83<br></text>
+<text><strong>ScopeCtrl</strong>: Scope(s=Some(<a href=IR.html#x244>x244</a>), stage=0, block=0)<br></text>
+<text><strong>BroadcastAddress</strong>: false<br></text>
+<text><strong>ShallowAliases</strong>: [<a href=IR.html#x240>x240</a>]<br></text>
+<text><strong>Effects</strong>: (reads={x150})<br></text>
+<text><strong>Dispatch</strong>: {[]:[0]}<br></text>
+<text><strong>Ports</strong>: {0:{[]:Port(bufferPort=Some(1),muxPort=0,muxOfs=-1,castgroup=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],broadcast=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])}}<br></text>
+<text><strong>GroupId</strong>: {[]:[0]}<br></text>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id=x221><a href=IR.html#x221>x221</a> = StreamOutNew(bus=BurstCmdBus())</h3>
+<a href=x249.html>dot<br></a>
+<text><strong>SrcCtx</strong>: Squares.scala:73:52<br></text>
+<text><strong>Type</strong>: StreamOut[BurstCmd]<br></text>
+<text><strong>Aliases</strong>: 0033: x110<br></text>
+<text><strong>DefiningBlk</strong>: Blk(s=Some(<a href=IR.html#x249>x249</a>), block=0)<br></text>
+<text><strong>Consumers</strong>: [<a href=IR.html#x230>x230</a>, <a href=IR.html#x245>x245</a>, <a href=IR.html#x249>x249</a>]<br></text>
+<text><strong>ReadUses</strong>: []<br></text>
+<text><strong>Duplicates</strong><br></text>
+<ul style=list-style-type:disc>
+<li>
+<text><strong>banking</strong><br></text>
+<ul style=list-style-type:none>
+<li>Dims {0}: Cyclic: N=1, B=1, alpha=<1>, P=<1> (1 solutions, 0 checks)</li>
+</ul>
+<text><strong>depth</strong>: 1<br></text>
+<text><strong>padding</strong>: [0]<br></text>
+<text><strong>accType</strong>: None()<br></text>
+</li>
+</ul>
+<text><strong>Writers</strong>: [<a href=IR.html#x230>x230</a>]<br></text>
+<text><strong>DeepAliases</strong>: []<br></text>
+<text><strong>ParentCtrl</strong>: Ctrl(s=Some(<a href=IR.html#x249>x249</a>), stage=-1)<br></text>
+<text><strong>ProgramOrder</strong>: 69<br></text>
+<text><strong>ScopeCtrl</strong>: Scope(s=Some(<a href=IR.html#x249>x249</a>), stage=0, block=0)<br></text>
+<text><strong>BroadcastAddress</strong>: false<br></text>
+<text><strong>ShallowAliases</strong>: [<a href=IR.html#x221>x221</a>]<br></text>
+<text><strong>Effects</strong>: Mutable<br></text>
+<table border=3 cellpadding=10 cellspacing=10>
+<tbody>
+<tr>
+<th>writers(1)</th>
+<td>
+<h3 id=x230><a href=IR.html#x230>x230</a> = StreamOutBankedWrite(mem=<a href=IR.html#x221>x221</a>,data=[<a href=IR.html#x228>x228</a>],enss=[[<a href=IR.html#x229>x229</a>]])</h3>
+<a href=x231.html>dot<br></a>
+<text><strong>SrcCtx</strong>: Squares.scala:73:52<br></text>
+<text><strong>Type</strong>: Void<br></text>
+<text><strong>DefiningBlk</strong>: Blk(s=Some(<a href=IR.html#x231>x231</a>), block=0)<br></text>
+<text><strong>NestedInputs</strong>: [<a href=IR.html#x221>x221</a>, <a href=IR.html#x228>x228</a>, <a href=IR.html#x229>x229</a>]<br></text>
+<text><strong>Consumers</strong>: [<a href=IR.html#x231>x231</a>]<br></text>
+<text><strong>ReadUses</strong>: []<br></text>
+<text><strong>DeepAliases</strong>: []<br></text>
+<text><strong>ParentCtrl</strong>: Ctrl(s=Some(<a href=IR.html#x231>x231</a>), stage=-1)<br></text>
+<text><strong>SegmentMapping</strong>: {0:0}<br></text>
+<text><strong>ProgramOrder</strong>: 79<br></text>
+<text><strong>ScopeCtrl</strong>: Scope(s=Some(<a href=IR.html#x231>x231</a>), stage=0, block=0)<br></text>
+<text><strong>BroadcastAddress</strong>: false<br></text>
+<text><strong>ShallowAliases</strong>: [<a href=IR.html#x230>x230</a>]<br></text>
+<text><strong>Effects</strong>: (reads={x221}, writes={x221})<br></text>
+<text><strong>Dispatch</strong>: {[]:[0]}<br></text>
+<text><strong>Ports</strong>: {0:{[]:Port(bufferPort=Some(0),muxPort=0,muxOfs=0,castgroup=[0],broadcast=[0])}}<br></text>
+<text><strong>GroupId</strong>: {[]:[0]}<br></text>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id=x222><a href=IR.html#x222>x222</a> = StreamOutNew(bus=BurstFullDataBus())</h3>
+<a href=x249.html>dot<br></a>
+<text><strong>SrcCtx</strong>: Squares.scala:73:52<br></text>
+<text><strong>Type</strong>: StreamOut[Tup2[Fix[FALSE,_32,_0],Bit]]<br></text>
+<text><strong>Aliases</strong>: 0033: x111<br></text>
+<text><strong>DefiningBlk</strong>: Blk(s=Some(<a href=IR.html#x249>x249</a>), block=0)<br></text>
+<text><strong>Consumers</strong>: [<a href=IR.html#x243>x243</a>, <a href=IR.html#x245>x245</a>, <a href=IR.html#x249>x249</a>]<br></text>
+<text><strong>ReadUses</strong>: []<br></text>
+<text><strong>Duplicates</strong><br></text>
+<ul style=list-style-type:disc>
+<li>
+<text><strong>banking</strong><br></text>
+<ul style=list-style-type:none>
+<li>Dims {0}: Cyclic: N=16, B=1, alpha=<1>, P=<16> (16 solutions, 120 checks)</li>
+</ul>
+<text><strong>depth</strong>: 1<br></text>
+<text><strong>padding</strong>: [15]<br></text>
+<text><strong>accType</strong>: None()<br></text>
+</li>
+</ul>
+<text><strong>Writers</strong>: [<a href=IR.html#x243>x243</a>]<br></text>
+<text><strong>DeepAliases</strong>: []<br></text>
+<text><strong>ParentCtrl</strong>: Ctrl(s=Some(<a href=IR.html#x249>x249</a>), stage=-1)<br></text>
+<text><strong>ProgramOrder</strong>: 70<br></text>
+<text><strong>ScopeCtrl</strong>: Scope(s=Some(<a href=IR.html#x249>x249</a>), stage=0, block=0)<br></text>
+<text><strong>BroadcastAddress</strong>: false<br></text>
+<text><strong>ShallowAliases</strong>: [<a href=IR.html#x222>x222</a>]<br></text>
+<text><strong>Effects</strong>: Mutable<br></text>
+<table border=3 cellpadding=10 cellspacing=10>
+<tbody>
+<tr>
+<th>writers(1)</th>
+<td>
+<h3 id=x243><a href=IR.html#x243>x243</a> = StreamOutBankedWrite(mem=<a href=IR.html#x222>x222</a>,data=[<a href=IR.html#x242>x242</a>],enss=[[<a href=IR.html#b235>b235</a>]])</h3>
+<a href=x244.html>dot<br></a>
+<text><strong>SrcCtx</strong>: Squares.scala:73:52<br></text>
+<text><strong>Type</strong>: Void<br></text>
+<text><strong>DefiningBlk</strong>: Blk(s=Some(<a href=IR.html#x244>x244</a>), block=0)<br></text>
+<text><strong>NestedInputs</strong>: [<a href=IR.html#x222>x222</a>, <a href=IR.html#x242>x242</a>, <a href=IR.html#b235>b235</a>]<br></text>
+<text><strong>Consumers</strong>: [<a href=IR.html#x244>x244</a>]<br></text>
+<text><strong>ReadUses</strong>: [<a href=IR.html#x240>x240</a>]<br></text>
+<text><strong>DeepAliases</strong>: []<br></text>
+<text><strong>ParentCtrl</strong>: Ctrl(s=Some(<a href=IR.html#x244>x244</a>), stage=-1)<br></text>
+<text><strong>SegmentMapping</strong>: {0:0}<br></text>
+<text><strong>ProgramOrder</strong>: 85<br></text>
+<text><strong>ScopeCtrl</strong>: Scope(s=Some(<a href=IR.html#x244>x244</a>), stage=0, block=0)<br></text>
+<text><strong>BroadcastAddress</strong>: false<br></text>
+<text><strong>ShallowAliases</strong>: [<a href=IR.html#x243>x243</a>]<br></text>
+<text><strong>Effects</strong>: (reads={x222}, writes={x222})<br></text>
+<text><strong>Dispatch</strong>: {[]:[0]}<br></text>
+<text><strong>Ports</strong>: {0:{[]:Port(bufferPort=Some(0),muxPort=0,muxOfs=-1,castgroup=[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],broadcast=[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])}}<br></text>
+<text><strong>GroupId</strong>: {[]:[0]}<br></text>
+</td>
+</tr>
+</tbody>
+</table>
+<h3 id=x223><a href=IR.html#x223>x223</a> = StreamInNew(bus=BurstAckBus())</h3>
+<a href=x249.html>dot<br></a>
+<text><strong>SrcCtx</strong>: Squares.scala:73:52<br></text>
+<text><strong>Type</strong>: StreamIn[Bit]<br></text>
+<text><strong>Aliases</strong>: 0033: x112<br></text>
+<text><strong>DefiningBlk</strong>: Blk(s=Some(<a href=IR.html#x249>x249</a>), block=0)<br></text>
+<text><strong>Consumers</strong>: [<a href=IR.html#x245>x245</a>, <a href=IR.html#x246>x246</a>, <a href=IR.html#x249>x249</a>]<br></text>
+<text><strong>ReadUses</strong>: []<br></text>
+<text><strong>Duplicates</strong><br></text>
+<ul style=list-style-type:disc>
+<li>
+<text><strong>banking</strong><br></text>
+<ul style=list-style-type:none>
+<li>Dims {0}: Cyclic: N=1, B=1, alpha=<1>, P=<1> (1 solutions, 0 checks)</li>
+</ul>
+<text><strong>depth</strong>: 1<br></text>
+<text><strong>padding</strong>: [0]<br></text>
+<text><strong>accType</strong>: None()<br></text>
+</li>
+</ul>
+<text><strong>DeepAliases</strong>: []<br></text>
+<text><strong>ParentCtrl</strong>: Ctrl(s=Some(<a href=IR.html#x249>x249</a>), stage=-1)<br></text>
+<text><strong>Readers</strong>: [<a href=IR.html#x246>x246</a>]<br></text>
+<text><strong>ProgramOrder</strong>: 71<br></text>
+<text><strong>ScopeCtrl</strong>: Scope(s=Some(<a href=IR.html#x249>x249</a>), stage=0, block=0)<br></text>
+<text><strong>BroadcastAddress</strong>: false<br></text>
+<text><strong>ShallowAliases</strong>: [<a href=IR.html#x223>x223</a>]<br></text>
+<text><strong>Effects</strong>: Mutable<br></text>
+<table border=3 cellpadding=10 cellspacing=10>
+<tbody>
+<tr>
+<th>readers(1)</th>
+<td>
+<h3 id=x246><a href=IR.html#x246>x246</a> = StreamInBankedRead(mem=<a href=IR.html#x223>x223</a>,enss=[[]])</h3>
+<a href=x248.html>dot<br></a>
+<text><strong>SrcCtx</strong>: Squares.scala:73:52<br></text>
+<text><strong>Type</strong>: Vec[Bit]<br></text>
+<text><strong>DefiningBlk</strong>: Blk(s=Some(<a href=IR.html#x248>x248</a>), block=0)<br></text>
+<text><strong>NestedInputs</strong>: [<a href=IR.html#x223>x223</a>]<br></text>
+<text><strong>Consumers</strong>: [<a href=IR.html#x248>x248</a>]<br></text>
+<text><strong>ReadUses</strong>: [<a href=IR.html#x246>x246</a>]<br></text>
+<text><strong>DeepAliases</strong>: []<br></text>
+<text><strong>ParentCtrl</strong>: Ctrl(s=Some(<a href=IR.html#x248>x248</a>), stage=-1)<br></text>
+<text><strong>SegmentMapping</strong>: {0:0}<br></text>
+<text><strong>ProgramOrder</strong>: 88<br></text>
+<text><strong>ScopeCtrl</strong>: Scope(s=Some(<a href=IR.html#x248>x248</a>), stage=0, block=0)<br></text>
+<text><strong>BroadcastAddress</strong>: false<br></text>
+<text><strong>ShallowAliases</strong>: [<a href=IR.html#x246>x246</a>]<br></text>
+<text><strong>Effects</strong>: (reads={x223}, writes={x223})<br></text>
+<text><strong>Dispatch</strong>: {[]:[0]}<br></text>
+<text><strong>Ports</strong>: {0:{[]:Port(bufferPort=Some(0),muxPort=0,muxOfs=0,castgroup=[0],broadcast=[0])}}<br></text>
+<text><strong>GroupId</strong>: {[]:[0]}<br></text>
+</td>
+</tr>
+</tbody>
+</table>

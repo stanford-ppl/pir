@@ -1,0 +1,7 @@
+quiet
+source ../plastisim/final.place
+verbose
+log2files
+stepall
+dumpstate logs/state.json
+stat

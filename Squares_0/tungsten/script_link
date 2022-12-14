@@ -1,0 +1,6 @@
+quiet
+get /Top/netman nodes ../plastisim/node_bb.csv
+get /Top/netman links ../plastisim/link_bb.csv
+get /Top/netman src_link ../plastisim/src_link_bb.csv
+get /Top/netman dest_link ../plastisim/dest_link_bb.csv 
+exit

@@ -1,0 +1,4432 @@
+Top0() {
+  parent=None
+  children=List(TopController2, ArgFringe3, UnitController7, Const9, Const10, Const11, LoopController13, SRAM16, Const18, Const19) ...
+  deps {
+  }
+  depeds {
+  }
+  controlShadowed = false
+  isExtern = false
+  name = Squares_0
+  isInnerReduceOp = false
+  srcCtx = List()
+  noCost = false
+  TopController2() {
+    parent=Some(Top0)
+    InputField2088116118_en=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    InputField988127119_parentEn=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField139609946_done=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1910519212_tileDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField418098325_subTileDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField823544160_childDone=[List(HostInController5.InputField504120002_parentEn, UnitController7[x82].InputField151970438_parentEn, HostOutController147.InputField580665598_parentEn)] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1016418808_stepped=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField615913771_levelsDone=[List()] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    InputField1189303847_uen=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField887432564_laneValid=[List()] {
+      tp = Bool
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField823544160_childDone: Vector(HostInController5.InputField504120002_parentEn(ArgFringe3), UnitController7.InputField151970438_parentEn(Top0), HostOutController147.InputField580665598_parentEn(ArgFringe3))
+    }
+    controlShadowed = false
+    par = 1
+    isExtern = false
+    ctrl = ControlTree1
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  ArgFringe3() {
+    parent=Some(Top0)
+    children=List(HostInController5, DRAMAddr112, MemWrite113, HostOutController147)
+    deps {
+      TopController2.OutputField823544160_childDone(Top0): Vector(HostInController5.InputField504120002_parentEn, HostOutController147.InputField580665598_parentEn)
+    }
+    depeds {
+      OutputField1243755602_mem: Vector(Reg111.InputField1919883817_in(Top0))
+    }
+    controlShadowed = false
+    isParBlock = false
+    isExtern = false
+    isInnerReduceOp = false
+    srcCtx = List()
+    isDAG = false
+    noCost = false
+    HostInController5() {
+      parent=Some(ArgFringe3)
+      InputField1793873857_en=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField504120002_parentEn=[List(TopController2.OutputField823544160_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField825116979_done=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField419005724_tileDone=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField279153565_subTileDone=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1824899353_childDone=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField803306083_stepped=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField2078591974_levelsDone=[List()] {
+        tp = Fix(false,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      InputField1998014564_uen=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField899191446_laneValid=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      deps {
+        TopController2.OutputField823544160_childDone(Top0): Vector(HostInController5.InputField504120002_parentEn)
+      }
+      depeds {
+      }
+      controlShadowed = false
+      par = 1
+      isExtern = false
+      ctrl = ControlTree4
+      isInnerReduceOp = false
+      srcCtx = List()
+      noCost = false
+    }
+    DRAMAddr112(DRAM326451684[rand_d]) {
+      parent=Some(ArgFringe3)
+      OutputField1388485330_out=[List(MemWrite113.InputField53978829_data)] {
+        tp = Fix(true,64,0)
+        presetVec = 1
+        vec = 1
+      }
+      deps {
+      }
+      depeds {
+        OutputField1388485330_out: Vector(MemWrite113.InputField53978829_data(ArgFringe3))
+      }
+      controlShadowed = false
+      isExtern = false
+      ctrl = ControlTree4
+      name = rand_d
+      isInnerReduceOp = false
+      srcCtx = List()
+      noCost = false
+    }
+    MemWrite113() {
+      parent=Some(ArgFringe3)
+      InputField907070338_en=[List()] {
+        tp = Bool
+      }
+      InputField208677636_done=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1243755602_mem=[List(Reg111.InputField1919883817_in)] {
+      }
+      InputField53978829_data=[List(DRAMAddr112.OutputField1388485330_out)] {
+        tp = Fix(true,64,0)
+        vec = 1
+      }
+      deps {
+        DRAMAddr112.OutputField1388485330_out(ArgFringe3): Vector(MemWrite113.InputField53978829_data)
+      }
+      depeds {
+        OutputField1243755602_mem: Vector(Reg111.InputField1919883817_in(Top0))
+      }
+      controlShadowed = false
+      tp = Fix(true,64,0)
+      isAccumAccess = false
+      order = 113.0
+      isExtern = false
+      ctrl = ControlTree4
+      srcCtx = List()
+      isInnerReduceOp = false
+      port = Some(0)
+      noCost = false
+    }
+    HostOutController147() {
+      parent=Some(ArgFringe3)
+      InputField830031130_en=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField580665598_parentEn=[List(TopController2.OutputField823544160_childDone)] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1652895792_done=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField954280981_tileDone=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1129054086_subTileDone=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField59825313_childDone=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1214212179_stepped=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField2037347529_levelsDone=[List()] {
+        tp = Fix(false,32,0)
+        presetVec = 1
+        vec = 1
+      }
+      InputField1707344813_uen=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      OutputField1614065248_laneValid=[List()] {
+        tp = Bool
+        vec = 1
+      }
+      deps {
+        TopController2.OutputField823544160_childDone(Top0): Vector(HostOutController147.InputField580665598_parentEn)
+      }
+      depeds {
+      }
+      controlShadowed = false
+      par = 1
+      isExtern = false
+      ctrl = ControlTree146
+      isInnerReduceOp = false
+      srcCtx = List()
+      noCost = false
+    }
+  }
+  UnitController7[x82]() {
+    parent=Some(Top0)
+    InputField766533894_en=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    InputField151970438_parentEn=[List(TopController2.OutputField823544160_childDone)] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField711770256_done=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1538917641_tileDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1974269737_subTileDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField189280712_childDone=[List(LoopController13[x250].InputField2123670407_parentEn)] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1206650993_stepped=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1282793416_levelsDone=[List()] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    InputField1584561360_uen=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField343851175_laneValid=[List()] {
+      tp = Bool
+      vec = 1
+    }
+    deps {
+      TopController2.OutputField823544160_childDone(Top0): Vector(UnitController7.InputField151970438_parentEn)
+    }
+    depeds {
+      OutputField189280712_childDone: Vector(LoopController13.InputField2123670407_parentEn(Top0))
+    }
+    follow = false
+    controlShadowed = false
+    par = 1
+    isExtern = false
+    ctrl = ControlTree6
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:36:15)
+    sname = x82
+    noCost = false
+  }
+  Const9(0)(0) {
+    parent=Some(Top0)
+    OutputField2115304360_out=[List(StridedCounter8[x146].InputField1210332454_min)] {
+      tp = Fix(true,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField2115304360_out: Vector(StridedCounter8.InputField1210332454_min(LoopController13))
+    }
+    controlShadowed = false
+    tp = Fix(true,32,0)
+    bound = Some(0)
+    isExtern = false
+    ctrl = ControlTree6
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const10(8192)(8192) {
+    parent=Some(Top0)
+    OutputField869853514_out=[List(StridedCounter8[x146].InputField875560192_step)] {
+      tp = Fix(true,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField869853514_out: Vector(StridedCounter8.InputField875560192_step(LoopController13))
+    }
+    controlShadowed = false
+    tp = Fix(true,32,0)
+    bound = Some(8192)
+    isExtern = false
+    ctrl = ControlTree6
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const11(131072)(131072) {
+    parent=Some(Top0)
+    OutputField1277504530_out=[List(StridedCounter8[x146].InputField1514662575_max)] {
+      tp = Fix(true,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField1277504530_out: Vector(StridedCounter8.InputField1514662575_max(LoopController13))
+    }
+    controlShadowed = false
+    tp = Fix(true,32,0)
+    bound = Some(131072)
+    isExtern = false
+    ctrl = ControlTree6
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  LoopController13[x250]() {
+    parent=Some(Top0)
+    children=List(StridedCounter8, CounterIter14, CounterValid15)
+    InputField361583173_en=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    InputField2123670407_parentEn=[List(UnitController7[x82].OutputField189280712_childDone)] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField2130410454_done=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField2143584760_tileDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField10812223_subTileDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1534588983_childDone=[List(LoopController22[x220].InputField1335146149_parentEn, UnitController99[x249].InputField1560834836_parentEn)] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField2130120004_stepped=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField635930659_levelsDone=[List()] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    InputField37610147_uen=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1726944403_laneValid=[List()] {
+      tp = Bool
+      vec = 1
+    }
+    OutputField1414422506_firstIter=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    InputField1340866184_stopWhen=[List()] {
+      tp = Bool
+    }
+    deps {
+      Const10.OutputField869853514_out(Top0): Vector(StridedCounter8.InputField875560192_step)
+      Const9.OutputField2115304360_out(Top0): Vector(StridedCounter8.InputField1210332454_min)
+      UnitController7.OutputField189280712_childDone(Top0): Vector(LoopController13.InputField2123670407_parentEn)
+      Const11.OutputField1277504530_out(Top0): Vector(StridedCounter8.InputField1514662575_max)
+    }
+    depeds {
+      OutputField2110090069_out: Vector(OpDef25.InputField1929620148_input(Top0), OpDef108.InputField348368374_input(Top0))
+      OutputField1534588983_childDone: Vector(LoopController22.InputField1335146149_parentEn(Top0), UnitController99.InputField1560834836_parentEn(Top0))
+    }
+    controlShadowed = false
+    par = 1
+    isExtern = false
+    constLaneValids = List(Some(true))
+    ctrl = ControlTree12
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:37:44)
+    progorder = 2
+    sname = x250
+    noCost = false
+    StridedCounter8[x146](1) {
+      parent=Some(LoopController13)
+      OutputField501616738_out=[List(CounterIter14[b148].InputField1403578566_counter, CounterValid15[b149].InputField1564052519_counter)] {
+      }
+      OutputField1321748846_isFirstIter=[List()] {
+      }
+      InputField1210332454_min=[List(Const9(0).OutputField2115304360_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      InputField875560192_step=[List(Const10(8192).OutputField869853514_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      InputField1514662575_max=[List(Const11(131072).OutputField1277504530_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      deps {
+        Const10.OutputField869853514_out(Top0): Vector(StridedCounter8.InputField875560192_step)
+        Const9.OutputField2115304360_out(Top0): Vector(StridedCounter8.InputField1210332454_min)
+        Const11.OutputField1277504530_out(Top0): Vector(StridedCounter8.InputField1514662575_max)
+      }
+      depeds {
+        OutputField501616738_out: Vector(CounterIter14.InputField1403578566_counter(LoopController13), CounterValid15.InputField1564052519_counter(LoopController13))
+      }
+      controlShadowed = false
+      constValids = List(Some(true))
+      constIters = List(None)
+      isExtern = false
+      idx = 0
+      ctrl = ControlTree12
+      srcCtx = List(Squares.scala:37:37)
+      isInnerReduceOp = false
+      valIter = -1
+      progorder = 0
+      sname = x146
+      noCost = false
+    }
+    CounterIter14[b148](List(0)) {
+      parent=Some(LoopController13)
+      OutputField2110090069_out=[List(OpDef25(FixToFix).InputField1929620148_input, OpDef108(FixSLA).InputField348368374_input)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      InputField1403578566_counter=[List(StridedCounter8[x146].OutputField501616738_out)] {
+        vec = 1
+      }
+      deps {
+        StridedCounter8.OutputField501616738_out(LoopController13): Vector(CounterIter14.InputField1403578566_counter)
+      }
+      depeds {
+        OutputField2110090069_out: Vector(OpDef25.InputField1929620148_input(Top0), OpDef108.InputField348368374_input(Top0))
+      }
+      controlShadowed = false
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree12
+      isInnerReduceOp = false
+      srcCtx = List(Staging.scala:26:82)
+      sname = b148
+      noCost = false
+    }
+    CounterValid15[b149](List(0)) {
+      parent=Some(LoopController13)
+      OutputField714183561_out=[List()] {
+        tp = Bool
+        presetVec = 1
+        vec = 1
+      }
+      InputField1564052519_counter=[List(StridedCounter8[x146].OutputField501616738_out)] {
+      }
+      deps {
+        StridedCounter8.OutputField501616738_out(LoopController13): Vector(CounterValid15.InputField1564052519_counter)
+      }
+      depeds {
+      }
+      controlShadowed = false
+      tp = Bool
+      isExtern = false
+      ctrl = ControlTree12
+      isInnerReduceOp = false
+      srcCtx = List(Staging.scala:26:82)
+      sname = b149
+      noCost = false
+    }
+  }
+  Const18(0)(0) {
+    parent=Some(Top0)
+    OutputField1197674478_out=[List(StridedCounter17[x151].InputField1574430668_min)] {
+      tp = Fix(true,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField1197674478_out: Vector(StridedCounter17.InputField1574430668_min(LoopController22))
+    }
+    controlShadowed = false
+    tp = Fix(true,32,0)
+    bound = Some(0)
+    isExtern = false
+    ctrl = ControlTree12
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const19(1)(1) {
+    parent=Some(Top0)
+    OutputField89991621_out=[List(StridedCounter17[x151].InputField1306376461_step)] {
+      tp = Fix(true,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField89991621_out: Vector(StridedCounter17.InputField1306376461_step(LoopController22))
+    }
+    controlShadowed = false
+    tp = Fix(true,32,0)
+    bound = Some(1)
+    isExtern = false
+    ctrl = ControlTree12
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const20(8192)(8192) {
+    parent=Some(Top0)
+    OutputField1010344877_out=[List(StridedCounter17[x151].InputField1435955198_max)] {
+      tp = Fix(true,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField1010344877_out: Vector(StridedCounter17.InputField1435955198_max(LoopController22))
+    }
+    controlShadowed = false
+    tp = Fix(true,32,0)
+    bound = Some(8192)
+    isExtern = false
+    ctrl = ControlTree12
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  LoopController22[x220]() {
+    parent=Some(Top0)
+    children=List(StridedCounter17, CounterIter23, CounterValid24)
+    InputField306664070_en=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    InputField1335146149_parentEn=[List(LoopController13[x250].OutputField1534588983_childDone)] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1316052062_done=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1542472912_tileDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1938554442_subTileDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField423649024_childDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1561813978_stepped=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField68708972_levelsDone=[List()] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    InputField684571915_uen=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField862867277_laneValid=[List()] {
+      tp = Bool
+      vec = 16
+    }
+    OutputField1426187081_firstIter=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    InputField311277711_stopWhen=[List()] {
+      tp = Bool
+    }
+    deps {
+      Const20.OutputField1010344877_out(Top0): Vector(StridedCounter17.InputField1435955198_max)
+      LoopController13.OutputField1534588983_childDone(Top0): Vector(LoopController22.InputField1335146149_parentEn)
+      Const19.OutputField89991621_out(Top0): Vector(StridedCounter17.InputField1306376461_step)
+      Const18.OutputField1197674478_out(Top0): Vector(StridedCounter17.InputField1574430668_min)
+    }
+    depeds {
+      OutputField1539239508_out: Vector(OpDef26.InputField1730958106_input(Top0), OpDef95.InputField1798963671_input(Top0))
+    }
+    controlShadowed = false
+    par = 16
+    isExtern = false
+    constLaneValids = List(Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true))
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:42:46)
+    progorder = 6
+    sname = x220
+    noCost = false
+    StridedCounter17[x151](16) {
+      parent=Some(LoopController22)
+      OutputField901098692_out=[List(CounterIter23[b153].InputField1489531216_counter, CounterValid24[b154].InputField1582489865_counter)] {
+      }
+      OutputField310140490_isFirstIter=[List()] {
+      }
+      InputField1574430668_min=[List(Const18(0).OutputField1197674478_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      InputField1306376461_step=[List(Const19(1).OutputField89991621_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      InputField1435955198_max=[List(Const20(8192).OutputField1010344877_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      deps {
+        Const20.OutputField1010344877_out(Top0): Vector(StridedCounter17.InputField1435955198_max)
+        Const19.OutputField89991621_out(Top0): Vector(StridedCounter17.InputField1306376461_step)
+        Const18.OutputField1197674478_out(Top0): Vector(StridedCounter17.InputField1574430668_min)
+      }
+      depeds {
+        OutputField901098692_out: Vector(CounterIter23.InputField1489531216_counter(LoopController22), CounterValid24.InputField1582489865_counter(LoopController22))
+      }
+      controlShadowed = false
+      constValids = List(Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true))
+      constIters = List(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+      isExtern = false
+      idx = 0
+      ctrl = ControlTree21
+      srcCtx = List(Squares.scala:42:39)
+      isInnerReduceOp = false
+      valIter = -1
+      progorder = 4
+      sname = x151
+      noCost = false
+    }
+    CounterIter23[b153](List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)) {
+      parent=Some(LoopController22)
+      OutputField1539239508_out=[List(OpDef26(FixToFix).InputField1730958106_input, OpDef95(FixSRA).InputField1798963671_input)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField1489531216_counter=[List(StridedCounter17[x151].OutputField901098692_out)] {
+        vec = 16
+      }
+      deps {
+        StridedCounter17.OutputField901098692_out(LoopController22): Vector(CounterIter23.InputField1489531216_counter)
+      }
+      depeds {
+        OutputField1539239508_out: Vector(OpDef26.InputField1730958106_input(Top0), OpDef95.InputField1798963671_input(Top0))
+      }
+      controlShadowed = false
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree21
+      isInnerReduceOp = false
+      srcCtx = List(Staging.scala:26:82)
+      sname = b153
+      noCost = false
+    }
+    CounterValid24[b154](List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)) {
+      parent=Some(LoopController22)
+      OutputField135964195_out=[List()] {
+        tp = Bool
+        presetVec = 16
+        vec = 16
+      }
+      InputField1582489865_counter=[List(StridedCounter17[x151].OutputField901098692_out)] {
+      }
+      deps {
+        StridedCounter17.OutputField901098692_out(LoopController22): Vector(CounterValid24.InputField1582489865_counter)
+      }
+      depeds {
+      }
+      controlShadowed = false
+      tp = Bool
+      isExtern = false
+      ctrl = ControlTree21
+      isInnerReduceOp = false
+      srcCtx = List(Staging.scala:26:82)
+      sname = b154
+      noCost = false
+    }
+  }
+  Const29(0)(0) {
+    parent=Some(Top0)
+    OutputField1006630602_out=[List(OpDef28(FixLst).InputField1145024592_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField1006630602_out: Vector(OpDef28.InputField1145024592_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const31(1)(1) {
+    parent=Some(Top0)
+    OutputField602144474_out=[List(OpDef30(Mux).InputField358615282_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField602144474_out: Vector(OpDef30.InputField358615282_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const32(0)(0) {
+    parent=Some(Top0)
+    OutputField134780824_out=[List(OpDef30(Mux).InputField1475919075_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField134780824_out: Vector(OpDef30.InputField1475919075_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const34(1289957229)(1289957229) {
+    parent=Some(Top0)
+    OutputField2091382345_out=[List(OpDef33(FixMulH).InputField1504868419_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField2091382345_out: Vector(OpDef33.InputField1504868419_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const36(1289957229)(1289957229) {
+    parent=Some(Top0)
+    OutputField2055295311_out=[List(OpDef35(FixMul).InputField22665926_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField2055295311_out: Vector(OpDef35.InputField22665926_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const38(3370450197)(3370450197) {
+    parent=Some(Top0)
+    OutputField506739410_out=[List(OpDef37(FixFMA).InputField932225265_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField506739410_out: Vector(OpDef37.InputField932225265_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const40(1289957229)(1289957229) {
+    parent=Some(Top0)
+    OutputField2042091926_out=[List(OpDef39(FixFMA).InputField930926188_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField2042091926_out: Vector(OpDef39.InputField930926188_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const42(1289957229)(1289957229) {
+    parent=Some(Top0)
+    OutputField133152053_out=[List(OpDef41(FixAdd).InputField97215101_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField133152053_out: Vector(OpDef41.InputField97215101_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const45(1)(1) {
+    parent=Some(Top0)
+    OutputField1100640642_out=[List(OpDef44(Mux).InputField51441881_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField1100640642_out: Vector(OpDef44.InputField51441881_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const46(0)(0) {
+    parent=Some(Top0)
+    OutputField1776154308_out=[List(OpDef44(Mux).InputField2070635114_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField1776154308_out: Vector(OpDef44.InputField2070635114_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const48(3370450197)(3370450197) {
+    parent=Some(Top0)
+    OutputField1816511059_out=[List(OpDef47(FixAdd).InputField369491801_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField1816511059_out: Vector(OpDef47.InputField369491801_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const57(1)(1) {
+    parent=Some(Top0)
+    OutputField781384075_out=[List(OpDef56(Mux).InputField589889340_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField781384075_out: Vector(OpDef56.InputField589889340_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const58(0)(0) {
+    parent=Some(Top0)
+    OutputField974731475_out=[List(OpDef56(Mux).InputField2078882142_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField974731475_out: Vector(OpDef56.InputField2078882142_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const68(1)(1) {
+    parent=Some(Top0)
+    OutputField1336728859_out=[List(OpDef67(Mux).InputField68841237_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField1336728859_out: Vector(OpDef67.InputField68841237_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const69(0)(0) {
+    parent=Some(Top0)
+    OutputField488128274_out=[List(OpDef67(Mux).InputField1626075147_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField488128274_out: Vector(OpDef67.InputField1626075147_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const79(1)(1) {
+    parent=Some(Top0)
+    OutputField1474018157_out=[List(OpDef78(Mux).InputField1903279104_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField1474018157_out: Vector(OpDef78.InputField1903279104_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const80(0)(0) {
+    parent=Some(Top0)
+    OutputField219615024_out=[List(OpDef78(Mux).InputField1437994998_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField219615024_out: Vector(OpDef78.InputField1437994998_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const90(1)(1) {
+    parent=Some(Top0)
+    OutputField377142782_out=[List(OpDef89(Mux).InputField439559813_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField377142782_out: Vector(OpDef89.InputField439559813_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const91(0)(0) {
+    parent=Some(Top0)
+    OutputField1273452587_out=[List(OpDef89(Mux).InputField654291390_input)] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField1273452587_out: Vector(OpDef89.InputField654291390_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const94(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15))(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)) {
+    parent=Some(Top0)
+    OutputField1393677154_out=[List(BankedWrite97[x219].InputField2116132586_bank)] {
+      tp = Fix(true,32,0)
+      presetVec = 16
+      vec = 16
+    }
+    deps {
+    }
+    depeds {
+      OutputField1393677154_out: Vector(BankedWrite97.InputField2116132586_bank(Top0))
+    }
+    controlShadowed = false
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(CounterIterRewriteRule.scala:21:17)
+    sname = x215
+    noCost = false
+  }
+  Const96(4)(4) {
+    parent=Some(Top0)
+    OutputField1986452501_out=[List(OpDef95(FixSRA).InputField389956647_input)] {
+      tp = Fix(true,16,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField1986452501_out: Vector(OpDef95.InputField389956647_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(true,16,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  OpDef95(FixSRA)(FixSRA) {
+    parent=Some(Top0)
+    OutputField280860855_out=[List(BankedWrite97[x219].InputField2120903645_offset)] {
+      tp = Fix(true,32,0)
+      vec = 16
+    }
+    InputField1798963671_input=[List(CounterIter23[b153].OutputField1539239508_out)] {
+      tp = Fix(true,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField389956647_input=[List(Const96(4).OutputField1986452501_out)] {
+      tp = Fix(true,16,0)
+      vec = 1
+      dynamicIdx = 1
+    }
+    deps {
+      CounterIter23.OutputField1539239508_out(LoopController22): Vector(OpDef95.InputField1798963671_input)
+      Const96.OutputField1986452501_out(Top0): Vector(OpDef95.InputField389956647_input)
+    }
+    depeds {
+      OutputField280860855_out: Vector(BankedWrite97.InputField2120903645_offset(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(true,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:69:31)
+    sname = x216
+    noCost = false
+  }
+  Const109(2)(2) {
+    parent=Some(Top0)
+    OutputField27387820_out=[List(OpDef108(FixSLA).InputField1615019272_input)] {
+      tp = Fix(true,16,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField27387820_out: Vector(OpDef108.InputField1615019272_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(true,16,0)
+    isExtern = false
+    ctrl = ControlTree106
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  OpDef108(FixSLA)(FixSLA) {
+    parent=Some(Top0)
+    OutputField1472488960_out=[List(OpDef110(FixToFix).InputField2061628655_input)] {
+      tp = Fix(true,32,0)
+      vec = 1
+    }
+    InputField348368374_input=[List(CounterIter14[b148].OutputField2110090069_out)] {
+      tp = Fix(true,32,0)
+      vec = 1
+      dynamicIdx = 0
+    }
+    InputField1615019272_input=[List(Const109(2).OutputField27387820_out)] {
+      tp = Fix(true,16,0)
+      vec = 1
+      dynamicIdx = 1
+    }
+    deps {
+      Const109.OutputField27387820_out(Top0): Vector(OpDef108.InputField1615019272_input)
+      CounterIter14.OutputField2110090069_out(LoopController13): Vector(OpDef108.InputField348368374_input)
+    }
+    depeds {
+      OutputField1472488960_out: Vector(OpDef110.InputField2061628655_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(true,32,0)
+    isExtern = false
+    ctrl = ControlTree106
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:73:52)
+    progorder = 73
+    sname = x224
+    noCost = false
+  }
+  OpDef110(FixToFix)(FixToFix) {
+    parent=Some(Top0)
+    OutputField1933855596_out=[List(OpDef115(FixAdd).InputField1766826658_input)] {
+      tp = Fix(true,64,0)
+      vec = 1
+    }
+    InputField2061628655_input=[List(OpDef108(FixSLA).OutputField1472488960_out)] {
+      tp = Fix(true,32,0)
+      vec = 1
+      dynamicIdx = 0
+    }
+    deps {
+      OpDef108.OutputField1472488960_out(Top0): Vector(OpDef110.InputField2061628655_input)
+    }
+    depeds {
+      OutputField1933855596_out: Vector(OpDef115.InputField1766826658_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(true,64,0)
+    isExtern = false
+    ctrl = ControlTree106
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:73:52)
+    progorder = 74
+    sname = x225
+    noCost = false
+  }
+  Const116(32768)(32768) {
+    parent=Some(Top0)
+    OutputField97003055_out=[List(FringeDenseStore137[x245].InputField1303118817_size)] {
+      tp = Fix(true,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField97003055_out: Vector(FringeDenseStore137.InputField1303118817_size(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(true,32,0)
+    isExtern = false
+    ctrl = ControlTree106
+    name = size
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:73:52)
+    progorder = 77
+    sname = x228_size
+    noCost = false
+  }
+  Const123(0)(0) {
+    parent=Some(Top0)
+    OutputField1754533888_out=[List(StridedCounter122[x232].InputField180274038_min)] {
+      tp = Fix(true,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField1754533888_out: Vector(StridedCounter122.InputField180274038_min(LoopController127))
+    }
+    controlShadowed = false
+    tp = Fix(true,32,0)
+    bound = Some(0)
+    isExtern = false
+    ctrl = ControlTree98
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const124(1)(1) {
+    parent=Some(Top0)
+    OutputField708643065_out=[List(StridedCounter122[x232].InputField1861891178_step)] {
+      tp = Fix(true,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField708643065_out: Vector(StridedCounter122.InputField1861891178_step(LoopController127))
+    }
+    controlShadowed = false
+    tp = Fix(true,32,0)
+    bound = Some(1)
+    isExtern = false
+    ctrl = ControlTree98
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const125(8192)(8192) {
+    parent=Some(Top0)
+    OutputField410144403_out=[List(StridedCounter122[x232].InputField1266079883_max)] {
+      tp = Fix(true,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField410144403_out: Vector(StridedCounter122.InputField1266079883_max(LoopController127))
+    }
+    controlShadowed = false
+    tp = Fix(true,32,0)
+    bound = Some(8192)
+    isExtern = false
+    ctrl = ControlTree98
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const130(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15))(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)) {
+    parent=Some(Top0)
+    OutputField238135242_out=[List(BankedRead133[x240].InputField241283226_bank)] {
+      tp = Fix(true,32,0)
+      presetVec = 16
+      vec = 16
+    }
+    deps {
+    }
+    depeds {
+      OutputField238135242_out: Vector(BankedRead133.InputField241283226_bank(Top0))
+    }
+    controlShadowed = false
+    isExtern = false
+    ctrl = ControlTree126
+    isInnerReduceOp = false
+    srcCtx = List(CounterIterRewriteRule.scala:21:17)
+    sname = x236
+    noCost = false
+  }
+  Const132(4)(4) {
+    parent=Some(Top0)
+    OutputField857631136_out=[List(OpDef131(FixSRA).InputField892752526_input)] {
+      tp = Fix(true,16,0)
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField857631136_out: Vector(OpDef131.InputField892752526_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(true,16,0)
+    isExtern = false
+    ctrl = ControlTree126
+    isInnerReduceOp = false
+    srcCtx = List()
+    noCost = false
+  }
+  Const134(true)(true) {
+    parent=Some(Top0)
+    OutputField1572663548_out=[List(MemWrite136[x243__2].InputField111586045_data)] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    deps {
+    }
+    depeds {
+      OutputField1572663548_out: Vector(MemWrite136.InputField111586045_data(Top0))
+    }
+    controlShadowed = false
+    tp = Bool
+    isExtern = false
+    ctrl = ControlTree126
+    name = _2
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:73:52)
+    progorder = 84
+    sname = x242__2
+    noCost = false
+  }
+  Const152(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true))(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)) {
+    parent=Some(Top0)
+    OutputField1113160178_out=[List(MemWrite136[x243__2].InputField1019801641_en)] {
+      tp = Bool
+      presetVec = 16
+      vec = 16
+    }
+    deps {
+    }
+    depeds {
+      OutputField1113160178_out: Vector(MemWrite136.InputField1019801641_en(Top0))
+    }
+    controlShadowed = false
+    isExtern = false
+    ctrl = ControlTree126
+    isInnerReduceOp = false
+    srcCtx = List(MemoryAnalyzer.scala:205)
+    noCost = false
+  }
+  MemWrite136[x243__2]() {
+    parent=Some(Top0)
+    InputField1019801641_en=[List(Const152(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)).OutputField1113160178_out)] {
+      tp = Bool
+      vec = 16
+    }
+    InputField826287581_done=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1444661213_mem=[List(FIFO104[x222__2].InputField2123101194_in)] {
+    }
+    InputField111586045_data=[List(Const134(true).OutputField1572663548_out)] {
+      tp = Bool
+      vec = 1
+    }
+    deps {
+      Const134.OutputField1572663548_out(Top0): Vector(MemWrite136.InputField111586045_data)
+      Const152.OutputField1113160178_out(Top0): Vector(MemWrite136.InputField1019801641_en)
+    }
+    depeds {
+      OutputField1444661213_mem: Vector(FIFO104.InputField2123101194_in(Top0))
+    }
+    controlShadowed = false
+    tp = Bool
+    isAccumAccess = false
+    order = 136.0
+    isExtern = false
+    ctrl = ControlTree126
+    name = _2
+    srcCtx = List(Squares.scala:73:52)
+    isInnerReduceOp = false
+    broadcast = List(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    progorder = 85
+    castgroup = List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+    sname = x243__2
+    port = Some(0)
+    muxPort = 0
+    noCost = false
+  }
+  FIFO104[x222__2]() {
+    parent=Some(Top0)
+    InputField2123101194_in=[List(MemWrite136[x243__2].OutputField1444661213_mem)] {
+    }
+    OutputField1433358825_out=[List(MemRead141.InputField1686682497_mem)] {
+      tp = Bool
+    }
+    deps {
+      MemWrite136.OutputField1444661213_mem(Top0): Vector(FIFO104.InputField2123101194_in)
+    }
+    depeds {
+      OutputField1433358825_out: Vector(MemRead141.InputField1686682497_mem(Top0))
+    }
+    controlShadowed = false
+    tp = Bool
+    retiming = false
+    dims = List(1)
+    numPart = 1
+    darkVolume = 0
+    isExtern = false
+    isInnerAccum = false
+    name = _2
+    srcCtx = List(Squares.scala:73:52)
+    isInnerReduceOp = false
+    banks = List(16)
+    isMemReduceAccum = false
+    progorder = 70
+    isAccum = false
+    depth = 1
+    sname = x222__2
+    nonBlocking = false
+    noCost = false
+  }
+  MemRead141() {
+    parent=Some(Top0)
+    InputField1593285780_en=[List()] {
+      tp = Bool
+    }
+    InputField74222565_done=[List()] {
+      tp = Bool
+      presetVec = 1
+    }
+    OutputField1059248286_out=[List(FringeDenseStore137[x245].InputField482280215_valid)] {
+      tp = Bool
+      vec = 16
+    }
+    InputField1686682497_mem=[List(FIFO104[x222__2].OutputField1433358825_out)] {
+    }
+    deps {
+      FIFO104.OutputField1433358825_out(Top0): Vector(MemRead141.InputField1686682497_mem)
+    }
+    depeds {
+      OutputField1059248286_out: Vector(FringeDenseStore137.InputField482280215_valid(Top0))
+    }
+    controlShadowed = false
+    isAccumAccess = false
+    order = 141.0
+    isExtern = false
+    ctrl = ControlTree98
+    srcCtx = List()
+    isInnerReduceOp = false
+    toScanController = false
+    port = Some(0)
+    noCost = false
+  }
+  Const153(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true))(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)) {
+    parent=Some(Top0)
+    OutputField1622510314_out=[List(BankedWrite97[x219].InputField1440121818_en)] {
+      tp = Bool
+      presetVec = 16
+      vec = 16
+    }
+    deps {
+    }
+    depeds {
+      OutputField1622510314_out: Vector(BankedWrite97.InputField1440121818_en(Top0))
+    }
+    controlShadowed = false
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(MemoryAnalyzer.scala:205)
+    noCost = false
+  }
+  Const154(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true))(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)) {
+    parent=Some(Top0)
+    OutputField386277591_out=[List(BankedRead133[x240].InputField1370471862_en)] {
+      tp = Bool
+      presetVec = 16
+      vec = 16
+    }
+    deps {
+    }
+    depeds {
+      OutputField386277591_out: Vector(BankedRead133.InputField1370471862_en(Top0))
+    }
+    controlShadowed = false
+    isExtern = false
+    ctrl = ControlTree126
+    isInnerReduceOp = false
+    srcCtx = List(MemoryAnalyzer.scala:205)
+    noCost = false
+  }
+  Const155(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true))(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)) {
+    parent=Some(Top0)
+    OutputField2052696108_out=[List(MemWrite135[x243__1].InputField575126437_en)] {
+      tp = Bool
+      presetVec = 16
+      vec = 16
+    }
+    deps {
+    }
+    depeds {
+      OutputField2052696108_out: Vector(MemWrite135.InputField575126437_en(Top0))
+    }
+    controlShadowed = false
+    isExtern = false
+    ctrl = ControlTree126
+    isInnerReduceOp = false
+    srcCtx = List(MemoryAnalyzer.scala:205)
+    noCost = false
+  }
+  OpDef25(FixToFix)(FixToFix) {
+    parent=Some(Top0)
+    OutputField1368746906_out=[List(OpDef27(FixAdd).InputField1534037052_input)] {
+      tp = Fix(false,32,0)
+      vec = 1
+    }
+    InputField1929620148_input=[List(CounterIter14[b148].OutputField2110090069_out)] {
+      tp = Fix(true,32,0)
+      vec = 1
+      dynamicIdx = 0
+    }
+    deps {
+      CounterIter14.OutputField2110090069_out(LoopController13): Vector(OpDef25.InputField1929620148_input)
+    }
+    depeds {
+      OutputField1368746906_out: Vector(OpDef27.InputField1534037052_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:43:48)
+    progorder = 7
+    sname = x155
+    noCost = false
+  }
+  OpDef26(FixToFix)(FixToFix) {
+    parent=Some(Top0)
+    OutputField92732815_out=[List(OpDef27(FixAdd).InputField1591652552_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1730958106_input=[List(CounterIter23[b153].OutputField1539239508_out)] {
+      tp = Fix(true,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    deps {
+      CounterIter23.OutputField1539239508_out(LoopController22): Vector(OpDef26.InputField1730958106_input)
+    }
+    depeds {
+      OutputField92732815_out: Vector(OpDef27.InputField1591652552_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:43:63)
+    progorder = 8
+    sname = x156
+    noCost = false
+  }
+  OpDef27(FixAdd)(FixAdd) {
+    parent=Some(Top0)
+    OutputField1765240336_out=[List(OpDef28(FixLst).InputField1514556511_input, OpDef33(FixMulH).InputField1695554243_input, OpDef35(FixMul).InputField2146919714_input, OpDef37(FixFMA).InputField1442679128_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1534037052_input=[List(OpDef25(FixToFix).OutputField1368746906_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 0
+    }
+    InputField1591652552_input=[List(OpDef26(FixToFix).OutputField92732815_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef25.OutputField1368746906_out(Top0): Vector(OpDef27.InputField1534037052_input)
+      OpDef26.OutputField92732815_out(Top0): Vector(OpDef27.InputField1591652552_input)
+    }
+    depeds {
+      OutputField1765240336_out: Vector(OpDef28.InputField1514556511_input(Top0), OpDef33.InputField1695554243_input(Top0), OpDef35.InputField2146919714_input(Top0), OpDef37.InputField1442679128_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = _ctr_lo
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:43:57)
+    progorder = 9
+    sname = x157
+    noCost = false
+  }
+  OpDef28(FixLst)(FixLst) {
+    parent=Some(Top0)
+    OutputField925186119_out=[List(OpDef30(Mux).InputField692663855_input)] {
+      tp = Bool
+      vec = 16
+    }
+    InputField1514556511_input=[List(OpDef27(FixAdd).OutputField1765240336_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1145024592_input=[List(Const29(0).OutputField1006630602_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef27.OutputField1765240336_out(Top0): Vector(OpDef28.InputField1514556511_input)
+      Const29.OutputField1006630602_out(Top0): Vector(OpDef28.InputField1145024592_input)
+    }
+    depeds {
+      OutputField925186119_out: Vector(OpDef30.InputField692663855_input(Top0))
+    }
+    controlShadowed = false
+    tp = Bool
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:28:35)
+    progorder = 10
+    sname = x158
+    noCost = false
+  }
+  OpDef30(Mux)(Mux) {
+    parent=Some(Top0)
+    OutputField1915485768_out=[List(OpDef39(FixFMA).InputField633396472_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField692663855_input=[List(OpDef28(FixLst).OutputField925186119_out)] {
+      tp = Bool
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField358615282_input=[List(Const31(1).OutputField602144474_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 1
+    }
+    InputField1475919075_input=[List(Const32(0).OutputField134780824_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 2
+    }
+    deps {
+      Const32.OutputField134780824_out(Top0): Vector(OpDef30.InputField1475919075_input)
+      Const31.OutputField602144474_out(Top0): Vector(OpDef30.InputField358615282_input)
+      OpDef28.OutputField925186119_out(Top0): Vector(OpDef30.InputField692663855_input)
+    }
+    depeds {
+      OutputField1915485768_out: Vector(OpDef39.InputField633396472_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = _ctr_hi
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:28:31)
+    progorder = 11
+    sname = x159
+    noCost = false
+  }
+  OpDef33(FixMulH)(FixMulH) {
+    parent=Some(Top0)
+    OutputField2065232066_out=[List(OpDef37(FixFMA).InputField1153018118_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1695554243_input=[List(OpDef27(FixAdd).OutputField1765240336_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1504868419_input=[List(Const34(1289957229).OutputField2091382345_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef27.OutputField1765240336_out(Top0): Vector(OpDef33.InputField1695554243_input)
+      Const34.OutputField2091382345_out(Top0): Vector(OpDef33.InputField1504868419_input)
+    }
+    depeds {
+      OutputField2065232066_out: Vector(OpDef37.InputField1153018118_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = ac_hi
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:16:14)
+    progorder = 12
+    sname = x160
+    noCost = false
+  }
+  OpDef37(FixFMA)(FixFMA) {
+    parent=Some(Top0)
+    OutputField367983674_out=[List(OpDef39(FixFMA).InputField986075180_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1442679128_input=[List(OpDef27(FixAdd).OutputField1765240336_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField932225265_input=[List(Const38(3370450197).OutputField506739410_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 1
+    }
+    InputField1153018118_input=[List(OpDef33(FixMulH).OutputField2065232066_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 2
+    }
+    deps {
+      OpDef27.OutputField1765240336_out(Top0): Vector(OpDef37.InputField1442679128_input)
+      Const38.OutputField506739410_out(Top0): Vector(OpDef37.InputField932225265_input)
+      OpDef33.OutputField2065232066_out(Top0): Vector(OpDef37.InputField1153018118_input)
+    }
+    depeds {
+      OutputField367983674_out: Vector(OpDef39.InputField986075180_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(RewriteTransformer.scala:56:10)
+    progorder = 16
+    sname = x269
+    noCost = false
+  }
+  OpDef39(FixFMA)(FixFMA) {
+    parent=Some(Top0)
+    OutputField1114249364_out=[List(OpDef47(FixAdd).InputField663232950_input, OpDef52(FixFMA).InputField466665059_input, OpDef53(FixFMA).InputField1076316574_input, OpDef59(FixAdd).InputField1020677710_input, OpDef81(FixAdd).InputField1508981043_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField633396472_input=[List(OpDef30(Mux).OutputField1915485768_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField930926188_input=[List(Const40(1289957229).OutputField2042091926_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 1
+    }
+    InputField986075180_input=[List(OpDef37(FixFMA).OutputField367983674_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 2
+    }
+    deps {
+      OpDef37.OutputField367983674_out(Top0): Vector(OpDef39.InputField986075180_input)
+      Const40.OutputField2042091926_out(Top0): Vector(OpDef39.InputField930926188_input)
+      OpDef30.OutputField1915485768_out(Top0): Vector(OpDef39.InputField633396472_input)
+    }
+    depeds {
+      OutputField1114249364_out: Vector(OpDef47.InputField663232950_input(Top0), OpDef52.InputField466665059_input(Top0), OpDef53.InputField1076316574_input(Top0), OpDef59.InputField1020677710_input(Top0), OpDef81.InputField1508981043_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = y_hi
+    isInnerReduceOp = false
+    srcCtx = List(RewriteTransformer.scala:56:10)
+    progorder = 17
+    sname = x270
+    noCost = false
+  }
+  OpDef47(FixAdd)(FixAdd) {
+    parent=Some(Top0)
+    OutputField1208956520_out=[List(OpDef49(FixAdd).InputField306359484_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField663232950_input=[List(OpDef39(FixFMA).OutputField1114249364_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField369491801_input=[List(Const48(3370450197).OutputField1816511059_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef39.OutputField1114249364_out(Top0): Vector(OpDef47.InputField663232950_input)
+      Const48.OutputField1816511059_out(Top0): Vector(OpDef47.InputField369491801_input)
+    }
+    depeds {
+      OutputField1208956520_out: Vector(OpDef49.InputField306359484_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:29:12)
+    progorder = 21
+    sname = x169
+    noCost = false
+  }
+  OpDef35(FixMul)(FixMul) {
+    parent=Some(Top0)
+    OutputField1129816298_out=[List(OpDef41(FixAdd).InputField680982094_input, OpDef43(FixLst).InputField930963141_input, OpDef50(FixMulH).InputField1183170315_input, OpDef50(FixMulH).InputField1312666087_input, OpDef51(FixMul).InputField448695785_input, OpDef51(FixMul).InputField959428048_input, OpDef52(FixFMA).InputField1595216228_input, OpDef53(FixFMA).InputField287482717_input, OpDef54(FixAdd).InputField268772892_input, OpDef76(FixAdd).InputField1177612405_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField2146919714_input=[List(OpDef27(FixAdd).OutputField1765240336_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField22665926_input=[List(Const36(1289957229).OutputField2055295311_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef27.OutputField1765240336_out(Top0): Vector(OpDef35.InputField2146919714_input)
+      Const36.OutputField2055295311_out(Top0): Vector(OpDef35.InputField22665926_input)
+    }
+    depeds {
+      OutputField1129816298_out: Vector(OpDef41.InputField680982094_input(Top0), OpDef43.InputField930963141_input(Top0), OpDef50.InputField1183170315_input(Top0), OpDef50.InputField1312666087_input(Top0), OpDef51.InputField448695785_input(Top0), OpDef51.InputField959428048_input(Top0), OpDef52.InputField1595216228_input(Top0), OpDef53.InputField287482717_input(Top0), OpDef54.InputField268772892_input(Top0), OpDef76.InputField1177612405_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = y_lo
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:16:24)
+    progorder = 13
+    sname = x161
+    noCost = false
+  }
+  OpDef41(FixAdd)(FixAdd) {
+    parent=Some(Top0)
+    OutputField1593733584_out=[List(OpDef43(FixLst).InputField1769668893_input, OpDef65(FixAdd).InputField23637695_input, OpDef87(FixAdd).InputField136239669_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField680982094_input=[List(OpDef35(FixMul).OutputField1129816298_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField97215101_input=[List(Const42(1289957229).OutputField133152053_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef35.OutputField1129816298_out(Top0): Vector(OpDef41.InputField680982094_input)
+      Const42.OutputField133152053_out(Top0): Vector(OpDef41.InputField97215101_input)
+    }
+    depeds {
+      OutputField1593733584_out: Vector(OpDef43.InputField1769668893_input(Top0), OpDef65.InputField23637695_input(Top0), OpDef87.InputField136239669_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = z_lo
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:27:27)
+    progorder = 18
+    sname = x166
+    noCost = false
+  }
+  OpDef43(FixLst)(FixLst) {
+    parent=Some(Top0)
+    OutputField1983950109_out=[List(OpDef44(Mux).InputField294950152_input)] {
+      tp = Bool
+      vec = 16
+    }
+    InputField1769668893_input=[List(OpDef41(FixAdd).OutputField1593733584_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField930963141_input=[List(OpDef35(FixMul).OutputField1129816298_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef35.OutputField1129816298_out(Top0): Vector(OpDef43.InputField930963141_input)
+      OpDef41.OutputField1593733584_out(Top0): Vector(OpDef43.InputField1769668893_input)
+    }
+    depeds {
+      OutputField1983950109_out: Vector(OpDef44.InputField294950152_input(Top0))
+    }
+    controlShadowed = false
+    tp = Bool
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:28:35)
+    progorder = 19
+    sname = x167
+    noCost = false
+  }
+  OpDef44(Mux)(Mux) {
+    parent=Some(Top0)
+    OutputField764281085_out=[List(OpDef49(FixAdd).InputField721712794_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField294950152_input=[List(OpDef43(FixLst).OutputField1983950109_out)] {
+      tp = Bool
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField51441881_input=[List(Const45(1).OutputField1100640642_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 1
+    }
+    InputField2070635114_input=[List(Const46(0).OutputField1776154308_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 2
+    }
+    deps {
+      Const45.OutputField1100640642_out(Top0): Vector(OpDef44.InputField51441881_input)
+      OpDef43.OutputField1983950109_out(Top0): Vector(OpDef44.InputField294950152_input)
+      Const46.OutputField1776154308_out(Top0): Vector(OpDef44.InputField2070635114_input)
+    }
+    depeds {
+      OutputField764281085_out: Vector(OpDef49.InputField721712794_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = carry
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:28:31)
+    progorder = 20
+    sname = x168
+    noCost = false
+  }
+  OpDef49(FixAdd)(FixAdd) {
+    parent=Some(Top0)
+    OutputField1948366367_out=[List(OpDef70(FixAdd).InputField1074327824_input, OpDef92(FixAdd).InputField2042518404_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField306359484_input=[List(OpDef47(FixAdd).OutputField1208956520_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField721712794_input=[List(OpDef44(Mux).OutputField764281085_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef44.OutputField764281085_out(Top0): Vector(OpDef49.InputField721712794_input)
+      OpDef47.OutputField1208956520_out(Top0): Vector(OpDef49.InputField306359484_input)
+    }
+    depeds {
+      OutputField1948366367_out: Vector(OpDef70.InputField1074327824_input(Top0), OpDef92.InputField2042518404_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = z_hi
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:29:16)
+    progorder = 22
+    sname = x170
+    noCost = false
+  }
+  OpDef50(FixMulH)(FixMulH) {
+    parent=Some(Top0)
+    OutputField1093000415_out=[List(OpDef52(FixFMA).InputField1218653921_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1183170315_input=[List(OpDef35(FixMul).OutputField1129816298_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1312666087_input=[List(OpDef35(FixMul).OutputField1129816298_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef35.OutputField1129816298_out(Top0): Vector(OpDef50.InputField1183170315_input, OpDef50.InputField1312666087_input)
+    }
+    depeds {
+      OutputField1093000415_out: Vector(OpDef52.InputField1218653921_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = ac_hi
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:16:14)
+    progorder = 23
+    sname = x171
+    noCost = false
+  }
+  OpDef52(FixFMA)(FixFMA) {
+    parent=Some(Top0)
+    OutputField824836973_out=[List(OpDef53(FixFMA).InputField596428927_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1595216228_input=[List(OpDef35(FixMul).OutputField1129816298_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField466665059_input=[List(OpDef39(FixFMA).OutputField1114249364_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    InputField1218653921_input=[List(OpDef50(FixMulH).OutputField1093000415_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 2
+    }
+    deps {
+      OpDef39.OutputField1114249364_out(Top0): Vector(OpDef52.InputField466665059_input)
+      OpDef35.OutputField1129816298_out(Top0): Vector(OpDef52.InputField1595216228_input)
+      OpDef50.OutputField1093000415_out(Top0): Vector(OpDef52.InputField1218653921_input)
+    }
+    depeds {
+      OutputField824836973_out: Vector(OpDef53.InputField596428927_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(RewriteTransformer.scala:56:10)
+    progorder = 27
+    sname = x271
+    noCost = false
+  }
+  OpDef53(FixFMA)(FixFMA) {
+    parent=Some(Top0)
+    OutputField1578817432_out=[List(OpDef59(FixAdd).InputField247964929_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1076316574_input=[List(OpDef39(FixFMA).OutputField1114249364_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField287482717_input=[List(OpDef35(FixMul).OutputField1129816298_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    InputField596428927_input=[List(OpDef52(FixFMA).OutputField824836973_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 2
+    }
+    deps {
+      OpDef39.OutputField1114249364_out(Top0): Vector(OpDef53.InputField1076316574_input)
+      OpDef35.OutputField1129816298_out(Top0): Vector(OpDef53.InputField287482717_input)
+      OpDef52.OutputField824836973_out(Top0): Vector(OpDef53.InputField596428927_input)
+    }
+    depeds {
+      OutputField1578817432_out: Vector(OpDef59.InputField247964929_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = x_0_hi
+    isInnerReduceOp = false
+    srcCtx = List(RewriteTransformer.scala:56:10)
+    progorder = 28
+    sname = x272
+    noCost = false
+  }
+  OpDef59(FixAdd)(FixAdd) {
+    parent=Some(Top0)
+    OutputField1785882220_out=[List(OpDef60(FixAdd).InputField1419711932_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField247964929_input=[List(OpDef53(FixFMA).OutputField1578817432_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1020677710_input=[List(OpDef39(FixFMA).OutputField1114249364_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef39.OutputField1114249364_out(Top0): Vector(OpDef59.InputField1020677710_input)
+      OpDef53.OutputField1578817432_out(Top0): Vector(OpDef59.InputField247964929_input)
+    }
+    depeds {
+      OutputField1785882220_out: Vector(OpDef60.InputField1419711932_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:29:12)
+    progorder = 32
+    sname = x180
+    noCost = false
+  }
+  OpDef51(FixMul)(FixMul) {
+    parent=Some(Top0)
+    OutputField1898449184_out=[List(OpDef54(FixAdd).InputField1435485154_input, OpDef55(FixLst).InputField1995268098_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField448695785_input=[List(OpDef35(FixMul).OutputField1129816298_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField959428048_input=[List(OpDef35(FixMul).OutputField1129816298_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef35.OutputField1129816298_out(Top0): Vector(OpDef51.InputField448695785_input, OpDef51.InputField959428048_input)
+    }
+    depeds {
+      OutputField1898449184_out: Vector(OpDef54.InputField1435485154_input(Top0), OpDef55.InputField1995268098_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = x_0_lo
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:16:24)
+    progorder = 24
+    sname = x172
+    noCost = false
+  }
+  OpDef54(FixAdd)(FixAdd) {
+    parent=Some(Top0)
+    OutputField1370729154_out=[List(OpDef55(FixLst).InputField1331796532_input, OpDef63(FixFMA).InputField208251700_input, OpDef64(FixFMA).InputField1897720020_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1435485154_input=[List(OpDef51(FixMul).OutputField1898449184_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField268772892_input=[List(OpDef35(FixMul).OutputField1129816298_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef35.OutputField1129816298_out(Top0): Vector(OpDef54.InputField268772892_input)
+      OpDef51.OutputField1898449184_out(Top0): Vector(OpDef54.InputField1435485154_input)
+    }
+    depeds {
+      OutputField1370729154_out: Vector(OpDef55.InputField1331796532_input(Top0), OpDef63.InputField208251700_input(Top0), OpDef64.InputField1897720020_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = x_1_lo
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:27:27)
+    progorder = 29
+    sname = x177
+    noCost = false
+  }
+  OpDef55(FixLst)(FixLst) {
+    parent=Some(Top0)
+    OutputField1683670414_out=[List(OpDef56(Mux).InputField449778511_input)] {
+      tp = Bool
+      vec = 16
+    }
+    InputField1331796532_input=[List(OpDef54(FixAdd).OutputField1370729154_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1995268098_input=[List(OpDef51(FixMul).OutputField1898449184_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef51.OutputField1898449184_out(Top0): Vector(OpDef55.InputField1995268098_input)
+      OpDef54.OutputField1370729154_out(Top0): Vector(OpDef55.InputField1331796532_input)
+    }
+    depeds {
+      OutputField1683670414_out: Vector(OpDef56.InputField449778511_input(Top0))
+    }
+    controlShadowed = false
+    tp = Bool
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:28:35)
+    progorder = 30
+    sname = x178
+    noCost = false
+  }
+  OpDef56(Mux)(Mux) {
+    parent=Some(Top0)
+    OutputField1880221321_out=[List(OpDef60(FixAdd).InputField1521845599_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField449778511_input=[List(OpDef55(FixLst).OutputField1683670414_out)] {
+      tp = Bool
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField589889340_input=[List(Const57(1).OutputField781384075_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 1
+    }
+    InputField2078882142_input=[List(Const58(0).OutputField974731475_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 2
+    }
+    deps {
+      Const58.OutputField974731475_out(Top0): Vector(OpDef56.InputField2078882142_input)
+      Const57.OutputField781384075_out(Top0): Vector(OpDef56.InputField589889340_input)
+      OpDef55.OutputField1683670414_out(Top0): Vector(OpDef56.InputField449778511_input)
+    }
+    depeds {
+      OutputField1880221321_out: Vector(OpDef60.InputField1521845599_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = carry
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:28:31)
+    progorder = 31
+    sname = x179
+    noCost = false
+  }
+  OpDef60(FixAdd)(FixAdd) {
+    parent=Some(Top0)
+    OutputField1732467704_out=[List(OpDef61(FixMulH).InputField1292744629_input, OpDef61(FixMulH).InputField1004821558_input, OpDef62(FixMul).InputField1850196256_input, OpDef62(FixMul).InputField2002462002_input, OpDef63(FixFMA).InputField582314213_input, OpDef64(FixFMA).InputField840140831_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1419711932_input=[List(OpDef59(FixAdd).OutputField1785882220_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1521845599_input=[List(OpDef56(Mux).OutputField1880221321_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef56.OutputField1880221321_out(Top0): Vector(OpDef60.InputField1521845599_input)
+      OpDef59.OutputField1785882220_out(Top0): Vector(OpDef60.InputField1419711932_input)
+    }
+    depeds {
+      OutputField1732467704_out: Vector(OpDef61.InputField1292744629_input(Top0), OpDef61.InputField1004821558_input(Top0), OpDef62.InputField1850196256_input(Top0), OpDef62.InputField2002462002_input(Top0), OpDef63.InputField582314213_input(Top0), OpDef64.InputField840140831_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = x_1_hi
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:29:16)
+    progorder = 33
+    sname = x181
+    noCost = false
+  }
+  OpDef61(FixMulH)(FixMulH) {
+    parent=Some(Top0)
+    OutputField1637051598_out=[List(OpDef63(FixFMA).InputField341500634_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1292744629_input=[List(OpDef60(FixAdd).OutputField1732467704_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1004821558_input=[List(OpDef60(FixAdd).OutputField1732467704_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef60.OutputField1732467704_out(Top0): Vector(OpDef61.InputField1292744629_input, OpDef61.InputField1004821558_input)
+    }
+    depeds {
+      OutputField1637051598_out: Vector(OpDef63.InputField341500634_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = ac_hi
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:16:14)
+    progorder = 34
+    sname = x182
+    noCost = false
+  }
+  OpDef63(FixFMA)(FixFMA) {
+    parent=Some(Top0)
+    OutputField1923869009_out=[List(OpDef64(FixFMA).InputField940372804_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField582314213_input=[List(OpDef60(FixAdd).OutputField1732467704_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField208251700_input=[List(OpDef54(FixAdd).OutputField1370729154_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    InputField341500634_input=[List(OpDef61(FixMulH).OutputField1637051598_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 2
+    }
+    deps {
+      OpDef60.OutputField1732467704_out(Top0): Vector(OpDef63.InputField582314213_input)
+      OpDef61.OutputField1637051598_out(Top0): Vector(OpDef63.InputField341500634_input)
+      OpDef54.OutputField1370729154_out(Top0): Vector(OpDef63.InputField208251700_input)
+    }
+    depeds {
+      OutputField1923869009_out: Vector(OpDef64.InputField940372804_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(RewriteTransformer.scala:56:10)
+    progorder = 38
+    sname = x273
+    noCost = false
+  }
+  OpDef64(FixFMA)(FixFMA) {
+    parent=Some(Top0)
+    OutputField820893174_out=[List(OpDef70(FixAdd).InputField2145140040_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1897720020_input=[List(OpDef54(FixAdd).OutputField1370729154_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField840140831_input=[List(OpDef60(FixAdd).OutputField1732467704_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    InputField940372804_input=[List(OpDef63(FixFMA).OutputField1923869009_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 2
+    }
+    deps {
+      OpDef60.OutputField1732467704_out(Top0): Vector(OpDef64.InputField840140831_input)
+      OpDef63.OutputField1923869009_out(Top0): Vector(OpDef64.InputField940372804_input)
+      OpDef54.OutputField1370729154_out(Top0): Vector(OpDef64.InputField1897720020_input)
+    }
+    depeds {
+      OutputField820893174_out: Vector(OpDef70.InputField2145140040_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = x_2_hi
+    isInnerReduceOp = false
+    srcCtx = List(RewriteTransformer.scala:56:10)
+    progorder = 39
+    sname = x274
+    noCost = false
+  }
+  OpDef70(FixAdd)(FixAdd) {
+    parent=Some(Top0)
+    OutputField678006167_out=[List(OpDef71(FixAdd).InputField990560074_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField2145140040_input=[List(OpDef64(FixFMA).OutputField820893174_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1074327824_input=[List(OpDef49(FixAdd).OutputField1948366367_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef64.OutputField820893174_out(Top0): Vector(OpDef70.InputField2145140040_input)
+      OpDef49.OutputField1948366367_out(Top0): Vector(OpDef70.InputField1074327824_input)
+    }
+    depeds {
+      OutputField678006167_out: Vector(OpDef71.InputField990560074_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:29:12)
+    progorder = 43
+    sname = x191
+    noCost = false
+  }
+  OpDef62(FixMul)(FixMul) {
+    parent=Some(Top0)
+    OutputField1322739536_out=[List(OpDef65(FixAdd).InputField1579282668_input, OpDef66(FixLst).InputField1645086121_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1850196256_input=[List(OpDef60(FixAdd).OutputField1732467704_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField2002462002_input=[List(OpDef60(FixAdd).OutputField1732467704_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef60.OutputField1732467704_out(Top0): Vector(OpDef62.InputField1850196256_input, OpDef62.InputField2002462002_input)
+    }
+    depeds {
+      OutputField1322739536_out: Vector(OpDef65.InputField1579282668_input(Top0), OpDef66.InputField1645086121_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = x_2_lo
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:16:24)
+    progorder = 35
+    sname = x183
+    noCost = false
+  }
+  OpDef65(FixAdd)(FixAdd) {
+    parent=Some(Top0)
+    OutputField1885130120_out=[List(OpDef66(FixLst).InputField643259018_input, OpDef74(FixFMA).InputField354160038_input, OpDef75(FixFMA).InputField1819953589_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1579282668_input=[List(OpDef62(FixMul).OutputField1322739536_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField23637695_input=[List(OpDef41(FixAdd).OutputField1593733584_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef62.OutputField1322739536_out(Top0): Vector(OpDef65.InputField1579282668_input)
+      OpDef41.OutputField1593733584_out(Top0): Vector(OpDef65.InputField23637695_input)
+    }
+    depeds {
+      OutputField1885130120_out: Vector(OpDef66.InputField643259018_input(Top0), OpDef74.InputField354160038_input(Top0), OpDef75.InputField1819953589_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = x_3_lo
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:27:27)
+    progorder = 40
+    sname = x188
+    noCost = false
+  }
+  OpDef66(FixLst)(FixLst) {
+    parent=Some(Top0)
+    OutputField1998610962_out=[List(OpDef67(Mux).InputField762784677_input)] {
+      tp = Bool
+      vec = 16
+    }
+    InputField643259018_input=[List(OpDef65(FixAdd).OutputField1885130120_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1645086121_input=[List(OpDef62(FixMul).OutputField1322739536_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef62.OutputField1322739536_out(Top0): Vector(OpDef66.InputField1645086121_input)
+      OpDef65.OutputField1885130120_out(Top0): Vector(OpDef66.InputField643259018_input)
+    }
+    depeds {
+      OutputField1998610962_out: Vector(OpDef67.InputField762784677_input(Top0))
+    }
+    controlShadowed = false
+    tp = Bool
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:28:35)
+    progorder = 41
+    sname = x189
+    noCost = false
+  }
+  OpDef67(Mux)(Mux) {
+    parent=Some(Top0)
+    OutputField1099053548_out=[List(OpDef71(FixAdd).InputField1007503690_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField762784677_input=[List(OpDef66(FixLst).OutputField1998610962_out)] {
+      tp = Bool
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField68841237_input=[List(Const68(1).OutputField1336728859_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 1
+    }
+    InputField1626075147_input=[List(Const69(0).OutputField488128274_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 2
+    }
+    deps {
+      Const68.OutputField1336728859_out(Top0): Vector(OpDef67.InputField68841237_input)
+      OpDef66.OutputField1998610962_out(Top0): Vector(OpDef67.InputField762784677_input)
+      Const69.OutputField488128274_out(Top0): Vector(OpDef67.InputField1626075147_input)
+    }
+    depeds {
+      OutputField1099053548_out: Vector(OpDef71.InputField1007503690_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = carry
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:28:31)
+    progorder = 42
+    sname = x190
+    noCost = false
+  }
+  OpDef71(FixAdd)(FixAdd) {
+    parent=Some(Top0)
+    OutputField631431371_out=[List(OpDef72(FixMulH).InputField1062935246_input, OpDef72(FixMulH).InputField1774863222_input, OpDef73(FixMul).InputField213182610_input, OpDef73(FixMul).InputField937347969_input, OpDef74(FixFMA).InputField1423918719_input, OpDef75(FixFMA).InputField1474362437_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField990560074_input=[List(OpDef70(FixAdd).OutputField678006167_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1007503690_input=[List(OpDef67(Mux).OutputField1099053548_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef70.OutputField678006167_out(Top0): Vector(OpDef71.InputField990560074_input)
+      OpDef67.OutputField1099053548_out(Top0): Vector(OpDef71.InputField1007503690_input)
+    }
+    depeds {
+      OutputField631431371_out: Vector(OpDef72.InputField1062935246_input(Top0), OpDef72.InputField1774863222_input(Top0), OpDef73.InputField213182610_input(Top0), OpDef73.InputField937347969_input(Top0), OpDef74.InputField1423918719_input(Top0), OpDef75.InputField1474362437_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = x_3_hi
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:29:16)
+    progorder = 44
+    sname = x192
+    noCost = false
+  }
+  OpDef72(FixMulH)(FixMulH) {
+    parent=Some(Top0)
+    OutputField1371869011_out=[List(OpDef74(FixFMA).InputField1852488054_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1062935246_input=[List(OpDef71(FixAdd).OutputField631431371_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1774863222_input=[List(OpDef71(FixAdd).OutputField631431371_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef71.OutputField631431371_out(Top0): Vector(OpDef72.InputField1062935246_input, OpDef72.InputField1774863222_input)
+    }
+    depeds {
+      OutputField1371869011_out: Vector(OpDef74.InputField1852488054_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = ac_hi
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:16:14)
+    progorder = 45
+    sname = x193
+    noCost = false
+  }
+  OpDef74(FixFMA)(FixFMA) {
+    parent=Some(Top0)
+    OutputField2139410789_out=[List(OpDef75(FixFMA).InputField35140068_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1423918719_input=[List(OpDef71(FixAdd).OutputField631431371_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField354160038_input=[List(OpDef65(FixAdd).OutputField1885130120_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    InputField1852488054_input=[List(OpDef72(FixMulH).OutputField1371869011_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 2
+    }
+    deps {
+      OpDef65.OutputField1885130120_out(Top0): Vector(OpDef74.InputField354160038_input)
+      OpDef71.OutputField631431371_out(Top0): Vector(OpDef74.InputField1423918719_input)
+      OpDef72.OutputField1371869011_out(Top0): Vector(OpDef74.InputField1852488054_input)
+    }
+    depeds {
+      OutputField2139410789_out: Vector(OpDef75.InputField35140068_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(RewriteTransformer.scala:56:10)
+    progorder = 49
+    sname = x275
+    noCost = false
+  }
+  OpDef75(FixFMA)(FixFMA) {
+    parent=Some(Top0)
+    OutputField436078097_out=[List(OpDef81(FixAdd).InputField1021135073_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1819953589_input=[List(OpDef65(FixAdd).OutputField1885130120_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1474362437_input=[List(OpDef71(FixAdd).OutputField631431371_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    InputField35140068_input=[List(OpDef74(FixFMA).OutputField2139410789_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 2
+    }
+    deps {
+      OpDef65.OutputField1885130120_out(Top0): Vector(OpDef75.InputField1819953589_input)
+      OpDef74.OutputField2139410789_out(Top0): Vector(OpDef75.InputField35140068_input)
+      OpDef71.OutputField631431371_out(Top0): Vector(OpDef75.InputField1474362437_input)
+    }
+    depeds {
+      OutputField436078097_out: Vector(OpDef81.InputField1021135073_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = x_4_hi
+    isInnerReduceOp = false
+    srcCtx = List(RewriteTransformer.scala:56:10)
+    progorder = 50
+    sname = x276
+    noCost = false
+  }
+  OpDef81(FixAdd)(FixAdd) {
+    parent=Some(Top0)
+    OutputField1076915547_out=[List(OpDef82(FixAdd).InputField1138842066_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1021135073_input=[List(OpDef75(FixFMA).OutputField436078097_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1508981043_input=[List(OpDef39(FixFMA).OutputField1114249364_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef39.OutputField1114249364_out(Top0): Vector(OpDef81.InputField1508981043_input)
+      OpDef75.OutputField436078097_out(Top0): Vector(OpDef81.InputField1021135073_input)
+    }
+    depeds {
+      OutputField1076915547_out: Vector(OpDef82.InputField1138842066_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:29:12)
+    progorder = 54
+    sname = x202
+    noCost = false
+  }
+  OpDef73(FixMul)(FixMul) {
+    parent=Some(Top0)
+    OutputField1809715789_out=[List(OpDef76(FixAdd).InputField98854460_input, OpDef77(FixLst).InputField1360125256_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField213182610_input=[List(OpDef71(FixAdd).OutputField631431371_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField937347969_input=[List(OpDef71(FixAdd).OutputField631431371_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef71.OutputField631431371_out(Top0): Vector(OpDef73.InputField213182610_input, OpDef73.InputField937347969_input)
+    }
+    depeds {
+      OutputField1809715789_out: Vector(OpDef76.InputField98854460_input(Top0), OpDef77.InputField1360125256_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = x_4_lo
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:16:24)
+    progorder = 46
+    sname = x194
+    noCost = false
+  }
+  OpDef76(FixAdd)(FixAdd) {
+    parent=Some(Top0)
+    OutputField1429649931_out=[List(OpDef77(FixLst).InputField283325561_input, OpDef85(FixFMA).InputField1826419988_input, OpDef86(FixFMA).InputField1943624182_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField98854460_input=[List(OpDef73(FixMul).OutputField1809715789_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1177612405_input=[List(OpDef35(FixMul).OutputField1129816298_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef35.OutputField1129816298_out(Top0): Vector(OpDef76.InputField1177612405_input)
+      OpDef73.OutputField1809715789_out(Top0): Vector(OpDef76.InputField98854460_input)
+    }
+    depeds {
+      OutputField1429649931_out: Vector(OpDef77.InputField283325561_input(Top0), OpDef85.InputField1826419988_input(Top0), OpDef86.InputField1943624182_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = x_5_lo
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:27:27)
+    progorder = 51
+    sname = x199
+    noCost = false
+  }
+  OpDef77(FixLst)(FixLst) {
+    parent=Some(Top0)
+    OutputField915435793_out=[List(OpDef78(Mux).InputField2080071873_input)] {
+      tp = Bool
+      vec = 16
+    }
+    InputField283325561_input=[List(OpDef76(FixAdd).OutputField1429649931_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1360125256_input=[List(OpDef73(FixMul).OutputField1809715789_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef76.OutputField1429649931_out(Top0): Vector(OpDef77.InputField283325561_input)
+      OpDef73.OutputField1809715789_out(Top0): Vector(OpDef77.InputField1360125256_input)
+    }
+    depeds {
+      OutputField915435793_out: Vector(OpDef78.InputField2080071873_input(Top0))
+    }
+    controlShadowed = false
+    tp = Bool
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:28:35)
+    progorder = 52
+    sname = x200
+    noCost = false
+  }
+  OpDef78(Mux)(Mux) {
+    parent=Some(Top0)
+    OutputField28729364_out=[List(OpDef82(FixAdd).InputField327796796_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField2080071873_input=[List(OpDef77(FixLst).OutputField915435793_out)] {
+      tp = Bool
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1903279104_input=[List(Const79(1).OutputField1474018157_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 1
+    }
+    InputField1437994998_input=[List(Const80(0).OutputField219615024_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 2
+    }
+    deps {
+      Const79.OutputField1474018157_out(Top0): Vector(OpDef78.InputField1903279104_input)
+      OpDef77.OutputField915435793_out(Top0): Vector(OpDef78.InputField2080071873_input)
+      Const80.OutputField219615024_out(Top0): Vector(OpDef78.InputField1437994998_input)
+    }
+    depeds {
+      OutputField28729364_out: Vector(OpDef82.InputField327796796_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = carry
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:28:31)
+    progorder = 53
+    sname = x201
+    noCost = false
+  }
+  OpDef82(FixAdd)(FixAdd) {
+    parent=Some(Top0)
+    OutputField363696582_out=[List(OpDef83(FixMulH).InputField1448290016_input, OpDef83(FixMulH).InputField197577790_input, OpDef84(FixMul).InputField1768945735_input, OpDef84(FixMul).InputField1425374824_input, OpDef85(FixFMA).InputField329633590_input, OpDef86(FixFMA).InputField220992022_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1138842066_input=[List(OpDef81(FixAdd).OutputField1076915547_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField327796796_input=[List(OpDef78(Mux).OutputField28729364_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef81.OutputField1076915547_out(Top0): Vector(OpDef82.InputField1138842066_input)
+      OpDef78.OutputField28729364_out(Top0): Vector(OpDef82.InputField327796796_input)
+    }
+    depeds {
+      OutputField363696582_out: Vector(OpDef83.InputField1448290016_input(Top0), OpDef83.InputField197577790_input(Top0), OpDef84.InputField1768945735_input(Top0), OpDef84.InputField1425374824_input(Top0), OpDef85.InputField329633590_input(Top0), OpDef86.InputField220992022_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = x_5_hi
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:29:16)
+    progorder = 55
+    sname = x203
+    noCost = false
+  }
+  OpDef83(FixMulH)(FixMulH) {
+    parent=Some(Top0)
+    OutputField523617053_out=[List(OpDef85(FixFMA).InputField901342805_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1448290016_input=[List(OpDef82(FixAdd).OutputField363696582_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField197577790_input=[List(OpDef82(FixAdd).OutputField363696582_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef82.OutputField363696582_out(Top0): Vector(OpDef83.InputField1448290016_input, OpDef83.InputField197577790_input)
+    }
+    depeds {
+      OutputField523617053_out: Vector(OpDef85.InputField901342805_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = ac_hi
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:16:14)
+    progorder = 56
+    sname = x204
+    noCost = false
+  }
+  OpDef85(FixFMA)(FixFMA) {
+    parent=Some(Top0)
+    OutputField94286338_out=[List(OpDef86(FixFMA).InputField1995635261_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField329633590_input=[List(OpDef82(FixAdd).OutputField363696582_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1826419988_input=[List(OpDef76(FixAdd).OutputField1429649931_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    InputField901342805_input=[List(OpDef83(FixMulH).OutputField523617053_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 2
+    }
+    deps {
+      OpDef83.OutputField523617053_out(Top0): Vector(OpDef85.InputField901342805_input)
+      OpDef76.OutputField1429649931_out(Top0): Vector(OpDef85.InputField1826419988_input)
+      OpDef82.OutputField363696582_out(Top0): Vector(OpDef85.InputField329633590_input)
+    }
+    depeds {
+      OutputField94286338_out: Vector(OpDef86.InputField1995635261_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(RewriteTransformer.scala:56:10)
+    progorder = 60
+    sname = x277
+    noCost = false
+  }
+  OpDef86(FixFMA)(FixFMA) {
+    parent=Some(Top0)
+    OutputField2015782835_out=[List(OpDef92(FixAdd).InputField580348969_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1943624182_input=[List(OpDef76(FixAdd).OutputField1429649931_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField220992022_input=[List(OpDef82(FixAdd).OutputField363696582_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    InputField1995635261_input=[List(OpDef85(FixFMA).OutputField94286338_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 2
+    }
+    deps {
+      OpDef85.OutputField94286338_out(Top0): Vector(OpDef86.InputField1995635261_input)
+      OpDef76.OutputField1429649931_out(Top0): Vector(OpDef86.InputField1943624182_input)
+      OpDef82.OutputField363696582_out(Top0): Vector(OpDef86.InputField220992022_input)
+    }
+    depeds {
+      OutputField2015782835_out: Vector(OpDef92.InputField580348969_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = x_6_hi
+    isInnerReduceOp = false
+    srcCtx = List(RewriteTransformer.scala:56:10)
+    progorder = 61
+    sname = x278
+    noCost = false
+  }
+  OpDef92(FixAdd)(FixAdd) {
+    parent=Some(Top0)
+    OutputField563306896_out=[List(OpDef93(FixAdd).InputField1238699538_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField580348969_input=[List(OpDef86(FixFMA).OutputField2015782835_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField2042518404_input=[List(OpDef49(FixAdd).OutputField1948366367_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef49.OutputField1948366367_out(Top0): Vector(OpDef92.InputField2042518404_input)
+      OpDef86.OutputField2015782835_out(Top0): Vector(OpDef92.InputField580348969_input)
+    }
+    depeds {
+      OutputField563306896_out: Vector(OpDef93.InputField1238699538_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:29:12)
+    progorder = 65
+    sname = x213
+    noCost = false
+  }
+  OpDef84(FixMul)(FixMul) {
+    parent=Some(Top0)
+    OutputField650427993_out=[List(OpDef87(FixAdd).InputField1767700017_input, OpDef88(FixLst).InputField1054915291_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1768945735_input=[List(OpDef82(FixAdd).OutputField363696582_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1425374824_input=[List(OpDef82(FixAdd).OutputField363696582_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef82.OutputField363696582_out(Top0): Vector(OpDef84.InputField1768945735_input, OpDef84.InputField1425374824_input)
+    }
+    depeds {
+      OutputField650427993_out: Vector(OpDef87.InputField1767700017_input(Top0), OpDef88.InputField1054915291_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = x_6_lo
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:16:24)
+    progorder = 57
+    sname = x205
+    noCost = false
+  }
+  OpDef87(FixAdd)(FixAdd) {
+    parent=Some(Top0)
+    OutputField76412948_out=[List(OpDef88(FixLst).InputField1079054230_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1767700017_input=[List(OpDef84(FixMul).OutputField650427993_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField136239669_input=[List(OpDef41(FixAdd).OutputField1593733584_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef84.OutputField650427993_out(Top0): Vector(OpDef87.InputField1767700017_input)
+      OpDef41.OutputField1593733584_out(Top0): Vector(OpDef87.InputField136239669_input)
+    }
+    depeds {
+      OutputField76412948_out: Vector(OpDef88.InputField1079054230_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = x_7_lo
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:27:27)
+    progorder = 62
+    sname = x210
+    noCost = false
+  }
+  OpDef88(FixLst)(FixLst) {
+    parent=Some(Top0)
+    OutputField1320326415_out=[List(OpDef89(Mux).InputField1499854106_input)] {
+      tp = Bool
+      vec = 16
+    }
+    InputField1079054230_input=[List(OpDef87(FixAdd).OutputField76412948_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1054915291_input=[List(OpDef84(FixMul).OutputField650427993_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef87.OutputField76412948_out(Top0): Vector(OpDef88.InputField1079054230_input)
+      OpDef84.OutputField650427993_out(Top0): Vector(OpDef88.InputField1054915291_input)
+    }
+    depeds {
+      OutputField1320326415_out: Vector(OpDef89.InputField1499854106_input(Top0))
+    }
+    controlShadowed = false
+    tp = Bool
+    isExtern = false
+    ctrl = ControlTree21
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:28:35)
+    progorder = 63
+    sname = x211
+    noCost = false
+  }
+  OpDef89(Mux)(Mux) {
+    parent=Some(Top0)
+    OutputField1704092274_out=[List(OpDef93(FixAdd).InputField1111236311_input)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1499854106_input=[List(OpDef88(FixLst).OutputField1320326415_out)] {
+      tp = Bool
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField439559813_input=[List(Const90(1).OutputField377142782_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 1
+    }
+    InputField654291390_input=[List(Const91(0).OutputField1273452587_out)] {
+      tp = Fix(false,32,0)
+      vec = 1
+      dynamicIdx = 2
+    }
+    deps {
+      OpDef88.OutputField1320326415_out(Top0): Vector(OpDef89.InputField1499854106_input)
+      Const91.OutputField1273452587_out(Top0): Vector(OpDef89.InputField654291390_input)
+      Const90.OutputField377142782_out(Top0): Vector(OpDef89.InputField439559813_input)
+    }
+    depeds {
+      OutputField1704092274_out: Vector(OpDef93.InputField1111236311_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = carry
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:28:31)
+    progorder = 64
+    sname = x212
+    noCost = false
+  }
+  OpDef93(FixAdd)(FixAdd) {
+    parent=Some(Top0)
+    OutputField1354417672_out=[List(BankedWrite97[x219].InputField1395419689_data)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField1238699538_input=[List(OpDef92(FixAdd).OutputField563306896_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField1111236311_input=[List(OpDef89(Mux).OutputField1704092274_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+      dynamicIdx = 1
+    }
+    deps {
+      OpDef92.OutputField563306896_out(Top0): Vector(OpDef93.InputField1238699538_input)
+      OpDef89.OutputField1704092274_out(Top0): Vector(OpDef93.InputField1111236311_input)
+    }
+    depeds {
+      OutputField1354417672_out: Vector(BankedWrite97.InputField1395419689_data(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isExtern = false
+    ctrl = ControlTree21
+    name = x_7_hi
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:29:16)
+    progorder = 66
+    sname = x214
+    noCost = false
+  }
+  BankedWrite97[x219]() {
+    parent=Some(Top0)
+    InputField1440121818_en=[List(Const153(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)).OutputField1622510314_out)] {
+      tp = Bool
+      vec = 16
+    }
+    InputField1691569223_done=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField883822436_mem=[List(SRAM16[x150].InputField1931034290_in)] {
+    }
+    InputField1395419689_data=[List(OpDef93(FixAdd).OutputField1354417672_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField2116132586_bank=[List(Const94(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)).OutputField1393677154_out)] {
+      tp = Fix(true,32,0)
+      vec = 16
+    }
+    InputField2120903645_offset=[List(OpDef95(FixSRA).OutputField280860855_out)] {
+      tp = Fix(true,32,0)
+      vec = 16
+    }
+    deps {
+      OpDef93.OutputField1354417672_out(Top0): Vector(BankedWrite97.InputField1395419689_data)
+      Const153.OutputField1622510314_out(Top0): Vector(BankedWrite97.InputField1440121818_en)
+      OpDef95.OutputField280860855_out(Top0): Vector(BankedWrite97.InputField2120903645_offset)
+      Const94.OutputField1393677154_out(Top0): Vector(BankedWrite97.InputField2116132586_bank)
+    }
+    depeds {
+      OutputField883822436_mem: Vector(SRAM16.InputField1931034290_in(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isAccumAccess = false
+    order = 97.0
+    isExtern = false
+    ctrl = ControlTree21
+    srcCtx = List(Squares.scala:69:31)
+    isInnerReduceOp = false
+    broadcast = List(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    progorder = 67
+    castgroup = List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+    sname = x219
+    port = Some(0)
+    muxPort = 0
+    noCost = false
+  }
+  SRAM16[x150]() {
+    parent=Some(Top0)
+    InputField1931034290_in=[List(BankedWrite97[x219].OutputField883822436_mem)] {
+    }
+    OutputField681377542_out=[List(BankedRead133[x240].InputField571468640_mem)] {
+      tp = Fix(false,32,0)
+    }
+    deps {
+      BankedWrite97.OutputField883822436_mem(Top0): Vector(SRAM16.InputField1931034290_in)
+    }
+    depeds {
+      OutputField681377542_out: Vector(BankedRead133.InputField571468640_mem(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    dims = List(8192)
+    numPart = 1
+    darkVolume = 0
+    isExtern = false
+    isInnerAccum = false
+    name = rand_s_0
+    srcCtx = List(Squares.scala:40:42)
+    isInnerReduceOp = false
+    banks = List(16)
+    isMemReduceAccum = false
+    progorder = 3
+    isAccum = false
+    depth = 2
+    sname = x150
+    nonBlocking = false
+    noCost = false
+  }
+  UnitController99[x249]() {
+    parent=Some(Top0)
+    InputField2022645175_en=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    InputField1560834836_parentEn=[List(LoopController13[x250].OutputField1534588983_childDone)] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField721636908_done=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1607598888_tileDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1605427136_subTileDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1094617073_childDone=[List(UnitController107[x231].InputField1866697246_parentEn, LoopController127[x244].InputField593815184_parentEn, UnitController144[x248].InputField55167616_parentEn)] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1895678932_stepped=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1064912288_levelsDone=[List()] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    InputField1718539088_uen=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1398460771_laneValid=[List()] {
+      tp = Bool
+      vec = 1
+    }
+    deps {
+      LoopController13.OutputField1534588983_childDone(Top0): Vector(UnitController99.InputField1560834836_parentEn)
+    }
+    depeds {
+      OutputField1094617073_childDone: Vector(UnitController107.InputField1866697246_parentEn(Top0), LoopController127.InputField593815184_parentEn(Top0), UnitController144.InputField55167616_parentEn(Top0))
+    }
+    follow = false
+    controlShadowed = false
+    par = 1
+    isExtern = false
+    ctrl = ControlTree98
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:73:52)
+    progorder = 68
+    sname = x249
+    noCost = false
+  }
+  UnitController107[x231]() {
+    parent=Some(Top0)
+    InputField1394789881_en=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    InputField1866697246_parentEn=[List(UnitController99[x249].OutputField1094617073_childDone)] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1120769122_done=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1320518950_tileDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField196985868_subTileDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField2019404831_childDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1453152754_stepped=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField887323314_levelsDone=[List()] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    InputField1369134470_uen=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1152595710_laneValid=[List()] {
+      tp = Bool
+      vec = 1
+    }
+    deps {
+      UnitController99.OutputField1094617073_childDone(Top0): Vector(UnitController107.InputField1866697246_parentEn)
+    }
+    depeds {
+    }
+    follow = false
+    controlShadowed = false
+    par = 1
+    isExtern = false
+    ctrl = ControlTree106
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:73:52)
+    progorder = 72
+    sname = x231
+    noCost = false
+  }
+  LoopController127[x244]() {
+    parent=Some(Top0)
+    children=List(StridedCounter122, CounterIter128, CounterValid129)
+    InputField1044003324_en=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    InputField593815184_parentEn=[List(UnitController99[x249].OutputField1094617073_childDone)] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField41355137_done=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField898352016_tileDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1519515908_subTileDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1581630624_childDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1681169382_stepped=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField256398259_levelsDone=[List()] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    InputField1522848391_uen=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField710176187_laneValid=[List()] {
+      tp = Bool
+      vec = 16
+    }
+    OutputField1795107004_firstIter=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    InputField661076891_stopWhen=[List()] {
+      tp = Bool
+    }
+    deps {
+      Const125.OutputField410144403_out(Top0): Vector(StridedCounter122.InputField1266079883_max)
+      Const124.OutputField708643065_out(Top0): Vector(StridedCounter122.InputField1861891178_step)
+      Const123.OutputField1754533888_out(Top0): Vector(StridedCounter122.InputField180274038_min)
+      UnitController99.OutputField1094617073_childDone(Top0): Vector(LoopController127.InputField593815184_parentEn)
+    }
+    depeds {
+      OutputField1391533744_out: Vector(OpDef131.InputField161552606_input(Top0))
+    }
+    controlShadowed = false
+    par = 16
+    isExtern = false
+    constLaneValids = List(Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true))
+    ctrl = ControlTree126
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:73:52)
+    progorder = 82
+    sname = x244
+    noCost = false
+    StridedCounter122[x232](16) {
+      parent=Some(LoopController127)
+      OutputField1919613046_out=[List(CounterIter128[b234].InputField10739298_counter, CounterValid129[b235].InputField1642059582_counter)] {
+      }
+      OutputField451453320_isFirstIter=[List()] {
+      }
+      InputField180274038_min=[List(Const123(0).OutputField1754533888_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      InputField1861891178_step=[List(Const124(1).OutputField708643065_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      InputField1266079883_max=[List(Const125(8192).OutputField410144403_out)] {
+        tp = Fix(true,32,0)
+        vec = 1
+      }
+      deps {
+        Const125.OutputField410144403_out(Top0): Vector(StridedCounter122.InputField1266079883_max)
+        Const124.OutputField708643065_out(Top0): Vector(StridedCounter122.InputField1861891178_step)
+        Const123.OutputField1754533888_out(Top0): Vector(StridedCounter122.InputField180274038_min)
+      }
+      depeds {
+        OutputField1919613046_out: Vector(CounterIter128.InputField10739298_counter(LoopController127), CounterValid129.InputField1642059582_counter(LoopController127))
+      }
+      controlShadowed = false
+      constValids = List(Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true), Some(true))
+      constIters = List(None, None, None, None, None, None, None, None, None, None, None, None, None, None, None, None)
+      isExtern = false
+      idx = 0
+      ctrl = ControlTree126
+      srcCtx = List(Squares.scala:73:52)
+      isInnerReduceOp = false
+      valIter = -1
+      progorder = 80
+      sname = x232
+      noCost = false
+    }
+    CounterIter128[b234](List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)) {
+      parent=Some(LoopController127)
+      OutputField1391533744_out=[List(OpDef131(FixSRA).InputField161552606_input)] {
+        tp = Fix(true,32,0)
+        vec = 16
+      }
+      InputField10739298_counter=[List(StridedCounter122[x232].OutputField1919613046_out)] {
+        vec = 16
+      }
+      deps {
+        StridedCounter122.OutputField1919613046_out(LoopController127): Vector(CounterIter128.InputField10739298_counter)
+      }
+      depeds {
+        OutputField1391533744_out: Vector(OpDef131.InputField161552606_input(Top0))
+      }
+      controlShadowed = false
+      tp = Fix(true,32,0)
+      isExtern = false
+      ctrl = ControlTree126
+      isInnerReduceOp = false
+      srcCtx = List(Staging.scala:26:82)
+      sname = b234
+      noCost = false
+    }
+    CounterValid129[b235](List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)) {
+      parent=Some(LoopController127)
+      OutputField225979210_out=[List()] {
+        tp = Bool
+        presetVec = 16
+        vec = 16
+      }
+      InputField1642059582_counter=[List(StridedCounter122[x232].OutputField1919613046_out)] {
+      }
+      deps {
+        StridedCounter122.OutputField1919613046_out(LoopController127): Vector(CounterValid129.InputField1642059582_counter)
+      }
+      depeds {
+      }
+      controlShadowed = false
+      tp = Bool
+      isExtern = false
+      ctrl = ControlTree126
+      isInnerReduceOp = false
+      srcCtx = List(Staging.scala:26:82)
+      sname = b235
+      noCost = false
+    }
+  }
+  UnitController144[x248]() {
+    parent=Some(Top0)
+    InputField1478980710_en=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    InputField55167616_parentEn=[List(UnitController99[x249].OutputField1094617073_childDone)] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1617289967_done=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1278123908_tileDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField801723939_subTileDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1654228112_childDone=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField765747382_stepped=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField357435449_levelsDone=[List()] {
+      tp = Fix(false,32,0)
+      presetVec = 1
+      vec = 1
+    }
+    InputField1884503293_uen=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1581288291_laneValid=[List()] {
+      tp = Bool
+      vec = 1
+    }
+    deps {
+      UnitController99.OutputField1094617073_childDone(Top0): Vector(UnitController144.InputField55167616_parentEn)
+    }
+    depeds {
+    }
+    follow = false
+    controlShadowed = false
+    par = 1
+    isExtern = false
+    ctrl = ControlTree143
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:73:52)
+    progorder = 87
+    sname = x248
+    noCost = false
+  }
+  Reg111() {
+    parent=Some(Top0)
+    InputField1919883817_in=[List(MemWrite113.OutputField1243755602_mem)] {
+    }
+    OutputField323272045_out=[List(MemRead114[x226].InputField1078521109_mem)] {
+      tp = Fix(true,64,0)
+    }
+    deps {
+      MemWrite113.OutputField1243755602_mem(ArgFringe3): Vector(Reg111.InputField1919883817_in)
+    }
+    depeds {
+      OutputField323272045_out: Vector(MemRead114.InputField1078521109_mem(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(true,64,0)
+    dims = List(1)
+    numPart = 1
+    darkVolume = 0
+    isExtern = false
+    isInnerAccum = false
+    srcCtx = List()
+    isInnerReduceOp = false
+    banks = List(1)
+    isMemReduceAccum = false
+    isAccum = false
+    depth = 1
+    nonBlocking = false
+    noCost = false
+  }
+  MemRead114[x226]() {
+    parent=Some(Top0)
+    InputField2141254332_en=[List()] {
+      tp = Bool
+      vec = 1
+    }
+    InputField870595128_done=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField706873968_out=[List(OpDef115(FixAdd).InputField1585678363_input)] {
+      tp = Fix(true,64,0)
+      vec = 1
+    }
+    InputField1078521109_mem=[List(Reg111.OutputField323272045_out)] {
+      tp = Fix(true,64,0)
+    }
+    deps {
+      Reg111.OutputField323272045_out(Top0): Vector(MemRead114.InputField1078521109_mem)
+    }
+    depeds {
+      OutputField706873968_out: Vector(OpDef115.InputField1585678363_input(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(true,64,0)
+    isAccumAccess = false
+    order = 114.0
+    isExtern = false
+    ctrl = ControlTree106
+    name = x145_addr
+    srcCtx = List(Squares.scala:73:52)
+    isInnerReduceOp = false
+    toScanController = false
+    progorder = 75
+    sname = x226
+    port = Some(0)
+    noCost = false
+  }
+  OpDef115(FixAdd)(FixAdd) {
+    parent=Some(Top0)
+    OutputField1034426657_out=[List(MemWrite119[x230_offset].InputField1270265325_data)] {
+      tp = Fix(true,64,0)
+      vec = 1
+    }
+    InputField1766826658_input=[List(OpDef110(FixToFix).OutputField1933855596_out)] {
+      tp = Fix(true,64,0)
+      vec = 1
+      dynamicIdx = 0
+    }
+    InputField1585678363_input=[List(MemRead114[x226].OutputField706873968_out)] {
+      tp = Fix(true,64,0)
+      vec = 1
+      dynamicIdx = 1
+    }
+    deps {
+      MemRead114.OutputField706873968_out(Top0): Vector(OpDef115.InputField1585678363_input)
+      OpDef110.OutputField1933855596_out(Top0): Vector(OpDef115.InputField1766826658_input)
+    }
+    depeds {
+      OutputField1034426657_out: Vector(MemWrite119.InputField1270265325_data(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(true,64,0)
+    isExtern = false
+    ctrl = ControlTree106
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:73:52)
+    progorder = 76
+    sname = x227
+    noCost = false
+  }
+  MemWrite119[x230_offset]() {
+    parent=Some(Top0)
+    InputField839504428_en=[List()] {
+      tp = Bool
+    }
+    InputField1940467850_done=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField464988213_mem=[List(FIFO100[x221_offset].InputField948327422_in)] {
+    }
+    InputField1270265325_data=[List(OpDef115(FixAdd).OutputField1034426657_out)] {
+      tp = Fix(true,64,0)
+      vec = 1
+    }
+    deps {
+      OpDef115.OutputField1034426657_out(Top0): Vector(MemWrite119.InputField1270265325_data)
+    }
+    depeds {
+      OutputField464988213_mem: Vector(FIFO100.InputField948327422_in(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(true,64,0)
+    isAccumAccess = false
+    order = 119.0
+    isExtern = false
+    ctrl = ControlTree106
+    name = offset
+    srcCtx = List(Squares.scala:73:52)
+    isInnerReduceOp = false
+    broadcast = List(0)
+    progorder = 79
+    castgroup = List(0)
+    sname = x230_offset
+    port = Some(0)
+    muxPort = 0
+    noCost = false
+  }
+  FIFO100[x221_offset]() {
+    parent=Some(Top0)
+    InputField948327422_in=[List(MemWrite119[x230_offset].OutputField464988213_mem)] {
+    }
+    OutputField677573613_out=[List(MemRead138.InputField189774069_mem)] {
+      tp = Fix(true,64,0)
+    }
+    deps {
+      MemWrite119.OutputField464988213_mem(Top0): Vector(FIFO100.InputField948327422_in)
+    }
+    depeds {
+      OutputField677573613_out: Vector(MemRead138.InputField189774069_mem(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(true,64,0)
+    retiming = false
+    dims = List(1)
+    numPart = 1
+    darkVolume = 0
+    isExtern = false
+    isInnerAccum = false
+    name = offset
+    srcCtx = List(Squares.scala:73:52)
+    isInnerReduceOp = false
+    banks = List(1)
+    isMemReduceAccum = false
+    progorder = 69
+    isAccum = false
+    depth = 1
+    sname = x221_offset
+    nonBlocking = false
+    noCost = false
+  }
+  MemRead138() {
+    parent=Some(Top0)
+    InputField1152181479_en=[List()] {
+      tp = Bool
+    }
+    InputField983611630_done=[List()] {
+      tp = Bool
+      presetVec = 1
+    }
+    OutputField1591980822_out=[List(FringeDenseStore137[x245].InputField1248953710_offset)] {
+      tp = Fix(true,64,0)
+      vec = 1
+    }
+    InputField189774069_mem=[List(FIFO100[x221_offset].OutputField677573613_out)] {
+    }
+    deps {
+      FIFO100.OutputField677573613_out(Top0): Vector(MemRead138.InputField189774069_mem)
+    }
+    depeds {
+      OutputField1591980822_out: Vector(FringeDenseStore137.InputField1248953710_offset(Top0))
+    }
+    controlShadowed = false
+    isAccumAccess = false
+    order = 138.0
+    isExtern = false
+    ctrl = ControlTree98
+    srcCtx = List()
+    isInnerReduceOp = false
+    toScanController = false
+    port = Some(0)
+    noCost = false
+  }
+  OpDef131(FixSRA)(FixSRA) {
+    parent=Some(Top0)
+    OutputField1714110468_out=[List(BankedRead133[x240].InputField393493875_offset)] {
+      tp = Fix(true,32,0)
+      vec = 16
+    }
+    InputField161552606_input=[List(CounterIter128[b234].OutputField1391533744_out)] {
+      tp = Fix(true,32,0)
+      vec = 16
+      dynamicIdx = 0
+    }
+    InputField892752526_input=[List(Const132(4).OutputField857631136_out)] {
+      tp = Fix(true,16,0)
+      vec = 1
+      dynamicIdx = 1
+    }
+    deps {
+      Const132.OutputField857631136_out(Top0): Vector(OpDef131.InputField892752526_input)
+      CounterIter128.OutputField1391533744_out(LoopController127): Vector(OpDef131.InputField161552606_input)
+    }
+    depeds {
+      OutputField1714110468_out: Vector(BankedRead133.InputField393493875_offset(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(true,32,0)
+    isExtern = false
+    ctrl = ControlTree126
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:73:52)
+    sname = x237
+    noCost = false
+  }
+  BankedRead133[x240]() {
+    parent=Some(Top0)
+    InputField1370471862_en=[List(Const154(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)).OutputField386277591_out)] {
+      tp = Bool
+      vec = 16
+    }
+    InputField1355364533_done=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1466741248_out=[List(MemWrite135[x243__1].InputField503269472_data)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    InputField571468640_mem=[List(SRAM16[x150].OutputField681377542_out)] {
+      tp = Fix(false,32,0)
+    }
+    InputField241283226_bank=[List(Const130(List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)).OutputField238135242_out)] {
+      tp = Fix(true,32,0)
+      vec = 16
+    }
+    InputField393493875_offset=[List(OpDef131(FixSRA).OutputField1714110468_out)] {
+      tp = Fix(true,32,0)
+      vec = 16
+    }
+    deps {
+      Const130.OutputField238135242_out(Top0): Vector(BankedRead133.InputField241283226_bank)
+      OpDef131.OutputField1714110468_out(Top0): Vector(BankedRead133.InputField393493875_offset)
+      Const154.OutputField386277591_out(Top0): Vector(BankedRead133.InputField1370471862_en)
+      SRAM16.OutputField681377542_out(Top0): Vector(BankedRead133.InputField571468640_mem)
+    }
+    depeds {
+      OutputField1466741248_out: Vector(MemWrite135.InputField503269472_data(Top0))
+    }
+    controlShadowed = false
+    isAccumAccess = false
+    order = 133.0
+    isExtern = false
+    ctrl = ControlTree126
+    srcCtx = List(Squares.scala:73:52)
+    isInnerReduceOp = false
+    broadcast = List(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    progorder = 83
+    castgroup = List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+    sname = x240
+    port = Some(1)
+    muxPort = 0
+    noCost = false
+  }
+  MemWrite135[x243__1]() {
+    parent=Some(Top0)
+    InputField575126437_en=[List(Const155(List(true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true)).OutputField2052696108_out)] {
+      tp = Bool
+      vec = 16
+    }
+    InputField1472017969_done=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField1832654634_mem=[List(FIFO103[x222__1].InputField27610439_in)] {
+    }
+    InputField503269472_data=[List(BankedRead133[x240].OutputField1466741248_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    deps {
+      BankedRead133.OutputField1466741248_out(Top0): Vector(MemWrite135.InputField503269472_data)
+      Const155.OutputField2052696108_out(Top0): Vector(MemWrite135.InputField575126437_en)
+    }
+    depeds {
+      OutputField1832654634_mem: Vector(FIFO103.InputField27610439_in(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    isAccumAccess = false
+    order = 135.0
+    isExtern = false
+    ctrl = ControlTree126
+    name = _1
+    srcCtx = List(Squares.scala:73:52)
+    isInnerReduceOp = false
+    broadcast = List(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
+    progorder = 85
+    castgroup = List(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15)
+    sname = x243__1
+    port = Some(0)
+    muxPort = 0
+    noCost = false
+  }
+  FIFO103[x222__1]() {
+    parent=Some(Top0)
+    InputField27610439_in=[List(MemWrite135[x243__1].OutputField1832654634_mem)] {
+    }
+    OutputField543981503_out=[List(MemRead140.InputField46605904_mem)] {
+      tp = Fix(false,32,0)
+    }
+    deps {
+      MemWrite135.OutputField1832654634_mem(Top0): Vector(FIFO103.InputField27610439_in)
+    }
+    depeds {
+      OutputField543981503_out: Vector(MemRead140.InputField46605904_mem(Top0))
+    }
+    controlShadowed = false
+    tp = Fix(false,32,0)
+    retiming = false
+    dims = List(1)
+    numPart = 1
+    darkVolume = 0
+    isExtern = false
+    isInnerAccum = false
+    name = _1
+    srcCtx = List(Squares.scala:73:52)
+    isInnerReduceOp = false
+    banks = List(16)
+    isMemReduceAccum = false
+    progorder = 70
+    isAccum = false
+    depth = 1
+    sname = x222__1
+    nonBlocking = false
+    noCost = false
+  }
+  MemRead140() {
+    parent=Some(Top0)
+    InputField898851970_en=[List()] {
+      tp = Bool
+    }
+    InputField1516570566_done=[List()] {
+      tp = Bool
+      presetVec = 1
+    }
+    OutputField145378674_out=[List(FringeDenseStore137[x245].InputField1747068137_data)] {
+      vec = 16
+    }
+    InputField46605904_mem=[List(FIFO103[x222__1].OutputField543981503_out)] {
+    }
+    deps {
+      FIFO103.OutputField543981503_out(Top0): Vector(MemRead140.InputField46605904_mem)
+    }
+    depeds {
+      OutputField145378674_out: Vector(FringeDenseStore137.InputField1747068137_data(Top0))
+    }
+    controlShadowed = false
+    isAccumAccess = false
+    order = 140.0
+    isExtern = false
+    ctrl = ControlTree98
+    srcCtx = List()
+    isInnerReduceOp = false
+    toScanController = false
+    port = Some(0)
+    noCost = false
+  }
+  FringeDenseStore137[x245](DRAM326451684[rand_d]) {
+    parent=Some(Top0)
+    InputField1248953710_offset=[List(MemRead138.OutputField1591980822_out)] {
+      tp = Fix(true,64,0)
+      vec = 1
+    }
+    InputField1303118817_size=[List(Const116(32768).OutputField97003055_out)] {
+      tp = Fix(true,32,0)
+      vec = 1
+    }
+    InputField1747068137_data=[List(MemRead140.OutputField145378674_out)] {
+      tp = Fix(false,32,0)
+      vec = 16
+    }
+    OutputField1062345939_ack=[List(MemWrite142.InputField619105726_data)] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    InputField482280215_valid=[List(MemRead141.OutputField1059248286_out)] {
+      tp = Bool
+      vec = 16
+    }
+    deps {
+      MemRead141.OutputField1059248286_out(Top0): Vector(FringeDenseStore137.InputField482280215_valid)
+      MemRead138.OutputField1591980822_out(Top0): Vector(FringeDenseStore137.InputField1248953710_offset)
+      MemRead140.OutputField145378674_out(Top0): Vector(FringeDenseStore137.InputField1747068137_data)
+      Const116.OutputField97003055_out(Top0): Vector(FringeDenseStore137.InputField1303118817_size)
+    }
+    depeds {
+      OutputField1062345939_ack: Vector(MemWrite142.InputField619105726_data(Top0))
+    }
+    controlShadowed = false
+    isExtern = false
+    ctrl = ControlTree98
+    name = rand_d
+    isInnerReduceOp = false
+    srcCtx = List(Squares.scala:73:52)
+    progorder = 86
+    sname = x245
+    noCost = false
+  }
+  MemWrite142() {
+    parent=Some(Top0)
+    InputField1714034737_en=[List()] {
+      tp = Bool
+    }
+    InputField1332070978_done=[List()] {
+      tp = Bool
+      presetVec = 1
+    }
+    OutputField1846551708_mem=[List(FIFO105[x223].InputField287231669_in)] {
+    }
+    InputField619105726_data=[List(FringeDenseStore137[x245].OutputField1062345939_ack)] {
+    }
+    deps {
+      FringeDenseStore137.OutputField1062345939_ack(Top0): Vector(MemWrite142.InputField619105726_data)
+    }
+    depeds {
+      OutputField1846551708_mem: Vector(FIFO105.InputField287231669_in(Top0))
+    }
+    controlShadowed = false
+    tp = Bool
+    isAccumAccess = false
+    order = 142.0
+    isExtern = false
+    ctrl = ControlTree98
+    srcCtx = List()
+    isInnerReduceOp = false
+    port = Some(0)
+    noCost = false
+  }
+  FIFO105[x223]() {
+    parent=Some(Top0)
+    InputField287231669_in=[List(MemWrite142.OutputField1846551708_mem)] {
+    }
+    OutputField815027000_out=[List(MemRead145[x246].InputField693614940_mem)] {
+      tp = Bool
+    }
+    deps {
+      MemWrite142.OutputField1846551708_mem(Top0): Vector(FIFO105.InputField287231669_in)
+    }
+    depeds {
+      OutputField815027000_out: Vector(MemRead145.InputField693614940_mem(Top0))
+    }
+    controlShadowed = false
+    tp = Bool
+    retiming = false
+    dims = List(1)
+    numPart = 1
+    darkVolume = 0
+    isExtern = false
+    isInnerAccum = false
+    srcCtx = List(Squares.scala:73:52)
+    isInnerReduceOp = false
+    banks = List(1)
+    isMemReduceAccum = false
+    progorder = 71
+    isAccum = false
+    depth = 1
+    sname = x223
+    nonBlocking = false
+    noCost = false
+  }
+  MemRead145[x246]() {
+    parent=Some(Top0)
+    InputField897922089_en=[List()] {
+      tp = Bool
+      vec = 1
+    }
+    InputField1557676720_done=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    OutputField102351323_out=[List(AccumAck148.InputField1200593193_ack)] {
+      tp = Bool
+      vec = 1
+    }
+    InputField693614940_mem=[List(FIFO105[x223].OutputField815027000_out)] {
+      tp = Bool
+    }
+    deps {
+      FIFO105.OutputField815027000_out(Top0): Vector(MemRead145.InputField693614940_mem)
+    }
+    depeds {
+      OutputField102351323_out: Vector(AccumAck148.InputField1200593193_ack(Top0))
+    }
+    controlShadowed = false
+    isAccumAccess = false
+    order = 145.0
+    isExtern = false
+    ctrl = ControlTree143
+    srcCtx = List(Squares.scala:73:52)
+    isInnerReduceOp = false
+    broadcast = List(0)
+    toScanController = false
+    progorder = 88
+    castgroup = List(0)
+    sname = x246
+    port = Some(0)
+    muxPort = 0
+    noCost = false
+  }
+  AccumAck148() {
+    parent=Some(Top0)
+    OutputField446855886_out=[List()] {
+      tp = Bool
+      presetVec = 1
+      vec = 1
+    }
+    InputField1200593193_ack=[List(MemRead145[x246].OutputField102351323_out)] {
+      tp = Bool
+      vec = 1
+    }
+    deps {
+      MemRead145.OutputField102351323_out(Top0): Vector(AccumAck148.InputField1200593193_ack)
+    }
+    depeds {
+    }
+    controlShadowed = false
+    isExtern = false
+    ctrl = ControlTree143
+    isInnerReduceOp = false
+    srcCtx = List(GraphPreprocessing.scala:514)
+    noCost = false
+  }
+}

@@ -1,0 +1,132 @@
+
+  <!DOCTYPE html>
+  <html>
+  <head>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.css">
+  <script src="http://code.jquery.com/jquery-1.11.3.min.js"></script>
+  <script src="http://code.jquery.com/mobile/1.4.5/jquery.mobile-1.4.5.min.js"></script>
+  </head><body>
+
+    <div data-role="main" class="ui-content" style="overflow-x:scroll;">
+      <h2>Controller Diagram for Squares_0 (Options: SyncMem)</h2>
+      <TABLE BORDER="3" CELLPADDING="10" CELLSPACING="10">
+  
+<!-- Begin x82 -->
+<TD>
+<font size = "6"><a href=IR.html#x82 target=_blank>x82</a>: Sequenced <font size = "4"> (OuterControl)</font>
+<br><font size = "2">Squares.scala:36:15 <font color="grey">-         Accel {</font></font>
+
+  <div data-role="collapsible"><h4> </h4>
+  <TABLE BORDER="3" CELLPADDING="10" CELLSPACING="10">
+  <!-- Begin x250 -->
+  <TD>
+  <font size = "6"><a href=IR.html#x250 target=_blank>x250</a>: Pipelined <font size = "4"> (OuterControl)</font>
+  <br><font size = "2">Squares.scala:37:44 <font color="grey">-             Foreach(len by tileSize par op){tile =></font></font>
+  <br><font size = "1">Counter: <a href=IR.html#x147 target=_blank>x147</a></font>
+
+    <div data-role="collapsible"><h4> </h4>
+    <TABLE BORDER="3" CELLPADDING="10" CELLSPACING="10">
+    <!-- Begin x220 -->
+    <TD>
+    <font size = "6"><a href=IR.html#x220 target=_blank>x220</a>: Pipelined <font size = "4"> (InnerControl)</font>
+    <br><font size = "2">Squares.scala:42:46 <font color="grey">-                 Foreach(tileSize by 1 par ip){i => </font></font>
+    <p><mark style="border:1px; border-style:solid; border-color:black; padding: 1px; background: #ccc"><font size = "2">Latency=0,  II=0</font></mark></p>
+<TABLE BORDER="1" CELLPADDING="1" CELLSPACING="0"><td>
+<font size=1>NBuf Connections</font>
+      <div data-role="collapsible"><h4> </h4>
+      <TABLE BORDER="3" CELLPADDING="10" CELLSPACING="10">
+      <p><div style="padding: 10px; border: 1px;display:inline-block;background-color: #d9b3ff"><font size = "1"><a href=IR.html#x150 target=_blank>x150</a> (BankedSRAM "rand_s_0")
+      </font></div></p>
+      </TABLE></div>
+    </TABLE></div>
+    <br><font size = "1">Counter: <a href=IR.html#x152 target=_blank>x152</a></font>
+
+    </TD>
+    <!-- End x220-->
+    <!-- Begin x249 -->
+    <TD>
+    <font size = "6"><a href=IR.html#x249 target=_blank>x249</a>: Streaming <font size = "4"> (OuterControl)</font>
+    <br><font size = "2">Squares.scala:73:52 <font color="grey">-                 rand_d(tile::tile+tileSize par ip) store rand_s</font></font>
+<TABLE BORDER="1" CELLPADDING="1" CELLSPACING="0"><td>
+<font size=1>NBuf Connections</font>
+      <div data-role="collapsible"><h4> </h4>
+      <TABLE BORDER="3" CELLPADDING="10" CELLSPACING="10">
+      <p><div style="padding: 10px; border: 1px;display:inline-block;background-color: #d9b3ff"><font size = "1"><a href=IR.html#x150 target=_blank>x150</a> (BankedSRAM "rand_s_0")
+      </font></div></p>
+      </TABLE></div>
+    </TABLE></div>
+
+      <div data-role="collapsible"><h4> </h4>
+      <TABLE BORDER="3" CELLPADDING="10" CELLSPACING="10">
+      <!-- Begin x231 -->
+      <TD>
+      <font size = "6"><a href=IR.html#x231 target=_blank>x231</a>: Sequenced <font size = "4"> (InnerControl)</font>
+      <br><font size = "2">Squares.scala:73:52 <font color="grey">-                 rand_d(tile::tile+tileSize par ip) store rand_s</font></font>
+      <p><mark style="border:1px; border-style:solid; border-color:black; padding: 1px; background: #ccc"><font size = "2">Latency=0,  II=0</font></mark></p>
+
+      <div style="border:1px solid black"><font size = "2">Stream Info</font><br><font size = "1"> 
+<p align="right">Set(x221)----->
+      </font></div>
+      </TD>
+      <!-- End x231-->
+      <!-- Begin x244 -->
+      <TD>
+      <font size = "6"><a href=IR.html#x244 target=_blank>x244</a>: Pipelined <font size = "4"> (InnerControl)</font>
+      <br><font size = "2">Squares.scala:73:52 <font color="grey">-                 rand_d(tile::tile+tileSize par ip) store rand_s</font></font>
+      <p><mark style="border:1px; border-style:solid; border-color:black; padding: 1px; background: #ccc"><font size = "2">Latency=0,  II=0</font></mark></p>
+      <br><font size = "1">Counter: <a href=IR.html#x233 target=_blank>x233</a></font>
+
+      <div style="border:1px solid black"><font size = "2">Stream Info</font><br><font size = "1"> 
+<p align="right">Set(x222)----->
+      </font></div>
+      </TD>
+      <!-- End x244-->
+      <!-- Begin x248 -->
+      <TD>
+      <font size = "6"><a href=IR.html#x248 target=_blank>x248</a>: Sequenced <font size = "4"> (InnerControl)</font>
+      <br><font size = "2">Squares.scala:73:52 <font color="grey">-                 rand_d(tile::tile+tileSize par ip) store rand_s</font></font>
+      <p><mark style="border:1px; border-style:solid; border-color:black; padding: 1px; background: #ccc"><font size = "2">Latency=0,  II=0</font></mark></p>
+
+      <div style="border:1px solid black"><font size = "2">Stream Info</font><br><font size = "1"> 
+<p align="left">----->Set(x223)
+      </font></div>
+      </TD>
+      <!-- End x248-->
+      </TABLE></div>
+    </TD>
+    <!-- End x249-->
+    </TABLE></div>
+  </TD>
+  <!-- End x250-->
+  </TABLE></div>
+</TD>
+<!-- End x82-->
+</TABLE>
+<h4> </h4><TABLE BORDER="3" CELLPADDING="10" CELLSPACING="10">
+<!-- Begin NBuf Mems -->
+<TD>
+NBuf Mems
+  <div data-role="collapsible"><h4> </h4>
+  <TABLE BORDER="3" CELLPADDING="10" CELLSPACING="10">
+  <p><div style="padding: 10px; border: 1px;display:inline-block;background-color: #d9b3ff"><font size = "1"><a href=IR.html#x150 target=_blank>x150</a> (BankedSRAM "rand_s_0")
+<br>lca = <a href=IR.html#x250 target=_blank>x250</a>
+<br>nBufs = 2
+<br>volume = 8192 (dims List(8192) + pads List(0), bw = 32)
+<br>nBufs*volume = 16384
+<br>nBanks = List(16), B = List(1), a = List(1), p = List(16)
+<br><div style="display:grid;grid-template-columns: max-content max-content max-content"><div style="border: 1px solid;padding: 5px"><b>muxwidth</b></div> <div style="border: 1px solid;padding: 5px"><b># R lanes</b></div><div style="border: 1px solid;padding: 5px"><b># W Lanes</b></div> <div style="border: 1px solid;padding: 5px">16</div> <div style="border: 1px solid;padding: 5px">1</div><div style="border: 1px solid;padding: 5px">1</div> </div>
+  </font></div></p>
+  </TABLE></div>
+</TD>
+<!-- End NBuf Mems-->
+<!-- Begin Single-Buffered Mems -->
+<TD>
+Single-Buffered Mems
+  <div data-role="collapsible"><h4> </h4>
+  <TABLE BORDER="3" CELLPADDING="10" CELLSPACING="10">
+  </TABLE></div>
+</TD>
+<!-- End Single-Buffered Mems-->
+</body>
+</html>
