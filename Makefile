@@ -29,21 +29,20 @@ pir:
 	sbt publishAll
 
 psim:
-	git submodule update --init plastisim
-	git submodule update --remote
 	mkdir -p plastisim/build
 	cd plastisim && make CC=gcc Cpp=g++ CXX=g++
 
 proute:
-	git submodule update --init plastiroute
-	git submodule update --remote
 	cd plastiroute && make CC=gcc Cpp=g++ CXX=g++ 
 
 tungsten:
-	git submodule update --init tungsten
-	git submodule update --remote
 	cd tungsten && make Cpp=g++ CXX=g++ 
 
+update:
+	git submodule update --init plastisim
+	git submodule update --init plastiroute
+	git submodule update --init tungsten
+	git submodule update --remote
 pull:
 	cd plastisim && git pull && git submodule update --init && git submodule update --remote
 	cd plastiroute && git pull
