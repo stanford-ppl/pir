@@ -9,7 +9,6 @@ env-update: env requirements.txt
 clean: clean-local
 	make -C tungsten/ clean
 	make -C plastiroute/ clean
-	make -C plastisim/ clean
 
 clean-local:
 	rm -r lib_managed
@@ -28,10 +27,6 @@ spatial:
 pir:
 	sbt publishAll
 
-psim:
-	mkdir -p plastisim/build
-	cd plastisim && make CC=gcc Cpp=g++ CXX=g++
-
 proute:
 	cd plastiroute && make CC=gcc Cpp=g++ CXX=g++ 
 
@@ -39,12 +34,10 @@ tungsten:
 	cd tungsten && make Cpp=g++ CXX=g++ 
 
 update:
-	git submodule update --init plastisim
 	git submodule update --init plastiroute
 	git submodule update --init tungsten
 	git submodule update --remote
 pull:
-	cd plastisim && git pull && git submodule update --init && git submodule update --remote
 	cd plastiroute && git pull
 
 
@@ -63,5 +56,5 @@ endif
 gurobipy:
 	cd $(HOME)/gurobi811/linux64 && $(PWD)/env/bin/python setup.py install
 
-.PHONY: all spatial pir psim proute pull tungsten clean clean-local gurobi gurobipy env-update
+.PHONY: all spatial pir proute pull tungsten clean clean-local gurobi gurobipy env-update
 
