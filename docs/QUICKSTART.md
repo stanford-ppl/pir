@@ -17,7 +17,7 @@ make update
 make pir
 ```
 
-`make pir` initializes and compiles all submodlues, which can takes some time for the first time. It will print bunch of stuff and make sure there's no error before proceeding. 
+`make pir` compiles all submodules, which can takes some time for the first time. It will print bunch of stuff and make sure there's no error before proceeding. `make update` initializes all submodules (plastiroute, tungsten) to the current branch and commit. 
 
 ## Run test end-to-end
 If your app extends `SpatialTest` instead of SpatialApp, you can run all following passes with the script `bin/test`. 
