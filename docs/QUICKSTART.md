@@ -6,13 +6,14 @@
 Clone spatial repo and checkout pir branch for latest development
 For place and route and simulation, you need to get access to these repos
 
-https://github.com/acrucker/plastiroute.git
+https://github.com/arjundeopujari/plastiroute.git
 
-https://github.com/acrucker/tungsten.git
+https://github.com/arjundeopujari/tungsten.git
 ```
 git clone https://github.com/stanford-ppl/spatial.git
 cd spatial
-git checkout acrucker
+git checkout arjund7
+make update
 make pir
 ```
 
