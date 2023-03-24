@@ -1,9 +1,6 @@
 [submodule "plastiroute"]
 	path = plastiroute
 	url = git@github.com:arjundeopujari/plastiroute.git
-[submodule "plastisim"]
-	path = plastisim
-	url = git@github.com:acrucker/plastisim.git
 [submodule "tungsten"]
 	path = tungsten
 	url = git@github.com:arjundeopujari/tungsten.git
